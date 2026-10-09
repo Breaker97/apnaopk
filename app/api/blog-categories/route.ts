@@ -7,6 +7,11 @@ import {
 } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  BLOG_CATEGORY_CONTENT,
+  auditContentCreated,
+} from "@/lib/site-config/audit-content";
 import { isAdmin } from "@/lib/access/rbac";
 import { sanitizeSearchString } from "@/lib/api/validate";
 import { CreateBlogCategorySchema } from "@/lib/validations";
@@ -44,7 +49,7 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
   return successResponse(cats);
 });
 
-export const POST = withApi({ auth: "admin" }, async ({ request }) => {
+export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
   const body = await request.json();
   const parsed = CreateBlogCategorySchema.safeParse(body);
   if (!parsed.success) {
@@ -57,6 +62,14 @@ export const POST = withApi({ auth: "admin" }, async ({ request }) => {
   const exists = await BlogCategory.findOne({ slug });
   if (exists) slug = `${slug}-${Date.now()}`;
   const cat = await BlogCategory.create({ ...data, slug });
+  await auditContentCreated(
+    createAuditContext(request, session),
+    BLOG_CATEGORY_CONTENT,
+    { id: String(cat._id), name: cat.name },
+    { name: cat.name, slug: cat.slug, isActive: cat.isActive },
+    // The slug is worked out here, and gains a suffix when it was taken.
+    `with the slug "${cat.slug}"`,
+  );
   revalidateBlogContent();
   return createdResponse(cat);
 });

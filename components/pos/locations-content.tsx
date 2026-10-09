@@ -24,6 +24,10 @@ import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { LocationFormDialog } from "./location-form-dialog";
 import {
+  StoreProfileNotice,
+  storeProfileCodeOf,
+} from "@/components/admin/store-profile-notice";
+import {
   dispatchesOnlineOrders,
   rankFulfillmentCandidates,
 } from "@/lib/locations/dispatch-order";
@@ -54,6 +58,9 @@ export function LocationsContent() {
   const [activeTab, setActiveTab] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  // Set when the store's own profile is missing and could not be made: the
+  // list would otherwise read as a store with no locations at all.
+  const [profileProblem, setProfileProblem] = useState<string | null>(null);
 
   // Fetch locations
   const fetchLocations = useCallback(
@@ -61,7 +68,14 @@ export function LocationsContent() {
       fetch("/api/admin/locations?includeInactive=true")
         .then((res) => res.json())
         .then((json) => {
-          if (json.success) setLocations(json.data || []);
+          if (json.success) {
+            setProfileProblem(null);
+            setLocations(json.data || []);
+            return;
+          }
+          const problem = storeProfileCodeOf(json);
+          setProfileProblem(problem);
+          if (!problem) toast.error(json.message || t("locations.fetchError"));
         })
         .catch(() => {
           toast.error(t("locations.fetchError"));
@@ -387,9 +401,10 @@ export function LocationsContent() {
         label: t("locations.addLocation"),
         icon: <Plus className="h-4 w-4" />,
         onClick: handleAdd,
+        disabled: Boolean(profileProblem),
       },
     ],
-    [t, handleAdd]
+    [t, handleAdd, profileProblem]
   );
 
   // Row actions
@@ -473,6 +488,9 @@ export function LocationsContent() {
 
   return (
     <>
+      {profileProblem ? (
+        <StoreProfileNotice code={profileProblem} className="mb-4" />
+      ) : null}
       <DataTable
         data={filteredData}
         columns={columns}

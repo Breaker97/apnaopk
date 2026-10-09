@@ -3,19 +3,22 @@
 import { EmailSettingsTab } from "@/components/admin/settings/sections/email-settings-tab";
 import { useAdminSettingsContext } from "@/components/admin/settings/admin-settings-context";
 import { SectionLoader } from "@/components/admin/settings/section-loader";
+import { useSession } from "@/lib/auth/auth-client";
 
 export default function Page() {
   const {
+    savedSettings,
     isSaving,
     isTestingEmail,
-    testEmail,
-    setTestEmail,
     dirtySections,
     updateNestedField,
     updateFieldInSection,
     saveSection,
+    discardEdits,
     testSmtp,
   } = useAdminSettingsContext();
+  // The test email goes to the signed-in admin unless they type another.
+  const { data: session } = useSession();
 
   return (
     <SectionLoader>
@@ -26,14 +29,18 @@ export default function Page() {
         return (
           <EmailSettingsTab
             settings={loadedSettings}
+            savedSettings={savedSettings ?? loadedSettings}
             isSaving={isSaving}
-            isDirty={isEmailDirty || isEmailVerificationDirty}
+            isEmailDirty={isEmailDirty}
+            isVerificationDirty={isEmailVerificationDirty}
             isTestingEmail={isTestingEmail}
-            testEmail={testEmail}
-            setTestEmail={setTestEmail}
+            adminEmail={session?.user?.email ?? ""}
             updateNestedField={updateNestedField}
             updateFieldInSection={updateFieldInSection}
             onSave={async () => {
+              // Verification first: switching it off is what lets the server
+              // details change, and switching it on needs the tested server
+              // that is already saved.
               if (isEmailVerificationDirty) {
                 const ok = await saveSection("emailVerification", {
                   emailVerificationRequired:
@@ -47,7 +54,12 @@ export default function Page() {
                 await saveSection("email", loadedSettings.email);
               }
             }}
-            onTestSmtp={() => testSmtp()}
+            onDiscard={discardEdits}
+            onTestSmtp={(to) => testSmtp(to)}
+            // Only the retention is sent, so other unsaved edits stay in the form.
+            onSaveRetention={(days) =>
+              saveSection("email", { logRetentionDays: days })
+            }
           />
         );
       }}

@@ -157,9 +157,9 @@ export async function listPOSProducts(
   }
 
   if (categoryId && !lookupIds) {
-    // The pill strip lists every category, parents included, but products sit
-    // on the leaves — so a department pill has to carry its whole branch or it
-    // shows the cashier an empty grid.
+    // The pill strip lists every category, parents included, and a product
+    // sits on one level only — so a department pill has to carry its whole
+    // branch or it shows the cashier only what was filed on the parent itself.
     query.category = isValidObjectId(categoryId)
       ? { $in: await expandCategoryIdsWithDescendants([categoryId]) }
       : categoryId;

@@ -40,6 +40,10 @@ import {
   type PermissionResource,
 } from "@/components/admin/staff/staff-permissions";
 import { cn } from "@/lib/utils";
+import {
+  StoreProfileNotice,
+  storeProfileCodeOf,
+} from "@/components/admin/store-profile-notice";
 
 interface StaffFormProps {
   locale: string;
@@ -111,6 +115,8 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
   const [isOwner, setIsOwner] = useState(false);
   const [vendors, setVendors] = useState<ScopeOption[]>([]);
   const [locations, setLocations] = useState<ScopeOption[]>([]);
+  // The store profile the locations belong to is missing and could not be made.
+  const [locationsProblem, setLocationsProblem] = useState<string | null>(null);
 
   const isEdit = Boolean(staffId);
   // Vendors manage staff only; the role selector is an admin-area concept.
@@ -204,6 +210,10 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
             })),
           );
         }
+      } else if (locationsRes.status === "fulfilled") {
+        setLocationsProblem(
+          storeProfileCodeOf(await locationsRes.value.json().catch(() => null)),
+        );
       }
     };
 
@@ -896,6 +906,10 @@ export function StaffForm({ locale, staffId, area = "admin" }: StaffFormProps) {
                   </div>
                 </div>
               )}
+
+              {locations.length === 0 && locationsProblem ? (
+                <StoreProfileNotice code={locationsProblem} compact />
+              ) : null}
 
               {locations.length > 0 && (
                 <div className="space-y-3">

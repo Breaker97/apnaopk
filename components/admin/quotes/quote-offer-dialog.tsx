@@ -30,7 +30,12 @@ import { lotFits, type QuoteLotLimit } from "@/lib/quotes/quote-lot-fit";
 import type { AdminQuoteDetail, QuoteOfferRow } from "@/lib/quotes/quotes";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/providers/currency-provider";
-import { formatQuoteDate, useLotMessage } from "./quote-ui";
+import {
+  formatQuoteDate,
+  quoteApiPath,
+  useLotMessage,
+  type QuoteScope,
+} from "./quote-ui";
 
 /**
  * Answering one quote with a price.
@@ -70,6 +75,8 @@ interface QuoteOfferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: (quote: AdminQuoteDetail) => void;
+  /** Whose route the price goes through; a vendor's price can be replaced by the store's. */
+  scope?: QuoteScope;
 }
 
 export function QuoteOfferDialog({
@@ -78,6 +85,7 @@ export function QuoteOfferDialog({
   open,
   onOpenChange,
   onSaved,
+  scope = "admin",
 }: QuoteOfferDialogProps) {
   const t = useTranslations("admin.quotesPage.dialog");
   const tq = useTranslations("admin.quotesPage");
@@ -92,7 +100,7 @@ export function QuoteOfferDialog({
     if (!open || initial?._id === quoteId) return;
     const controller = new AbortController();
     apiClient
-      .get<AdminQuoteDetail>(`/api/admin/quotes/${quoteId}`, {
+      .get<AdminQuoteDetail>(quoteApiPath(scope, quoteId), {
         signal: controller.signal,
       })
       .then((detail) => {
@@ -108,7 +116,7 @@ export function QuoteOfferDialog({
         onOpenChange(false);
       });
     return () => controller.abort();
-  }, [initial, onOpenChange, open, quoteId, tq]);
+  }, [initial, onOpenChange, open, quoteId, scope, tq]);
 
   const [unitPrice, setUnitPrice] = useState<number | undefined>(undefined);
   const [quantity, setQuantity] = useState<number | undefined>(1);
@@ -165,7 +173,7 @@ export function QuoteOfferDialog({
     setSaving(true);
     try {
       const saved = await apiClient.post<AdminQuoteDetail>(
-        `/api/admin/quotes/${quote._id}/offer`,
+        quoteApiPath(scope, quote._id, "offer"),
         {
           unitPrice,
           quantity,
@@ -391,9 +399,17 @@ export function QuoteOfferDialog({
               <div className="flex items-start gap-2.5 rounded-lg bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-primary">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  {t("guestNote", { name: quote.name, email: quote.email })}
+                  {quote.email
+                    ? t("guestNote", { name: quote.name, email: quote.email })
+                    : t("guestNoteHidden", { name: quote.name })}
                 </span>
               </div>
+            ) : null}
+
+            {scope === "vendor" ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {t("storeFinal")}
+              </p>
             ) : null}
           </div>
         )}

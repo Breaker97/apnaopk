@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import { Coupon } from "@/models";
+import { MERCHANT_COUPON_FILTER } from "@/models/coupon.model";
 import { connectDB } from "@/lib/db";
 import {
   countForQuery,
@@ -32,7 +33,8 @@ function buildCouponListFilter(
   { search, status }: Pick<CouponListParams, "search" | "status">,
   { vendorId }: CouponListContext = {},
 ): Record<string, unknown> {
-  const query: Record<string, unknown> = {};
+  // The store's one-off offer codes are not a merchant's discounts.
+  const query: Record<string, unknown> = { ...MERCHANT_COUPON_FILTER };
 
   if (vendorId) query.vendorId = vendorId;
   if (status && status !== "all") query.status = status;

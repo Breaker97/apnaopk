@@ -1,6 +1,7 @@
 import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
 import { getAuthContext } from "@/lib/auth/auth";
+import { PasswordReset } from "@/models/password-reset.model";
 
 export async function getCredentialAccount(
   db: Db,
@@ -12,6 +13,14 @@ export async function getCredentialAccount(
   )) as { _id?: ObjectId; password?: string } | null;
 }
 
+/**
+ * Sets the account's password — the one place a reset link, the account page
+ * and the shopper app all write it.
+ *
+ * Every emailed link of the user's stops working once it is set: an older
+ * invitation or reset still in the inbox would otherwise set it again, and
+ * whoever saw that email would hold a way into the account.
+ */
 export async function upsertCredentialPassword(
   db: Db,
   userId: ObjectId,
@@ -35,13 +44,14 @@ export async function upsertCredentialPassword(
         },
       },
     );
-    return;
+  } else {
+    await ctx.internalAdapter.linkAccount({
+      userId: userId.toString(),
+      providerId: "credential",
+      accountId: userId.toString(),
+      password: passwordHash,
+    });
   }
 
-  await ctx.internalAdapter.linkAccount({
-    userId: userId.toString(),
-    providerId: "credential",
-    accountId: userId.toString(),
-    password: passwordHash,
-  });
+  await PasswordReset.invalidateAllForUser(userId.toString());
 }

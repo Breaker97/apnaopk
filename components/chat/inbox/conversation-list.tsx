@@ -36,6 +36,8 @@ interface ConversationListProps {
     loadMore: string;
     storeSupport: string;
     count: string;
+    /** "3 unread", for the unread pill, which only shows the number. */
+    unread: (count: number) => string;
   };
 }
 
@@ -71,6 +73,7 @@ export function ConversationList({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={labels.search}
+            aria-label={labels.search}
             className="h-9 rounded-full border-transparent bg-muted/60 ps-9 text-sm"
           />
         </div>
@@ -81,6 +84,7 @@ export function ConversationList({
               key={tab.key}
               type="button"
               onClick={() => onFilterChange(tab.key)}
+              aria-pressed={filter === tab.key}
               className={cn(
                 "shrink-0 rounded-button px-2.5 py-1 text-xs font-medium transition-colors",
                 filter === tab.key
@@ -113,6 +117,7 @@ export function ConversationList({
                 key={conversation._id}
                 type="button"
                 onClick={() => onSelect(conversation._id)}
+                aria-current={selected ? "true" : undefined}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-start transition-colors",
                   selected ? "bg-primary/10" : "hover:bg-muted/60",
@@ -148,13 +153,18 @@ export function ConversationList({
                     >
                       {displayName}
                     </span>
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {/* Relative to now, which the server and the browser read a moment apart. */}
+                    <span
+                      className="shrink-0 text-[11px] text-muted-foreground"
+                      suppressHydrationWarning
+                    >
                       {formatRelativeTime(conversation.lastMessageAt, locale)}
                     </span>
                   </span>
 
                   <span className="mt-0.5 flex items-center gap-1.5">
                     <span
+                      dir="auto"
                       className={cn(
                         "line-clamp-1 flex-1 text-xs",
                         unread
@@ -165,7 +175,10 @@ export function ConversationList({
                       {conversation.lastMessagePreview}
                     </span>
                     {unread ? (
-                      <span className="grid size-4.5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground">
+                      <span
+                        aria-label={labels.unread(conversation.unreadCount)}
+                        className="grid size-4.5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold tabular-nums text-primary-foreground"
+                      >
                         {conversation.unreadCount > 9
                           ? "9+"
                           : conversation.unreadCount}

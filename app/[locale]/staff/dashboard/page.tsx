@@ -12,6 +12,7 @@ import {
 } from "@/lib/access/staff-scope";
 import { countAdminCustomers } from "@/lib/customers/customer-list";
 import { staffOrderScopeMatch } from "@/lib/orders/order-list";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 import {
   StaffDashboardContent,
   type StaffPosSale,
@@ -90,14 +91,16 @@ async function getRecentOrdersForStaff(
     .sort({ createdAt: -1 })
     .limit(5)
     .select(
-      "orderNumber customerId total status paymentStatus items createdAt",
+      "orderNumber customerId channel staffId total status paymentStatus items createdAt",
     )
     .populate("customerId", "name email")
     .lean<
       Array<{
         _id: unknown;
         orderNumber?: string;
-        customerId?: { name?: string; email?: string } | null;
+        customerId?: { _id?: unknown; name?: string; email?: string } | null;
+        channel?: string;
+        staffId?: string;
         total?: number;
         status?: string;
         paymentStatus?: string;
@@ -127,7 +130,10 @@ async function getRecentOrdersForStaff(
     return {
       _id: String(order._id ?? ""),
       orderNumber: order.orderNumber || "",
-      customerName: order.customerId?.name,
+      // A walk-in POS sale names nobody; the card prints its own label.
+      ...(isPosWalkIn(order)
+        ? { walkIn: true }
+        : { customerName: order.customerId?.name }),
       total: typeof order.total === "number" ? order.total : 0,
       status: order.status || "pending",
       paymentStatus: order.paymentStatus,

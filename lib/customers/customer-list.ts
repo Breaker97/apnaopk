@@ -10,8 +10,11 @@ import {
   type StaffAccessScope,
 } from "@/lib/access/staff-scope";
 import { NON_CUSTOMER_ACCOUNT_FILTER } from "@/lib/access/customer-account";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import { emailConsentStateFilter } from "@/lib/customers/marketing-consent";
 import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+import { POS_WALK_IN_EXPR } from "@/lib/orders/pos-walk-in";
+import { MARKETING_CONSENT_STATE } from "@/config/app.config";
 import type { MarketingConsentState } from "@/config/app.config";
 
 /**
@@ -37,6 +40,21 @@ interface AdminCustomerListParams {
   maxSpent?: number;
 }
 
+/**
+ * The list's filters without its paging and sort — what "everyone matching"
+ * means for an action taken on the whole filtered list.
+ */
+export type AdminCustomerListFilter = Pick<
+  AdminCustomerListParams,
+  | "search"
+  | "status"
+  | "loyaltyTier"
+  | "subscription"
+  | "tag"
+  | "minSpent"
+  | "maxSpent"
+>;
+
 /** User fields the customer list can sort by; they live behind the join. */
 const USER_SORT_FIELDS = new Set(["name", "email", "status"]);
 
@@ -48,11 +66,11 @@ const USER_SORT_FIELDS = new Set(["name", "email", "status"]);
  * pipeline (which skips the join entirely on the default listing) still
  * counted them, so the total advertised customers the list never showed.
  */
-const USER_UNWIND: PipelineStage = {
+export const USER_UNWIND: PipelineStage = {
   $unwind: { path: "$user", preserveNullAndEmptyArrays: true },
 };
 
-const USER_LOOKUP: PipelineStage = {
+export const USER_LOOKUP: PipelineStage = {
   $lookup: {
     from: "user",
     localField: "userId",
@@ -83,14 +101,14 @@ const USER_LOOKUP: PipelineStage = {
  * shoppers, so they are listed once and their profiles excluded up front,
  * instead of joining every profile to its user before the page is cut.
  */
-async function fetchNonCustomerUserIds(): Promise<Types.ObjectId[]> {
+export async function fetchNonCustomerUserIds(): Promise<Types.ObjectId[]> {
   const users = await User.find(NON_CUSTOMER_ACCOUNT_FILTER)
     .select("_id")
     .lean<{ _id: Types.ObjectId }[]>();
   return users.map((user) => user._id);
 }
 
-function matchStage(
+export function matchStage(
   conditions: Record<string, unknown>[],
 ): PipelineStage | null {
   if (conditions.length === 1) return { $match: conditions[0] };
@@ -282,30 +300,35 @@ export async function countAdminCustomers(
   });
 }
 
-export async function fetchAdminCustomerList(
-  params: AdminCustomerListParams,
+/**
+ * What the admin list's query string means, as conditions: the ones on the
+ * profile itself, and the ones that need its user joined first. The list
+ * page and every "everyone matching this filter" action build from here, so
+ * an action can never reach a customer the list would not have shown.
+ */
+export async function buildAdminCustomerListConditions(
+  filter: AdminCustomerListFilter,
   staffScope?: StaffAccessScope | null,
-): Promise<ListResult<unknown>> {
-  await connectDB();
-
+): Promise<{
+  profileConditions: Record<string, unknown>[];
+  userConditions: Record<string, unknown>[];
+}> {
   const {
-    page,
-    limit,
     search,
     status,
-    sortBy,
-    sortOrder,
     loyaltyTier,
     subscription,
     tag,
     minSpent,
     maxSpent,
-  } = params;
+  } = filter;
 
   const profileConditions = await customerProfileConditions(staffScope);
   const userConditions: Record<string, unknown>[] = [];
 
-  if (loyaltyTier) profileConditions.push({ loyaltyTier });
+  // A hidden filter must not narrow the list: while loyalty is off an old
+  // `?tier=gold` link shows every customer, as the page without it would.
+  if (loyaltyTier && isLoyaltyEnabled()) profileConditions.push({ loyaltyTier });
   // Rows written before the consent record carry only the old boolean, so the
   // filter has to speak both — see `emailConsentStateFilter`.
   if (subscription) {
@@ -326,6 +349,19 @@ export async function fetchAdminCustomerList(
     profileConditions,
     userConditions,
   );
+
+  return { profileConditions, userConditions };
+}
+
+export async function fetchAdminCustomerList(
+  params: AdminCustomerListParams,
+  staffScope?: StaffAccessScope | null,
+): Promise<ListResult<unknown>> {
+  await connectDB();
+
+  const { page, limit, sortBy, sortOrder } = params;
+  const { profileConditions, userConditions } =
+    await buildAdminCustomerListConditions(params, staffScope);
 
   const sortField = sortBy || "createdAt";
   const sortDir = sortOrder === "asc" ? 1 : -1;
@@ -379,6 +415,24 @@ export async function fetchAdminCustomerList(
   );
 }
 
+/**
+ * Every tag on the customers this viewer can see, for the list's Tag filter.
+ * Read from the whole collection: built from the rows on the current page, a
+ * tag on no visible row could not be picked, though filtering by it is the
+ * only way to reach those customers.
+ */
+export async function fetchAdminCustomerTags(
+  staffScope?: StaffAccessScope | null,
+): Promise<string[]> {
+  await connectDB();
+  const tags = await CustomerProfile.distinct("tags", {
+    $and: await customerProfileConditions(staffScope),
+  });
+  return (tags as unknown[])
+    .filter((tag): tag is string => typeof tag === "string" && tag.trim() !== "")
+    .sort((a, b) => a.localeCompare(b));
+}
+
 interface VendorCustomerListParams {
   page: number;
   limit: number;
@@ -386,51 +440,44 @@ interface VendorCustomerListParams {
   status?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  /** Email marketing consent state, as the "Email subscription" filter sends it. */
+  subscription?: string;
+  tag?: string;
 }
 
 function round2(value: number) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
+type VendorStats = {
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderDate: Date | null;
+};
+
 /**
- * A vendor's customer list: everyone — registered or guest — with a
- * non-cancelled order containing this vendor's items.
+ * Who has bought from a vendor, and what they bought: one pass over the
+ * vendor's orders. Money follows the same "actually collected" rule as the
+ * profile stats (paid-ish payment status, or a delivered COD order);
+ * membership only needs the order to not be cancelled, so a shopper with one
+ * pending order is already visible with zeroed figures.
  *
- * Two things distinguish it from the admin list. Membership comes from the
- * vendor's own orders (registered buyers keyed by customerId, guests by the
- * checkout email their orders carry). And the stats on every row are
- * VENDOR-SCOPED — orders with this vendor, money spent on this vendor's
- * sub-orders — never the store-wide figures cached on the profile, which
- * would hand one vendor a readout of a customer's business with every other
- * vendor. Platform CRM fields (tags, notes, loyalty) are projected away for
- * the same reason.
+ * But a checkout abandoned at a gateway is not a shopper of this vendor's.
+ * It sits on `pending` and was counted here, so a vendor's customer list
+ * filled up with people who had reached a payment page and closed it — every
+ * one of them with zeroes in every column, because the money rule below has
+ * always been right about them.
  */
-export async function fetchVendorCustomerList(
-  vendorId: Types.ObjectId | string,
-  params: VendorCustomerListParams,
-): Promise<ListResult<unknown>> {
-  await connectDB();
-
-  const { page, limit, search, status, sortBy, sortOrder } = params;
-  const vendorObjectId = new Types.ObjectId(String(vendorId));
-
-  // One pass over the vendor's orders: who bought, how often, for how much.
-  // Money follows the same "actually collected" rule as the profile stats
-  // (paid-ish payment status, or a delivered COD order); membership only
-  // needs the order to not be cancelled, so a shopper with one pending order
-  // is already visible with zeroed figures.
-  //
-  // But a checkout abandoned at a gateway is not a shopper of this vendor's.
-  // It sits on `pending` and was counted here, so a vendor's customer list
-  // filled up with people who had reached a payment page and closed it — every
-  // one of them with zeroes in every column, because the money rule below has
-  // always been right about them.
+async function loadVendorPurchasers(vendorObjectId: Types.ObjectId) {
   const purchasers = await Order.aggregate([
     {
       $match: {
         "subOrders.vendorId": vendorObjectId,
         status: { $ne: "cancelled" },
         ...placedOrderMatch(),
+        // A walk-in POS sale is filed under its cashier — often this vendor —
+        // and is nobody's purchase (lib/orders/pos-walk-in.ts).
+        $expr: { $not: [POS_WALK_IN_EXPR] },
       },
     },
     {
@@ -475,11 +522,6 @@ export async function fetchVendorCustomerList(
     },
   ]);
 
-  type VendorStats = {
-    totalOrders: number;
-    totalSpent: number;
-    lastOrderDate: Date | null;
-  };
   const registeredIds: Types.ObjectId[] = [];
   const guestEmails: string[] = [];
   const vendorStats = new Map<string, VendorStats>();
@@ -494,20 +536,79 @@ export async function fetchVendorCustomerList(
     }
   }
 
-  if (registeredIds.length === 0 && guestEmails.length === 0) {
-    return listResult([], page, limit, 0);
-  }
+  // The profiles those shoppers are: registered buyers by user, guests by the
+  // checkout email their orders carry. Null when nobody has bought.
+  const membership: Record<string, unknown> | null =
+    registeredIds.length === 0 && guestEmails.length === 0
+      ? null
+      : {
+          $or: [
+            { userId: { $in: registeredIds } },
+            ...(guestEmails.length > 0
+              ? [{ isGuest: true, email: { $in: guestEmails } }]
+              : []),
+          ],
+        };
 
-  const profileConditions: Record<string, unknown>[] = [
-    {
-      $or: [
-        { userId: { $in: registeredIds } },
-        ...(guestEmails.length > 0
-          ? [{ isGuest: true, email: { $in: guestEmails } }]
-          : []),
-      ],
-    },
-  ];
+  return { membership, vendorStats };
+}
+
+/**
+ * Every tag on this seller's customers, for the list's Tag filter — the same
+ * reason as the admin's (a tag on no visible row could not otherwise be
+ * picked), but read only from the people who have bought from them, never the
+ * store-wide list.
+ */
+export async function fetchVendorCustomerTags(
+  vendorId: Types.ObjectId | string,
+): Promise<string[]> {
+  await connectDB();
+  const { membership } = await loadVendorPurchasers(
+    new Types.ObjectId(String(vendorId)),
+  );
+  if (!membership) return [];
+  const tags = await CustomerProfile.distinct("tags", membership);
+  return (tags as unknown[])
+    .filter((tag): tag is string => typeof tag === "string" && tag.trim() !== "")
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * A vendor's customer list: everyone — registered or guest — with a
+ * non-cancelled order containing this vendor's items.
+ *
+ * Two things distinguish it from the admin list. Membership comes from the
+ * vendor's own orders (see `loadVendorPurchasers`). And the stats on every row
+ * are VENDOR-SCOPED — orders with this vendor, money spent on this vendor's
+ * sub-orders — never the store-wide figures cached on the profile, which
+ * would hand one vendor a readout of a customer's business with every other
+ * vendor. Platform CRM fields (tags, notes, loyalty) are projected away for
+ * the same reason: the Email subscription and Tag filters narrow the list
+ * without putting the tags on a row, and a row carries only the consent
+ * state, never its history or source.
+ */
+export async function fetchVendorCustomerList(
+  vendorId: Types.ObjectId | string,
+  params: VendorCustomerListParams,
+): Promise<ListResult<unknown>> {
+  await connectDB();
+
+  const { page, limit, search, status, sortBy, sortOrder, subscription, tag } =
+    params;
+  const vendorObjectId = new Types.ObjectId(String(vendorId));
+
+  const { membership, vendorStats } = await loadVendorPurchasers(vendorObjectId);
+  if (!membership) return listResult([], page, limit, 0);
+
+  const profileConditions: Record<string, unknown>[] = [membership];
+  // The same filters the admin list has, spoken the same way — see
+  // `emailConsentStateFilter` for the rows that predate the consent record.
+  if (subscription) {
+    profileConditions.push(
+      emailConsentStateFilter(subscription as MarketingConsentState),
+    );
+  }
+  if (tag) profileConditions.push({ tags: tag });
   const userConditions: Record<string, unknown>[] = [];
   applyCustomerIdentityFilters({ search, status }, profileConditions, userConditions);
 
@@ -528,8 +629,27 @@ export async function fetchVendorCustomerList(
 
   const pipeline: PipelineStage[] = [
     ...basePipeline,
+    // The one consent fact a row keeps is the state the Email subscription
+    // filter matches on, read the way that filter reads it: a profile that
+    // predates the consent record has only the old boolean.
+    {
+      $addFields: {
+        consentState: {
+          $ifNull: [
+            "$emailMarketing.state",
+            {
+              $cond: [
+                "$marketingOptIn",
+                MARKETING_CONSENT_STATE.SUBSCRIBED,
+                MARKETING_CONSENT_STATE.NOT_SUBSCRIBED,
+              ],
+            },
+          ],
+        },
+      },
+    },
     // Platform CRM stays with the platform: no tags, notes, loyalty balance,
-    // marketing consent, or preferences in a vendor-facing row.
+    // marketing consent history, or preferences in a vendor-facing row.
     {
       $project: {
         tags: 0,
@@ -564,10 +684,12 @@ export async function fetchVendorCustomerList(
   ]);
 
   const rows = (customers as Array<Record<string, unknown>>).map((row) => {
+    const { consentState, ...profile } = row;
     const key = row.isGuest ? `g:${row.email}` : `u:${String(row.userId)}`;
     const stats = vendorStats.get(key);
     return {
-      ...row,
+      ...profile,
+      emailMarketing: { state: consentState },
       stats: {
         totalOrders: stats?.totalOrders ?? 0,
         totalSpent: round2(stats?.totalSpent ?? 0),

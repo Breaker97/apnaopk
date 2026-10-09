@@ -1,3 +1,5 @@
+import { touchVendorFinance } from "@/lib/finance/operations";
+import { financeQuery, financeSession, financeTransaction } from "@/lib/finance/transaction";
 import "server-only";
 
 /**
@@ -116,13 +118,14 @@ export async function commissionOwedForVendor(
   vendorId: Types.ObjectId | string,
   currency: string,
   range?: { periodStart?: Date; periodEnd?: Date },
+  payCredit = false,
 ): Promise<CommissionOwed> {
   await connectDB();
   const wanted = String(currency || "USD").trim().toUpperCase();
 
-  const orders = await Order.find(
+  const orders = await financeQuery(Order.find(
     buildCommissionOwedOrderFilter(vendorId, range),
-  )
+  ))
     .select(PAYABLE_ORDER_PROJECTION)
     .lean();
 
@@ -155,7 +158,7 @@ export async function commissionOwedForVendor(
   // the discounted price of goods they are owed the full price for.
   const promotionCredit = roundMoney(totals.promotionCredit);
   const afterPromotions = roundMoney(grossOwed - promotionCredit);
-  const creditApplied = applyCommissionCredit(credit, afterPromotions);
+  const creditApplied = payCredit ? credit : applyCommissionCredit(credit, afterPromotions);
   const billed = roundMoney(afterPromotions - creditApplied);
 
   return {
@@ -211,23 +214,26 @@ export async function createCommissionInvoice(input: {
   otherCurrencies: string[];
 } | null> {
   await connectDB();
+  if (!financeSession()) return financeTransaction("commission:create", () => createCommissionInvoice(input));
+  await touchVendorFinance(input.vendorId, input.currency);
 
   const owed = await commissionOwedForVendor(
     input.vendorId,
     input.currency,
     input.range,
+    Boolean(input.payoutId),
   );
   // A bill with nothing to collect is not raised — except by a payout, which
   // settles the sales it claims whichever way the balance runs, and pays the
   // vendor what the store owes on them.
   const worthClaiming =
     owed.amount > 0 || (Boolean(input.payoutId) && owed.storeOwes > 0);
-  if (!worthClaiming || owed.orderIds.length === 0) return null;
+  if (!worthClaiming) return null;
 
   const vendorObjectId = new Types.ObjectId(input.vendorId);
   const orderObjectIds = owed.orderIds.map((id) => new Types.ObjectId(id));
 
-  const invoice = await CommissionInvoice.create({
+  const invoice = new CommissionInvoice({
     vendorId: vendorObjectId,
     orderIds: orderObjectIds,
     amount: owed.amount,
@@ -242,7 +248,10 @@ export async function createCommissionInvoice(input: {
     note: input.note?.trim() || null,
   });
 
-  const claim = await Order.updateMany(
+  await invoice.save({ session: financeSession() });
+  if (orderObjectIds.length === 0) return { invoiceId: String(invoice._id), amount: owed.amount, storeOwes: owed.storeOwes, currency: owed.currency, orderCount: 0, otherCurrencies: owed.otherCurrencies };
+
+  const claim = await financeQuery(Order.updateMany(
     { _id: { $in: orderObjectIds } },
     {
       $set: {
@@ -265,13 +274,13 @@ export async function createCommissionInvoice(input: {
         },
       ],
     },
-  );
+  ));
 
   if (claim.modifiedCount === 0) {
     // Someone else claimed them between the read and the write. Nothing carries
     // this invoice's id, so there is nothing to roll back — just drop the row
     // rather than leave an invoice billing nobody.
-    await CommissionInvoice.deleteOne({ _id: invoice._id });
+    await financeQuery(CommissionInvoice.deleteOne({ _id: invoice._id }));
     return null;
   }
 
@@ -284,12 +293,13 @@ export async function createCommissionInvoice(input: {
     vendorId: vendorObjectId,
     currency: owed.currency,
     creditAvailable: owed.creditApplied,
+    payCredit: Boolean(input.payoutId),
   });
   const claimedWorth =
     claimed.amount > 0 || (Boolean(input.payoutId) && claimed.storeOwes > 0);
   if (!claimedWorth || claimed.orderIds.length === 0) {
     await releaseCommissionInvoice(String(invoice._id), "cancelled");
-    await CommissionInvoice.deleteOne({ _id: invoice._id });
+    await financeQuery(CommissionInvoice.deleteOne({ _id: invoice._id }));
     return null;
   }
   if (
@@ -298,7 +308,7 @@ export async function createCommissionInvoice(input: {
     claimed.storeOwes !== owed.storeOwes ||
     claimed.orderIds.length !== owed.orderIds.length
   ) {
-    await CommissionInvoice.updateOne(
+    await financeQuery(CommissionInvoice.updateOne(
       { _id: invoice._id },
       {
         $set: {
@@ -308,7 +318,7 @@ export async function createCommissionInvoice(input: {
           orderIds: claimed.orderIds.map((id) => new Types.ObjectId(id)),
         },
       },
-    );
+    ));
   }
 
   return {
@@ -332,15 +342,16 @@ async function billedOnClaim(params: {
   currency: string;
   /** The credit the read offered this bill — never more than it could take. */
   creditAvailable: number;
+  payCredit?: boolean;
 }): Promise<{
   amount: number;
   creditApplied: number;
   storeOwes: number;
   orderIds: string[];
 }> {
-  const orders = await Order.find({
+  const orders = await financeQuery(Order.find({
     "subOrders.commissionSettlementId": params.invoiceId,
-  })
+  }))
     .select(PAYABLE_ORDER_PROJECTION)
     .lean();
   const refundByOrderId = await fetchRefundTotalsByOrder(
@@ -363,7 +374,7 @@ async function billedOnClaim(params: {
   const afterPromotions = roundMoney(
     totals.commissionAmount - totals.promotionCredit,
   );
-  const creditApplied = applyCommissionCredit(
+  const creditApplied = params.payCredit ? params.creditAvailable : applyCommissionCredit(
     params.creditAvailable,
     afterPromotions,
   );
@@ -411,12 +422,15 @@ export async function settleCommissionInvoice(input: {
   | { settled: false; reason: "paid_by_another_payment" | "not_open" }
 > {
   await connectDB();
+  if (!financeSession()) return financeTransaction("commission:settleCommissionInvoice", () => settleCommissionInvoice(input));
 
   const settlementId = new Types.ObjectId(String(input.invoiceId));
   const paymentId = new Types.ObjectId(String(input.paymentId));
+  const owner = await financeQuery(CommissionInvoice.findById(settlementId)).select("vendorId currency").lean();
+  if (owner) await touchVendorFinance(owner.vendorId, owner.currency);
   const now = new Date();
 
-  const claimed = await CommissionInvoice.findOneAndUpdate(
+  const claimed = await financeQuery(CommissionInvoice.findOneAndUpdate(
     { _id: settlementId, status: COMMISSION_INVOICE_STATUS.OPEN },
     {
       $set: {
@@ -426,13 +440,13 @@ export async function settleCommissionInvoice(input: {
       },
     },
     { returnDocument: "after" },
-  )
+  ))
     .select("paidAt")
     .lean<{ paidAt?: Date | null } | null>();
 
   let paidAt = claimed?.paidAt ?? now;
   if (!claimed) {
-    const current = await CommissionInvoice.findById(settlementId)
+    const current = await financeQuery(CommissionInvoice.findById(settlementId))
       .select("status paymentId paidAt")
       .lean<{ status?: string; paymentId?: unknown; paidAt?: Date | null } | null>();
     const ownedByThisPayment =
@@ -452,7 +466,7 @@ export async function settleCommissionInvoice(input: {
 
   // Only the sales not stamped yet: a replay finishes the job without moving
   // the date the settlement actually happened on.
-  await Order.updateMany(
+  await financeQuery(Order.updateMany(
     { "subOrders.commissionSettlementId": settlementId },
     { $set: { "subOrders.$[so].commissionSettledAt": paidAt } },
     {
@@ -463,10 +477,10 @@ export async function settleCommissionInvoice(input: {
         },
       ],
     },
-  );
-  const sales = await Order.countDocuments({
+  ));
+  const sales = await financeQuery(Order.countDocuments({
     "subOrders.commissionSettlementId": settlementId,
-  });
+  }));
   return { settled: true, sales };
 }
 
@@ -484,8 +498,9 @@ export async function settleCommissionInvoiceByPayout(input: {
   paidAt: Date;
 }): Promise<{ settled: boolean; sales: number }> {
   await connectDB();
+  if (!financeSession()) return financeTransaction("commission:settleCommissionInvoiceByPayout", () => settleCommissionInvoiceByPayout(input));
   const settlementId = new Types.ObjectId(String(input.invoiceId));
-  const claimed = await CommissionInvoice.findOneAndUpdate(
+  const claimed = await financeQuery(CommissionInvoice.findOneAndUpdate(
     {
       _id: settlementId,
       status: COMMISSION_INVOICE_STATUS.OPEN,
@@ -493,12 +508,16 @@ export async function settleCommissionInvoiceByPayout(input: {
     },
     { $set: { status: COMMISSION_INVOICE_STATUS.PAID, paidAt: input.paidAt } },
     { returnDocument: "after" },
-  )
+  ))
     .select("_id")
     .lean();
-  if (!claimed) return { settled: false, sales: 0 };
+  if (!claimed) {
+    const current = await financeQuery(CommissionInvoice.findById(settlementId)).lean();
+    if (current?.status !== COMMISSION_INVOICE_STATUS.PAID || String(current.payoutId) !== String(input.payoutId)) return { settled: false, sales: 0 };
+    input = { ...input, paidAt: current.paidAt ?? input.paidAt };
+  }
 
-  await Order.updateMany(
+  await financeQuery(Order.updateMany(
     { "subOrders.commissionSettlementId": settlementId },
     { $set: { "subOrders.$[so].commissionSettledAt": input.paidAt } },
     {
@@ -509,10 +528,10 @@ export async function settleCommissionInvoiceByPayout(input: {
         },
       ],
     },
-  );
-  const sales = await Order.countDocuments({
+  ));
+  const sales = await financeQuery(Order.countDocuments({
     "subOrders.commissionSettlementId": settlementId,
-  });
+  }));
   return { settled: true, sales };
 }
 
@@ -525,10 +544,10 @@ export async function discardCommissionInvoice(
   invoiceId: Types.ObjectId | string,
 ): Promise<void> {
   await releaseCommissionInvoice(invoiceId, "cancelled");
-  await CommissionInvoice.deleteOne({
+  await financeQuery(CommissionInvoice.deleteOne({
     _id: new Types.ObjectId(String(invoiceId)),
     status: COMMISSION_INVOICE_STATUS.CANCELLED,
-  });
+  }));
 }
 
 /**
@@ -553,13 +572,16 @@ export async function releaseCommissionInvoice(
   reason: "cancelled" | "reversed",
 ): Promise<number | null> {
   await connectDB();
+  if (!financeSession()) return financeTransaction("commission:releaseCommissionInvoice", () => releaseCommissionInvoice(invoiceId, reason));
 
   const settlementId = new Types.ObjectId(String(invoiceId));
+  const owner = await financeQuery(CommissionInvoice.findById(settlementId)).select("vendorId currency").lean();
+  if (owner) await touchVendorFinance(owner.vendorId, owner.currency);
   const from =
     reason === "cancelled"
       ? COMMISSION_INVOICE_STATUS.OPEN
       : COMMISSION_INVOICE_STATUS.PAID;
-  const moved = await CommissionInvoice.updateOne(
+  const moved = await financeQuery(CommissionInvoice.updateOne(
     { _id: settlementId, status: from },
     {
       $set: {
@@ -569,9 +591,9 @@ export async function releaseCommissionInvoice(
         ...(reason === "cancelled" ? { paymentId: null, paidAt: null } : {}),
       },
     },
-  );
+  ));
   if ((moved.modifiedCount ?? 0) === 0) {
-    const current = await CommissionInvoice.findById(settlementId)
+    const current = await financeQuery(CommissionInvoice.findById(settlementId))
       .select("status")
       .lean<{ status?: string } | null>();
     if (current && current.status !== COMMISSION_INVOICE_STATUS.CANCELLED) {
@@ -579,7 +601,7 @@ export async function releaseCommissionInvoice(
     }
   }
 
-  const result = await Order.updateMany(
+  const result = await financeQuery(Order.updateMany(
     { "subOrders.commissionSettlementId": settlementId },
     {
       $unset: {
@@ -589,7 +611,7 @@ export async function releaseCommissionInvoice(
       },
     },
     { arrayFilters: [{ "so.commissionSettlementId": settlementId }] },
-  );
+  ));
 
   return result.modifiedCount;
 }

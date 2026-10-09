@@ -42,8 +42,9 @@ type LeanCategory = {
 
 /**
  * Decorate a flat category list with `path` (ancestor names ending in self) and
- * `isLeaf`. The picker uses `path` for breadcrumbs and `isLeaf` to keep parent
- * rows visible as context but unselectable. Mirrors GET /api/categories.
+ * `isLeaf`. The picker uses `path` for breadcrumbs; `isLeaf` is only for the
+ * business app's editor contract, which published it — every level takes
+ * products. Paths mirror GET /api/categories.
  */
 function decorateCategories(categories: LeanCategory[]): ProductFormCategory[] {
   const byId = new Map(categories.map((c) => [String(c._id), c]));
@@ -220,6 +221,13 @@ interface BuildProductFormOptionsInput {
    */
   scope: InventoryLocationScope;
   /**
+   * Whether a location added from the editor would belong to `scope`'s vendor.
+   * One is created under the caller's own store, so when the product belongs
+   * to another (an admin editing a vendor's product) the editor must not offer
+   * a shelf the save would then refuse. Defaults to true.
+   */
+  canCreateLocations?: boolean;
+  /**
    * Whether the store can collect a pre-order balance later. Passed in rather
    * than read here so the builder stays free of settings.
    */
@@ -232,6 +240,7 @@ export async function buildProductFormOptions({
   includeInactiveCategories,
   vendorShipping,
   scope,
+  canCreateLocations = true,
   deferredBalanceSupported,
   preorderAccess,
 }: BuildProductFormOptionsInput): Promise<ProductFormOptions> {
@@ -248,7 +257,7 @@ export async function buildProductFormOptions({
     // Staff pinned to specific locations may stock products in them but not
     // create new ones, so the editor hides its inline "add location" control
     // rather than offering a button that answers 403.
-    canManageLocations: scope.locationIds.length === 0,
+    canManageLocations: scope.locationIds.length === 0 && canCreateLocations,
     preorder: {
       deferredBalanceSupported,
       ...(preorderAccess ? { access: preorderAccess } : {}),

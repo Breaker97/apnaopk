@@ -1,21 +1,16 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FeatureGroup } from "@/components/admin/settings/fields/feature-row";
 import { BUILT_IN_TRACKING_COURIERS } from "@/lib/shipping/tracking-urls";
 import type { Settings } from "@/components/admin/settings/types";
 
 type CourierLink = NonNullable<
   Settings["shipping"]["courierTrackingLinks"]
 >[number];
-type TSafe = (
-  key: string,
-  fallback: string,
-  values?: Record<string, string | number>,
-) => string;
 
 /**
  * Where a hand-entered AWB points.
@@ -23,119 +18,97 @@ type TSafe = (
  * A parcel booked through Shippo or Shiprocket arrives with the carrier's own
  * tracking page attached. One typed in by hand does not, so the number reached
  * the customer as text they could do nothing with. A short built-in list
- * covers the couriers named below; this is how a merchant covers the one they
+ * covers the couriers named here; this is how a merchant covers the one they
  * actually use — and overrides ours when their lane runs through a local
  * agent whose tracking lives somewhere else entirely.
+ *
+ * It shows whether or not a carrier account is connected: a store with none
+ * enters every tracking number by hand.
  */
-export function CourierLinksCard(props: {
+export function CourierLinksSection(props: {
   links: CourierLink[];
-  tSafe: TSafe;
   updateField: (path: string, value: unknown) => void;
 }) {
-  const { links, tSafe, updateField } = props;
+  const t = useTranslations("admin.settings.shipping.courierLinks");
+  const { links } = props;
 
   const write = (next: CourierLink[]) =>
-    updateField("shipping.courierTrackingLinks", next);
+    props.updateField("shipping.courierTrackingLinks", next);
 
   const patch = (index: number, changes: Partial<CourierLink>) =>
     write(links.map((link, i) => (i === index ? { ...link, ...changes } : link)));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">
-          {tSafe(
-            "admin.settings.shipping.courierLinks.title",
-            "Courier tracking links",
-          )}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {tSafe(
-            "admin.settings.shipping.courierLinks.description",
-            "For parcels you enter by hand. Use {tracking} where the tracking number goes; a link with no placeholder gets it appended.",
-            // The sentence names the placeholder itself, and to the message
-            // format `{tracking}` is an argument: unfilled, the page showed
-            // the message key instead of the sentence.
-            { tracking: "{tracking}" },
-          )}
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {links.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {tSafe(
-              "admin.settings.shipping.courierLinks.builtIn",
-              "Already linked without any setup:",
-            )}{" "}
-            {BUILT_IN_TRACKING_COURIERS.join(", ")}.
+    <FeatureGroup title={t("title")}>
+      <div className="flex flex-wrap items-center gap-3 p-4">
+        <div className="min-w-0 flex-1 basis-72 space-y-0.5">
+          <p className="text-sm font-medium">{t("heading")}</p>
+          <p className="text-muted-foreground text-sm">
+            {t("builtIn", { couriers: BUILT_IN_TRACKING_COURIERS.join(", ") })}
           </p>
-        ) : null}
-
-        {links.map((link, index) => (
-          <div
-            key={index}
-            className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
-          >
-            <div className="space-y-1">
-              <Label htmlFor={`courier-name-${index}`}>
-                {tSafe(
-                  "admin.settings.shipping.courierLinks.carrier",
-                  "Courier name",
-                )}
-              </Label>
-              <Input
-                id={`courier-name-${index}`}
-                value={link.carrier}
-                placeholder="Pathao"
-                onChange={(event) =>
-                  patch(index, { carrier: event.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor={`courier-url-${index}`}>
-                {tSafe(
-                  "admin.settings.shipping.courierLinks.urlTemplate",
-                  "Tracking URL",
-                )}
-              </Label>
-              <Input
-                id={`courier-url-${index}`}
-                value={link.urlTemplate}
-                placeholder="https://courier.example/track?id={tracking}"
-                onChange={(event) =>
-                  patch(index, { urlTemplate: event.target.value })
-                }
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-destructive"
-                onClick={() => write(links.filter((_, i) => i !== index))}
-                aria-label={tSafe(
-                  "admin.settings.shipping.courierLinks.remove",
-                  "Remove courier link",
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-
+        </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
+          className="shrink-0"
           onClick={() => write([...links, { carrier: "", urlTemplate: "" }])}
         >
           <Plus className="h-4 w-4" />
-          {tSafe("admin.settings.shipping.courierLinks.add", "Add courier")}
+          {t("add")}
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+
+      {links.map((link, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 p-4 @xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]"
+        >
+          <div className="col-span-2 min-w-0 space-y-1.5 @xl:col-span-1">
+            <label htmlFor={`courier-name-${index}`} className="text-sm font-medium">
+              {t("carrier")}
+            </label>
+            <Input
+              id={`courier-name-${index}`}
+              value={link.carrier}
+              placeholder="Pathao"
+              onChange={(event) => patch(index, { carrier: event.target.value })}
+            />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <label htmlFor={`courier-url-${index}`} className="text-sm font-medium">
+              {t("urlTemplate")}
+            </label>
+            <Input
+              id={`courier-url-${index}`}
+              value={link.urlTemplate}
+              placeholder="https://courier.example/track?id={tracking}"
+              onChange={(event) => patch(index, { urlTemplate: event.target.value })}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-destructive"
+            onClick={() => write(links.filter((_, i) => i !== index))}
+            aria-label={t("remove")}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+
+      {links.length > 0 ? (
+        <p className="text-muted-foreground p-4 text-xs">
+          {
+            // The sentence names the placeholder itself, and to the message
+            // format `{tracking}` is an argument: unfilled, the page showed
+            // the message key instead of the sentence.
+            t("description", { tracking: "{tracking}" })
+          }
+        </p>
+      ) : null}
+    </FeatureGroup>
   );
 }

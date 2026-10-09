@@ -1,3 +1,4 @@
+import { syncVendorSubscriptionRefunds } from "@/lib/vendors/vendor-subscription-refunds";
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
@@ -305,6 +306,7 @@ export async function POST(request: NextRequest) {
         const charge = event.data.object as Stripe.Charge;
         const handled = await processPlatformChargeRefunded(charge);
         if (handled) break;
+        if (await syncVendorSubscriptionRefunds(charge, stripe, new Date(event.created * 1000))) break;
 
         // Not a platform payment, so it is an ORDER. A refund issued from the
         // Stripe dashboard used to end here with a console line: no
@@ -327,6 +329,7 @@ export async function POST(request: NextRequest) {
         // after — a closed account, a bank that rejects the credit. Without
         // this the books said money went back that never did.
         const refund = event.data.object as Stripe.Refund;
+        if (await syncVendorSubscriptionRefunds({ payment_intent: refund.payment_intent }, stripe, new Date(event.created * 1000))) break;
         await reverseFailedOrderRefund(refund);
         break;
       }

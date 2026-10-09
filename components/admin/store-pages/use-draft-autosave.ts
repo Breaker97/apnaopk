@@ -15,6 +15,11 @@ export interface DraftSaveResponse {
 interface DraftAutosaveOptions {
   /** Page ref — "home", "template:<type>", "group:<zone>", or a handle. */
   handle: string;
+  /**
+   * Where the draft is PATCHed. Defaults to the admin page route for
+   * `handle`; the vendor landing-page editor passes its own.
+   */
+  endpoint?: string;
   sections: SectionInstance[];
   /** Applied on every landed save (publish flags, preview refresh). */
   onSaved: (result: DraftSaveResponse) => void;
@@ -60,6 +65,7 @@ interface DraftAutosave {
  */
 export function useDraftAutosave({
   handle,
+  endpoint,
   sections,
   onSaved,
   onError,
@@ -87,13 +93,14 @@ export function useDraftAutosave({
   const onSavedRef = useRef(onSaved);
   const onErrorRef = useRef(onError);
   const fallbackRef = useRef(fallbackErrorMessage);
-  const handleRef = useRef(handle);
+  const resolvedEndpoint = endpoint ?? `/api/admin/store-pages/${handle}`;
+  const endpointRef = useRef(resolvedEndpoint);
   const disabledRef = useRef(disabled);
   useEffect(() => {
     onSavedRef.current = onSaved;
     onErrorRef.current = onError;
     fallbackRef.current = fallbackErrorMessage;
-    handleRef.current = handle;
+    endpointRef.current = resolvedEndpoint;
     disabledRef.current = disabled;
   });
 
@@ -109,7 +116,7 @@ export function useDraftAutosave({
     saveAbort.current = controller;
     try {
       const result = await apiClient.patch<DraftSaveResponse>(
-        `/api/admin/store-pages/${handleRef.current}`,
+        endpointRef.current,
         { sections: latestSections.current },
         { signal: controller.signal },
       );
@@ -199,7 +206,7 @@ export function useDraftAutosave({
         saveStateRef.current !== "idle" && saveStateRef.current !== "saved";
       saveAbort.current?.abort();
       if (disabledRef.current || (!pending && !resaveQueued.current)) return;
-      void fetch(`/api/admin/store-pages/${handleRef.current}`, {
+      void fetch(endpointRef.current, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sections: latestSections.current }),

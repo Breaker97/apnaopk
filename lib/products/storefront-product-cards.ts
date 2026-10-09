@@ -13,11 +13,12 @@ import {
   withStockConstraint,
 } from "@/lib/products/stock-policy";
 import { Product } from "@/models";
-import type { ModernProduct } from "@/lib/products/modern-product";
+import type { ModernProduct, ProductMedia } from "@/lib/products/modern-product";
 import {
   findColorVariantImage,
   isColorOptionName,
 } from "@/lib/products/color-swatch";
+import { pickCardMedia } from "@/lib/products/card-media";
 
 type SortableProductCardField = "createdAt" | "price" | "rating" | "reviewCount";
 
@@ -25,6 +26,12 @@ export type StorefrontProductCardQuery = {
   limit?: number;
   ids?: string[];
   categoryIds?: string[];
+  /**
+   * Only these brands' products. The caller decides which brands the
+   * storefront may show (a shelf passes one public brand); like
+   * `categoryIds`, an empty list after dropping malformed ids answers nothing.
+   */
+  brandIds?: string[];
   excludeIds?: string[];
   /**
    * Drop one vendor's own products from the result. Used by a vendor storefront
@@ -32,6 +39,11 @@ export type StorefrontProductCardQuery = {
    * repeat the grid directly above it.
    */
   excludeVendorId?: string;
+  /**
+   * Keep only one vendor's products. Used by a vendor's landing page, whose
+   * product sections show that store and no other.
+   */
+  vendorId?: string;
   featured?: boolean;
   onSale?: boolean;
   /**
@@ -97,9 +109,17 @@ export const PRODUCT_CARD_SELECT = [
   "brand",
 ].join(" ");
 
+/**
+ * The most cards one read returns: the product browser's largest grid, 20
+ * rows of 6. Every caller passes a count it has already bounded (the public
+ * GET /api/product-cards clamps its own), so this is a backstop, not a size
+ * anyone asks for by accident.
+ */
+const MAX_CARDS_PER_READ = 120;
+
 function clampLimit(limit: number | undefined) {
   if (!Number.isFinite(limit)) return 12;
-  return Math.min(Math.max(Math.floor(limit || 12), 1), 48);
+  return Math.min(Math.max(Math.floor(limit || 12), 1), MAX_CARDS_PER_READ);
 }
 
 function buildSort(query: StorefrontProductCardQuery): Record<string, 1 | -1> {
@@ -129,9 +149,11 @@ function buildSort(query: StorefrontProductCardQuery): Record<string, 1 | -1> {
  *   swatches and the home section's colour/size filters read them — and each
  *   colour value carries the photo of the variant wearing it (`image`),
  *   resolved here, so a colour picker on a card needs no variant data.
- * - media: only the item the card displays.
- * - images: the first four — the hover's second picture, a deals card's
- *   thumbnail strip.
+ * - media: the item the card displays, and the picture its "Second image"
+ *   hover swaps in (both picked by lib/products/card-media.ts), the latter
+ *   cut to the fields that pick reads.
+ * - images: the first four — the hover's second picture for a product with
+ *   no media, a deals card's thumbnail strip.
  */
 const VARIANT_CARD_FIELDS = [
   "_id",
@@ -181,16 +203,20 @@ function pick<T extends string>(
   return picked;
 }
 
-/** The media item a card draws: lowest position that can be shown on a card. */
-function primaryMedia(media: unknown): unknown[] {
+/** All lib/products/card-media.ts reads of the hover's picture. */
+const SECOND_MEDIA_FIELDS = ["_id", "type", "url", "mimeType", "position"] as const;
+
+/**
+ * The media items a card draws: its picture (lowest position that can be
+ * shown on a card), then the one its "Second image" hover swaps in.
+ */
+function cardMedia(media: unknown): unknown[] {
   if (!Array.isArray(media)) return [];
-  const shown = [...media]
-    .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
-    .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
-    .find((item) =>
-      item.type === "external_video" ? Boolean(item.thumbnailUrl) : Boolean(item.url),
-    );
-  return shown ? [shown] : [];
+  const { primary, second } = pickCardMedia(
+    media.filter((item): item is ProductMedia => !!item && typeof item === "object"),
+  );
+  if (!primary) return [];
+  return second ? [primary, pick(second, SECOND_MEDIA_FIELDS)] : [primary];
 }
 
 function cardOptions(product: CardSource): unknown {
@@ -226,7 +252,7 @@ function toCardShape(product: CardSource): Record<string, unknown> {
     ...product,
     variants: product.variants.map((variant) => pick(variant, VARIANT_CARD_FIELDS)),
     options: cardOptions(product),
-    ...(product.media !== undefined ? { media: primaryMedia(product.media) } : {}),
+    ...(product.media !== undefined ? { media: cardMedia(product.media) } : {}),
     ...(Array.isArray(product.images)
       ? { images: product.images.slice(0, CARD_IMAGE_COUNT) }
       : {}),
@@ -321,6 +347,16 @@ export const getStorefrontProductCards = unstable_cache(
       mongoQuery.category = { $in: categoryIds };
     }
 
+    if (query.brandIds !== undefined) {
+      const brandIds = query.brandIds
+        .map((value) => value.trim())
+        .filter((value) => mongoose.isValidObjectId(value));
+
+      if (brandIds.length === 0) return [];
+
+      mongoQuery.brand = { $in: brandIds };
+    }
+
     if (query.excludeIds?.length) {
       const excludeIds = query.excludeIds
         .map((value) => value.trim())
@@ -348,6 +384,20 @@ export const getStorefrontProductCards = unstable_cache(
       mongoQuery.vendorId = {
         ...existingVendorFilter,
         $ne: new mongoose.Types.ObjectId(query.excludeVendorId),
+      };
+    }
+
+    if (query.vendorId !== undefined) {
+      if (!mongoose.isValidObjectId(query.vendorId)) return [];
+      // Narrows, never replaces, the approved-vendor constraint above — the
+      // same merge as excludeVendorId.
+      const existingVendorFilter =
+        typeof mongoQuery.vendorId === "object" && mongoQuery.vendorId !== null
+          ? (mongoQuery.vendorId as Record<string, unknown>)
+          : {};
+      mongoQuery.vendorId = {
+        ...existingVendorFilter,
+        $eq: new mongoose.Types.ObjectId(query.vendorId),
       };
     }
 

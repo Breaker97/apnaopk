@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
+import { connectDB, mongoose } from "@/lib/db";
 import { Product } from "@/models";
 import {
   createdResponse,
@@ -18,14 +18,8 @@ import { validateQuery, validateBody } from "@/lib/api/validate";
 import { ProductListQuerySchema, CreateProductSchema } from "@/lib/validations";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { syncProductCollections } from "@/lib/catalog/collections";
-import {
-  assertCategoryAcceptsProducts,
-  syncProductCategory,
-} from "@/lib/catalog/categories";
-import {
-  getOrCreateDefaultVendor,
-  syncDefaultVendorWithSettings,
-} from "@/lib/vendors/multi-vendor";
+import { syncProductCategory } from "@/lib/catalog/categories";
+import { ensureDefaultVendorId } from "@/lib/vendors/multi-vendor";
 import { getSettings, getSettingsLean } from "@/models/settings.model";
 import {
   assertProductFeaturesAllowed,
@@ -47,25 +41,24 @@ import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import { fetchAdminProductList } from "@/lib/catalog/product-list";
 import {
   hasStaffScope,
+  type StaffAccessScope,
 } from "@/lib/access/staff-scope";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
+import { markProductsForCatalogSync } from "@/lib/meta-catalog/sync-marks";
 import {
   releaseProductBarcodeRegistry,
   reserveProductBarcodeRegistry,
   syncProductBarcodeRegistry,
 } from "@/lib/products/barcode-registry";
 import {
+  adminProductCreateVendorId,
   allowedLocationIds,
-  resolveLocationScope,
+  productStockScope,
+  storeProfileUnavailable,
 } from "@/lib/inventory/inventory-location-scope";
-
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { productSlugBase, uniqueProductSlug } from "@/lib/products/product-slug";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogCreate, PRODUCT_AUDIT } from "@/lib/catalog/catalog-audit";
 
 /**
  * GET /api/admin/products
@@ -97,10 +90,6 @@ export async function GET(request: NextRequest) {
     await connectDB();
     const settings = await getSettings();
     const isMultiVendor = Boolean(settings.multiVendorMode?.enabled);
-    await syncDefaultVendorWithSettings(
-      session.user.role === USER_ROLES.ADMIN ? session.user.id : undefined,
-      settings,
-    );
 
     const list = await fetchAdminProductList(
       { page, limit, search, status, vendor, source, sortOrder, onSale, boostable },
@@ -134,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Check admin auth
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
-    let createStaffVendorIds: string[] | undefined;
+    let staffScope: StaffAccessScope | null | undefined;
     if (session.user.role !== USER_ROLES.ADMIN) {
       const access = await assertAdminOrStaffPermissions(
         session as unknown as { user: { id: string; role: string } },
@@ -143,7 +132,7 @@ export async function POST(request: NextRequest) {
           STAFF_PERMISSIONS.MANAGE_PRODUCTS,
         ],
       );
-      createStaffVendorIds = access.staffScope?.vendorIds;
+      staffScope = access.staffScope;
       if (hasStaffScope(access.staffScope) && !access.staffScope?.vendorIds.length) {
         throw new AuthorizationError(
           "Staff must be assigned to a vendor before creating products",
@@ -163,7 +152,6 @@ export async function POST(request: NextRequest) {
     await connectDB();
     const body = await validateBody(request, CreateProductSchema);
     const productData = body;
-    await assertCategoryAcceptsProducts(productData.category);
     // `shipping.countryOfOrigin` is deliberately not checked against the
     // store's country availability: it is customs data about where the goods
     // were manufactured, not a country the store sells or ships to.
@@ -171,30 +159,40 @@ export async function POST(request: NextRequest) {
     // Admin products belong to the default store vendor. Scoped staff create
     // under their first assigned vendor; unrestricted legacy staff fall back
     // to the default vendor for backward compatibility.
-    const vendorId = createStaffVendorIds?.[0]
-      ? createStaffVendorIds[0]
-      : (await getOrCreateDefaultVendor(session.user.id))._id;
+    let vendorId = adminProductCreateVendorId(staffScope);
+    if (!vendorId) {
+      const house = await ensureDefaultVendorId({
+        preferredOwnerId: session.user.id,
+      });
+      if (!house.vendorId) throw storeProfileUnavailable(house.problem);
+      vendorId = house.vendorId;
+    }
 
     const title =
       typeof productData.title === "string" && productData.title.trim().length
         ? productData.title.trim()
         : String(productData.name || "").trim();
 
-    const baseHandle =
-      typeof productData?.seo?.handle === "string" &&
-      productData.seo.handle.trim()
-        ? productData.seo.handle.trim()
-        : title;
-
-    const slug = toHandle(baseHandle);
+    // Unique across every vendor: the storefront resolves a product by slug
+    // alone, so two vendors sharing one would leave a product unreachable.
+    const productId = new mongoose.Types.ObjectId();
+    const slug = await uniqueProductSlug(
+      productSlugBase({
+        handle: productData.seo?.handle,
+        title,
+        sku: productData.sku,
+        productId,
+      }),
+    );
 
     // Sanitize collections for Mongoose: strip client UUIDs, coerce
     // optionValue strings → objects, drop empty fields. Same helper used by
     // PUT to keep create + update paths consistent.
-    // Stock may only be recorded at a location this store owns; the field is a
-    // bare id, so nothing else stops a payload naming someone else's warehouse.
+    // Stock may only be recorded at the new product's owner's locations; the
+    // field is a bare id, so nothing else stops a payload naming someone
+    // else's warehouse.
     const ownLocationIds = await allowedLocationIds(
-      await resolveLocationScope(session.user, "write"),
+      productStockScope(String(vendorId), staffScope?.locationIds),
     );
     const cleanedVariants = sanitizeVariantsForMongoose(
       productData.variants,
@@ -256,20 +254,11 @@ export async function POST(request: NextRequest) {
       },
     );
 
-    // Slugs must be globally unique, not just per-vendor: the storefront
-    // resolves a product by slug alone, so two vendors sharing a slug would
-    // make one product permanently unreachable (findOne returns an arbitrary
-    // one). Check across ALL vendors and disambiguate on collision.
-    const existingProduct = await Product.findOne({ slug });
-    const finalSlug = existingProduct ? `${slug}-${Date.now()}` : slug;
-
     const product = new Product({
       ...normalizedProductData,
+      _id: productId,
       vendorId,
       productSource: "admin",
-      slug: finalSlug,
-      handle: finalSlug,
-      seo: { ...(normalizedProductData.seo || {}), handle: finalSlug },
     });
     await product.validate();
     try {
@@ -298,7 +287,16 @@ export async function POST(request: NextRequest) {
       await syncProductCategory(null, String(product.category));
     }
 
+    // The product's identity and price, not the document: a created product
+    // carries its variants, images and stock, none of which a log row wants.
+    await auditCatalogCreate(
+      createAuditContext(request, session),
+      PRODUCT_AUDIT,
+      product,
+    );
+
     revalidateProductContent({ slugs: [product.slug] });
+    await markProductsForCatalogSync([product._id]);
 
     return createdResponse(product);
   } catch (error) {

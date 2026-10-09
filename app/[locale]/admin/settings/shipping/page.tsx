@@ -10,6 +10,7 @@ export default function Page() {
     dirtySections,
     updateNestedField,
     saveSection,
+    discardEdits,
     isCarrierBusy,
     testCarrierConnection,
     registerCarrierWebhook,
@@ -27,6 +28,7 @@ export default function Page() {
           isCarrierBusy={isCarrierBusy}
           updateField={updateNestedField}
           onSave={() => saveSection("shipping", loadedSettings.shipping)}
+          onDiscard={discardEdits}
           onTestCarrier={testCarrierConnection}
           onRegisterCarrierWebhook={registerCarrierWebhook}
           onDisconnectCarrier={disconnectCarrier}

@@ -12,7 +12,11 @@ import {
   Check,
   X,
   RotateCcw,
+  ChevronsUpDown,
+  Download,
+  Upload,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   DataTable,
   ProductCell,
@@ -28,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useCallback, useMemo } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
+import { useCsvImportExport } from "@/hooks/use-csv-import-export";
 import { apiClient } from "@/lib/api/client";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
@@ -64,6 +69,7 @@ export function BrandsDataTable({
   data,
   pagination,
 }: BrandsDataTableProps) {
+  const t = useTranslations();
   const router = useRouter();
   const { confirm } = useConfirmation();
 
@@ -75,6 +81,12 @@ export function BrandsDataTable({
     // The "products" column sorts by the productCount field server-side.
     defaultSortBy: "name",
     defaultSortOrder: "asc",
+  });
+
+  const csv = useCsvImportExport({
+    endpoint: "/api/admin/brands/import-export",
+    noun: "brands",
+    onImported: list.refetch,
   });
 
   const handleArchive = useCallback(
@@ -398,8 +410,37 @@ export function BrandsDataTable({
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
+        importExportAction: {
+          id: "import-export",
+          label: t("admin.productsDataTable.actions.importExport"),
+          icon: <ChevronsUpDown className="h-4 w-4" />,
+          variant: "outline",
+          items: [
+            {
+              id: "toolbar-import",
+              label: "Import CSV",
+              icon: <Upload className="h-4 w-4" />,
+              onClick: csv.openFilePicker,
+              disabled: csv.isImporting,
+            },
+            {
+              id: "toolbar-export",
+              label: "Export",
+              icon: <Download className="h-4 w-4" />,
+              onClick: csv.exportCsv,
+              disabled: csv.isExporting,
+            },
+          ],
+        },
       }),
-    [locale],
+    [
+      csv.exportCsv,
+      csv.isExporting,
+      csv.isImporting,
+      csv.openFilePicker,
+      locale,
+      t,
+    ],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<Brand>[]>(
@@ -545,46 +586,56 @@ export function BrandsDataTable({
   );
 
   return (
-    <DataTable
-      data={list.items}
-      columns={columns}
-      keyField="_id"
-      isLoading={list.isLoading}
-      loadingMode="rows"
-      title={tableHeader.title}
-      tabs={tabs}
-      activeTab={list.activeTab}
-      onTabChange={list.handleTabChange}
-      actions={tableHeader.actions}
-      selectable
-      selectedItems={selectedBrands}
-      onSelectionChange={setSelectedBrands}
-      bulkActions={bulkActions}
-      searchable
-      searchPlaceholder="Search brands..."
-      searchValue={list.search}
-      onSearchChange={list.handleSearchChange}
-      toolbarActions={tableHeader.toolbarActions}
-      toolbarLayout={tableHeader.toolbarLayout}
-      tabsVariant={tableHeader.tabsVariant}
-      filtersVariant={tableHeader.filtersVariant}
-      appearance={tableHeader.appearance}
-      stackedTopControls={tableHeader.stackedTopControls}
-      showToolbarSortButton={tableHeader.showToolbarSortButton}
-      sortColumn={list.sortBy}
-      sortDirection={list.sortOrder}
-      onSortChange={list.handleSortChange}
-      pagination={list.pagination}
-      onPageChange={list.handlePageChange}
-      onPageSizeChange={list.handlePageSizeChange}
-      rowActions={rowActions}
-      rowActionsHeader="Actions"
-      rowActionsVariant="inline"
-      onRowClick={(row) =>
-        router.push(`/admin/brands/${row._id}/edit`)
-      }
-      emptyMessage="No brands found. Create your first brand to get started."
-      emptyIcon={<Tag className="h-8 w-8" />}
-    />
+    <>
+      <input
+        id={csv.fileInputId}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        aria-label="Import brands from a CSV file"
+        onChange={csv.handleFileChange}
+      />
+      <DataTable
+        data={list.items}
+        columns={columns}
+        keyField="_id"
+        isLoading={list.isLoading}
+        loadingMode="rows"
+        title={tableHeader.title}
+        tabs={tabs}
+        activeTab={list.activeTab}
+        onTabChange={list.handleTabChange}
+        actions={tableHeader.actions}
+        selectable
+        selectedItems={selectedBrands}
+        onSelectionChange={setSelectedBrands}
+        bulkActions={bulkActions}
+        searchable
+        searchPlaceholder="Search brands..."
+        searchValue={list.search}
+        onSearchChange={list.handleSearchChange}
+        toolbarActions={tableHeader.toolbarActions}
+        toolbarLayout={tableHeader.toolbarLayout}
+        tabsVariant={tableHeader.tabsVariant}
+        filtersVariant={tableHeader.filtersVariant}
+        appearance={tableHeader.appearance}
+        stackedTopControls={tableHeader.stackedTopControls}
+        showToolbarSortButton={tableHeader.showToolbarSortButton}
+        sortColumn={list.sortBy}
+        sortDirection={list.sortOrder}
+        onSortChange={list.handleSortChange}
+        pagination={list.pagination}
+        onPageChange={list.handlePageChange}
+        onPageSizeChange={list.handlePageSizeChange}
+        rowActions={rowActions}
+        rowActionsHeader="Actions"
+        rowActionsVariant="inline"
+        onRowClick={(row) =>
+          router.push(`/admin/brands/${row._id}/edit`)
+        }
+        emptyMessage="No brands found. Create your first brand to get started."
+        emptyIcon={<Tag className="h-8 w-8" />}
+      />
+    </>
   );
 }

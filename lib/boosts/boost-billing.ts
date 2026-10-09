@@ -13,7 +13,6 @@ import {
   type IBoostCampaign,
 } from "@/models/boostCampaign.model";
 import {
-  refundedBelowMatch,
   type IPlatformPayment,
 } from "@/models/platformPayment.model";
 import { addDays } from "@/lib/boosts/boost-days";
@@ -200,6 +199,9 @@ async function applyBoostPartialRefund(
   payment: IPlatformPayment,
   refundedTotalMajor: number,
 ): Promise<void> {
+  const { acceptPlatformRefund } = await import("@/lib/finance/payment-ledger");
+  await acceptPlatformRefund(payment._id, refundedTotalMajor);
+
   const campaign = await BoostCampaign.findOne({
     _id: payment.campaignId,
     paymentId: payment._id,
@@ -232,30 +234,6 @@ async function applyBoostPartialRefund(
   // the claim — a replay, a stale total, the loser of two concurrent webhooks
   // — means some other call already booked this ground, and there is nothing
   // to post.
-  const claimedRefund = await PlatformPayment.findOneAndUpdate(
-    { _id: payment._id, ...refundedBelowMatch(refundedTotalMajor) },
-    { $set: { refundedAmount: refundedTotalMajor } },
-    { returnDocument: "before" },
-  )
-    .select("refundedAmount")
-    .lean<{ refundedAmount?: number } | null>();
-
-  if (claimedRefund) {
-    const { postPlatformPaymentRefundSafely } = await import(
-      "@/lib/finance/post-events"
-    );
-    postPlatformPaymentRefundSafely({
-      _id: payment._id,
-      kind: payment.kind,
-      reference: payment.reference,
-      vendorId: payment.vendorId,
-      currency: payment.currency,
-      provider: payment.provider,
-      refundedTotal: refundedTotalMajor,
-      previouslyRefunded: claimedRefund.refundedAmount ?? 0,
-      refundedAt: new Date(),
-    });
-  }
 
   // Claim the INCREASE atomically. A replay, a lower cumulative total arriving
   // late, and the loser of two concurrent webhooks all fail this CAS. The

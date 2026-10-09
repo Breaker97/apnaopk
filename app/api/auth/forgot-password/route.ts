@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB, mongoose } from "@/lib/db";
-import { PasswordReset } from "@/models";
-import { getSettingsLean } from "@/models/settings.model";
 import { checkRateLimit, rateLimitPresets } from "@/lib/rate-limit";
-import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
-import { escapeHtml } from "@/lib/email/escape-html";
 import { resolveClientIp } from "@/lib/api/client-ip";
 import { handleApiError, RateLimitError } from "@/lib/api/errors";
 import { rateLimitMessage } from "@/lib/api/rate-limit-message";
 import { afterResponse } from "@/lib/after-response";
+import { sendAccountAccessEmail } from "@/lib/auth/account-access";
+import { LOCALE_COOKIE_NAME } from "@/lib/i18n/locale-prefix";
 import * as z from "zod";
-import {
-  DEFAULT_PRIMARY_COLOR,
-  DEFAULT_STORE_NAME,
-} from "@/config/branding.config";
 
 const ForgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -72,7 +66,10 @@ export async function POST(request: NextRequest) {
       if (!perSender.allowed) return tooManyRequests(request, perSender.resetIn);
     }
 
-    afterResponse(() => sendResetLink(email));
+    // The link opens in the language of the page that asked for it: the page
+    // keeps the locale cookie on its own language (LocaleCookieSync).
+    const locale = request.cookies.get(LOCALE_COOKIE_NAME)?.value ?? null;
+    afterResponse(() => sendResetLink(email, locale));
 
     return NextResponse.json({ success: true, message: SENT_IF_REGISTERED });
   } catch (error) {
@@ -84,7 +81,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendResetLink(email: string) {
+async function sendResetLink(email: string, locale: string | null) {
   await connectDB();
 
   // Find user by email using native MongoDB driver (Better Auth uses 'user' collection)
@@ -93,47 +90,24 @@ async function sendResetLink(email: string) {
     throw new Error("Database not connected");
   }
 
-  const user = await db.collection("user").findOne({ email });
+  const user = await db
+    .collection("user")
+    .findOne({ email }, { projection: { _id: 1 } });
   if (!user) return;
 
-  // Check if SMTP is enabled (new structure)
-  const settings = await getSettingsLean();
-  if (!isEmailDeliveryConfigured(settings)) {
+  // An account with a password gets a reset; one without (made by an admin,
+  // or only ever signed in with Google) is asked to set its first — an hour's
+  // link either way, since the owner asked for it just now. A banned account
+  // gets nothing: the service refuses it.
+  const result = await sendAccountAccessEmail({
+    userId: String(user._id),
+    locale,
+    delivery: "outbox",
+    selfService: true,
+  });
+  if (result.status === "unconfigured") {
     console.error("Email is not enabled. Cannot send password reset email.");
-    return;
-  }
-
-  // Create reset token
-  const { token } = await PasswordReset.createToken(user._id);
-
-  // Build reset URL
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const resetUrl = `${appUrl}/en/reset-password?token=${token}`;
-
-  // Send reset email. The account's name is whatever was typed at sign-up,
-  // so it is escaped like everything else printed here.
-  const storeName = settings.general?.storeName || DEFAULT_STORE_NAME;
-  const safeStoreName = escapeHtml(storeName);
-  const safeResetUrl = escapeHtml(resetUrl);
-  try {
-    await sendEmail({
-      to: email,
-      subject: `Reset your password - ${storeName}`,
-      html: `
-          <h1>Password Reset Request</h1>
-          <p>Hi ${escapeHtml(user.name || "there")},</p>
-          <p>We received a request to reset your password for your ${safeStoreName} account.</p>
-          <p>Click the link below to reset your password:</p>
-          <p><a href="${safeResetUrl}" style="display: inline-block; padding: 12px 24px; background-color: ${DEFAULT_PRIMARY_COLOR}; color: white; text-decoration: none; border-radius: 6px;">Reset Password</a></p>
-          <p>Or copy and paste this URL into your browser:</p>
-          <p>${safeResetUrl}</p>
-          <p>This link will expire in 1 hour.</p>
-          <p>If you didn't request a password reset, you can safely ignore this email.</p>
-          <p>Thanks,<br>The ${safeStoreName} Team</p>
-        `,
-      settings,
-    });
-  } catch (emailError) {
-    console.error("Failed to send password reset email:", emailError);
+  } else if (result.status === "failed") {
+    console.error("Failed to send password reset email.");
   }
 }

@@ -6,7 +6,15 @@ import {
   PAYMENT_STATUS,
   PRODUCT_STATUS,
 } from "@/config/app.config";
-import { buildOrderChartPoints } from "@/lib/admin/order-chart-points";
+import {
+  BUCKET_KEY_FORMAT,
+  buildAllTimeChartSeries,
+  buildChartSeries,
+  granularityForRange,
+  parseBucketKey,
+  queryUnitFor,
+} from "@/lib/admin/order-chart-buckets";
+import type { DashboardRange } from "@/lib/admin/dashboard-period";
 import { SETTLED_PAYMENT_STATUSES } from "@/lib/orders/order-payment-status";
 import { VENDOR_OPEN_ORDER_STATUSES } from "@/lib/vendors/vendor-order-list";
 import {
@@ -20,6 +28,7 @@ import type {
   VendorRecentOrder,
 } from "@/lib/vendors/vendor-dashboard-types";
 import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 
 /**
  * A vendor's order numbers, defined once.
@@ -59,7 +68,8 @@ const AWAITING_PAYMENT_STATUSES = [
 ];
 
 interface VendorOrderMetricRow {
-  _id: { year: number; month: number; pos: boolean };
+  /** `$dateToString` key at the scan's bucket size (`BUCKET_KEY_FORMAT`). */
+  _id: { bucket: string; pos: boolean };
   orders: number;
   openOrders: number;
   paidOrders: number;
@@ -69,20 +79,47 @@ interface VendorOrderMetricRow {
   awaitingPayment: number;
 }
 
+/** Which orders a scan reads, and how finely it groups them. */
+interface VendorMetricsScope {
+  /** Only orders placed from then on (the business app's today and this month). */
+  from?: Date;
+  /** Only orders placed up to then. */
+  to?: Date;
+  /** Bucket size of the grouped rows; months unless a ranged chart needs finer. */
+  unit?: keyof typeof BUCKET_KEY_FORMAT;
+}
+
+/** `createdAt` bounds for a scope, empty when it reads every order. */
+function createdAtMatch({ from, to }: Pick<VendorMetricsScope, "from" | "to">) {
+  if (!from && !to) return {};
+  return {
+    createdAt: {
+      ...(from ? { $gte: from } : {}),
+      ...(to ? { $lte: to } : {}),
+    },
+  };
+}
+
 /**
- * One pass over the vendor's orders, grouped by UTC month and sales channel —
- * the admin dashboard's shape. Every card, the orders page's strip and the
- * chart are different sums of these rows, which are bounded by months × 2
- * however many orders the vendor has.
+ * One pass over the vendor's orders, grouped by UTC time bucket and sales
+ * channel — the admin dashboard's shape. Every card, the orders page's strip
+ * and the chart are different sums of these rows, which are bounded by buckets
+ * × 2 however many orders the vendor has.
  */
 async function loadVendorOrderMetrics(
   vendorId: Types.ObjectId,
+  scope: VendorMetricsScope = {},
 ): Promise<VendorOrderMetricRow[]> {
   await connectDB();
 
   return Order.aggregate<VendorOrderMetricRow>([
     // Index-backed by { "subOrders.vendorId": 1, createdAt: -1 }.
-    { $match: { "subOrders.vendorId": vendorId } },
+    {
+      $match: {
+        "subOrders.vendorId": vendorId,
+        ...createdAtMatch(scope),
+      },
+    },
     // A checkout abandoned at a gateway is not one of this vendor's orders.
     // Their money columns already ignored it (nothing is `collected` while the
     // payment is pending), but the order and open-order COUNTS did not, so a
@@ -159,7 +196,10 @@ async function loadVendorOrderMetrics(
               in: {
                 $cond: [
                   {
-                    $gt: [{ $size: { $ifNull: ["$$refund.refundAllocation", []] } }, 0],
+                    $gt: [
+                      { $size: { $ifNull: ["$$refund.refundAllocation", []] } },
+                      0,
+                    ],
                   },
                   {
                     $sum: {
@@ -197,14 +237,18 @@ async function loadVendorOrderMetrics(
     },
     {
       $addFields: {
-        keptGoods: { $max: [0, { $subtract: ["$subtotal", "$refundedGoods"] }] },
+        keptGoods: {
+          $max: [0, { $subtract: ["$subtotal", "$refundedGoods"] }],
+        },
         keptShare: {
           $cond: [
             { $gt: ["$subtotal", 0] },
             {
               $max: [
                 0,
-                { $subtract: [1, { $divide: ["$refundedGoods", "$subtotal"] }] },
+                {
+                  $subtract: [1, { $divide: ["$refundedGoods", "$subtotal"] }],
+                },
               ],
             },
             0,
@@ -229,8 +273,13 @@ async function loadVendorOrderMetrics(
     {
       $group: {
         _id: {
-          year: { $year: "$createdAt" },
-          month: { $month: "$createdAt" },
+          bucket: {
+            $dateToString: {
+              format: BUCKET_KEY_FORMAT[scope.unit ?? "month"],
+              date: "$createdAt",
+              timezone: "UTC",
+            },
+          },
           // null/"online"/legacy values all land in the one non-POS bucket.
           pos: { $eq: ["$channel", "pos"] },
         },
@@ -306,12 +355,47 @@ export async function getVendorOrderTotals(
   return summarizeVendorOrderMetrics(rows);
 }
 
+/**
+ * What the vendor collected on orders placed since `since`: the dashboard's
+ * "Total Revenue" rule (`totalRevenue`), over those orders only. The business
+ * app's Home reads it for today and this month (UTC, as the rows' months are).
+ */
+export async function getVendorCollectedSince(
+  vendorId: Types.ObjectId | string,
+  since: Date,
+): Promise<number> {
+  const rows = await loadVendorOrderMetrics(
+    new Types.ObjectId(String(vendorId)),
+    { from: since },
+  );
+  return summarizeVendorOrderMetrics(rows).totalRevenue;
+}
+
+/** Seven-day Home graph: one bounded aggregation, using the same refund/payment rule. */
+export async function getVendorCollectedByDay(
+  vendorId: Types.ObjectId | string,
+  range: { from: Date; to: Date },
+): Promise<Map<string, number>> {
+  const rows = await loadVendorOrderMetrics(
+    new Types.ObjectId(String(vendorId)),
+    { from: range.from, to: range.to, unit: "day" },
+  );
+  // A day's bucket key is already its UTC date (`BUCKET_KEY_FORMAT.day`).
+  const days = new Map<string, number>();
+  for (const row of rows) {
+    days.set(row._id.bucket, (days.get(row._id.bucket) ?? 0) + row.revenue);
+  }
+  return days;
+}
+
 /** A recent order as `Order.find` returns it under the projection below. */
 export interface VendorRecentOrderRow {
   _id: unknown;
   orderNumber?: string;
   paymentMethod?: string;
-  customerId?: { name?: string } | null;
+  customerId?: { _id?: unknown; name?: string } | null;
+  channel?: string;
+  staffId?: string;
   subOrders?: Array<{
     vendorId?: unknown;
     status?: string;
@@ -347,8 +431,11 @@ export function toVendorRecentOrder(
     _id: String(order._id),
     orderNumber: order.orderNumber || "",
     // Guest orders point `customerId` at the guest's cart, which populates to
-    // nothing; the list shows those as guests too.
-    customerName: order.customerId?.name || undefined,
+    // nothing; the list shows those as guests too. A walk-in POS sale is filed
+    // under its cashier, so it names nobody and the card labels it.
+    ...(isPosWalkIn(order)
+      ? { walkIn: true }
+      : { customerName: order.customerId?.name || undefined }),
     paymentMethod: order.paymentMethod,
     status: consignment?.status || ORDER_STATUS.PENDING,
     pickupStatus: pickup?.status || undefined,
@@ -371,7 +458,7 @@ async function getVendorRecentOrders(
     // Whole consignments: the payout arithmetic behind each card's net sales
     // needs their money fields, and Mongo refuses a projection naming both a
     // path and its children. Only five orders are read.
-    .select(`orderNumber customerId ${PAYABLE_ORDER_PROJECTION}`)
+    .select(`orderNumber customerId staffId ${PAYABLE_ORDER_PROJECTION}`)
     .populate("customerId", "name")
     .lean<Array<VendorRecentOrderRow & PayableOrderLike>>();
 
@@ -400,15 +487,22 @@ async function getVendorRecentOrders(
  * Read in batches so a vendor with years of orders does not load them at once.
  * Sales in another currency are left out rather than added at face value: a
  * figure in the store's currency cannot honestly contain them.
+ *
+ * With a `range`, only orders placed in it, as the cards beside it count them.
  */
 async function sumVendorSettledEarnings(
   vendorId: Types.ObjectId,
   storeCurrency: string,
+  range: DashboardRange | null,
 ): Promise<number> {
   type Row = PayableOrderLike & {
     _id: unknown;
     paymentStatus?: string;
-    subOrders?: Array<{ vendorId?: unknown; status?: string; paymentStatus?: string }>;
+    subOrders?: Array<{
+      vendorId?: unknown;
+      status?: string;
+      paymentStatus?: string;
+    }>;
   };
   const currency = storeCurrency.toUpperCase();
   const vendorKey = String(vendorId);
@@ -418,6 +512,7 @@ async function sumVendorSettledEarnings(
 
   for (;;) {
     const page: Row[] = await Order.find({
+      ...(range ? createdAtMatch(range) : {}),
       status: { $ne: ORDER_STATUS.CANCELLED },
       paymentStatus: { $ne: PAYMENT_STATUS.REFUNDED },
       subOrders: {
@@ -442,11 +537,15 @@ async function sumVendorSettledEarnings(
       const mine = (order.subOrders || []).find(
         (sub) => String(sub.vendorId) === vendorKey,
       );
-      const payment = mine?.paymentStatus || order.paymentStatus || PAYMENT_STATUS.PENDING;
+      const payment =
+        mine?.paymentStatus || order.paymentStatus || PAYMENT_STATUS.PENDING;
       return (SETTLED_PAYMENT_STATUSES as readonly string[]).includes(payment);
     });
     const settlements = await fetchVendorOrderSettlements(
-      collected.map((order) => ({ ...order, currency: order.currency || currency })),
+      collected.map((order) => ({
+        ...order,
+        currency: order.currency || currency,
+      })),
       vendorId,
     );
     for (const settled of settlements.values()) total += settled.netAmount;
@@ -457,28 +556,46 @@ async function sumVendorSettledEarnings(
   return Math.round(total * 100) / 100;
 }
 
-/** Everything `GET /api/vendor/analytics` returns to the dashboard. */
+/**
+ * Everything `GET /api/vendor/analytics` returns to the dashboard.
+ *
+ * `range` is the dashboard's period (`resolveDashboardPeriod`, the admin
+ * dashboard's own): the cards and the chart cover orders placed in it, and
+ * null is "All time". The active-product count and the recent orders are the
+ * store as it is now, so they ignore it.
+ */
 export async function getVendorDashboardData(
   vendorId: Types.ObjectId | string,
+  range: DashboardRange | null = null,
 ): Promise<VendorDashboardData> {
   await connectDB();
   const id = new Types.ObjectId(String(vendorId));
 
+  const granularity = range ? granularityForRange(range) : null;
+  const unit = granularity ? queryUnitFor(granularity) : "month";
+
   const { getStoreCurrency } = await import("@/lib/intl/server-currency");
   const storeCurrency = await getStoreCurrency();
   const [rows, recentOrders, activeProducts, netEarnings] = await Promise.all([
-    loadVendorOrderMetrics(id),
+    loadVendorOrderMetrics(id, { from: range?.from, to: range?.to, unit }),
     getVendorRecentOrders(id),
     Product.countDocuments({ vendorId: id, status: PRODUCT_STATUS.ACTIVE }),
-    sumVendorSettledEarnings(id, String(storeCurrency.code)),
+    sumVendorSettledEarnings(id, String(storeCurrency.code), range),
   ]);
+
+  const sourceRows = rows.map((row) => ({
+    start: parseBucketKey(row._id.bucket, unit),
+    pos: row._id.pos,
+    orders: row.orders,
+    sales: row.sales,
+  }));
 
   return {
     stats: { ...summarizeVendorOrderMetrics(rows), netEarnings, activeProducts },
-    chart: buildOrderChartPoints(
-      rows.map((row) => ({ ...row._id, orders: row.orders, sales: row.sales })),
-      new Date(),
-    ),
+    chart:
+      range && granularity
+        ? buildChartSeries(sourceRows, range, granularity)
+        : buildAllTimeChartSeries(sourceRows, new Date()),
     recentOrders,
   };
 }

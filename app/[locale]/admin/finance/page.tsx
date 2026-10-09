@@ -4,7 +4,8 @@ import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { FinanceOverview } from "@/components/admin/finance/finance-overview";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { FinanceBookFilter } from "@/components/admin/finance/finance-book-filter";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   findLedgerAnomalies,
@@ -13,12 +14,13 @@ import {
   getLedgerCurrencies,
   getGrossMerchandiseValue,
   getProfitAndLoss,
-  resolveRequestedPeriod,
 } from "@/lib/finance/reports";
 import {
-  formatBalancesAsOf,
-  formatPeriodRange,
-} from "@/lib/finance/period-label";
+  dashboardPickerBounds,
+  financePeriodLabel,
+  resolveFinanceDashboardPeriod,
+} from "@/lib/finance/dashboard-finance-period";
+import { formatBalancesAsOf } from "@/lib/finance/period-label";
 import { AdjustmentDialog } from "@/components/admin/finance/adjustment-dialog";
 import { LEDGER_BOOK } from "@/lib/finance/accounts";
 import { getDefaultVendorIds } from "@/lib/finance/post-events";
@@ -55,11 +57,15 @@ export default async function AdminFinancePage({
   await connectDB();
   const settings = await getSettings();
   const multiVendor = Boolean(settings.multiVendorMode?.enabled);
-  const period = resolveRequestedPeriod({
-    period: read("period") || "30d",
+  // The dashboard's period (`?period=today|yesterday|week|month|all` or
+  // `?from=&to=`), so the picker is the dashboard's too. Opens on the month,
+  // the nearest of those to the 30 days it used to open on.
+  const period = resolveFinanceDashboardPeriod({
+    period: read("period"),
     from: read("from"),
     to: read("to"),
   });
+  const pickerBounds = dashboardPickerBounds(period);
   // Cheap (`distinct` over an indexed field) and needed in the header, above
   // the Suspense boundary the balances load behind.
   const ledgerCurrencies = await getLedgerCurrencies();
@@ -72,15 +78,7 @@ export default async function AdminFinancePage({
   const label = (key: string, fallback: string) =>
     t.has(key) ? t(key) : fallback;
 
-  // A named period says its name; a picked one has to spell out its dates,
-  // because "custom" tells a reader nothing about which days they are seeing.
-  const periodLabel =
-    period.key === "custom"
-      ? formatPeriodRange(period, locale)
-      : label(
-          `finance.period.${period.key}`,
-          period.key === "all" ? "All time" : `Last ${period.key}`,
-        );
+  const periodLabel = financePeriodLabel(period, locale, label);
 
   /** The same URL with one currency swapped in — every other filter kept. */
   const buildCurrencyHref = (currency: string) => {
@@ -115,12 +113,12 @@ export default async function AdminFinancePage({
             multiVendor={multiVendor}
             currencies={ledgerCurrencies}
           />
-          <FinancePeriodPicker
+          {multiVendor ? <FinanceBookFilter book={book ?? "all"} /> : null}
+          <DashboardPeriodPicker
             period={period.key}
-          from={period.from.toISOString()}
-          to={period.to.toISOString()}
-            book={book ?? "all"}
-            showBookFilter={multiVendor}
+            from={pickerBounds.from}
+            to={pickerBounds.to}
+            defaultPeriod="month"
           />
         </div>
       </div>

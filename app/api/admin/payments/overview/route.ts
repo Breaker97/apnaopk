@@ -1,20 +1,22 @@
+import { collectionTotals } from "@/lib/finance/collections";
 import * as z from "zod";
 import { getSettings, Order, PaymentTransaction, Payout } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { validateQuery } from "@/lib/api/validate";
-import { resolveRequestedPeriod } from "@/lib/finance/reports";
+import { resolveFinanceDashboardPeriod } from "@/lib/finance/dashboard-finance-period";
 import {
   inStoreCurrencyMatch,
-  narrowedToStoreCurrency,
 } from "@/lib/intl/currency-scope";
 import {
-  COLLECTED_ORDER_MATCH,
   placedOrderMatch,
 } from "@/lib/orders/order-payment-status";
 
+// The dashboard's period — `today|yesterday|week|month|all`, or `from`/`to` —
+// so the page's picker and this request mean the same days. No period is the
+// month, which is what the page opens on.
 const OverviewQuerySchema = z.object({
-  period: z.string().default("30d"),
+  period: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
 });
@@ -36,26 +38,10 @@ export const GET = withApi(
   },
   async ({ request }) => {
     const query = validateQuery(request, OverviewQuerySchema);
-    const period = resolveRequestedPeriod(query);
+    const period = resolveFinanceDashboardPeriod(query);
     const inPeriod = {
       createdAt: { $gte: period.from, $lte: period.to },
     };
-    // Money taken is dated by when it ARRIVED. Dated by when the order was
-    // placed, it sat beside refunds dated by when they went out, and "net
-    // collected" took one away from the other across two different calendars.
-    // An order from before `paidAt` existed falls back to its creation.
-    const paidInPeriod = {
-      $or: [
-        { paidAt: { $gte: period.from, $lte: period.to } },
-        {
-          $and: [
-            { $or: [{ paidAt: null }, { paidAt: { $exists: false } }] },
-            inPeriod,
-          ],
-        },
-      ],
-    };
-
     const settings = await getSettings();
     const storeCurrency = (
       settings.general?.defaultCurrency || "USD"
@@ -71,6 +57,7 @@ export const GET = withApi(
     // two of them came to answer it differently.
     const inStoreCurrency = inStoreCurrencyMatch(storeCurrency);
 
+    const collections = await collectionTotals(period, storeCurrency);
     const [orderAgg, txnAgg, payoutAgg, recentTransactions] =
       await Promise.all([
         Order.aggregate([
@@ -85,53 +72,7 @@ export const GET = withApi(
               // charge from the total while its refund was still subtracted
               // below — the same money taken off twice. A deposit pre-order
               // counts what it has collected, not what it will.
-              paidRevenue: [
-                {
-                  $match: {
-                    ...inStoreCurrency,
-                    $and: [
-                      paidInPeriod,
-                      {
-                        $or: [
-                          {
-                            paymentStatus: {
-                              $in: ["paid", "partially_refunded", "refunded"],
-                            },
-                          },
-                          {
-                            paymentStatus: "partially_paid",
-                            preorderOutstandingAmount: { $gt: 0 },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                },
-                {
-                  $group: {
-                    _id: null,
-                    total: {
-                      $sum: {
-                        $cond: [
-                          { $eq: ["$paymentStatus", "partially_paid"] },
-                          {
-                            $max: [
-                              0,
-                              {
-                                $subtract: [
-                                  "$total",
-                                  { $ifNull: ["$preorderOutstandingAmount", 0] },
-                                ],
-                              },
-                            ],
-                          },
-                          "$total",
-                        ],
-                      },
-                    },
-                  },
-                },
-              ],
+
               // Deliberately without a period — it is a balance, see the note
               // at the top of this file — but not without the placed match: a
               // checkout somebody walked away from at a gateway sits on
@@ -155,21 +96,7 @@ export const GET = withApi(
               // is the one definition of money actually collected, and it
               // carries its own `$or`, so the currency rule is combined with
               // it rather than spread over it.
-              methodBreakdown: [
-                {
-                  $match: narrowedToStoreCurrency(
-                    { ...inPeriod, ...COLLECTED_ORDER_MATCH },
-                    storeCurrency,
-                  ),
-                },
-                {
-                  $group: {
-                    _id: "$paymentMethod",
-                    count: { $sum: 1 },
-                    total: { $sum: "$total" },
-                  },
-                },
-              ],
+
             },
           },
         ]),
@@ -277,7 +204,7 @@ export const GET = withApi(
         // which the ledger also counts as the store's. Anything genuinely in
         // another currency is reported by Finance, in that currency.
         currency: storeCurrency,
-        paidRevenue: Number(orderMetrics.paidRevenue?.[0]?.total || 0),
+        paidRevenue: collections.paidRevenue,
         refundedAmount: Number(txnMetrics.refundTotal?.[0]?.total || 0),
         pendingPayments: Number(orderMetrics.pendingOrders?.[0]?.count || 0),
         refundedOrders: Number(txnMetrics.refundedOrders?.[0]?.count || 0),
@@ -285,7 +212,8 @@ export const GET = withApi(
         paidPayoutAmount: Number(payoutMetrics.paidAmount?.[0]?.total || 0),
       },
       breakdowns: {
-        paymentMethods: orderMetrics.methodBreakdown || [],
+        paymentMethods: collections.paymentMethods,
+        estimatedCollectionReceipts: collections.estimatedReceipts,
         transactionsByType: txnMetrics.byType || [],
         transactionsByStatus: txnMetrics.byStatus || [],
         transactionsByProvider: txnMetrics.byProvider || [],

@@ -1,19 +1,23 @@
+import { runFinanceOperation, mutationKey, expectedVersion, staleFinance, replayFinanceRequest } from "@/lib/finance/operations";
+import { financeQuery, financeVersionFilter } from "@/lib/finance/transaction";
+import { expensePostings, expenseReversalPostings, expenseSettlementReversalPostings } from "@/lib/finance/postings";
 import { Types } from "mongoose";
 import { Expense } from "@/models/expense.model";
 import { getSettings } from "@/models/settings.model";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
-import { ApiError, ValidationError } from "@/lib/api/errors";
+import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { isValidObjectId, validatePartialBody } from "@/lib/api/validate";
 import { UpdateExpenseSchema } from "@/lib/validations";
-import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditExpenseDeleted,
+  auditExpenseUpdated,
+} from "@/lib/finance/audit-expense";
 import { currencyMinimumPrice, quantizeToCurrency } from "@/lib/intl/money";
 import {
   currentExpenseRevision,
-  postExpense,
-  reverseExpense,
 } from "@/lib/finance/post-events";
-import { reverseExpenseSettlement } from "@/lib/finance/expense-ledger";
 import { LEDGER_BOOK } from "@/lib/finance/accounts";
 import { EXPENSE_CATEGORY_DEBIT_ACCOUNT } from "@/lib/finance/expense-categories";
 import {
@@ -51,6 +55,7 @@ type StoredExpense = {
   scope?: "platform" | "vendor";
   vendorId?: unknown;
   revision?: number;
+  version?: number;
   debitAccount?: string | null;
   settlement?: Settlement | null;
   recurring?: Schedule | null;
@@ -85,6 +90,9 @@ export const PUT = withApi<RouteParams>(
     if (!isValidObjectId(id)) return notFoundResponse("Expense");
 
     const body = await validatePartialBody(request, UpdateExpenseSchema);
+    const requestKey = mutationKey(request);
+    const replay = await replayFinanceRequest<{ version: number }>({ action: `expense:update:${id}`, actorId: session.user.id, requestKey, fingerprint: (saved) => ({ body, version: expectedVersion(request, saved.version - 1) }) });
+    if (replay) return successResponse({ ...replay.data, operationId: replay.operationId, bookkeepingState: replay.bookkeepingState }, "Expense updated", replay.bookkeepingState === "complete" ? 200 : 202);
     // Read the stored version first: it is what the ledger currently believes,
     // and therefore what the reversal has to cancel. Once the document below is
     // mutated that truth is gone.
@@ -203,67 +211,30 @@ export const PUT = withApi<RouteParams>(
       before.book !== original.book ||
       String(before.vendorId ?? "") !== String(original.vendorId ?? "");
 
-    if (!movesMoney) {
-      await saveExpense(before);
-    } else {
-      const previousRevision = await currentExpenseRevision(original);
-      before.revision = previousRevision + 1;
-      await saveExpense(before);
-
-      try {
-        await postExpense(
-          {
-            _id: before._id,
-            date: before.date,
-            book: before.book,
-            category: before.category,
-            amount: before.amount,
-            currency: before.currency,
-            description: before.description,
-            paidFrom: before.paidFrom,
-            vendorId: before.vendorId,
-            revision: previousRevision + 1,
-            debitAccount: before.debitAccount,
-          },
-          {
-            _id: before._id,
-            // The reversal is dated with the revision it cancels — see the
-            // route's own note, and `expenseReversalPostings`.
-            date: original.date,
-            book: original.book,
-            category: original.category,
-            amount: original.amount,
-            currency: original.currency,
-            paidFrom: original.paidFrom,
-            vendorId: original.vendorId,
-            revision: previousRevision,
-            debitAccount: original.debitAccount,
-          },
-          { strict: true },
-        );
-      } catch (error) {
-        // The row is saved. The daily reconcile re-posts its revision and
-        // puts back the reversal the old one is missing (`healExpenseLedger`),
-        // so the books do catch up — but the admin is told, not shown "saved".
-        console.error("Expense saved, but its ledger correction failed:", error);
-        throw new ApiError(
-          "Saved, but the books could not be updated yet. They will catch up within a day.",
-          503,
-          "LEDGER_WRITE_FAILED",
-        );
-      }
-    }
-
-    const auditContext = createAuditContext(request, session);
-    await auditUpdate(
-      auditContext,
-      "expense",
-      id,
-      original as unknown as Record<string, unknown>,
-      before.toObject() as unknown as Record<string, unknown>,
-    );
-
-    return successResponse(before, "Expense updated");
+    if (original.settlement && movesMoney) throw new ValidationError(PAID_BILL_LOCKED);
+    const version = expectedVersion(request, original.version ?? 0);
+    const revision = await currentExpenseRevision(original);
+    before.revision = movesMoney ? revision + 1 : revision;
+    const next = before.toObject();
+    const { _id: ignoredId, __v: ignoredV, createdAt: ignoredCreated, updatedAt: ignoredUpdated, ...fields } = next;
+    void ignoredId; void ignoredV; void ignoredCreated; void ignoredUpdated;
+    const outcome = await runFinanceOperation({
+      action: `expense:update:${id}`, actorId: session.user.id,
+      requestKey, fingerprint: { body, version },
+      work: async () => {
+        const saved = await financeQuery(Expense.findOneAndUpdate(
+          { _id: id, scope: { $ne: "vendor" }, ...financeVersionFilter(version) },
+          { $set: { ...fields, version: version + 1 } },
+          { returnDocument: "after", runValidators: true },
+        ));
+        if (!saved) throw staleFinance();
+        await auditExpenseUpdated(createAuditContext(request, session), original, saved.toObject());
+        return { result: saved.toObject(), sourceId: id, postings: movesMoney
+          ? [...expenseReversalPostings({ ...original, revision } as Parameters<typeof expenseReversalPostings>[0]), ...expensePostings(saved.toObject())]
+          : [] };
+      },
+    });
+    return successResponse({ ...outcome.data, operationId: outcome.operationId, bookkeepingState: outcome.bookkeepingState }, "Expense updated", outcome.bookkeepingState === "complete" ? 200 : 202);
   },
 );
 
@@ -288,66 +259,22 @@ export const DELETE = withApi<RouteParams>(
     const { id } = params;
     if (!isValidObjectId(id)) return notFoundResponse("Expense");
 
-    const expense = await Expense.findById(id).lean<StoredExpense | null>();
-    // A vendor's own row was never posted, so there is nothing here to reverse.
-    if (!expense || expense.scope === "vendor") {
-      return notFoundResponse("Expense");
-    }
-
-    try {
-      await reverseExpense(
-        {
-          _id: expense._id,
-          date: expense.date,
-          book: expense.book,
-          category: expense.category,
-          amount: expense.amount,
-          currency: expense.currency,
-          paidFrom: expense.paidFrom,
-          vendorId: expense.vendorId,
-          // The revision that is actually live. Reversing revision 0 on an
-          // expense that has been corrected cancels an entry already cancelled
-          // and leaves the real one standing — the row disappears from the
-          // list while its cost stays in the profit and loss.
-          revision: await currentExpenseRevision(expense),
-          debitAccount: expense.debitAccount,
-        },
-        { strict: true },
-      );
-      if (expense.settlement) {
-        await reverseExpenseSettlement(
-          {
-            _id: expense._id,
-            book: expense.book,
-            amount: expense.amount,
-            currency: expense.currency,
-            description: expense.description,
-            vendorId: expense.vendorId,
-            settlement: expense.settlement,
-          },
-          { strict: true },
-        );
-      }
-    } catch (error) {
-      console.error("Expense not deleted — its reversal failed:", error);
-      throw new ApiError(
-        "It could not be taken off the books, so nothing was deleted. Try again.",
-        503,
-        "LEDGER_WRITE_FAILED",
-      );
-    }
-
-    await Expense.deleteOne({ _id: id });
-
-    const auditContext = createAuditContext(request, session);
-    await auditDelete(
-      auditContext,
-      "expense",
-      id,
-      expense as unknown as Record<string, unknown>,
-    );
-
-    return successResponse({ message: "Expense deleted" });
+    const snapshot = await Expense.findById(id).lean<StoredExpense | null>();
+    const version = expectedVersion(request, snapshot?.version ?? 0);
+    const outcome = await runFinanceOperation({
+      action: `expense:delete:${id}`, actorId: session.user.id, requestKey: mutationKey(request),
+      fingerprint: { id, version }, work: async () => {
+        const expense = await financeQuery(Expense.findOne({ _id: id, scope: { $ne: "vendor" }, ...financeVersionFilter(version) }));
+        if (!expense) throw staleFinance();
+        const row = expense.toObject();
+        const postings = [...expenseReversalPostings({ ...row, revision: await currentExpenseRevision(row) }),
+          ...(row.settlement ? expenseSettlementReversalPostings({ ...row, settlement: row.settlement! }) : [])];
+        await financeQuery(Expense.deleteOne({ _id: id, ...financeVersionFilter(version) }));
+        await auditExpenseDeleted(createAuditContext(request, session), row);
+        return { result: { message: "Expense deleted" }, sourceId: id, postings };
+      },
+    });
+    return successResponse({ ...outcome.data, operationId: outcome.operationId, bookkeepingState: outcome.bookkeepingState }, "Expense deleted", outcome.bookkeepingState === "complete" ? 200 : 202);
   },
 );
 
@@ -357,18 +284,6 @@ export const DELETE = withApi<RouteParams>(
  * A copy made by a repeating expense keeps its link to the template, and the
  * database allows one copy per template per day.
  */
-async function saveExpense(expense: { save: () => Promise<unknown> }) {
-  try {
-    await expense.save();
-  } catch (error) {
-    if ((error as { code?: number } | null)?.code === 11000) {
-      throw new ValidationError({
-        date: ["Another copy of this repeating expense is already on that day"],
-      });
-    }
-    throw error;
-  }
-}
 
 /**
  * A template's schedule after an edit.

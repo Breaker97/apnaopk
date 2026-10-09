@@ -1,6 +1,7 @@
 import { BarcodeRegistry } from "@/models/barcode-registry.model";
 import { ConflictError } from "@/lib/api/errors";
 import { normalizeBarcodeForLookup } from "@/lib/catalog/barcodes";
+import type { ClientSession } from "mongoose";
 import {
   detectBarcodeFormat,
   type BarcodeFormat,
@@ -26,7 +27,10 @@ type RegistryEntry = {
   source?: BarcodeSource;
 };
 
-function toEntry(target: LooseBarcodeTarget, variant = false): RegistryEntry | null {
+function toEntry(
+  target: LooseBarcodeTarget,
+  variant = false,
+): RegistryEntry | null {
   const value = typeof target.barcode === "string" ? target.barcode.trim() : "";
   const valueNormalized = normalizeBarcodeForLookup(value);
   if (!value || !valueNormalized) return null;
@@ -46,7 +50,9 @@ function toEntry(target: LooseBarcodeTarget, variant = false): RegistryEntry | n
   };
 }
 
-export function buildBarcodeRegistryEntries(product: LooseProduct): RegistryEntry[] {
+export function buildBarcodeRegistryEntries(
+  product: LooseProduct,
+): RegistryEntry[] {
   const entries: RegistryEntry[] = [];
   const productEntry = toEntry(product);
   if (productEntry) entries.push(productEntry);
@@ -69,21 +75,26 @@ function duplicateError(error: unknown) {
 export async function reserveProductBarcodeRegistry(
   productId: string,
   product: LooseProduct,
+  session?: ClientSession,
 ) {
   const entries = buildBarcodeRegistryEntries(product);
   const values = entries.map((entry) => entry.valueNormalized);
   if (new Set(values).size !== values.length) {
-    throw new ConflictError("A barcode can only be assigned to one product or variant");
+    throw new ConflictError(
+      "A barcode can only be assigned to one product or variant",
+    );
   }
 
   const conflictingEntry = values.length
     ? await BarcodeRegistry.exists({
         valueNormalized: { $in: values },
         productId: { $ne: productId },
-      })
+      }).session(session ?? null)
     : null;
   if (conflictingEntry) {
-    throw new ConflictError("Barcode is already assigned to another product or variant");
+    throw new ConflictError(
+      "Barcode is already assigned to another product or variant",
+    );
   }
 
   try {
@@ -101,12 +112,14 @@ export async function reserveProductBarcodeRegistry(
             active: true,
           },
         },
-        { upsert: true, runValidators: true },
+        { upsert: true, runValidators: true, ...(session ? { session } : {}) },
       );
     }
   } catch (error) {
     if (duplicateError(error)) {
-      throw new ConflictError("Barcode is already assigned to another product or variant");
+      throw new ConflictError(
+        "Barcode is already assigned to another product or variant",
+      );
     }
     throw error;
   }
@@ -116,15 +129,26 @@ export async function reserveProductBarcodeRegistry(
 export async function syncProductBarcodeRegistry(
   productId: string,
   product: LooseProduct,
+  session?: ClientSession,
 ) {
-  const entries = await reserveProductBarcodeRegistry(productId, product);
-  const values = entries.map((entry) => entry.valueNormalized);
-  await BarcodeRegistry.deleteMany({
+  const entries = await reserveProductBarcodeRegistry(
     productId,
-    ...(values.length > 0 ? { valueNormalized: { $nin: values } } : {}),
-  });
+    product,
+    session,
+  );
+  const values = entries.map((entry) => entry.valueNormalized);
+  await BarcodeRegistry.deleteMany(
+    {
+      productId,
+      ...(values.length > 0 ? { valueNormalized: { $nin: values } } : {}),
+    },
+    session ? { session } : {},
+  );
 }
 
-export async function releaseProductBarcodeRegistry(productId: string) {
-  await BarcodeRegistry.deleteMany({ productId });
+export async function releaseProductBarcodeRegistry(
+  productId: string,
+  session?: ClientSession,
+) {
+  await BarcodeRegistry.deleteMany({ productId }, session ? { session } : {});
 }

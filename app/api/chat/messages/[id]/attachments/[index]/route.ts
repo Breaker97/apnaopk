@@ -6,7 +6,7 @@ import {
 } from "@/lib/api/errors";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { assertConversationAccess } from "@/lib/conversations/service";
-import { resolveConversationViewer } from "@/lib/conversations/viewer";
+import { isStoreViewer, resolveConversationViewer } from "@/lib/conversations/viewer";
 import { providerAdapter } from "@/lib/conversations/providers/registry";
 import { isExternalChannel } from "@/lib/conversations/channels";
 import {
@@ -69,6 +69,10 @@ export const GET = withApi<{ id: string; index: string }>(
     }
     const message = await ConversationMessage.findById(params.id);
     if (!message) throw new NotFoundError("Message");
+    // The team's internal notes are not the customer's to read.
+    if (message.direction === "internal" && !isStoreViewer(viewer)) {
+      throw new NotFoundError("Message");
+    }
     const conversation = await assertConversationAccess(
       String(message.conversationId),
       viewer,

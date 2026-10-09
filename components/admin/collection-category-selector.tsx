@@ -20,12 +20,18 @@ interface CollectionCategorySelectorProps {
   selectedCategories: string[];
   onChange: (categoryIds: string[]) => void;
   title?: string;
+  /**
+   * Where the choices come from; the marketplace's flat category list by
+   * default. A vendor's builder passes the categories that store sells in.
+   */
+  endpoint?: string;
 }
 
 export function CollectionCategorySelector({
   selectedCategories,
   onChange,
   title = "Categories in Section",
+  endpoint = "/api/categories?flat=true",
 }: CollectionCategorySelectorProps) {
   const [searchValue, setSearchValue] = useState("");
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -37,7 +43,7 @@ export function CollectionCategorySelector({
     async function fetchCategories() {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/categories?flat=true");
+        const res = await fetch(endpoint);
         const data = await res.json();
         if (cancelled) return;
         const list: CategoryOption[] = Array.isArray(data?.data)
@@ -57,7 +63,7 @@ export function CollectionCategorySelector({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [endpoint]);
 
   const categoryById = useMemo(() => {
     const map = new Map<string, CategoryOption>();

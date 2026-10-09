@@ -7,6 +7,7 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getVendorStatement, resolveRequestedPeriod } from "@/lib/finance/reports";
+import { resolveFinanceDashboardPeriod } from "@/lib/finance/dashboard-finance-period";
 import { localeHref } from "@/lib/i18n/locale-routing";
 
 /**
@@ -55,15 +56,26 @@ function readParam(
 export async function loadVendorFinance(params: {
   locale: string;
   searchParams?: { [key: string]: string | string[] | undefined };
+  /**
+   * Which URL contract the screen's picker speaks: finance's own
+   * (`7d`/`30d`/`ytd`, the default) or the dashboard's (`today`/`week`/`month`).
+   * Per screen because the two are not interchangeable — a `period=7d` link read
+   * as the dashboard's falls back to its default, and the reverse likewise.
+   */
+  periods?: "finance" | "dashboard";
 }) {
   const guarded = await guardVendorFinance(params.locale);
-  // The same resolution the admin screens use, so a link built on one side of
-  // the marketplace means the same span on the other.
-  const period = resolveRequestedPeriod({
+  const search = {
     period: readParam(params.searchParams, "period"),
     from: readParam(params.searchParams, "from"),
     to: readParam(params.searchParams, "to"),
-  });
+  };
+  // Either way the same resolution the admin screens use, so a link built on
+  // one side of the marketplace means the same span on the other.
+  const period =
+    params.periods === "dashboard"
+      ? resolveFinanceDashboardPeriod(search)
+      : resolveRequestedPeriod(search);
   const statements = await getVendorStatement(String(guarded.vendor._id), period);
 
   return { ...guarded, period, statements };

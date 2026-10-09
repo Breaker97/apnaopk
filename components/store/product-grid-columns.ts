@@ -46,8 +46,3 @@ export const PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES: Record<number, string> = {
   5: "lg:auto-cols-[calc((100%_-_var(--card-grid-gap-x,1.25rem)_*_4)_/_5)]",
   6: "lg:auto-cols-[calc((100%_-_var(--card-grid-gap-x,1.25rem)_*_5)_/_6)]",
 };
-
-export function clampDesktopColumns(value: number | undefined): number {
-  const normalized = Number.isFinite(value) ? Math.floor(value as number) : 4;
-  return Math.min(6, Math.max(2, normalized));
-}

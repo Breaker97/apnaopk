@@ -436,15 +436,32 @@ function getCancelledConsignmentOutstanding(
  *
  * Null when there is no date to count from; a caller with nothing to show says
  * nothing rather than inventing a deadline.
+ *
+ * A balance requested through a collection cycle counts from the moment its
+ * advance notice was ACCEPTED by the mail server, not from when it was asked
+ * for: a request the shopper was never told about has no deadline at all
+ * (`lib/orders/preorder-collection.ts`), and repeated reminders never move it.
+ * Requests from before cycles existed keep the request date, as they always
+ * have.
  */
 export function getPreorderBalanceDeadline(
   order: {
     preorderReleaseDate?: Date | string | null;
     preorderBalanceRequestedAt?: Date | string | null;
+    preorderCollection?: {
+      cycleId?: string | null;
+      notice?: { acceptedAt?: Date | string | null } | null;
+    } | null;
   },
   graceDays: number,
 ): Date | null {
-  const times = [order.preorderReleaseDate, order.preorderBalanceRequestedAt]
+  const cycle = order.preorderCollection;
+  const requestBase = cycle?.cycleId
+    ? cycle.notice?.acceptedAt
+    : order.preorderBalanceRequestedAt;
+  // No accepted notice, no clock.
+  if (cycle?.cycleId && !requestBase) return null;
+  const times = [order.preorderReleaseDate, requestBase]
     .map((value) => (value ? new Date(value).getTime() : Number.NaN))
     .filter((time) => Number.isFinite(time));
   if (times.length === 0) return null;

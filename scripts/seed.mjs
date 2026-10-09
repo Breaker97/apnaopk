@@ -1735,7 +1735,6 @@ async function createSettings(Settings) {
       },
       checkout: {
         paymentMethods: ["cash", "card"],
-        offlinePaymentsEnabled: false,
       },
       orders: {
         orderNumberPrefix: "POS",

@@ -100,13 +100,49 @@ const eslintConfig = defineConfig([
   // The two modules that ARE the boundary, and so are the only ones that may
   // reach through it.
   {
-    files: [
-      "components/language/link.tsx",
-      "hooks/use-locale-navigation.ts",
-      "**/components/language/link.tsx",
-      "**/hooks/use-locale-navigation.ts",
-    ],
+    files: ["components/language/link.tsx", "hooks/use-locale-navigation.ts"],
     rules: { "no-restricted-imports": "off" },
+  },
+  // The mobile API's core stays free of the framework: its pipeline, handlers
+  // and ports are plain TypeScript, and only lib/api-next wires them to Next.
+  // This block must come after the one above: in a flat config a later
+  // `no-restricted-imports` replaces the earlier one's options for the files
+  // it matches, and `next/*` below covers what that one forbids.
+  {
+    files: ["lib/api-core/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["next", "next/*", "next-intl", "next-intl/*", "server-only"],
+              message:
+                "lib/api-core is framework-free. Put Next.js code in lib/api-next and reach it through a port (lib/api-core/ports.ts).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // The mobile contract is shared with the app, which copies it as it is: it
+  // may import zod and its own files, nothing else.
+  {
+    files: ["contracts/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(?!zod$|\\.\\.?/)",
+              message:
+                "A contract imports only zod and other contract files: the mobile app keeps a copy of this folder.",
+            },
+          ],
+        },
+      ],
+    },
   },
   // A `.cjs` file is CommonJS on purpose: `scripts/lib/*.cjs` are loaded with
   // `node --require` before any ESM loader exists, so `require()` is the only
@@ -117,12 +153,6 @@ const eslintConfig = defineConfig([
   },
   // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Local vendor archives and agent artifacts are not application source.
-    "Storify-v*/**",
-    // The v3 app is independently configured and built from its own base directory.
-    "Storify-main-app-v3.0/**",
-    "__MACOSX/**",
-    "__agent__/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     // …but `next.config.ts` lets NEXT_DIST_DIR move the build output (a

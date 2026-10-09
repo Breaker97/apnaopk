@@ -366,6 +366,13 @@ interface RazorpayRefundListing {
   created_at?: number;
 }
 
+/** Read an existing refund by its provider identity; never creates or retries money movement. */
+export async function fetchRazorpayRefund(params: { creds: RazorpayCredentials; refundId: string }): Promise<RazorpayRefundListing> {
+  const response = await fetch(`${RAZORPAY_API_BASE}/refunds/${encodeURIComponent(params.refundId)}`, { method: "GET", headers: { Authorization: getAuthHeader(params.creds) } });
+  if (!response.ok) throw new GatewayApiError(`Razorpay read refund failed: ${await readRazorpayErrorMessage(response)}`, response.status);
+  return response.json();
+}
+
 /**
  * Refunds on the account, a page at a time. `from` and `to` bound when the
  * refund was CREATED, in unix seconds. For the hourly refund sync: a refund

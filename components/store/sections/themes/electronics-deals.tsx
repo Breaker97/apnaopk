@@ -2,8 +2,10 @@ import Link from "@/components/language/link";
 import { ArrowRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
-import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
-import { getProductDiscountPercentage } from "@/lib/products/price-display";
+import {
+  countdownDeadline,
+  loadDeals,
+} from "@/lib/storefront/section-data/countdown-offer";
 import {
   backgroundCss,
   hasBackground,
@@ -73,6 +75,7 @@ export async function ElectronicsDeals({
   imagePadding = -1,
   emptyState = null,
   expiredState = null,
+  vendorId,
 }: {
   locale: Locale;
   heading: string;
@@ -102,29 +105,23 @@ export async function ElectronicsDeals({
   /** Labelled outline for the admin preview; null on the live storefront. */
   emptyState?: React.ReactNode;
   expiredState?: React.ReactNode;
+  /** A vendor's landing page: deals from that store only. */
+  vendorId?: string;
 }) {
-  const deadline = Date.parse(endsAt);
-  const hasDeadline = Boolean(endsAt) && !Number.isNaN(deadline);
+  const deadline = countdownDeadline(endsAt);
 
   // A countdown with no deadline has nothing to say. Live storefronts stay
   // silent; the admin preview shows which field is missing.
-  if (!hasDeadline) return emptyState;
+  if (deadline === null) return emptyState;
   if (hasPassed(deadline)) return expiredState;
 
   const t = await getTranslations({ locale, namespace: "home" });
-  const chosen = productIds.filter(Boolean).slice(0, layout.slots);
+  const { products, topSaving } = await loadDeals({
+    productIds,
+    slots: layout.slots,
+    ...(vendorId ? { vendorId } : {}),
+  });
 
-  const products = await getStorefrontProductCards(
-    chosen.length > 0
-      ? { ids: chosen, limit: chosen.length }
-      : { onSale: true, limit: layout.slots },
-  ).catch(() => []);
-
-  // The biggest saving on show — read, never typed.
-  const topSaving = products.reduce(
-    (best, product) => Math.max(best, getProductDiscountPercentage(product)),
-    0,
-  );
   const savingsLabel =
     showSavings && topSaving > 0
       ? t.has("dealsUpTo")

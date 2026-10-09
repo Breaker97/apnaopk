@@ -1,9 +1,0 @@
-/*
- * The admin, vendor and staff areas' stylesheet, loaded on top of
- * storefront.css by their layouts: Tailwind over the whole app. Its utilities
- * are in the `utilities` layer, which both sheets declare after
- * `utilities-store`, so wherever both are loaded this sheet decides.
- */
-@layer theme, base, components, utilities-store, utilities;
-@import "tailwindcss";
-@import "./globals.css";

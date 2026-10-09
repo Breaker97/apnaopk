@@ -8,6 +8,9 @@ import {
 import { listPOSLocations } from "@/lib/pos/list-locations";
 import { resolvePOSLocationId } from "@/lib/pos/resolve-location";
 import type { POSSettings } from "@/lib/pos/build-pos-settings";
+import { ApiError } from "@/lib/api/errors";
+import { isStoreProfileErrorCode } from "@/lib/inventory/store-profile";
+import { StoreProfileNotice } from "@/components/admin/store-profile-notice";
 
 interface POSPageShellProps {
   settings: POSSettings;
@@ -39,14 +42,31 @@ async function POSTerminalLoader({ settings, user }: POSPageShellProps) {
   // hold a different counter for this machine (`lib/pos/register-location.ts`),
   // which the workspace applies on mount — the server cannot read localStorage,
   // and rendering the wrong grid briefly is better than rendering none.
-  const [posLocationId, locations] = await Promise.all([
-    resolvePOSLocationId(user, settings.posLocationId),
-    listPOSLocations(user),
-  ]);
+  let posLocationId: string;
+  let locations: Awaited<ReturnType<typeof listPOSLocations>>;
+  let initialData: Awaited<ReturnType<typeof listPOSProducts>>;
+  try {
+    [posLocationId, locations] = await Promise.all([
+      resolvePOSLocationId(user, settings.posLocationId),
+      listPOSLocations(user),
+    ]);
 
-  const initialData = await listPOSProducts(user, {
-    locationId: posLocationId,
-  });
+    initialData = await listPOSProducts(user, {
+      locationId: posLocationId,
+    });
+  } catch (error) {
+    // The register sells the store's own catalogue, which needs the store's
+    // profile. It is made on first need; when it may not be, say why here
+    // rather than replacing the whole page with the error screen.
+    if (error instanceof ApiError && isStoreProfileErrorCode(error.code)) {
+      return (
+        <div className="p-4 sm:p-6">
+          <StoreProfileNotice code={error.code} />
+        </div>
+      );
+    }
+    throw error;
+  }
 
   const posLocationName = locations.find(
     (location) => location.id === posLocationId,

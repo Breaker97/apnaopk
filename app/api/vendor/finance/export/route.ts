@@ -12,11 +12,15 @@ import {
   csvResponse,
   statementCsvRows,
 } from "@/lib/finance/csv";
-import { getVendorStatement, resolvePeriod } from "@/lib/finance/reports";
+import { getVendorStatement, resolveRequestedPeriod } from "@/lib/finance/reports";
+import { resolveFinanceDashboardPeriod } from "@/lib/finance/dashboard-finance-period";
+import { DASHBOARD_PERIODS } from "@/lib/admin/dashboard-period";
 
 const ExportQuerySchema = z.object({
   type: z.enum(["statement", "expenses"]).default("statement"),
   period: z.string().default("30d"),
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 
 /** The same ceiling the admin export uses: a file nobody can open is not one. */
@@ -58,7 +62,12 @@ export const GET = withApi(
 
     const vendor = await requireApprovedVendorByUserId(session.user.id);
     const query = validateQuery(request, ExportQuerySchema);
-    const period = resolvePeriod(query.period);
+    // Statements opens from the dashboard's picker, so its keys — `today`,
+    // `week`, `month` — are read as the dashboard's. `7d`/`30d`/`ytd` and a
+    // picked range stay finance's own, still strict about the dates.
+    const period = (DASHBOARD_PERIODS as readonly string[]).includes(query.period)
+      ? resolveFinanceDashboardPeriod(query)
+      : resolveRequestedPeriod(query, new Date(), true);
     const stamp = new Date().toISOString().slice(0, 10);
 
     if (query.type === "expenses") {
@@ -88,7 +97,7 @@ export const GET = withApi(
       );
     }
 
-    const statements = await getVendorStatement(String(vendor._id), period);
+    const statements = await getVendorStatement(String(vendor._id), period, MAX_ROWS);
 
     return csvResponse(
       `statement-${period.key}-${stamp}.csv`,

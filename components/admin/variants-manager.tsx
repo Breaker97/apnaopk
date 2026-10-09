@@ -55,7 +55,6 @@ export function VariantsManager({
   mediaItems = [],
   defaultPrice = 0,
   locations = [],
-  onRequestAiImage,
   defaultRequiresShipping = true,
   defaultWeightUnit = "kg",
   preorderLockedReason = null,
@@ -480,7 +479,6 @@ export function VariantsManager({
                     handleSelectGroupAll(groupVariants, selected)
                   }
                   onBulkImageSet={handleBulkImageSet}
-                  onRequestAiImage={onRequestAiImage}
                   locations={locations}
                 />
               )

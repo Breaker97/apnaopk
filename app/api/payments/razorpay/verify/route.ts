@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
-import {
-  fetchRazorpayPayment,
-  getRazorpayCredentials,
-  verifyRazorpayPaymentSignature,
-} from "@/lib/payments/razorpay";
-import { finalizeRazorpayOrder } from "@/lib/payments/razorpay-orders";
+import { checkRazorpayPayment } from "@/lib/payments/razorpay-verify";
 import {
   SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
@@ -61,42 +56,19 @@ export const POST = withApi(
 
     await connectDB();
     const settings = await getSettings();
-    const razorpay = settings.payment?.razorpay;
 
-    if (!razorpay?.enabled) {
-      throw new ValidationError("Razorpay is disabled");
-    }
-
-    const creds = getRazorpayCredentials({
-      keyId: razorpay.keyId,
-      keySecret: razorpay.keySecret,
-    });
-
-    const isValidSignature = verifyRazorpayPaymentSignature({
-      orderId: razorpayOrderId,
-      paymentId: razorpayPaymentId,
-      signature: razorpaySignature,
-      keySecret: creds.keySecret,
-    });
-
-    if (!isValidSignature) {
-      throw new ValidationError("Razorpay payment signature mismatch");
-    }
-
-    const payment = await fetchRazorpayPayment({
-      creds,
-      paymentId: razorpayPaymentId,
-    });
-
-    const result = await finalizeRazorpayOrder({
+    // The signature, the payment read back, and the order settled — see
+    // lib/payments/razorpay-verify.ts.
+    const check = await checkRazorpayPayment({
       razorpayOrderId,
-      payment,
-      creds,
+      razorpayPaymentId,
+      razorpaySignature,
       settings,
       sessionUserId: session?.user?.id,
       cartSessionId,
       customerEmail: session?.user?.email,
     });
+    const result = await check.settle();
 
     return NextResponse.json({
       success: true,

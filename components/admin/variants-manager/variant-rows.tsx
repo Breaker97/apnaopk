@@ -12,7 +12,6 @@ import {
   ChevronUp,
   Image as ImageIcon,
   MapPin,
-  Sparkles,
 } from "lucide-react";
 import {
   Popover,
@@ -24,7 +23,6 @@ import { useCurrency } from "@/providers/currency-provider";
 import type { LocationInventory } from "@/types";
 import {
   variantAvailable,
-  type VariantAiImageTarget,
   type VariantOptionValue,
   type InventoryLocationLite,
   type MediaItem,
@@ -45,34 +43,6 @@ function isColorOptionName(name: string | undefined) {
 
 function isHexColor(value: string | undefined): value is string {
   return Boolean(value && /^#[0-9a-f]{6}$/i.test(value));
-}
-
-function getVariantColor(variant: ProductVariant): {
-  name?: string;
-  hex?: string;
-} {
-  const ov = variant.optionValues.find((o) =>
-    isColorOptionName(o.optionName),
-  );
-  return {
-    name: ov?.value,
-    hex: isHexColor(ov?.colorCode) ? ov.colorCode : undefined,
-  };
-}
-
-// Small AI trigger that overlays a variant image slot without clipping.
-function AiImageBadge({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Generate variant image with AI"
-      title="Generate with AI"
-      className="absolute -right-1.5 -top-1.5 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow ring-2 ring-background transition-transform hover:scale-110"
-    >
-      <Sparkles className="h-2.5 w-2.5" />
-    </button>
-  );
 }
 
 function ColorSwatch({ optionValue }: { optionValue?: VariantOptionValue }) {
@@ -96,7 +66,6 @@ function VariantRow({
   mediaItems,
   isSelected,
   onSelectChange,
-  onRequestAiImage,
   locations,
 }: {
   variant: ProductVariant;
@@ -106,7 +75,6 @@ function VariantRow({
   mediaItems: MediaItem[];
   isSelected: boolean;
   onSelectChange: (selected: boolean) => void;
-  onRequestAiImage?: (target: VariantAiImageTarget) => void;
   locations: InventoryLocationLite[];
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -131,7 +99,7 @@ function VariantRow({
       />
 
       {/* Media thumbnail — opens the product media gallery picker */}
-      <div className="relative shrink-0">
+      <div className="shrink-0">
         <button
           type="button"
           onClick={(e) => {
@@ -150,20 +118,6 @@ function VariantRow({
             <ImageIcon className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
-        {onRequestAiImage ? (
-          <AiImageBadge
-            onClick={(e) => {
-              e.stopPropagation();
-              const color = getVariantColor(variant);
-              onRequestAiImage({
-                variantIds: [variant.id],
-                label: variant.name || color.name || "variant",
-                colorName: color.name,
-                colorHex: color.hex,
-              });
-            }}
-          />
-        ) : null}
       </div>
 
       <ImageSelectorModal
@@ -556,7 +510,6 @@ export function VariantGroup({
   onSelectVariant,
   onSelectAll,
   onBulkImageSet,
-  onRequestAiImage,
   locations,
 }: {
   groupName: string;
@@ -572,7 +525,6 @@ export function VariantGroup({
   onSelectVariant: (variantId: string, selected: boolean) => void;
   onSelectAll: (selected: boolean) => void;
   onBulkImageSet: (variantIds: string[], mediaId: string | undefined) => void;
-  onRequestAiImage?: (target: VariantAiImageTarget) => void;
   locations: InventoryLocationLite[];
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -610,7 +562,7 @@ export function VariantGroup({
         />
 
         {/* Group image — opens the product media gallery picker */}
-        <div className="relative shrink-0">
+        <div className="shrink-0">
         <button
           type="button"
           onClick={(e) => {
@@ -635,25 +587,6 @@ export function VariantGroup({
             <ImageIcon className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
-        {onRequestAiImage ? (
-          <AiImageBadge
-            onClick={(e) => {
-              e.stopPropagation();
-              const isColorGroup = isColorOptionName(
-                groupOptionValue?.optionName,
-              );
-              onRequestAiImage({
-                variantIds: variants.map((v) => v.id),
-                label: groupName,
-                colorName: isColorGroup ? groupName : undefined,
-                colorHex:
-                  isColorGroup && isHexColor(groupOptionValue?.colorCode)
-                    ? groupOptionValue?.colorCode
-                    : undefined,
-              });
-            }}
-          />
-        ) : null}
         </div>
 
         <div className="flex-1">
@@ -705,7 +638,6 @@ export function VariantGroup({
               onSelectChange={(selected) =>
                 onSelectVariant(variant.id, selected)
               }
-              onRequestAiImage={onRequestAiImage}
               locations={locations}
             />
           ))}

@@ -213,6 +213,9 @@ const PaymentTransactionSchema = new Schema(
       type: Schema.Types.Mixed,
       default: {},
     },
+    /** One durable receipt per operation leg, including split-vendor refunds. */
+    bizOperationId: { type: String },
+    bizOperationLeg: { type: String },
     createdBy: {
       type: String,
       trim: true,
@@ -245,6 +248,10 @@ PaymentTransactionSchema.index({ customerEmail: 1, createdAt: -1 });
 // cheap, because a gateway having a bad afternoon is exactly when it fires.
 // Sparse: only a failure row carries the key, and most rows never will.
 PaymentTransactionSchema.index({ "metadata.dedupeKey": 1 }, { sparse: true });
+PaymentTransactionSchema.index({ bizOperationId: 1, bizOperationLeg: 1 }, {
+  unique: true,
+  partialFilterExpression: { bizOperationId: { $gt: "" }, bizOperationLeg: { $gt: "" } },
+});
 
 export const PaymentTransaction =
   models.PaymentTransaction ||

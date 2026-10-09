@@ -14,7 +14,6 @@
 
 import { useEffect, type RefObject } from "react";
 import { usePathname } from "@/hooks/use-locale-navigation";
-
 import { utcDay } from "@/lib/boosts/boost-days";
 
 type SponsoredPlacement = "home" | "listing" | "pdp";

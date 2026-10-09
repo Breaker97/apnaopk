@@ -5,7 +5,7 @@ import {
   DEFAULT_PRIMARY_COLOR,
   DEFAULT_STORE_NAME,
 } from "@/config/branding.config";
-import { createSmtpTransport, sendEmail } from "@/lib/email/email";
+import { createSmtpTransport, sendEmailWithOutcome } from "@/lib/email/email";
 import { escapeHtml } from "@/lib/email/escape-html";
 import { getSmtpConfigurationFingerprint } from "@/lib/email/smtp-verification";
 import { revalidateSettingsContent } from "@/lib/cache-invalidation";
@@ -62,12 +62,14 @@ export const POST = withApi(
         settings.appearance?.primaryColor || DEFAULT_PRIMARY_COLOR,
       );
 
-      // Send test email
-      const sent = await sendEmail({
+      // One try only: a failed test that went out by itself half an hour
+      // later (the outbox's retries) proved nothing about these settings.
+      const { sent, error } = await sendEmailWithOutcome({
         to: testEmail.trim(),
         subject: `Test Email from ${storeName}`,
         settings,
         category: "smtp-test",
+        maxAttempts: 1,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: ${primaryColor};">Email Configuration Test</h2>
@@ -82,10 +84,13 @@ export const POST = withApi(
       });
 
       if (!sent) {
+        // The mail server's own answer (sanitized, as the log keeps it), so
+        // the page can show "535 … not accepted" where the admin is looking.
         return NextResponse.json(
           {
             success: false,
             message:
+              error ||
               "SMTP test failed. Check the sanitized delivery log for the provider response.",
           },
           { status: 502 },
@@ -103,12 +108,16 @@ export const POST = withApi(
           { status: 500 },
         );
       }
-      settings.security.smtpVerifiedAt = new Date();
+      const verifiedAt = new Date();
+      settings.security.smtpVerifiedAt = verifiedAt;
       settings.security.smtpVerificationFingerprint = fingerprint;
       await settings.save();
       revalidateSettingsContent();
 
-      const requestedFrom = settings.email?.fromEmail?.trim();
+      // Off in Settings, the .env sender is used and the page's is not.
+      const requestedFrom = settings.email?.enabled
+        ? settings.email.fromEmail?.trim()
+        : undefined;
       const authenticatedAs = smtp.auth.user.trim().toLowerCase();
       const aliasWarning =
         smtp.host.toLowerCase().includes("gmail") &&
@@ -122,6 +131,7 @@ export const POST = withApi(
 
       return NextResponse.json({
         success: true,
+        data: { verifiedAt: verifiedAt.toISOString() },
         message: `Test email sent successfully using ${smtp.port === 465 ? "implicit TLS" : smtp.port === 587 ? "STARTTLS" : `SMTP port ${smtp.port}`}.${aliasWarning}`,
       });
     } catch (error: unknown) {

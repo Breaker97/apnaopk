@@ -60,6 +60,7 @@ async function TransactionsTable({
     type: read("type"),
     provider: read("provider"),
     settlement: read("settlement"),
+    date: read("date"),
     sortBy: read("sortBy"),
     sortOrder: read("sortOrder") === "asc" ? "asc" : "desc",
   });

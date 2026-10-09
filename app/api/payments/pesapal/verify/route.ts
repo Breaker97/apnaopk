@@ -1,16 +1,7 @@
 import { NextResponse } from "next/server";
 import { Order } from "@/models";
 import { getSettings } from "@/models/settings.model";
-import {
-  getPesapalCredentials,
-  getPesapalTransactionState,
-  getPesapalTransactionStatus,
-} from "@/lib/payments/pesapal";
-import {
-  finalizePesapalOrder,
-  reversePesapalOrder,
-} from "@/lib/payments/pesapal-orders";
-import { resolvePesapalCredentials } from "@/lib/settings/credentials";
+import { checkPesapalPayment } from "@/lib/payments/pesapal-verify";
 import { isPlatformPaymentReference } from "@/models/platformPayment.model";
 import {
   findPlatformPaymentByReference,
@@ -118,26 +109,18 @@ export const POST = withApi(
     }
 
     const settings = await getSettings();
-    const resolved = resolvePesapalCredentials(settings.payment?.pesapal);
-    const creds = getPesapalCredentials(resolved);
-    const transaction = await getPesapalTransactionStatus({
-      creds,
+    // Pesapal's word on it, held to the order's merchant reference (a
+    // reversal is walked back) — see lib/payments/pesapal-verify.ts.
+    const check = await checkPesapalPayment({
       orderTrackingId: resolvedOrderTrackingId,
+      recordedMerchantReference: order.pesapalMerchantReference,
+      merchantReference: merchantReference || undefined,
+      settings,
+      sessionUserId: session?.user?.id,
+      cartSessionId,
+      customerEmail: session?.user?.email,
     });
-
-    if (transaction.merchant_reference !== order.pesapalMerchantReference) {
-      throw new ValidationError("Pesapal merchant reference mismatch");
-    }
-
-    const status = getPesapalTransactionState(transaction);
-    if (status === "reversed") {
-      // The shopper can land here after a reversal too — walk the capture back
-      // instead of reporting a status nobody acts on.
-      await reversePesapalOrder({
-        orderTrackingId: resolvedOrderTrackingId,
-        settings,
-      });
-    }
+    const status = check.state;
     if (status !== "completed") {
       return NextResponse.json({
         success: true,
@@ -149,15 +132,7 @@ export const POST = withApi(
       });
     }
 
-    const result = await finalizePesapalOrder({
-      orderTrackingId: resolvedOrderTrackingId,
-      merchantReference: merchantReference || undefined,
-      transaction,
-      settings,
-      sessionUserId: session?.user?.id,
-      cartSessionId,
-      customerEmail: session?.user?.email,
-    });
+    const result = await check.settle();
 
     return NextResponse.json({
       success: true,

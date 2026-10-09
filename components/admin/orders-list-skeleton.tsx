@@ -10,7 +10,7 @@ import { AdminListSkeleton } from "@/components/admin/admin-list-skeleton";
  *
  * Mirrors components/admin/orders-data-table.tsx: 5 tabs, 10 columns of which
  * ~8 are visible on a typical admin viewport, no row thumbnail, one "Create
- * order" header button and the Import/Export toolbar pill.
+ * order" header button and the Export toolbar button.
  */
 
 const ORDERS_TABLE_SHAPE = {

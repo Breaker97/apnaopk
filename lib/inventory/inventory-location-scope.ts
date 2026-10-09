@@ -17,7 +17,14 @@ import "server-only";
 import { USER_ROLES } from "@/config/app.config";
 import { AuthorizationError, NotFoundError } from "@/lib/api/errors";
 import { connectDB } from "@/lib/db";
-import { findDefaultVendorIdReadOnly } from "@/lib/vendors/multi-vendor";
+import {
+  storeProfileErrorCode,
+  type StoreProfileProblem,
+} from "@/lib/inventory/store-profile";
+import {
+  ensureDefaultVendorId,
+  type DefaultVendorProblem,
+} from "@/lib/vendors/multi-vendor";
 import { isAdmin, isVendor } from "@/lib/access/rbac";
 import { getActiveStaffAccess } from "@/lib/access/staff-authz";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -82,7 +89,7 @@ export async function resolveLocationScope(
   }
 
   if (isAdmin(roleUser)) {
-    return houseScope([]);
+    return houseScope([], user.id);
   }
 
   if (
@@ -105,7 +112,7 @@ export async function resolveLocationScope(
       };
     }
 
-    const house = await houseScope(scope.locationIds);
+    const house = await houseScope(scope.locationIds, user.id);
     return scope.vendorIds.length > 1
       ? {
           ...house,
@@ -121,16 +128,30 @@ export async function resolveLocationScope(
 
 async function houseScope(
   locationIds: string[],
+  preferredOwnerId: string,
 ): Promise<InventoryLocationScope> {
-  const vendorId = await findDefaultVendorIdReadOnly();
-  if (!vendorId) {
-    // Deliberately not get-or-create: this runs on read paths (product form,
-    // inventory list, POS) where a write would be a surprise. Saving general
-    // settings is what creates the default vendor.
-    throw new NotFoundError("Default store profile");
-  }
+  // Made on first need: a 2.4.0 store installed without demo data has no house
+  // profile, and every admin screen built on locations stopped at a 404 until
+  // someone thought to save Settings → General. When it is there this is the
+  // same single read as before; it writes only to make what is missing.
+  const house = await ensureDefaultVendorId({ preferredOwnerId });
+  if (!house.vendorId) throw storeProfileUnavailable(house.problem);
 
+  const vendorId = house.vendorId;
   return { vendorId, readVendorIds: [vendorId], isVendor: false, locationIds };
+}
+
+/**
+ * The 404 for a store whose house profile is missing and could not be made,
+ * with a code the client can act on (`STORE_PROFILE_NO_OWNER` …) instead of
+ * matching the English message. The message stays what API callers know.
+ */
+export function storeProfileUnavailable(
+  problem: DefaultVendorProblem | StoreProfileProblem = "missing",
+): NotFoundError {
+  const error = new NotFoundError("Default store profile");
+  error.code = storeProfileErrorCode(problem === "error" ? "missing" : problem);
+  return error;
 }
 
 /**
@@ -147,6 +168,41 @@ export function vendorLocationScope(vendorId: string): InventoryLocationScope {
     isVendor: true,
     locationIds: [],
   };
+}
+
+/**
+ * Where a product's stock may be recorded: at its OWNER's locations, narrowed to
+ * a staff member's assigned ones when they have any.
+ *
+ * Never the editor's own scope. An admin editing a vendor's product, or a staff
+ * member assigned to several vendors, acts under one store's locations while
+ * the product belongs to another. Judged by the editor, every save stripped the
+ * owner's rows from the payload, and the stock merge then read the missing rows
+ * as removed and deleted the vendor's stock.
+ */
+export function productStockScope(
+  ownerVendorId: string,
+  staffLocationIds: readonly string[] = [],
+): InventoryLocationScope {
+  return {
+    vendorId: ownerVendorId,
+    readVendorIds: [ownerVendorId],
+    isVendor: false,
+    locationIds: [...staffLocationIds],
+  };
+}
+
+/**
+ * The vendor a product created in the admin editor belongs to, or `null` for
+ * the house store. Staff scoped to vendors create under the first of them: the
+ * product has to land inside their scope, or they could not open what they
+ * just made. The create route and the editor's locations both ask this, so the
+ * shelves offered are the owner's.
+ */
+export function adminProductCreateVendorId(
+  staffScope?: { vendorIds: string[] } | null,
+): string | null {
+  return staffScope?.vendorIds[0] ?? null;
 }
 
 /**

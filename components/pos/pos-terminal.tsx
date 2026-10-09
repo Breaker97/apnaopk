@@ -64,6 +64,7 @@ import { nextLocalReceiptNumber } from "@/lib/pos/offline-receipt";
 import { offlineScope } from "@/lib/pos/offline-db";
 import type { POSOfflineState } from "@/hooks/use-pos-offline";
 import { productAllowsOversell } from "@/lib/products/stock-policy";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import { POSSaleCompleteModal } from "@/components/pos/sale-complete-modal";
 import { POSTakePaymentDialog } from "@/components/pos/take-payment-dialog";
 import type {
@@ -2441,7 +2442,11 @@ export function POSTerminal({
                     {t("pos.addCustomer")}
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate">
-                    Earn loyalty, attach to order
+                    {/* No points to promise while loyalty is hidden (see
+                        `isLoyaltyEnabled`). */}
+                    {isLoyaltyEnabled()
+                      ? "Earn loyalty, attach to order"
+                      : "Attach to order"}
                   </p>
                 </div>
                 <kbd className="rounded border border-blue-300/60 bg-blue-100/60 px-1.5 py-0.5 font-mono text-[10px] text-blue-700 dark:text-blue-300 shrink-0">

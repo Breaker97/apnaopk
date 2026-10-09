@@ -12,6 +12,8 @@ import {
   listResponse,
 } from "@/lib/api/list-query";
 import { isAdmin } from "@/lib/access/rbac";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogCreate, CATEGORY_AUDIT } from "@/lib/catalog/catalog-audit";
 import mongoose from "mongoose";
 import { revalidateCategoryContent } from "@/lib/cache-invalidation";
 import { slugify } from "@/lib/strings";
@@ -149,7 +151,7 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
   // categories table (slug/image/isActive/featured/productCount), the category
   // and collection pickers (name/slug/image/path), and the menu builder's
   // resource search + mega-menu sync (name/slug/description/image/icon).
-  // `parentId` feeds the path/isLeaf decoration and the nested tree below.
+  // `parentId` feeds the path decoration and the nested tree below.
   // `subcategories` is a virtual, so populating it duplicated every child
   // document inside its parent — nothing reads it off this response.
   const categories = await Category.find(query)
@@ -160,17 +162,18 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
     .lean();
 
   // Decorate every category with a `path` (ancestor names ending in self)
-  // and `isLeaf` (true when no children). The product editor uses these to
-  // show breadcrumbs and disable parent selection. Cheap to compute since
-  // we already have all categories in memory.
-  const byId = new Map(categories.map((c) => [String(c._id), c]));
-  const childCount = new Map<string, number>();
-  for (const c of categories) {
-    if (c.parentId) {
-      const key = String(c.parentId);
-      childCount.set(key, (childCount.get(key) || 0) + 1);
-    }
-  }
+  // for the pickers' breadcrumbs. Cheap to compute since we already have all
+  // categories in memory — unless a search or a filter kept only some of
+  // them: the path still describes the whole tree the caller may see, or a
+  // matched sub-category whose parent did not match would read as a
+  // top-level one.
+  const filtered = Boolean(search || parentOnly || status || featured);
+  const tree = filtered
+    ? await Category.find(isAdmin(session?.user) ? {} : { isActive: true })
+        .select("name parentId")
+        .lean()
+    : categories;
+  const byId = new Map(tree.map((c) => [String(c._id), c]));
   const pathCache = new Map<string, string[]>();
   function pathFor(id: string): string[] {
     const cached = pathCache.get(id);
@@ -187,7 +190,6 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
     return {
       ...c,
       path: pathFor(id),
-      isLeaf: !childCount.get(id),
     };
   });
 
@@ -224,7 +226,7 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
  * POST /api/categories
  * Create a new category (Admin only)
  */
-export const POST = withApi({ auth: "admin" }, async ({ request }) => {
+export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
   const body = await validateBody(request, CategoryCreateSchema);
 
   if (body.parentId === "" || body.parentId === null) {
@@ -268,6 +270,12 @@ export const POST = withApi({ auth: "admin" }, async ({ request }) => {
     slug: finalSlug,
     order: body.displayOrder || 0,
   });
+
+  await auditCatalogCreate(
+    createAuditContext(request, session),
+    CATEGORY_AUDIT,
+    category,
+  );
 
   revalidateCategoryContent({ slugs: [category.slug] });
 

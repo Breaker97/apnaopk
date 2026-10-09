@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMultiVendorMode } from "@/providers/app-settings-provider";
 import { useCurrency } from "@/providers/currency-provider";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
 import {
   DataTable,
   TextCell,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/data-table";
 
 type OverviewPayload = {
+  breakdowns?: { estimatedCollectionReceipts?: number };
   totals: {
     paidRevenue: number;
     refundedAmount: number;
@@ -91,8 +92,10 @@ export function PaymentsOverviewContent({
   to,
 }: {
   locale: string;
+  /** The dashboard's period: one of its named keys, or "custom" for picked days. */
   period: string;
   periodLabel: string;
+  /** The resolved days as "YYYY-MM-DD", empty for all time — what the picker draws. */
   from: string;
   to: string;
 }) {
@@ -325,12 +328,11 @@ export function PaymentsOverviewContent({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <FinancePeriodPicker
+          <DashboardPeriodPicker
             period={period}
             from={from}
             to={to}
-            book="all"
-            showBookFilter={false}
+            defaultPeriod="month"
           />
           <Button variant="outline" asChild>
             <Link href="/admin/payments/transactions">
@@ -375,6 +377,7 @@ export function PaymentsOverviewContent({
                 {money(totals?.paidRevenue || 0)}
               </p>
             )}
+            {Boolean(data?.breakdowns?.estimatedCollectionReceipts) && <p className="mt-1 text-xs text-muted-foreground">{t("finance.reliability.estimatedCollections", { count: data!.breakdowns!.estimatedCollectionReceipts! })}</p>}
             {/* Called "revenue" until it sat in the same nav group as Finance,
                 which reports revenue from the ledger and gets a different,
                 smaller number. This is every paid order's gross total —
@@ -385,9 +388,7 @@ export function PaymentsOverviewContent({
               {periodLabel}
             </p>
             <p className="mt-1.5 max-w-[52ch] text-xs text-muted-foreground">
-              {t.has("admin.paymentsOverviewPage.metrics.paidVolumeHint")
-                ? t("admin.paymentsOverviewPage.metrics.paidVolumeHint")
-                : "Gross, including tax — see Finance for revenue"}
+              {t("finance.reliability.collectionScope")}
             </p>
 
             <div className="mt-4 border-t pt-3">

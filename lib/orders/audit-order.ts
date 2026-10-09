@@ -62,17 +62,19 @@ const SOURCE_LABEL: Record<string, string> = {
   pos: "the POS register",
   admin: "the admin panel",
   exchange: "an exchange",
+  vendor: "the vendor dashboard",
 };
 
 /**
- * Order created. Written by all three creation paths — storefront checkout,
- * POS sale, and manual admin creation — so every order has a birth event.
+ * Order created. Written by every creation path — storefront checkout (card
+ * and cash on delivery), POS sale, and manual creation by an admin or a vendor
+ * — so every order has a birth event.
  */
 export function auditOrderPlaced(
   context: AuditContext,
   order: AuditOrderRef,
   details: {
-    source: "storefront" | "pos" | "admin" | "exchange";
+    source: "storefront" | "pos" | "admin" | "exchange" | "vendor";
     total: number;
     currency?: string;
     itemCount: number;

@@ -3,7 +3,6 @@ import { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
-import { Cart } from "@/models";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { handleApiError } from "@/lib/api/errors";
 import {
@@ -14,7 +13,11 @@ import {
 } from "@/lib/api/rate-limit-middleware";
 import { isValidObjectId, validateBody } from "@/lib/api/validate";
 import * as z from "zod";
-import { setCartItemQuantity } from "@/lib/cart/cart-item-quantity";
+import {
+  removeCartLine,
+  resolveCartIdentity,
+  setCartLine,
+} from "@/lib/cart/cart-service";
 
 function parseItemId(itemId: string): { productId: string; variantId?: string } {
   const [productId, variantId] = itemId.split("-");
@@ -65,25 +68,17 @@ export async function PUT(
 
     const { quantity } = await validateBody(request, CartItemQuantitySchema);
 
-    if (!userId && !sessionId) {
+    const identity = resolveCartIdentity({ userId, sessionId });
+    if (!identity) {
       return notFoundResponse("Cart");
     }
 
-    const query = userId ? { userId } : { sessionId };
-    const cart = await Cart.findOne(query);
-    if (!cart) {
-      return notFoundResponse("Cart");
-    }
-
-    const updated = await setCartItemQuantity(cart, {
-      productId,
-      variantId,
-      quantity,
-    });
-    if (!updated) return notFoundResponse("Item");
-
-    await cart.save();
-    return successResponse(cartResponse(cart));
+    // Through the one way a quantity changes: stock, the quoted lot, and a
+    // pre-order's terms worked out again.
+    const updated = await setCartLine(identity, { productId, variantId, quantity });
+    if (updated.status === "no-line") return notFoundResponse("Item");
+    if (updated.status !== "saved") return notFoundResponse("Cart");
+    return successResponse(cartResponse(updated.cart));
   } catch (error) {
     return handleApiError(error);
   }
@@ -125,31 +120,15 @@ export async function DELETE(
       await rateLimitByIP(request, "moderate");
     }
 
-    if (!userId && !sessionId) {
+    const identity = resolveCartIdentity({ userId, sessionId });
+    if (!identity) {
       return notFoundResponse("Cart");
     }
 
-    const query = userId ? { userId } : { sessionId };
-    const cart = await Cart.findOne(query);
-    if (!cart) {
-      return notFoundResponse("Cart");
-    }
-
-    const beforeCount = cart.items.length;
-    cart.items = cart.items.filter(
-      (item: { productId: { toString: () => string }; variantId?: { toString: () => string } }) =>
-        !(
-          item.productId.toString() === productId &&
-          (variantId ? item.variantId?.toString() === variantId : !item.variantId)
-        )
-    );
-
-    if (cart.items.length === beforeCount) {
-      return notFoundResponse("Item");
-    }
-
-    await cart.save();
-    return successResponse(cartResponse(cart));
+    const removed = await removeCartLine(identity, { productId, variantId });
+    if (removed.status === "no-line") return notFoundResponse("Item");
+    if (removed.status !== "saved") return notFoundResponse("Cart");
+    return successResponse(cartResponse(removed.cart));
   } catch (error) {
     return handleApiError(error);
   }

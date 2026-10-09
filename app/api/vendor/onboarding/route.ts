@@ -24,7 +24,11 @@ import {
 } from "@/config/app.config";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { getSettings } from "@/models/settings.model";
-import { VENDOR_APPLICATION_LATEST_SORT } from "@/lib/vendors/vendor-application";
+import {
+  TEAM_ACCOUNT_APPLICATION_REFUSAL,
+  VENDOR_APPLICATION_LATEST_SORT,
+} from "@/lib/vendors/vendor-application";
+import { holdsTeamRole } from "@/lib/access/staff-role";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { vendorDocumentReferenceSchema } from "@/lib/vendors/vendor-documents";
 
@@ -263,6 +267,12 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await resolveApplicant();
     if (!session) return unauthorized();
+    if (holdsTeamRole(session.user)) {
+      return NextResponse.json(
+        { success: false, message: TEAM_ACCOUNT_APPLICATION_REFUSAL },
+        { status: 403 },
+      );
+    }
 
     await rateLimitByUser(
       request,

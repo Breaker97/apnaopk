@@ -33,6 +33,7 @@ export const GET = withApi(
       type,
       provider,
       settlement,
+      date: searchParams.get("date") || undefined,
       sortBy,
       sortOrder: searchParams.get("sortOrder") === "asc" ? "asc" : "desc",
     });

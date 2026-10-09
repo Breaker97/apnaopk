@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
+import { useAppSettings } from "@/providers/app-settings-provider";
+import { localeConfig, locales, isValidLocale } from "@/config/i18n.config";
+import { resolveLocalizedSetting, LEGACY_SEARCH_PLACEHOLDERS } from "@/lib/i18n/localized-setting";
 
 import { Link as LinkIcon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -1170,19 +1174,52 @@ function SearchBarFields({
   onPatch: (patch: Partial<HeaderSearchBarItem>) => void;
 }) {
   const labels = commonLabels(tSafe);
+  const currentLocale = useLocale();
+  const { defaultLanguage, supportedLanguages } = useAppSettings();
+  const availableLanguages = [...new Set([defaultLanguage, ...supportedLanguages])].filter(isValidLocale);
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    isValidLocale(currentLocale) && availableLanguages.includes(currentLocale) ? currentLocale : defaultLanguage,
+  );
+  const language = isValidLocale(selectedLanguage) ? selectedLanguage : "en";
+  const placeholder = resolveLocalizedSetting({
+    value: item.placeholder,
+    translations: item.placeholderTranslations,
+    locale: language,
+    defaultLocale: defaultLanguage,
+    fallback: "",
+    legacyDefaults: LEGACY_SEARCH_PLACEHOLDERS,
+  });
   return (
     <>
+      <PanelRow label={tSafe("admin.headerStudio.panel.placeholderLanguage", "Placeholder language")}>
+        <SelectField
+          value={language}
+          onChange={setSelectedLanguage}
+          options={(availableLanguages.length ? availableLanguages : locales).map(code => ({
+            value: code, label: localeConfig[code].nativeName,
+          }))}
+          ariaLabel={tSafe("admin.headerStudio.panel.placeholderLanguage", "Placeholder language")}
+        />
+      </PanelRow>
       <PanelRow
         label={tSafe("admin.headerStudio.panel.placeholder", "Placeholder")}
         align="start"
       >
         <Input
-          value={item.placeholder}
-          onChange={(event) => onPatch({ placeholder: event.target.value })}
+          value={placeholder}
+          onChange={(event) => onPatch({
+            // Clearing the default-language translation must also clear an
+            // old scalar value, otherwise it would silently return.
+            ...(language === defaultLanguage ? { placeholder: "" } : {}),
+            placeholderTranslations: { ...item.placeholderTranslations, [language]: event.target.value },
+          })}
           className="h-8 text-xs"
           aria-label={tSafe("admin.headerStudio.panel.placeholder", "Placeholder")}
         />
       </PanelRow>
+      <p className="px-3 text-xs text-muted-foreground">
+        {tSafe("admin.headerStudio.panel.placeholderDefault", "Use the storefront translation when this field is empty. Custom text is saved for the selected language.")}
+      </p>
       <PanelRow label={tSafe("admin.headerStudio.panel.roundness", "Roundness")}>
         <UnitField
           value={item.roundness}

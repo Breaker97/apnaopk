@@ -1,15 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
 import { RelatedProductsCarouselLazy as RelatedProductsCarousel } from "./related-products-carousel-lazy";
-import {
-  buildSponsoredLane,
-  getSponsoredLadderPool,
-  getSponsoredPlacementDepths,
-  getStorefrontBoostingSettings,
-  laneHasSponsored,
-  resolveLadderAt,
-} from "@/lib/boosts/sponsored-products";
-import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
+import { getProductPageSponsoredLane } from "@/lib/boosts/sponsored-placement";
 
 /**
  * Product-page rail — a MIXED shelf, like the home rail: position N at slot N,
@@ -30,30 +22,10 @@ export async function SponsoredProductsCarousel({
   categoryId?: string;
   locale: Locale;
 }) {
-  const boosting = await getStorefrontBoostingSettings();
-  if (!boosting.enabled || !boosting.placements.productPage) return null;
-
-  const [pool, depths] = await Promise.all([
-    getSponsoredLadderPool({ hideOutOfStock: boosting.hideOutOfStock }),
-    getSponsoredPlacementDepths(),
-  ]);
-
-  // The viewed product is dropped AFTER the cached fetch — putting it in the
-  // query would key one cache entry per product page.
-  const ladder = resolveLadderAt(pool, { excludeProductId: productId });
-  const depth = depths.productPage;
-
-  const fillers = await getStorefrontProductCards({
-    limit: depth * 2,
-    excludeIds: [productId],
-    ...(categoryId ? { categoryIds: [categoryId] } : {}),
-    hideOutOfStock: boosting.hideOutOfStock,
-  });
-
-  const lane = buildSponsoredLane(ladder, fillers, depth);
-  // Nothing paid within this rail's own depth: render nothing rather than print
-  // a paid-placement note over an all-organic row.
-  if (!laneHasSponsored(lane)) return null;
+  // Null when nothing paid sits within this rail's own depth: render nothing
+  // rather than print a paid-placement note over an all-organic row.
+  const lane = await getProductPageSponsoredLane({ productId, categoryId });
+  if (!lane) return null;
 
   const t = await getTranslations({ locale });
   return (

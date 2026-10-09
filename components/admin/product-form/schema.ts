@@ -132,7 +132,6 @@ export type Category = {
   name: string;
   slug: string;
   path?: string[];
-  isLeaf?: boolean;
   parentId?: string | null;
   // Reusable variant option template inherited by products in this category.
   options?: CategoryVariantOption[];

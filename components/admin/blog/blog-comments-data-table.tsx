@@ -27,7 +27,8 @@ interface Comment {
   _id: string;
   postId: { _id: string; title?: string; slug?: string } | string;
   authorName: string;
-  authorEmail: string;
+  /** Absent once the author deleted their account. */
+  authorEmail?: string;
   content: string;
   status: "pending" | "approved" | "spam" | "trash";
   createdAt: string;
@@ -154,7 +155,9 @@ export function BlogCommentsDataTable({ locale }: { locale: string }) {
         cell: (row) => (
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{row.authorName}</p>
-            <p className="truncate text-xs text-muted-foreground">{row.authorEmail}</p>
+            {row.authorEmail ? (
+              <p className="truncate text-xs text-muted-foreground">{row.authorEmail}</p>
+            ) : null}
           </div>
         ),
         className: "w-[200px]",

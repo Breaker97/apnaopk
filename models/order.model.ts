@@ -162,6 +162,18 @@ const OrderItemSchema = new Schema<OrderItem>(
       trim: true,
       maxlength: 120,
     },
+    /**
+     * The product's pre-order terms revision this line's date was last
+     * reconciled against (`Product.preorderTermsRevision`). Absent on lines
+     * written before revisions existed, which read as revision 0. A line
+     * behind its product is waiting on a date propagation, and nothing may
+     * collect money or release goods on its old date until that has run —
+     * see `lib/orders/preorder-terms-sync.ts`.
+     */
+    preorderTermsRevision: {
+      type: Number,
+      min: 0,
+    },
     customs: {
       countryOfOrigin: { type: String, trim: true },
       hsCode: { type: String, trim: true },
@@ -244,6 +256,80 @@ const FulfillmentSchema = new Schema(
      * deleted must not blank the paperwork of everything it ever shipped.
      */
     fulfillmentLocationName: String,
+  },
+  { _id: false },
+);
+
+/**
+ * A seller saying this consignment's pre-order goods are in hand.
+ *
+ * Deliberately separate from the consignment's status and from the order's
+ * payment: on a split order one seller's goods arriving says nothing about the
+ * others', and the balance — owed on the whole order — is only asked for once
+ * every live consignment is ready and its stock allocated
+ * (`lib/orders/preorder-collection.ts`).
+ */
+const PreorderReadinessSchema = new Schema(
+  {
+    declaredAt: { type: Date, required: true },
+    declaredBy: { type: String, trim: true },
+    source: {
+      type: String,
+      enum: ["vendor", "admin", "auto", "legacy"],
+      required: true,
+    },
+  },
+  { _id: false },
+);
+
+/**
+ * One allocated line: the units, and exactly where they came off the shelf.
+ * `parts` is empty for a product that keeps no per-location stock.
+ */
+const PreorderAllocationLineSchema = new Schema(
+  {
+    productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+    variantId: { type: Schema.Types.ObjectId },
+    quantity: { type: Number, required: true, min: 1 },
+    /** False for digital/untracked goods: committed, but no stock moved. */
+    stockTracked: { type: Boolean, required: true },
+    parts: {
+      type: [
+        new Schema(
+          {
+            locationId: { type: String, required: true },
+            quantity: { type: Number, required: true, min: 1 },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
+    },
+    /** Which reservation counter this line's place was held on. */
+    quotaOwner: { type: String, enum: ["product", "variant"] },
+    /** Whether the allocation handed that place back to the counter. */
+    quotaReleased: { type: Boolean },
+  },
+  { _id: false },
+);
+
+/**
+ * Durable evidence that this consignment's pre-order units were taken off the
+ * shelf — the only thing that may stand for "allocated". A missing
+ * reservation flag means nothing of the sort; see
+ * `lib/orders/preorder-allocation.ts`.
+ */
+const PreorderAllocationSchema = new Schema(
+  {
+    operationId: { type: String, required: true },
+    state: { type: String, enum: ["committed", "restored"], required: true },
+    source: { type: String, trim: true },
+    committedAt: { type: Date, required: true },
+    restoredAt: { type: Date },
+    /** `cancelled`: units back on sale. `unallocated`: back to a reservation. */
+    restoreReason: { type: String, enum: ["cancelled", "unallocated"] },
+    restoreOperationId: { type: String },
+    lines: { type: [PreorderAllocationLineSchema], default: [] },
   },
   { _id: false },
 );
@@ -431,6 +517,16 @@ const SubOrderSchema = new Schema<SubOrder>({
     type: Boolean,
     default: false,
   },
+  /** The seller's "goods available" for this consignment — see the schema. */
+  preorderReadiness: {
+    type: PreorderReadinessSchema,
+    default: undefined,
+  },
+  /** Exact stock this consignment's pre-order lines hold — see the schema. */
+  preorderAllocation: {
+    type: PreorderAllocationSchema,
+    default: undefined,
+  },
   payoutStatus: {
     type: String,
     enum: ["unpaid", "scheduled", "paid"],
@@ -484,6 +580,109 @@ const SubOrderSchema = new Schema<SubOrder>({
     type: Date,
   },
 });
+
+/**
+ * The advance notice of an automatic balance charge, and what became of it.
+ *
+ * `acceptedAt` is when the mail server ACCEPTED the message — never when a
+ * notifier was called, a row was queued, or the shopper opened it. Nothing else
+ * starts the notice window, and nothing else starts the payment deadline.
+ */
+const PreorderNoticeSchema = new Schema(
+  {
+    /** The email outbox key; one per cycle and attempt. */
+    dedupeKey: { type: String, trim: true },
+    attempt: { type: Number, min: 1 },
+    deliveryId: { type: Schema.Types.ObjectId, ref: "EmailDelivery" },
+    queuedAt: { type: Date },
+    acceptedAt: { type: Date },
+    failedAt: { type: Date },
+    failureReason: { type: String, trim: true, maxlength: 500 },
+    /** The address was refused for good before any charge. */
+    bounced: { type: Boolean },
+    /** Why no email could be attempted at all. */
+    blockedReason: {
+      type: String,
+      enum: [
+        "no_contact",
+        "email_channel_disabled",
+        "customer_opted_out",
+        "email_unconfigured",
+      ],
+    },
+    lastCheckedAt: { type: Date },
+  },
+  { _id: false },
+);
+
+/**
+ * One request for the order's balance: the consignments it covers, the amount
+ * it asks, the notice that announced it and the earliest moment a saved card
+ * may be charged for it. Binding all of that to one id is what stops an old
+ * request — for a scope or an amount that has since changed — from ever
+ * authorising a charge. See `lib/orders/preorder-collection.ts`.
+ */
+const PreorderCollectionSchema = new Schema(
+  {
+    cycleId: { type: String, required: true },
+    revision: { type: Number, required: true, min: 1 },
+    state: {
+      type: String,
+      enum: ["notice_pending", "awaiting_payment", "attention", "paid", "void"],
+      required: true,
+    },
+    scopeSubOrderIds: { type: [Schema.Types.ObjectId], default: [] },
+    amount: { type: Number, required: true, min: 0 },
+    currency: { type: String, required: true, trim: true, uppercase: true },
+    readinessRevision: { type: Number, min: 0 },
+    allocationOperationId: { type: String },
+    source: { type: String, enum: ["vendor", "admin", "auto", "legacy"] },
+    preparedAt: { type: Date, required: true },
+    preparedBy: { type: String, trim: true },
+    /** Frozen at preparation: a later settings edit cannot shorten it. */
+    noticeHours: { type: Number, required: true, min: 1, max: 168 },
+    /** A saved card and mandate existed, so an automatic charge is planned. */
+    autoCharge: { type: Boolean },
+    notice: { type: PreorderNoticeSchema, default: undefined },
+    /** `notice.acceptedAt + noticeHours`; nothing charges before it. */
+    chargeNotBefore: { type: Date },
+    attentionReason: { type: String, trim: true, maxlength: 300 },
+    paidAt: { type: Date },
+    voidedAt: { type: Date },
+    voidReason: { type: String, trim: true, maxlength: 300 },
+  },
+  { _id: false },
+);
+
+/**
+ * Where a paid order's release for fulfilment stands — the summary the
+ * screens read; the durable work itself is a `PreorderOperation`.
+ */
+const PreorderReleaseSchema = new Schema(
+  {
+    state: {
+      type: String,
+      enum: ["requested", "waiting", "released", "attention", "superseded"],
+      required: true,
+    },
+    operationId: { type: String },
+    cycleId: { type: String },
+    requestedAt: { type: Date },
+    reason: { type: String, trim: true, maxlength: 60 },
+    detail: { type: String, trim: true, maxlength: 500 },
+    attempts: { type: Number, min: 0 },
+    lastAttemptAt: { type: Date },
+    nextAttemptAt: { type: Date },
+    releasedAt: { type: Date },
+    /**
+     * When the operation named by `operationId` was confirmed to exist. The
+     * recovery pass looks only at requests without it, so requests that are
+     * merely waiting on stock never crowd out one that lost its operation.
+     */
+    operationCreatedAt: { type: Date },
+  },
+  { _id: false },
+);
 
 /**
  * Order Schema
@@ -816,6 +1015,19 @@ const OrderSchema = new Schema<IOrder>(
     checkoutFingerprint: {
       type: String,
     },
+    /**
+     * The shopper app's `Idempotency-Key` of the request that placed this
+     * order, scoped to whose key it is (`user:<id>:<key>`) — cash on delivery
+     * from the app only. A retry finds the order by it even when the request
+     * that wrote it failed after writing it, and the unique index below makes
+     * a second order for the same key impossible.
+     */
+    idempotencyKey: {
+      type: String,
+    },
+    /** Unique receipt for a native business manual-order attempt. */
+    bizOperationId: { type: String },
+    bizQuoteHash: { type: String },
     /** The gateway's payment page for this order, kept so a retry can reuse it. */
     gatewayCheckoutUrl: {
       type: String,
@@ -1236,6 +1448,87 @@ const OrderSchema = new Schema<IOrder>(
       type: [String],
       default: undefined,
     },
+    /**
+     * The idempotency key and outcome of the last off-session charge attempt.
+     * An `unknown` outcome — the gateway's answer was lost — is reconciled
+     * with the same key before any new attempt is made.
+     */
+    preorderBalanceChargeKey: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    preorderBalanceChargeOutcome: {
+      type: String,
+      enum: ["succeeded", "declined", "needs_shopper", "unknown", "error"],
+    },
+    /**
+     * Bumped every time a consignment's readiness is declared, withdrawn or
+     * reset. A balance request records the value it was prepared at, and any
+     * change since means the request no longer describes the goods.
+     */
+    preorderReadinessRevision: {
+      type: Number,
+      min: 0,
+    },
+    /** The current balance request — see `PreorderCollectionSchema`. */
+    preorderCollection: {
+      type: PreorderCollectionSchema,
+      default: undefined,
+    },
+    /** Earlier requests, newest last, kept short. */
+    preorderCollectionHistory: {
+      type: [
+        new Schema(
+          {
+            cycleId: { type: String },
+            state: { type: String },
+            amount: { type: Number },
+            currency: { type: String },
+            preparedAt: { type: Date },
+            noticeAcceptedAt: { type: Date },
+            paidAt: { type: Date },
+            voidedAt: { type: Date },
+            voidReason: { type: String, trim: true, maxlength: 300 },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
+    },
+    /** A paid order's release for fulfilment — see `PreorderReleaseSchema`. */
+    preorderRelease: {
+      type: PreorderReleaseSchema,
+      default: undefined,
+    },
+    /**
+     * When this order's pre-order lines were last reconciled with their
+     * products' current terms. Absent on an order nothing has checked yet;
+     * the catch-up pass finds recent ones by that absence.
+     */
+    preorderTermsCheckedAt: {
+      type: Date,
+    },
+    /**
+     * A delay notice owed to the shopper because a product's release date
+     * moved — written in the same update as the new date, so a crash between
+     * the two still leaves the notice to send.
+     */
+    preorderDateNotice: {
+      type: new Schema(
+        {
+          state: { type: String, enum: ["pending", "sent"], required: true },
+          key: { type: String, trim: true },
+          previousReleaseDate: { type: Date },
+          releaseDate: { type: Date },
+          reason: { type: String, trim: true, maxlength: 500 },
+          queuedAt: { type: Date },
+          sentAt: { type: Date },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     channel: {
       type: String,
       enum: ["online", "pos"],
@@ -1467,6 +1760,39 @@ OrderSchema.index(
   { payLinkPaypalOrderId: 1 },
   { partialFilterExpression: { payLinkPaypalOrderId: { $gt: "" } } },
 );
+// The balance-request workers: notices still to send or confirm
+// (`state: notice_pending`) and saved-card charges whose notice window has
+// passed (`state: awaiting_payment`, by `chargeNotBefore`). Only orders that
+// ever had a request carry the field, so the index stays small.
+OrderSchema.index(
+  {
+    "preorderCollection.state": 1,
+    "preorderCollection.chargeNotBefore": 1,
+    _id: 1,
+  },
+  { partialFilterExpression: { "preorderCollection.state": { $exists: true } } },
+);
+// Date propagation walks one product's waiting orders in `_id` order, in
+// batches; without this every batch scanned the whole collection.
+OrderSchema.index(
+  { "items.productId": 1, _id: 1 },
+  { partialFilterExpression: { hasPreorder: true } },
+);
+// Paid releases whose operation was never confirmed — see `preorderRelease`.
+OrderSchema.index(
+  { "preorderRelease.state": 1, "preorderRelease.requestedAt": 1, _id: 1 },
+  { partialFilterExpression: { "preorderRelease.state": { $exists: true } } },
+);
+// Delay notices owed after a date moved — see `preorderDateNotice`.
+OrderSchema.index(
+  { "preorderDateNotice.state": 1, _id: 1 },
+  { partialFilterExpression: { "preorderDateNotice.state": "pending" } },
+);
+// The catch-up pass over recent pre-orders whose terms were never checked.
+OrderSchema.index(
+  { preorderTermsCheckedAt: 1, createdAt: 1 },
+  { partialFilterExpression: { hasPreorder: true } },
+);
 /**
  * One attempt, one order — enforced by the database rather than trusted to the
  * claim logic above it.
@@ -1495,6 +1821,14 @@ OrderSchema.index(
   {
     unique: true,
     partialFilterExpression: { paypalOrderId: { $gt: "" } },
+  },
+);
+// One order per shopper-app Idempotency-Key (POST /checkout/orders).
+OrderSchema.index(
+  { idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $gt: "" } },
   },
 );
 // A retry looks for the cart's live gateway attempt.
@@ -1556,6 +1890,15 @@ OrderSchema.index(
   {
     unique: true,
     partialFilterExpression: { mtnMomoTransactionId: { $gt: "" } },
+  },
+);
+// The one order a business-app operation may place (its durable operation id):
+// a retried manual order answers the first one instead of making a second.
+OrderSchema.index(
+  { bizOperationId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { bizOperationId: { $gt: "" } },
   },
 );
 

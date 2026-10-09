@@ -28,11 +28,6 @@ import {
 } from "@/lib/analytics/events";
 import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
 
-type VariantDetails = {
-  color: string | null;
-  size: string | null;
-};
-
 export type CartLineMetadata = {
   availableStock?: number | null;
   categoryId?: string | null;
@@ -74,47 +69,6 @@ export function getQuantityOptions(quantity: number) {
   const maxQuantity = Math.max(10, quantity);
 
   return Array.from({ length: maxQuantity }, (_, index) => index + 1);
-}
-
-export function parseVariantDetails(variantName?: string): VariantDetails {
-  if (!variantName) {
-    return { color: null, size: null };
-  }
-
-  const parts = variantName
-    .split(/\s*(?:\/|,|\||;)\s*/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  const details: VariantDetails = { color: null, size: null };
-
-  for (const part of parts) {
-    const [rawLabel, ...rawValue] = part.split(":");
-    const value = rawValue.join(":").trim();
-
-    if (!value) {
-      continue;
-    }
-
-    const label = rawLabel.trim().toLowerCase();
-
-    if (label.includes("color") || label.includes("colour")) {
-      details.color = value;
-    }
-
-    if (label.includes("size")) {
-      details.size = value;
-    }
-  }
-
-  if (!details.color && !details.size) {
-    return {
-      color: parts[0] || variantName,
-      size: parts[1] || null,
-    };
-  }
-
-  return details;
 }
 
 export function useCartPageState() {

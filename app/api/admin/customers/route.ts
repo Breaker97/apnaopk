@@ -1,19 +1,14 @@
 import { connectDB } from "@/lib/db";
-import { CustomerProfile, User } from "@/models";
 import { paginatedResponse, createdResponse } from "@/lib/api/response";
-import { ConflictError, ApiError, ValidationError } from "@/lib/api/errors";
-import { USER_ACCOUNT_STATUS, USER_ROLES } from "@/config/app.config";
+import { ValidationError } from "@/lib/api/errors";
+import { USER_ROLES } from "@/config/app.config";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { validateBody, validateQuery } from "@/lib/api/validate";
 import { AdminCreateCustomerSchema, CustomerListQuerySchema } from "@/lib/validations";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
-import { computeLoyaltyTier, ensureCustomerProfile } from "@/lib/customers/customer";
-import {
-  createAuditContext,
-  auditCreate,
-} from "@/lib/audit";
+import { createAuditContext } from "@/lib/audit";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
-import { notifyAdminsNewCustomer } from "@/lib/notifications/notifications";
+import { createCustomerFromForm } from "@/lib/customers/customer-upsert";
 import { withApi } from "@/lib/api/handler";
 import { fetchAdminCustomerList } from "@/lib/customers/customer-list";
 import { getSettings } from "@/models/settings.model";
@@ -155,83 +150,26 @@ export const POST = withApi(
       }
     }
 
-    const existingUser = await User.findOne({ email }).select("_id role").lean();
-    if (existingUser) {
-      throw new ConflictError("A user with this email already exists");
-    }
-
-    const user = await User.create({
-      name: parsed.name.trim(),
-      email,
-      phone: parsed.phone?.trim() || undefined,
-      addresses: shippingAddress ? [shippingAddress] : [],
-      role: USER_ROLES.CUSTOMER,
-      roles: [USER_ROLES.CUSTOMER],
-      status: parsed.status || USER_ACCOUNT_STATUS.ACTIVE,
-    });
-
-    const baseProfile = await ensureCustomerProfile(user._id.toString());
-    if (!baseProfile) {
-      throw new ApiError("Failed to initialize customer profile", 500);
-    }
-
-    const tags =
-      parsed.tags?.map((tag) => tag.trim()).filter(Boolean) || undefined;
-
-    const profileUpdates: Record<string, unknown> = {};
-    if (tags) profileUpdates.tags = Array.from(new Set(tags));
-    if (parsed.notes !== undefined) profileUpdates.notes = parsed.notes;
-    // A manual adjustment has to move `lifetimePoints` with the balance and
-    // re-derive the tier, because the order-backed service derives the tier
-    // from `lifetimePoints` on every award and reversal. Setting the two
-    // independently meant an adjusted balance was invisible to the tier, and a
-    // hand-picked tier was silently reverted by the customer's next order.
-    if (parsed.loyaltyPoints !== undefined) {
-      const points = Math.max(0, Math.floor(parsed.loyaltyPoints));
-      profileUpdates.loyaltyPoints = points;
-      profileUpdates.lifetimePoints = points;
-      profileUpdates.loyaltyTier = computeLoyaltyTier(points);
-    }
-    if (parsed.acquisitionSource !== undefined) {
-      profileUpdates.acquisitionSource = parsed.acquisitionSource;
-    }
-    if (shippingAddress) profileUpdates.shippingAddress = shippingAddress;
-
-    if (Object.keys(profileUpdates).length > 0) {
-      await CustomerProfile.updateOne(
-        { _id: baseProfile._id },
-        { $set: profileUpdates },
-      );
-    }
-
-    const profile = await CustomerProfile.findById(baseProfile._id)
-      .populate({
-        path: "userId",
-        select: "name email image phone role status createdAt",
-      })
-      .lean();
-
-    const auditContext = createAuditContext(request, session);
-    await auditCreate(
-      auditContext,
-      "user",
-      user._id.toString(),
+    // One account per email, and a guest row under it becomes that account's
+    // row instead of a second one beside it (see createCustomerFromForm).
+    const profile = await createCustomerFromForm(
       {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        customerProfileId: String(baseProfile._id),
+        name: parsed.name.trim(),
+        email,
+        phone: parsed.phone,
+        status: parsed.status,
+        tags: parsed.tags,
+        notes: parsed.notes,
+        loyaltyPoints: parsed.loyaltyPoints,
+        acquisitionSource: parsed.acquisitionSource,
+        shippingAddress,
       },
-      user.email,
+      {
+        auditContext: createAuditContext(request, session),
+        createdBy: session.user.id,
+        audience: "admin",
+      },
     );
-
-    await notifyAdminsNewCustomer({
-      customerId: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      createdBy: session.user.id,
-    });
 
     return createdResponse(
       { profile },

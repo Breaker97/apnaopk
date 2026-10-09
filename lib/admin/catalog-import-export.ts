@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog/collections";
 import type { CollectionCondition, CollectionSortOrder } from "@/types";
 import { escapeRegExp, slugify } from "@/lib/strings";
+import { CollectionConditionSchema } from "@/lib/validations";
 import {
   csvFileResponse,
   csvLine,
@@ -290,16 +291,37 @@ async function resolveProducts(row: CsvRow) {
   return [...ids];
 }
 
+/**
+ * A row's rules, held to the same schema the create and update routes use:
+ * a field or an operator the rule builder does not know fails the row
+ * instead of being saved.
+ */
 function parseConditions(row: CsvRow, existing?: CollectionForCsv | null) {
   const raw = row.conditions?.trim();
   if (!raw) return existing?.conditions || [];
 
-  const parsed = JSON.parse(raw) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Collection conditions must be valid JSON.");
+  }
   if (!Array.isArray(parsed)) {
     throw new Error("Collection conditions must be a JSON array.");
   }
 
-  return parsed as CollectionCondition[];
+  return parsed.map((candidate, index) => {
+    const result = CollectionConditionSchema.safeParse(candidate);
+    if (!result.success) {
+      const problems = result.error.issues
+        .map((issue) =>
+          issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message,
+        )
+        .join("; ");
+      throw new Error(`Collection condition ${index + 1} is not valid (${problems}).`);
+    }
+    return result.data as CollectionCondition;
+  });
 }
 
 async function syncManualCollectionProductRefs(

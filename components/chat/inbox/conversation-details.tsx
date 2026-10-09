@@ -122,7 +122,7 @@ export function ConversationDetails({
             onClick={() => setView("details")}
             aria-label={labels.back}
           >
-            <ArrowLeft />
+            <ArrowLeft className="rtl:rotate-180" />
           </Button>
           <h3 className="text-sm font-semibold">{labels.mediaAndFiles}</h3>
         </div>
@@ -294,7 +294,9 @@ export function ConversationDetails({
       ) : null}
 
       <dl className="space-y-3 border-t px-4 py-3 text-xs">
-        <Row label={labels.subject} value={conversation.subject} />
+        {conversation.subject ? (
+          <Row label={labels.subject} value={conversation.subject} />
+        ) : null}
         {viewerMode === "store" && conversation.contact.email ? (
           <Row
             icon={Mail}

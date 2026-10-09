@@ -1,57 +1,9 @@
-import { unstable_cache } from "next/cache";
 import { Star } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
 import { cn } from "@/lib/utils";
-import { connectDB } from "@/lib/db";
-import { Review } from "@/models";
 import { SectionHeading } from "./section-shell";
-import { withFallback } from "@/lib/storefront/cached-read";
-
-export interface TestimonialEntry {
-  id: string;
-  rating: number;
-  title?: string;
-  comment: string;
-  reviewerName?: string;
-}
-
-/**
- * Approved storefront reviews, best-and-newest first. No entity tag exists
- * for reviews, so this leans on time-based revalidation alone — fine for a
- * social-proof strip. Exported so theme overrides restyle the same data.
- */
-export const fetchTestimonials = withFallback(
-  unstable_cache(
-    async (minRating: number, limit: number): Promise<TestimonialEntry[]> => {
-      await connectDB();
-      const reviews = await Review.find({
-        isApproved: true,
-        rating: { $gte: minRating },
-        comment: { $exists: true, $nin: ["", null] },
-      })
-        .select("rating title comment userId createdAt")
-        .populate("userId", "name")
-        .sort({ rating: -1, createdAt: -1 })
-        .limit(limit)
-        .lean();
-
-      return reviews.map((review) => {
-        const user = review.userId as { name?: string } | null;
-        return {
-          id: String(review._id),
-          rating: Number(review.rating) || 0,
-          title: typeof review.title === "string" ? review.title : undefined,
-          comment: String(review.comment ?? ""),
-          reviewerName: user?.name || undefined,
-        };
-      });
-    },
-    ["section-testimonials"],
-    { revalidate: 300 },
-  ),
-  () => [],
-);
+import { fetchTestimonials } from "@/lib/storefront/section-data/content";
 
 interface TestimonialsProps {
   locale: Locale;

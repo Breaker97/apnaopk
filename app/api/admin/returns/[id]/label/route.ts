@@ -5,6 +5,8 @@ import { getSettings } from "@/models/settings.model";
 import { notifyReturnRequestCustomer } from "@/lib/notifications/notifications";
 import { RETURN_METHOD_CHANGEABLE_STATUSES } from "@/lib/returns/return-shipping";
 import { loadReturnForRoute } from "@/lib/returns/return-route-access";
+import { auditReturnLabel } from "@/lib/returns/audit-return";
+import { createAuditContext } from "@/lib/audit";
 import {
   attachReturnLabel,
   returnLabelResponse,
@@ -58,6 +60,10 @@ export const POST = withApi<{ id: string }>(
       returnRequest,
       file: formData.get("file"),
       userId: session.user.id,
+    });
+    await auditReturnLabel(createAuditContext(request, session), updated, {
+      previousFileName: returnRequest.shipment?.labelFileName,
+      fileName: updated.shipment?.labelFileName,
     });
     // A new label on a return the shopper was already told to send with one:
     // they hear again, so the label they print is the current one.

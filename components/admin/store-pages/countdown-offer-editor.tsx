@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { EditorGroup, FieldRenderer, isCompactField, isFieldShown } from "./field-renderer";
 import { EditorShell, PanelGroup } from "./editor-shell";
 import { OptionTile } from "./slider-setup-panels";
+import { useStoreBuilderScope } from "./builder-scope";
 
 type TSafe = ReturnType<typeof createTSafe>;
 
@@ -65,6 +66,7 @@ export function CountdownOfferEditor({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  const { productsEndpoint } = useStoreBuilderScope();
   const [layoutOpen, setLayoutOpen] = useState(false);
 
   const fields = fieldsForVariant(entry.fields, variant);
@@ -180,6 +182,7 @@ export function CountdownOfferEditor({
           title={tSafe("admin.storeBuilder.fields.productIds", "Products")}
           max={layout.slots}
           query={{ onSale: "true" }}
+          endpoint={productsEndpoint}
         />
       </EditorGroup>
 

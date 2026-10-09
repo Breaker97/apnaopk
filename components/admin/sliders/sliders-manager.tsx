@@ -19,6 +19,7 @@ import {
 import type { StoreSurface } from "@/lib/storefront/themes/surface";
 import type { SliderStats } from "@/app/api/admin/sliders/[id]/stats/route";
 import { SliderCard } from "./slider-card";
+import { useStoreBuilderScope } from "@/components/admin/store-pages/builder-scope";
 
 /**
  * The Sliders page (Online Store → Sliders): every reusable slider as a
@@ -44,6 +45,11 @@ export function SlidersManager({
   const t = useTranslations();
   const tSafe = createTSafe(t);
   const { confirmDelete } = useConfirmation();
+  // The store's sliders by default; a vendor's Online Store manages their
+  // own, with the same draft → publish lifecycle and no shop stats.
+  const scope = useStoreBuilderScope();
+  const { slidersEndpoint } = scope;
+  const tracksStats = scope.sliders.stats;
 
   const [sliders, setSliders] = useState<SliderDocument[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -57,7 +63,7 @@ export function SlidersManager({
   useEffect(() => {
     let cancelled = false;
     apiClient
-      .get<unknown[]>("/api/admin/sliders")
+      .get<unknown[]>(slidersEndpoint)
       .then((items) => {
         if (cancelled) return;
         setSliders(Array.isArray(items) ? items.map(normalizeSliderDocument) : []);
@@ -76,10 +82,10 @@ export function SlidersManager({
 
   // The counts a slide earned on the shop, fetched when a card opens.
   useEffect(() => {
-    if (!expandedId || stats[expandedId]) return;
+    if (!tracksStats || !expandedId || stats[expandedId]) return;
     let cancelled = false;
     apiClient
-      .get<SliderStats>(`/api/admin/sliders/${expandedId}/stats?days=30`)
+      .get<SliderStats>(`${slidersEndpoint}/${expandedId}/stats?days=30`)
       .then((loaded) => {
         if (!cancelled && loaded) setStats((current) => ({ ...current, [expandedId]: loaded }));
       })
@@ -87,7 +93,7 @@ export function SlidersManager({
     return () => {
       cancelled = true;
     };
-  }, [expandedId, stats]);
+  }, [expandedId, stats, tracksStats, slidersEndpoint]);
 
   const replaceSlider = useCallback((id: string, next: SliderDocument) => {
     setSliders((current) =>
@@ -135,7 +141,7 @@ export function SlidersManager({
     if (!slider._id) return null;
     setSavingId(slider._id);
     try {
-      const saved = await apiClient.put<unknown>(`/api/admin/sliders/${slider._id}`, {
+      const saved = await apiClient.put<unknown>(`${slidersEndpoint}/${slider._id}`, {
         name: slider.name || "Untitled slider",
         isActive: slider.isActive,
         draft: slider.draft ?? sliderWorkingContent(slider),
@@ -170,7 +176,7 @@ export function SlidersManager({
         const saved = await saveDraft(slider);
         if (!saved) return;
       }
-      const published = await apiClient.post<unknown>(`/api/admin/sliders/${slider._id}/publish`);
+      const published = await apiClient.post<unknown>(`${slidersEndpoint}/${slider._id}/publish`);
       replaceSlider(slider._id, normalizeSliderDocument(published));
       markClean(slider._id);
       toast.success(tSafe("admin.sliders.published", "Slider published"));
@@ -188,7 +194,7 @@ export function SlidersManager({
   const discardDraft = async (slider: SliderDocument) => {
     if (!slider._id) return;
     try {
-      const restored = await apiClient.post<unknown>(`/api/admin/sliders/${slider._id}/discard`);
+      const restored = await apiClient.post<unknown>(`${slidersEndpoint}/${slider._id}/discard`);
       replaceSlider(slider._id, normalizeSliderDocument(restored));
       markClean(slider._id);
       toast.success(tSafe("admin.sliders.draftDiscarded", "Draft discarded"));
@@ -204,7 +210,7 @@ export function SlidersManager({
   const restoreVersion = async (slider: SliderDocument, index: number) => {
     if (!slider._id) return;
     try {
-      const restored = await apiClient.post<unknown>(`/api/admin/sliders/${slider._id}/restore`, { index });
+      const restored = await apiClient.post<unknown>(`${slidersEndpoint}/${slider._id}/restore`, { index });
       replaceSlider(slider._id, normalizeSliderDocument(restored));
       markClean(slider._id);
       toast.success(tSafe("admin.sliders.restored", "Version restored to the draft"));
@@ -240,7 +246,7 @@ export function SlidersManager({
         ],
         [],
       );
-      const created = await apiClient.post<unknown>("/api/admin/sliders", {
+      const created = await apiClient.post<unknown>(slidersEndpoint, {
         name: `${slider.name || tSafe("admin.sliders.untitled", "Untitled slider")} ${tSafe("admin.sliders.copySuffix", "copy")}`,
         isActive: slider.isActive,
         ...content,
@@ -279,7 +285,7 @@ export function SlidersManager({
     const confirmed = await confirmDelete(slider.name || "this slider");
     if (!confirmed) return;
     try {
-      await apiClient.delete(`/api/admin/sliders/${slider._id}`);
+      await apiClient.delete(`${slidersEndpoint}/${slider._id}`);
       setSliders((current) =>
         current ? current.filter((entry) => entry._id !== slider._id) : current,
       );
@@ -297,7 +303,7 @@ export function SlidersManager({
   const addSlider = async () => {
     setCreating(true);
     try {
-      const created = await apiClient.post<unknown>("/api/admin/sliders", {
+      const created = await apiClient.post<unknown>(slidersEndpoint, {
         name: tSafe("admin.sliders.newSliderName", "New Slider"),
         slides: [createSlide(`slide-${Date.now().toString(36)}`)],
       });
@@ -345,10 +351,15 @@ export function SlidersManager({
             {tSafe("admin.sliders.title", "Sliders")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {tSafe(
-              "admin.sliders.subtitle",
-              "Reusable slide groups. Build them once here, then pick them inside the hero slideshow and other blocks that lay text over a background.",
-            )}
+            {scope.kind === "vendor"
+              ? tSafe(
+                  "vendor.onlineStore.slidersSubtitle",
+                  "Your store's slide groups. Build them here, publish them, then add a Slider section to your landing page and pick one.",
+                )
+              : tSafe(
+                  "admin.sliders.subtitle",
+                  "Reusable slide groups. Build them once here, then pick them inside the hero slideshow and other blocks that lay text over a background.",
+                )}
           </p>
         </div>
         {addButton("default")}

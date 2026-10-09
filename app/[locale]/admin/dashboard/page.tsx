@@ -14,18 +14,26 @@ import {
   RecentOrdersSkeleton,
   VisitorsChartSkeleton,
 } from "@/components/admin/dashboard-skeleton";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
+import {
+  resolveDashboardPeriod,
+  toDayString,
+  type DashboardPeriodSearch,
+  type DashboardRange,
+} from "@/lib/admin/dashboard-period";
 import { after } from "next/server";
 import { reportStaleCronJobs } from "@/lib/cron/health";
 import {
   getDashboardStats,
   getLatestProducts,
-  getOrderChartMetrics,
+  getOrderChartSeries,
   getRecentOrders,
   getVisitorsChartMetrics,
 } from "@/lib/admin/dashboard-data";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<DashboardPeriodSearch>;
 }
 
 /**
@@ -36,8 +44,12 @@ interface PageProps {
  * Rendering on the server removes the round trip; separate Suspense boundaries
  * mean the orders card no longer waits on analytics.
  */
-export default async function AdminDashboardPage({ params }: PageProps) {
-  const { locale } = await params;
+export default async function AdminDashboardPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [{ locale }, search] = await Promise.all([params, searchParams]);
+  const period = resolveDashboardPeriod(search);
   setRequestLocale(locale);
   // A job that has stopped being scheduled cannot report itself, so the check
   // rides on the one page an admin reliably opens. `after` keeps it off the
@@ -52,19 +64,45 @@ export default async function AdminDashboardPage({ params }: PageProps) {
   const userName =
     session.user.name?.split(" ")[0] || session.user.email?.split("@")[0] || "";
   const posEnabled = Boolean(settings.pos?.enabled);
+  // Both period-driven sections remount on a change so their skeletons show;
+  // without it a navigation keeps the old numbers on screen until the new ones
+  // land, which reads as the filter doing nothing.
+  const periodKey = `${period.key}:${search.from ?? ""}:${search.to ?? ""}`;
+  const periodProps = {
+    key: period.key,
+    from: period.range ? toDayString(period.range.from) : "",
+    to: period.range ? toDayString(period.range.to) : "",
+  };
 
   return (
     <div className="space-y-4 pb-6 text-foreground">
-      <DashboardHeader userName={userName} />
+      <DashboardHeader
+        userName={userName}
+        period={periodProps}
+        filter={
+          <DashboardPeriodPicker
+            period={periodProps.key}
+            from={periodProps.from}
+            to={periodProps.to}
+          />
+        }
+      />
 
       <Suspense
-        fallback={<DashboardStatsSection stats={null} posEnabled={posEnabled} />}
+        key={`stats:${periodKey}`}
+        fallback={
+          <DashboardStatsSection
+            stats={null}
+            posEnabled={posEnabled}
+            ranged={Boolean(period.range)}
+          />
+        }
       >
-        <StatsSection posEnabled={posEnabled} />
+        <StatsSection posEnabled={posEnabled} range={period.range} />
       </Suspense>
 
-      <Suspense fallback={<OrdersChartSkeleton />}>
-        <OrdersChartSection />
+      <Suspense key={`chart:${periodKey}`} fallback={<OrdersChartSkeleton />}>
+        <OrdersChartSection range={period.range} />
       </Suspense>
 
       <Suspense fallback={<RecentOrdersSkeleton />}>
@@ -83,16 +121,28 @@ export default async function AdminDashboardPage({ params }: PageProps) {
   );
 }
 
-async function StatsSection({ posEnabled }: { posEnabled: boolean }) {
-  const stats = await getDashboardStats();
-  return <DashboardStatsSection stats={stats} posEnabled={posEnabled} />;
+async function StatsSection({
+  posEnabled,
+  range,
+}: {
+  posEnabled: boolean;
+  range: DashboardRange | null;
+}) {
+  const stats = await getDashboardStats(range);
+  return (
+    <DashboardStatsSection
+      stats={stats}
+      posEnabled={posEnabled}
+      ranged={Boolean(range)}
+    />
+  );
 }
 
-async function OrdersChartSection() {
+async function OrdersChartSection({ range }: { range: DashboardRange | null }) {
   // Shares the stats aggregation through React's request cache, so the two
   // boundaries cost one query between them.
-  const data = await getOrderChartMetrics();
-  return <DashboardOrdersChart data={data} />;
+  const series = await getOrderChartSeries(range);
+  return <DashboardOrdersChart series={series} />;
 }
 
 async function RecentOrdersSection() {

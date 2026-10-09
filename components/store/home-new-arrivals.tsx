@@ -1,56 +1,12 @@
 import { type Locale } from "@/config/i18n.config";
 import { HomeNewArrivalsCarouselLazy as HomeNewArrivalsCarousel } from "@/components/store/home-new-arrivals-carousel-lazy";
-import { type ModernProduct } from "@/components/products/modern-product-card";
+import { productSourceEmptyState } from "@/components/store/sections/product-source-empty-state";
+import { type NewArrivalsSource } from "@/lib/site-config/home-page-config";
 import {
-  getStorefrontProductCards,
-  type StorefrontProductCardQuery,
-} from "@/lib/products/storefront-product-cards";
-import {
-  NEW_ARRIVALS_COLUMNS_MAX,
-  NEW_ARRIVALS_COLUMNS_MIN,
-  NEW_ARRIVALS_LIMIT_MAX,
-  NEW_ARRIVALS_LIMIT_MIN,
-  type NewArrivalsSource,
-} from "@/lib/site-config/home-page-config";
-
-async function fetchProducts(
-  query: StorefrontProductCardQuery,
-): Promise<ModernProduct[]> {
-  return getStorefrontProductCards(query);
-}
-
-function buildSourceQuery(
-  source: NewArrivalsSource,
-  limit: number,
-  productIds: string[],
-): StorefrontProductCardQuery | null {
-  if (source === "manual") {
-    const ids = productIds.filter(Boolean);
-    if (ids.length === 0) return null;
-    return {
-      ids,
-      limit: Math.min(ids.length, NEW_ARRIVALS_LIMIT_MAX),
-    };
-  }
-
-  const query: StorefrontProductCardQuery = {
-    limit,
-    sortBy: "createdAt",
-    sortOrder: "desc",
-  };
-
-  if (source === "discounted") query.onSale = true;
-  if (source === "featured") query.featured = true;
-  return query;
-}
-
-function buildLatestQuery(limit: number): StorefrontProductCardQuery {
-  return {
-    limit,
-    sortBy: "createdAt",
-    sortOrder: "desc",
-  };
-}
+  loadProductShelf,
+  productShelfColumns,
+} from "@/lib/storefront/section-data/product-shelves";
+import { isProductTargetSource } from "@/lib/storefront/sections/product-source";
 
 export async function HomeNewArrivals({
   locale,
@@ -60,6 +16,11 @@ export async function HomeNewArrivals({
   limit = 8,
   desktopColumns = 4,
   productIds = [],
+  categoryId,
+  brandId,
+  collectionId,
+  preview = false,
+  vendor,
 }: {
   locale: Locale;
   title?: string;
@@ -68,46 +29,41 @@ export async function HomeNewArrivals({
   limit?: number;
   desktopColumns?: number;
   productIds?: string[];
+  /** The picked category, brand or collection; only the source's own is read. */
+  categoryId?: string;
+  brandId?: string;
+  collectionId?: string;
+  /** The builder's preview: an empty picked source says why instead of vanishing. */
+  preview?: boolean;
+  /**
+   * A vendor's landing page: the shelf lists that store's products alone,
+   * and "View all" opens its own Products tab.
+   */
+  vendor?: { id: string; slug: string };
 }) {
-  const safeLimit = Math.min(
-    NEW_ARRIVALS_LIMIT_MAX,
-    Math.max(NEW_ARRIVALS_LIMIT_MIN, Math.floor(limit) || 8),
-  );
-  const normalizedDesktopColumns = Number.isFinite(desktopColumns)
-    ? Math.floor(desktopColumns)
-    : 4;
-  const safeDesktopColumns = Math.min(
-    NEW_ARRIVALS_COLUMNS_MAX,
-    Math.max(NEW_ARRIVALS_COLUMNS_MIN, normalizedDesktopColumns),
-  );
-
-  const sourceQuery = buildSourceQuery(source, safeLimit, productIds);
-  let products = sourceQuery ? await fetchProducts(sourceQuery) : [];
-
-  // Confirmed fallback: when the chosen logic yields nothing, show latest
-  // products so the section is never empty.
-  if (products.length === 0 && source !== "latest") {
-    products = await fetchProducts(buildLatestQuery(safeLimit));
+  const shelf = await loadProductShelf({
+    source,
+    limit,
+    productIds,
+    categoryId,
+    brandId,
+    collectionId,
+    ...(vendor ? { vendor } : {}),
+  });
+  if (shelf.products.length === 0) {
+    return isProductTargetSource(source) && shelf.missing
+      ? productSourceEmptyState({ preview }, { locale, source, missing: shelf.missing })
+      : null;
   }
-
-  if (products.length === 0) return null;
 
   return (
     <HomeNewArrivalsCarousel
       locale={locale}
-      products={products.slice(0, safeLimit)}
+      products={shelf.products}
       title={title}
       subtitle={subtitle}
-      desktopColumns={safeDesktopColumns}
-      viewAllHref={buildViewAllHref(locale)}
+      desktopColumns={productShelfColumns(desktopColumns)}
+      viewAllHref={`/${locale}${shelf.href}`}
     />
   );
-}
-
-// "View all" href. The catalog page reads only category/brand/collection/
-// search/price/sort, so there is no on-sale or featured filter to carry over —
-// every source lands on the catalog, sorted newest to match the carousel's own
-// ordering.
-function buildViewAllHref(locale: Locale): string {
-  return `/${locale}/products?sortBy=createdAt`;
 }

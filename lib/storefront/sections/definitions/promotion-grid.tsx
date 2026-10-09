@@ -1,9 +1,6 @@
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
-import {
-  SectionGrid,
-  SectionGridSkeleton,
-  resolveGridCells,
-} from "../section-grid";
+import { SectionGrid, SectionGridSkeleton } from "../section-grid";
+import { resolveGridCells } from "@/lib/storefront/section-data/slider-cells";
 import {
   DEFAULT_PROMO_GRID,
   MAX_SLIDER_CELLS,
@@ -115,7 +112,14 @@ export const promotionGrid: SectionDefinition = {
   isEmpty: ({ settings, blocks }) => sliderGridIsUnassigned(settings, blocks),
   async Render({ settings, blocks, ctx }) {
     const grid = getSliderGrid(settings.grid);
-    const cells = await resolveGridCells(readGridCells(grid, blocks), ctx.locale);
+    // On a vendor's landing page a cell's slider is one of that store's own
+    // (Online Store → Sliders), never the marketplace's.
+    const cells = await resolveGridCells(
+      readGridCells(grid, blocks),
+      ctx.locale,
+      "page",
+      ctx.vendor ? { vendorId: ctx.vendor.id } : {},
+    );
 
     // Nothing to draw — no cell assigned, or only sliders that are switched
     // off or out of live slides: see slideshow.tsx.
@@ -143,6 +147,7 @@ export const promotionGrid: SectionDefinition = {
         heightClass={heightClass}
         gap={spacing.gap}
         radius={edgeToEdge ? "0px" : spacing.radius}
+        trackSliders={!ctx.vendor}
       />
     );
 

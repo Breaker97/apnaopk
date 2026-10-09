@@ -11,18 +11,30 @@ import {
   NEW_ARRIVALS_LIMIT_MIN,
 } from "@/lib/site-config/home-page-config";
 import { lt } from "../localized";
+import {
+  isProductTargetUnpicked,
+  productSourceTargetFields,
+} from "../product-source";
 import type {
   LocalizedText,
   SectionDefinition,
   SectionRenderProps,
 } from "../types";
 
+/** A setting read as a string, or "" — what a tab's id settings hold. */
+function str(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function props({ settings, blocks, ctx }: SectionRenderProps) {
   return {
     locale: ctx.locale,
+    preview: ctx.preview,
     title: lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage),
     limit: settings.limit as number,
     desktopColumns: settings.desktopColumns as number,
+    // A vendor's landing page: the store's own products in every tab.
+    vendor: ctx.vendor,
     tabs: blocks
       .filter((block) => block.visible)
       .map((block) => ({
@@ -30,6 +42,9 @@ function props({ settings, blocks, ctx }: SectionRenderProps) {
         label: lt(block.settings.label as LocalizedText, ctx.locale, ctx.defaultLanguage),
         source: block.settings.source as ProductGroupSource,
         productIds: block.settings.productIds as string[],
+        categoryId: str(block.settings.categoryId),
+        brandId: str(block.settings.brandId),
+        collectionId: str(block.settings.collectionId),
       })),
   };
 }
@@ -104,6 +119,8 @@ export const productGroup: SectionDefinition = {
           default: "latest",
           width: "half",
         },
+        // Each tab's own pick — a tab of a category, another of a brand.
+        ...productSourceTargetFields(),
         {
           key: "productIds",
           type: "productList",
@@ -120,11 +137,13 @@ export const productGroup: SectionDefinition = {
     ],
   },
   // No tab that can fill: none visible, or only hand-picked ones with no
-  // products picked. ProductGroup draws nothing then.
+  // products picked and category, brand or collection ones with nothing
+  // picked. ProductGroup draws nothing then.
   isEmpty: ({ blocks }) =>
     !blocks.some(
       (block) =>
         block.visible &&
+        !isProductTargetUnpicked(block.settings) &&
         (block.settings.source !== "manual" ||
           (Array.isArray(block.settings.productIds) &&
             block.settings.productIds.some(Boolean))),

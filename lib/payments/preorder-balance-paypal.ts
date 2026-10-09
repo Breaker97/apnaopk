@@ -15,6 +15,7 @@ import { paypalFee } from "@/lib/payments/gateway-fee";
 import { assertPaymentMethodSettles } from "@/lib/payments/gateway-currencies";
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
 import { PAYPAL_BALANCE_REFERENCE_PREFIX } from "@/lib/payments/preorder-balance-reference";
+import { assertBalanceRequestCurrent } from "@/lib/payments/preorder-balance-request";
 import {
   balanceFeeUpdate,
   claimPreorderBalance,
@@ -148,6 +149,12 @@ export async function createPreorderBalancePayPalOrder(params: {
   // placed in, whatever the store prices in now.
   const currency = orderCurrency(order, settings);
   assertPaymentMethodSettles("paypal", currency);
+  // Not against a request that no longer describes the order.
+  assertBalanceRequestCurrent(
+    order as Parameters<typeof assertBalanceRequestCurrent>[0],
+    balanceDue,
+    currency,
+  );
 
   const { orderId: paypalOrderId, approvalUrl } = await createPayPalOrder({
     creds,

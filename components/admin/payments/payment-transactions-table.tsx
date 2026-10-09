@@ -24,6 +24,7 @@ import {
   type DataTableTab,
 } from "@/components/ui/data-table";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { periodPickerConfig } from "@/components/admin/period-picker-config";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 type TransactionRow = {
@@ -181,7 +182,7 @@ interface PaymentTransactionsTableProps {
   };
 }
 
-const TRANSACTION_FILTER_IDS = ["type", "provider", "settlement"];
+const TRANSACTION_FILTER_IDS = ["type", "provider", "settlement", "date"];
 
 export function PaymentTransactionsTable({
   locale,
@@ -584,7 +585,7 @@ export function PaymentTransactionsTable({
     [t],
   );
 
-  const filters = useMemo<DataTableFilter[]>(
+  const selectFilters = useMemo<DataTableFilter[]>(
     () => [
       {
         id: "statuses",
@@ -676,6 +677,18 @@ export function PaymentTransactionsTable({
     ],
     [t, translateProvider],
   );
+
+  // The Orders list's date filter, with the dashboard's period names and
+  // footer. Built on every render rather than memoised: "today" and the last
+  // day the calendar lets you pick move at midnight, and this tab can outlive it.
+  const now = new Date();
+  const dateFilter: DataTableFilter = {
+    id: "date",
+    label: tr("admin.ordersPage.filters.date", "Date"),
+    type: "date",
+    date: { locale, ...periodPickerConfig(tr, locale, now), maxDate: now },
+  };
+  const filters = [...selectFilters, dateFilter];
 
   const tableHeader = useMemo(
     () =>

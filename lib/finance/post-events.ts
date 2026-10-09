@@ -1,3 +1,4 @@
+import { Payout } from "@/models/payout.model";
 /**
  * The bridge between what happened and what gets posted.
  *
@@ -198,6 +199,8 @@ async function loadPostingOrder(
  * the live paths ignore it and use the `…Safely` wrappers below.
  */
 export async function postOrderPaid(orderId: unknown): Promise<number> {
+  const { recordOrderCollections } = await import("./collections");
+  await recordOrderCollections(orderId);
   const order = await loadPostingOrder(orderId);
   if (!order) return 0;
   return postLedgerEntries(
@@ -837,14 +840,29 @@ export async function postPayoutPaid(payout: {
   currency?: string | null;
   paidAt?: Date | null;
 }): Promise<number> {
-  return postLedgerEntries(payoutPaidPostings(payout));
+  const stored = await Payout.findById(payout._id).lean();
+  if (!stored?.paidAt) return 0;
+  const { FinanceOperation } = await import("@/models/finance-operation.model");
+  const { finishFinanceOperation } = await import("./operations");
+  const pending = await FinanceOperation.find({ sourceId: String(payout._id), state: "pending" }).select("_id").lean();
+  for (const operation of pending) await finishFinanceOperation(operation._id);
+  const entries = stored.settlementPostings?.length ? stored.settlementPostings : payoutPaidPostings({ ...stored, paidFrom: stored.settlementSnapshot?.paidFrom || stored.paidFrom });
+  if (!stored.settlementPostings?.length && !stored.paidFrom) throw new Error("Historical payout account is unknown; review transfer evidence");
+  return postLedgerEntries(entries);
+
 }
 
 /** A paid payout the bank sent back: its entries, flipped. */
 export async function postPayoutReversed(
   payout: Parameters<typeof payoutReversalPostings>[0],
 ): Promise<number> {
-  return postLedgerEntries(payoutReversalPostings(payout));
+  const stored = await Payout.findById(payout._id).lean();
+  if (!stored?.reversedAt) return 0;
+  await postPayoutPaid(stored);
+  const original = stored.settlementPostings?.length ? stored.settlementPostings : await LedgerEntry.find({ "source.kind": "payout", "source.id": stored._id, key: { $not: /:reversal$/ } }).lean();
+  if (!original.length) throw new Error("Historical payout settlement evidence is missing");
+  return postLedgerEntries(original.map((entry: import("./ledger").LedgerPosting) => ({ ...entry, date: stored.reversedAt, debit: entry.credit, credit: entry.debit, key: `${entry.key}:reversal`, note: "Payout returned" })));
+
 }
 
 export async function postPlatformPayment(payment: {
@@ -857,7 +875,8 @@ export async function postPlatformPayment(payment: {
   paidAt?: Date | null;
   provider?: string | null;
 }): Promise<number> {
-  return postLedgerEntries(platformPaymentPostings(payment));
+  const { replayPlatformPayment } = await import("./payment-ledger");
+  return replayPlatformPayment(payment._id);
 }
 
 export async function postPlatformPaymentReversed(
@@ -877,7 +896,9 @@ export async function postPlatformPaymentRefund(
 export async function postSubscriptionInvoice(
   payment: Parameters<typeof subscriptionInvoicePostings>[0],
 ): Promise<number> {
-  return postLedgerEntries(subscriptionInvoicePostings(payment));
+  const { replaySubscriptionInvoice } = await import("./payment-ledger");
+  await replaySubscriptionInvoice(payment._id);
+  return 0;
 }
 
 /**

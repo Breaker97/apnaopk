@@ -9,7 +9,6 @@ import type { SectionDefinition, SectionRenderProps } from "../types";
 
 function props({ settings, blocks, ctx }: SectionRenderProps) {
   return {
-    locale: ctx.locale,
     width: settings.width as BrandListWidth,
     // Brand ids, in row order — each block is a pick from Products → Brands.
     brandIds: blocks
@@ -20,8 +19,13 @@ function props({ settings, blocks, ctx }: SectionRenderProps) {
       .filter(Boolean),
     emptyState: sectionEmptyState(ctx, {
       title: "Brand list",
-      hint: "Pick brands for this section, or add brands under Products → Brands and they appear here automatically.",
+      hint: ctx.vendor
+        ? "The brands of your active products appear here automatically — or pick the ones to show."
+        : "Pick brands for this section, or add brands under Products → Brands and they appear here automatically.",
     }),
+    // A vendor's landing page: the brands that store sells, each opening its
+    // own Products tab filtered to the brand.
+    vendor: ctx.vendor,
   };
 }
 

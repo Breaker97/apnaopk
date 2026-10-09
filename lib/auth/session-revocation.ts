@@ -12,7 +12,9 @@ import { getAuthContext } from "@/lib/auth/auth";
  *
  * A revoked session stops working on its next request — not when its cookie
  * cache runs out — because the session read in `lib/auth/auth.ts` starts from
- * the session row (see `lib/auth/live-session.ts`).
+ * the session row (see `lib/auth/live-session.ts`). The app installs a
+ * revoked session registered for push stop at the same moment, through the
+ * session delete hook in `lib/auth/auth.ts`.
  */
 
 type UserSessionSummary = {
@@ -81,12 +83,10 @@ export async function revokeOtherSessions(
   keepSessionId: string,
 ): Promise<number> {
   const { adapter, sessions } = await listSessions(userId);
-  const tokens = sessions
-    .filter((session) => session.id !== keepSessionId)
-    .map((session) => session.token);
-  if (tokens.length === 0) return 0;
-  await adapter.deleteSessions(tokens);
-  return tokens.length;
+  const revoked = sessions.filter((session) => session.id !== keepSessionId);
+  if (revoked.length === 0) return 0;
+  await adapter.deleteSessions(revoked.map((session) => session.token));
+  return revoked.length;
 }
 
 /**

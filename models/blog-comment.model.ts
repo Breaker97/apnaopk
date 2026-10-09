@@ -25,9 +25,11 @@ const BlogCommentSchema = new Schema<IBlogComment>(
       trim: true,
       maxlength: 120,
     },
+    // Always set when a comment is written (the route requires it), and
+    // removed with the IP and browser when the author deletes their account:
+    // the comment stays, the means of reaching them does not.
     authorEmail: {
       type: String,
-      required: true,
       lowercase: true,
       trim: true,
     },

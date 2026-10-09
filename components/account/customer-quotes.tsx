@@ -14,6 +14,7 @@ import { useLiveResource } from "@/hooks/use-live-resource";
 import { useSuspenseResource } from "@/hooks/use-suspense-resource";
 import { useCurrency } from "@/providers/currency-provider";
 import type { QuoteRequestRow } from "@/lib/quotes/quotes";
+import { shopperQuoteState, type ShopperQuoteState } from "@/lib/quotes/quote-status";
 
 /**
  * "I asked for a price — where is it?"
@@ -35,31 +36,8 @@ import type { QuoteRequestRow } from "@/lib/quotes/quotes";
  * closed reads "Closed", with a way to ask again.
  */
 
-type ShopperState =
-  | "awaiting"
-  | "ready"
-  | "ordered"
-  | "expired"
-  | "withdrawn"
-  | "closed";
-
-function shopperState(row: QuoteRequestRow): ShopperState {
-  switch (row.offerState) {
-    case "live":
-      return "ready";
-    case "ordered":
-      return "ordered";
-    case "expired":
-      return "expired";
-    case "withdrawn":
-      return "withdrawn";
-    default:
-      return row.status === "lost" ? "closed" : "awaiting";
-  }
-}
-
 const STATE_BADGE: Record<
-  ShopperState,
+  ShopperQuoteState,
   { key: string; variant: "default" | "secondary" | "outline" | "destructive" }
 > = {
   awaiting: { key: "awaitingPrice", variant: "outline" },
@@ -141,7 +119,7 @@ export function CustomerQuotes() {
   return (
     <div className="space-y-3">
       {quotes.map((row) => {
-        const state = shopperState(row);
+        const state = shopperQuoteState(row);
         const badge = STATE_BADGE[state];
         const canAskAgain =
           Boolean(row.productSlug) &&

@@ -21,6 +21,7 @@ import { VENDOR_STATUS } from "@/config/app.config";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { DEFAULT_VENDOR_SLUG } from "@/lib/vendors/multi-vendor";
 import { withApi } from "@/lib/api/handler";
+import { slugify } from "@/lib/strings";
 import { resolveShareSettings, type ShareSettings } from "@/lib/site-config/share-config";
 import {
   PROFILE_DEMO_MODE_MESSAGE,
@@ -60,6 +61,14 @@ import {
   areCountryValuesEquivalent,
   isCountryAllowed,
 } from "@/lib/intl/country-availability";
+import { audit, createAuditContext, type AuditContext } from "@/lib/audit";
+import {
+  bankDetailsAuditSnapshot,
+  bankDetailsChangeSummary,
+  changedBankDetailFields,
+  changedSettingFields,
+  vendorSettingsChangeSummary,
+} from "@/lib/vendors/vendor-audit";
 
 const OptionalUrlSchema = z
   .union([z.string().url("Must be a valid URL"), z.literal(""), z.null()])
@@ -301,11 +310,7 @@ function normalizeOptionalString(value: unknown): string | undefined {
 
 function normalizeSlug(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
-  const slug = value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+  const slug = slugify(value);
   return slug.length > 0 ? slug : undefined;
 }
 
@@ -440,6 +445,73 @@ function buildSettingsPayload(vendor: {
     storeVisibility: resolveVendorStoreVisibility(vendor.storeVisibility),
     messaging: resolveVendorMessaging(vendor.messaging),
   };
+}
+
+type VendorSettingsSubject = Parameters<typeof buildSettingsPayload>[0] & {
+  _id: unknown;
+};
+
+/**
+ * The settings payload without the bank account: what the vendor already sees,
+ * and so what is safe to keep. Carrier tokens in it are presence flags, never
+ * values (and `audit()` redacts those key names on top).
+ */
+function settingsAuditSnapshot(vendor: VendorSettingsSubject): Record<string, unknown> {
+  const snapshot: Record<string, unknown> = { ...buildSettingsPayload(vendor) };
+  // The bank account has a row of its own, with its numbers masked.
+  delete snapshot.bankDetails;
+  return snapshot;
+}
+
+/**
+ * What a settings save changed, as rows in the Activity Log.
+ *
+ * Two kinds, because they are read differently: where the money goes is marked
+ * sensitive and shows only masked numbers, and everything else is a plain before
+ * and after. Both come from the vendor as stored before and after the save, so a
+ * save that changed nothing writes nothing, and one request may write both.
+ */
+async function auditVendorSettings(
+  context: AuditContext,
+  before: VendorSettingsSubject,
+  after: VendorSettingsSubject,
+) {
+  const subject = {
+    resource: "vendor" as const,
+    resourceId: String(after._id),
+    resourceName: after.storeName,
+  };
+
+  const bankFields = changedBankDetailFields(before.bankDetails, after.bankDetails);
+  if (bankFields.length > 0) {
+    await audit(context, {
+      action: "UPDATE",
+      ...subject,
+      changes: {
+        before: bankDetailsAuditSnapshot(before.bankDetails),
+        after: bankDetailsAuditSnapshot(after.bankDetails),
+        fields: bankFields,
+        summary: bankDetailsChangeSummary(bankFields),
+      },
+      metadata: { sensitive: "bankDetails" },
+    });
+  }
+
+  const settingsBefore = settingsAuditSnapshot(before);
+  const settingsAfter = settingsAuditSnapshot(after);
+  const fields = changedSettingFields(settingsBefore, settingsAfter);
+  if (fields.length > 0) {
+    await audit(context, {
+      action: "SETTINGS_CHANGE",
+      ...subject,
+      changes: {
+        before: Object.fromEntries(fields.map((field) => [field, settingsBefore[field]])),
+        after: Object.fromEntries(fields.map((field) => [field, settingsAfter[field]])),
+        fields,
+        summary: vendorSettingsChangeSummary(fields),
+      },
+    });
+  }
 }
 
 export const GET = withApi(
@@ -939,6 +1011,12 @@ export const PUT = withApi(
 
     const updatedVendor = await Vendor.findById(vendor._id).lean();
     if (!updatedVendor) throw new AuthorizationError("Vendor profile not found");
+
+    await auditVendorSettings(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      vendor,
+      updatedVendor,
+    );
 
     const updatedUser = await User.findById(session.user.id)
       .select("name email phone image")

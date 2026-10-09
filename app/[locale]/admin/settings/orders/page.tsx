@@ -10,6 +10,7 @@ export default function Page() {
     dirtySections,
     updateNestedField,
     saveSection,
+    discardEdits,
   } = useAdminSettingsContext();
 
   return (
@@ -20,7 +21,14 @@ export default function Page() {
           isSaving={isSaving}
           isDirty={dirtySections.has("orders")}
           updateNestedField={updateNestedField}
-          onSave={() => saveSection("orders", loadedSettings.orders)}
+          onDiscard={discardEdits}
+          onSave={() => {
+            // The commission is Vendors → Configuration's to edit; this page
+            // only shows it, so it is not sent (an unsaved edit made there
+            // stays that page's).
+            const { commission, ...orders } = loadedSettings.orders;
+            return saveSection("orders", orders);
+          }}
         />
       )}
     </SectionLoader>

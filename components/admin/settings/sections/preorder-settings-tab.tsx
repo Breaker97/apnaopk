@@ -1,21 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Loader2, ShieldCheck } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ChevronDown, Loader2 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NumberInput } from "@/components/ui/number-input";
 import { apiClient } from "@/lib/api/client";
+import { cn } from "@/lib/utils";
 import type { Settings } from "@/components/admin/settings/types";
-import { SettingSwitchRow } from "@/components/admin/settings/fields/setting-switch-row";
+import {
+  SettingList,
+  SettingRow,
+  SettingSwitchItem,
+  SettingUnit,
+} from "@/components/admin/settings/fields/setting-row";
 import Link from "@/components/language/link";
 import {
   formatPreorderAccessDate as formatDate,
   usePreorderAccessDecision,
 } from "@/components/admin/vendors/use-preorder-access-decision";
-import { SettingsTabHeader } from "./settings-tab-header";
 
 /**
  * The Vendor access card's anchor. Access-request notifications and emails
@@ -25,12 +36,15 @@ import { SettingsTabHeader } from "./settings-tab-header";
 const VENDOR_ACCESS_ANCHOR = "preorder-access";
 
 /**
- * Guard rails for pre-orders, and the queue of vendors asking to sell one.
+ * Guard rails for vendor pre-orders, and the queue of vendors asking to sell
+ * one.
  *
  * A pre-order takes a shopper's money for goods a vendor has not made yet, and
  * that money lands on the platform's gateway — so an over-promised date or an
  * outsized deposit becomes the platform's refund and the platform's chargeback.
- * Every control here exists to bound that exposure.
+ * Every control here exists to bound that exposure. The rules every pre-order
+ * follows, the store's own included (asking for the balance, giving up on it),
+ * are in Settings → Products (preorder-rule-keys.ts).
  *
  * The switches ship permissive on purpose: a store already selling pre-orders
  * when it updates must keep selling them. Tightening is a decision an operator
@@ -58,10 +72,10 @@ export function PreorderSettingsTab(props: {
   const preorder = props.settings.preorder;
   const enabled = preorder?.enabled ?? true;
   const requireApproval = preorder?.requireVendorApproval ?? false;
-  const autoRelease = preorder?.autoRelease ?? false;
 
   const [pending, setPending] = useState<VendorRow[]>([]);
   const [approved, setApproved] = useState<VendorRow[]>([]);
+  const [showApproved, setShowApproved] = useState(false);
   // Starts true so "No vendor has asked" does not flash before the first load.
   const [isLoadingQueue, setIsLoadingQueue] = useState(true);
 
@@ -117,224 +131,150 @@ export function PreorderSettingsTab(props: {
     return date ? tAccess("asked", { date }) : tAccess("askedRecently");
   };
 
-  return (
-    <div className="space-y-4">
-      <SettingsTabHeader title={t("title")} description={t("description")} />
+  const settingsProductsLink = (chunks: ReactNode) => (
+    <Link
+      href="/admin/settings/products"
+      className="text-primary font-medium hover:underline"
+    >
+      {chunks}
+    </Link>
+  );
 
+  return (
+    <>
       <Card>
-        <CardContent className="space-y-4">
+        <CardHeader>
+          <CardTitle>{t("title")}</CardTitle>
+          <CardDescription>{t("description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
           {/* The on/off switch is store-wide — it gates the admin's own
               products too — so it lives in Settings → Products; what is
               left here is what a VENDOR may promise once it is on. */}
-          {enabled ? null : (
-            <p className="text-muted-foreground text-sm">
-              {t.rich("storeOff", {
-                link: (chunks) => (
-                  <Link
-                    href="/admin/settings/products"
-                    className="text-primary font-medium hover:underline"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-              })}
-            </p>
-          )}
-
           {enabled ? (
             <>
-              <SettingSwitchRow
-                title={t("requireApproval.title")}
-                description={t("requireApproval.description")}
-                checked={requireApproval}
-                onCheckedChange={(v) =>
-                  props.updateField("preorder.requireVendorApproval", v)
-                }
-              />
+              <SettingList>
+                <SettingSwitchItem
+                  title={t("requireApproval.title")}
+                  description={t("requireApproval.description")}
+                  checked={requireApproval}
+                  onCheckedChange={(value) =>
+                    props.updateField("preorder.requireVendorApproval", value)
+                  }
+                />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
-                    {t("maxLead.label")}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <NumberInput
-                      min={1}
-                      max={730}
-                      step={1}
-                      className="w-24"
-                      value={preorder?.maxLeadDays ?? 180}
-                      whenEmpty="keep"
-                      normalize={Math.trunc}
-                      onValueChange={(next) => {
-                        if (next !== undefined)
-                          props.updateField("preorder.maxLeadDays", next);
-                      }}
-                    />
-                    <span className="text-muted-foreground text-sm">
-                      {t("maxLead.unit")}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {t("maxLead.hint")}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
-                    {t("maxDeposit.label")}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <NumberInput
-                      min={0}
-                      max={100}
-                      step={1}
-                      className="w-24"
-                      value={preorder?.maxDepositPercent ?? 100}
-                      whenEmpty="keep"
-                      normalize={Math.trunc}
-                      onValueChange={(next) => {
-                        if (next !== undefined)
-                          props.updateField("preorder.maxDepositPercent", next);
-                      }}
-                    />
-                    <span className="text-muted-foreground text-sm">
-                      {t("maxDeposit.unit")}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {t("maxDeposit.hint")}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
-                    {t("expiry.label")}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <NumberInput
-                      min={1}
-                      max={365}
-                      step={1}
-                      className="w-24"
-                      value={preorder?.expiryGraceDays ?? 14}
-                      whenEmpty="keep"
-                      normalize={Math.trunc}
-                      onValueChange={(next) => {
-                        if (next !== undefined)
-                          props.updateField("preorder.expiryGraceDays", next);
-                      }}
-                    />
-                    <span className="text-muted-foreground text-sm">
-                      {t("expiry.unit")}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {t("expiry.hint")}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <SettingSwitchRow
-                    title={t("autoRelease.title")}
-                    description={t("autoRelease.description")}
-                    checked={autoRelease}
-                    onCheckedChange={(v) =>
-                      props.updateField("preorder.autoRelease", v)
-                    }
+                <SettingRow
+                  inputId="preorder-max-lead"
+                  label={t("maxLead.label")}
+                  hint={t("maxLead.hint")}
+                >
+                  <NumberInput
+                    id="preorder-max-lead"
+                    min={1}
+                    max={730}
+                    step={1}
+                    className="w-24"
+                    value={preorder?.maxLeadDays ?? 180}
+                    whenEmpty="keep"
+                    normalize={Math.trunc}
+                    onValueChange={(next) => {
+                      if (next !== undefined)
+                        props.updateField("preorder.maxLeadDays", next);
+                    }}
                   />
-                  {autoRelease ? (
-                    <div className="flex items-center gap-2 pt-1">
-                      <NumberInput
-                        min={0}
-                        max={90}
-                        step={1}
-                        className="w-24"
-                        value={preorder?.autoReleaseDelayDays ?? 0}
-                        whenEmpty="keep"
-                        normalize={Math.trunc}
-                        onValueChange={(next) => {
-                          if (next !== undefined)
-                            props.updateField(
-                              "preorder.autoReleaseDelayDays",
-                              next,
-                            );
-                        }}
-                      />
-                      <span className="text-muted-foreground text-sm">
-                        {t("autoRelease.unit")}
-                      </span>
-                    </div>
-                  ) : null}
-                  <p className="text-muted-foreground text-xs">
-                    {t("autoRelease.hint")}
-                  </p>
-                </div>
+                  <SettingUnit>{t("maxLead.unit")}</SettingUnit>
+                </SettingRow>
 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">
-                    {t("reserve.label")}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <NumberInput
-                      min={0}
-                      max={50}
-                      step={1}
-                      className="w-20"
-                      value={preorder?.reservePercent ?? 0}
-                      whenEmpty="keep"
-                      normalize={Math.trunc}
-                      onValueChange={(next) => {
-                        if (next !== undefined)
-                          props.updateField("preorder.reservePercent", next);
-                      }}
-                    />
-                    <span className="text-muted-foreground text-sm">
-                      {t("reserve.percentUnit")}
-                    </span>
-                    <NumberInput
-                      min={1}
-                      max={365}
-                      step={1}
-                      className="w-20"
-                      value={preorder?.reserveDays ?? 90}
-                      whenEmpty="keep"
-                      normalize={Math.trunc}
-                      onValueChange={(next) => {
-                        if (next !== undefined)
-                          props.updateField("preorder.reserveDays", next);
-                      }}
-                    />
-                    <span className="text-muted-foreground text-sm">
-                      {t("reserve.daysUnit")}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {t("reserve.hint")}
-                  </p>
-                </div>
-              </div>
+                <SettingRow
+                  inputId="preorder-max-deposit"
+                  label={t("maxDeposit.label")}
+                  hint={t("maxDeposit.hint")}
+                >
+                  <NumberInput
+                    id="preorder-max-deposit"
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="w-24"
+                    value={preorder?.maxDepositPercent ?? 100}
+                    whenEmpty="keep"
+                    normalize={Math.trunc}
+                    onValueChange={(next) => {
+                      if (next !== undefined)
+                        props.updateField("preorder.maxDepositPercent", next);
+                    }}
+                  />
+                  <SettingUnit>{t("maxDeposit.unit")}</SettingUnit>
+                </SettingRow>
+
+                <SettingRow
+                  inputId="preorder-reserve-percent"
+                  label={t("reserve.label")}
+                  hint={t("reserve.hint")}
+                >
+                  <NumberInput
+                    id="preorder-reserve-percent"
+                    min={0}
+                    max={50}
+                    step={1}
+                    className="w-20"
+                    value={preorder?.reservePercent ?? 0}
+                    whenEmpty="keep"
+                    normalize={Math.trunc}
+                    onValueChange={(next) => {
+                      if (next !== undefined)
+                        props.updateField("preorder.reservePercent", next);
+                    }}
+                  />
+                  <SettingUnit>{t("reserve.percentUnit")}</SettingUnit>
+                  <NumberInput
+                    min={1}
+                    max={365}
+                    step={1}
+                    className="w-20"
+                    aria-label={`${t("reserve.label")}: ${t("reserve.daysUnit")}`}
+                    value={preorder?.reserveDays ?? 90}
+                    whenEmpty="keep"
+                    normalize={Math.trunc}
+                    onValueChange={(next) => {
+                      if (next !== undefined)
+                        props.updateField("preorder.reserveDays", next);
+                    }}
+                  />
+                  <SettingUnit>{t("reserve.daysUnit")}</SettingUnit>
+                </SettingRow>
+              </SettingList>
+              <p className="text-muted-foreground text-xs">
+                {t.rich("movedNote", { link: settingsProductsLink })}
+              </p>
             </>
-          ) : null}
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t.rich("storeOff", { link: settingsProductsLink })}
+            </p>
+          )}
         </CardContent>
       </Card>
 
       {enabled ? (
         <Card id={VENDOR_ACCESS_ANCHOR} className="scroll-mt-24">
-          <CardContent className="space-y-4">
+          <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
-              <ShieldCheck className="text-muted-foreground h-4 w-4" />
-              <h3 className="text-sm font-semibold">{t("access.title")}</h3>
+              <CardTitle>{tAccess("card.title")}</CardTitle>
               {isLoadingQueue ? (
-                <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
               ) : null}
               {pending.length > 0 ? (
-                <Badge variant="secondary">
+                <Badge
+                  variant="outline"
+                  className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400"
+                >
                   {t("access.waiting", { count: pending.length })}
                 </Badge>
               ) : null}
             </div>
-
+          </CardHeader>
+          <CardContent className="space-y-3">
             {!requireApproval ? (
               // Without this an admin working the queue would think they were
               // granting something that was never withheld.
@@ -349,78 +289,120 @@ export function PreorderSettingsTab(props: {
               </p>
             ) : null}
 
-            {pending.map((vendor) => (
-              <div
-                key={vendor._id}
-                className="flex flex-wrap items-center gap-3 rounded-md border p-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {vendor.storeName || tAccess("unnamedStore")}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {askedLine(vendor.preorder?.requestedAt)}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  disabled={busyVendorId === vendor._id}
-                  onClick={() => approve(vendor)}
-                >
-                  {tAccess("approve")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busyVendorId === vendor._id}
-                  onClick={() => refuse(vendor, "decline")}
-                >
-                  {tAccess("declineSubmit")}
-                </Button>
-              </div>
-            ))}
-
-            {approved.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                  {tAccess("approvedBadge")}
-                </p>
-                {approved.map((vendor) => (
-                  <div
+            {pending.length > 0 || approved.length > 0 ? (
+              <div className="@container divide-y overflow-hidden rounded-lg border">
+                {pending.map((vendor) => (
+                  <QueueRow
                     key={vendor._id}
-                    className="flex flex-wrap items-center gap-3 rounded-md border p-3"
+                    name={vendor.storeName || tAccess("unnamedStore")}
+                    detail={askedLine(vendor.preorder?.requestedAt)}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {vendor.storeName || tAccess("unnamedStore")}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        {tAccess("since", {
-                          date:
-                            formatDate(vendor.preorder?.approvedAt, locale) ||
-                            "—",
-                        })}
-                      </p>
-                    </div>
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={busyVendorId === vendor._id}
-                      onClick={() => refuse(vendor, "revoke")}
+                      onClick={() => refuse(vendor, "decline")}
                     >
-                      {tAccess("revoke")}
+                      {tAccess("declineSubmit")}
                     </Button>
-                  </div>
+                    <Button
+                      size="sm"
+                      disabled={busyVendorId === vendor._id}
+                      onClick={() => approve(vendor)}
+                    >
+                      {tAccess("approve")}
+                    </Button>
+                  </QueueRow>
                 ))}
-                <p className="text-muted-foreground text-xs">
-                  {t("access.revokeNote")}
-                </p>
+
+                {approved.length > 0 ? (
+                  <div>
+                    <button
+                      type="button"
+                      aria-expanded={showApproved}
+                      onClick={() => setShowApproved((open) => !open)}
+                      className="hover:bg-muted/40 flex w-full items-center gap-2 px-4 py-3 text-start text-sm font-medium transition-colors"
+                    >
+                      <span className="flex-1">
+                        {t("access.approvedToggle", { count: approved.length })}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "text-muted-foreground size-4 transition-transform",
+                          showApproved && "rotate-180",
+                        )}
+                      />
+                    </button>
+                    {showApproved ? (
+                      <div className="bg-muted/30 divide-y border-t">
+                        {approved.map((vendor) => (
+                          <QueueRow
+                            key={vendor._id}
+                            muted
+                            name={vendor.storeName || tAccess("unnamedStore")}
+                            detail={tAccess("since", {
+                              date:
+                                formatDate(vendor.preorder?.approvedAt, locale) ||
+                                "—",
+                            })}
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busyVendorId === vendor._id}
+                              onClick={() => refuse(vendor, "revoke")}
+                            >
+                              {tAccess("revoke")}
+                            </Button>
+                          </QueueRow>
+                        ))}
+                        <p className="text-muted-foreground px-4 py-3 text-xs">
+                          {t("access.revokeNote")}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </CardContent>
         </Card>
       ) : null}
       {dialog}
+    </>
+  );
+}
+
+/** A vendor in the access queue, with the decisions that apply to it. */
+function QueueRow({
+  name,
+  detail,
+  muted,
+  children,
+}: {
+  name: string;
+  detail: string;
+  muted?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      <span
+        aria-hidden
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+          muted ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary",
+        )}
+      >
+        {name.charAt(0).toUpperCase()}
+      </span>
+      <div className="min-w-0 flex-1 basis-32">
+        <p className="truncate text-sm font-medium">{name}</p>
+        <p className="text-muted-foreground text-xs">{detail}</p>
+      </div>
+      <div className="flex w-full gap-2 *:flex-1 @md:w-auto @md:*:flex-none">
+        {children}
+      </div>
     </div>
   );
 }

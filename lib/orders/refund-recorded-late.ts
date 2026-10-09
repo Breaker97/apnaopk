@@ -69,7 +69,7 @@ export async function settleRefundRecordedLate(params: {
     title: "A refund went through but was not recorded",
     message: recorded
       ? `The ${what} refund on order #${params.orderNumber} went through ${params.provider} and its record was written, but the rest of the update failed (${why}). Open the order and check its status — do not send the refund again.`
-      : `The ${what} refund on order #${params.orderNumber} went through ${params.provider}${ids.length ? ` (${ids.join(", ")})` : ""}, but Storify could not record it (${why}). ${
+      : `The ${what} refund on order #${params.orderNumber} went through ${params.provider}${ids.length ? ` (${ids.join(", ")})` : ""}, but the store could not record it (${why}). ${
           reportsBack
             ? `It is recorded from ${params.provider}'s own report when that arrives.`
             : "Record it on the order as already refunded."

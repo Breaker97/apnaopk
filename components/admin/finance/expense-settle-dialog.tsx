@@ -1,4 +1,5 @@
 "use client";
+import { useFinanceRequest, type FinanceOutcome } from "@/hooks/use-finance-request";
 
 import { useCallback, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -52,6 +53,7 @@ export function ExpenseSettleDialog({
   onOpenChange: (open: boolean) => void;
   onSettled: () => void;
 }) {
+  const financeRequest = useFinanceRequest();
   const t = useTranslations();
   const text = useFallbackTranslator(t);
   const locale = useLocale();
@@ -77,11 +79,11 @@ export function ExpenseSettleDialog({
     setIsSaving(true);
     setError(null);
     try {
-      await apiClient.post(`/api/admin/finance/expenses/${expense._id}/settle`, {
+      const outcome = await apiClient.post<FinanceOutcome>(`/api/admin/finance/expenses/${expense._id}/settle`, {
         paidAt,
         paidFrom,
-      });
-      toast.success(text("finance.expenses.markedPaid", "Marked as paid"));
+      }, { headers: { "if-match": String(expense.version ?? 0), "idempotency-key": financeRequest.key(expense._id, { paidAt, paidFrom, version: expense.version }) } });
+      financeRequest.completed(outcome, text("finance.expenses.markedPaid", "Marked as paid"));
       onOpenChange(false);
       onSettled();
     } catch (failure) {

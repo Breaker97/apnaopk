@@ -22,6 +22,10 @@ export default async function StaffCustomerDetailsPage({ params }: PageProps) {
     access.staffPermissions.includes(STAFF_PERMISSIONS.EDIT_CUSTOMERS) ||
     access.staffPermissions.includes(STAFF_PERMISSIONS.DELETE_CUSTOMERS);
 
+  const canSendAccountEmail =
+    access.staffPermissions.includes(STAFF_PERMISSIONS.MANAGE_CUSTOMERS) ||
+    access.staffPermissions.includes(STAFF_PERMISSIONS.EDIT_CUSTOMERS);
+
   return (
     <CustomerDetailShell
       locale={locale}
@@ -29,6 +33,7 @@ export default async function StaffCustomerDetailsPage({ params }: PageProps) {
       readOnly={!canManageCustomers}
       area="staff"
       emailLocked
+      canSendAccountEmail={canSendAccountEmail}
     />
   );
 }

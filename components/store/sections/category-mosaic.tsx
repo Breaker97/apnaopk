@@ -1,70 +1,26 @@
 import Link from "@/components/language/link";
-import { unstable_cache } from "next/cache";
 import { FolderOpen } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { cn } from "@/lib/utils";
-import { CACHE_TAGS } from "@/lib/cache-invalidation";
-import { connectDB } from "@/lib/db";
-import { Category } from "@/models";
-import { withFallback } from "@/lib/storefront/cached-read";
-
-const MOSAIC_MIN = 3;
-const MOSAIC_MAX = 7;
-
-/** Same select and tags as the featured-categories strip's fetcher. */
-const fetchMosaicCategories = withFallback(
-  unstable_cache(
-    async (source: "featured" | "topLevel" | "manual", ids: string[], limit: number) => {
-      await connectDB();
-      const select = "_id name slug image";
-      if (source === "manual" && ids.length > 0) {
-        const categories = await Category.find({
-          _id: { $in: ids },
-          isActive: true,
-        })
-          .select(select)
-          .lean();
-        const order = new Map(ids.map((id, index) => [id, index]));
-        categories.sort(
-          (a, b) =>
-            (order.get(String(a._id)) ?? 0) - (order.get(String(b._id)) ?? 0),
-        );
-        return JSON.parse(JSON.stringify(categories.slice(0, limit)));
-      }
-
-      const query: Record<string, unknown> = { isActive: true };
-      // `parentId` — `parent` is the model's populate virtual, and filtering on
-      // it silently matched every category, sub-categories included.
-      if (source === "featured") query.featured = true;
-      else query.parentId = null;
-      const categories = await Category.find(query)
-        .select(select)
-        .sort({ order: 1, name: 1 })
-        .limit(limit)
-        .lean();
-      return JSON.parse(JSON.stringify(categories));
-    },
-    ["section-category-mosaic"],
-    {
-      revalidate: 60,
-      tags: [CACHE_TAGS.categories],
-    },
-  ),
-  () => [],
-);
+import {
+  loadCategoryMosaic,
+  type MosaicCategory,
+  type MosaicSource,
+} from "@/lib/storefront/section-data/categories";
 
 interface CategoryMosaicProps {
   title: string;
-  source: "featured" | "topLevel" | "manual";
+  source: MosaicSource;
   limit: number;
   categoryIds: string[];
-}
-
-interface MosaicCategory {
-  _id: string;
-  name: string;
-  slug: string;
-  image?: string;
+  /**
+   * A vendor's landing page: the same sources as the marketplace's mosaic,
+   * read among the categories that store sells in, each tile opening its
+   * own Products tab filtered to it.
+   */
+  vendor?: { id: string; slug: string };
+  /** Drawn instead of nothing when too few categories fill the mosaic. */
+  emptyState?: React.ReactNode;
 }
 
 function MosaicTile({
@@ -78,7 +34,7 @@ function MosaicTile({
 }) {
   return (
     <Link
-      href={`/categories/${category.slug}`}
+      href={category.href ?? `/categories/${category.slug}`}
       className={cn(
         "group relative overflow-hidden rounded-md bg-muted",
         className,
@@ -120,14 +76,16 @@ export async function CategoryMosaic({
   source,
   limit,
   categoryIds,
+  vendor,
+  emptyState = null,
 }: CategoryMosaicProps) {
-  const safeLimit = Math.min(MOSAIC_MAX, Math.max(MOSAIC_MIN, limit));
-  const categories = (await fetchMosaicCategories(
+  const categories = await loadCategoryMosaic({
     source,
+    limit,
     categoryIds,
-    safeLimit,
-  )) as MosaicCategory[];
-  if (categories.length < MOSAIC_MIN) return null;
+    ...(vendor ? { vendor } : {}),
+  });
+  if (categories.length === 0) return <>{emptyState}</>;
 
   const [lead, ...rest] = categories;
 

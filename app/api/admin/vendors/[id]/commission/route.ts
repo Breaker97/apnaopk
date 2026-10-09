@@ -17,6 +17,11 @@ import {
   releaseCommissionInvoice,
 } from "@/lib/finance/commission-invoices";
 import { finalizePlatformPayment } from "@/lib/payments/platform-payments";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditCommissionInvoiceCancelled,
+  auditCommissionInvoiceRaised,
+} from "@/lib/finance/audit-money";
 import { Vendor } from "@/models";
 import {
   COMMISSION_INVOICE_STATUS,
@@ -46,11 +51,11 @@ async function requireBillableVendor(id: string) {
   const settings = await getSettings();
   if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
 
-  const vendor = await Vendor.findById(id).select("isDefault slug").lean();
+  const vendor = await Vendor.findById(id).select("isDefault slug storeName").lean();
   // The house store is never billed a commission, so it can never owe any.
   if (!vendor || isDefaultVendorRecord(vendor)) throw new NotFoundError("Vendor");
 
-  return { settings };
+  return { settings, vendor };
 }
 
 const CommissionInvoiceSchema = z.object({
@@ -119,7 +124,7 @@ export const POST = withApi<{ id: string }>(
   },
   async ({ request, params, session }) => {
     const { id } = params;
-    const { settings } = await requireBillableVendor(id);
+    const { settings, vendor } = await requireBillableVendor(id);
 
     const body = await validateOptionalBody(request, CommissionInvoiceSchema);
 
@@ -135,6 +140,13 @@ export const POST = withApi<{ id: string }>(
         "This vendor owes no uninvoiced commission right now",
       );
     }
+
+    await auditCommissionInvoiceRaised(
+      createAuditContext(request, session),
+      invoice,
+      { id, name: vendor.storeName },
+      body.note,
+    );
 
     return successResponse(invoice, "Commission invoice raised", 201);
   },
@@ -154,7 +166,7 @@ export const PATCH = withApi<{ id: string }>(
   },
   async ({ request, params, session }) => {
     const { id } = params;
-    await requireBillableVendor(id);
+    const { vendor } = await requireBillableVendor(id);
 
     const body = (await request.json()) as {
       invoiceId?: unknown;
@@ -199,6 +211,21 @@ export const PATCH = withApi<{ id: string }>(
       if (released === null) {
         throw new ValidationError(
           "This invoice is no longer open — it may have just been paid. Refresh and check before cancelling.",
+        );
+      }
+      // Cancelling an invoice that was already cancelled succeeds quietly, and
+      // changed nothing.
+      if (invoice.status === COMMISSION_INVOICE_STATUS.OPEN) {
+        await auditCommissionInvoiceCancelled(
+          createAuditContext(request, session),
+          {
+            _id: invoice._id,
+            status: invoice.status,
+            amount: invoice.amount,
+            currency: invoice.currency,
+            orderCount: invoice.orderIds?.length ?? 0,
+          },
+          { id, name: vendor.storeName },
         );
       }
       return successResponse(
@@ -246,8 +273,13 @@ export const PATCH = withApi<{ id: string }>(
 
     // No amount is passed, so the guarded mark-paid skips its gateway
     // cross-check — there is no gateway here, the admin is asserting the money
-    // arrived.
-    const result = await finalizePlatformPayment(attempt, {});
+    // arrived. The admin's context rides along so the collection's row names
+    // them; the row itself is written there, once, by whichever call wins the flip.
+    const result = await finalizePlatformPayment(
+      attempt,
+      {},
+      createAuditContext(request, session),
+    );
     if (!result.paid && !result.alreadyPaid) {
       throw new ValidationError("This invoice could not be marked collected");
     }

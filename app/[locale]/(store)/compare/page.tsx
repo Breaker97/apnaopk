@@ -10,6 +10,7 @@ import { CompareTable } from "@/components/store/compare/compare-table";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { getStorefrontProductBySlug } from "@/lib/products/storefront-product-detail";
 import {
+  compareAttributes,
   parseCompareSelection,
   type CompareProduct,
 } from "@/lib/products/compare";
@@ -74,14 +75,7 @@ export default async function ComparePage({ params, searchParams }: PageProps) {
           (entry): entry is string => typeof entry === "string",
         )
       : [];
-    const attributes = Array.isArray(source.attributes)
-      ? (source.attributes as { name?: unknown; value?: unknown }[]).flatMap(
-          (entry) =>
-            typeof entry?.name === "string" && typeof entry?.value === "string"
-              ? [{ name: entry.name, value: entry.value }]
-              : [],
-        )
-      : [];
+    const attributes = compareAttributes(source);
     return [
       {
         id: String(source._id),

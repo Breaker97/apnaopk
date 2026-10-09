@@ -10,7 +10,7 @@ import { ScrollRail } from "@/components/store/scroll-rail";
 import { toast } from "@/components/ui/toast-notification";
 import { useCartActions } from "@/hooks/use-cart";
 import { useCurrency } from "@/providers/currency-provider";
-import { trackAddToCart } from "@/lib/analytics/events";
+import { metaContentId, trackAddToCart } from "@/lib/analytics/events";
 import {
   findColorOption,
   findColorVariantImage,
@@ -374,6 +374,7 @@ function FeaturedDealCard({
         items: [
           {
             item_id: String(product._id),
+            meta_id: metaContentId(product._id, onlyVariant?._id),
             item_name: product.name,
             item_variant: onlyVariant?._id,
             price: onlyVariant?.price ?? priceRange.min,

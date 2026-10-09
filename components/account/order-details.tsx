@@ -92,6 +92,10 @@ import { PreorderBalanceCard } from "@/components/account/preorder-balance-card"
 import { PreorderAddressEditor } from "@/components/store/preorder-address-editor";
 import { CustomerAddressHoldNotice } from "@/components/orders/customer-address-hold-notice";
 import { getPreorderStatusLabel } from "@/lib/orders/preorder-status-label";
+import {
+  DISPATCHED_STATUSES,
+  isCancellableByCustomer,
+} from "@/lib/orders/customer-cancel-policy";
 import { ReviewDialog, type ReviewTarget } from "@/components/reviews/review-dialog";
 import { StarRatingDisplay } from "@/components/reviews/star-rating";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
@@ -250,12 +254,6 @@ const TRANSLATED_PAYMENT_STATUSES = [
   "partially_paid",
   "refunded",
   "partially_refunded",
-];
-
-/** Consignment states past the point of stopping. */
-const DISPATCHED_STATUSES: string[] = [
-  ORDER_STATUS.SHIPPED,
-  ORDER_STATUS.DELIVERED,
 ];
 
 /** How a pickup's state reads at a glance; "ready" is the one to act on. */
@@ -869,9 +867,6 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       vendorIdByItemIndex.set(index, shipment.vendorId ?? "");
     }
   }
-  const hasDispatchedShipment = shipments.some((shipment) =>
-    DISPATCHED_STATUSES.includes(shipment.status),
-  );
   // The order status is its slowest seller, so a split order with one parcel
   // already on its way still reads "Pending"; these counts say how far along
   // the packages actually are.
@@ -900,19 +895,12 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         },
       ];
 
-  // Offered only while the whole order can still be stopped. On a split order
-  // where one seller has already handed goods to a courier, cancelling now
-  // takes only the rest — a partial outcome behind a button labelled "Cancel
-  // order", which is not a thing to spring on someone.
-  // `preordered` belongs here as much as `pending` does. A reservation waiting
-  // months for a release date is the state a shopper is MOST likely to want out
-  // of, the API has always accepted the transition, and nothing has shipped by
-  // definition — yet the button was hidden, so the only way out was to ask
-  // support. Cancelling now refunds whatever was collected.
-  const canCancel =
-    (order.status === ORDER_STATUS.PENDING ||
-      order.status === ORDER_STATUS.PREORDERED) &&
-    !hasDispatchedShipment;
+  // Offered only while the whole order can still be stopped; the mobile app's
+  // `canCancel` is the same rule.
+  const canCancel = isCancellableByCustomer({
+    status: order.status,
+    subOrders: shipments,
+  });
   const preorderStatusLabel = order.hasPreorder
     ? getPreorderStatusLabel(order.preorderStatus)
     : null;

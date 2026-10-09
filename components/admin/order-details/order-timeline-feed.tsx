@@ -4,20 +4,7 @@ import { useState } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import { formatDistanceToNow } from "date-fns";
-import {
-  CheckCircle,
-  CreditCard,
-  FileText,
-  Loader2,
-  MoreHorizontal,
-  Pencil,
-  RotateCcw,
-  ShieldAlert,
-  ShoppingBag,
-  Trash2,
-  User,
-  XCircle,
-} from "lucide-react";
+import { Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { apiClient } from "@/lib/api/client";
+import { getActionIcon } from "@/components/admin/activity-log/activity-action";
 import type { OrderTimelineEntry } from "@/lib/orders/order-details";
 
 interface OrderTimelineFeedProps {
@@ -41,41 +29,6 @@ interface OrderTimelineFeedProps {
   canModerate?: boolean;
   /** Decides which comments show an Edit action — authors only. */
   currentUserId?: string;
-}
-
-/**
- * One icon per event class. Money moving (payment green, refund red) has to be
- * distinguishable at a glance from an ordinary field edit — that is most of
- * what makes a timeline scannable rather than a wall of identical rows.
- */
-function getIcon(action?: string, status?: string) {
-  // A cancellation is a STATUS_CHANGE like any other, so it would otherwise
-  // get the same green check as "shipped".
-  if (status === "cancelled") {
-    return <XCircle className="h-3.5 w-3.5 text-red-500" />;
-  }
-
-  switch (action) {
-    case "CREATE":
-      return <ShoppingBag className="h-3.5 w-3.5 text-blue-500" />;
-    case "PAYMENT":
-      return <CreditCard className="h-3.5 w-3.5 text-green-600" />;
-    case "REFUND":
-      return <RotateCcw className="h-3.5 w-3.5 text-red-500" />;
-    case "STATUS_CHANGE":
-      return <CheckCircle className="h-3.5 w-3.5 text-green-500" />;
-    // Amber, and deliberately not the green check a normal transition gets:
-    // someone stepped outside the workflow here, and the row should say so at
-    // a glance rather than blend into the ones that followed the rules.
-    case "STATUS_OVERRIDE":
-      return <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />;
-    case "DELETE":
-      return <XCircle className="h-3.5 w-3.5 text-red-500" />;
-    case "UPDATE":
-      return <FileText className="h-3.5 w-3.5 text-orange-500" />;
-    default:
-      return <User className="h-3.5 w-3.5 text-muted-foreground" />;
-  }
 }
 
 /**
@@ -393,7 +346,10 @@ export function OrderTimelineFeed({
             ) : (
               <li key={entry._id} className="relative">
                 <span className="absolute -inset-s-8.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background">
-                  {getIcon(entry.action, entry.status)}
+                  {getActionIcon(entry.action, {
+                    status: entry.status,
+                    resource: "order",
+                  })}
                 </span>
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 py-0.5">
                   <span className="text-sm">

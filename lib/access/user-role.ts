@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { USER_ROLES, type UserRole } from "@/config/app.config";
 import { connectDB, mongoose } from "@/lib/db";
-import { isStaffRole } from "@/lib/access/staff-role";
+import { holdsTeamRole, isStaffRole } from "@/lib/access/staff-role";
 
 /**
  * Sets a user's primary role.
@@ -80,12 +80,7 @@ export function decideVendorOwnerRoleRepair(owner: {
   // also owns the house vendor, a seller attached to one — and a billing event
   // must never rewrite what they are. `setUserRole` replaces the roles array
   // wholesale, so promoting here would strip a staff grant on webhook traffic.
-  if (
-    owner.role === USER_ROLES.ADMIN ||
-    isStaffRole(owner.role) ||
-    roles?.includes(USER_ROLES.ADMIN) ||
-    roles?.some(isStaffRole)
-  ) {
+  if (holdsTeamRole(owner)) {
     return "protected";
   }
 

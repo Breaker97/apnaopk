@@ -149,8 +149,18 @@
       "empty": "لم يتم العثور على دول.",
       "clear": "مسح الدولة",
       "selected": "{count, plural, zero {لم يتم تحديد أي دولة} one {تم تحديد دولة واحدة} two {تم تحديد دولتين} few {تم تحديد # دول} many {تم تحديد # دولة} other {تم تحديد # دولة}}",
-      "remove": "إزالة {country}"
-    }
+      "remove": "إزالة {country}",
+      "lockedHint": "نوصل إلى {country} فقط.",
+      "replaced": "محفوظ على أنه {previous}، ولم يعد من بلدان المتجر. عند الحفظ سيتغيّر إلى {current}."
+    },
+    "theme": "السمة",
+    "activity": "الحركة",
+    "continue": "متابعة",
+    "loadMore": "تحميل المزيد",
+    "more": "المزيد",
+    "optional": "اختياري",
+    "retry": "إعادة المحاولة",
+    "saveChanges": "حفظ التغييرات"
   },
   "wishlist": {
     "title": "قائمة الرغبات",
@@ -245,7 +255,50 @@
       "title": "البريد الوارد",
       "subtitle": "تابع محادثات الدعم الخاصة بك مع فريق الإدارة."
     },
-    "twoFactorAdminDisabled": "تم تعطيل المصادقة الثنائية حاليًا من قبل مسؤول الموقع."
+    "deleteAccount": {
+      "title": "حذف الحساب",
+      "description": "أغلق حسابك وامسح بياناتك الشخصية. لا يمكن التراجع عن ذلك.",
+      "whatGoes": "يُحذف ملفك الشخصي وعناوينك وبيانات تسجيل الدخول وسلة التسوق وقائمة الأمنيات والمراجعات والإشعارات والمتاجر التي تتابعها وأماكنك في قوائم الانتظار، ويتم تسجيل خروجك من كل مكان.",
+      "whatStays": "تبقى طلباتك ومرتجعاتك ورصيدك في المتجر لدى المتجر كسجلات مالية.",
+      "button": "حذف حسابي",
+      "confirmTitle": "هل تريد حذف حسابك؟",
+      "confirmDescription": "أدخل كلمة المرور للتأكيد. يُحذف حسابك فورًا ولا يمكن استعادته.",
+      "password": "كلمة المرور",
+      "cancel": "إلغاء",
+      "confirm": "حذف الحساب",
+      "errors": {
+        "wrongPassword": "كلمة المرور غير صحيحة.",
+        "signInAgain": "حفاظًا على أمان حسابك، سجّل الخروج ثم سجّل الدخول مجددًا، ثم احذف حسابك خلال عشر دقائق.",
+        "notAllowed": "هذا الحساب يدير المتجر أيضًا أو يساعد في إدارته، لذا لا يمكن حذفه من هنا. تواصل مع المتجر لإغلاقه.",
+        "generic": "تعذّر حذف حسابك. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "deletionPage": {
+      "breadcrumb": "حذف حسابك",
+      "title": "حذف حسابك في {storeName}",
+      "intro": "يمكنك في أي وقت حذف حسابك في {storeName} والبيانات الشخصية المحفوظة معه.",
+      "inAppTitle": "في التطبيق",
+      "inAppSteps": "في تطبيق {storeName}، سجّل الدخول وافتح الحساب واختر حذف الحساب. أدخل كلمة المرور للتأكيد.",
+      "onWebTitle": "على هذا الموقع",
+      "onWebSteps": "سجّل الدخول، وانتقل إلى الحساب ثم الأمان، واختر حذف حسابي. أدخل كلمة المرور للتأكيد.",
+      "onWebButton": "الانتقال إلى الأمان",
+      "cannotSignInTitle": "إذا لم تتمكن من تسجيل الدخول",
+      "cannotSignInReset": "<reset>أعد تعيين كلمة المرور</reset> أولًا، ثم احذف حسابك كما هو موضّح أعلاه.",
+      "cannotSignInEmail": "أو راسل <email></email> من عنوان البريد الإلكتروني المسجّل في حسابك، طالبًا حذفه.",
+      "cannotSignInContact": "أو <contact>تواصل مع المتجر</contact> من عنوان البريد الإلكتروني المسجّل في حسابك، طالبًا حذفه.",
+      "emailSubject": "يرجى حذف حسابي في {storeName}",
+      "whatGoesTitle": "ما الذي يُحذف",
+      "whatGoes": "ملفك الشخصي، والعناوين المحفوظة، وبيانات تسجيل الدخول (كلمة المرور والمصادقة الثنائية)، وسلة التسوق، وقائمة الأمنيات، والمراجعات، والإشعارات، والأجهزة المسجّلة، والمتاجر التي تتابعها، وقوائم انتظار الطلب المسبق، وعمليات الدفع غير المكتملة، ومحادثاتك مع مساعد التسوق. ويُزال اسمك وبيانات التواصل من محادثات الدعم، وعنوان بريدك الإلكتروني وبيانات الاتصال من تعليقاتك على المدونة، التي تبقى بالاسم الذي نشرتها به. ويتم تسجيل خروجك من جميع الأجهزة. يحدث ذلك فورًا ولا يمكن التراجع عنه.",
+      "whatStaysTitle": "ما يحتفظ به المتجر",
+      "whatStays": "تبقى طلباتك بالتفاصيل المدوّنة فيها، ومرتجعاتك وطلبات عروض الأسعار ورصيدك في المتجر، لدى المتجر كسجلات مالية يلزمه الاحتفاظ بها."
+    },
+    "twoFactorAdminDisabled": "تم تعطيل المصادقة الثنائية حاليًا من قبل مسؤول الموقع.",
+    "quotes": "عروض الأسعار",
+    "quotesList": {
+      "viewOrder": "عرض الطلب"
+    },
+    "storeCreditFromRefund": "استرداد",
+    "storeCreditBalance": "متاح"
   },
   "customerProfile": {
     "loyaltyPoints": "النقاط",
@@ -273,7 +326,8 @@
     "marketingOptInDesc": "استقبال رسائل التسويق والعروض الخاصة",
     "totalSpent": "إجمالي الإنفاق",
     "avgOrderValue": "متوسط قيمة الطلب",
-    "memberSince": "عضو منذ"
+    "memberSince": "عضو منذ",
+    "pushMessages": "الرسائل"
   },
   "addresses": {
     "deleteFailed": "تعذر حذف العنوان. يرجى المحاولة مرة أخرى.",
@@ -340,7 +394,8 @@
     "wishlist": "قائمة الرغبات",
     "blog": "المدونة",
     "getHelp": "احصل على مساعدة",
-    "brands": "العلامات التجارية"
+    "brands": "العلامات التجارية",
+    "contact": "اتصال"
   },
   "productsPage": {
     "empty": "لم يتم العثور على منتجات",
@@ -441,6 +496,11 @@
     "requestNewLink": "طلب رابط جديد",
     "continueWithGoogle": "تواصل مع جوجل",
     "passwordResetSuccessDescription": "لقد تم تحديث كلمة المرور الخاصة بك. يمكنك الآن تسجيل الدخول.",
+    "setYourPassword": "عيّن كلمة المرور",
+    "setYourPasswordDescription": "اختر كلمة مرور لحسابك",
+    "setPassword": "تعيين كلمة المرور",
+    "passwordSetSuccess": "تم تعيين كلمة المرور",
+    "passwordSetSuccessDescription": "تم تعيين كلمة المرور. يمكنك الآن تسجيل الدخول.",
     "becomeVendor": "كن بائعًا",
     "invalidResetLink": "رابط إعادة التعيين غير صالح",
     "didntReceiveEmail": "لم تتلق بريدا إلكترونيا؟",
@@ -453,7 +513,7 @@
     "twoFactorDescription": "أدخل رمز التحقق من تطبيق المصادقة الخاص بك.",
     "trustThisDevice": "الوثوق بهذا الجهاز لمدة 30 يومًا",
     "oauthRoleConflict": "هذا البريد الإلكتروني ({email}) مسجل بالفعل كحساب {role}. الرجاء تسجيل الدخول باستخدام طريقة تسجيل الدخول {role}، أو اختيار حساب Google/Facebook مختلف.",
-    "thisEmail": "هذا البريد الإلكتروني",
+    "oauthRoleConflictNoEmail": "هذا البريد الإلكتروني مسجل بالفعل كحساب {role}. الرجاء تسجيل الدخول باستخدام طريقة تسجيل الدخول {role}، أو اختيار حساب Google/Facebook مختلف.",
     "continueWithFacebook": "تواصل مع الفيسبوك",
     "errors": {
       "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -462,7 +522,14 @@
       "durationMinutes": "{count, plural, one {دقيقة واحدة} two {دقيقتين} few {# دقائق} other {# دقيقة}}",
       "durationSeconds": "{count, plural, one {ثانية واحدة} two {ثانيتين} few {# ثوانٍ} other {# ثانية}}",
       "tooManyRequests": "محاولات كثيرة من هذا الجهاز. انتظر دقيقة ثم حاول مرة أخرى.",
-      "invalidCredentialsWithAttempts": "البريد الإلكتروني أو كلمة المرور غير صحيحة. {count, plural, one {تبقّت محاولة واحدة} other {تبقّت # محاولات}} قبل قفل الحساب."
+      "invalidCredentialsWithAttempts": "البريد الإلكتروني أو كلمة المرور غير صحيحة. {count, plural, one {تبقّت محاولة واحدة} other {تبقّت # محاولات}} قبل قفل الحساب.",
+      "oauthCancelled": "تم إلغاء تسجيل الدخول. يمكنك المحاولة مرة أخرى في أي وقت.",
+      "oauthSessionExpired": "انتهت صلاحية جلسة تسجيل الدخول أو تعذّر التحقق منها. الرجاء المحاولة مرة أخرى.",
+      "oauthEmailMissing": "لم يشارك هذا الحساب عنوان بريد إلكتروني. اسمح بالوصول إلى البريد الإلكتروني عند الطلب، أو سجّل الدخول باستخدام بريدك الإلكتروني وكلمة المرور.",
+      "oauthAccountExists": "يوجد حساب بهذا البريد الإلكتروني بالفعل. سجّل الدخول باستخدام بريدك الإلكتروني وكلمة المرور بدلاً من ذلك.",
+      "oauthEmailNotVerified": "الرجاء تأكيد عنوان بريدك الإلكتروني قبل تسجيل الدخول.",
+      "oauthAccountInactive": "هذا الحساب غير نشط أو محظور. تواصل مع الدعم.",
+      "oauthFailed": "تعذّر تسجيل دخولك بهذا الحساب. حاول مرة أخرى، أو سجّل الدخول باستخدام بريدك الإلكتروني وكلمة المرور."
     }
   },
   "home": {
@@ -484,17 +551,46 @@
     "topVendorsGoToShop": "زيارة المتجر",
     "scrollLeft": "مرر لليسار",
     "scrollRight": "مرر لليمين",
-    "countdownDays": "Days",
+    "countdownDays": "الأيام",
     "countdownHours": "Hours",
     "countdownMinutes": "Mins",
     "countdownSeconds": "Secs",
     "copyCode": "Copy code",
-    "verifiedCustomer": "Verified customer",
+    "verifiedCustomer": "عميل موثّق",
     "collectionProductsCount": "{count} products",
     "previewingDraft": "Previewing draft",
     "exitPreview": "Exit preview",
     "startingAt": "Starting at",
-    "countdownEndsIn": "ينتهي خلال"
+    "countdownEndsIn": "ينتهي خلال",
+    "productSourcePreview": {
+      "title": {
+        "category": "منتجات الفئة",
+        "brand": "منتجات العلامة التجارية",
+        "collection": "منتجات التشكيلة",
+        "tabs": "تبويبات المنتجات",
+        "hiddenTabs": "تبويبات مخفية"
+      },
+      "unpicked": {
+        "category": "اختر فئة لهذا القسم. يعرض القسم منتجات الفئة ومنتجات كل الفئات المندرجة تحتها.",
+        "brand": "اختر علامة تجارية لهذا القسم.",
+        "collection": "اختر تشكيلة لهذا القسم."
+      },
+      "unavailable": {
+        "category": "الفئة المختارة محذوفة أو معطّلة. اختر فئة أخرى.",
+        "brand": "العلامة التجارية المختارة محذوفة أو مؤرشفة أو معطّلة أو لم تتم الموافقة عليها. اختر علامة أخرى.",
+        "collection": "التشكيلة المختارة محذوفة أو مسودة أو غير منشورة في المتجر الإلكتروني. اختر تشكيلة أخرى."
+      },
+      "empty": {
+        "category": "لا توجد بعد منتجات للعرض في الفئة المختارة ولا في أي فئة مندرجة تحتها.",
+        "brand": "ليس للعلامة التجارية المختارة منتجات للعرض بعد.",
+        "collection": "ليس في التشكيلة المختارة منتجات للعرض بعد."
+      },
+      "hiddenSection": "لا يرى المتسوقون هذا القسم حتى تصبح فيه منتجات.",
+      "hiddenTabs": "لا يرى المتسوقون هذه التبويبات حتى تصبح فيها منتجات.",
+      "hiddenTab": "تبويب «{label}»: {reason}",
+      "untitledTab": "بدون عنوان"
+    },
+    "couponOfferFreeShipping": "شحن مجاني"
   },
   "features": {
     "wideSelection": "تشكيلة واسعة",
@@ -596,7 +692,12 @@
     "quotePhoneOptional": "الهاتف (اختياري)",
     "quoteCompanyOptional": "الشركة (اختياري)",
     "quoteMessageOptional": "الرسالة (اختياري)",
-    "quoteMessagePlaceholder": "الكميات، تاريخ التسليم، المواصفات…"
+    "quoteMessagePlaceholder": "الكميات، تاريخ التسليم، المواصفات…",
+    "itemsSold": "تم بيع {count}",
+    "gallery": {
+      "image": "صورة"
+    },
+    "noDescription": "لا يوجد وصف متاح."
   },
   "cart": {
     "yourCart": "سلتك",
@@ -636,7 +737,9 @@
     "viewCart": "عرض العربة",
     "empty": "سلة التسوق الخاصة بك فارغة",
     "viewCartTitle": "عرض العربة",
-    "deliveryEstimate": "يتم التوصيل بواسطة {dateRange} عبر الشحن القياسي"
+    "deliveryEstimate": "يتم التوصيل بواسطة {dateRange} عبر الشحن القياسي",
+    "viewCartSubtitle": "قم بمراجعة العناصر المحددة قبل الخروج.",
+    "shoppingBag": "حقيبة التسوق"
   },
   "checkout": {
     "checkout": "إتمام الشراء",
@@ -755,7 +858,27 @@
       "initPayment": "تعذر تهيئة الدفع",
       "processPayment": "تعذر معالجة الدفع"
     },
-    "selectShipping": "اختر طريقة شحن"
+    "selectShipping": "اختر طريقة شحن",
+    "staffNotice": {
+      "adminTitle": "أنت مسجّل الدخول بصفتك مسؤولًا",
+      "vendorTitle": "أنت مسجّل الدخول بصفتك بائعًا",
+      "staffTitle": "أنت مسجّل الدخول بصفتك عضوًا في الفريق",
+      "body": "تُقدَّم طلبات المتجر من حساب عميل.",
+      "createOrder": "إنشاء طلب",
+      "goToDashboard": "الانتقال إلى لوحة التحكم",
+      "signOut": "تسجيل الخروج",
+      "hint": "لتجربة إتمام الشراء، سجّل الخروج واستخدم بريدًا إلكترونيًا آخر."
+    },
+    "emailNotAllowed": "لا يمكن استخدام هذا البريد الإلكتروني لإتمام الشراء. يُرجى استخدام بريد إلكتروني آخر.",
+    "storeNotReady": "لا يمكن لهذا المتجر استقبال الطلبات حاليًا. يُرجى المحاولة لاحقًا.",
+    "fulfillment": "التجهيز",
+    "pickup": {
+      "scheduled": "المقرر",
+      "collected": "المحصَّل"
+    },
+    "customLabel": "مخصص",
+    "changeMethod": "الباقي",
+    "done": "تم"
   },
   "validation": {
     "required": "This field is required",
@@ -825,7 +948,42 @@
       "refunded": "مسترد",
       "partially_refunded": "مسترد جزئيًا"
     },
-    "importDuties": "رسوم الاستيراد"
+    "importDuties": "رسوم الاستيراد",
+    "preorderBalance": {
+      "autoCharge": "كما فوّضتنا، سنخصم المبلغ من بطاقتك المحفوظة في {date} أو بعده ما لم تدفع قبل ذلك."
+    },
+    "carrier": "الناقل",
+    "returns": {
+      "cancelling": "جاري الإلغاء...",
+      "status": {
+        "requested": "مطلوب",
+        "rejected": "مرفوض",
+        "awaiting_shipment": "في انتظار الشحن",
+        "inspected": "تم التفتيش",
+        "refund_pending": "رد الأموال معلق"
+      },
+      "refundStatus": {
+        "pending": "رد الأموال معلق"
+      },
+      "dialog": {
+        "reason": "السبب",
+        "notes": "ملاحظات"
+      },
+      "breakdown": {
+        "tax": "الضريبة",
+        "restockingFee": "رسوم إعادة التخزين"
+      },
+      "destination": {
+        "methods": {
+          "bank_transfer": "التحويل البنكي",
+          "mobile_money": "المحفظة الإلكترونية"
+        }
+      },
+      "shipping": {
+        "trackingNumber": "رقم التتبع",
+        "change": "الباقي"
+      }
+    }
   },
   "vendor": {
     "vendorDashboard": "لوحة تحكم البائع",
@@ -870,8 +1028,8 @@
     "totalProducts": "إجمالي المنتجات",
     "totalRevenue": "إجمالي الإيرادات",
     "pendingOrders": "Pending Orders",
-    "productStatus": "Product Status",
-    "becomeVendor": "Become a Vendor",
+    "productStatus": "ملخص حالة المنتجات",
+    "becomeVendor": "كن بائعًا",
     "becomeVendorDesc": "Start selling your products on our marketplace. Apply now and reach thousands of customers.",
     "applicationForm": "Vendor Application",
     "applicationDesc": "Fill out the form below to apply as a vendor. We'll review your application within 2-3 business days.",
@@ -880,19 +1038,19 @@
     "products": "المنتجات",
     "orders": "الطلبات",
     "settings": "إعدادات المتجر",
-    "collections": "Collections",
+    "collections": "المجموعات",
     "goToDashboard": "Go to Vendor Dashboard",
     "registration": {
       "title": "Start Selling on Minimart",
       "subtitle": "Join thousands of successful sellers and reach millions of customers",
-      "confirmPassword": "Confirm Password",
+      "confirmPassword": "تأكيد كلمة المرور",
       "addressPlaceholder": "Address",
-      "phonePlaceholder": "Phone Number",
+      "phonePlaceholder": "رقم الهاتف",
       "startSelling": "Start Selling Today",
       "joinUs": "Join thousands of successful sellers",
       "submitButton": "Submit",
-      "storeNameLabel": "Store Name",
-      "storeDescLabel": "Store Description",
+      "storeNameLabel": "اسم المتجر",
+      "storeDescLabel": "وصف المتجر",
       "streetLabel": "عنوان الشارع",
       "cityLabel": "المدينة",
       "cityPlaceholder": "New York",
@@ -902,7 +1060,7 @@
       "postalCodePlaceholder": "10001",
       "countryLabel": "الدولة",
       "countryPlaceholder": "United States",
-      "websiteLabel": "Website",
+      "websiteLabel": "الموقع الإلكتروني",
       "facebookPlaceholder": "https://facebook.com/yourstore",
       "instagramPlaceholder": "https://instagram.com/yourstore",
       "twitterPlaceholder": "https://twitter.com/yourstore",
@@ -921,7 +1079,9 @@
       "applicationRejectedDesc": "Unfortunately, your application was not approved. Please contact support for more information.",
       "applicationSuspended": "Account Suspended",
       "applicationSuspendedDesc": "Your vendor account has been suspended. Please contact support.",
-      "optional": "Optional"
+      "optional": "Optional",
+      "teamAccountTitle": "هذا الحساب ضمن فريق المتجر",
+      "teamAccountDesc": "لا يمكن لحسابات المسؤولين والموظفين التقدّم كبائع. لفتح متجر، سجّل الخروج وقدّم الطلب باستخدام حساب عميل."
     },
     "productsPage": {
       "subtitle": "إدارة منتجاتك",
@@ -1056,7 +1216,11 @@
       "productTipsAndUpdatesDesc": "استلم إعلانات المنتجات ونصائح تحسين أداء البائع.",
       "changePasswordDesc": "حدّث كلمة المرور للحفاظ على أمان حساب البائع الخاص بك.",
       "passwordMinLength": "يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل",
-      "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين"
+      "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين",
+      "addressPrecision": "يعرض",
+      "socialAdd": "إضافة رابط",
+      "socialRemove": "إزالة الرابط",
+      "shareButtons": "أزرار المشاركة"
     },
     "untitledProduct": "منتج بدون عنوان",
     "dashboardWidgets": {
@@ -1075,11 +1239,11 @@
       "subtitle": "Track your settlement statements and payout statuses.",
       "listSection": {
         "title": "Payout Statements",
-        "searchPlaceholder": "Search payout number",
+        "searchPlaceholder": "ابحث برقم الدفعة",
         "columns": {
           "details": "Details"
         },
-        "empty": "No payouts found."
+        "empty": "لم يتم العثور على دفعات."
       }
     },
     "payouts": "التحويلات",
@@ -1087,7 +1251,12 @@
       "title": "{storeName}",
       "subtitle": "تصفح المنتجات من واجهة هذا البائع.",
       "noProducts": "لا توجد منتجات لهذا البائع.",
-      "notFound": "لم يتم العثور على متجر البائع."
+      "notFound": "لم يتم العثور على متجر البائع.",
+      "sold": "تم بيع {count}",
+      "online": "أونلاين",
+      "copyAddress": "نسخ",
+      "processingTime": "وقت المعالجة",
+      "basedOnReviews": "بناءً على تقييمات {count}"
     },
     "last30Days": "آخر 30 يومًا",
     "collectionsPage": {
@@ -1222,7 +1391,27 @@
     "boosts": "الترويج",
     "finance": "المالية",
     "owedToPlatform": "المستحق للمنصة",
-    "statements": "كشوف الحساب"
+    "statements": "كشوف الحساب",
+    "accessGate": {
+      "layers": {
+        "policy": "سياسة السوق"
+      },
+      "actions": {
+        "send": "إرسال الطلب"
+      }
+    },
+    "onboarding": {
+      "steps": {
+        "subscription": "اشتراك",
+        "review": "المراجعة"
+      },
+      "fields": {
+        "state": "الولاية/المنطقة"
+      }
+    },
+    "activityLog": {
+      "title": "سجل النشاط"
+    }
   },
   "adminProfile": {
     "title": "الملف الشخصي",
@@ -1241,6 +1430,255 @@
     "avatarError": "فشل في رفع الصورة الرمزية"
   },
   "admin": {
+    "csvImport": {
+      "wrongType": "اختر ملفًا بصيغة CSV.",
+      "fileTooLarge": "حجم هذا الملف أكبر من {size} MB. قسّمه إلى ملفات أصغر واستوردها واحدًا تلو الآخر.",
+      "tooManyRows": "عدد الصفوف في هذا الملف {count}، والحد الأقصى للاستيراد الواحد {max}. قسّمه إلى ملفات أصغر.",
+      "emptyFile": "لا يحتوي هذا الملف على صفوف لاستيرادها.",
+      "readFailed": "تعذّرت قراءة الملف.",
+      "requestFailed": "فشل الطلب. حاول مرة أخرى.",
+      "dropTitle": "أفلت ملف CSV هنا، أو انقر لاختيار ملف",
+      "dropHint": "حتى {rows} صف وحجم {size} MB",
+      "removeFile": "إزالة الملف",
+      "check": "فحص الملف",
+      "checking": "جارٍ فحص الصفوف: {done} من {total}…",
+      "previewTitle": "جاهز للاستيراد",
+      "previewDescription": "{file} — لم يُحفظ أي شيء بعد.",
+      "import": "استيراد",
+      "back": "رجوع",
+      "cancel": "إلغاء",
+      "importing": "جارٍ استيراد الصفوف: {done} من {total}…",
+      "keepOpen": "أبقِ علامة التبويب هذه مفتوحة حتى ينتهي الاستيراد. إغلاقها يوقف الاستيراد، وتبقى الصفوف التي استُوردت بالفعل.",
+      "stop": "إيقاف",
+      "stopping": "جارٍ الإيقاف بعد هذه الدفعة…",
+      "doneTitle": "اكتمل الاستيراد",
+      "stoppedTitle": "توقّف الاستيراد",
+      "stoppedNote": "استورد الملف نفسه مرة أخرى لإكمال العملية. الصفوف التي استُوردت بالفعل ستُطابَق ويتم تخطيها.",
+      "failedNote": "توقّف الاستيراد بسبب فشل أحد الطلبات: {error}",
+      "nothingToImport": "لا يوجد في هذا الملف ما سيُنشأ أو يُحدَّث.",
+      "problemsTitle": "صفوف تحتاج إلى مراجعة ({count})",
+      "downloadProblems": "تنزيل كملف CSV",
+      "moreProblems": "{count} أخرى في ملف CSV",
+      "rowLabel": "الصف {row}",
+      "importAnother": "استيراد ملف آخر",
+      "done": "تم",
+      "counts": {
+        "toCreate": "للإنشاء",
+        "toUpdate": "للتحديث",
+        "created": "تم الإنشاء",
+        "updated": "تم التحديث",
+        "skipped": "تم التخطي",
+        "errors": "أخطاء"
+      },
+      "status": {
+        "create": "جديد",
+        "update": "تحديث",
+        "skip": "تم التخطي",
+        "error": "خطأ"
+      },
+      "csv": {
+        "row": "الصف",
+        "key": "المطابقة حسب",
+        "result": "النتيجة",
+        "message": "الرسالة"
+      }
+    },
+    "customerImport": {
+      "title": "استيراد العملاء",
+      "description": "أضف عملاء من ملف CSV: ملفك الخاص، أو ملف عملاء مُصدَّر من Shopify أو WooCommerce.",
+      "sourceHint": "ابدأ من القالب، أو ارفع ملف العملاء المُصدَّر من Shopify أو WooCommerce كما هو.",
+      "downloadTemplate": "تنزيل القالب",
+      "guide": {
+        "columnsTitle": "الأعمدة",
+        "columns": {
+          "firstName": "الاسم الأول للعميل.",
+          "lastName": "اسم عائلة العميل.",
+          "email": "يُستخدم للعثور على العميل. الصف الذي لا يحتوي على بريد إلكتروني يحتاج إلى رقم هاتف.",
+          "phone": "رقم الجوال، مع رمز البلد أو مكتوبًا بالطريقة المتّبعة في بلد العنوان.",
+          "acceptsEmailMarketing": "yes أو no. القيمة yes تجعل عنوان البريد الإلكتروني مشتركًا في التسويق.",
+          "acceptsSmsMarketing": "yes أو no. القيمة yes تجعل رقم الهاتف مشتركًا في التسويق عبر الرسائل النصية.",
+          "address1": "الشارع ورقم المنزل.",
+          "address2": "الشقة أو الجناح أو الطابق.",
+          "city": "المدينة.",
+          "provinceCode": "رمز الولاية أو المقاطعة، مثل CA.",
+          "countryCode": "رمز البلد المكوّن من حرفين، مثل US.",
+          "zip": "الرمز البريدي.",
+          "addressPhone": "رقم الهاتف الخاص بالتوصيل إلى هذا العنوان.",
+          "tags": "الوسوم، مفصولة بفواصل.",
+          "note": "ملاحظة لا يراها إلا فريقك."
+        },
+        "otherPlatforms": "تُقرأ أعمدة ملف العملاء المُصدَّر من Shopify وأعمدة الفوترة في WooCommerce كما هي. لا تُستورد الأعمدة Total Spent و Total Orders و Tax Exempt: فالإجماليات هنا تُحتسب من الطلبات المقدَّمة في هذا المتجر.",
+        "rulesTitle": "كيف تُستورد الصفوف",
+        "rules": {
+          "match": "تتم مطابقة العملاء بالبريد الإلكتروني، أو برقم الهاتف إذا لم يحتوِ الصف على بريد إلكتروني. يتم تخطي العملاء الموجودين في متجرك ما لم يكن خيار «تحديث العملاء الحاليين» مفعّلًا.",
+          "duplicates": "إذا ورد العميل نفسه مرتين في الملف، يُستخدم الصف الأخير.",
+          "consent": "القيمة yes تجعل العملاء الذين لم يُجيبوا بعد مشتركين. أما من ألغى الاشتراك، أو ارتدّت رسائله، أو طلب عدم مراسلته بالبريد الإلكتروني، فيبقى على حاله.",
+          "address": "يُستبعد العنوان إذا كان في بلد لا يبيع إليه متجرك، ومع ذلك يُستورد العميل.",
+          "rerun": "استيراد الملف نفسه مرة أخرى آمن: لن يُنشأ أي عميل مرتين."
+        }
+      },
+      "options": {
+        "updateExisting": "تحديث العملاء الحاليين",
+        "updateExistingHint": "يحصل العملاء الموجودون في متجرك على البيانات الواردة في الملف. الخلايا الفارغة تُبقي البيانات المحفوظة كما هي.",
+        "updateExistingDenied": "يتطلب صلاحية تعديل العملاء والوصول إلى جميع العملاء.",
+        "tag": "الوسم",
+        "tagHint": "يُضاف إلى كل عميل يُنشئه هذا الاستيراد أو يحدّثه.",
+        "tagInvalid": "استخدم وسمًا واحدًا لا يتجاوز {max} حرفًا، بدون فواصل.",
+        "sendInvites": "إرسال دعوات الحساب",
+        "sendInvitesHint": "يتلقى العملاء الذين يُنشئهم هذا الاستيراد بريدًا إلكترونيًا فيه رابط لتعيين كلمة المرور."
+      },
+      "result": {
+        "tagged": "اعثر على هؤلاء العملاء باستخدام الوسم {tag}.",
+        "invitesQueued": "{count, plural, zero {لا توجد دعوات حساب قيد الإرسال.} one {دعوة حساب واحدة قيد الإرسال.} two {دعوتا حساب قيد الإرسال.} few {# دعوات حساب قيد الإرسال.} many {# دعوة حساب قيد الإرسال.} other {# دعوة حساب قيد الإرسال.}}",
+        "invitesNotSent": "لم تُرسل أي دعوات لأن الاستيراد توقّف. صفِّ القائمة حسب الوسم {tag} وأرسل الدعوات من هناك."
+      },
+      "messages": {
+        "file_no_key_column": "يجب أن يحتوي الملف على عمود Email أو Phone. يبدأ الملف بـ: {headers}.",
+        "file_columns_not_imported": "لم تُستورد: {columns}.",
+        "file_columns_unknown": "أعمدة لم يُتعرّف عليها واستُبعدت: {columns}.",
+        "email_invalid": "{email} ليس عنوان بريد إلكتروني صالحًا.",
+        "phone_invalid_no_email": "لا يحتوي الصف على بريد إلكتروني، و{phone} ليس رقم هاتف صالحًا.",
+        "no_email_or_phone": "لا يحتوي الصف على بريد إلكتروني ولا رقم هاتف.",
+        "phone_invalid": "الهاتف {phone} ليس رقمًا صالحًا، لذا استُبعد.",
+        "address_phone_invalid": "هاتف العنوان {phone} ليس رقمًا صالحًا، لذا استُبعد.",
+        "address_country_unknown": "لم يُتعرّف على البلد {country}، لذا استُبعد العنوان.",
+        "address_country_not_allowed": "متجرك لا يبيع إلى {country}، لذا استُبعد العنوان.",
+        "address_incomplete": "العنوان ينقصه الشارع أو المدينة أو البلد أو الرمز البريدي، لذا استُبعد.",
+        "tags_too_long": "{count, plural, zero {لم يُستبعد أي وسم.} one {استُبعد وسم واحد لأنه أطول من {max} حرفًا.} two {استُبعد وسمان لأنهما أطول من {max} حرفًا.} few {استُبعدت # وسوم لأنها أطول من {max} حرفًا.} many {استُبعد # وسمًا لأنها أطول من {max} حرفًا.} other {استُبعد # وسم لأنها أطول من {max} حرفًا.}}",
+        "tags_too_many": "استُورد أول {max} وسمًا فقط.",
+        "name_too_long": "اختُصر الاسم إلى {max} حرف.",
+        "consent_value_unclear": "«{value}» ليست yes أو no، لذا قُرئت على أنها no.",
+        "sms_consent_no_phone": "يتطلب التسويق عبر الرسائل النصية رقم هاتف صالحًا، لذا لم يُفعَّل.",
+        "note_too_long": "اختُصرت الملاحظة إلى {max} حرف.",
+        "consent_suppressed": "طلب صاحب هذا العنوان عدم مراسلته بالبريد الإلكتروني، لذا لم يُضَف إلى المشتركين.",
+        "consent_kept": "يبقى التسويق عبر البريد الإلكتروني بحالة «{state}»؛ الملف لا يغيّر ذلك.",
+        "sms_consent_kept": "يبقى التسويق عبر الرسائل النصية بحالة «{state}»؛ الملف لا يغيّر ذلك.",
+        "staff_account": "هذا البريد الإلكتروني يخص حساب عضو في الفريق أو بائع أو مسؤول.",
+        "exists": "عميل موجود بالفعل.",
+        "phone_on_account": "رقم الهاتف هذا مرتبط بحساب. أضف هذا العميل ببريد إلكتروني بدلًا من ذلك.",
+        "duplicate_in_file": "يتكرر العميل نفسه في الصف {row}، ويُستخدم ذلك الصف.",
+        "phone_not_saved": "لم يُحفظ رقم الهاتف: ليس لدى هذا العميل حساب أو عنوان يُحفظ عليه.",
+        "write_failed": "تعذّر حفظ هذا الصف."
+      },
+      "consentStates": {
+        "unsubscribed": "ألغى الاشتراك",
+        "invalid": "غير صالح",
+        "redacted": "محذوف"
+      },
+      "export": {
+        "preparing": "جارٍ تجهيز ملف تصدير العملاء…",
+        "done": "تم تصدير العملاء",
+        "failed": "تعذّر تصدير العملاء"
+      }
+    },
+    "vendorImport": {
+      "title": "استيراد البائعين",
+      "description": "انقل المتاجر وأصحابها من سوق آخر باستخدام ملف CSV.",
+      "sourceHint": "ابدأ من القالب، أو من ملف تصدير البائعين لمتجر {storeName}.",
+      "downloadTemplate": "تنزيل القالب",
+      "guide": {
+        "columnsTitle": "الأعمدة",
+        "required": "مطلوب",
+        "columns": {
+          "storeName": "اسم المتجر كما يراه المتسوقون.",
+          "ownerEmail": "البريد الإلكتروني للمالك. يسجّل الدخول به، وإليه تُرسل الدعوة.",
+          "ownerName": "الاسم الكامل للمالك.",
+          "ownerPhone": "رقم هاتف المالك.",
+          "slug": "عنوان المتجر على الويب، مثل green-leaf. يُستخدم للعثور على المتجر المراد تحديثه. يُنشأ من اسم المتجر إن كان فارغًا.",
+          "description": "نبذة عن المتجر، حتى 1000 حرف.",
+          "logoUrl": "رابط https:// عام للشعار. تُنسخ الصورة إلى مكتبة الوسائط لديك.",
+          "bannerUrl": "رابط https:// عام للبانر. تُنسخ الصورة إلى مكتبة الوسائط لديك.",
+          "storePhone": "رقم هاتف المتجر نفسه.",
+          "street": "الشارع والرقم.",
+          "city": "المدينة.",
+          "state": "الولاية أو المقاطعة.",
+          "postalCode": "الرمز البريدي.",
+          "country": "اسم الدولة أو رمزها المكوّن من حرفين، مثل BD.",
+          "plan": "اسم خطة مجانية أو الاسم المختصر (slug) لها. إن كان فارغًا: خطتك الافتراضية.",
+          "commission": "عمولة المتجر بالنسبة المئوية، مثل 12.5. إن كانت فارغة: نسبة خطته أو نسبتك الافتراضية.",
+          "verified": "yes أو no: إظهار شارة Verified على المتجر.",
+          "notes": "ملاحظات لا يراها إلا فريقك."
+        },
+        "notImported": "لا تُستورد أبدًا البيانات المصرفية وإعدادات الدفع ومستندات التحقق. يضيفها البائعون بعد تسجيل الدخول.",
+        "rulesTitle": "كيف تُستورد الصفوف",
+        "rules": {
+          "match": "تُطابق المتاجر بالاسم المختصر (slug) ثم ببريد المالك. تُتخطى المتاجر الموجودة إلا إذا كان خيار «تحديث البائعين الحاليين» مفعّلًا.",
+          "owner": "يُرفض البريد الذي يخص مسؤولًا أو عضوًا في الفريق أو مالك متجر آخر. أما العميل صاحب هذا البريد فيصبح هو المالك.",
+          "plan": "الخطة المدفوعة تتطلب دفعًا من البائع نفسه، لذا تحصل تلك المتاجر على خطتك الافتراضية بدلًا منها.",
+          "rerun": "استيراد الملف نفسه مرة أخرى آمن: لا يُنشأ أي متجر مرتين."
+        }
+      },
+      "options": {
+        "updateExisting": "تحديث البائعين الحاليين",
+        "updateExistingHint": "تحصل المتاجر الموجودة على بيانات الملف. تحتفظ الخلايا الفارغة بالقيم المحفوظة.",
+        "startAs": "حالة البائعين المستوردين في البداية",
+        "startAsApproved": "معتمد",
+        "startAsPending": "قيد المراجعة",
+        "startAsApprovedHint": "يتلقى المالكون بريدًا لتعيين كلمة المرور ويمكنهم البيع فورًا.",
+        "startAsPendingHint": "لا يُرسل شيء الآن. يتلقى المالك الذي ليست لديه كلمة مرور الدعوة عند اعتمادك للمتجر."
+      },
+      "result": {
+        "invitesQueued": "{count, plural, one {سيتلقى مالك واحد} other {سيتلقى # من المالكين}} بريدًا لتعيين كلمة المرور."
+      },
+      "messages": {
+        "file_missing_columns": "يحتاج الملف إلى هذه الأعمدة: {columns}.",
+        "file_columns_not_imported": "لم يُستورد: {columns}.",
+        "file_columns_unknown": "أعمدة غير معروفة تُركت: {columns}.",
+        "row_missing": "{column} فارغ.",
+        "row_email_invalid": "{value} ليس عنوان بريد إلكتروني صالحًا.",
+        "row_too_long": "{column} أطول من {max} حرف.",
+        "row_slug_invalid": "لا يمكن أن يكون {value} اسمًا مختصرًا لمتجر. استخدم حروفًا وأرقامًا وشرطات.",
+        "row_slug_reserved": "{value} محجوز لمتجرك الخاص.",
+        "row_image_invalid": "{column} ليس رابطًا.",
+        "row_image_not_https": "يجب أن يبدأ {column} بـ https://.",
+        "row_commission_invalid": "العمولة {value} ليست نسبة مئوية بين 0 و100.",
+        "row_verified_invalid": "قيمة Verified ‏{value} ليست yes أو no.",
+        "row_country_not_available": "{country} ليست من دول متجرك، لذا حُفظ العنوان بدونها.",
+        "row_slug_taken": "الاسم المختصر {slug} يخص متجر مالك آخر.",
+        "row_default_store": "هذا متجرك الخاص، ولا يمكن للاستيراد تغييره.",
+        "row_owner_team": "هذا البريد يخص مسؤولًا أو عضوًا في الفريق.",
+        "row_owner_has_store": "صاحب هذا البريد يملك متجرًا بالفعل.",
+        "row_owner_banned": "هذا البريد يخص حسابًا محظورًا.",
+        "row_owner_inactive": "هذا البريد يخص حسابًا معطّلًا.",
+        "row_plan_not_found": "لا توجد خطة باسم {plan}.",
+        "row_plan_ambiguous": "توجد عدة خطط باسم {plan}. استخدم اسمها المختصر.",
+        "row_plan_archived": "{plan} مؤرشفة، لذا استُخدمت الخطة الافتراضية.",
+        "row_plan_paid": "{plan} خطة مدفوعة، لذا استُخدمت الخطة الافتراضية. يمكن للبائع التبديل بعد تسجيل الدخول.",
+        "row_plan_kept_paid": "المتجر يدفع مقابل خطته، لذا لم يُنقل إلى {plan}.",
+        "row_image_failed": "تعذّر نسخ {column}: {reason}.",
+        "row_duplicate_in_file": "صف سابق في الملف يخص المتجر نفسه.",
+        "row_failed": "تعذّر استيراد الصف. {message}",
+        "run_default_plan_paid": "خطتك الافتراضية {plan} خطة مدفوعة، لذا لم تحصل المتاجر الجديدة على أي خطة.",
+        "run_plans_off": "خطط البائعين متوقفة، لذا تُرك عمود Plan."
+      },
+      "imageReasons": {
+        "invalid_url": "ليس رابطًا صالحًا",
+        "not_https": "يجب أن يبدأ الرابط بـ https://",
+        "private_address": "الرابط يشير إلى شبكة خاصة",
+        "unreachable": "تعذّر الوصول إلى الموقع",
+        "too_many_redirects": "الرابط يعيد التوجيه مرات كثيرة",
+        "http_error": "ردّ الموقع بخطأ",
+        "timeout": "لم يردّ الموقع في الوقت المحدد",
+        "not_image": "الرابط ليس صورة",
+        "too_large": "الصورة كبيرة جدًا",
+        "unreadable": "ليست صورة يمكن للمتجر استخدامها"
+      },
+      "export": {
+        "preparing": "جارٍ تجهيز تصدير البائعين…",
+        "done": "تم تصدير البائعين",
+        "failed": "تعذّر تصدير البائعين"
+      },
+      "invites": {
+        "progress": "جارٍ إرسال دعوات المالكين · {done} من {total}",
+        "progressFailed": "تعذّر إرسال {count}",
+        "finished": "تم إرسال {count} من دعوات المالكين",
+        "finishedWithFailures": "تعذّر إرسال {failed} من أصل {total} من دعوات المالكين.",
+        "retry": "إعادة المحاولة",
+        "dismiss": "إغلاق",
+        "emailNotSetUp": "البريد الإلكتروني غير مُعدّ بعد. أعدّه أولًا من الإعدادات ← البريد الإلكتروني.",
+        "sendFailed": "تعذّر إرسال البريد الإلكتروني. تحقّق من الإعدادات ← البريد الإلكتروني."
+      }
+    },
     "adminDashboard": "لوحة تحكم المسؤول",
     "browseWebsite": "تصفح الموقع",
     "ordersPage": {
@@ -1385,7 +1823,8 @@
         "processing": "قيد المعالجة",
         "shipped": "تم الشحن",
         "delivered": "تم التسليم",
-        "cancelled": "ملغى"
+        "cancelled": "ملغى",
+        "preordered": "طلب مسبق"
       },
       "paymentStatus": {
         "pending": "قيد الانتظار",
@@ -1436,7 +1875,15 @@
       "overrideStatusDescription": "انقل هذا الطلب إلى أي حالة متجاوزًا سير العمل المعتاد. يُسجَّل ذلك في السجل الزمني مع سببك.",
       "overrideNewStatus": "الحالة الجديدة",
       "overrideReasonPlaceholder": "لماذا هذا التجاوز مطلوب؟",
-      "overrideReinstateWarning": "إعادة تفعيل طلب ملغى تسحب مخزونه من الرفّ مرة أخرى. إذا نفد أي صنف منذ ذلك الحين، فسيُرفض التجاوز."
+      "overrideReinstateWarning": "إعادة تفعيل طلب ملغى تسحب مخزونه من الرفّ مرة أخرى. إذا نفد أي صنف منذ ذلك الحين، فسيُرفض التجاوز.",
+      "walkInCustomer": "عميل حضوري",
+      "soldBy": "تمّ البيع بواسطة {name}",
+      "statusAction": {
+        "cancel_order": "إلغاء الطلب"
+      },
+      "courier": {
+        "shipments": "الشحنات"
+      }
     },
     "analyticsPage": {
       "subtitle": "أداء المتجر وحركة زيارات الموقع",
@@ -1577,7 +2024,17 @@
       "addCollection": "إضافة مجموعة",
       "last3Months": "آخر 3 أشهر",
       "quickActions": "إجراءات سريعة",
-      "visitorsSubtitle": "رؤى الأداء وحركة المرور"
+      "visitorsSubtitle": "رؤى الأداء وحركة المرور",
+      "period": {
+        "title": "الفترة",
+        "today": "اليوم",
+        "yesterday": "أمس",
+        "month": "هذا الشهر"
+      },
+      "granularity": {
+        "week": "أسبوعي",
+        "month": "شهري"
+      }
     },
     "sidebar": {
       "overview": "نظرة عامة",
@@ -1642,7 +2099,9 @@
       "toggle": "إظهار الشريط الجانبي أو إخفاؤه",
       "vendorConfiguration": "التهيئة",
       "vendorOnboarding": "مسار الانضمام",
-      "vendorPlans": "خطط البائعين"
+      "vendorPlans": "خطط البائعين",
+      "activityLog": "سجل النشاط",
+      "staffMembers": "الأعضاء"
     },
     "users": "المستخدمون",
     "usersDesc": "إدارة المستخدمين والأدوار",
@@ -1752,31 +2211,31 @@
       "status": {
         "pending": "Pending",
         "approved": "Active",
-        "suspended": "Suspended",
-        "rejected": "Rejected"
+        "suspended": "موقوف",
+        "rejected": "مرفوض"
       },
       "table": {
-        "storeOwner": "Store & Owner",
+        "storeOwner": "المتجر والمالك",
         "status": "Status",
         "commission": "Commission",
-        "sales": "Sales",
-        "joined": "Joined",
-        "actions": "Actions",
-        "noVendors": "No vendors found",
-        "visitStore": "Visit Store",
+        "sales": "المبيعات",
+        "joined": "تاريخ الانضمام",
+        "actions": "الإجراءات",
+        "noVendors": "لم يتم العثور على بائعين",
+        "visitStore": "زيارة المتجر",
         "updateStatus": "Update Status",
-        "unknown": "Unknown"
+        "unknown": "غير معروف"
       },
       "toasts": {
         "statusSuccess": "Vendor status updated successfully",
-        "statusError": "Failed to update status"
+        "statusError": "فشل تحديث الحالة"
       }
     },
     "productsManagement": {
       "title": "Products",
       "subtitle": "Manage all products in the marketplace",
-      "addProduct": "Add Product",
-      "allProducts": "All Products",
+      "addProduct": "إضافة منتج",
+      "allProducts": "جميع المنتجات",
       "allProductsDesc": "View and manage products from all vendors",
       "searchPlaceholder": "Search products...",
       "status": {
@@ -1784,7 +2243,7 @@
         "all": "All Status",
         "published": "Published",
         "draft": "Draft",
-        "archived": "Archived",
+        "archived": "مؤرشف",
         "active": "نشيط"
       },
       "table": {
@@ -1792,19 +2251,19 @@
         "name": "Name",
         "vendor": "Vendor",
         "price": "Price",
-        "stock": "Stock",
+        "stock": "المخزون",
         "status": "Status",
-        "actions": "Actions",
-        "noProducts": "No products found",
+        "actions": "الإجراءات",
+        "noProducts": "لم يتم العثور على منتجات",
         "uncategorized": "Uncategorized",
-        "na": "N/A",
+        "na": "غير متاح",
         "view": "View",
         "edit": "Edit",
         "delete": "Delete"
       },
       "deleteDialog": {
-        "title": "Delete Product",
-        "description": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+        "title": "حذف منتج",
+        "description": "هل أنت متأكد أنك تريد حذف \"{name}\"؟ لا يمكن التراجع عن هذا الإجراء.",
         "confirm": "Delete",
         "cancel": "Cancel",
         "success": "Product deleted successfully",
@@ -1836,7 +2295,7 @@
         "storeCurrencyHint": "كل سعر وطلب ودفعة للبائعين بهذه العملة. تغييرها يغيّر تسمية الأسعار ولا يحوّلها.",
         "countries": {
           "title": "البلدان المتاحة",
-          "description": "تحكّم في قوائم البلدان المستخدمة في الدفع وتسجيل البائعين والعناوين والشحن ونماذج المنتجات.",
+          "description": "تحكّم في قوائم البلدان المستخدمة في الدفع وتسجيل البائعين والعناوين والشحن. عند اختيار بلد واحد فقط، تعرضه حقول عنوان التوصيل ولا يمكن تغييره.",
           "all": "كل البلدان",
           "allHint": "اعرض كل بلد مدعوم ({count}) في جميع قوائم اختيار البلد.",
           "specific": "بلدان محددة",
@@ -1848,8 +2307,11 @@
           "required": "اختر بلدًا واحدًا على الأقل قبل الحفظ.",
           "selected": "{count, plural, zero {لم يُختر أي بلد.} one {تم اختيار بلد واحد.} two {تم اختيار بلدين.} few {تم اختيار # بلدان.} many {تم اختيار # بلدًا.} other {تم اختيار # بلد.}}"
         },
+        "setDefault": "تعيين كافتراضي",
         "defaultBadge": "افتراضي",
-        "countryRequired": "اختر دولة واحدة على الأقل، أو اختر كل الدول."
+        "countryRequired": "اختر دولة واحدة على الأقل، أو اختر كل الدول.",
+        "storeProfileMissingTitle": "ملف متجرك غير موجود",
+        "storeProfileMissingBody": "تنتمي إليه المنتجات والمخزون ونقاط البيع. تحقّق من اسم المتجر واللغة والعملة أدناه، ثم احفظ لإنشائه."
       },
       "appearance": {
         "title": "العلامة التجارية",
@@ -1889,7 +2351,7 @@
         "description": "إعداد بوابات الدفع وخياراتها",
         "stripePublishableKey": "المفتاح القابل للنشر",
         "stripeWebhookSecret": "سر Webhook",
-        "paypalClientId": "Client ID",
+        "paypalClientId": "معرّف العميل (Client ID)",
         "paypalMode": "الوضع",
         "paypalSandbox": "بيئة الاختبار",
         "paypalLive": "مباشر",
@@ -1898,7 +2360,7 @@
         "codMinOrder": "الحد الأدنى لمبلغ الطلب",
         "codMaxOrder": "الحد الأقصى لمبلغ الطلب",
         "paypal": {
-          "title": "PayPal",
+          "title": "باي بال",
           "description": "دفع ومحفظة موثوقان عالميًا",
           "clientSecret": "سر العميل",
           "clientIdPlaceholder": "معرّف عميل PayPal",
@@ -1981,40 +2443,174 @@
         }
       },
       "email": {
-        "title": "تكوين البريد الإلكتروني (SMTP)",
-        "description": "تكوين إرسال البريد الإلكتروني عبر SMTP",
-        "enable": "تفعيل بريد SMTP",
-        "host": "ضيف SMTP",
-        "port": "منفذ SMTP",
-        "username": "اسم مستخدم SMTP",
-        "password": "كلمة مرور SMTP",
-        "fromEmail": "بريد المرسل",
-        "fromName": "اسم المرسل",
+        "title": "البريد الإلكتروني",
+        "description": "تُرسل تحديثات الطلبات ورسائل إعادة تعيين كلمة المرور وتنبيهات المتجر عبر خادم البريد الخاص بك.",
+        "descriptionOff": "متوقف: لا يرسل المتجر أي بريد، ولا حتى تأكيدات الطلبات أو رسائل إعادة تعيين كلمة المرور. تبقى بيانات الخادم محفوظة.",
+        "descriptionOffEnv": "متوقف هنا، لكن لهذا الخادم بيانات دخول بريد خاصة به (SMTP_USER في .env)، لذا يستمر إرسال البريد عبرها.",
+        "switchLabel": "إرسال البريد الإلكتروني",
+        "stuck": {
+          "title": "لا تُعاد محاولة إرسال الرسائل الفاشلة",
+          "neverRan": "تتم إعادة المحاولة عبر مهمة في الخلفية تعمل كل 5 دقائق، ولم تعمل هذه المهمة قط على هذا الخادم. أقدم رسالة تنتظر منذ {date}، وإذا بدأت المهمة فستُرسل الرسائل كلها حينها.",
+          "stopped": "تتم إعادة المحاولة عبر مهمة في الخلفية تعمل كل 5 دقائق، وكانت آخر مرة عملت فيها في {lastRun}. أقدم رسالة تنتظر منذ {date}، وإذا عادت المهمة إلى العمل فستُرسل الرسائل كلها حينها.",
+          "show": "عرضها",
+          "cancel": "إلغاؤها",
+          "cancelTitle": "{count, plural, zero {إلغاء الرسائل قيد الانتظار؟} one {إلغاء رسالة واحدة قيد الانتظار؟} two {إلغاء رسالتين قيد الانتظار؟} few {إلغاء # رسائل قيد الانتظار؟} many {إلغاء # رسالة قيد الانتظار؟} other {إلغاء # رسالة قيد الانتظار؟}}",
+          "cancelDescription": "لن تُرسل، وستبقى في السجل بحالة «ملغي».",
+          "cancelConfirm": "إلغاء الرسائل",
+          "keep": "الإبقاء عليها",
+          "cancelled": "{count, plural, zero {لم تُلغَ أي رسالة.} one {أُلغيت رسالة واحدة.} two {أُلغيت رسالتان.} few {أُلغيت # رسائل.} many {أُلغيت # رسالة.} other {أُلغيت # رسالة.}}",
+          "cancelFailed": "تعذّر إلغاء الرسائل"
+        },
+        "server": {
+          "title": "خادم البريد",
+          "tested": "تم الاختبار في {date}",
+          "testedNow": "تم الاختبار للتو",
+          "untested": "لم يُختبر منذ آخر تغيير.",
+          "notSetUp": "لم يُعدّ بعد. اتبع الدليل أدناه.",
+          "saveFirst": "احفظ تغييراتك، ثم أرسل اختبارًا.",
+          "failed": "فشل الاختبار: {error}",
+          "lastFailed": "فشلت آخر رسالة في {date}: {error}",
+          "host": "الخادم",
+          "port": "المنفذ",
+          "portTls": "المنفذ 465 مشفّر بـ TLS.",
+          "portStarttls": "المنفذ 587 مشفّر بـ STARTTLS.",
+          "portOther": "المنفذ {port} مشفّر فقط إذا كان الخادم يدعم ذلك.",
+          "portEmpty": "يستخدم معظم المزوّدين المنفذ 587.",
+          "username": "اسم المستخدم",
+          "password": "كلمة المرور",
+          "passwordSaved": "محفوظة ومخفية. اكتب كلمة مرور جديدة لاستبدالها.",
+          "passwordReplace": "ستحلّ محل كلمة المرور المحفوظة عند الحفظ.",
+          "passwordRemoved": "ستُزال عند الحفظ.",
+          "passwordGmail": "مع Gmail، استخدم كلمة مرور تطبيق، لا كلمة مرور حسابك.",
+          "remove": "إزالة",
+          "locked": "مقفل ما دام التحقق عند التسجيل مفعّلًا، كي تستمر الحسابات الجديدة في تلقي روابطها. لتغيير الخادم، <link>أوقف التحقق</link> أولًا."
+        },
         "test": {
-          "label": "بريد اختبار",
-          "placeholder": "test@example.com",
           "button": "إرسال بريد اختبار",
-          "success": "تم إرسال بريد الاختبار بنجاح!",
+          "label": "إرسال اختبار إلى",
+          "send": "إرسال",
+          "sending": "جارٍ الإرسال…",
+          "sent": "تم إرسال بريد الاختبار إلى {email}",
           "error": "فشل إرسال بريد الاختبار"
         },
-        "save": "حفظ إعدادات البريد",
-        "passwordPlaceholder": "أدخل كلمة المرور",
-        "fromNamePlaceholder": "اسم متجرك",
-        "encryptionNote": "التشفير تلقائي: المنفذ 465 يستخدم TLS الضمني والمنفذ 587 يتطلب STARTTLS."
+        "sender": {
+          "title": "المرسل",
+          "preview": "يظهر في صناديق الوارد باسم <strong>{sender}</strong>",
+          "fromName": "اسم المرسل",
+          "fromNameHint": "إذا تُرك فارغًا، يُستخدم اسم متجرك.",
+          "fromEmail": "بريد المرسل",
+          "fromEmailHint": "إذا تُرك فارغًا، يُستخدم اسم المستخدم.",
+          "fromEmailLocked": "مقفل مع الخادم.",
+          "gmailAlias": "يرسل Gmail من {user} ما لم يُضَف {from} إلى حساب Gmail هذا كعنوان «Send mail as»."
+        },
+        "verification": {
+          "title": "التحقق عند التسجيل",
+          "description": "تؤكد الحسابات الجديدة عنوان بريدها الإلكتروني قبل أن تتمكن من تسجيل الدخول. لا تُحظر الحسابات التي أُنشئت قبل تفعيل هذا الخيار.",
+          "customers": "العملاء",
+          "vendors": "البائعون",
+          "vendorsHint": "البائعون الذين توافق عليهم من الآن فصاعدًا.",
+          "needTest": "أرسل أولًا بريد اختبار ناجحًا، حتى تصل الروابط إلى أصحابها.",
+          "needSave": "احفظ تغييرات الخادم وأرسل اختبارًا أولًا.",
+          "failingTitle": "لا يمكن للحسابات الجديدة تسجيل الدخول حاليًا",
+          "failing": "روابط التحقق لا تصل لأن إرسال البريد يفشل. أوقف التحقق، وأصلح إعدادات الخادم وأرسل اختبارًا، ثم أعد تفعيله."
+        },
+        "guide": {
+          "title": "دليل إعداد {provider}",
+          "titleGeneric": "دليل إعداد خادم البريد",
+          "provider": "مزوّد البريد",
+          "providers": {
+            "gmail": "Gmail",
+            "zoho": "Zoho Mail",
+            "hosting": "استضافة (cPanel)",
+            "brevo": "Brevo",
+            "sendgrid": "SendGrid",
+            "ses": "Amazon SES",
+            "other": "آخر"
+          },
+          "docs": "الشرح الكامل: docs/EMAIL_SETUP.md",
+          "gmail": {
+            "step1": "فعّل 2-Step Verification في حساب Google الذي سترسل منه.",
+            "step2": "أنشئ كلمة مرور تطبيق باسم {storeName} وانسخ كلمة المرور المكوّنة من 16 حرفًا. لا يعرضها Google إلا مرة واحدة.",
+            "step3": "أدخل الخادم والمنفذ في الأعلى، وعنوان Gmail الكامل كاسم مستخدم، وكلمة مرور التطبيق ككلمة مرور.",
+            "step4": "للإرسال من عنوان آخر مثل info@yourstore.com، أضفه أولًا في Gmail من Settings → Accounts and Import → Send mail as.",
+            "step5": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "يرسل حساب Gmail الشخصي حتى 500 رسالة يوميًا، بينما يرسل Google Workspace حتى 2000. يحتاج المتجر النشط إلى خدمة مخصصة لإرسال البريد.",
+            "link": "فتح كلمات مرور التطبيقات"
+          },
+          "zoho": {
+            "step1": "استخدم smtppro.zoho.com لعنوان على نطاقك الخاص، أو smtp.zoho.com لعنوان ينتهي بـ @zoho.com.",
+            "step2": "تستخدم المصادقة الثنائية؟ أنشئ كلمة مرور تطبيق من Security → App Passwords واستخدمها ككلمة مرور.",
+            "step3": "أدخل الخادم والمنفذ 587 في الأعلى، مع عنوان Zoho الكامل كاسم مستخدم.",
+            "step4": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "الحساب في منطقة أخرى يستخدم خادم تلك المنطقة، مثل smtppro.zoho.in أو smtppro.zoho.eu.",
+            "link": "فتح حسابات Zoho"
+          },
+          "hosting": {
+            "step1": "في cPanel، افتح Email Accounts وانقر Connect Devices بجوار العنوان الذي سترسل منه.",
+            "step2": "من Secure SSL/TLS Settings، انسخ قيمتي Outgoing Server و SMTP Port.",
+            "step3": "أدخلهما في الأعلى، مع عنوان البريد الكامل كاسم مستخدم وكلمة مرور صندوق البريد هذا.",
+            "step4": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "خطأ الشهادة يعني عادةً أن اسم الخادم مختلف. استخدم الاسم الذي يعرضه cPanel، حتى لو بدا مثل server123.yourhost.com."
+          },
+          "brevo": {
+            "step1": "في Brevo، افتح SMTP & API ثم تبويب SMTP، وانسخ اسم دخول SMTP. ينتهي بـ @smtp-brevo.com.",
+            "step2": "انقر Generate a new SMTP key وانسخ المفتاح. كلمة مرور Brevo لا تعمل هنا.",
+            "step3": "أضف بريد المرسل إلى المرسلين في Brevo، أو وثّق نطاقك.",
+            "step4": "أدخل الخادم والمنفذ في الأعلى، واسم دخول SMTP كاسم مستخدم، والمفتاح ككلمة مرور.",
+            "step5": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "ترسل من نطاقك الخاص؟ أضف سجلات SPF و DKIM التي يعطيك إياها Brevo، وإلا فقد تصل رسائلك إلى البريد العشوائي.",
+            "link": "فتح Brevo"
+          },
+          "sendgrid": {
+            "step1": "في SendGrid، افتح Settings → API Keys وأنشئ مفتاحًا بصلاحية Mail Send. لا يعرضه SendGrid إلا مرة واحدة.",
+            "step2": "تحقّق من بريد المرسل، أو من نطاقك بالكامل، من Settings → Sender Authentication.",
+            "step3": "أدخل الخادم والمنفذ في الأعلى. اسم المستخدم هو الكلمة apikey، وكلمة المرور هي المفتاح.",
+            "step4": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "يرفض SendGrid الرسائل المرسلة من عنوان مرسل لم يتحقق منه.",
+            "link": "فتح SendGrid"
+          },
+          "ses": {
+            "step1": "في وحدة تحكم Amazon SES، تحقّق من نطاقك أو بريد المرسل ضمن Identities.",
+            "step2": "افتح SMTP settings وانسخ نقطة نهاية SMTP. ثم انقر Create SMTP credentials وانسخ اسم المستخدم وكلمة المرور: لا يُعرضان إلا مرة واحدة.",
+            "step3": "أدخلها في الأعلى. مفاتيح الوصول الخاصة بـ AWS لا تعمل هنا.",
+            "step4": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "لا يمكن للحساب الجديد الإرسال إلا إلى عناوين تم التحقق منها. اطلب الوصول إلى بيئة الإنتاج قبل إطلاق متجرك.",
+            "link": "فتح Amazon SES"
+          },
+          "other": {
+            "step1": "ابحث في صفحات مساعدة مزوّدك عن «SMTP settings»، أو اطلب منه عنوان خادم البريد الصادر.",
+            "step2": "أدخل الخادم في الأعلى مع المنفذ 587 أو 465. تجنّب المنفذ 25: كثير من الشبكات تحظره.",
+            "step3": "اسم المستخدم عادةً هو عنوان بريدك الكامل. إذا كان مزوّدك يوفّر كلمات مرور للتطبيقات، فاستخدم إحداها.",
+            "step4": "احفظ، ثم أرسل بريد اختبار.",
+            "caution": "توقف Outlook.com و Hotmail في 2024 عن قبول كلمات مرور الحسابات من التطبيقات الأخرى. لا يزال Microsoft 365 يقبلها، لكن Microsoft ستوقف ذلك افتراضيًا في نهاية 2026، لذا فخدمة إرسال البريد هي الخيار الأكثر أمانًا."
+          },
+          "fix": {
+            "title": "إذا فشل الاختبار",
+            "intro": "ابحث عن هذه الكلمات في الخطأ الظاهر تحت «خادم البريد».",
+            "login": "اسم المستخدم أو كلمة المرور غير صحيحة. يحتاج Gmail، و Zoho مع المصادقة الثنائية، إلى كلمة مرور تطبيق لا كلمة مرور الحساب.",
+            "timeout": "تحقّق من الخادم والمنفذ. إذا كانت الاستضافة تحظر المنفذ 587، فجرّب 465.",
+            "sender": "لا يُسمح لهذا الحساب بالإرسال من بريد المرسل الذي حددته. استخدم عنوان الحساب نفسه، أو تحقّق من العنوان الآخر لدى مزوّدك.",
+            "certificate": "استخدم اسم الخادم تمامًا كما يعطيك إياه مزوّدك، لا عنوان IP."
+          }
+        }
       },
       "security": {
         "title": "الأمان والتحكم في الوصول",
         "description": "إعداد وضع البائعين المتعددين وأمان الجلسات وسياسات كلمات المرور",
         "multiVendor": {
           "label": "وضع متعدد البائعين",
-          "description": "تفعيل ميزات السوق: تسجيل البائعين، والمتاجر المتعددة، ولوحة تحكم البائع",
-          "manageLink": "إدارة تسجيل البائعين والخطط والسياسات"
-        },
-        "emailVerification": {
-          "title": "التحقق من البريد الإلكتروني",
-          "required": "اشتراط التحقق من البريد الإلكتروني",
-          "requiredDesc": "يجب على المستخدمين التحقق من بريدهم الإلكتروني قبل الوصول إلى المتجر",
-          "vendorRequired": "اشتراطه للبائعين"
+          "description": "اسمح لبائعين آخرين بالتقديم، وإدارة متاجرهم ولوحات تحكمهم، والبيع إلى جانبك.",
+          "registrationLink": "التسجيل والخطط والعمولة",
+          "vendorsLink": "كل البائعين",
+          "turnOff": {
+            "title": "إيقاف وضع متعدد البائعين؟",
+            "description": "لن يُحذف أي شيء. تعود حسابات البائعين ومتاجرهم ومنتجاتهم عند إعادة تفعيله. أثناء إيقافه:",
+            "registration": "لا يمكن لأحد التقديم ليصبح بائعًا.",
+            "dashboards": "لا يستطيع البائعون فتح لوحات تحكمهم، وتختفي صفحات متاجرهم من واجهة المتجر.",
+            "sales": "تبقى منتجات البائعين معروضة للبيع، لكن تلك الطلبات تُحتسب مبيعات لمتجرك، لا للبائع.",
+            "payouts": "تتوقف دفعات البائعين مؤقتًا.",
+            "confirm": "إيقاف"
+          }
         },
         "session": {
           "duration": "مدة الجلسة (بالأيام)",
@@ -2069,9 +2665,9 @@
       "social": {
         "title": "روابط وسائل التواصل",
         "description": "أضف حساباتك على وسائل التواصل الاجتماعي",
-        "facebook": "Facebook",
+        "facebook": "فيسبوك",
         "twitter": "Twitter/X",
-        "instagram": "Instagram",
+        "instagram": "إنستغرام",
         "youtube": "YouTube",
         "save": "حفظ روابط التواصل الاجتماعي",
         "facebookPlaceholder": "https://facebook.com/yourpage",
@@ -2080,7 +2676,7 @@
         "youtubePlaceholder": "https://youtube.com/yourchannel",
         "tiktok": "TikTok",
         "tiktokPlaceholder": "https://tiktok.com/@yourhandle",
-        "linkedin": "LinkedIn",
+        "linkedin": "ينكدين",
         "linkedinPlaceholder": "https://linkedin.com/company/yourcompany",
         "share": {
           "linkGroup": "وصلة",
@@ -2135,6 +2731,45 @@
           "bypassTitle": "تجاوز الوصول",
           "bypassCount": "{count, plural, zero {لا يوجد عنوان IP يمكنه الوصول إلى واجهة المتجر.} one {لا يزال عنوان IP واحد قادرًا على الوصول إلى واجهة المتجر.} two {لا يزال عنوانا IP قادرين على الوصول إلى واجهة المتجر.} few {لا تزال # عناوين IP قادرة على الوصول إلى واجهة المتجر.} many {لا يزال # عنوان IP قادرًا على الوصول إلى واجهة المتجر.} other {لا يزال # عنوان IP قادرًا على الوصول إلى واجهة المتجر.}}"
         }
+      },
+      "mobileApp": {
+        "title": "تطبيق الجوال",
+        "description": "اربط تطبيق التسوق الخاص بمتجرك. يقرأ التطبيق المتجر عبر واجهة API خاصة به، وتبقى متوقفة حتى تفعّلها هنا.",
+        "apiTitle": "واجهة API للجوال",
+        "apiDesc": "الرد على طلبات تطبيق التسوق. عندما تكون متوقفة، لا يستطيع التطبيق الوصول إلى المتجر.",
+        "scheme": "مخطط روابط التطبيق",
+        "schemeHelp": "المخطط الذي بُني به تطبيقك، بدون \"://\" (مثلًا mystore). يعود التطبيق من خلاله بعد تسجيل الدخول والدفع.",
+        "iosTitle": "iOS",
+        "androidTitle": "Android",
+        "bundleId": "معرّف الحزمة (Bundle ID)",
+        "bundleIdHelp": "معرّف حزمة تطبيق iOS، مثل com.example.store.",
+        "teamId": "معرّف فريق Apple",
+        "teamIdHelp": "المعرّف المكوّن من 10 أحرف لفريق مطوّري Apple الذي ينشر التطبيق. مع معرّف الحزمة، يتيح فتح روابط متجرك في تطبيق iOS.",
+        "packageName": "اسم الحزمة",
+        "packageNameHelp": "معرّف تطبيق Android (Application ID)، مثل com.example.store.",
+        "fingerprints": "بصمات شهادة التوقيع (SHA-256)",
+        "fingerprintsHelp": "بصمة في كل سطر، كما تظهر في Google Play Console ضمن App signing. مع اسم الحزمة، تتيح فتح روابط متجرك في تطبيق Android.",
+        "minVersion": "الحد الأدنى للإصدار",
+        "minVersionHelp": "يمكن للإصدارات الأقدم التصفح، لكن يجب تحديثها قبل إجراء أي تغيير، مثل السلة أو الطلب.",
+        "latestVersion": "أحدث إصدار",
+        "latestVersionHelp": "يُعرض التحديث على الإصدارات الأقدم.",
+        "appStoreUrl": "رابط App Store",
+        "playStoreUrl": "رابط Google Play",
+        "digitalTitle": "بيع المنتجات الرقمية في التطبيق",
+        "digitalDesc": "تشترط متاجر التطبيقات نظام الدفع الخاص بها للسلع الرقمية. اترك هذا متوقفًا ما لم يُسمح لتطبيقاتك ببيعها.",
+        "expoAccessToken": "رمز وصول Expo",
+        "expoAccessTokenPlaceholder": "فقط إذا كان حساب Expo يتطلبه",
+        "expoAccessTokenHelp": "مطلوب عند تفعيل أمان الإشعارات الفورية في حساب Expo. بدونه تُرسل الإشعارات كالمعتاد.",
+        "save": "حفظ إعدادات تطبيق الجوال",
+        "bizTitle": "تطبيق الأعمال",
+        "bizDescription": "التطبيق الذي تدير منه أنت وفريقك والبائعون المتجر: الطلبات والمنتجات والمخزون وصندوق الوارد والمدفوعات وطلبات البائعين. له واجهة API خاصة به، متوقفة حتى تفعّلها.",
+        "bizApiTitle": "واجهة API لتطبيق الأعمال",
+        "bizApiDesc": "الرد على طلبات تطبيق الأعمال. عندما تكون متوقفة، لا يمكن لأحد تسجيل الدخول إليه.",
+        "bizScheme": "مخطط روابط تطبيق الأعمال",
+        "bizSchemeHelp": "المخطط الذي بُني به تطبيق الأعمال، بدون \"://\" (مثلًا mystorebiz). يجب أن يختلف عن مخطط تطبيق التسوق.",
+        "bizBundleIdHelp": "معرّف حزمة تطبيق الأعمال على iOS، مثل com.example.business.",
+        "bizPackageNameHelp": "معرّف تطبيق الأعمال على Android، مثل com.example.business.",
+        "bizMinVersionHelp": "يمكن للإصدارات الأقدم العرض، لكن يجب تحديثها قبل تغيير أي شيء، مثل طلب أو سعر."
       },
       "twoFactor": {
         "title": "المصادقة الثنائية",
@@ -2196,71 +2831,59 @@
         "verifyFailed": "فشل التحقق"
       },
       "pos": {
-        "title": "وصول نقطة البيع (POS)",
-        "description": "حدّد الأدوار التي يمكنها الوصول إلى نظام نقطة البيع",
-        "enable": "تفعيل نظام نقطة البيع",
-        "enableDesc": "السماح بالمبيعات داخل المتجر عبر وحدة نقطة البيع",
-        "access": "الوصول إلى نقطة البيع حسب الدور",
+        "title": "نقطة البيع",
+        "description": "بِع وجهًا لوجه من شاشة البيع، بنفس منتجات متجرك الإلكتروني ومخزونه.",
+        "descriptionOff": "متوقفة: لا يستطيع أحد فتح شاشة البيع. تبقى إعداداتك محفوظة إلى أن تعيد تفعيلها.",
+        "access": "من يمكنه البيع",
+        "accessNone": "لا يستطيع أحد فتح شاشة البيع الآن. فعّل خيارًا واحدًا على الأقل.",
         "admin": "المسؤولون",
-        "adminDesc": "السماح للمسؤولين بالبيع عبر نقطة البيع",
+        "adminDesc": "يبيعون منتجات المتجر نفسه.",
         "vendor": "البائعون",
-        "vendorDesc": "السماح للبائعين بالبيع عبر نقطة البيع لمنتجاتهم",
-        "save": "حفظ إعدادات نقطة البيع",
-        "general": "عام",
-        "defaultLocation": "معرّف موقع نقطة البيع الافتراضي",
-        "customize": "التخصيص",
-        "printedReceipts": "الإيصالات المطبوعة",
-        "checkout": "الدفع",
-        "offlinePayments": "المدفوعات دون اتصال",
-        "orders": "الطلبات",
-        "orderNumberPrefix": "بادئة رقم الطلب",
-        "orderNumberPrefixHint": "تستخدم طلبات نقاط البيع الجديدة هذه البادئة مع رقم من ست خانات، مثل POS000017.",
-        "enabled": "مفعّل",
-        "disabled": "معطّل",
-        "accessDesc": "التحكم في أدوار المستخدمين التي يمكنها الوصول إلى نقطة البيع",
-        "generalDesc": "تكوين اللغة والموقع الافتراضي لنقطة البيع",
-        "selectLocation": "اختر موقعًا",
-        "noLocation": "لا يوجد موقع افتراضي",
-        "defaultBadge": "افتراضي",
-        "locationIdPlaceholder": "أدخل معرف الموقع",
-        "defaultLocationHint": "الموقع المستخدم افتراضيًا لطلبات نقطة البيع الجديدة",
-        "checkoutDesc": "تكوين طرق الدفع وسلوك الدفع",
-        "paymentMethods": "طرق الدفع المقبولة",
-        "paymentCash": "نقدي",
-        "paymentCashDesc": "قبول المدفوعات النقدية",
-        "paymentCard": "بطاقة (Stripe)",
-        "paymentCardDesc": "قبول مدفوعات بطاقات الائتمان والخصم عبر Stripe",
-        "paymentManual": "يدوي",
-        "paymentManualDesc": "طرق دفع مخصصة",
-        "offlinePaymentsDesc": "معالجة المدفوعات عندما يكون الجهاز غير متصل",
-        "customizeDesc": "تخصيص مظهر وسلوك نقطة البيع",
-        "printedReceiptsDesc": "طباعة الإيصالات بعد كل معاملة",
-        "receiptPrinter": "طابعة الإيصالات",
-        "receiptPrinterPlaceholder": "مثال: Star TSP143",
-        "ordersDesc": "تكوين سياسات الإرجاع لطلبات نقطة البيع",
-        "sound": "المؤثرات الصوتية",
-        "soundDesc": "تكوين التنبيهات الصوتية لتفاعلات نقطة البيع",
-        "soundEnable": "تفعيل المؤثرات الصوتية",
-        "soundEnableDesc": "تشغيل إشارات صوتية أثناء عمليات نقطة البيع",
-        "soundVolume": "مستوى الصوت",
-        "soundAddToCart": "إضافة إلى السلة",
-        "soundAddToCartDesc": "صافرة عند إضافة منتج إلى السلة",
-        "soundPayment": "تم قبول الدفع",
-        "soundPaymentDesc": "صوت عند معالجة الدفع",
-        "soundOrderComplete": "اكتمال الطلب",
-        "soundOrderCompleteDesc": "رنين عند اكتمال الطلب",
-        "soundError": "تنبيه خطأ",
-        "soundErrorDesc": "صوت تنبيه للأخطاء وتحذيرات المخزون",
-        "paymentBank": "التحويل البنكي",
-        "paymentBankDesc": "قبول التحويل البنكي مع الإشارة",
+        "vendorDesc": "يبيع كل بائع منتجاته الخاصة من لوحة تحكمه.",
+        "vendorPackOff": "ليس لدى البائعين صلاحية نقطة البيع، لذا لا أثر لهذا الخيار حاليًا. فعّلها من <link>وضع متعدد البائعين</link>.",
         "seller": "الموظفون",
-        "sellerDesc": "السماح للموظفين بالبيع عبر نقطة البيع"
+        "sellerDesc": "فقط الموظفون الذين لديهم صلاحية POS، وتُمنح من صفحة <link>الفريق</link>.",
+        "checkout": "المدفوعات",
+        "checkoutDesc": "ما يمكن للكاشير قبوله عند الكاونتر.",
+        "paymentCash": "نقدي",
+        "paymentCashDesc": "يُحسب الباقي تلقائيًا.",
+        "paymentCard": "بطاقة",
+        "paymentCardDesc": "عبر قارئ البطاقات، أو بإدخال بياناتها عبر Stripe.",
+        "paymentCardNoStripe": "عبر قارئ البطاقات. لإدخال بيانات البطاقة كتابةً أيضًا، هيّئ Stripe في <link>إعدادات الدفع</link>.",
+        "paymentBank": "التحويل البنكي",
+        "paymentBankDesc": "يُسجَّل مع رقم مرجعي اختياري.",
+        "paymentManual": "يدوي",
+        "paymentManualDesc": "أي طريقة دفع أخرى.",
+        "paymentLast": "يجب أن تبقى طريقة دفع واحدة مفعّلة.",
+        "register": "شاشة البيع",
+        "defaultLocation": "الكاونتر الافتراضي",
+        "defaultLocationHint": "الكاونتر الذي تبيع منه شاشة البيع إلى أن يختار الكاشير غيره. تظهر هنا <link>مواقعك</link> التي فيها كاونتر.",
+        "locationGone": "لم يعد ممكنًا استخدام {name} ككاونتر، لذا تتجاهله شاشات البيع. اختر غيره.",
+        "locationMissing": "الكاونتر المحفوظ لم يعد موجودًا، لذا تتجاهله شاشات البيع. اختر غيره.",
+        "locationsEmpty": "لا يوجد كاونتر في أي من <link>مواقعك</link> بعد، لذا تبيع شاشات البيع من إجمالي مخزونك.",
+        "locationsFailed": "تعذّر تحميل مواقعك. أعد تحميل الصفحة لتغيير الكاونتر.",
+        "selectLocation": "اختر الكاونتر",
+        "noLocation": "لا يوجد كاونتر افتراضي",
+        "defaultBadge": "افتراضي",
+        "orderNumberPrefix": "بادئة رقم الطلب",
+        "orderNumberPrefixExample": "تُرقَّم المبيعات هكذا: <strong>{example}</strong>.",
+        "printedReceipts": "طباعة إيصال بعد كل عملية بيع",
+        "printedReceiptsDesc": "تُفتح نافذة الطباعة فور دفع قيمة البيع.",
+        "receiptPrinter": "طابعة الإيصالات",
+        "receiptPrinterHint": "ملاحظة لفريقك. أما الطابعة نفسها فتُختار من نافذة الطباعة في المتصفح.",
+        "receiptPrinterPlaceholder": "مثال: Star TSP143",
+        "sound": "الأصوات",
+        "soundDesc": "تُشغَّل على شاشة البيع أثناء عمل الكاشير.",
+        "soundVolume": "مستوى الصوت",
+        "soundAddToCart": "تمت إضافة منتج",
+        "soundPayment": "تم قبول الدفع",
+        "soundOrderComplete": "اكتمل البيع",
+        "soundError": "خطأ أو تحذير مخزون",
+        "soundPlay": "تشغيل الصوت: {sound}"
       },
       "vendorPermissions": {
         "title": "سياسة السوق",
-        "description": "مفتاح واحد لكل صلاحية، على مستوى المنصة كلها. هذه ليست إعدادات افتراضية للبائعين الجدد — كل مفتاح يُطبَّق فورًا على كل متجر قائم.",
-        "warning": "فعّل وضع متعدد البائعين لضبط سياسة السوق.",
-        "liveWarning": "إيقاف أحدها يزيل تلك القدرة من كل بائع في هذا السوق فورًا، وليس من الجدد فقط. البائع الذي يصطدم بها يرى صفحة تذكر هذا الإعداد كسبب.",
+        "description": "ما يمكن للبائعين استخدامه. كل مفتاح يُطبَّق على جميع البائعين دفعة واحدة، وليس على الجدد فقط.",
         "packAiStudio": "كتابة بالذكاء الاصطناعي للقوائم والوسائط",
         "packAnalytics": "تقارير المبيعات والزيارات",
         "packBoosts": "شراء مواضع مموّلة",
@@ -2271,23 +2894,26 @@
         "packPayouts": "الرصيد وطلبات السحب الذاتية",
         "packPos": "البيع وجهًا لوجه",
         "packStaff": "دعوة مقاعد المتجر وإدارتها",
-        "packStorefront": "صفحة المتجر والعلامة التجارية وإعدادات الشحن"
+        "packStorefront": "صفحة المتجر والعلامة التجارية وإعدادات الشحن",
+        "groups": {
+          "selling": "البيع",
+          "store": "المتجر والفريق",
+          "money": "المالية",
+          "insights": "الرؤى والذكاء الاصطناعي"
+        },
+        "turningOff": "عند الحفظ، يفقد كل بائع الوصول إلى {pack} ويرى صفحة تذكر هذا الإعداد كسبب."
       },
       "orders": {
         "title": "إعدادات الطلبات",
-        "description": "إعداد الطلبات والعمولات",
+        "description": "أرقام الطلبات والضريبة والإرجاع.",
         "prefix": "بادئة رقم الطلب",
-        "taxRate": "نسبة الضريبة (%)",
-        "shippingCost": "تكلفة الشحن الافتراضية ($)",
-        "freeShippingThreshold": "حد الشحن المجاني ($)",
-        "freeShippingPlaceholder": "اضبطه على 0 للتعطيل",
-        "shippingHandledByZones": "مناطق الشحن مفعّلة، لذا لا تُستخدم هاتان القيمتان. تأتي الأسعار من إعدادات الشحن والتوصيل.",
-        "commissionRate": "نسبة العمولة (%)",
-        "minWithdrawal": "الحد الأدنى لمبلغ السحب ($)",
+        "taxRate": "نسبة الضريبة",
+        "shippingCost": "الشحن القياسي",
+        "freeShippingThreshold": "شحن مجاني ابتداءً من",
+        "shippingHandledByZones": "تأتي الأسعار من مناطق الشحن لديك.",
         "returnInstructions": "تعليمات الإرجاع",
         "returnInstructionsHint": "تُرسل إلى المتسوق مع عنوان الإرجاع عند الموافقة على الإرجاع. استخدم {returnNumber} لرقم الإرجاع. اتركه فارغًا لاستخدام النص المعروض.",
         "finalSaleCollections": "مجموعات البيع النهائي",
-        "finalSaleCollectionsSearch": "البحث في المجموعات",
         "finalSaleCollectionsNone": "لم يتم العثور على مجموعات",
         "finalSaleCollectionMissing": "مجموعة محذوفة",
         "finalSaleCollectionUnnamed": "مجموعة",
@@ -2295,24 +2921,23 @@
         "billVendorCodShipping": "فوترة البائعين عن شحن الدفع عند الاستلام",
         "billVendorCodShippingHint": "عندما يحصّل البائع النقود عند الباب يحتفظ برسوم التوصيل أيضًا. فعّل هذا لفوترتهم عن الطرود التي نقلها مندوب التوصيل الخاص بك، إلى جانب العمولة المستحقة عليهم.",
         "loyaltyHeading": "نقاط الولاء",
-        "loyaltySpendPerPoint": "مبلغ الإنفاق لكل نقطة ولاء",
-        "loyaltySpendPerPointHint": "يكسب العملاء نقطة واحدة مقابل كل مبلغ كهذا ينفقونه. تبدأ المستويات عند {silver, number} نقطة للفضي و{gold, number} للذهبي و{platinum, number} للبلاتيني. يُطبَّق المعدل الجديد من الطلب المدفوع التالي، وتحتفظ النقاط الممنوحة سابقًا بالمعدل الذي اكتُسبت به.",
-        "refundAdminFee": "رسوم إدارة الاسترداد (%)",
+        "loyaltySpendPerPointHint": "تبدأ المستويات عند {silver, number} نقطة (الفضي)، و{gold, number} (الذهبي)، و{platinum, number} (البلاتيني). يُطبَّق المعدل الجديد من الطلب المدفوع التالي.",
+        "refundAdminFee": "رسوم إدارة الاسترداد",
         "refundAdminFeeCap": "الحد الأقصى للرسوم لكل إرجاع ({currency})",
         "refundAdminFeeCapHint": "اضبطه على 0 لعدم وضع حد.",
         "refundAdminFeeHint": "الحصة التي تحتفظ بها من عمولتك عند إرجاع عملية بيع. يُرد للمتسوق المبلغ كاملًا في كل الأحوال، وتنتقل التكلفة إلى البائع.",
-        "restockingFee": "رسوم إعادة التخزين (%)",
+        "restockingFee": "رسوم إعادة التخزين",
         "restockingFeeHint": "تُخصم من قيمة البضائع المُرجعة، ولا تُخصم أبدًا من الضريبة.",
-        "returnShippingFee": "رسوم شحن الإرجاع ({currency})",
+        "returnShippingFee": "رسوم شحن الإرجاع",
         "returnShippingFeeHint": "تُفرض مرة واحدة لكل بائع يعيد إليه المتسوق الشحنة.",
-        "returnWindowDays": "مهلة الإرجاع (بالأيام)",
+        "returnWindowDays": "مهلة الإرجاع",
         "returnWindowDaysHint": "المدة التي يمكن للمتسوق خلالها بعد التسليم أن يطلب إرجاع الطلب. تظهر في كل صفحة منتج.",
         "windowUnlimited": "بلا حد زمني",
         "windowStart": "بداية المهلة",
         "windowStartParcel": "عند تسليم كل طرد",
         "windowStartLast": "عند تسليم آخر طرد في الطلب",
         "windowStartHint": "الاحتساب من آخر طرد يمنح مهلة واحدة لكل طلب، ويؤجل تحويلات كل بائع حتى وصول آخر طرد.",
-        "payoutHoldMaxDays": "أطول مدة لتأجيل التحويل (بالأيام)",
+        "payoutHoldMaxDays": "أطول مدة لتأجيل التحويل",
         "payoutHoldMaxDaysHint": "بلا حد زمني، تُحوَّل للبائع قيمة مبيعاته بعد هذا العدد من الأيام من التسليم. وأي استرداد بعد ذلك يُخصم من تحويله التالي.",
         "windowOverrides": "مهل الإرجاع حسب المجموعة",
         "windowOverrideDays": "الأيام",
@@ -2320,15 +2945,33 @@
         "windowOverrideRemove": "إزالة",
         "windowOverridesSearch": "إضافة مجموعة",
         "windowOverridesHint": "يمكن إرجاع منتجات هذه المجموعات خلال هذا العدد من الأيام بدلًا من ذلك. ويمكن للمنتج أن يحدد مهلته أيضًا؛ وعند انطباق أكثر من مهلة تُعتمد الأقصر.",
-        "returnsHeading": "الإرجاع والاسترداد",
-        "returnsHint": "تبدأ هذه من السلوك الذي كان لدى Storify قبل أن تصبح إعدادات، فلا يتغير شيء حتى تغيّره أنت.",
+        "returnsHeading": "الإرجاع",
         "selfServe": "يمكن للعملاء طلب الإرجاع",
-        "selfServeHint": "عند إيقافه يتواصل العملاء معك، وتفتح أنت طلبات الإرجاع لهم من الطلب. ويظل بإمكانهم رؤية طلبات الإرجاع الخاصة بهم وإلغاؤها.",
-        "shippingRefund": "استرداد رسوم التوصيل عند الإرجاع",
+        "selfServeHint": "عند إيقافه، تفتح أنت طلبات الإرجاع للعملاء من صفحة الطلب.",
+        "shippingRefund": "استرداد رسوم التوصيل",
         "shippingRefundAlways": "دائمًا",
         "shippingRefundHint": "خطؤنا يعني منتجًا تالفًا أو معيبًا، أو غير مطابق للوصف، أو أُرسل منتج خاطئ.",
         "shippingRefundMerchantFault": "فقط عندما يكون الإرجاع بسبب خطئنا",
-        "shippingRefundNever": "أبدًا — استلم المتسوق الشحنة"
+        "shippingRefundNever": "أبدًا",
+        "ordersHeading": "الطلبات",
+        "prefixExample": "تظهر أرقام الطلبات هكذا: <strong>{example}</strong>.",
+        "taxRateHint": "تُضاف إلى الطلبات عند إتمام الشراء وفي نقطة البيع.",
+        "shipping": "الشحن",
+        "shippingLink": "الشحن والتوصيل",
+        "shippingCostHint": "ما يدفعه الطلب مقابل التوصيل ما دامت مناطق الشحن متوقفة.",
+        "freeShippingHint": "القيمة 0 توقف الشحن المجاني. لأسعار حسب الدولة، <link>أعدّ مناطق الشحن</link>.",
+        "loyaltyUnit": "{currency} لكل نقطة",
+        "returnsDescription": "متى يمكن للعملاء إرجاع المنتجات، وما الذي يستردّونه.",
+        "eligibilityHeading": "ما يمكن إرجاعه",
+        "windowStartHintStore": "الاحتساب من آخر طرد يمنح مهلة واحدة للطلب كله.",
+        "refundsHeading": "الاسترداد",
+        "returnShippingFeeHintStore": "تُفرض مرة واحدة لكل إرجاع.",
+        "vendorSalesHeading": "مبيعات البائعين",
+        "vendorSalesDescription": "كيف تُسوّى عمليات الإرجاع والدفع عند الاستلام مع البائعين.",
+        "commissionSummaryLabel": "العمولة والحد الأدنى للدفعة",
+        "commissionSummary": "عمولة {rate}%، والحد الأدنى للدفعة {amount}.",
+        "vendorConfigLink": "إعدادات البائعين",
+        "refundAdminFeeUpTo": "% بحد أقصى"
       },
       "storage": {
         "title": "إعدادات التخزين",
@@ -2467,13 +3110,142 @@
         "plausibleDomain": "نطاق الموقع",
         "plausibleDomainPlaceholder": "yourdomain.com",
         "plausibleDomainHelp": "أدخل النطاق فقط، مثل yourdomain.com (بدون https://)",
-        "plausibleApiKey": "API Key",
+        "plausibleApiKey": "مفتاح API",
         "plausibleApiKeyPlaceholder": "أدخل مفتاح Plausible API",
         "plausibleApiKeyHelp": "تجده في Plausible → Settings → API Keys",
         "plausibleSelfHosted": "نسخة مستضافة ذاتيًا",
         "plausibleBaseUrl": "رابط النسخة المخصصة",
         "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
         "save": "حفظ إعدادات التحليلات"
+      },
+      "metaCatalog": {
+        "title": "كتالوج Meta",
+        "description": "يقرأ Facebook وInstagram منتجاتك من عنوان URL خاص للموجز، لاستخدامها في المتاجر وإعلانات الكتالوج.",
+        "descriptionOff": "فعّل هذا الخيار لمشاركة منتجاتك مع Facebook وInstagram، لاستخدامها في المتاجر وإعلانات الكتالوج.",
+        "loadFailed": "تعذّر تحميل إعدادات الموجز.",
+        "retry": "حاول مرة أخرى",
+        "feedUrl": "عنوان URL للموجز",
+        "feedUrlHint": "الصقه في Meta Commerce Manager. يمكن لأي شخص لديه عنوان URL هذا قراءة الكتالوج الخاص بك، لذا احتفظ به سرًّا.",
+        "copy": "انسخ عنوان URL للموجز",
+        "copyFailed": "تعذّر النسخ. حدّد عنوان URL وانسخه يدويًا.",
+        "rotate": "إنشاء عنوان URL جديد",
+        "status": {
+          "fetched": "آخر جلب {when} · {count, plural, zero {# عنصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}",
+          "notFetched": "لم يجلب Meta عنوان URL هذا بعد.",
+          "skipped": "العناصر المستبعدة: {reasons}",
+          "preorder": "{count} بالطلب المسبق",
+          "noImage": "{count} بدون صورة صالحة",
+          "noPrice": "{count} بدون سعر"
+        },
+        "toast": {
+          "on": "موجز كتالوج Meta مفعّل",
+          "off": "موجز كتالوج Meta متوقف",
+          "rotated": "تم إنشاء عنوان URL جديد للموجز. الصقه في Commerce Manager.",
+          "failed": "تعذّر الحفظ. يُرجى المحاولة مرة أخرى.",
+          "liveOn": "المزامنة المباشرة مفعّلة",
+          "liveOff": "المزامنة المباشرة متوقفة. تبقى العناصر الموجودة في Meta كما هي.",
+          "sourceFeed": "يقرأ Meta الآن عنوان URL للموجز",
+          "sourceLive": "أصبحت المزامنة المباشرة مصدر الكتالوج"
+        },
+        "rotateConfirm": {
+          "title": "هل تريد إنشاء عنوان URL جديد للموجز؟",
+          "description": "سيتوقف عنوان URL الحالي عن العمل فورًا. وإلى أن تلصق العنوان الجديد في Commerce Manager، سيفشل الجلب المجدول من Meta.",
+          "confirm": "إنشاء عنوان URL جديد",
+          "cancel": "إلغاء"
+        },
+        "guide": {
+          "title": "دليل إعداد Commerce Manager",
+          "step1": "افتح Meta Commerce Manager واختر الكتالوج الخاص بك، أو أنشئ كتالوج تجارة إلكترونية.",
+          "step2": "انتقل إلى Catalog → Data sources → Add items، واختر Data feed، ثم Next.",
+          "step3": "اختر Scheduled feed والصق عنوان URL للموجز الظاهر أعلاه.",
+          "step4": "اضبط التكرار على Hourly، واختر {currency} عملةً، ثم Upload.",
+          "step5": "في Events Manager، اربط الكتالوج بـ Meta Pixel الذي أدخلته في Settings → Analytics، حتى تتمكن الإعلانات من مطابقة المشاهدات والمشتريات مع العناصر.",
+          "step6": "بعد أول عملية جلب، تعرض Catalog → Issues أي عنصر رفضه Meta.",
+          "caution": "بعد إنشاء عنوان URL جديد، غيّر عنوان URL في مصدر البيانات الحالي. فإضافة مصدر بيانات ثانٍ ستُدرج كل منتج مرتين.",
+          "link": "فتح Commerce Manager",
+          "docs": "الشرح الكامل: docs/META_CATALOG.md"
+        },
+        "descriptionLive": "يتلقى Facebook وInstagram تغييرات منتجاتك خلال دقائق عبر Catalog API من Meta.",
+        "source": {
+          "title": "كيف يحصل Meta على منتجاتك",
+          "feed": "عنوان URL للموجز",
+          "feedHint": "ينزّل Meta ملفًا بمنتجاتك كل ساعة.",
+          "live": "المزامنة المباشرة",
+          "liveHint": "تصل التغييرات إلى Meta خلال دقائق عبر Catalog API."
+        },
+        "live": {
+          "catalogId": "معرّف الكتالوج",
+          "catalogIdHint": "الرقم الظاهر أسفل اسم الكتالوج في Commerce Manager.",
+          "token": "رمز وصول System User",
+          "tokenHint": "يُخزَّن مشفّرًا. اتركه فارغًا للإبقاء على الرمز المحفوظ.",
+          "tokenSaved": "محفوظ (اتركه فارغًا للإبقاء عليه)",
+          "tokenRemoving": "سيُحذف الرمز المحفوظ عند الحفظ.",
+          "save": "حفظ",
+          "test": "اختبار الاتصال",
+          "connected": "متصل بـ «{name}»",
+          "problem": {
+            "token": "لم يقبل Meta رمز الوصول. ربما انتهت صلاحيته أو أُلغي.",
+            "permission": "لا يمكن لهذا الرمز إدارة الكتالوجات. عيّن الكتالوج لـ System User بصلاحية Manage، وأنشئ الرمز مع catalog_management.",
+            "catalog": "لا يستطيع هذا الرمز رؤية ذلك الكتالوج. تحقّق من معرّف الكتالوج، ومن أن الكتالوج معيّن لـ System User.",
+            "key": "تعذّرت قراءة الرمز المحفوظ على هذا الخادم. الصقه مرة أخرى واحفظ.",
+            "config": "لم يتم ضبط META_GRAPH_API_VERSION على الخادم.",
+            "throttle": "Meta مشغول حاليًا. حاول مرة أخرى بعد دقيقة.",
+            "other": "تعذّر الوصول إلى Meta: {message}"
+          },
+          "paused": {
+            "title": "المزامنة المباشرة متوقفة مؤقتًا",
+            "kept": "يتم الاحتفاظ بالتغييرات، وستُرسَل بمجرد أن يعمل الاتصال مجددًا.",
+            "meta": "ردّ Meta: {reason}"
+          },
+          "setup": {
+            "version": "تتطلب المزامنة المباشرة ضبط META_GRAPH_API_VERSION على الخادم",
+            "versionHint": "اضبطه على إصدار Graph API الذي يستخدمه تطبيق Meta الخاص بك، مثل v23.0، ثم أعد تشغيل المتجر.",
+            "key": "يتطلب حفظ الرمز ضبط META_CATALOG_ENCRYPTION_KEY على الخادم",
+            "keyHint": "اضبطه على 32 حرفًا عشوائيًا على الأقل، ثم أعد تشغيل المتجر. يُستخدم MESSAGING_ENCRYPTION_KEY إذا لم يكن مضبوطًا."
+          },
+          "status": {
+            "lastSync": "آخر مزامنة {when}",
+            "never": "لم يُرسَل شيء بعد",
+            "waiting": "{count, plural, zero {# تغيير قيد الانتظار} one {تغيير واحد قيد الانتظار} two {تغييران قيد الانتظار} few {# تغييرات قيد الانتظار} many {# تغييرًا قيد الانتظار} other {# تغيير قيد الانتظار}}",
+            "checking": "جارٍ فحص كل منتج",
+            "throttled": "طلب Meta إبطاء الإرسال. يُستأنف الإرسال {when}.",
+            "runError": "تعذّر تشغيل المزامنة المباشرة: {message}"
+          },
+          "skipped": {
+            "line": "المستبعدة في آخر فحص: {reasons}",
+            "preorder": "{count} بالطلب المسبق",
+            "noImage": "{count} بدون صورة صالحة",
+            "noPrice": "{count} بدون سعر"
+          },
+          "syncNow": "مزامنة الكل الآن",
+          "toast": {
+            "syncStarted": "جارٍ إرسال الكتالوج بالكامل إلى Meta مرة أخرى.",
+            "saved": "تم الحفظ",
+            "failed": "تعذّر الحفظ. يُرجى المحاولة مرة أخرى."
+          },
+          "rejected": {
+            "title": "رفض Meta {count, plural, zero {# عنصر} one {عنصرًا واحدًا} two {عنصرين} few {# عناصر} many {# عنصرًا} other {# عنصر}}",
+            "titleFailing": "تعذّر إرسال بعض المنتجات",
+            "edit": "تعديل",
+            "noReason": "لم يوضّح Meta السبب هنا. ستجد السبب في Commerce Manager → Catalog → Issues.",
+            "failing": "تعذّر الإرسال: {message}",
+            "loadFailed": "تعذّر تحميل العناصر المرفوضة.",
+            "retry": "حاول مرة أخرى"
+          },
+          "guide": {
+            "title": "دليل إعداد المزامنة المباشرة",
+            "step1": "في Meta Business Manager، افتح Business settings → Users → System users، وأضف System User بدور Admin.",
+            "step2": "انقر Assign assets، واختر Catalogs، ثم حدّد الكتالوج الخاص بك وفعّل Manage catalog.",
+            "step3": "انقر Generate new token، واختر تطبيقك، واضبط انتهاء الصلاحية على Never، وحدّد هذه الصلاحية. انسخ الرمز:",
+            "step4": "في Commerce Manager، افتح الكتالوج وانسخ معرّفه، وهو الرقم الظاهر أسفل اسمه.",
+            "step5": "الصق الاثنين أعلاه وانقر حفظ. ترسل المزامنة الأولى كل المنتجات؛ وبعدها يُرسَل ما تغيّر فقط، خلال ثلاث دقائق تقريبًا.",
+            "step6": "إذا كان لهذا الكتالوج مصدر بيانات بموجز مجدول، فاحذفه من Catalog → Data sources، حتى يكتب مصدر واحد فقط العناصر.",
+            "caution": "تعامل مع الرمز ككلمة مرور. إذا أُلغي أو انتهت صلاحيته، تتوقف المزامنة المباشرة مؤقتًا ويُبلَّغ المسؤولون.",
+            "off": "يؤدي إيقاف المزامنة المباشرة إلى إبقاء العناصر الموجودة في Meta كما هي. احذفها من Commerce Manager إذا لم تعد تريدها.",
+            "link": "فتح Business settings",
+            "docs": "الشرح الكامل: docs/META_CATALOG.md"
+          }
+        }
       },
       "loadError": "تعذر تحميل الإعدادات",
       "unsavedChanges": {
@@ -2494,39 +3266,37 @@
           "postalCode": "رمز بريدي",
           "address2": "سطر العنوان 2",
           "address1": "العنوان سطر 1",
-          "title": "أصل الشحن",
+          "title": "عنوان الإرسال",
           "postalCodePlaceholder": "94105",
           "statePlaceholder": "كاليفورنيا",
-          "description": "يستخدم كمرجع تشغيلي وتكاملات الناقل المستقبلية.",
+          "description": "عنوان المُرسِل على ملصقات شركات الشحن. وبلده يحدد أي الطلبات تُعد دولية.",
           "address1Placeholder": "123 ش السوق",
-          "address2Placeholder": "جناح 100 (اختياري)"
+          "address2Placeholder": "جناح 100 (اختياري)",
+          "empty": "لم يُحدَّد بعد.",
+          "edit": "تعديل العنوان"
         },
         "weightUnit": {
           "lb": "جنيه (رطل)",
-          "help": "الوحدة المستخدمة لأوزان المنتج وأسعار الشحن المستندة إلى الوزن.",
+          "help": "لأوزان المنتجات والأسعار المستندة إلى الوزن.",
           "kg": "كيلوغرام (كجم)",
           "label": "وحدة الوزن"
         },
-        "description": "قم بتكوين مناطق الشحن والأسعار وتقديرات التسليم مثل Shopify.",
+        "description": "إلى أين تشحن، وكم يكلّف ذلك، وكيف تصل الطرود.",
         "enable": {
-          "help": "عند التمكين، يستخدم الخروج مناطق الشحن والأسعار الخاصة بك. وإلا فإنه سيعود إلى الشحن الثابت في إعدادات الطلب.",
-          "label": "تمكين أسعار الشحن"
+          "label": "استخدام مناطق الشحن عند الدفع"
         },
         "delivery": {
-          "showEstimated": "عرض التقديرات في الخروج",
-          "description": "قم بتعيين وقت المعالجة الذي سيتم إضافته إلى معدل أوقات التسليم عند عرضه.",
-          "processingMin": "أيام المعالجة (دقيقة)",
-          "processingMax": "أيام المعالجة (الحد الأقصى)",
-          "title": "تقديرات التسليم"
+          "showEstimated": "عرض تقديرات التوصيل عند الدفع",
+          "processingMax": "وقت المعالجة الأقصى",
+          "processing": "وقت المعالجة",
+          "processingHint": "يُضاف إلى مدة التوصيل لكل سعر عند الدفع.",
+          "showEstimatedHint": "يوضّح كل سعر المدة التي يستغرقها الوصول."
         },
         "zones": {
-          "description": "أنشئ مناطق وحدد الأسعار. اختر الدول من القائمة، ثم يمكنك اختياريًا تضييق المنطقة إلى أقاليم محددة — اترك الأقاليم فارغة لتغطية الدولة بأكملها.",
-          "title": "مناطق الشحن",
           "add": "أضف منطقة",
           "empty": "لا توجد مناطق حتى الآن. أضف منطقة لبدء تكوين أسعار الشحن."
         },
         "zone": {
-          "remove": "يزيل",
           "searchCountries": "بحث عن الدول...",
           "namePlaceholder": "محلي",
           "countries": "بلدان",
@@ -2538,64 +3308,119 @@
           "regionsFreeTextPlaceholder": "كاليفورنيا، نيويورك، تكساس",
           "searchRegions": "ابحث عن الأقاليم...",
           "noRegionMatches": "لم يتم العثور على أقاليم.",
-          "conditionalRatesWarning": "⚠️ كل الأسعار في هذه المنطقة مشروطة. السلة التي لا تستوفي أيًا من هذه الشروط لن تحصل على أي سعر من هذه المنطقة — ستنتقل إلى السعر الاحتياطي، أو سيُبلَّغ العميل بأن الشحن غير متاح. أضف سعرًا ثابتًا لتغطية الباقي.",
+          "conditionalRatesWarning": "لكل سعر في هذه المنطقة شرط. السلة التي لا تستوفي أيًا من هذه الشروط لا تحصل على أي سعر من هذه المنطقة: تنتقل إلى السعر الاحتياطي، أو يُبلَّغ العميل بأن الشحن غير متاح. أضف سعرًا ثابتًا لتغطية الباقي.",
           "isFallback": "بقية العالم",
-          "isFallbackHint": "تُسعّر أي عنوان لا تغطيه منطقة أخرى. يتم تجاهل دولها وأقاليمها، وتحل محل السعر الاحتياطي المفرد أدناه.",
-          "noCountriesWarning": "لم يتم تحديد أي بلدان. هذه المنطقة لن تتطابق مع أي عنوان."
+          "isFallbackHint": "تُسعّر أي عنوان لا تغطيه منطقة أخرى. يتم تجاهل بلدانها وأقاليمها، وتحل محل السعر الاحتياطي.",
+          "noCountriesWarning": "لم يتم تحديد أي بلدان. هذه المنطقة لن تتطابق مع أي عنوان.",
+          "nameHint": "لمرجعك الخاص. السعر الذي لا اسم له يظهر بهذا الاسم عند الدفع.",
+          "edit": "تعديل المنطقة",
+          "dialogTitleNew": "إضافة منطقة",
+          "delete": "حذف المنطقة",
+          "untitled": "منطقة بلا اسم",
+          "summaryRestOfWorld": "كل عنوان لا تغطيه منطقة أخرى",
+          "summaryNoCountries": "لا توجد بلدان بعد",
+          "allRegions": "كل الأقاليم",
+          "moreCount": "+{count} أخرى",
+          "regionsHint": "اتركه فارغًا لتغطية البلد بأكمله."
         },
         "rates": {
           "add": "إضافة معدل",
           "title": "الأسعار",
-          "empty": "لا توجد أسعار في هذه المنطقة حتى الآن. أضف سعرًا (على سبيل المثال، قياسي أو سريع)."
+          "empty": "لا توجد أسعار في هذه المنطقة حتى الآن. أضف سعرًا (على سبيل المثال، قياسي أو سريع).",
+          "cardTitle": "أسعار الشحن",
+          "cardDescription": "ما تحتسبه صفحة الدفع مقابل الشحن، حسب وجهة الطلب.",
+          "cardDescriptionOff": "عند الإيقاف، يدفع كل طلب تكلفة الشحن الثابتة في <link>إعدادات الطلبات</link>.",
+          "off": "متوقف",
+          "edit": "تعديل",
+          "editRate": "تعديل {name}",
+          "columns": {
+            "rate": "اسم السعر",
+            "condition": "الشرط",
+            "delivery": "التوصيل",
+            "price": "السعر",
+            "actions": "الإجراءات"
+          },
+          "condition": {
+            "any": "أي طلب",
+            "freeFrom": "الطلبات ابتداءً من {amount}",
+            "subtotalBetween": "الطلبات من {min} إلى {max}",
+            "subtotalFrom": "الطلبات ابتداءً من {min}",
+            "subtotalUpTo": "الطلبات حتى {max}",
+            "weightBetween": "من {min} إلى {max} {unit}",
+            "weightFrom": "ابتداءً من {min} {unit}",
+            "weightUpTo": "حتى {max} {unit}"
+          },
+          "price": {
+            "free": "مجاني",
+            "perWeight": "{price} + {perUnit}/{unit}"
+          },
+          "deliveryDays": "{days, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+          "deliveryRange": "{min}–{max} أيام"
         },
         "rate": {
-          "typeLabel": "يكتب",
+          "typeLabel": "طريقة التسعير",
           "namePlaceholder": "معيار",
           "type": {
-            "flat": "سعر موحد",
-            "weightRange": "نطاق الوزن",
-            "subtotalRange": "النطاق الإجمالي الفرعي",
-            "freeOver": "مجاني على المجموع الفرعي"
+            "flat": "سعر ثابت",
+            "weightRange": "الوزن",
+            "subtotalRange": "قيمة الطلب",
+            "freeOver": "مجاني ابتداءً من"
           },
           "price": "سعر",
-          "typePlaceholder": "اختر النوع",
-          "maxSubtotal": "الحد الأقصى للمجموع الفرعي",
-          "freeOver": "مجاني",
+          "maxSubtotal": "أعلى قيمة للطلب",
+          "freeOver": "مجاني للطلبات ابتداءً من",
           "name": "اسم المعدل",
-          "active": "نشيط",
-          "minWeight": "الحد الأدنى للوزن",
-          "minSubtotal": "الحد الأدنى للمجموع الفرعي",
-          "maxDays": "أيام التسليم (الحد الأقصى)",
-          "maxWeight": "الوزن الأقصى",
-          "pricePerWeightUnit": "السعر لكل",
-          "minDays": "أيام التسليم (دقيقة)"
+          "maxDays": "مدة التوصيل القصوى",
+          "maxWeight": "أعلى وزن للطلب",
+          "pricePerWeightUnit": "السعر لكل {unit}",
+          "dialogTitleNew": "إضافة سعر",
+          "dialogTitleEdit": "تعديل السعر",
+          "nameHint": "يرى العملاء هذا الاسم عند الدفع.",
+          "typeHint": {
+            "flat": "سعر واحد لكل طلب في هذه المنطقة.",
+            "freeOver": "شحن مجاني عندما يبلغ الطلب مبلغًا معينًا. الطلبات الأصغر لا يظهر لها هذا السعر.",
+            "subtotalRange": "سعر للطلبات التي تقع قيمتها ضمن نطاق معين.",
+            "weightRange": "سعر للطلبات التي يقع وزنها ضمن نطاق معين، يُضاف إليه مبلغ عن كل وحدة وزن."
+          },
+          "orderValueRange": "قيمة الطلب",
+          "weightRangeLabel": "وزن الطلب",
+          "noLimit": "بلا حد",
+          "perUnit": "لكل {unit}",
+          "deliveryTime": "مدة التوصيل",
+          "processingAdded": "تضيف صفحة الدفع وقت المعالجة لديك ({time}) إلى هذه المدة.",
+          "offer": "إتاحة هذا السعر",
+          "offerHint": "عند الإيقاف يبقى السعر هنا دون أن يظهر عند الدفع.",
+          "delete": "حذف السعر"
         },
         "fallback": {
-          "price": "سعر",
-          "name": "اسم",
-          "enable": "تمكين معدل التراجع",
-          "minDays": "أيام دقيقة",
-          "title": "معدل التراجع",
-          "maxDays": "الحد الأقصى للأيام",
-          "description": "إذا لم تتطابق أي منطقة مع العنوان، فيمكنك تطبيق معدل افتراضي.",
-          "supersededByZone": "منطقة \"{zone}\" تغطي بقية العالم، لذا لم يعد هذا السعر المفرد مستخدمًا. عدّل تلك المنطقة لتغيير ما يُحتسب على العناوين غير المغطاة."
+          "everywhereElse": "أي مكان آخر",
+          "none": "لا يوجد سعر. يُبلَّغ العملاء خارج مناطقك بأن الشحن غير متاح.",
+          "covered": "تغطيه منطقة \"{zone}\".",
+          "add": "إضافة سعر احتياطي",
+          "dialogTitle": "السعر الاحتياطي",
+          "dialogHint": "يُحتسب عندما لا يوجد في أي منطقة سعر للعنوان.",
+          "remove": "إزالة السعر الاحتياطي"
         },
         "vendorShipping": {
           "title": "الشحن لكل بائع",
-          "description": "عند التمكين، يتم تصنيف عناصر كل بائع في عربة التسوق متعددة البائعين وفقًا لملف تعريف الشحن الخاص بهذا البائع (بالرجوع إلى ملف تعريف النظام الأساسي هذا). يتم فرض رسوم الشحن وتخصيصها لكل بائع."
+          "description": "تُسعَّر عناصر كل بائع وفق ملف تعريف الشحن الخاص به، أو وفق هذا الملف إذا لم يكن لديه ملف. يُحتسب الشحن لكل بائع على حدة."
         },
         "customs": {
           "dutyMode": "التعامل مع الواجب",
           "title": "الجمارك والرسوم",
-          "description": "التعامل مع رسوم الاستيراد للطلبات عبر الحدود. يقوم DDP بتحصيل الرسوم المقدرة عند الخروج؛ يترك DDU/DAP الرسوم على العميل للدفع عند التسليم.",
+          "description": "رسوم الاستيراد على الطلبات التي تغادر البلد الذي تشحن منه.",
           "ddu": "DDU - يدفع العميل عند التسليم",
           "ddp": "DDP - جمع الرسوم عند الخروج",
-          "deMinimis": "الحد الأدنى (معفاة من الرسوم الجمركية)",
-          "dutyRatePercent": "معدل الرسوم المقدر (٪)"
+          "deMinimis": "معفاة من الرسوم حتى",
+          "dutyRatePercent": "معدل الرسوم المقدّر",
+          "dutyModeHintDdu": "يدفع العميل أي رسوم جمركية لشركة الشحن عند التسليم.",
+          "dutyModeHintDdp": "تُضاف رسوم جمركية تقديرية إلى الطلب عند الدفع.",
+          "dutyRateHint": "نسبة من المجموع الفرعي للطلب.",
+          "deMinimisHint": "الطلبات التي لا تتجاوز قيمتها هذا المبلغ لا تدفع رسومًا جمركية."
         },
         "codCollectedBy": {
           "title": "من يحصّل النقد عند التسليم",
-          "description": "إذا سلّم البائع بأسطوله الخاص فهو يأخذ النقد ويدين لك بالعمولة. وإذا سلّم مندوبك فأنت تأخذ النقد وتدين للبائع بأرباحه، ولا يمكن سوى للمشرف تعليم تلك الطلبات كمدفوعة. يسري على الطلبات الجديدة.",
+          "description": "إذا سلّم البائعون الطلبات بأنفسهم فهم يأخذون النقد ويدينون لك بالعمولة. وإذا سلّم مندوبك فأنت تأخذ النقد وتدين للبائعين بأرباحهم، ولا يمكن سوى للمشرف تعليم تلك الطلبات كمدفوعة. يسري على الطلبات الجديدة.",
           "vendor": "البائع",
           "platform": "المتجر"
         },
@@ -2620,7 +3445,8 @@
             "labelFormat": "تنسيق الملصق",
             "liveToken": "رمز API المباشر",
             "modeHint": "لا توجد لدى Shippo بيئة اختبار منفصلة — الرمز الذي تستخدمه يحدد ما إذا كان الملصق حقيقيًا. احفظ الرمزين وبدّل بينهما هنا.",
-            "testToken": "رمز API للاختبار"
+            "testToken": "رمز API للاختبار",
+            "webhookHint": "الصق رابط Webhook في Shippo ليتم تحديث الطرود تلقائيًا."
           },
           "shiprocket": {
             "pickupPlaceholder": "اختر موقع استلام",
@@ -2633,19 +3459,26 @@
           },
           "authFailed": "ترفض شركة الشحن هذه بيانات اعتمادك — لا يمكن شحن أي شيء عبرها.",
           "authFailedHint": "حدّث بيانات الاعتماد أدناه، ثم اضغط اختبار الاتصال. يختفي التحذير من تلقاء نفسه بمجرد أن تقبلها شركة الشحن.",
-          "description": "اربط حساب شركة شحن لشراء ملصقات حقيقية وتتبع الطرود تلقائيًا. تواصل صفحة الدفع استخدام أسعار الشحن الخاصة بك.",
+          "description": "اشترِ الملصقات وتتبّع الطرود عبر حساب شركة شحن. تواصل صفحة الدفع استخدام أسعارك الخاصة.",
           "disconnect": "قطع الاتصال",
-          "enable": "تفعيل شركات الشحن",
-          "mode": "البيئة",
-          "modeLive": "مباشر",
-          "modeTest": "اختبار",
-          "originNotSupported": "تشحن Shiprocket من الهند فقط. اجعل بلد منشأ الشحن الهند لتفعيلها.",
+          "enable": "استخدام حسابات شركات الشحن",
+          "mode": "نوع الملصق",
+          "modeLive": "ملصقات حقيقية",
+          "modeTest": "ملصقات تجريبية",
+          "originNotSupported": "تشحن Shiprocket من الهند فقط. اجعل بلد الإرسال الهند لاستخدامها.",
           "pickupLocation": "موقع الاستلام",
           "refreshPickupLocations": "تحديث مواقع الاستلام",
           "registerWebhook": "إنشاء رابط Webhook",
           "testConnection": "اختبار الاتصال",
-          "title": "شركات الشحن",
-          "webhookUrl": "رابط Webhook — الصقه في لوحة تحكم شركة الشحن"
+          "title": "شركات الشحن والملصقات",
+          "webhookUrl": "رابط Webhook — الصقه في لوحة تحكم شركة الشحن",
+          "accountsHeading": "حسابات شركات الشحن",
+          "manage": "إدارة",
+          "connect": "ربط",
+          "off": "متوقفة",
+          "rejected": "بيانات الاعتماد مرفوضة",
+          "enableHint": "عند الإيقاف تبقى بيانات الاعتماد محفوظة دون استخدام شركة الشحن هذه.",
+          "trackingUpdates": "تحديثات التتبع"
         },
         "addressHold": {
           "title": "عناوين يتعذّر التسليم إليها",
@@ -2656,21 +3489,21 @@
           "checkAfterOrderHint": "علّق الطلب فور فشل عنوانه في التحقق، بدل انتظار رفض شركة التوصيل للملصق.",
           "autoRequest": "اسأل العميل تلقائيًا",
           "autoRequestHint": "أرسل للعميل بريدًا برابط لتصحيح العنوان لحظة تعليق الطلب. عند الإيقاف يتولى الموظفون ذلك.",
-          "reminderDays": "التذكير بعد (أيام)",
+          "reminderDays": "التذكيرات",
           "reminderDaysHint": "الأيام بعد الطلب الأول، مفصولة بفواصل. اتركه فارغًا لعدم إرسال تذكيرات.",
-          "deadlineDays": "المهلة (أيام)",
+          "deadlineDays": "المهلة",
           "deadlineDaysHint": "المدة المتاحة للعميل للرد، بدءًا من الطلب الأول.",
           "onDeadline": "عند انقضاء المهلة",
-          "onDeadlineNotify": "أبلغ المتجر وأبقِ الطلب معلّقًا",
-          "onDeadlineCancel": "ألغِ الطلب واسترد مبلغه كاملًا",
+          "onDeadlineNotify": "أبلغ المتجر وأبقه معلّقًا",
+          "onDeadlineCancel": "ألغِه واسترد المبلغ كاملًا",
           "keepReturnShipping": "احتفظ بتكلفة شحن الإرجاع عند عودة الطرد",
           "keepReturnShippingHint": "عندما يُعاد الطرد إلى المرسل بسبب عنوان خاطئ، يُخصم ثمن الملصق من المبلغ المسترد المعروض. الطلبات المعلّقة لم تُشحن قط، لذا يُسترد مبلغها كاملًا دائمًا."
         },
         "automation": {
           "buyLabel": "شراء الملصق تلقائيًا",
           "buyLabelHint": "عند الإيقاف تُنشأ مسودة بعد مقارنة الأسعار ثم تتوقف، ويُترك الشراء لشخص.",
-          "description": "أنشئ شحنة فور دفع الطلب ونقله إلى المعالجة. يمكنك دائمًا إرسال الطلب إلى شركة التوصيل يدويًا بدلًا من ذلك.",
-          "enable": "تفعيل الشحن التلقائي",
+          "description": "يُنشئ الشحنة عندما يُدفع الطلب وينتقل إلى المعالجة. ما زال بإمكانك إرسال أي طلب إلى شركة التوصيل يدويًا.",
+          "enable": "شحن الطلبات المدفوعة تلقائيًا",
           "fixedServiceHint": "معرّف الخدمة الخاص بشركة الشحن. أرسل طلبًا واحدًا إلى شركة التوصيل يدويًا لترى الرموز التي يعيدها حسابك.",
           "fixedServiceToken": "رمز الخدمة",
           "includeCod": "تضمين طلبات الدفع عند الاستلام",
@@ -2679,29 +3512,43 @@
           "markShippedHint": "يرسل إلى العميل رقم التتبع الخاص به.",
           "maxLabelCost": "الإلغاء إذا تجاوزت تكلفة الملصق",
           "maxLabelCostHint": "بعملة حساب شركة الشحن، وليس بعملة المتجر.",
-          "maxOrderValue": "الحد الأقصى لقيمة الطلب",
-          "minOrderValue": "الحد الأدنى لقيمة الطلب",
+          "maxOrderValue": "أعلى قيمة للطلب",
           "noLimit": "بلا حد",
           "rateChoice": "أي سعر يُشترى",
           "rateChoiceCheapest": "الأرخص",
           "rateChoiceFastest": "الأسرع",
           "rateChoiceFixed": "خدمة محددة",
-          "requiresCarrier": "اربط شركة شحن أولًا — لا يوجد لدى الأتمتة مكان تشتري منه الملصق.",
           "restrictCountries": "أتمتة هذه الوجهات فقط",
           "restrictCountriesHint": "اتركه فارغًا لأتمتة كل الوجهات.",
-          "title": "الشحن التلقائي"
+          "title": "الشحن التلقائي",
+          "customize": "تخصيص",
+          "dialogHint": "ما يحدث عندما ينتقل طلب مدفوع إلى المعالجة.",
+          "summary": {
+            "cheapest": "يشتري أرخص ملصق.",
+            "fastest": "يشتري أسرع ملصق.",
+            "fixed": "يشتري خدمة {service}.",
+            "fixedUnset": "يشتري خدمة واحدة لم تُحدَّد بعد.",
+            "draft": "يُعِدّ مسودة شحنة ويترك الشراء لك.",
+            "marksShipped": "ثم يعلّم الطلب كمشحون.",
+            "codIncluded": "يشمل طلبات الدفع عند الاستلام.",
+            "codExcluded": "طلبات الدفع عند الاستلام تُترك لك.",
+            "limited": "قيودك تستثني بعض الطلبات."
+          },
+          "limitsHeading": "القيود",
+          "orderValue": "قيمة الطلب"
         },
         "courierLinks": {
           "add": "إضافة شركة توصيل",
-          "builtIn": "مرتبطة مسبقًا دون أي إعداد:",
+          "builtIn": "مرتبطة مسبقًا بصفحات التتبع الخاصة بها: {couriers}. أضف أي شركة توصيل أخرى تستخدمها.",
           "carrier": "اسم شركة التوصيل",
-          "description": "للطرود التي تُدخلها يدويًا. استخدم {tracking} حيث يوضع رقم التتبع؛ الرابط الذي لا يحتوي على العنصر النائب يُضاف الرقم إلى آخره.",
+          "description": "استخدم {tracking} حيث يوضع رقم التتبع؛ الرابط الذي لا يحتوي على العنصر النائب يُضاف الرقم إلى آخره.",
           "remove": "إزالة رابط شركة التوصيل",
-          "title": "روابط تتبع شركات التوصيل",
-          "urlTemplate": "رابط التتبع"
+          "title": "روابط التتبع",
+          "urlTemplate": "رابط التتبع",
+          "heading": "أرقام التتبع التي تُدخلها يدويًا"
         },
         "packages": {
-          "active": "نشط",
+          "active": "استخدام هذا الصندوق",
           "add": "إضافة طرد",
           "default": "الصندوق الافتراضي",
           "description": "الصناديق التي يمكن تسعير عرض شركة الشحن على أساسها. يُستخدم الافتراضي كلما لم تكن لعناصر الطلب أبعاد خاصة بها.",
@@ -2713,10 +3560,36 @@
           "name": "الاسم",
           "newName": "صندوق جديد",
           "noLimit": "بلا حد",
-          "remove": "إزالة الطرد",
-          "title": "الطرود المحفوظة",
-          "unit": "الوحدة",
-          "width": "العرض"
+          "remove": "حذف الطرد",
+          "title": "الطرود",
+          "unit": "وحدة الأبعاد",
+          "width": "العرض",
+          "edit": "تعديل",
+          "editNamed": "تعديل {name}",
+          "dialogTitleNew": "إضافة طرد",
+          "dialogTitleEdit": "تعديل الطرد",
+          "defaultBadge": "افتراضي",
+          "off": "متوقف",
+          "dimensions": "{length} × {width} × {height} {unit}",
+          "emptyWeightShort": "وزنه فارغًا {weight} {unit}",
+          "maxWeightShort": "يتحمّل حتى {weight} {unit}",
+          "size": "الأبعاد (طول×عرض×ارتفاع)",
+          "weightUnit": "وحدة الوزن",
+          "maxWeightHint": "المحتويات الأثقل من ذلك توضع في صندوق أكبر.",
+          "defaultHint": "يُستخدم عندما لا تكون لعناصر الطلب أبعاد خاصة بها، أو لا يناسبها أي صندوق.",
+          "activeHint": "عند الإيقاف يبقى الصندوق هنا دون تعبئة الطلبات فيه."
+        },
+        "units": {
+          "to": "إلى",
+          "days": "أيام"
+        },
+        "dispatch": {
+          "title": "الإرسال",
+          "description": "من أين تنطلق الطرود، وكم تحتاج من الوقت لإرسالها."
+        },
+        "vendors": {
+          "title": "البائعون",
+          "description": "كيف يعمل الشحن عندما يضم الطلب عناصر من عدة بائعين."
         }
       },
       "ai": {
@@ -2780,86 +3653,23 @@
       },
       "saveChanges": "حفظ التغييرات",
       "notifications": {
-        "title": "إعدادات الإخطار",
-        "description": "اختر الأحداث التي تُنشئ إشعارات لوحة التحكم والبريد الإلكتروني والتنبيهات الفورية والرسائل النصية.",
-        "events": {
-          "admin": {
-            "newOrders": {
-              "title": "طلبات جديدة",
-              "description": "أبلغ المشرفين عند تقديم طلب."
-            },
-            "newCustomers": {
-              "title": "عملاء جدد",
-              "description": "أبلغ المشرفين عند إنشاء ملف عميل."
-            },
-            "newVendors": {
-              "title": "طلبات بائعين جديدة",
-              "description": "أبلغ المشرفين عندما يكون طلب بائع قيد الانتظار."
-            },
-            "returns": {
-              "title": "طلبات الإرجاع",
-              "description": "أبلغ المشرفين عندما يحتاج طلب إرجاع إلى مراجعة."
-            },
-            "payments": {
-              "title": "المدفوعات",
-              "description": "أبلغ المشرفين عند تسجيل نشاط دفع."
-            },
-            "preorderAccessRequests": {
-              "title": "طلبات إذن الطلبات المسبقة",
-              "description": "أبلغ المشرفين عندما يطلب بائع بيع طلبات مسبقة."
-            }
-          },
-          "vendor": {
-            "applicationStatus": {
-              "title": "حالة طلب البائع",
-              "description": "أبلغ البائعين عند قبول حساباتهم أو رفضها."
-            },
-            "newOrders": {
-              "title": "طلبات جديدة للبائع",
-              "description": "أبلغ البائعين عند تلقيهم طلبًا جديدًا."
-            },
-            "returns": {
-              "title": "طلبات إرجاع البائع",
-              "description": "أبلغ البائعين عندما يخصهم طلب إرجاع."
-            },
-            "preorderAccess": {
-              "title": "إذن الطلبات المسبقة للبائع",
-              "description": "أبلغ البائعين عند الموافقة على إذن الطلبات المسبقة أو رفضه أو سحبه."
-            }
-          },
-          "staff": {
-            "newOrders": {
-              "title": "طلبات جديدة للموظفين",
-              "description": "أبلغ الموظفين ذوي صلاحية الطلبات عند تقديم طلب."
-            },
-            "newCustomers": {
-              "title": "عملاء جدد للموظفين",
-              "description": "أبلغ الموظفين ذوي صلاحية العملاء عند إنشاء ملف عميل."
-            },
-            "returns": {
-              "title": "طلبات إرجاع للموظفين",
-              "description": "أبلغ الموظفين ذوي صلاحية الطلبات عندما تحتاج طلبات الإرجاع إلى مراجعة."
-            },
-            "payments": {
-              "title": "مدفوعات للموظفين",
-              "description": "أبلغ موظفي نقاط البيع والطلبات عند تسجيل نشاط دفع."
-            },
-            "lowStock": {
-              "title": "مخزون منخفض للموظفين",
-              "description": "أبلغ موظفي المخزون عندما تحتاج المنتجات إلى إعادة تزويد."
-            }
-          },
-          "customer": {
-            "orderUpdates": {
-              "title": "تحديثات طلبات العملاء",
-              "description": "أبلغ العملاء عند تغيّر حالة الطلب."
-            },
-            "returnUpdates": {
-              "title": "تحديثات إرجاع العملاء",
-              "description": "أبلغ العملاء عند تغيّر حالة الإرجاع."
-            }
-          }
+        "title": "الإشعارات",
+        "description": "اختر من يُبلَّغ بكل حدث، وكيف.",
+        "audiencesLabel": "من يتلقى الإشعارات",
+        "audiences": {
+          "admin": "المشرفون",
+          "staff": "الموظفون",
+          "vendor": "البائعون",
+          "customer": "العملاء"
         },
+        "who": {
+          "admin": "يتلقاها كل حساب مشرف.",
+          "staff": "يتلقى الموظفون النشطون فقط ما تسمح لهم صلاحياتهم برؤيته.",
+          "vendor": "مالك حساب كل بائع، وعن متجره فقط.",
+          "customer": "المتسوقون عبر حساباتهم، أو عبر البريد الإلكتروني والهاتف المسجلين في طلب الزائر."
+        },
+        "teamLink": "الفريق",
+        "noStaff": "لا يوجد أحد في فريقك بعد، لذا لا يتلقاها أحد.",
         "event": "الحدث",
         "channels": {
           "inApp": "داخل التطبيق",
@@ -2867,57 +3677,183 @@
           "browserPush": "إشعار فوري",
           "sms": "SMS"
         },
-        "smsSettingsLink": "إعدادات SMS",
-        "smsOffWarning": "بعض الأحداث مضبوطة لإرسال رسالة نصية، لكن SMS متوقف أو غير مُهيّأ بالكامل، لذا لن يُرسل أي منها.",
-        "smsSetupHint": "لإرسال رسائل نصية، هيّئ Twilio أولًا.",
-        "groups": {
-          "admin": {
-            "title": "إشعارات المشرفين",
-            "description": "الأحداث التي ينبغي أن تنبّه فريق إدارة المتجر."
+        "channelNotSetUp": "لم يُعدّ بعد.",
+        "tips": {
+          "inApp": {
+            "admin": "الجرس في لوحة تحكم الإدارة.",
+            "staff": "الجرس في لوحة تحكم الموظفين.",
+            "vendor": "الجرس في لوحة تحكم البائع.",
+            "customer": "صفحة «الإشعارات» في حساب المتسوق. لا يملكها الزوار."
           },
-          "vendor": {
-            "title": "إشعارات البائعين",
-            "description": "الأحداث المرسلة إلى حسابات البائعين."
+          "email": "تُرسل من خادم البريد الخاص بك (الإعدادات → البريد الإلكتروني).",
+          "browserPush": {
+            "team": "نافذة منبثقة في المتصفحات التي فعّلوا فيها الإشعارات من الجرس.",
+            "customer": "تصل فقط إلى المتسوقين الذين يستخدمون تطبيقك للجوال. لا يتيح المتجر على الويب الاشتراك في الإشعارات الفورية."
+          },
+          "sms": {
+            "team": "رسالة نصية إلى الهاتف المسجل في ملفهم الشخصي. تحتسب Twilio رسومًا على كل رسالة.",
+            "vendor": "رسالة نصية إلى هاتف المتجر، أو إلى هاتف المالك إن لم يوجد. تحتسب Twilio رسومًا على كل رسالة.",
+            "customer": "رسالة نصية إلى الهاتف المسجل في الطلب. تحتسب Twilio رسومًا على كل رسالة."
+          }
+        },
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "طلبات جديدة"
+            },
+            "newCustomers": {
+              "title": "عملاء جدد"
+            },
+            "newVendors": {
+              "title": "طلبات انضمام البائعين"
+            },
+            "returns": {
+              "title": "طلبات الإرجاع"
+            },
+            "payments": {
+              "title": "المدفوعات المستلمة"
+            },
+            "preorderAccessRequests": {
+              "title": "طلبات إذن الطلبات المسبقة"
+            },
+            "lowStock": {
+              "title": "مخزون منخفض",
+              "hint": "انخفاض أحد منتجاتك الخاصة إلى 10 أو أقل"
+            }
           },
           "staff": {
-            "title": "إشعارات الموظفين",
-            "description": "الأحداث المرسلة إلى الموظفين النشطين حسب صلاحيات وحداتهم."
+            "newOrders": {
+              "title": "طلبات جديدة",
+              "hint": "الموظفون الذين يمكنهم رؤية الطلبات",
+              "nobody": "لا أحد في الفريق يمكنه رؤية الطلبات، لذا لا يتلقى أحد هذا الإشعار."
+            },
+            "newCustomers": {
+              "title": "عملاء جدد",
+              "hint": "الموظفون الذين يمكنهم رؤية العملاء",
+              "nobody": "لا أحد في الفريق يمكنه رؤية العملاء، لذا لا يتلقى أحد هذا الإشعار."
+            },
+            "returns": {
+              "title": "طلبات الإرجاع",
+              "hint": "الموظفون الذين يمكنهم رؤية الطلبات",
+              "nobody": "لا أحد في الفريق يمكنه رؤية الطلبات، لذا لا يتلقى أحد هذا الإشعار."
+            },
+            "payments": {
+              "title": "المدفوعات المستلمة",
+              "hint": "الموظفون ذوو صلاحية الطلبات أو POS",
+              "nobody": "لا أحد في الفريق يمكنه رؤية الطلبات أو استخدام POS، لذا لا يتلقى أحد هذا الإشعار."
+            },
+            "lowStock": {
+              "title": "مخزون منخفض",
+              "hint": "الموظفون الذين يمكنهم رؤية المخزون",
+              "nobody": "لا أحد في الفريق يمكنه رؤية المخزون، لذا لا يتلقى أحد هذا الإشعار."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "تحديثات طلب الانضمام",
+              "hint": "الاستلام، القبول، الرفض، تذكيرات الدفع"
+            },
+            "newOrders": {
+              "title": "طلبات جديدة"
+            },
+            "returns": {
+              "title": "طلبات الإرجاع",
+              "hint": "بما فيها المبالغ المستردة المستحقة عليهم"
+            },
+            "preorderAccess": {
+              "title": "إذن الطلبات المسبقة",
+              "hint": "الموافقة أو الرفض أو السحب"
+            }
           },
           "customer": {
-            "title": "إشعارات العملاء",
-            "description": "الأحداث المرسلة إلى حسابات العملاء."
+            "orderUpdates": {
+              "title": "تحديثات الطلبات",
+              "hint": "تغيّر الحالة، أخبار الطلبات المسبقة، تذكيرات الرصيد المتبقي، طلبات تصحيح العنوان",
+              "guestsMiss": "لن يتلقى الزوار أي شيء الآن، ولا حتى تذكيرات الرصيد المتبقي أو طلبات تصحيح العنوان."
+            },
+            "returnUpdates": {
+              "title": "تحديثات الإرجاع",
+              "hint": "كل الحالات والملصقات والاستبدالات",
+              "guestsMiss": "لن يتلقى الزوار أي شيء الآن عن مرتجعاتهم."
+            }
           }
-        }
+        },
+        "notes": {
+          "paymentProblems": "مشكلات الدفع، مثل رد المبالغ المدفوعة أو فشل الاسترداد، تصل دائمًا إلى المشرفين داخل التطبيق وعبر البريد الإلكتروني.",
+          "orderConfirmation": "يُرسل بريد تأكيد الطلب مع فاتورته دائمًا.",
+          "shopperOptOut": "يمكن للمتسوقين الذين لديهم حساب إيقاف رسائل البريد والرسائل النصية الخاصة بالطلبات من الحساب → التفضيلات.",
+          "smsHidden": "هل تريد إرسال رسائل نصية أيضًا؟ بعد إعداد SMS سيظهر هنا عمود SMS. <link>إعدادات SMS</link>"
+        },
+        "warnings": {
+          "email": "البريد الإلكتروني غير مُعدّ، لذا لا يُرسل أي شيء محدد للبريد الإلكتروني. <link>إعداد البريد الإلكتروني</link>",
+          "sms": "{count, plural, zero {لا يوجد حدث مضبوط لإرسال رسالة نصية} one {حدث واحد مضبوط لإرسال رسالة نصية} two {حدثان مضبوطان لإرسال رسالة نصية} few {# أحداث مضبوطة لإرسال رسالة نصية} many {# حدثًا مضبوطًا لإرسال رسالة نصية} other {# حدث مضبوط لإرسال رسالة نصية}}، لكن SMS غير مُعدّ، لذا لا تُرسل أي رسائل نصية. <link>إعداد SMS</link>",
+          "push": "الإشعارات الفورية غير مُعدّة على هذا الخادم، لذا لا تظهر أي نوافذ منبثقة. أضف مفاتيح WEB_PUSH إلى .env (README → Web Push notifications)."
+        },
+        "moreOptions": "المزيد من الخيارات",
+        "restore": "استعادة الإعدادات الموصى بها",
+        "restoreHint": "لجميع الفئات. لا يُحفظ شيء حتى تحفظ."
       },
       "boosting": {
         "title": "ترويج المنتجات",
-        "description": "اسمح للبائعين بالدفع لترويج منتجاتهم في مواضع ممولة عبر المتجر.",
-        "enable": "تفعيل الترويج",
-        "enableDescription": "المفتاح الرئيسي. عند إيقافه لا يُعرض شيء في المتجر ولا يمكن للبائعين شراء حملات ترويج.",
-        "paymentMethods": "طرق الدفع",
-        "paymentMethodsDescription": "بوابات الدفع التي يمكن للبائعين الدفع عبرها. تُضبط بيانات الاعتماد في إعدادات الدفع.",
-        "gatewayDisabledHint": "فعّل هذه البوابة أولاً من إعدادات الدفع",
-        "placements": "المواضع",
-        "placementsDescription": "أين تظهر المنتجات الممولة في المتجر.",
-        "placementHome": "قسم الصفحة الرئيسية",
-        "placementListing": "قوائم المتجر والفئات",
-        "placementProductPage": "شريط صفحة المنتج",
-        "listingSlots": "عمق السلّم في صفحات القوائم",
-        "listingSlotsDescription": "عدد المواضع العليا من السلّم التي تظهر في صفحات المتجر والفئات (1–12). المواضع الأعمق من ذلك لا تظهر هناك ببساطة.",
-        "hideOutOfStock": "إخفاء المنتجات غير المتوفرة",
-        "hideOutOfStockDescription": "المنتج المحجوز الذي ينفد مخزونه يُزال من موضعه ويُقيَّد للبائع رصيد ذلك اليوم بالتناسب.",
-        "managePositions": "إدارة سلّم المواضع والتسعير",
-        "productPageSlots": "عمق السلّم في صفحات المنتجات",
-        "productPageSlotsDescription": "عدد المواضع العليا من السلّم التي تظهر في شريط صفحة المنتج (1–12).",
-        "ladderDepth": "المواضع الأعمق من أكبر هذه الأعماق لا تظهر في أي مكان ولا يمكن بيعها.",
-        "booking": "قواعد الحجز",
-        "bookingDescription": "إلى أي مدى يمكن للبائعين الحجز مسبقًا، وكم يمكن أن يستمر الحجز، وكم تحتفظ عملية دفع غير مكتملة بأيامها.",
-        "bookingHorizonDays": "أفق الحجز (بالأيام)",
-        "bookingHorizonDaysDescription": "إلى أي مدى مستقبلًا يفتح التقويم (7–365).",
-        "maxBookingDays": "أطول حجز واحد (بالأيام)",
-        "maxBookingDaysDescription": "يمنع بائعًا واحدًا من احتجاز موضع لموسم كامل في معاملة واحدة (1–365).",
-        "holdMinutes": "مدة حجز الدفع (بالدقائق)",
-        "holdMinutesDescription": "كم تُبقي عملية دفع غير مكتملة أيامها خارج السوق (35–120). أقل من 35 ترفض Stripe جلسة الدفع."
+        "description": "يدفع البائعون لعرض منتجاتهم في خانات ممولة على واجهة المتجر.",
+        "descriptionOff": "متوقف: لا تظهر أي منتجات ممولة، ولا يمكن للبائعين الحجز. فعّله لإعداد سلّم المواضع وبيع حملات الترويج.",
+        "needsVendors": "تُباع حملات الترويج للبائعين، لذا يتطلب ذلك وضع متعدد البائعين. وهو متوقف في هذا المتجر.",
+        "openMultiVendor": "فتح وضع متعدد البائعين",
+        "links": {
+          "ladder": "سلّم المواضع والتسعير",
+          "campaigns": "حملات الترويج"
+        },
+        "ladder": {
+          "count": "{count, plural, zero {# موضع} one {موضع واحد} two {موضعان} few {# مواضع} many {# موضعًا} other {# موضع}}",
+          "onePrice": "{count, plural, zero {# موضع} one {موضع واحد} two {موضعان} few {# مواضع} many {# موضعًا} other {# موضع}}، {price} يوميًا",
+          "range": "{count, plural, zero {# موضع} one {موضع واحد} two {موضعان} few {# مواضع} many {# موضعًا} other {# موضع}}، من {min} إلى {max} يوميًا",
+          "empty": "لا يحتوي السلّم على مواضع بعد، فلا يجد البائعون ما يحجزونه."
+        },
+        "surfaces": {
+          "title": "أين تظهر المنتجات الممولة",
+          "description": "تعرض كل صفحة المواضع العليا من السلّم.",
+          "home": "الصفحة الرئيسية",
+          "homeHint": "القسم الممول. يُحدَّد حجمه في <link>مُنشئ الصفحة</link>.",
+          "homeMissing": "لا تحتوي صفحتك الرئيسية على قسم ممول حاليًا، لذا لا يظهر فيها شيء. أضفه من <link>مُنشئ الصفحة</link>.",
+          "listing": "صفحات المتجر والفئات",
+          "listingHint": "البطاقات الأولى في الصفحة 1. صفحات البحث والتصفية تبقى كما هي.",
+          "productPage": "صفحات المنتجات",
+          "productPageHint": "الكاروسيل الممول في كل صفحة منتج.",
+          "productPageMissing": "لا تحتوي صفحة المنتج لديك على قسم ممول حاليًا، لذا لا يظهر فيها شيء. أضفه من <link>مُنشئ الصفحة</link>.",
+          "top": "أعلى <input></input> مواضع",
+          "topFixed": "أعلى {count} مواضع",
+          "topLabel": "المواضع المعروضة: {page}",
+          "unseenOne": "الموضع {position} ({name}) لن يظهر في أي صفحة.",
+          "unseenMany": "المواضع {positions} لن تظهر في أي صفحة.",
+          "unseenAll": "لا تعرض أي صفحة منتجات ممولة حاليًا.",
+          "hideOutOfStock": "تخطّي المنتجات غير المتوفرة",
+          "hideOutOfStockHint": "تعرض الخانة منتجًا عاديًا بدلًا منه، ويُقيَّد للبائع رصيد ذلك الجزء من اليوم."
+        },
+        "rules": {
+          "title": "قواعد الحجز",
+          "window": "نافذة الحجز",
+          "windowHint": "إلى أي مدى مستقبلًا يفتح تقويم الحجز.",
+          "longest": "أطول حجز",
+          "longestHint": "يمنع بائعًا واحدًا من احتجاز موضع لموسم كامل.",
+          "longestOverWindow": "أطول من نافذة الحجز، لذا فالنافذة هي الحد الفعلي.",
+          "hold": "الحجز المؤقت للدفع غير المكتمل",
+          "holdHint": "تحتفظ عملية الدفع غير المكتملة بأيامها لهذه المدة، ثم تعود للبيع. تتطلب Stripe {minutes} دقيقة على الأقل.",
+          "days": "يومًا",
+          "minutes": "دقيقة"
+        },
+        "payments": {
+          "title": "طرق الدفع",
+          "description": "الطرق التي يمكن للبائعين الدفع بها مقابل حملة ترويج. يجب أيضًا أن تكون البوابة مفعّلة في <link>إعدادات الدفع</link>."
+        },
+        "turnOff": {
+          "title": "إيقاف ترويج المنتجات؟",
+          "description": "تتوقف المنتجات الممولة عن الظهور في كل الصفحات، ولا يمكن للبائعين الحجز. يُحتفظ بالسلّم وأسعاره وهذه الإعدادات.",
+          "bookings": "الحجوزات الجارية: {running}. القادمة: {upcoming}.",
+          "bookingsUnknown": "قد تكون بعض الحجوزات جارية أو على وشك البدء.",
+          "notCredited": "تتوقف عن الظهور، ولا يُقيَّد للبائعين رصيد تلك الأيام. أوقفها مؤقتًا أو ردّ مبالغها أولًا.",
+          "confirm": "إيقاف",
+          "cancel": "إبقاؤه مفعّلًا"
+        }
       },
       "groups": {
         "store": "المتجر",
@@ -2941,7 +3877,13 @@
         "savedKeysHint": "لا تُعرض المفاتيح المحفوظة مرة أخرى حفاظًا على الأمان.",
         "savedSecretsHint": "لا تُعرض الأسرار المحفوظة مرة أخرى حفاظًا على الأمان.",
         "savedPasswordsHint": "لا تُعرض كلمات المرور المحفوظة مرة أخرى حفاظًا على الأمان.",
-        "enableProvider": "تفعيل {name}"
+        "enableProvider": "تفعيل {name}",
+        "platformPayments": {
+          "allow": "السماح للبائعين بالدفع عبر {name}",
+          "offInPayments": "غير مفعّلة في إعدادات الدفع: {gateways}.",
+          "noneOn": "لا توجد بوابة مفعّلة في إعدادات الدفع بعد.",
+          "noneAllowed": "مع إيقاف جميع الطرق، لا يملك البائعون وسيلة للدفع."
+        }
       },
       "demoMode": "الوضع التجريبي",
       "vendorConfig": {
@@ -2988,32 +3930,89 @@
           "description": "يجب على المتقدمين اختيار خطة قبل الإنهاء، وإلا تُستخدم خطة افتراضية.",
           "label": "اشتراط خطة عند التسجيل"
         },
-        "title": "إعدادات البائعين"
+        "title": "إعدادات البائعين",
+        "quotes": {
+          "title": "عروض الأسعار",
+          "showContact": {
+            "label": "يرى البائعون بريد العميل الإلكتروني وهاتفه",
+            "description": "في طلبات السعر على منتج البائع. عند الإيقاف، يرى البائعون اسم العميل ورسالته دون وسيلة التواصل معه. ويظل بإمكانهم إرسال سعر، ويتولى المتجر إيصاله."
+          }
+        },
+        "abandonedCheckouts": {
+          "title": "الخروج المهجورة",
+          "show": {
+            "label": "يرى البائعون عمليات الخروج المهجورة التي تضم منتجاتهم",
+            "description": "يضيف عمليات الخروج المهجورة ضمن الطلبات في لوحة تحكم البائع. يرى البائع منتجاته فقط في كل عملية خروج، ولا يعرف أبدًا من كان العميل. تبقى رسائل الاسترداد لدى المتجر."
+          }
+        },
+        "abandonedOffers": {
+          "title": "العروض على عمليات الخروج المهجورة",
+          "enabled": {
+            "label": "يمكن للبائعين إرسال عروض",
+            "description": "يمكن للبائع إرسال خصمه الخاص إلى عميل ترك منتجاته في عملية خروج. يرسل المتجر البريد، ولا يرى البائع أبدًا من هو العميل، ويُخصم الخصم من أرباح البائع."
+          },
+          "automatic": {
+            "label": "يمكن للبائعين تعيين عرض تلقائي",
+            "description": "يُرسل العرض الدائم للبائع مع رسالة الاسترداد الثانية من المتجر. يتطلب ذلك تفعيل رسائل الاسترداد التلقائية في إعدادات الدفع."
+          },
+          "maxPercent": {
+            "label": "أكبر عرض",
+            "description": "أقصى ما يمكن أن يخصمه العرض من منتجات البائع."
+          },
+          "maxPerVendorPerDay": {
+            "label": "العروض لكل بائع يوميًا",
+            "description": "عدد العروض التي يمكن لبائع واحد إرسالها خلال 24 ساعة."
+          },
+          "maxValidDays": {
+            "label": "أطول مدة صلاحية للعرض",
+            "description": "14 يومًا كحد أقصى، حين يتوقف رابط الاسترداد عن العمل.",
+            "unit": "أيام"
+          }
+        }
       },
       "sms": {
-        "authTokenPlaceholder": "أدخل Auth Token",
-        "authTokenHint": "يتحقق أيضًا من إيصالات التسليم من Twilio. لا تُعرض الرموز المحفوظة مرة أخرى.",
-        "messagingServiceSidHint": "موصى به. يختار Twilio المُرسِل المناسب لكل وجهة ويتولى الردود بكلمة STOP.",
-        "fromNumberHint": "يُستخدم عند عدم تعيين Messaging Service: رقم Twilio، أو معرّف مُرسِل أبجدي رقمي حيث تسمح وجهاتك بذلك.",
-        "defaultCountryPlaceholder": "استخدم بلد منشأ الشحن",
-        "defaultCountryHint": "تُقرأ أرقام الملفات الشخصية المحفوظة دون رمز البلد وفق هذا البلد. يُقرأ هاتف الطلب دائمًا وفق بلد الشحن الخاص به.",
-        "includeLinksHint": "يضيف رابط صفحة الطلب أو التتبع. غالبًا ما يدفع الرابط الرسالة إلى مقطع ثانٍ يُحتسب رسالة ثانية.",
-        "consentNote": "تُرسل الرسائل النصية إلى العملاء على الهاتف المسجّل في طلبهم، ويمكنهم إيقافها من الحساب → التفضيلات أو بالرد بكلمة STOP. تُرسل إلى المشرفين والموظفين والبائعين على الهاتف المسجّل في ملفهم الشخصي أو متجرهم. اختر الأحداث في <link>إعدادات الإشعارات</link>. لا تراسل إلا من وافقوا على تلقي رسائلك.",
-        "testSent": "أُرسلت رسالة SMS الاختبارية",
-        "testFailed": "تعذّر إرسال رسالة SMS الاختبارية",
+        "title": "الرسائل النصية (Twilio)",
+        "description": "أرسل تحديثات الطلبات والإرجاع والمدفوعات كرسائل نصية عبر حساب Twilio الخاص بك. تحتسب Twilio رسومًا على كل رسالة.",
+        "descriptionOff": "متوقف: لا تُرسل أي رسائل نصية. تبقى بيانات Twilio محفوظة لحين إعادة التفعيل.",
+        "offEnvReady": "تم إعداد Twilio مسبقًا في بيئة الخادم (.env)، لذا يكفي التفعيل.",
+        "eventsCount": "{count, plural, zero {لا يوجد حدث يُرسل رسالة نصية.} one {حدث واحد يُرسل رسالة نصية.} two {حدثان يُرسلان رسالة نصية.} few {# أحداث تُرسل رسالة نصية.} many {# حدثًا تُرسل رسالة نصية.} other {# حدث تُرسل رسالة نصية.}} <link>غيّرها من صفحة الإشعارات</link>",
+        "eventsNone": "لا يوجد حدث يُرسل رسالة نصية بعد، لذا لا يُرسل شيء. اختر الأحداث من صفحة <link>الإشعارات</link>.",
+        "eventsAfterSave": "بعد حفظ إعدادات Twilio، اختر الأحداث التي تُرسل رسالة نصية من صفحة <link>الإشعارات</link>.",
+        "accountTitle": "حساب Twilio",
+        "accountDescription": "انسخ هذه القيم من Account Info في <link>Twilio Console</link>.",
+        "disconnect": "قطع الاتصال",
         "accountSid": "Account SID",
+        "accountSidInvalid": "يبدأ Account SID بـ AC ويليه 32 خانة من الحروف والأرقام.",
         "authToken": "Auth Token",
-        "defaultCountry": "الدولة الافتراضية لأرقام الهواتف",
-        "description": "أرسل تحديثات الطلبات والإرجاع والمدفوعات كرسائل نصية عبر حساب Twilio الخاص بك.",
-        "enable": "تفعيل إشعارات الرسائل النصية",
-        "enableHint": "تحتسب Twilio رسومًا على كل رسالة. لا تُرسل أي رسالة حتى تختار الأحداث أيضًا في إعدادات الإشعارات.",
-        "fromNumber": "رقم المرسل أو معرّف المرسل",
-        "includeLinks": "تضمين رابط",
-        "messagingServiceSid": "Messaging Service SID",
-        "save": "حفظ إعدادات الرسائل النصية",
-        "testButton": "إرسال رسالة نصية تجريبية",
-        "testLabel": "إرسال رسالة تجريبية إلى",
-        "title": "الرسائل النصية (Twilio)"
+        "authTokenHint": "لا يُعرض مرة أخرى بعد الحفظ.",
+        "authTokenPlaceholder": "الصق Auth Token الخاص بك",
+        "sender": "الإرسال من",
+        "senderService": "Messaging Service",
+        "senderNumber": "رقم أو اسم",
+        "senderServiceHint": "موصى به. تختار Twilio الرقم المناسب لكل بلد وتتولى الردود بكلمة STOP.",
+        "senderNumberHint": "رقم Twilio مع رمز البلد، أو اسم من 11 حرفًا كحد أقصى حيث يسمح البلد بذلك.",
+        "senderNumberPlaceholder": "+15551234567 أو {senderId}",
+        "senderServiceInvalid": "يبدأ Messaging Service SID بـ MG ويليه 32 خانة من الحروف والأرقام.",
+        "senderNumberInvalid": "استخدم رقمًا مع رمز البلد، مثل +15551234567، أو اسمًا من 11 خانة كحد أقصى من الحروف والأرقام.",
+        "senderNameNote": "لا يمكن الرد على الرسائل المرسلة باسم، لذا لا يستطيع العملاء إرسال STOP. لكن يمكنهم إيقاف الرسائل النصية من الحساب → التفضيلات.",
+        "senderEnvServiceWins": "حتى مع إدخال هذا الرقم، يظل الإرسال عبر Messaging Service SID المحدد في .env.",
+        "testLabel": "إرسال رسالة نصية تجريبية",
+        "testHint": "تحتسب Twilio رسومًا عليها مثل أي رسالة أخرى.",
+        "testSaveFirst": "احفظ أولًا: يستخدم الاختبار بياناتك المحفوظة.",
+        "testSetupFirst": "أضف بيانات Twilio واحفظها أولًا.",
+        "testButton": "إرسال",
+        "testSent": "قبلت Twilio الرسالة المرسلة إلى {to}. ستظهر حالة تسليمها في السجل أدناه.",
+        "testFailed": "تعذّر إرسال الرسالة النصية التجريبية.",
+        "messagesTitle": "الرسائل",
+        "defaultCountry": "الأرقام بدون رمز البلد",
+        "defaultCountryHint": "تُقرأ أرقام الملفات الشخصية المحفوظة دون رمز البلد وفق هذا البلد. أما هاتف الطلب فيُقرأ دائمًا وفق بلد الشحن الخاص بالطلب.",
+        "defaultCountryOrigin": "{country} (منشأ الشحن)",
+        "defaultCountryNone": "اختر بلدًا",
+        "includeLinks": "إضافة رابط إلى الطلب",
+        "includeLinksHint": "يفتح صفحة الطلب أو التتبع.",
+        "previewCaption": "رسالة تسليم الطلب كما يتلقاها عميلك",
+        "previewCount": "{characters, plural, zero {# حرف} one {حرف واحد} two {حرفان} few {# أحرف} many {# حرفًا} other {# حرف}} · {segments, plural, zero {# رسالة} one {رسالة واحدة} two {بتكلفة رسالتين} few {بتكلفة # رسائل} many {بتكلفة # رسالة} other {بتكلفة # رسالة}}",
+        "previewUnicode": "يحتوي اسم متجرك على حروف خارج أبجدية SMS الأساسية، لذا تتسع كل رسالة لـ 70 حرفًا بدلًا من 160."
       },
       "brandAssets": {
         "wrongFormat": "يجب أن يكون الملف من نوع {formats}",
@@ -3052,7 +4051,7 @@
         }
       },
       "preorder": {
-        "title": "الطلبات المسبقة",
+        "title": "الطلبات المسبقة للبائعين",
         "description": "ما يمكن للبائع أن يعد به عندما يبيع شيئًا قبل وجوده — ومن يُسمح له بذلك.",
         "storeOff": "الطلبات المسبقة متوقفة في المتجر كله. فعّلها من <link>الإعدادات → المنتجات</link> لتحديد ما يمكن للبائعين الوعد به.",
         "requireApproval": {
@@ -3074,6 +4073,11 @@
           "unit": "يومًا بعد تاريخ الإصدار",
           "hint": "يُلغى الطلب، وتُحرَّر الحصة، ويُرد العربون كاملًا."
         },
+        "chargeNotice": {
+          "label": "إشعار قبل خصم البطاقة المحفوظة",
+          "unit": "ساعة",
+          "hint": "يتلقى العميل بريدًا إلكترونيًا بالمبلغ المتبقي وموعد الخصم من بطاقته. تُخصم البطاقة بعد مرور هذا العدد من الساعات على تسليم ذلك البريد أو لاحقًا — وليس قبل ذلك أبدًا. ويمكنه دائمًا الدفع بنفسه في وقت أبكر."
+        },
         "autoRelease": {
           "title": "اطلب الرصيد تلقائيًا",
           "description": "في تاريخ الإصدار، يُطلب من كل طلب مسبق رصيده المتبقي ويُفرج عن المدفوع منها بالكامل. أبقِ هذا متوقفًا إذا كانت تواريخك قد تتأخر — فطلب المال يعني أن البضاعة جاهزة.",
@@ -3081,41 +4085,50 @@
           "hint": "الطلب المسبق المدفوع بالكامل لا يُفرج عنه إلا بعد تسجيل مخزونه فعليًا — التقويم وحده لا يشحن شيئًا."
         },
         "reserve": {
-          "label": "احتجز من دفعات الطلبات المسبقة",
+          "label": "احتجاز من الدفعات",
           "percentUnit": "% لمدة",
           "daysUnit": "يومًا",
-          "hint": "يُحتسب اعتراض البطاقة من تاريخ التسليم المتوقع، لذا يمكن استرداد مبلغ طلب مسبق بعد وقت طويل من الدفع للبائع. القيمة صفر توقف الاحتجاز."
+          "hint": "يغطي اعتراضات البطاقات التي تصل بعد الدفع للبائع. القيمة 0 توقف الاحتجاز."
         },
         "access": {
-          "title": "وصول البائعين",
           "waiting": "{count} بالانتظار",
           "reviewOff": "المراجعة متوقفة، لذا يمكن لكل بائع فتح طلبات مسبقة بالفعل. الموافقة هنا لا تغيّر شيئًا حتى تفعّل المراجعة أعلاه، ولا يُبلَّغ البائع بها.",
           "empty": "لم يطلب أي بائع إذن الطلبات المسبقة بعد.",
-          "revokeNote": "السحب يوقف الطلب المسبق التالي. القوائم التي تُباع بالفعل تفي بوعودها — فقد دفع المتسوقون عربونًا عليها."
-        }
+          "revokeNote": "السحب يوقف الطلب المسبق التالي. القوائم التي تُباع بالفعل تفي بوعودها — فقد دفع المتسوقون عربونًا عليها.",
+          "approvedToggle": "{count, plural, zero {لا يوجد بائع معتمد} one {بائع معتمد واحد} two {بائعان معتمدان} few {# بائعين معتمدين} many {# بائعًا معتمدًا} other {# بائع معتمد}}"
+        },
+        "movedNote": "طلب الرصيد وانتهاء المهلة ينطبقان على كل طلب مسبق، بما فيها طلباتك، لذا تجدهما في <link>الإعدادات → المنتجات</link>."
       },
       "deliveryLogs": {
+        "title": "سجل التسليم",
         "email": {
-          "title": "سجلات تسليم البريد الإلكتروني",
-          "description": "يُحذف المحتوى المرسل فورًا؛ ولا يُحتفظ إلا ببيانات التسليم الوصفية. احفظ إعدادات البريد بعد تغيير مدة الاحتفاظ.",
+          "retentionNote": "تبقى رسائل البريد المرسلة هنا لمدة {count, plural, zero {# يوم} one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}، دون محتواها. وتبقى الفاشلة لمدة 90 يومًا.",
+          "keepFor": "الاحتفاظ برسائل البريد المرسلة لمدة",
+          "clearSent": "مسح رسائل البريد المرسلة…",
+          "clearTitle": "مسح رسائل البريد المرسلة؟",
+          "clearDescription": "{count, plural, zero {لا توجد رسائل بريد مرسلة في السجل.} one {ستُحذف رسالة البريد المرسلة الوحيدة في السجل نهائيًا.} two {ستُحذف رسالتا البريد المرسلتان في السجل نهائيًا.} few {ستُحذف كل رسائل البريد المرسلة في السجل وعددها # نهائيًا.} many {ستُحذف كل رسائل البريد المرسلة في السجل وعددها # نهائيًا.} other {ستُحذف كل رسائل البريد المرسلة في السجل وعددها # نهائيًا.}} أما رسائل البريد الفاشلة وقيد الانتظار فتبقى.",
+          "clearConfirm": "حذف رسائل البريد المرسلة",
+          "deleteTitle": "{count, plural, zero {حذف # رسالة بريد من السجل؟} one {حذف رسالة البريد هذه من السجل؟} two {حذف رسالتي بريد من السجل؟} few {حذف # رسائل بريد من السجل؟} many {حذف # رسالة بريد من السجل؟} other {حذف # رسالة بريد من السجل؟}}",
+          "deleteDescription": "{count, plural, zero {تُزال من السجل فقط، ولا يُلغى إرسالها.} one {تُزال من السجل فقط، ولا يُلغى إرسالها.} two {تُزالان من السجل فقط، ولا يُلغى إرسالهما.} few {تُزال من السجل فقط، ولا يُلغى إرسالها.} many {تُزال من السجل فقط، ولا يُلغى إرسالها.} other {تُزال من السجل فقط، ولا يُلغى إرسالها.}}",
           "summaryLabel": "الموضوع",
-          "searchPlaceholder": "المستلم أو الموضوع أو الفئة",
-          "clearTitle": "مسح سجلات البريد المرسل؟",
-          "deleteTitle": "حذف سجلات البريد المحددة؟",
-          "clearDescription": "{count, plural, zero {لا توجد سجلات بريد مرسلة للحذف.} one {سيُحذف سجل بريد مرسل واحد نهائيًا. لا يمكن التراجع عن هذا الإجراء.} two {سيُحذف سجلا بريد مرسلان نهائيًا. لا يمكن التراجع عن هذا الإجراء.} few {ستُحذف كل سجلات البريد المرسل وعددها # نهائيًا. لا يمكن التراجع عن هذا الإجراء.} many {ستُحذف كل سجلات البريد المرسل وعددها # نهائيًا. لا يمكن التراجع عن هذا الإجراء.} other {ستُحذف كل سجلات البريد المرسل وعددها # نهائيًا. لا يمكن التراجع عن هذا الإجراء.}}",
-          "deleteDescription": "{count, plural, zero {لا توجد سجلات محددة.} one {سيُحذف سجل منتهٍ محدد واحد نهائيًا. لا تُحذف أبدًا الرسائل الموجودة في قائمة الانتظار أو قيد الإرسال.} two {سيُحذف سجلان منتهيان محددان نهائيًا. لا تُحذف أبدًا الرسائل الموجودة في قائمة الانتظار أو قيد الإرسال.} few {ستُحذف # سجلات منتهية محددة نهائيًا. لا تُحذف أبدًا الرسائل الموجودة في قائمة الانتظار أو قيد الإرسال.} many {سيُحذف # سجلًا منتهيًا محددًا نهائيًا. لا تُحذف أبدًا الرسائل الموجودة في قائمة الانتظار أو قيد الإرسال.} other {سيُحذف # سجل منتهٍ محدد نهائيًا. لا تُحذف أبدًا الرسائل الموجودة في قائمة الانتظار أو قيد الإرسال.}}",
-          "queuedForRetry": "{count, plural, zero {لا توجد رسائل فاشلة لإعادة المحاولة.} one {وُضعت رسالة فاشلة واحدة في قائمة إعادة المحاولة.} two {وُضعت رسالتان فاشلتان في قائمة إعادة المحاولة.} few {وُضعت # رسائل فاشلة في قائمة إعادة المحاولة.} many {وُضعت # رسالة فاشلة في قائمة إعادة المحاولة.} other {وُضعت # رسالة فاشلة في قائمة إعادة المحاولة.}}"
+          "searchPlaceholder": "ابحث بالمستلم أو الموضوع",
+          "queuedForRetry": "{count, plural, zero {لا توجد رسائل فاشلة لإعادة المحاولة.} one {وُضعت رسالة فاشلة واحدة في قائمة إعادة المحاولة.} two {وُضعت رسالتان فاشلتان في قائمة إعادة المحاولة.} few {وُضعت # رسائل فاشلة في قائمة إعادة المحاولة.} many {وُضعت # رسالة فاشلة في قائمة إعادة المحاولة.} other {وُضعت # رسالة فاشلة في قائمة إعادة المحاولة.}}",
+          "emptyTitle": "لا توجد رسائل بريد بعد"
         },
         "sms": {
-          "title": "سجلات تسليم الرسائل النصية",
-          "description": "تُحفظ كل رسالة نصية مع حكم شركة الاتصالات حتى تنتهي مدة الاحتفاظ. احفظ إعدادات SMS بعد تغيير مدة الاحتفاظ.",
+          "retentionNote": "تبقى الرسائل النصية المرسلة هنا لمدة {count, plural, zero {# يوم} one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}، والفاشلة لمدة 90 يومًا.",
+          "keepFor": "الاحتفاظ بالرسائل النصية المرسلة لمدة",
+          "clearSent": "مسح الرسائل النصية المرسلة…",
+          "clearTitle": "مسح الرسائل النصية المرسلة؟",
+          "clearDescription": "{count, plural, zero {لا توجد رسائل نصية مرسلة في السجل.} one {ستُحذف الرسالة النصية المرسلة الوحيدة في السجل نهائيًا.} two {ستُحذف الرسالتان النصيتان المرسلتان في السجل نهائيًا.} few {ستُحذف كل الرسائل النصية المرسلة في السجل وعددها # نهائيًا.} many {ستُحذف كل الرسائل النصية المرسلة في السجل وعددها # نهائيًا.} other {ستُحذف كل الرسائل النصية المرسلة في السجل وعددها # نهائيًا.}} أما الرسائل النصية الفاشلة وقيد الانتظار فتبقى.",
+          "clearConfirm": "حذف الرسائل النصية المرسلة",
+          "deleteTitle": "{count, plural, zero {حذف # رسالة نصية من السجل؟} one {حذف هذه الرسالة النصية من السجل؟} two {حذف رسالتين نصيتين من السجل؟} few {حذف # رسائل نصية من السجل؟} many {حذف # رسالة نصية من السجل؟} other {حذف # رسالة نصية من السجل؟}}",
+          "deleteDescription": "{count, plural, zero {تُزال من السجل فقط، ولا يُلغى إرسالها.} one {تُزال من السجل فقط، ولا يُلغى إرسالها.} two {تُزالان من السجل فقط، ولا يُلغى إرسالهما.} few {تُزال من السجل فقط، ولا يُلغى إرسالها.} many {تُزال من السجل فقط، ولا يُلغى إرسالها.} other {تُزال من السجل فقط، ولا يُلغى إرسالها.}}",
           "summaryLabel": "الرسالة",
-          "searchPlaceholder": "رقم الهاتف أو الرسالة أو الفئة",
-          "clearTitle": "مسح سجلات الرسائل النصية المرسلة؟",
-          "deleteTitle": "حذف سجلات الرسائل النصية المحددة؟",
-          "clearDescription": "{count, plural, zero {لا توجد سجلات رسائل نصية مرسلة للحذف.} one {سيُحذف سجل رسالة نصية مرسلة واحد نهائيًا. لا يمكن التراجع عن هذا الإجراء.} two {سيُحذف سجلا رسالتين نصيتين مرسلتين نهائيًا. لا يمكن التراجع عن هذا الإجراء.} few {ستُحذف كل سجلات الرسائل النصية المرسلة وعددها # نهائيًا. لا يمكن التراجع عن هذا الإجراء.} many {ستُحذف كل سجلات الرسائل النصية المرسلة وعددها # نهائيًا. لا يمكن التراجع عن هذا الإجراء.} other {ستُحذف كل سجلات الرسائل النصية المرسلة وعددها # نهائيًا. لا يمكن التراجع عن هذا الإجراء.}}",
-          "deleteDescription": "{count, plural, zero {لا توجد سجلات محددة.} one {سيُحذف سجل منتهٍ محدد واحد نهائيًا. لا تُحذف أبدًا الرسائل النصية الموجودة في قائمة الانتظار أو قيد الإرسال.} two {سيُحذف سجلان منتهيان محددان نهائيًا. لا تُحذف أبدًا الرسائل النصية الموجودة في قائمة الانتظار أو قيد الإرسال.} few {ستُحذف # سجلات منتهية محددة نهائيًا. لا تُحذف أبدًا الرسائل النصية الموجودة في قائمة الانتظار أو قيد الإرسال.} many {سيُحذف # سجلًا منتهيًا محددًا نهائيًا. لا تُحذف أبدًا الرسائل النصية الموجودة في قائمة الانتظار أو قيد الإرسال.} other {سيُحذف # سجل منتهٍ محدد نهائيًا. لا تُحذف أبدًا الرسائل النصية الموجودة في قائمة الانتظار أو قيد الإرسال.}}",
-          "queuedForRetry": "{count, plural, zero {لا توجد رسائل نصية فاشلة لإعادة المحاولة.} one {وُضعت رسالة نصية فاشلة واحدة في قائمة إعادة المحاولة.} two {وُضعت رسالتان نصيتان فاشلتان في قائمة إعادة المحاولة.} few {وُضعت # رسائل نصية فاشلة في قائمة إعادة المحاولة.} many {وُضعت # رسالة نصية فاشلة في قائمة إعادة المحاولة.} other {وُضعت # رسالة نصية فاشلة في قائمة إعادة المحاولة.}}"
+          "searchPlaceholder": "ابحث بالرقم أو نص الرسالة",
+          "queuedForRetry": "{count, plural, zero {لا توجد رسائل نصية فاشلة لإعادة المحاولة.} one {وُضعت رسالة نصية فاشلة واحدة في قائمة إعادة المحاولة.} two {وُضعت رسالتان نصيتان فاشلتان في قائمة إعادة المحاولة.} few {وُضعت # رسائل نصية فاشلة في قائمة إعادة المحاولة.} many {وُضعت # رسالة نصية فاشلة في قائمة إعادة المحاولة.} other {وُضعت # رسالة نصية فاشلة في قائمة إعادة المحاولة.}}",
+          "emptyTitle": "لا توجد رسائل نصية بعد",
+          "noReceipts": "تبقى الرسائل النصية هنا بحالة «مُرسلة»: لا ترسل Twilio تقارير التسليم إلا إلى عنوان https عام، وهذا المتجر يعمل على {origin}."
         },
         "status": {
           "sent": "مُرسلة",
@@ -3124,18 +4137,18 @@
           "failed": "فشلت",
           "queued": "في قائمة الانتظار",
           "retrying": "إعادة المحاولة",
-          "sending": "قيد الإرسال"
+          "sending": "قيد الإرسال",
+          "cancelled": "ملغي"
         },
-        "keepSentLogs": "الاحتفاظ بالسجلات المرسلة",
-        "retentionDays": "{count, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
-        "refresh": "تحديث",
-        "stats": {
-          "total": "الإجمالي",
+        "tabs": {
+          "all": "الكل",
           "sent": "مُرسلة",
           "failed": "فاشلة",
-          "pending": "معلّقة"
+          "waiting": "قيد الانتظار"
         },
-        "allStatuses": "كل الحالات",
+        "tabsLabel": "العرض حسب الحالة",
+        "searchLabel": "البحث في السجل",
+        "rangeLabel": "النطاق الزمني",
         "range": {
           "today": "اليوم",
           "last7": "آخر 7 أيام",
@@ -3143,23 +4156,30 @@
           "last90": "آخر 90 يومًا",
           "all": "كل الأوقات"
         },
-        "deleteSelected": "حذف المحدد",
-        "retrySelectedFailed": "إعادة محاولة الفاشلة المحددة",
-        "retryAllFailed": "إعادة محاولة كل الفاشلة",
-        "clearSent": "مسح السجلات المرسلة",
-        "deleteLogs": "حذف السجلات",
-        "selectPage": "تحديد السجلات المنتهية في هذه الصفحة",
-        "selectRow": "تحديد {name}",
+        "refresh": "تحديث",
+        "options": "خيارات السجل",
+        "retentionDays": "{count, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
         "columns": {
-          "created": "تاريخ الإنشاء",
-          "recipient": "المستلم",
+          "date": "التاريخ",
+          "to": "المستلم",
           "status": "الحالة",
-          "tries": "المحاولات",
-          "action": "الإجراء"
+          "actions": "الإجراءات"
         },
-        "empty": "لا توجد عمليات تسليم مطابقة.",
-        "segments": "{count, plural, zero {# مقطع} one {مقطع واحد} two {مقطعان} few {# مقاطع} many {# مقطعًا} other {# مقطع}}",
+        "selectPage": "تحديد الصفوف المنتهية في هذه الصفحة",
+        "selectRow": "تحديد {name}",
+        "rowActions": "إجراءات {name}",
+        "selected": "تم تحديد {count}",
+        "retry": "إعادة المحاولة",
         "retryNow": "إعادة المحاولة الآن",
+        "retryAll": "إعادة محاولة الكل ({count})",
+        "delete": "حذف",
+        "clearSelection": "إلغاء التحديد",
+        "emptyHint": "ستظهر هنا فور إرسالها.",
+        "noMatch": "لا توجد نتائج مطابقة.",
+        "showAll": "عرض الكل",
+        "tryOf": "المحاولة {attempt} من {max}",
+        "tryOfError": "المحاولة {attempt} من {max} · {error}",
+        "billedAs": "{count, plural, zero {بتكلفة # رسالة} one {بتكلفة رسالة واحدة} two {بتكلفة رسالتين} few {بتكلفة # رسائل} many {بتكلفة # رسالة} other {بتكلفة # رسالة}}",
         "retryFailed": "فشلت إعادة المحاولة",
         "retrySent": "أُرسلت بنجاح",
         "actionFailed": "فشل الإجراء",
@@ -3178,7 +4198,10 @@
         "saveOauthFirst": "احفظ إعدادات OAuth قبل التحقق من بيانات الاعتماد",
         "savePaymentFirst": "احفظ إعدادات الدفع قبل تسجيل رابط Pesapal IPN",
         "saveSmsFirst": "احفظ إعدادات الرسائل النصية قبل إرسال رسالة تجريبية",
-        "saved": "تم حفظ الإعدادات"
+        "saved": "تم حفظ الإعدادات",
+        "defaultVendorSyncFailed": "تم حفظ الإعدادات، لكن تعذّر إنشاء ملف المتجر أو تحديثه، لذا قد لا تعمل المنتجات والمخزون ونقاط البيع بعد. احفظ مرة أخرى؛ وإذا تكرر ذلك فراجع سجل الخادم.",
+        "defaultVendorNoOwner": "تم حفظ الإعدادات، لكن تعذّر إنشاء ملف المتجر: كل حساب مدير يملك بالفعل متجر بائع خاصًا به، وللمتجر مالك واحد فقط. أضف حساب مدير لا يملك أي متجر ثم احفظ مرة أخرى.",
+        "defaultVendorNeedsReview": "تم حفظ الإعدادات، لكن لم يُنشأ ملف متجر جديد: يُرجّح وجود ملف أقدم ضمن متجر خاص بأحد المديرين. يمكن للمطوّر مراجعته باستخدام pnpm db:migrate house-profile --dry-run."
       },
       "conflict": {
         "description": "غيّر شخص آخر هذه الإعدادات منذ أن فتحتها. أعد التحميل لرؤية أحدثها، أو احفظ مرة أخرى للكتابة فوقها.",
@@ -3200,13 +4223,17 @@
         "physical": "المنتجات المادية",
         "physicalDesc": "تُشحن إلى العميل، مع بيانات المخزون والوزن والجمارك.",
         "preorders": "الطلبات المسبقة",
-        "preordersDesc": "استقبل الطلبات قبل وصول المخزون، مع تاريخ إصدار وعربون اختياري. موافقة البائعين والحدود في إدارة البائعين المتعددين.",
+        "preordersDesc": "استقبل الطلبات قبل وصول المخزون، مع تاريخ إصدار وعربون اختياري. موافقة البائعين والحدود في وضع متعدد البائعين.",
         "priceOnRequest": "السعر عند الطلب",
         "priceOnRequestDesc": "أخفِ سعر المنتج واعرض بدلًا منه زر «اطلب عرض سعر».",
         "sellingHeading": "خيارات البيع",
         "title": "المنتجات",
         "typesHeading": "أنواع المنتجات",
         "typesHint": "يبقى نوع منتج واحد على الأقل مفعّلًا."
+      },
+      "saveBar": {
+        "unsaved": "تغييرات غير محفوظة",
+        "discard": "تجاهل"
       }
     },
     "reports": "التقارير",
@@ -3390,6 +4417,84 @@
         "deleteBulkError": "فشل إلى حذف بعض المنتجات",
         "updateSuccess": "{count} المنتجات تم التحديث",
         "updateError": "فشل إلى تحديث {count} المنتجات"
+      },
+      "importDialog": {
+        "columns": {
+          "vendorSlug": "الاسم المختصر (slug) لمتجر البائع، مثل green-leaf. يحدد البائع عندما يكون vendorId فارغًا.",
+          "vendorEmail": "البريد الإلكتروني الذي يسجّل به مالك البائع الدخول. يحدد البائع عندما يكون vendorId فارغًا.",
+          "vendor": "اسم متجر البائع. يُرفض الصف إذا تشارك متجران الاسم نفسه؛ استخدم حينها vendorSlug أو vendorEmail.",
+          "title": "اسم المنتج.",
+          "price": "سعر البيع، مثل 24.99.",
+          "category": "فئة موجودة: اسمها أو الاسم المختصر (slug) لها أو مسارها، مثل نساء > فساتين.",
+          "sku": "رمز المخزون الخاص بك. ويُستخدم أيضًا للعثور على المنتج المراد تحديثه.",
+          "slug": "عنوان المنتج على الويب. يُنشأ من اسم المنتج إن كان فارغًا. ويُستخدم أيضًا للعثور على المنتج المراد تحديثه.",
+          "id": "يوجد في الملفات المُصدَّرة فقط. يحدد المنتج المراد تحديثه بدقة.",
+          "description": "الوصف الكامل. يُسمح باستخدام HTML.",
+          "shortDescription": "حتى 500 حرف.",
+          "comparePrice": "السعر الأصلي، ويظهر مشطوبًا.",
+          "cost": "تكلفة المنتج عليك. لا يراها العملاء أبدًا.",
+          "stock": "عدد الوحدات في المخزون، كعدد صحيح.",
+          "status": "active أو draft أو archived. تُحفظ المنتجات الجديدة كمسودة ما لم يحدد الملف غير ذلك.",
+          "brand": "اسم علامة تجارية موجودة.",
+          "tags": "مفصولة بالرمز |، مثل صيفي|قطن.",
+          "images": "روابط صور عامة (https://…) مفصولة بالرمز |. الرابط الأول هو الصورة الرئيسية. حتى {max}.",
+          "onlineStore": "true أو false: إظهار المنتج في المتجر الإلكتروني. الافتراضي true.",
+          "pointOfSale": "true أو false: بيع المنتج في نقطة البيع. الافتراضي false.",
+          "featured": "true أو false: إبراز المنتج في واجهة المتجر.",
+          "productType": "نص حر، مثل تيشيرت.",
+          "isPhysicalProduct": "true للسلع التي تشحنها، و false للتنزيلات الرقمية. لا يمكن تغييره بعد إنشاء المنتج.",
+          "inventoryTracked": "true أو false: تتبّع مخزون هذا المنتج. الافتراضي true.",
+          "digitalDownloadLimit": "عدد مرات التنزيل المسموح بها لكل طلب للمنتج الرقمي. 0 يعني بلا حدود.",
+          "weight": "وزن الشحن، مثل 0.5.",
+          "weightUnit": "g أو kg أو lb أو oz. الافتراضي kg.",
+          "countryOfOrigin": "اسم الدولة أو رمزها المكوّن من حرفين، مثل BD.",
+          "hsCode": "رمز التعريفة الجمركية.",
+          "barcode": "EAN-13 أو UPC-A أو GTIN-14 أو Code 128. يُنشأ تلقائيًا إن كان فارغًا.",
+          "vendorId": "البائع الذي يتبعه المنتج، كما يظهر في ملف تصدير البائعين. الافتراضي: متجرك الخاص."
+        },
+        "title": "استيراد المنتجات",
+        "description": "أضف منتجات جديدة أو حدّث المنتجات الحالية دفعةً واحدة من ملف CSV أو JSON.",
+        "sampleTitle": "ابدأ من الملف النموذجي",
+        "sampleDescription": "يحتوي على الأعمدة التي يقرؤها الاستيراد وبعض المنتجات على سبيل المثال، مصنّفة مسبقًا ضمن فئات هذا المتجر. استبدل الأمثلة بمنتجاتك، وأبقِ الصف الأول كما هو، ثم ارفع الملف هنا.",
+        "sampleCsv": "نموذج CSV",
+        "sampleJson": "نموذج JSON",
+        "sampleJsonHint": "استخدم JSON للمنتجات التي لها خيارات ومتغيرات، مثل المقاس واللون.",
+        "sampleFailed": "تعذّر تنزيل الملف النموذجي",
+        "dropTitle": "اختر ملفًا أو اسحبه إلى هنا",
+        "dropHint": "CSV أو JSON · حتى {rows} منتج · {size} MB",
+        "removeFile": "إزالة الملف",
+        "fileTooLarge": "حجم هذا الملف أكبر من {size} MB. قسّمه إلى ملفات أصغر.",
+        "wrongType": "اختر ملفًا بصيغة CSV أو JSON.",
+        "rulesTitle": "كيف تُستورد الصفوف",
+        "rules": {
+          "match": "الصف الذي يحتوي على id أو slug أو SKU لمنتج موجود يحدّث ذلك المنتج. وكل صف آخر يُنشئ منتجًا جديدًا.",
+          "blank": "الخلية الفارغة تُبقي القيمة الحالية للمنتج كما هي.",
+          "category": "يجب أن تكون الفئات والعلامات التجارية موجودة مسبقًا. اكتب اسم الفئة — أو، إذا تشاركت فئتان الاسم نفسه، مسارها (نساء > فساتين) أو الاسم المختصر (slug) لها.",
+          "categoryAdmin": "يجب أن تكون العلامات التجارية موجودة مسبقًا، وكذلك الفئات — إلا في ملف JSON يستورده مسؤول، إذ يُنشئ الفئات المذكورة فيه. اكتب اسم الفئة — أو، إذا تشاركت فئتان الاسم نفسه، مسارها (نساء > فساتين) أو الاسم المختصر (slug) لها.",
+          "format": "اكتب الأرقام بلا رموز (1299.99 وليس $1,299.99)، وافصل بين الوسوم وروابط الصور بالرمز |."
+        },
+        "columnsTitle": "دليل الأعمدة",
+        "required": "مطلوب للمنتجات الجديدة",
+        "adminOnly": "للمسؤول فقط",
+        "cancel": "إلغاء",
+        "submit": "استيراد المنتجات",
+        "importing": "جارٍ الاستيراد… قد تستغرق الملفات الكبيرة دقيقة. أبقِ هذه النافذة مفتوحة.",
+        "requestFailed": "تعذّر استيراد الملف. حاول مرة أخرى.",
+        "resultTitle": "اكتمل الاستيراد",
+        "resultFailedTitle": "تعذّر استيراد الملف",
+        "created": "تم الإنشاء",
+        "updated": "تم التحديث",
+        "failed": "فشل",
+        "warnings": "ملاحظات",
+        "errorsTitle": "صفوف لم تُستورد",
+        "errorsHint": "صحّح هذه الصفوف في ملفك ثم استورده مرة أخرى. الصفوف التي تحتوي على slug أو SKU تحدّث المنتجات التي أنشأها هذا الاستيراد بالفعل بدلًا من إضافة نسخ مكررة.",
+        "rowLabel": "الصف {row}",
+        "productLabel": "المنتج {row}",
+        "fileLabel": "الملف",
+        "moreErrors": "…و{count} غيرها في القائمة القابلة للتنزيل.",
+        "downloadErrors": "تنزيل قائمة الأخطاء",
+        "importAnother": "استيراد ملف آخر",
+        "done": "تم"
       }
     },
     "collectionsDataTable": {
@@ -3622,7 +4727,8 @@
           "locationNameRequired": "اسم الموقع مطلوب",
           "createLocationSuccess": "الموقع تمت الإضافة",
           "createLocationError": "فشل إلى إنشاء موقع"
-        }
+        },
+        "max": "الحد الأقصى"
       },
       "details": {
         "loading": "جار التحميل تحويل...",
@@ -3634,13 +4740,16 @@
         "meta": {
           "created": "تم الإنشاء",
           "updated": "آخر تم التحديث",
-          "totalUnits": "إجمالي وحدة"
+          "totalUnits": "إجمالي وحدة",
+          "shipped": "تم الشحن",
+          "completed": "مكتمل"
         },
         "columns": {
           "product": "منتج",
           "variant": "متغير",
           "sku": "رمز المنتج",
-          "qty": "الكمية"
+          "qty": "الكمية",
+          "rejected": "مرفوض"
         },
         "actions": {
           "markReadyToShip": "تعيين ready إلى ship",
@@ -3652,6 +4761,24 @@
           "loadError": "فشل إلى تحميل تحويل",
           "updateSuccess": "تحويل تم التحديث",
           "updateError": "فشل إلى تحديث تحويل"
+        }
+      },
+      "edit": {
+        "saveChanges": "حفظ التغييرات",
+        "toasts": {
+          "saveSuccess": "تحويل تم التحديث",
+          "saveError": "فشل إلى تحديث تحويل"
+        }
+      },
+      "receive": {
+        "columns": {
+          "outstanding": "المستحق"
+        },
+        "note": "ملاحظة"
+      },
+      "history": {
+        "events": {
+          "created": "تحويل تم الإنشاء"
         }
       }
     },
@@ -3787,7 +4914,7 @@
       "expired_codes_are_automatically_rejected_in_checkout_validation": "Expired codes are automatically rejected in checkout validation.",
       "saving": "جارٍ الحفظ...",
       "update_discount": "تحديث الخصم",
-      "pos": "POS",
+      "pos": "نقاط البيع",
       "manage_pos": "Manage POS",
       "pos_create": "POS Create",
       "pos_edit": "POS Edit",
@@ -3800,7 +4927,7 @@
       "manage_products": "Manage Products",
       "create_products": "Create Products",
       "edit_products": "Edit Products",
-      "delete_products": "Delete Products",
+      "delete_products": "حذف المنتجات",
       "manage_customers": "Manage Customers",
       "create_customers": "Create Customers",
       "edit_customers": "Edit Customers",
@@ -3820,7 +4947,21 @@
       "unsubscribed": "ألغى الاشتراك",
       "not_subscribed": "غير مشترك",
       "invalid": "عنوان غير صالح",
-      "redacted": "محذوف"
+      "redacted": "محذوف",
+      "administrator": "مسؤول",
+      "not_needed": "غير مطلوب",
+      "who_pays_for_this_discount": "من يتحمّل تكلفة هذا الخصم",
+      "the_store": "المتجر",
+      "the_sellers_who_deliver_the_parcels": "البائعون الذين يوصلون الطرود",
+      "the_sellers_whose_items_it_discounts": "البائعون الذين يُخصم من منتجاتهم",
+      "when_the_store_pays_sellers_still_earn_the_delivery_charge_their_parcel_was_rated_at_applies_to_orders_placed_from_now_on": "عندما يدفع المتجر، يحصل البائعون على رسوم التوصيل المحددة لطردهم كاملة. يسري على الطلبات المقدمة من الآن فصاعدًا.",
+      "when_the_store_pays_sellers_are_paid_as_if_their_items_sold_at_full_price_applies_to_orders_placed_from_now_on": "عندما يدفع المتجر، يتقاضى البائعون ما يعادل بيع منتجاتهم بالسعر الكامل. يسري على الطلبات المقدمة من الآن فصاعدًا.",
+      "show_to_shoppers": "إظهار للمتسوقين",
+      "list_this_code_in_the_shopping_app_s_coupon_sheet_off_it_works_only_when_typed": "اعرض هذا الرمز في قائمة القسائم في تطبيق التسوق. عند الإيقاف: يعمل فقط عند كتابته.",
+      "team_members_exported": "تم تصدير أعضاء الفريق",
+      "team_members_could_not_be_exported": "تعذّر تصدير أعضاء الفريق",
+      "vendors_exported": "تم تصدير البائعين",
+      "vendors_could_not_be_exported": "تعذّر تصدير البائعين"
     },
     "customersPage": {
       "stats": {
@@ -3913,6 +5054,53 @@
       "updateSuccess": "تم تحديث {count} عميل",
       "updateError": "فشل تحديث {count} عميل"
     },
+    "vendorsDataTable": {
+      "thisVendor": "هذا البائع",
+      "deleteSingleDescription": "هل أنت متأكد أنك تريد حذف {name}؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "customerAccountEmail": {
+      "sendReset": "إرسال إعادة تعيين كلمة المرور",
+      "sendInvite": "إرسال دعوة الحساب",
+      "confirmResetTitle": "إرسال رابط إعادة تعيين كلمة المرور؟",
+      "confirmResetDescription": "سيتلقى {email} رابطًا لاختيار كلمة مرور جديدة. يعمل الرابط لمدة ساعة واحدة.",
+      "confirmInviteTitle": "إرسال دعوة الحساب؟",
+      "confirmInviteDescription": "سيتلقى {email} رابطًا لتعيين كلمة مرور لحسابه. يعمل الرابط لمدة 7 أيام.",
+      "send": "إرسال",
+      "cancel": "إلغاء",
+      "resetSent": "تم إرسال رابط إعادة تعيين كلمة المرور إلى {email}",
+      "inviteSent": "تم إرسال دعوة الحساب إلى {email}",
+      "emailNotSetUp": "البريد الإلكتروني غير مُعدّ بعد. أعدّه أولًا من الإعدادات ← البريد الإلكتروني.",
+      "sendFailed": "تعذّر إرسال البريد الإلكتروني. تحقّق من الإعدادات ← البريد الإلكتروني.",
+      "reason": {
+        "nonCustomer": "هذا الحساب يخص بائعًا أو عضوًا في الفريق.",
+        "banned": "هذا العميل محظور.",
+        "inactive": "حساب هذا العميل غير نشط.",
+        "noEmail": "ليس لدى هذا العميل عنوان بريد إلكتروني.",
+        "recent": "أُرسل بريد حساب إلى هذا العميل قبل أقل من 15 دقيقة.",
+        "duplicate": "ورد هذا العميل مرتين في القائمة."
+      },
+      "bulkAction": "إرسال بريد الحساب",
+      "sendToAllMatching": "إرسال إلى جميع المطابقين ({count})",
+      "confirmBulkTitle": "إرسال رسائل الحساب؟",
+      "confirmBulkDescription": "سيتلقى {count} من العملاء بريدًا: رابط إعادة تعيين كلمة المرور لمن لديه كلمة مرور، أو دعوة لتعيينها لمن ليس لديه.",
+      "skippedSummary": "سيُستبعد {count}: {reasons}.",
+      "skippedReason": {
+        "nonCustomer": "{count} من حسابات الفريق أو البائعين",
+        "banned": "{count} محظور",
+        "inactive": "{count} غير نشط",
+        "noEmail": "{count} بلا بريد إلكتروني",
+        "recent": "{count} تلقّوا بريدًا خلال آخر 15 دقيقة",
+        "duplicate": "{count} مكرر في القائمة"
+      },
+      "nobodyToSend": "لا يمكن إرسال بريد الحساب إلى أيٍّ من هؤلاء العملاء.",
+      "queued": "جارٍ إرسال {count} من رسائل الحساب",
+      "progress": "جارٍ إرسال رسائل الحساب · {done} من {total}",
+      "progressFailed": "تعذّر إرسال {count}",
+      "finished": "تم إرسال {count} من رسائل الحساب",
+      "finishedWithFailures": "تعذّر إرسال {failed} من أصل {total} من رسائل الحساب.",
+      "retry": "إعادة المحاولة",
+      "dismiss": "إغلاق"
+    },
     "discountsDataTable": {
       "deleteBulkDescription": "هل أنت متأكد أنك تريد حذف {count} خصم؟ لا يمكن التراجع عن هذا الإجراء.",
       "deleteBulkSuccess": "تم حذف {count} خصم",
@@ -3945,7 +5133,7 @@
           "styleNote": "مصمم للأرائك والأسرّة وأطقم السفرة — الغرف في الواجهة والمنتجات تتبعها."
         },
         "women-fashion": {
-          "name": "Fashion",
+          "name": "أزياء",
           "description": "عرض تحريري للأزياء: صور حملات بعرض كامل، ومربعات إطلالات، وتشكيلات موسمية.",
           "styleNote": "مصمم للملابس والأحذية والإكسسوارات — الصور في الواجهة والإطار في الخلفية."
         }
@@ -4289,7 +5477,7 @@
       },
       "gateways": {
         "stripe": "Stripe",
-        "paypal": "PayPal",
+        "paypal": "باي بال",
         "cashOnDelivery": "الدفع عند الاستلام"
       },
       "recentTransactions": {
@@ -4317,15 +5505,16 @@
       },
       "providers": {
         "stripe": "Stripe",
-        "paypal": "PayPal",
-        "razorpay": "Razorpay",
-        "paystack": "Paystack",
+        "paypal": "باي بال",
+        "razorpay": "رازورباي",
+        "paystack": "الراتب",
         "cod": "الدفع عند الاستلام",
         "cash": "نقدًا",
         "manual": "يدوي",
         "pos_card": "بطاقة POS",
         "pos_cash": "نقد POS"
-      }
+      },
+      "asThingsStand": "كما هو الوضع الآن"
     },
     "payoutsPage": {
       "title": "الدفعات",
@@ -4410,7 +5599,7 @@
       },
       "providers": {
         "stripe": "Stripe",
-        "paypal": "PayPal",
+        "paypal": "باي بال",
         "cod": "الدفع عند الاستلام",
         "cash": "نقدًا",
         "manual": "يدوي",
@@ -4425,6 +5614,10 @@
         "pesapal": "Pesapal",
         "orange_money": "Orange Money",
         "manual_pending": "يدوي (قيد الانتظار)"
+      },
+      "settlement": {
+        "note": "ملاحظة",
+        "voidReason": "السبب"
       }
     },
     "seoChecklist": {
@@ -4670,7 +5863,11 @@
         "enablePreorder": "تمكين الطلبات المسبقة",
         "clearCountryOfOrigin": "بدون بلد المنشأ",
         "priceOnRequest": "السعر عند الطلب",
-        "quoteButtonLabel": "نص زر طلب السعر"
+        "quoteButtonLabel": "نص زر طلب السعر",
+        "length": "الطول",
+        "width": "العرض",
+        "height": "الارتفاع",
+        "sizeUnit": "وحدة الأبعاد"
       },
       "noCollectionMatches": "لم يتم العثور على مجموعات مطابقة",
       "noCollections": "لا توجد مجموعات متاحة. قم بإنشاء مجموعة أولاً.",
@@ -4724,6 +5921,18 @@
         "priceOnRequestHelp": "إخفاء السعر وعرض زر “اطلب عرض سعر” بدلاً منه.",
         "hiddenPricingTitle": "التسعير عند الطلب",
         "hiddenPricingHelp": "يرى المتسوقون “السعر عند الطلب” وزر طلب السعر بدلاً من السعر، ولا يمكن إضافة هذا المنتج إلى السلة. أوقف المفتاح أدناه لتسعيره بشكل عادي."
+      },
+      "formOptions": {
+        "failedTitle": "تعذّر تحميل الفئات والعلامات التجارية ومواقع المخزون",
+        "failedBody": "تغييراتك محفوظة في النموذج. يمكنك حفظ المنتج بعد تحميلها.",
+        "failedAfterLoadedBody": "ما زالت القوائم المحمّلة سابقًا معروضة، وقد لا تكون محدّثة.",
+        "storeProfileMissing": "ملف المتجر الذي تتبعه هذه القوائم غير موجود. يُنشئه المدير بحفظ الإعدادات ← الإعدادات العامة، ثم انقر على إعادة المحاولة. تغييراتك محفوظة في النموذج.",
+        "storeProfileNoOwner": "لا يمكن إنشاء ملف المتجر الذي تتبعه هذه القوائم: كل حساب مدير يملك بالفعل متجر بائع خاصًا به، وللمتجر مالك واحد فقط. أضف حساب مدير لا يملك أي متجر، ثم انقر على إعادة المحاولة. تغييراتك محفوظة في النموذج.",
+        "storeProfileNeedsReview": "ملف المتجر الذي تتبعه هذه القوائم غير موجود، ويُرجّح وجود ملف أقدم ضمن متجر خاص بأحد المديرين. يمكن للمطوّر مراجعته باستخدام pnpm db:migrate house-profile --dry-run، ثم انقر على إعادة المحاولة. تغييراتك محفوظة في النموذج.",
+        "retry": "إعادة المحاولة",
+        "loadingCategories": "جارٍ تحميل الفئات…",
+        "categoriesUnavailable": "تعذّر تحميل الفئات. استخدم زر إعادة المحاولة في الأعلى.",
+        "saveBlocked": "يمكن حفظ المنتج بعد تحميل الفئات والعلامات التجارية ومواقع المخزون."
       }
     },
     "salesFunnel": "قمع المبيعات",
@@ -4756,7 +5965,7 @@
           "description": "إدارة صفحات واجهة المتجر مثل سياسة الخصوصية والمزيد."
         },
         "customize": {
-          "title": "Customize",
+          "title": "تخصيص",
           "description": "Edit every storefront page — templates, landing pages, header and footer — in one visual editor."
         }
       },
@@ -4981,6 +6190,90 @@
           "searchBelow": "البحث في الأسفل"
         },
         "title": "نمط الرأس"
+      },
+      "panel": {
+        "transformUpper": "UPPERCASE",
+        "placeholderLanguage": "لغة النص الإرشادي",
+        "placeholderDefault": "إذا كان هذا الحقل فارغًا، يُستخدم نص واجهة المتجر المترجم. يُحفظ النص المخصص للغة المحددة.",
+        "row": "الصف",
+        "column": "عمود",
+        "drawerSides": {
+          "left": "يسار",
+          "right": "يمين"
+        },
+        "drawerFieldStyles": {
+          "outline": "محدد"
+        },
+        "homeGroup": "الصفحة الرئيسية",
+        "columns": "الأعمدة",
+        "width": "العرض",
+        "height": "الارتفاع",
+        "gap": "فاصل",
+        "theme": "السمة",
+        "brandTheme": {
+          "auto": "تلقائي",
+          "light": "فاته",
+          "dark": "داكن"
+        },
+        "text": "النص",
+        "content": "النص",
+        "buttonVariant": {
+          "outline": "محدد"
+        },
+        "greeting": "الترحيب",
+        "weight": {
+          "300": "فاته"
+        },
+        "highlight": "ميزة",
+        "collectionsLimit": "يعرض",
+        "collectionsColumns": "الأعمدة"
+      },
+      "builder": {
+        "title": "التخطيط"
+      },
+      "items": {
+        "text": "النص",
+        "categories": "جميع الفئات",
+        "collections": "المجموعات",
+        "language": "اللغة"
+      },
+      "icons": {
+        "wishlist": "قائمة الرغبات",
+        "cart": "السلة",
+        "contact": "اتصال",
+        "language": "اللغة"
+      },
+      "canvas": {
+        "column": "عمود",
+        "addRow": "الصف"
+      },
+      "chrome": {
+        "announcement": "شريط الإعلان",
+        "topTags": "الوسوم الرائجة",
+        "text": "النص",
+        "untitledTag": "بدون عنوان",
+        "show": "يعرض"
+      },
+      "tags": {
+        "sourceLabel": "المصدر",
+        "searchProducts": "ابحث عن المنتجات…",
+        "change": "الباقي"
+      },
+      "links": {
+        "title": "الروابط",
+        "remove": "إزالة الرابط",
+        "addLink": "إضافة رابط",
+        "untitled": "بدون عنوان",
+        "uploadIcon": "رفع صورة",
+        "menuGrid": "شبكة صور"
+      },
+      "templates": {
+        "classic": {
+          "label": "كلاسيكي"
+        },
+        "marketplace": {
+          "label": "السوق"
+        }
       }
     },
     "footerCms": {
@@ -5759,7 +7052,12 @@
         "title": "العنوان",
         "transition": "الانتقال",
         "url": "رابط URL",
-        "width": "العرض"
+        "endless": "تمرير لا نهائي",
+        "width": "العرض",
+        "categoryId": "الفئة",
+        "brandId": "العلامة التجارية",
+        "categorySource": "مصدر الفئة",
+        "featuredProducts": "منتجات مميزة"
       },
       "groupCutoverNote": "سيعرض المتجر الرأس والتذييل القياسيين حتى أول نشر يحوّل هذه المجموعة إلى المنشئ نهائيًا.",
       "groupSubtitle": "تظهر هذه الأقسام في كل صفحات المتجر. النشر يطبّقها على المتجر بأكمله.",
@@ -5827,7 +7125,15 @@
         "threeQuarters": "ثلاثة أرباع الشاشة",
         "topLevel": "المستوى الأعلى",
         "truck": "الشحن",
-        "wallet": "استرداد المال"
+        "wallet": "استرداد المال",
+        "category": "الفئة",
+        "brand": "العلامة التجارية",
+        "collection": "التشكيلة",
+        "uppercase": "UPPERCASE",
+        "browser": "المتصفح",
+        "auto": "تلقائي",
+        "square": "مربع",
+        "show": "يعرض"
       },
       "pageFull": "هذه الصفحة ممتلئة — احذف قسمًا لإضافة آخر.",
       "pending": "غير محفوظ…",
@@ -5874,7 +7180,10 @@
         },
         "cart-main": {
           "description": "عناصر السلة وملخص الطلب — جوهر الصفحة",
-          "name": "حقيبة التسوق"
+          "name": "حقيبة التسوق",
+          "variants": {
+            "classic": "كلاسيكي"
+          }
         },
         "category-header": {
           "description": "صورة الفئة ووصفها وعدد منتجاتها",
@@ -5890,7 +7199,10 @@
         },
         "category-main": {
           "description": "شبكة منتجات الفئة — جوهر الصفحة",
-          "name": "منتجات الفئة"
+          "name": "منتجات الفئة",
+          "variants": {
+            "classic": "كلاسيكي"
+          }
         },
         "category-mosaic": {
           "description": "بينتو من بلاطات صور الفئات",
@@ -6014,7 +7326,10 @@
         },
         "products-main": {
           "description": "الفلاتر والترتيب وشبكة المنتجات — جوهر الصفحة",
-          "name": "قائمة المنتجات"
+          "name": "قائمة المنتجات",
+          "variants": {
+            "classic": "كلاسيكي"
+          }
         },
         "promotion-banner": {
           "description": "بانر واحد بعنوان وزر فوقه",
@@ -6034,7 +7349,10 @@
         },
         "service-benefits": {
           "description": "شريط المزايا: الشحن، الإرجاع، الدعم",
-          "name": "مزايا الخدمة"
+          "name": "مزايا الخدمة",
+          "variants": {
+            "classic": "كلاسيكي"
+          }
         },
         "slideshow": {
           "description": "سلايدر صور رئيسي بشرائح مرتبطة",
@@ -6110,7 +7428,109 @@
       "toggleVisibility": "تبديل الظهور",
       "unknownSection": "نوع هذا القسم غير موجود في الكتالوج الحالي.",
       "unpublishedNote": "لديك تغييرات غير منشورة. سيظل المتسوقون يرون آخر نسخة منشورة حتى تنشر.",
-      "variantLabel": "التصميم"
+      "variantLabel": "التصميم",
+      "fieldHints": {
+        "product-grid": {
+          "categoryId": "منتجات هذه الفئة وكل الفئات المندرجة تحتها، والأحدث أولاً.",
+          "brandId": "منتجات هذه العلامة التجارية، والأحدث أولاً.",
+          "collectionId": "منتجات التشكيلة بترتيب التشكيلة نفسها."
+        },
+        "product-browser": {
+          "categoryId": "منتجات هذه الفئة وكل الفئات المندرجة تحتها، والأحدث أولاً.",
+          "brandId": "منتجات هذه العلامة التجارية، والأحدث أولاً.",
+          "collectionId": "منتجات التشكيلة بترتيب التشكيلة نفسها."
+        },
+        "product-group": {
+          "categoryId": "منتجات هذه الفئة وكل الفئات المندرجة تحتها، والأحدث أولاً.",
+          "brandId": "منتجات هذه العلامة التجارية، والأحدث أولاً.",
+          "collectionId": "منتجات التشكيلة بترتيب التشكيلة نفسها."
+        }
+      },
+      "sliderBlock": {
+        "heights": {
+          "threeQuarters": "3/4",
+          "half": "1/2",
+          "quarter": "1/4",
+          "fourFifths": "4/5",
+          "threeFifths": "3/5"
+        },
+        "width": "العرض",
+        "height": "الارتفاع",
+        "cellSlider": "عرض الشرائح",
+        "done": "تم",
+        "widths": {
+          "fullPadding": "عرض كامل مع حشو",
+          "fullHeight": "عرض كامل / ارتفاع كامل",
+          "fullHeightPadding": "عرض كامل / ارتفاع كامل مع حشو"
+        }
+      },
+      "buttonCases": {
+        "uppercase": "UPPERCASE",
+        "theme": "افتراضي القالب"
+      },
+      "panelGroups": {
+        "layout": "التخطيط"
+      },
+      "sectionEditor": {
+        "preview": "معاينة"
+      },
+      "productLayoutTitle": "تفاصيل المنتج",
+      "orderTitle": "الطلب",
+      "productRows": {
+        "variants": "المتغيرات",
+        "quantity-cart": "أضف إلى السلة",
+        "share": "يشارك",
+        "gap": "فاصل"
+      },
+      "visibilityTitle": "الرؤية",
+      "detailStyle": {
+        "gap": "فاصل",
+        "auto": "تلقائي",
+        "actions": "يعرض",
+        "buttonLayout": "التخطيط",
+        "buttonHeight": "الارتفاع",
+        "share": "يشارك"
+      },
+      "brandEditor": {
+        "preview": "معاينة",
+        "width": "العرض",
+        "brandList": "قائمة العلامات"
+      },
+      "featuredCollection": {
+        "picksSearching": "جارٍ البحث…",
+        "picksClear": "مسح الكل",
+        "picksAuto": "تلقائي"
+      },
+      "blockGroups": {
+        "brand": "العلامات التجارية",
+        "collection": "المجموعات",
+        "image": "الصور"
+      },
+      "countdown": {
+        "dealsTitle": "العروض"
+      },
+      "rowSettings": {
+        "height": "الارتفاع",
+        "reset": "السمة"
+      },
+      "shareNetworks": {
+        "facebook": "فيسبوك",
+        "whatsapp": "واتساب",
+        "copyLink": "نسخ الوصلة"
+      },
+      "categoryStyle": {
+        "layout": "التخطيط",
+        "rowLayout": "الصف",
+        "auto": "تلقائي",
+        "imageFit": "احتواء",
+        "text": "النص",
+        "options": {
+          "square": "مربع",
+          "left": "يسار",
+          "right": "يمين",
+          "fade": "تلاشٍ"
+        }
+      }
     },
     "themeSettings": {
       "activateDescription": "يحتفظ كل قالب بإعداداته الخاصة، فلا تخسر شيئًا عند العودة لاحقًا. اختر أدناه ما يحدث لتخطيطات صفحاتك.",
@@ -6134,7 +7554,18 @@
         "branding": "العلامة التجارية",
         "settings": "إعدادات القالب",
         "css": "CSS مخصص"
-      }
+      },
+      "customCss": {
+        "title": "CSS مخصص"
+      },
+      "preview": {
+        "mobile": "متحرك",
+        "title": "معاينة الواجهة",
+        "pages": {
+          "cart": "السلة"
+        }
+      },
+      "launchTitle": "إعدادات القالب"
     },
     "returnsPage": {
       "stats": {
@@ -6254,6 +7685,411 @@
       "selectUpTo": "{max, plural, zero {لا يمكن اختيار أي ملف} one {اختر ملفًا واحدًا كحد أقصى} two {اختر ملفين كحد أقصى} few {اختر حتى # ملفات} many {اختر حتى # ملفًا} other {اختر حتى # ملف}}",
       "selectedCount": "تم تحديد {count} من {max}",
       "title": "اختيار الملفات"
+    },
+    "catalogPicker": {
+      "searching": "جارٍ البحث…",
+      "none": "بدون",
+      "category": {
+        "placeholder": "اختر فئة…",
+        "search": "ابحث في الفئات…",
+        "empty": "لم يتم العثور على فئات",
+        "hidden": "هذه الفئة معطّلة، لذا لا تظهر في واجهة المتجر.",
+        "missing": "فئة محذوفة",
+        "missingIssue": "لم تعد هذه الفئة موجودة. اختر فئة أخرى."
+      },
+      "brand": {
+        "placeholder": "اختر علامة تجارية…",
+        "search": "ابحث في العلامات التجارية…",
+        "empty": "لم يتم العثور على علامات تجارية",
+        "archived": "هذه العلامة التجارية مؤرشفة، لذا لا تظهر في واجهة المتجر.",
+        "unapproved": "لم تتم الموافقة على هذه العلامة التجارية، لذا لا تظهر في واجهة المتجر.",
+        "inactive": "هذه العلامة التجارية معطّلة، لذا لا تظهر في واجهة المتجر.",
+        "missing": "علامة تجارية محذوفة",
+        "missingIssue": "لم تعد هذه العلامة التجارية موجودة. اختر علامة أخرى."
+      },
+      "collection": {
+        "search": "ابحث في التشكيلات…",
+        "empty": "لم يتم العثور على تشكيلات",
+        "draft": "هذه التشكيلة مسودة، لذا لا تظهر في واجهة المتجر.",
+        "unpublished": "هذه التشكيلة غير منشورة في المتجر الإلكتروني، لذا لا تظهر في واجهة المتجر.",
+        "missing": "تشكيلة محذوفة",
+        "missingIssue": "لم تعد هذه التشكيلة موجودة. اختر تشكيلة أخرى."
+      }
+    },
+    "collectionConditions": {
+      "title": "شروط المجموعة",
+      "matchLabel": "يجب أن تطابق المنتجات:",
+      "matchAll": "جميع الشروط",
+      "matchAny": "أي شرط",
+      "empty": "لم تتم إضافة أي شروط. أضف شرطًا لتضمين المنتجات تلقائيًا.",
+      "fieldLabel": "الحقل",
+      "operatorLabel": "الشرط",
+      "valueLabel": "القيمة",
+      "add": "إضافة شرط",
+      "remove": "إزالة الشرط",
+      "loadingVendors": "جارٍ تحميل البائعين…",
+      "selectVendor": "اختر بائعًا",
+      "enterNumber": "أدخل رقمًا",
+      "enterValue": "أدخل قيمة",
+      "categoryBranchHint": "تشمل الفئة كل الفئات المندرجة تحتها.",
+      "legacyOperator": "{operator} (قاعدة قديمة)",
+      "legacyCategoryText": "تقارن هذه القاعدة القديمة أسماء الفئات كنص. اختر «هي» أو «ليست» ثم حدّد فئة؛ عندها تشمل القاعدة أيضًا كل الفئات المندرجة تحتها.",
+      "legacyCategorySet": "تطابق هذه القاعدة القديمة كل المنتجات. اختر «هي» أو «ليست» ثم حدّد فئة.",
+      "legacyCategoryNotSet": "لا تطابق هذه القاعدة القديمة أي منتج. اختر «هي» أو «ليست» ثم حدّد فئة.",
+      "categoryTextMatched": "حُفظت القيمة كنص «{value}» يطابق هذه الفئة. اخترها مجددًا لحفظ الفئة نفسها.",
+      "categoryTextUnmatched": "لا توجد فئة تطابق «{value}»، لذا لا تطابق هذه القاعدة أي منتج. اختر فئة.",
+      "brandText": "حُفظت القيمة كنص «{value}». اختر العلامة التجارية من القائمة.",
+      "fields": {
+        "title": "عنوان المنتج",
+        "productType": "نوع المنتج",
+        "vendor": "البائع",
+        "brand": "العلامة التجارية",
+        "tag": "وسم المنتج",
+        "price": "السعر",
+        "comparePrice": "سعر المقارنة",
+        "weight": "الوزن",
+        "stock": "كمية المخزون",
+        "category": "الفئة"
+      },
+      "operators": {
+        "equals": "يساوي",
+        "not_equals": "لا يساوي",
+        "contains": "يحتوي على",
+        "not_contains": "لا يحتوي على",
+        "starts_with": "يبدأ بـ",
+        "ends_with": "ينتهي بـ",
+        "greater_than": "أكبر من",
+        "less_than": "أقل من",
+        "is_set": "محدد",
+        "is_not_set": "غير محدد",
+        "is": "هي",
+        "isNot": "ليست"
+      }
+    },
+    "storeProfile": {
+      "title": "ملف متجرك غير مُعدّ",
+      "missing": "تعذّر إنشاؤه الآن. يُنشأ عند حفظ الإعدادات ← الإعدادات العامة.",
+      "noOwner": "لا يمكن إنشاؤه لأن كل حساب مدير يملك بالفعل متجر بائع خاصًا به، وللمتجر مالك واحد فقط. أضف حساب مدير لا يملك أي متجر.",
+      "needsReview": "يُرجّح وجود ملف متجر أقدم ضمن متجر خاص بأحد المديرين، لذلك لم يُنشأ ملف جديد. يمكن للمطوّر مراجعته باستخدام pnpm db:migrate house-profile --dry-run.",
+      "pickerNote": "تظهر المواقع هنا بعد إعداد ملف المتجر. توضّح الإعدادات ← الإعدادات العامة ما الذي ينقص."
+    },
+    "vendorAccountEmail": {
+      "sendReset": "إرسال إعادة تعيين كلمة المرور",
+      "sendInvite": "إرسال دعوة الحساب",
+      "confirmResetTitle": "إرسال رابط إعادة تعيين كلمة المرور؟",
+      "confirmResetDescription": "سيتلقى {email} رابطًا لاختيار كلمة مرور جديدة. يعمل الرابط لمدة ساعة واحدة.",
+      "confirmInviteTitle": "إرسال دعوة الحساب؟",
+      "confirmInviteDescription": "سيتلقى {email} رابطًا لتعيين كلمة مرور لحسابه. يعمل الرابط لمدة 7 أيام.",
+      "send": "إرسال",
+      "cancel": "إلغاء",
+      "resetSent": "تم إرسال رابط إعادة تعيين كلمة المرور إلى {email}",
+      "inviteSent": "تم إرسال دعوة الحساب إلى {email}",
+      "emailNotSetUp": "البريد الإلكتروني غير مُعدّ بعد. أعدّه أولًا من الإعدادات ← البريد الإلكتروني.",
+      "sendFailed": "تعذّر إرسال البريد الإلكتروني. تحقّق من الإعدادات ← البريد الإلكتروني.",
+      "reason": {
+        "nonCustomer": "هذا الحساب يخص بائعًا أو عضوًا في الفريق.",
+        "banned": "هذا البائع محظور.",
+        "inactive": "حساب هذا البائع غير نشط.",
+        "noEmail": "ليس لدى هذا البائع عنوان بريد إلكتروني.",
+        "recent": "أُرسل بريد حساب إلى هذا البائع قبل أقل من 15 دقيقة.",
+        "duplicate": "ورد هذا البائع مرتين في القائمة."
+      },
+      "bulkAction": "إرسال بريد الحساب",
+      "sendToAllMatching": "إرسال إلى جميع المطابقين ({count})",
+      "confirmBulkTitle": "إرسال رسائل الحساب؟",
+      "confirmBulkDescription": "سيتلقى {count} من البائعين بريدًا: رابط إعادة تعيين كلمة المرور لمن لديه كلمة مرور، أو دعوة لتعيينها لمن ليس لديه.",
+      "skippedSummary": "سيُستبعد {count}: {reasons}.",
+      "skippedReason": {
+        "nonCustomer": "{count} من حسابات الفريق أو البائعين",
+        "banned": "{count} محظور",
+        "inactive": "{count} غير نشط",
+        "noEmail": "{count} بلا بريد إلكتروني",
+        "recent": "{count} تلقّوا بريدًا خلال آخر 15 دقيقة",
+        "duplicate": "{count} مكرر في القائمة"
+      },
+      "nobodyToSend": "لا يمكن إرسال بريد الحساب إلى أيٍّ من هؤلاء البائعين.",
+      "queued": "جارٍ إرسال {count} من رسائل الحساب",
+      "progress": "جارٍ إرسال رسائل الحساب · {done} من {total}",
+      "progressFailed": "تعذّر إرسال {count}",
+      "finished": "تم إرسال {count} من رسائل الحساب",
+      "finishedWithFailures": "تعذّر إرسال {failed} من أصل {total} من رسائل الحساب.",
+      "retry": "إعادة المحاولة",
+      "dismiss": "إغلاق"
+    },
+    "footerStudio": {
+      "panel": {
+        "url": "URL",
+        "row": "الصف",
+        "column": "عمود",
+        "width": "العرض",
+        "sizeAuto": "تلقائي",
+        "text": "النص",
+        "showPhone": "عرض الهاتف",
+        "showEmail": "إظهار البريد الإلكتروني",
+        "showAddress": "إظهار العنوان",
+        "links": "الروابط",
+        "addLink": "إضافة رابط",
+        "removeLink": "إزالة الرابط",
+        "showYear": "عرض السنة",
+        "showStoreName": "إظهار اسم المتجر",
+        "imageAlt": "النص البديل"
+      },
+      "tabs": {
+        "build": "البناء"
+      },
+      "undo": "تراجع",
+      "redo": "إعادة",
+      "unsaved": "تغييرات غير محفوظة",
+      "items": {
+        "text": "النص",
+        "contact": "اتصال",
+        "copyright": "حقوق الطبع والنشر"
+      },
+      "canvas": {
+        "addColumn": "إضافة عمود",
+        "removeColumn": "إزالة العمود"
+      },
+      "toast": {
+        "saveFailed": "فشل الحفظ"
+      }
+    },
+    "quotesPage": {
+      "title": "عروض الأسعار",
+      "export": "تصدير",
+      "columns": {
+        "requested": "مطلوب",
+        "customer": "العميل"
+      },
+      "filters": {
+        "requested": "مطلوب",
+        "customer": "العميل"
+      },
+      "table": {
+        "message": "الرسالة",
+        "contactHidden": "بيانات التواصل مخفية من المتجر"
+      },
+      "actions": {
+        "reopen": "إعادة الفتح"
+      },
+      "sheet": {
+        "customer": "العميل",
+        "account": "الحساب",
+        "internalNote": "داخلي note",
+        "contactHidden": "مخفية من المتجر",
+        "vendorNote": "ملاحظة البائع",
+        "vendorNotePlaceholder": "ملاحظتك الخاصة على عرض السعر هذا. يستطيع المتجر قراءتها، ولا يستطيع العميل.",
+        "vendorNoteReadOnly": "كتبها البائع. البائع وحده يستطيع تغييرها.",
+        "lockedByStore": "تولّى المتجر عرض السعر هذا، فأصبح تحديد سعره من شأن المتجر. لا يزال بإمكانك قراءته والاحتفاظ بملاحظتك الخاصة."
+      },
+      "history": {
+        "paid": "مدفوع",
+        "unpaid": "بانتظار الدفع"
+      },
+      "dialog": {
+        "days": "{count, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+        "guestNoteHidden": "{name} ضيف. سيرسل المتجر السعر إليه بالبريد الإلكتروني، ويسجّل الدخول بالعنوان الذي طلب به للشراء.",
+        "storeFinal": "يستطيع المتجر استبدال سعرك بسعره، وسعر المتجر هو النهائي."
+      },
+      "by": {
+        "admin": "المتجر",
+        "vendor": "البائع"
+      }
+    },
+    "vendorAccess": {
+      "policyOn": "تشغيل",
+      "overrideRevoke": "سحب",
+      "unsaved": "غير محفوظ"
+    },
+    "accessRequests": {
+      "pendingCount": "{count} بالانتظار",
+      "approve": "موافقة",
+      "decline": "رفض"
+    },
+    "productCardStudio": {
+      "title": "بطاقة المنتج",
+      "status": {
+        "unsaved": "تغييرات غير محفوظة"
+      },
+      "order": "الطلب",
+      "templates": {
+        "electronics": "إلكترونيات"
+      },
+      "visibility": "الرؤية",
+      "chips": {
+        "cart": "السلة"
+      },
+      "stylePreview": "معاينة",
+      "styleGap": "فاصل",
+      "hoverEffects": {
+        "zoom": "تكبير"
+      },
+      "auto": "تلقائي",
+      "cartActions": {
+        "view": "عرض المنتج",
+        "quick-view": "عرض سريع"
+      },
+      "cartVariants": {
+        "outline": "محدد"
+      },
+      "colorTokens": {
+        "foreground": "النص"
+      }
+    },
+    "sliders": {
+      "title": "شرائح العرض",
+      "stateOn": "تشغيل",
+      "gap": "فاصل",
+      "transition": "الانتقال",
+      "uploadImage": "رفع صورة",
+      "searchProducts": "ابحث عن المنتجات…",
+      "clearProduct": "إزالة المنتج",
+      "generate": "يولد",
+      "elements": {
+        "tagline": "الشعار النصي"
+      },
+      "reveals": {
+        "fade": "تلاشٍ",
+        "zoom-out": "تصغير"
+      },
+      "transitions": {
+        "fade": "تلاشٍ"
+      },
+      "textStyle": {
+        "width": "العرض",
+        "highlight": "ميزة"
+      },
+      "bg": {
+        "upload": "رفع صورة",
+        "overlayFrom": "من",
+        "overlayEdges": {
+          "left": "يسار",
+          "right": "يمين"
+        }
+      },
+      "countdown": {
+        "days": "الأيام"
+      },
+      "placeholders": {
+        "tagline": "الشعار النصي",
+        "cta": "تسوق الآن"
+      },
+      "ctaHeight": "الارتفاع",
+      "ctaVariants": {
+        "dark": "داكن",
+        "light": "فاته",
+        "outline": "محدد",
+        "custom": "مخصص"
+      },
+      "removeSlide": "إزالة الشريحة",
+      "publish": "نشر",
+      "draftSaved": "حُفظت المسودة",
+      "undo": "تراجع",
+      "redo": "إعادة",
+      "language": "اللغة",
+      "history": {
+        "restore": "استعادة"
+      },
+      "schedule": {
+        "title": "الجدولة",
+        "state": {
+          "always": "الجدولة",
+          "upcoming": "المقرر",
+          "ended": "انتهى"
+        }
+      },
+      "controls": {
+        "button": "الضوابط",
+        "arrowStyles": {
+          "square": "مربع"
+        },
+        "dotPositions": {
+          "start": "يسار",
+          "end": "يمين"
+        }
+      },
+      "templates": {
+        "title": "القوالب",
+        "namePlaceholder": "اسم القالب"
+      },
+      "library": {
+        "loadMore": "تحميل المزيد"
+      },
+      "clipboard": {
+        "copy": "نسخ"
+      }
+    },
+    "navigationHub": {
+      "title": "التنقل",
+      "header": {
+        "title": "الرأس"
+      }
+    },
+    "themeEditor": {
+      "title": "إعدادات القالب",
+      "unsaved": "تغييرات غير محفوظة",
+      "saved": "حُفظت إعدادات القالب",
+      "saveFailed": "فشل الحفظ",
+      "preview": "معاينة",
+      "modeLight": "فاته",
+      "modeDark": "داكن",
+      "groups": {
+        "colors": {
+          "label": "الألوان"
+        },
+        "layout": {
+          "label": "التخطيط"
+        }
+      }
+    },
+    "searchInsights": {
+      "title": "رؤى البحث",
+      "periods": {
+        "days": "{count, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}"
+      }
+    },
+    "activityLogPage": {
+      "title": "سجل النشاط",
+      "system": "النظام",
+      "unknownActor": "غير معروف",
+      "viewDetails": "عرض التفاصيل",
+      "columns": {
+        "time": "الوقت",
+        "summary": "ماذا حدث"
+      },
+      "outcomes": {
+        "success": "ناجح"
+      },
+      "roles": {
+        "customer": "العميل",
+        "system": "النظام"
+      },
+      "actions": {
+        "CREATE": "تم الإنشاء",
+        "UPDATE": "تم التحديث",
+        "REJECTION": "مرفوض",
+        "SUSPENSION": "موقوف",
+        "REFUND": "استرداد",
+        "EXPORT": "تصدير"
+      },
+      "resources": {
+        "order": "الطلب",
+        "refund": "استرداد",
+        "transfer": "تحويل",
+        "review": "المراجعة",
+        "payout": "الدفعة",
+        "slider": "عرض الشرائح"
+      },
+      "sheet": {
+        "store": "المتجر",
+        "errorMessage": "خطأ",
+        "before": "قبل",
+        "after": "بعد",
+        "device": "الجهاز",
+        "method": "الطريقة"
+      },
+      "recordTabs": {
+        "title": "سجل النشاط"
+      }
     }
   },
   "footer": {
@@ -6936,7 +8772,7 @@
       "newest": "الأحدث",
       "bestSelling": "الأكثر مبيعا",
       "priceLowHigh": "السعر: من الأقل إلى الأعلى",
-      "zToA": "Z-A",
+      "zToA": "ي-أ",
       "aToZ": "من الألف إلى الياء"
     },
     "sortByLabel": "الترتيب حسب:",
@@ -7034,7 +8870,12 @@
     "orderPromptOne": "اكتب مراجعة سريعة لـ {name}، فهي تساعد المتسوقين الآخرين.",
     "orderPromptMany": "{count} من منتجات هذا الطلب بانتظار مراجعتك.",
     "youRated": "قيّمته",
-    "alreadyReviewed": "لقد قمت بمراجعة هذا المنتج بالفعل. شكرًا لمشاركة تجربتك!"
+    "alreadyReviewed": "لقد قمت بمراجعة هذا المنتج بالفعل. شكرًا لمشاركة تجربتك!",
+    "publishedImmediately": "تظهر مراجعتك في صفحة المنتج فور نشرها.",
+    "publishedAfterModeration": "تظهر مراجعتك بعد موافقة المتجر عليها.",
+    "statusPublished": "منشورة",
+    "statusPending": "بانتظار موافقة المتجر",
+    "statusRejected": "لم ينشرها المتجر"
   },
   "coupon": {
     "removed": "تمت إزالة القسيمة",
@@ -7043,7 +8884,25 @@
     "applied": "تم تطبيق القسيمة!",
     "enterCode": "الرجاء إدخال رمز القسيمة",
     "invalid": "رمز القسيمة غير صالح",
-    "freeShippingApplied": "تم تطبيق الشحن المجاني"
+    "freeShippingApplied": "تم تطبيق الشحن المجاني",
+    "upTo": "خصم يصل إلى {amount}",
+    "selectedProductsOnly": "منتجات مختارة فقط",
+    "sellerOnly": "فقط على منتجات {seller}",
+    "oncePerCustomer": "مرة واحدة لكل عميل",
+    "usesPerCustomer": "{count} مرات لكل عميل",
+    "refusedNotFound": "هذا الرمز غير موجود",
+    "refusedNotActive": "هذا الرمز غير مفعّل",
+    "refusedNotStartedYet": "هذا الرمز لم يُفعَّل بعد",
+    "refusedNotStarted": "يبدأ في {date}",
+    "refusedExpired": "انتهت صلاحية هذا الرمز",
+    "refusedUsedUp": "نفدت جميع استخدامات هذا الرمز",
+    "refusedAlreadyUsed": "لقد استخدمت هذا الرمز من قبل",
+    "refusedSpendMore": "أضف {amount} أخرى لاستخدام هذا الرمز",
+    "refusedMinimum": "طلبك أقل من الحد الأدنى لهذا الرمز",
+    "refusedNotForCart": "لا ينطبق على المنتجات في سلتك",
+    "refusedQuoted": "لا يمكن استخدام الرموز مع سعر عرض السعر",
+    "refusedShippingFree": "التوصيل مجاني بالفعل في هذا الطلب",
+    "refusedNoSellerDelivery": "هذا الرمز يغطي توصيل بائع واحد، ولا يوجد توصيل له في هذا الطلب"
   },
   "aiSalesAgent": {
     "send": "يرسل",
@@ -7096,9 +8955,21 @@
     "anyDistance": "أي",
     "radiusUnitHint": "المسافة بالكيلومتر، مع المنتجات المطابقة",
     "allLocations": "كل المواقع",
-    "radiusNeedsPoint": "استخدم موقعك الحالي للتصفية حسب المسافة."
+    "radiusNeedsPoint": "استخدم موقعك الحالي للتصفية حسب المسافة.",
+    "fulfillment": "التوفر"
   },
   "chat": {
+    "shareProduct": "مشاركة منتج",
+    "searchProducts": "ابحث عن المنتجات بالاسم أو رمز SKU",
+    "noProductsFound": "لم يتم العثور على منتجات",
+    "productsUnavailable": "تعذّر تحميل المنتجات",
+    "shareProductNamed": "مشاركة {name}",
+    "removeProduct": "إزالة {name}",
+    "productNotAvailable": "لا يمكن مشاركة هذا المنتج في هذه المحادثة.",
+    "attachmentNotAccepted": "هذه المحادثة لا تقبل هذا النوع من الملفات.",
+    "attachmentTooLargeFor": "هذا الملف أكبر من {size}، وهو الحد الأقصى الذي تقبله هذه المحادثة.",
+    "conversationClosedNotice": "هذه المحادثة مغلقة، لذا لا يمكن إرسال المزيد من الرسائل.",
+    "unreadCount": "{count} غير مقروءة",
     "channels": "القنوات",
     "liveChatSettings": {
       "title": "الدردشة المباشرة للمنصة",
@@ -7155,9 +9026,9 @@
     },
     "signup": {
       "whatsappTitle": "موصى به: التسجيل المدمج من Meta",
-      "whatsappHint": "دع Meta تختار حساب واتساب للأعمال ورقم الهاتف وتصرّح بهما بأمان. لا يتم لصق أي رمز وصول في Storify.",
+      "whatsappHint": "دع Meta تختار حساب واتساب للأعمال ورقم الهاتف وتصرّح بهما بأمان. لا يتم لصق أي رمز وصول في {storeName}.",
       "instagramTitle": "موصى به: المتابعة باستخدام فيسبوك",
-      "instagramHint": "تصرّح Meta لصفحة فيسبوك المرتبطة بحسابك الاحترافي على إنستغرام، ويشترك Storify في خطافات الويب الخاصة بالمراسلة. لا يتم لصق أي رمز وصول في Storify.",
+      "instagramHint": "تصرّح Meta لصفحة فيسبوك المرتبطة بحسابك الاحترافي على إنستغرام، ويشترك {storeName} في خطافات الويب الخاصة بالمراسلة. لا يتم لصق أي رمز وصول في {storeName}.",
       "continue": "المتابعة باستخدام فيسبوك",
       "sdkFailed": "تعذّر تحميل حزمة تطوير فيسبوك",
       "sdkInitFailed": "لم تتم تهيئة حزمة تطوير فيسبوك",
@@ -7227,7 +9098,6 @@
     },
     "attachFile": "إرفاق ملف",
     "selectConversation": "اختر محادثة.",
-    "attachmentTooLarge": "لا يمكن أن تتجاوز مرفقات الدردشة 16 ميغابايت",
     "whatsappTemplate": "قالب واتساب",
     "closeComposer": "إغلاق محرّر القوالب",
     "signIn": "تسجيل الدخول",
@@ -7273,7 +9143,7 @@
         "telegram": {
           "botfather": "افتح @BotFather في Telegram وأرسل ‎/newbot.",
           "token": "انسخ الرمز الذي يرسله وأدخله في حقل رمز البوت.",
-          "connect": "اضغط اتصال. يسجّل Storify الـ webhook بنفسه، فلا شيء تحتاج إلى لصقه في أي لوحة تحكم.",
+          "connect": "اضغط اتصال. يسجّل {storeName} الـ webhook بنفسه، فلا شيء تحتاج إلى لصقه في أي لوحة تحكم.",
           "share": "شارك رابط t.me الخاص بالبوت ليتمكن العملاء من بدء محادثة.",
           "caution": "لا يحتاج Telegram إلى مراجعة تطبيق ولا يفرض نافذة رد — يمكن للبوت الرد على أي محادثة بدأها معه المستخدم في أي وقت."
         }
@@ -7382,7 +9252,12 @@
     "noFiles": "لم تتم مشاركة أي ملفات بعد",
     "noLinks": "لم تتم مشاركة أي روابط بعد",
     "subject": "الموضوع",
-    "viewProduct": "عرض المنتج"
+    "viewProduct": "عرض المنتج",
+    "messageProduct": {
+      "open": "فتح {name}",
+      "priceOnRequest": "السعر عند الطلب"
+    },
+    "internalNote": "ملاحظة داخلية · يراها فريقك فقط"
   },
   "boosts": {
     "title": "الترويج",
@@ -7722,7 +9597,22 @@
     "storeTitle": "أساسيات المتجر",
     "subtitle": "خطوات قليلة وتبدأ البيع",
     "templateTitle": "اختر قالب متجرك",
-    "title": "جهّز متجرك"
+    "title": "جهّز متجرك",
+    "incompleteTitle": "تم تثبيت متجرك، لكن الإعداد لم يكتمل",
+    "incompleteSubtitle": "حساب المدير يعمل، لكن تعذّر إنشاء ملف المتجر الذي تنتمي إليه منتجاتك. أكمل ذلك من لوحة الإدارة:",
+    "incompleteStepSignIn": "سجّل الدخول بحساب المدير الذي أنشأته للتو.",
+    "incompleteStepGeneral": "افتح الإعدادات ← الإعدادات العامة.",
+    "incompleteStepSave": "تحقّق من اسم المتجر واللغة والعملة، ثم انقر على حفظ.",
+    "incompleteNote": "الحفظ يُنشئ ملف المتجر المفقود. لا يمكن تشغيل معالج التثبيت مرة أخرى بعد إنشاء حسابك.",
+    "settingsRefreshFailed": "تم تثبيت متجرك، لكن هذه الصفحة لم تتمكن من تحميل الاسم والعملة الجديدين. سيتم تحميلهما عند تسجيل الدخول.",
+    "settingsRefreshRetry": "حاول مرة أخرى",
+    "warnings": {
+      "sampleCatalogEmpty": "لا يتضمن هذا القالب كتالوجًا تجريبيًا — يمكنك استيراد واحد من المنتجات بعد تسجيل الدخول.",
+      "sampleCatalogFailed": "تعذّر استيراد الكتالوج التجريبي — يمكنك استيراد واحد من المنتجات بعد تسجيل الدخول.",
+      "sampleCatalogSkipped": "لم يُستورد الكتالوج التجريبي. بعد اكتمال الإعداد يمكنك استيراد واحد من المنتجات.",
+      "templateFailed": "تعذّر تطبيق القالب — اختره من المتجر الإلكتروني ← السمات بعد تسجيل الدخول.",
+      "templateSkipped": "لم يُطبَّق القالب. بعد اكتمال الإعداد اختره من المتجر الإلكتروني ← السمات."
+    }
   },
   "compare": {
     "title": "مقارنة المنتجات",
@@ -7893,7 +9783,8 @@
       "shipping_cost": "بطاقات الشحن",
       "cost_of_goods": "تكلفة البضاعة المباعة",
       "promotions": "خصومات يتحملها المتجر",
-      "operating_expense": "المصروفات التشغيلية"
+      "operating_expense": "المصروفات التشغيلية",
+      "unapplied_payment_payable": "التزامات المدفوعات غير المخصصة"
     },
     "overview": {
       "title": "المالية",
@@ -8005,7 +9896,7 @@
       "statements": "كشوف الحساب",
       "statementsSubtitle": "كل عملية بيع واسترداد وتسوية غيّرت رصيدك.",
       "seeAll": "عرض الكشف الكامل",
-      "download": "تنزيل",
+      "export": "تصدير",
       "truncated": "يتم عرض أول {shown} من أصل {total} قيد. اختر فترة أقصر لرؤية الباقي — فالأرصدة أعلاه تغطي الفترة كاملة في كل الأحوال.",
       "owedTitle": "المستحق للسوق",
       "owedSubtitle": "العمولة على الطلبات التي حصّلتها بنفسك. المال بالفعل لك؛ وهذا ما تدين به عليه.",
@@ -8070,6 +9961,35 @@
       "currency": "العملة",
       "currencyHint": "العملة التي سُجِّل بها الرصيد — فالتصحيح بعملة أخرى يفتح رصيدًا جديدًا بدل أن يصلح هذا.",
       "taxPaid": "سُدِّدت الضريبة المحصلة إلى الجهة الضريبية"
+    },
+    "reliability": {
+      "breakdown": "تفاصيل الدفعة",
+      "eligibleEarnings": "الأرباح المؤهلة",
+      "recoveryDeducted": "استرداد مخصوم",
+      "recoveryReturned": "استرداد مُعاد",
+      "reserveHeld": "احتياطي جديد محتجز",
+      "reserveReleased": "احتياطي مستحق محرر",
+      "reserveCreditDeducted": "استعادة احتياطي محرر",
+      "reserveCreditReturned": "إعادة استرداد الاحتياطي",
+      "commissionOffset": "عمولة مخصومة",
+      "commissionCredit": "رصيد عمولة مدفوع",
+      "netAmount": "صافي الدفعة التقديري",
+      "currency": "العملة",
+      "utcDays": "تشمل التواريخ آخر يوم بالكامل بتوقيت UTC.",
+      "pending": "تم الحفظ. المحاسبة معلقة؛ تحقق من الحالة.",
+      "checkStatus": "تحقق من الحالة",
+      "completed": "اكتملت المحاسبة",
+      "readError": "تعذر التحميل. حاول مجددًا.",
+      "notFound": "الدفعة غير موجودة",
+      "legacy": "دفعة قديمة: قيم الطلب الحالية تقديرية وليست الحساب التاريخي.",
+      "paidAt": "مدفوع",
+      "returnedAt": "مُعاد",
+      "noPayable": "لا يوجد مبلغ مستحق",
+      "belowMinimum": "أقل من الحد الأدنى",
+      "tooManyOrders": "قلص الفترة: بحد أقصى 500 طلب",
+      "collectionScope": "الأموال المحصلة من العملاء، بما فيها تحصيلات البائعين",
+      "estimatedCollections": "يتضمن {count} إيصالات تاريخية تقديرية",
+      "asOf": "تقدير بتاريخ {date}"
     }
   },
   "permissionPacks": {

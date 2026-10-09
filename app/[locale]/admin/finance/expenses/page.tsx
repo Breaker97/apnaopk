@@ -5,7 +5,10 @@ import { FiscalPeriod } from "@/models/fiscal-period.model";
 import { Product } from "@/models/product.model";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { ExpensesContent } from "@/components/admin/finance/expenses-content";
-import { resolveRequestedPeriod } from "@/lib/finance/reports";
+import {
+  resolveDashboardPeriod,
+  toDayString,
+} from "@/lib/admin/dashboard-period";
 import { CURRENCIES } from "@/lib/intl/currencies";
 
 interface PageProps {
@@ -26,6 +29,9 @@ const PAID_FROM_FILTERS = new Set(["bank", "cash", "gateway", "unpaid"]);
  * The period is resolved here, above the client that lists against it: the
  * screen had none at all, so "total for this filter" quietly meant every
  * expense the store had ever recorded, under a list that looked like a month.
+ * It is the dashboard's period (`?period=today|yesterday|week|month|all` or
+ * `?from=&to=`), so the picker is the dashboard's too; the screen opens on the
+ * month, the nearest of those to the 30 days it used to open on.
  *
  * Also resolved here, because the form has to say them before anything is
  * saved: the last closed day (a cost dated before it is booked after it), and
@@ -43,11 +49,11 @@ export default async function AdminExpensesPage({
   const search = await searchParams;
   const read = (key: string) =>
     typeof search[key] === "string" ? (search[key] as string) : undefined;
-  const period = resolveRequestedPeriod({
-    period: read("period") || "30d",
-    from: read("from"),
-    to: read("to"),
-  });
+  const period = resolveDashboardPeriod(
+    { period: read("period"), from: read("from"), to: read("to") },
+    new Date(),
+    "month",
+  );
   const paidFrom = read("paidFrom");
 
   await connectDB();
@@ -75,8 +81,8 @@ export default async function AdminExpensesPage({
       storeCurrency={storeCurrency}
       currencies={currencies}
       period={period.key}
-      from={period.from.toISOString()}
-      to={period.to.toISOString()}
+      from={period.range ? toDayString(period.range.from) : ""}
+      to={period.range ? toDayString(period.range.to) : ""}
       closedThrough={lastClose?.to ? lastClose.to.toISOString() : null}
       hasProductCosts={Boolean(costed)}
       initialPaidFrom={

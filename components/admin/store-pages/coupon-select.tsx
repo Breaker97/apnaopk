@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NativeSelect } from "@/components/ui/native-select";
 import { apiClient } from "@/lib/api/client";
+import { useStoreBuilderScope } from "./builder-scope";
 
 interface CouponOption {
   _id: string;
@@ -37,6 +38,8 @@ export function CouponSelect({
   /** Shown in place of the list when the store has no active discounts. */
   emptyLabel: string;
 }) {
+  // The store's discounts by default; a vendor's builder lists their own.
+  const { couponsEndpoint } = useStoreBuilderScope();
   const [options, setOptions] = useState<CouponOption[] | null>(null);
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export function CouponSelect({
     apiClient
       // paginatedResponse nests the rows: { data, pagination }, NOT an array.
       .get<{ data?: CouponOption[] } | CouponOption[]>(
-        "/api/admin/coupons?page=1&limit=100&status=active",
+        `${couponsEndpoint}?page=1&limit=100&status=active`,
       )
       .then((payload) => {
         if (cancelled) return;
@@ -57,7 +60,7 @@ export function CouponSelect({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [couponsEndpoint]);
 
   /** "SUMMER20 — 20% off" : enough to tell two discounts apart at a glance. */
   const describe = (option: CouponOption) => {

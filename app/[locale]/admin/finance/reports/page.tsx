@@ -5,20 +5,20 @@ import { FiscalPeriod } from "@/models/fiscal-period.model";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
 import {
   PeriodClosePanel,
   type ClosedPeriodRow,
   type PeriodSnapshotLine,
 } from "@/components/admin/finance/period-close-panel";
 import { formatCurrency } from "@/lib/intl/money";
+import { getProfitAndLoss, getTaxSummary } from "@/lib/finance/reports";
 import {
-  getProfitAndLoss,
-  getTaxSummary,
-  resolveRequestedPeriod,
-} from "@/lib/finance/reports";
+  dashboardPickerBounds,
+  financePeriodLabel,
+  resolveFinanceDashboardPeriod,
+} from "@/lib/finance/dashboard-finance-period";
 import { closableMonths, monthBounds } from "@/lib/finance/months";
-import { formatPeriodRange } from "@/lib/finance/period-label";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -49,11 +49,15 @@ export default async function AdminFinanceReportsPage({
   const search = await searchParams;
   const read = (key: string) =>
     typeof search[key] === "string" ? (search[key] as string) : undefined;
-  const period = resolveRequestedPeriod({
-    period: read("period") || "ytd",
+  // The dashboard's period (`?period=today|yesterday|week|month|all` or
+  // `?from=&to=`), so the picker is the dashboard's too. Opens on the month,
+  // like the Finance overview, and the exports below take the same URL contract.
+  const period = resolveFinanceDashboardPeriod({
+    period: read("period"),
     from: read("from"),
     to: read("to"),
   });
+  const pickerBounds = dashboardPickerBounds(period);
 
   await connectDB();
   const [tax, periods] = await Promise.all([
@@ -101,21 +105,15 @@ export default async function AdminFinanceReportsPage({
       }
     : null;
 
-  const periodLabel =
-    period.key === "custom"
-      ? formatPeriodRange(period, locale)
-      : label(
-          `finance.period.${period.key}`,
-          period.key === "all" ? "All time" : `Last ${period.key}`,
-        );
+  const periodLabel = financePeriodLabel(period, locale, label);
 
   /* Plain links, not fetches: a CSV is a download, and letting the browser do
      it keeps the file out of memory and the auth cookie in play. */
   const exportHref = (type: "ledger" | "expenses") => {
     const params = new URLSearchParams({ type });
     if (period.key === "custom") {
-      params.set("from", read("from") || "");
-      params.set("to", read("to") || "");
+      params.set("from", pickerBounds.from);
+      params.set("to", pickerBounds.to);
     } else {
       params.set("period", period.key);
     }
@@ -159,12 +157,11 @@ export default async function AdminFinanceReportsPage({
             )}
           </p>
         </div>
-        <FinancePeriodPicker
+        <DashboardPeriodPicker
           period={period.key}
-          from={period.from.toISOString()}
-          to={period.to.toISOString()}
-          book="all"
-          showBookFilter={false}
+          from={pickerBounds.from}
+          to={pickerBounds.to}
+          defaultPeriod="month"
         />
       </div>
 

@@ -1,5 +1,4 @@
 import "server-only";
-
 import { ValidationError } from "@/lib/api/errors";
 import {
   normalizeCheckoutSettings,
@@ -50,16 +49,7 @@ function fieldName(key: string, checkout: CheckoutSettings): string {
   return scope === "billingAddress" ? `Billing ${name.toLowerCase()}` : name;
 }
 
-/**
- * Hold one storefront checkout request to the checkout settings, the way the
- * form already did. Shared by the online-checkout route and the Stripe intent
- * route so the two ways of paying cannot enforce different forms.
- *
- * Throws a ValidationError keyed like the request body; returns what the
- * order should carry — the note, the answered custom fields, and the contact
- * phone that stands in for a delivery phone the address left out.
- */
-export function enforceCheckoutSubmission(input: {
+type SubmissionInput = {
   // `sms` and `shipping` only for the country a typed phone number is read
   // against; nothing else here looks at them.
   settings: Pick<ISettings, "checkout" | "sms" | "shipping">;
@@ -75,12 +65,25 @@ export function enforceCheckoutSubmission(input: {
   };
   shippingAddress?: SubmissionAddress;
   billingAddress?: SubmissionAddress;
-}): {
+};
+
+type SubmissionResult = {
   checkout: CheckoutSettings;
   customerNote?: string;
   checkoutFields: CheckoutFieldAnswer[];
   contactPhone?: string;
-} {
+};
+
+/**
+ * What one checkout request leaves unanswered of the checkout settings,
+ * without refusing it: the field errors (keyed like the request body) next to
+ * what the order would carry. For a quote, asked while the shopper is still
+ * filling the form in (the shopper app's checkout). `enforceCheckoutSubmission`
+ * is this and a refusal.
+ */
+export function reviewCheckoutSubmission(
+  input: SubmissionInput,
+): SubmissionResult & { errors?: Record<string, string[]> } {
   const checkout = normalizeCheckoutSettings(input.settings.checkout);
   const result = evaluateCheckoutSubmission({
     settings: checkout,
@@ -108,21 +111,36 @@ export function enforceCheckoutSubmission(input: {
       }) ?? null,
   });
 
-  if (result.issues.length > 0) {
-    const errors = checkoutIssuesToErrors(result.issues);
-    const error = new ValidationError(errors);
-    // The checkout shows `message` as its banner; "Validation failed: phone"
-    // tells a shopper nothing, so lead with the first human sentence.
-    const [firstKey] = Object.keys(errors);
-    error.message = `${fieldName(firstKey, checkout)}: ${errors[firstKey]?.[0] ?? "Please check your details"}`;
-    throw error;
-  }
-
   const contactPhone = input.body.phone?.trim() || undefined;
   return {
     checkout,
     customerNote: result.customerNote,
     checkoutFields: result.answers,
     contactPhone,
+    ...(result.issues.length > 0
+      ? { errors: checkoutIssuesToErrors(result.issues) }
+      : {}),
   };
+}
+
+/**
+ * Hold one storefront checkout request to the checkout settings, the way the
+ * form already did. Shared by the online-checkout route and the Stripe intent
+ * route so the two ways of paying cannot enforce different forms.
+ *
+ * Throws a ValidationError keyed like the request body; returns what the
+ * order should carry — the note, the answered custom fields, and the contact
+ * phone that stands in for a delivery phone the address left out.
+ */
+export function enforceCheckoutSubmission(input: SubmissionInput): SubmissionResult {
+  const { errors, ...result } = reviewCheckoutSubmission(input);
+  if (errors) {
+    const error = new ValidationError(errors);
+    // The checkout shows `message` as its banner; "Validation failed: phone"
+    // tells a shopper nothing, so lead with the first human sentence.
+    const [firstKey] = Object.keys(errors);
+    error.message = `${fieldName(firstKey, result.checkout)}: ${errors[firstKey]?.[0] ?? "Please check your details"}`;
+    throw error;
+  }
+  return result;
 }

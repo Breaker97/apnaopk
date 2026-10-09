@@ -3,6 +3,7 @@ import { Order } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { ValidationError } from "@/lib/api/errors";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
+import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { ASYNC_PUSH_PAYMENT_METHODS } from "@/lib/orders/pending-payment-lock";
 import {
   releaseAsyncPushInventory,
@@ -42,6 +43,8 @@ type PushOrder = {
   preorderOutstandingAmount?: number;
   hasPreorder?: boolean;
   paymentReconcileClosedAt?: Date;
+  /** The MTN wallet the checkout prompted. */
+  mtnMomoPhone?: string;
   billingAddress?: { phone?: string; fullName?: string };
   shippingAddress?: { phone?: string; fullName?: string };
   items?: Array<{
@@ -78,6 +81,8 @@ export async function resendOrderPaymentPush(params: {
   origin: string;
   locale: string;
   settings?: SettingsDocument;
+  /** The number to prompt, when the payer gives one; else the order's own. */
+  phone?: string;
 }): Promise<OrderPayPushResult> {
   const order = (await Order.findOne(
     params.viaAccessLink
@@ -85,7 +90,7 @@ export async function resendOrderPaymentPush(params: {
       : { _id: params.orderId, customerId: params.customerId },
   )
     .select(
-      "orderNumber status paymentStatus paymentMethod channel posLocationId currency total preorderOutstandingAmount storeCredit hasPreorder paymentReconcileClosedAt billingAddress shippingAddress items.productId items.variantId items.vendorId items.quantity items.purchaseType subOrders.vendorId subOrders.status subOrders.inventoryReserved subOrders.fulfillment",
+      "orderNumber status paymentStatus paymentMethod channel posLocationId currency total preorderOutstandingAmount storeCredit hasPreorder paymentReconcileClosedAt mtnMomoPhone billingAddress shippingAddress items.productId items.variantId items.vendorId items.quantity items.purchaseType subOrders.vendorId subOrders.status subOrders.inventoryReserved subOrders.fulfillment",
     )
     .lean()) as PushOrder | null;
   if (!order) throw new ValidationError("Order not found");
@@ -113,8 +118,14 @@ export async function resendOrderPaymentPush(params: {
   const currency = String(
     order.currency || settings.general?.defaultCurrency || "USD",
   ).toUpperCase();
+  // The wallet the checkout prompted comes first: it is the number the payer
+  // chose for this payment, and the billing phone may be someone else's.
   const phone =
-    order.billingAddress?.phone || order.shippingAddress?.phone || "";
+    params.phone ||
+    (method === "mtn_momo" ? order.mtnMomoPhone : undefined) ||
+    order.billingAddress?.phone ||
+    order.shippingAddress?.phone ||
+    "";
   const payerName =
     order.billingAddress?.fullName || order.shippingAddress?.fullName;
 
@@ -185,7 +196,12 @@ async function holdStockForNewPrompt(order: PushOrder): Promise<boolean> {
  * the order back under the sweep's watch, and a hold taken on an order the
  * sweep is not watching is a hold nothing would ever give back.
  */
-async function stampReference(order: PushOrder, update: Record<string, unknown>) {
+async function stampReference(
+  order: PushOrder,
+  update: Record<string, unknown>,
+  /** The dead transaction's own handles, which must not outlive it. */
+  unset: string[] = [],
+) {
   const held = await holdStockForNewPrompt(order);
   const stamped = await Order.updateOne(
     {
@@ -199,7 +215,10 @@ async function stampReference(order: PushOrder, update: Record<string, unknown>)
         // Back in play: the sweep and the reconciler should watch this one.
         paymentStatus: PAYMENT_STATUS.PENDING,
       },
-      $unset: { paymentReconcileClosedAt: "" },
+      $unset: {
+        paymentReconcileClosedAt: "",
+        ...Object.fromEntries(unset.map((field) => [field, ""])),
+      },
     },
   );
   if (!stamped.modifiedCount) {
@@ -247,10 +266,16 @@ async function resendIotec(params: {
 
   // Minted before the call, as at checkout: the reference is the transaction's
   // only handle, so it must be on the order before a prompt can exist.
+  // The dead collection's transaction id goes with it: the finalizer, the
+  // callback and the verify poll all hold the order to its stored id, so
+  // leaving the old one there refused the new collection as "a mismatch" and
+  // sent every look-up to the failed one.
   const externalId = randomUUID();
-  await stampReference(params.order, { iotecExternalId: externalId });
+  await stampReference(params.order, { iotecExternalId: externalId }, [
+    "iotecTransactionId",
+  ]);
 
-  await submitIotecCollection({
+  const collection = await submitIotecCollection({
     creds,
     externalId,
     currency: params.currency,
@@ -259,6 +284,14 @@ async function resendIotec(params: {
     payerName: params.payerName,
     payerNote: `Order ${params.order.orderNumber || ""}`.trim(),
   });
+  // As at checkout: the finalizer looks the order up by this id, and falls
+  // back to the external id until it lands.
+  if (collection?.id) {
+    await Order.updateOne(
+      { _id: params.order._id, iotecExternalId: externalId },
+      { $set: { iotecTransactionId: collection.id } },
+    );
+  }
 
   return { prompted: true, method: "iotec" };
 }
@@ -295,7 +328,11 @@ async function resendMtnMomo(params: {
   }
 
   const referenceId = randomUUID();
-  await stampReference(params.order, { mtnMomoReferenceId: referenceId });
+  await stampReference(params.order, {
+    mtnMomoReferenceId: referenceId,
+    // Which phone was charged, as at checkout.
+    mtnMomoPhone: payerMsisdn,
+  });
 
   await requestMtnMomoPayment({
     creds,
@@ -354,7 +391,7 @@ async function resendOrangeMoney(params: {
     // the same address checkout registers, not a locale-prefixed page route.
     notifUrl: `${params.origin}/api/payments/orange-money/callback`,
     lang: orangeMoneyLang(params.locale),
-    reference: params.settings.general?.storeName || "Storify",
+    reference: params.settings.general?.storeName || DEFAULT_STORE_NAME,
   });
 
   await Order.updateOne(

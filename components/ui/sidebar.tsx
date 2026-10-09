@@ -343,17 +343,37 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
+/**
+ * The menu's scroll area. Its scrollbar shows only while the pointer is over
+ * it, and a classic scrollbar (a Mac with a mouse, Windows) takes its width
+ * out of the scroller's content box — enough to wrap a label onto a second
+ * line and move every row under it. So the content takes its width from the
+ * frame around the scroller (`100cqw`) instead of from the scroller, and the
+ * scrollbar lies over the content's own end padding rather than squeezing it.
+ *
+ * `className` and the props go to the content box, which lays the children out.
+ */
 function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      data-slot="sidebar-content"
-      data-sidebar="content"
-      className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto scrollbar-none [&::-webkit-scrollbar]:hidden hover:scrollbar-thin hover:[scrollbar-color:var(--border)_transparent] hover:[&::-webkit-scrollbar]:block hover:[&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-track]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border/50 group-data-[collapsible=icon]:overflow-x-hidden group-data-[collapsible=icon]:hover:scrollbar-none group-data-[collapsible=icon]:hover:[&::-webkit-scrollbar]:hidden",
-        className
-      )}
-      {...props}
-    />
+      data-slot="sidebar-content-frame"
+      className="@container flex min-h-0 flex-1 flex-col"
+    >
+      <div
+        data-slot="sidebar-content-scroller"
+        className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden hover:scrollbar-thin hover:[scrollbar-color:var(--border)_transparent] hover:[&::-webkit-scrollbar]:block hover:[&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-track]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border/50 group-data-[collapsible=icon]:hover:scrollbar-none group-data-[collapsible=icon]:hover:[&::-webkit-scrollbar]:hidden"
+      >
+        <div
+          data-slot="sidebar-content"
+          data-sidebar="content"
+          className={cn(
+            "flex w-[100cqw] shrink-0 grow flex-col gap-2",
+            className
+          )}
+          {...props}
+        />
+      </div>
+    </div>
   );
 }
 

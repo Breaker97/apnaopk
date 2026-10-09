@@ -1,6 +1,10 @@
 "use client";
 
 import { ReactNode } from "react";
+import type {
+  AppliedDateRange,
+  DateRangePreset,
+} from "@/components/ui/date-range-picker";
 
 export interface DataTableColumn<T> {
   id: string;
@@ -67,9 +71,29 @@ export interface DataTableToolbarLabels {
   viewOptions?: string;
   focusSearch?: string;
   filter?: string;
-  filters?: string;
   clearAll?: string;
   clearAllFilters?: string;
+}
+
+/**
+ * What a `type: "date"` filter needs to draw its picker.
+ *
+ * The filter's value is a preset's id, or two days joined by `_` for a picked
+ * range (see `lib/date-filter.ts`); "all" is no filter, so a preset with that
+ * id clears it. The table supplies the presets because what "this week" means
+ * belongs to the screen, not to the generic toolbar.
+ */
+export interface DataTableDateFilter {
+  locale: string;
+  presets: DateRangePreset[];
+  presetsTitle?: string;
+  customLabel: string;
+  cancelLabel: string;
+  applyLabel: string;
+  /** Footer text beside Apply, given the range currently drafted. */
+  summary?: (draft: AppliedDateRange | null) => ReactNode;
+  /** Days after this one cannot be picked. */
+  maxDate?: Date;
 }
 
 export interface DataTableFilter {
@@ -78,6 +102,14 @@ export interface DataTableFilter {
   type: "select" | "search" | "date";
   options?: { label: string; value: string }[];
   placeholder?: string;
+  /** Required for `type: "date"`. */
+  date?: DataTableDateFilter;
+  /**
+   * The value a bare list stands for when it is not "all", e.g. a date filter
+   * whose default window is the last 30 days. It is shown on the row but not
+   * counted as an active filter, and clearing a filter returns to it.
+   */
+  defaultValue?: string;
 }
 
 export interface DataTableProps<T> {
@@ -144,6 +176,10 @@ export interface DataTableProps<T> {
   // Empty state
   emptyMessage?: string;
   emptyIcon?: ReactNode;
+  /** A line under the message: what to do about it. */
+  emptyDescription?: string;
+  /** Under the message, e.g. a "Clear filters" button. */
+  emptyAction?: ReactNode;
 
   // Customization
   className?: string;

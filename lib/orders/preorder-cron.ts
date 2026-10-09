@@ -6,88 +6,55 @@ import {
   getPreorderBalanceDue,
   owesPreorderBalanceMatch,
 } from "@/lib/orders/order-payment-status";
-import {
-  PREORDER_ITEM_STATUS,
-  PURCHASE_TYPE,
-  consumePreorderStockOnReady,
-  releaseOrderPreorders,
-} from "@/lib/orders/preorders";
-import { refundCancelledPreorder } from "@/lib/orders/preorder-cancel-refund";
-import { restoreOrderInventory } from "@/lib/orders/order-inventory";
-import { reverseCouponUsageForOrder } from "@/lib/catalog/coupons";
+import { PREORDER_ITEM_STATUS } from "@/lib/orders/preorders";
 import { notifyPreorderCustomerUpdate } from "@/lib/notifications/notifications";
 import { getSettings } from "@/models/settings.model";
 import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
-import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 import {
-  PREORDER_BALANCE_MAX_ATTEMPTS,
-  PREORDER_BALANCE_RETRY_HOURS,
-  chargePreorderBalanceOffSession,
-  collectPreorderBalanceOnRequest,
-} from "@/lib/payments/preorder-balance-charge";
+  collectionScope,
+  isActiveCollection,
+  isConsignmentReady,
+} from "@/lib/orders/preorder-scope";
+import {
+  preparePreorderCollection,
+  type PreparationOutcome,
+} from "@/lib/orders/preorder-collection";
+import { reconcileOrderPreorderTerms } from "@/lib/orders/preorder-terms-sync";
+import { getTransactionSupport } from "@/lib/db-transaction";
+
+export { expireUnpaidPreorders } from "@/lib/orders/preorder-expiry";
 
 /**
- * The clock a pre-order runs on, once a day.
+ * The clock a pre-order runs on.
  *
- * Everything else in the module moves when a person does something — a shopper
- * checks out, an admin marks a batch ready, a carrier reports a delivery. The
- * long middle stretch, where a reservation sits for weeks holding quota against
- * money that has not arrived, had nobody watching it at all. A shopper asked
- * for a balance was told once and never again; an order they abandoned held its
- * quota against a sale that could never complete, for good; and `expired` sat
- * in the status enum with no code path able to write it.
+ * Every pass here is idempotent per order, not per run: each action is a
+ * conditional claim on one document (a reminder stage, a request, a release),
+ * so overlapping runs or a retry after a timeout cannot repeat it. Nothing here
+ * invents a release date, and nothing here keeps money: an expiry refunds in
+ * full, exactly as any other cancellation.
  *
- * **Idempotency is per order, not per run.** There is no global lock, and none
- * is wanted: every action below is a conditional claim on a single document —
- * `$addToSet` for a reminder stage, a status guard for an expiry — so two
- * overlapping runs, or a retry after a timeout, cannot send the same reminder
- * twice or cancel the same order twice. A run-level lease would be weaker: it
- * would stop concurrent runs while doing nothing about a run that half
- * finished.
- *
- * Nothing here decides anything a human should. It never invents a new release
- * date (only the vendor knows one), and it never keeps money — an expiry
- * refunds in full, exactly as any other cancellation does.
+ * The work is split by how fast it has to happen. The frequent job
+ * (`/api/cron/preorder-jobs`) resumes lifecycle operations, carries moved
+ * dates to waiting orders, sends and confirms balance notices, charges saved
+ * cards whose notice window has passed and recovers paid releases. The daily
+ * job (`/api/cron/preorders`) prepares balance requests (the automatic
+ * release, legacy requests, consignments that became ready), reminds, expires
+ * and reports. Each pass re-checks its own guards; the order of passes only
+ * reduces races, it is not what prevents them.
  */
 
 /**
  * Reminder stages, keyed by how long before the release date they go out.
- *
- * MUST stay ordered furthest-first: each stage's window is bounded below by
- * the next one down, so that an order does not fall into two at once.
+ * MUST stay ordered furthest-first.
  */
 const PREORDER_REMINDER_STAGES = [
   { key: "t-7", daysBefore: 7 },
   { key: "t-1", daysBefore: 1 },
 ] as const;
 
-/**
- * How long past its due date an unpaid balance survives, when the store has
- * not said. `settings.preorder.expiryGraceDays` overrides it.
- *
- * The due date is the LATER of the release date and the day the store
- * actually asked for the balance (`preorderBalanceRequestedAt`). The release
- * date alone is the date the shopper agreed to, but it is only the right
- * clock while the goods arrive on time: a batch received in July against a
- * June release date was already past its grace the moment payment was
- * requested, so the shopper was reminded and cancelled in the same run.
- * Orders that predate the stamp still fall back to the release date — the
- * behaviour they have had all along, and better than inventing a request date
- * from `updatedAt`, which would expire orders for having been edited.
- */
-const PREORDER_EXPIRY_GRACE_DAYS = 14;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Orders that owe a balance and are still alive to pay it.
- *
- * Mirrors `getPreorderBalanceDue` — outstanding above zero, not cancelled,
- * part-paid or pending on a pay-later order — so the batch holds only orders a pass
- * will act on. The passes below read a capped batch with no cursor; a row the
- * loop skipped instead of claiming came back first in every run, and enough of
- * them would fill the batch for good and starve every order behind them.
- */
+/** Orders that owe a balance on an open request and are alive to pay it. */
 function unpaidBalanceFilter() {
   return {
     hasPreorder: true,
@@ -102,6 +69,7 @@ function unpaidBalanceFilter() {
 const WAITING_PREORDER_STATUSES: string[] = [
   PREORDER_ITEM_STATUS.RESERVED,
   PREORDER_ITEM_STATUS.DELAYED,
+  PREORDER_ITEM_STATUS.PARTIALLY_READY,
 ];
 
 type CronOrder = {
@@ -117,31 +85,29 @@ type CronOrder = {
   preorderBalanceRequestedAt?: Date | null;
   preorderOutstandingAmount?: number;
   preorderBalancePaidAt?: Date | null;
-  /**
-   * Only what `getPreorderBalanceDue` reads of them: a consignment a vendor
-   * has called off is no longer part of what the shopper owes, and a reminder
-   * built on the raw figure would chase money for goods nobody is sending.
-   */
+  preorderCollection?: {
+    cycleId?: string;
+    state?: string;
+    notice?: { acceptedAt?: Date | null } | null;
+  } | null;
   subOrders?: Array<{
+    _id?: Types.ObjectId;
     status?: string;
-    items?: Array<{ preorderOutstandingAmount?: number | null }> | null;
+    preorderReadiness?: { declaredAt?: Date | null } | null;
+    items?: Array<{ purchaseType?: string; quantity?: number; preorderOutstandingAmount?: number | null }> | null;
   }> | null;
 };
 
 const CRON_ORDER_FIELDS =
-  "_id orderNumber customerId guestEmail total status paymentStatus paymentMethod preorderReleaseDate preorderBalanceRequestedAt preorderOutstandingAmount preorderBalancePaidAt subOrders.status subOrders.items.preorderOutstandingAmount";
+  "_id orderNumber customerId guestEmail total status paymentStatus paymentMethod preorderReleaseDate preorderBalanceRequestedAt preorderOutstandingAmount preorderBalancePaidAt preorderCollection subOrders._id subOrders.status subOrders.preorderReadiness subOrders.items.purchaseType subOrders.items.quantity subOrders.items.preorderOutstandingAmount";
 
 /**
  * Nudge shoppers whose balance falls due soon.
  *
- * Guest orders used to be left out of this entirely — counted and skipped —
- * because their `customerId` is a cart, so the notifier had no account to
- * write to and, more to the point, no page to send them to. Both halves are
- * answered now: the notifier mails the address on the order, and the message
- * carries a link signed for that order
- * (`lib/payments/preorder-balance-link.ts`) which lets them pay without an
- * account. So the batch is one query again, and a guest is reminded like
- * anybody else.
+ * Only on requests the shopper has actually been told about: a request made
+ * through a collection cycle is reminded once its advance notice was
+ * accepted, never before (and never as a substitute for it). A reminder never
+ * moves the deadline — the deadline counts from the notice.
  */
 export async function sendPreorderBalanceReminders(limit = 200): Promise<{
   sent: number;
@@ -153,14 +119,6 @@ export async function sendPreorderBalanceReminders(limit = 200): Promise<{
 
   for (const [index, stage] of PREORDER_REMINDER_STAGES.entries()) {
     byStage[stage.key] = 0;
-
-    // Each window stops where the next one down begins, so an order that only
-    // reaches `payment_due` a day before release gets the T-1 nudge and not
-    // both at once — two identical mails in the same minute.
-    //
-    // The nearest stage keeps no lower bound on purpose: it is what catches an
-    // order that slipped past a missed run, or one already overdue, and
-    // reminds it late rather than not at all.
     const nearerStage = PREORDER_REMINDER_STAGES[index + 1];
     const stageFilter = {
       ...unpaidBalanceFilter(),
@@ -171,6 +129,10 @@ export async function sendPreorderBalanceReminders(limit = 200): Promise<{
           : {}),
       },
       preorderBalanceRemindersSent: { $ne: stage.key },
+      $or: [
+        { "preorderCollection.cycleId": { $exists: false } },
+        { "preorderCollection.state": "awaiting_payment" },
+      ],
     };
     const due = await Order.find(stageFilter)
       .select(CRON_ORDER_FIELDS)
@@ -178,14 +140,8 @@ export async function sendPreorderBalanceReminders(limit = 200): Promise<{
       .lean<CronOrder[]>();
 
     for (const order of due) {
-      // The query already narrows to these; this is the rule that decides.
       if (getPreorderBalanceDue(order) <= 0) continue;
-      // Neither an account to file against nor an address to mail: there is
-      // nobody to remind, and the claim below would spend the stage on them.
       if (!order.customerId && !order.guestEmail) continue;
-
-      // The claim. Only the caller that actually adds the stage sends the mail,
-      // so a concurrent run finds the array already containing it and stops.
       const claimed = await Order.findOneAndUpdate(
         { _id: order._id, preorderBalanceRemindersSent: { $ne: stage.key } },
         { $addToSet: { preorderBalanceRemindersSent: stage.key } },
@@ -201,11 +157,9 @@ export async function sendPreorderBalanceReminders(limit = 200): Promise<{
           releaseDate: order.preorderReleaseDate,
           outstandingAmount: getPreorderBalanceDue(order),
           balanceRequestedAt: order.preorderBalanceRequestedAt ?? undefined,
-          // Its own event: without the stage the reminder shared the request
-          // notice's dedupe key and was dropped before the email went out.
+          preorderCollection: order.preorderCollection,
           reminderStage: stage.key,
-          // A guest order's `customerId` is its cart, so this is the only
-          // address the reminder can reach.
+          balanceCycleId: order.preorderCollection?.cycleId,
           guestEmail: order.guestEmail,
         },
       ).catch((err) =>
@@ -214,506 +168,265 @@ export async function sendPreorderBalanceReminders(limit = 200): Promise<{
           err,
         ),
       );
-
       byStage[stage.key] += 1;
       sent += 1;
     }
   }
-
   return { sent, byStage };
 }
 
-/**
- * Give up on reservations whose balance never arrived.
- *
- * This is the only writer of `PREORDER_ITEM_STATUS.EXPIRED` — until it existed
- * the state was declared, labelled, coloured and even had notification copy,
- * but nothing could ever reach it.
- *
- * The order is deliberate. `releaseOrderPreorders` stamps `cancelled` as it
- * frees the quota, so the expiry stamp goes on afterwards; and the refund runs
- * before the customer is told, so the message and the money agree.
- */
-export async function expireUnpaidPreorders(limit = 100): Promise<{
-  expired: number;
-  refunded: number;
-  graceDays: number;
-  needingAttention: Array<{ orderNumber: string; reason?: string }>;
-}> {
-  const settings = await getSettings();
-  const graceDays =
-    resolvePreorderPolicy(settings.preorder).expiryGraceDays ||
-    PREORDER_EXPIRY_GRACE_DAYS;
-  const cutoff = new Date(Date.now() - graceDays * DAY_MS);
-  const candidates = await Order.find({
-    ...unpaidBalanceFilter(),
-    // The release date arm is redundant with the `$expr` below — the later of
-    // the two dates can only be past the cutoff if the release date is — but
-    // it is the indexed one, so it does the narrowing and the expression does
-    // the deciding.
-    preorderReleaseDate: { $lt: cutoff },
-    $expr: {
-      $lt: [
-        { $max: ["$preorderReleaseDate", "$preorderBalanceRequestedAt"] },
-        cutoff,
-      ],
-    },
-  })
-    .select(CRON_ORDER_FIELDS)
-    .limit(limit)
-    .lean<CronOrder[]>();
-
-  let expired = 0;
-  let refunded = 0;
-  const needingAttention: Array<{ orderNumber: string; reason?: string }> = [];
-
-  for (const order of candidates) {
-    if (getPreorderBalanceDue(order) <= 0) continue;
-
-    // The claim: only a still-live order can be expired, and only once.
-    // Still owing, at the moment of the write: the candidates were read
-    // before this loop spent seconds per order on refunds, and a balance paid
-    // in that window leaves the order on `payment_due` until its release runs
-    // — for good, if its stock is not in. Without these the shopper who paid
-    // on deadline day was cancelled and refunded after being told "paid".
-    const claimed = await Order.findOneAndUpdate(
-      {
-        _id: order._id,
-        ...unpaidBalanceFilter(),
-        $or: [
-          { preorderBalancePaidAt: null },
-          { preorderBalancePaidAt: { $exists: false } },
-        ],
-      },
-      {
-        $set: {
-          status: ORDER_STATUS.CANCELLED,
-          cancelledAt: new Date(),
-          cancelReason: "Pre-order balance was not paid",
-        },
-      },
-    ).lean();
-    if (!claimed) continue;
-
-    expired += 1;
-
-    await restoreOrderInventory(String(order._id)).catch((err) =>
-      console.error("Failed to restore inventory on pre-order expiry:", err),
-    );
-    await releaseOrderPreorders(String(order._id)).catch((err) =>
-      console.error("Failed to release quota on pre-order expiry:", err),
-    );
-    await reverseCouponUsageForOrder(String(order._id)).catch((err) =>
-      console.error("Failed to reverse coupon on pre-order expiry:", err),
-    );
-
-    // Cancel means refund, and an expiry is a cancellation the shopper did not
-    // ask for — so it refunds like any other. A deposit order gets its deposit
-    // back; a pay-later one took nothing and reports nothing to return.
-    const refund = await refundCancelledPreorder({
-      orderId: String(order._id),
-      reason: "Pre-order expired — balance not paid",
-    }).catch((err: unknown) => {
-      console.error("Failed to refund expired pre-order:", err);
-      return { refunded: false, reason: "The refund could not be issued" };
-    });
-    if (refund.refunded) {
-      refunded += 1;
-      // Recorded, but no gateway sent it: a person still has to.
-      if ("gatewayCalled" in refund && refund.gatewayCalled === false) {
-        needingAttention.push({
-          orderNumber: order.orderNumber,
-          reason: "Recorded as refunded — send it to the shopper by hand",
-        });
-      }
-    } else if (refund.reason !== "No money was collected on this order") {
-      needingAttention.push({
-        orderNumber: order.orderNumber,
-        reason: refund.reason,
-      });
-    }
-
-    // Stamped last: `releaseOrderPreorders` writes `cancelled` across the
-    // items as it frees the quota, and this is the state that says WHY.
-    await Order.updateOne(
-      { _id: order._id },
-      {
-        $set: {
-          preorderStatus: PREORDER_ITEM_STATUS.EXPIRED,
-          "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.EXPIRED,
-          "subOrders.$[].items.$[subItem].preorderStatus":
-            PREORDER_ITEM_STATUS.EXPIRED,
-        },
-      },
-      {
-        arrayFilters: [
-          { "item.purchaseType": PURCHASE_TYPE.PREORDER },
-          { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
-        ],
-      },
-    ).catch((err) =>
-      console.error("Failed to stamp pre-order as expired:", err),
-    );
-
-    // A cancellation notice is information, not an action, so it reaches a
-    // guest as well: the notifier mails the address on the order rather than
-    // filing a row against a cart nobody can read. (The reminders above stay
-    // account-only — they ask for a payment a guest has no page to make.)
-    if (order.customerId || order.guestEmail) {
-      await notifyPreorderCustomerUpdate(
-        String(order.customerId || ""),
-        order.orderNumber,
-        "expired",
-        String(order._id),
-        {
-          releaseDate: order.preorderReleaseDate,
-          guestEmail: order.guestEmail,
-        },
-      ).catch((err) =>
-        console.error("Failed to notify expired pre-order customer:", err),
-      );
-    }
-  }
-
-  return { expired, refunded, graceDays, needingAttention };
-}
-
-/**
- * Try the saved card again on balances that did not go through first time.
- *
- * The store's own "ask for the balance" action makes the first attempt, so
- * that a shopper who authorised a card-on-file charge is normally never
- * troubled at all. This pass is what makes that a promise rather than a hope:
- * it picks up the attempts that failed on a card worth retrying, AND the ones
- * that never happened — a store action whose charge died before it started
- * leaves no stamp behind, and without this the order would sit waiting for a
- * charge nobody was going to make.
- *
- * The decision is not made here. `preorderBalanceChargeEligibility` owns it
- * and the charge re-checks it under a claim, so this query only narrows.
- */
-export async function retryPreorderBalanceCharges(limit = 100): Promise<{
-  attempted: number;
-  charged: number;
-  needsShopper: number;
-  declined: number;
-}> {
-  const retryCutoff = new Date(
-    Date.now() - PREORDER_BALANCE_RETRY_HOURS * 60 * 60 * 1000,
-  );
-  const owing = unpaidBalanceFilter();
-  const candidates = await Order.find({
-    ...owing,
-    preorderSavedPaymentMethodId: { $nin: [null, ""] },
-    preorderMandateAcceptedAt: { $ne: null },
-    // Never tried counts as nought tries. The field has no default and `$lt`
-    // does not match a missing one, so an order whose first charge never ran
-    // (it threw before its claim, or was asked for before this existed) was
-    // never charged at all — reminded, then expired.
-    // Replaces the `$and` the spread above carries, so it is restated here.
-    $and: [
-      owesPreorderBalanceMatch(),
-      {
-        $or: [
-          { preorderBalanceChargeAttempts: { $exists: false } },
-          { preorderBalanceChargeAttempts: null },
-          { preorderBalanceChargeAttempts: { $lt: PREORDER_BALANCE_MAX_ATTEMPTS } },
-        ],
-      },
-    ],
-    $or: [
-      { preorderBalanceLastChargeAt: { $exists: false } },
-      { preorderBalanceLastChargeAt: null },
-      { preorderBalanceLastChargeAt: { $lt: retryCutoff } },
-    ],
-  })
-    .select("_id orderNumber")
-    .limit(limit)
-    .lean<Array<{ _id: Types.ObjectId; orderNumber: string }>>();
-
-  let attempted = 0;
-  let charged = 0;
-  let needsShopper = 0;
-  let declined = 0;
-
-  for (const order of candidates) {
-    const result = await chargePreorderBalanceOffSession({
-      orderId: String(order._id),
-    }).catch((err: unknown) => {
-      console.error(
-        `Failed to charge the saved card for ${order.orderNumber}:`,
-        err,
-      );
-      return { charged: false as const, outcome: "error" as const, reason: "" };
-    });
-    // A skip is a race lost or a rule refused — nothing was tried, so it is
-    // not an attempt and says nothing about the card.
-    if (!result.charged && result.outcome === "skipped") continue;
-    attempted += 1;
-    if (result.charged) charged += 1;
-    else if (result.outcome === "needs_shopper") needsShopper += 1;
-    else if (result.outcome === "declined") declined += 1;
-  }
-
-  return { attempted, charged, needsShopper, declined };
-}
-
-/**
- * Ask for the balance, and release what is paid for, on the day it was due.
- *
- * The pre-order flow's one remaining manual step: the goods arrive, and
- * somebody has to open the queue and click on every order. A store that ships
- * when it said it would already knows the answer — it is the release date its
- * own vendor set — so this does the clicking for it.
- *
- * **Off unless the store turns it on** (`preorder.autoRelease`). Asking for
- * money is a statement that the goods are ready, and a version bump must never
- * start making that statement on a store's behalf.
- *
- * It never invents a date, which is what separates it from
- * {@link countOverdueReleases} below — that one still refuses to act, because
- * moving a release date needs a NEW date and only the vendor has one. Acting on
- * the date already given is a different thing entirely.
- *
- * The two arms are gated differently, and deliberately:
- *
- *  - **Nothing owed** — the order is released for fulfilment, which consumes
- *    the received units. That claim is the stock check: if the goods are not
- *    actually in, it fails, the order is left alone, and the next run tries
- *    again. Stock decides, not the calendar.
- *  - **A balance owed** — the order moves to `payment_due` and consumes
- *    nothing, exactly as an admin's own "ask for payment" does. The date is
- *    the only gate here because it is the only gate there.
- */
-export async function autoReleaseDuePreorders(limit = 100): Promise<{
-  enabled: boolean;
-  balanceRequested: number;
+type PreparationTally = {
+  noticePending: number;
   released: number;
+  waitingOnVendors: number;
   waitingOnStock: number;
-}> {
+  datePending: number;
+  attention: number;
+};
+
+function tally(outcome: PreparationOutcome, totals: PreparationTally) {
+  switch (outcome.kind) {
+    case "notice_pending":
+      totals.noticePending += 1;
+      break;
+    case "released":
+      totals.released += 1;
+      break;
+    case "waiting_for_vendors":
+      totals.waitingOnVendors += 1;
+      break;
+    case "waiting_for_stock":
+      totals.waitingOnStock += 1;
+      break;
+    case "not_eligible":
+      if (outcome.reason === "date_sync_pending") totals.datePending += 1;
+      break;
+    case "reconciliation_required":
+    case "conflict":
+      totals.attention += 1;
+      break;
+    default:
+      break;
+  }
+}
+
+/**
+ * Prepare what is due — the daily half of the collection workflow.
+ *
+ *  1. **Automatic release** (only when the store switched it on): a waiting
+ *     order whose release date (plus the store's delay) has passed has every
+ *     waiting consignment declared available by the system and is prepared
+ *     exactly as a person's click would — stock allocated, the request and
+ *     its notice written, or with nothing owed the goods released. Its dates
+ *     are brought up to the products' current terms first; a date that moved
+ *     later is no longer due.
+ *  2. **Consignments that became ready** with no request standing — a stock
+ *     shortage that has since been restocked, a sibling cancelled — are
+ *     prepared again. Every seller already said their goods were in.
+ *  3. **Requests from before collection cycles** — `payment_due` with no
+ *     cycle — are adopted: allocated and given a request with an advance
+ *     notice, so nothing is ever charged on an old request without one.
+ *
+ * Bounded and fair: an order passed over is stamped, and the least recently
+ * checked come first.
+ */
+export async function preparePreorderCollections(
+  options: { limit?: number; now?: Date } = {},
+): Promise<
+  PreparationTally & {
+    enabled: boolean;
+    autoRelease: boolean;
+    unavailableReason?: string;
+    candidates: number;
+  }
+> {
+  const now = options.now || new Date();
+  const limit = Math.min(Math.max(options.limit ?? 100, 1), 500);
   const settings = await getSettings();
   const policy = resolvePreorderPolicy(settings.preorder);
-  if (!policy.autoRelease) {
+  const totals: PreparationTally = {
+    noticePending: 0,
+    released: 0,
+    waitingOnVendors: 0,
+    waitingOnStock: 0,
+    datePending: 0,
+    attention: 0,
+  };
+  const support = await getTransactionSupport();
+  if (!support.supported) {
     return {
+      ...totals,
       enabled: false,
-      balanceRequested: 0,
-      released: 0,
-      waitingOnStock: 0,
+      autoRelease: policy.autoRelease,
+      unavailableReason: support.reason,
+      candidates: 0,
     };
   }
-
-  const cutoff = new Date(Date.now() - policy.autoReleaseDelayDays * DAY_MS);
-  const candidates = await Order.find({
-    hasPreorder: true,
-    // A delayed reservation is still a reservation — on its new date, which
-    // the delay wrote to `preorderReleaseDate`. Left out, a delayed order was
-    // never released at all.
-    preorderStatus: { $in: WAITING_PREORDER_STATUSES },
-    status: { $ne: ORDER_STATUS.CANCELLED },
-    preorderReleaseDate: { $lte: cutoff },
-    // A gateway order the shopper walked away from never captured anything
-    // and never will; it is not the sweep's to release.
-    $or: [
-      { paymentStatus: { $ne: PAYMENT_STATUS.PENDING } },
-      { paymentMethod: PAY_LATER_PAYMENT_METHOD },
-    ],
-  })
-    // Least recently passed over first. Without an order here the same rows
-    // came back every run, and enough reservations still waiting on stock
-    // filled every batch and starved the rest.
-    .sort({ preorderAutoReleaseCheckedAt: 1, preorderReleaseDate: 1 })
-    .select(CRON_ORDER_FIELDS)
-    .limit(limit)
-    .lean<CronOrder[]>();
 
   const passOver = (orderId: unknown) =>
     Order.updateOne(
       { _id: orderId },
-      { $set: { preorderAutoReleaseCheckedAt: new Date() } },
+      { $set: { preorderAutoReleaseCheckedAt: now } },
     ).catch((err) =>
-      console.error("Failed to stamp a pre-order the auto-release passed over:", err),
+      console.error("Failed to stamp a pre-order the preparation passed over:", err),
     );
 
-  let balanceRequested = 0;
-  let released = 0;
-  let waitingOnStock = 0;
-
-  for (const order of candidates) {
-    const outstanding = getPreorderBalanceDue(order);
-
-    if (outstanding <= 0) {
-      // "Nothing owed" is also the answer for a deposit or full-price
-      // pre-order whose gateway never captured anything — releasing that one
-      // would put an unpaid order in the vendor's queue to ship. It stays
-      // reserved until the payment arrives.
-      if (getFulfillmentPaymentBlock({ ...order, hasPreorder: true }, null)) {
-        await passOver(order._id);
-        continue;
-      }
-      const outcome = await consumePreorderStockOnReady(String(order._id));
-      if (!outcome.consumed && !outcome.alreadyConsumed) {
-        // The intake has not been recorded yet. Nothing is written, so the
-        // next run simply tries again — which is the whole point of letting
-        // the stock claim be the gate.
-        waitingOnStock += 1;
-        await passOver(order._id);
-        continue;
-      }
-      const claimed = await claimAutoRelease(order._id, {
-        status: ORDER_STATUS.PROCESSING,
-        preorderStatus: PREORDER_ITEM_STATUS.READY,
-        extraSet: { processingAt: new Date() },
-      });
-      if (!claimed) {
-        // Someone moved it between the read and the claim. The stock claim is
-        // per order, not per caller: an admin who released it in that window
-        // found our consumption already made ("already consumed") and is now
-        // shipping against it, so giving those units back put them on sale
-        // twice. Only an order that is NOT being fulfilled — cancelled, or
-        // asked for its balance instead — gets them back.
-        const now = await Order.findById(order._id)
-          .select("status preorderStatus")
-          .lean<{ status?: string; preorderStatus?: string } | null>();
-        const beingFulfilled =
-          now?.status !== ORDER_STATUS.CANCELLED &&
-          now?.preorderStatus === PREORDER_ITEM_STATUS.READY;
-        if (!beingFulfilled) {
-          await restoreOrderInventory(String(order._id)).catch((err) =>
-            console.error(
-              "Failed to restore stock after a lost auto-release race:",
-              err,
-            ),
-          );
-        }
-        continue;
-      }
-      released += 1;
-
-      const { queueAutoShipForOrder } = await import(
-        "@/lib/shipping/carriers/shipment-worker"
-      );
-      await queueAutoShipForOrder(String(order._id)).catch((err) =>
-        console.error("Failed to queue auto-ship for a released pre-order:", err),
-      );
-      await notifyPreorderCustomerUpdate(
-        String(order.customerId || ""),
-        order.orderNumber,
-        "ready",
-        String(order._id),
-        {
-          releaseDate: order.preorderReleaseDate,
-          guestEmail: order.guestEmail,
-          settings,
-        },
-      ).catch((err) =>
-        console.error("Failed to tell a shopper their pre-order is ready:", err),
-      );
-      continue;
-    }
-
-    const claimed = await claimAutoRelease(order._id, {
-      status: ORDER_STATUS.PREORDERED,
-      preorderStatus: PREORDER_ITEM_STATUS.PAYMENT_DUE,
-      // The expiry clock starts when the money is actually asked for. An order
-      // reaching here has never been asked — a `payment_due` one is not in the
-      // candidate set — so this is always the first request.
-      extraSet: { preorderBalanceRequestedAt: new Date() },
-      unset: { preorderBalanceRemindersSent: "" },
+  // A gateway order the shopper walked away from never captured anything.
+  const paidOrPayLater = {
+    $or: [
+      { paymentStatus: { $ne: PAYMENT_STATUS.PENDING } },
+      { paymentMethod: PAY_LATER_PAYMENT_METHOD },
+    ],
+  };
+  const cutoff = new Date(now.getTime() - policy.autoReleaseDelayDays * DAY_MS);
+  const queries: Array<{ source: "auto" | "admin" | "legacy"; filter: Record<string, unknown> }> = [];
+  if (policy.autoRelease) {
+    queries.push({
+      source: "auto",
+      filter: {
+        hasPreorder: true,
+        preorderStatus: { $in: WAITING_PREORDER_STATUSES },
+        status: { $ne: ORDER_STATUS.CANCELLED },
+        preorderReleaseDate: { $lte: cutoff },
+        ...paidOrPayLater,
+      },
     });
-    if (!claimed) continue;
-    balanceRequested += 1;
-
-    // Take it from the card on file if the shopper left one, exactly as the
-    // store's own "ask for payment" does — and say nothing extra if that
-    // attempt has already written to them.
-    const collection = await collectPreorderBalanceOnRequest(String(order._id));
-    if (collection.shopperAlreadyTold) continue;
-
-    await notifyPreorderCustomerUpdate(
-      String(order.customerId || ""),
-      order.orderNumber,
-      "payment_due",
-      String(order._id),
-      {
-        releaseDate: order.preorderReleaseDate,
-        outstandingAmount: outstanding,
-        balanceRequestedAt: new Date(),
-        guestEmail: order.guestEmail,
-        settings,
-      },
-    ).catch((err) =>
-      console.error("Failed to ask a shopper for their pre-order balance:", err),
-    );
   }
-
-  return { enabled: true, balanceRequested, released, waitingOnStock };
-}
-
-/**
- * Move one reservation on, and only from `reserved` (or `delayed`).
- *
- * The status guard is the idempotency: two overlapping runs, or a run racing
- * an admin, cannot both transition the same order, and the loser is told so by
- * getting nothing back.
- */
-async function claimAutoRelease(
-  orderId: unknown,
-  next: {
-    status: string;
-    preorderStatus: string;
-    extraSet?: Record<string, unknown>;
-    unset?: Record<string, string>;
-  },
-) {
-  return Order.findOneAndUpdate(
-    {
-      _id: orderId,
-      status: { $ne: ORDER_STATUS.CANCELLED },
+  queries.push({
+    source: "admin",
+    filter: {
+      hasPreorder: true,
       preorderStatus: { $in: WAITING_PREORDER_STATUSES },
+      status: { $ne: ORDER_STATUS.CANCELLED },
+      "subOrders.preorderReadiness.declaredAt": { $exists: true },
+      ...paidOrPayLater,
     },
-    {
-      $set: {
-        status: next.status,
-        preorderStatus: next.preorderStatus,
-        "items.$[item].preorderStatus": next.preorderStatus,
-        // ONLY the consignments still waiting on the pre-order. An order can
-        // pair a pre-order from one seller with lines from another that have
-        // already shipped or been cancelled, and a blanket write drags those
-        // back — the same rule every other transition here follows.
-        "subOrders.$[preorderSub].status": next.status,
-        "subOrders.$[preorderSub].items.$[subItem].preorderStatus":
-          next.preorderStatus,
-        ...(next.extraSet || {}),
-      },
-      ...(next.unset ? { $unset: next.unset } : {}),
+  });
+  queries.push({
+    source: "legacy",
+    filter: {
+      ...unpaidBalanceFilter(),
+      "preorderCollection.cycleId": { $exists: false },
     },
-    {
-      returnDocument: "after",
-      arrayFilters: [
-        { "item.purchaseType": PURCHASE_TYPE.PREORDER },
-        { "preorderSub.status": ORDER_STATUS.PREORDERED },
-        { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
-      ],
-    },
-  ).lean();
+  });
+
+  let candidates = 0;
+  const seen = new Set<string>();
+  for (const query of queries) {
+    const orders = await Order.find(query.filter)
+      .sort({ preorderAutoReleaseCheckedAt: 1, preorderReleaseDate: 1, _id: 1 })
+      .select(CRON_ORDER_FIELDS)
+      .limit(limit)
+      .lean<CronOrder[]>();
+    for (const order of orders) {
+      const key = String(order._id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates += 1;
+      if (isActiveCollection(order.preorderCollection)) continue;
+      const scope = collectionScope(order);
+      if (scope.length === 0) {
+        await passOver(order._id);
+        continue;
+      }
+      if (
+        query.source === "admin" &&
+        !scope.every(isConsignmentReady) &&
+        getPreorderBalanceDue(order) > 0
+      ) {
+        // Somebody's goods are still out: no balance can be asked for yet.
+        // (With nothing owed, the ready consignments are released on their
+        // own — the preparation below does exactly that.)
+        totals.waitingOnVendors += 1;
+        await passOver(order._id);
+        continue;
+      }
+      if (query.source === "auto") {
+        // Dates first: a release date that moved past the cutoff is not due
+        // today. (One that moved but is still due goes ahead; the coordinator
+        // re-checks the terms inside its own transaction either way.)
+        const reconciled = await reconcileOrderPreorderTerms(key, { now }).catch(() => null);
+        if (reconciled?.status === "moved" && reconciled.orderDateMoved) {
+          const moved = await Order.findById(order._id)
+            .select("preorderReleaseDate")
+            .lean<{ preorderReleaseDate?: Date | null }>();
+          const releaseAt = moved?.preorderReleaseDate
+            ? new Date(moved.preorderReleaseDate).getTime()
+            : Number.POSITIVE_INFINITY;
+          if (!(releaseAt <= cutoff.getTime())) {
+            totals.datePending += 1;
+            await passOver(order._id);
+            continue;
+          }
+        }
+      }
+      const outcome = await preparePreorderCollection({
+        orderId: key,
+        actor: "system",
+        source: query.source,
+        declare:
+          query.source === "admin" ? undefined : scope.map((sub) => String(sub._id)),
+        requireCurrentTerms: query.source === "auto",
+        now,
+      }).catch(
+        (error: unknown): PreparationOutcome => ({
+          kind: "not_eligible",
+          reason: error instanceof Error ? error.message : "failed",
+        }),
+      );
+      tally(outcome, totals);
+      if (outcome.kind !== "notice_pending" && outcome.kind !== "released") {
+        await passOver(order._id);
+      }
+    }
+  }
+  return { ...totals, enabled: true, autoRelease: policy.autoRelease, candidates };
 }
 
 /**
  * Reservations whose release date has come and gone with nothing shipped.
- *
- * Counted, never acted on. Moving a release date needs a new date and a reason,
- * and only the vendor has either — a job that guessed would be telling shoppers
- * something nobody knows. Surfacing the number is the useful half.
- *
- * Unrelated to {@link autoReleaseDuePreorders} above, which acts on the date
- * the vendor DID give rather than on one nobody has.
+ * Counted, never acted on: a new date is the vendor's to give.
  */
 export async function countOverdueReleases(): Promise<number> {
   return Order.countDocuments({
     hasPreorder: true,
-    // A delayed order past its NEW date is as overdue as any other.
     preorderStatus: { $in: WAITING_PREORDER_STATUSES },
     status: { $ne: ORDER_STATUS.CANCELLED },
     preorderReleaseDate: { $lt: new Date() },
   });
+}
+
+/**
+ * Durable counts for the cron output and the health check — what the
+ * workflow holds, not what this run happened to attempt.
+ */
+export async function preorderWorkflowCounts(): Promise<{
+  noticesPending: number;
+  noticesNeedingAttention: number;
+  awaitingPayment: number;
+  chargesDue: number;
+  releasesWaiting: number;
+  releasesNeedingAttention: number;
+}> {
+  const now = new Date();
+  const [noticesPending, noticesNeedingAttention, awaitingPayment, chargesDue, releasesWaiting, releasesNeedingAttention] =
+    await Promise.all([
+      Order.countDocuments({ "preorderCollection.state": "notice_pending" }),
+      Order.countDocuments({ "preorderCollection.state": "attention" }),
+      Order.countDocuments({ "preorderCollection.state": "awaiting_payment" }),
+      Order.countDocuments({
+        "preorderCollection.state": "awaiting_payment",
+        "preorderCollection.chargeNotBefore": { $lte: now },
+      }),
+      Order.countDocuments({ "preorderRelease.state": { $in: ["requested", "waiting"] } }),
+      Order.countDocuments({ "preorderRelease.state": "attention" }),
+    ]);
+  return {
+    noticesPending,
+    noticesNeedingAttention,
+    awaitingPayment,
+    chargesDue,
+    releasesWaiting,
+    releasesNeedingAttention,
+  };
 }

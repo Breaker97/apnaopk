@@ -61,6 +61,8 @@ const dealsPanel: SectionDefinition["Render"] = async (renderProps) => {
     <ElectronicsDeals
       {...props(renderProps)}
       productIds={(settings.productIds as string[]) ?? []}
+      // A vendor's landing page offers that store's deals alone.
+      vendorId={ctx.vendor?.id}
       layout={getDealLayout(settings.layout)}
       background={normalizeBackground(settings.background)}
       foreground={typeof settings.foreground === "string" ? settings.foreground : ""}

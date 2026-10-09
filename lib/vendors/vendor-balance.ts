@@ -1,3 +1,4 @@
+import { quotePayout } from "@/lib/finance/payout-service";
 import "server-only";
 
 import { Types } from "mongoose";
@@ -40,6 +41,13 @@ export interface VendorBalance {
   currency: string;
   /** Past the payout hold: what a payout created now would pay. */
   readyToPay: number;
+  grossEligible?: number;
+  breakdown?: Record<string, number>;
+  eligible?: boolean;
+  hasMore?: boolean;
+  eligibilityReason?: string | null;
+  calculatedAt?: Date;
+  availableCurrencies?: string[];
   orderCount: number;
   /** Delivered, unpaid, still inside the return window. */
   heldInReturnWindow: { amount: number; orderCount: number; windowDays: number };
@@ -89,16 +97,6 @@ export async function loadVendorBalance(params: {
     sub.payoutStatus !== "scheduled" &&
     sub.payoutStatus !== "paid";
 
-  const ready = payableInCurrency(
-    sumVendorPayable(
-      payableOrders,
-      vendorObjectId,
-      refundByOrderId,
-      (sub, order) => isUnpaidDelivered(sub) && !waiting(sub, order),
-      currency,
-    ),
-    currency,
-  );
   const held = payableInCurrency(
     sumVendorPayable(
       payableOrders,
@@ -138,10 +136,18 @@ export async function loadVendorBalance(params: {
     0,
   );
 
+  const quote = await quotePayout({ vendorId: String(params.vendorId), currency, now });
   return {
     currency,
-    readyToPay: roundMoney(ready.netAmount),
-    orderCount: ready.orderIds.length,
+    readyToPay: quote.netAmount,
+    grossEligible: quote.eligibleEarnings,
+    breakdown: quote.breakdown,
+    eligible: quote.eligible,
+    hasMore: quote.hasMore,
+    eligibilityReason: quote.eligibilityReason,
+    calculatedAt: quote.calculatedAt,
+    availableCurrencies: quote.availableCurrencies,
+    orderCount: quote.orderCount,
     heldInReturnWindow: {
       amount: roundMoney(held.netAmount),
       orderCount: held.orderIds.length,

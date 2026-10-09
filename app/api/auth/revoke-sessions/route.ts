@@ -3,12 +3,20 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
+import { audit, createAuditContext } from "@/lib/audit";
+import { isTeamRole } from "@/lib/auth/auth-audit";
 import {
   listActiveSessions,
   revokeAllSessions,
   revokeOtherSessions,
   revokeSession,
 } from "@/lib/auth/session-revocation";
+
+/**
+ * Signing your own devices out is yours to do from any of them, the app's
+ * included, like Better Auth's own endpoints under /api/auth.
+ */
+const OWN_SESSION_CLIENTS = ["web", "shop-app", "biz-app"] as const;
 
 /**
  * POST /api/auth/revoke-sessions
@@ -23,7 +31,10 @@ const RevokeSessionsSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+      expect: OWN_SESSION_CLIENTS,
+    });
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Authentication required" },
@@ -36,10 +47,31 @@ export async function POST(request: NextRequest) {
       RevokeSessionsSchema,
     );
 
+    // A team account signing devices out is in the Activity Log; a shopper's
+    // sign-outs are not (decision D3).
+    const auditSignOut = async (scope: "one" | "others" | "all", count: number) => {
+      if (!isTeamRole(session.user.role) || count === 0) return;
+      const who = session.user.email ?? "An account";
+      await audit(createAuditContext(request, session), {
+        action: "LOGOUT",
+        resource: "session",
+        resourceId: session.session.id,
+        resourceName: session.user.email,
+        changes: {
+          summary:
+            scope === "one"
+              ? `${who} signed out one of their devices.`
+              : `${who} signed out ${scope === "others" ? "all their other devices" : "everywhere"} (${count} session${count === 1 ? "" : "s"}).`,
+        },
+        metadata: { scope, revokedCount: count },
+      });
+    };
+
     if (revokeAll) {
       const revokedCount = excludeCurrent
         ? await revokeOtherSessions(session.user.id, session.session.id)
         : await revokeAllSessions(session.user.id);
+      await auditSignOut(excludeCurrent ? "others" : "all", revokedCount);
 
       return NextResponse.json({
         success: true,
@@ -58,6 +90,7 @@ export async function POST(request: NextRequest) {
           { status: 404 },
         );
       }
+      await auditSignOut("one", 1);
 
       return NextResponse.json({
         success: true,
@@ -88,7 +121,10 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     // Get authenticated user
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+      expect: OWN_SESSION_CLIENTS,
+    });
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Authentication required" },

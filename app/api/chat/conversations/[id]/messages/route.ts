@@ -10,10 +10,18 @@ import {
 } from "@/lib/conversations/service";
 import { resolveConversationViewer } from "@/lib/conversations/viewer";
 
-const SendMessageSchema = z.object({
-  message: z.string().min(1).max(4000),
-  clientMessageId: z.string().trim().max(100).optional(),
-});
+/** Text, a product to share (its card), or both. */
+const SendMessageSchema = z
+  .object({
+    message: z.string().max(4000).default(""),
+    productId: z.string().trim().min(1).max(64).optional(),
+    variantId: z.string().trim().min(1).max(64).optional(),
+    clientMessageId: z.string().trim().max(100).optional(),
+  })
+  .refine(
+    (request) => request.message.trim().length > 0 || request.productId !== undefined,
+    { message: "Write a message or share a product.", path: ["message"] },
+  );
 
 export const GET = withApi<{ id: string }>(
   { auth: "user" },

@@ -94,7 +94,12 @@ export function DataTablePagination({
   };
 
   return (
-    <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+    // Laid out by its own width, not the screen's: a table in a settings card
+    // at 768px (the sidebar beside it) is about 420px wide, and the viewport
+    // breakpoint put the full row there, breaking "Showing 1 to 10 of 23
+    // results" over four lines. The full row needs about 740px.
+    <div className="@container pt-4">
+    <div className="flex flex-col gap-3 @2xl:flex-row @2xl:items-center @2xl:justify-between">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
           {text.showing} {startItem} {text.to} {endItem} {text.of} {total}{" "}
@@ -102,10 +107,10 @@ export function DataTablePagination({
         </span>
       </div>
 
-      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-6">
+      <div className="flex w-full flex-col gap-3 @2xl:w-auto @2xl:flex-row @2xl:items-center @2xl:gap-6">
         {/* Page size selector */}
         {onPageSizeChange && (
-          <div className="flex items-center justify-between gap-2 sm:justify-start">
+          <div className="flex items-center justify-between gap-2 @2xl:justify-start">
             <span className="text-sm text-muted-foreground">
               {text.rowsPerPage}
             </span>
@@ -128,12 +133,12 @@ export function DataTablePagination({
         )}
 
         {/* Pagination controls */}
-        <div className="flex items-center justify-between gap-1 sm:justify-start">
+        <div className="flex items-center justify-between gap-1 @2xl:justify-start">
           {/* First page */}
           <Button
             variant="outline"
             size="icon"
-            className="hidden h-8 w-8 sm:inline-flex"
+            className="hidden h-8 w-8 @2xl:inline-flex"
             onClick={() => onPageChange?.(1)}
             disabled={safePage === 1}
           >
@@ -152,7 +157,7 @@ export function DataTablePagination({
           </Button>
 
           {/* Page numbers */}
-          <div className="hidden items-center gap-1 sm:flex">
+          <div className="hidden items-center gap-1 @2xl:flex">
             {getPageNumbers().map((pageNum, index) =>
               pageNum === "ellipsis" ? (
                 <span
@@ -174,7 +179,7 @@ export function DataTablePagination({
               )
             )}
           </div>
-          <span className="text-xs text-muted-foreground sm:hidden">
+          <span className="text-xs text-muted-foreground @2xl:hidden">
             {safePage}/{safeTotalPages}
           </span>
 
@@ -193,7 +198,7 @@ export function DataTablePagination({
           <Button
             variant="outline"
             size="icon"
-            className="hidden h-8 w-8 sm:inline-flex"
+            className="hidden h-8 w-8 @2xl:inline-flex"
             onClick={() => onPageChange?.(safeTotalPages)}
             disabled={safePage === safeTotalPages}
           >
@@ -201,6 +206,7 @@ export function DataTablePagination({
           </Button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

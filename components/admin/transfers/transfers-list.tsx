@@ -3,7 +3,7 @@
 import Link from "@/components/language/link";
 import { useCallback, useMemo } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
-import { ArrowRightLeft, ChevronsUpDown, Download, Plus, Upload } from "lucide-react";
+import { ArrowRightLeft, Download, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { TransferStatusBadge, type TransferStatus } from "@/components/admin/transfers/transfer-status-badge";
 import {
@@ -109,25 +109,15 @@ export function TransfersList({
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
+        // Export only: a transfer is raised between two locations and then
+        // shipped and received, never loaded from a file, so there is no menu
+        // to hang an import on.
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: t("admin.collectionsDataTable.actions.export"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: t("admin.collectionsDataTable.actions.export"),
-              icon: <Download className="h-4 w-4" />,
-              onClick: exportTransfers,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.collectionsDataTable.actions.import"),
-              icon: <Upload className="h-4 w-4" />,
-              disabled: true,
-            },
-          ],
+          onClick: exportTransfers,
         },
       }),
     [exportTransfers, paths.page, t],

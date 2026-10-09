@@ -12,6 +12,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
+  ShieldCheck,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,9 @@ import {
 import { toast } from "@/components/ui/toast-notification";
 import { authClient, signUp } from "@/lib/auth/auth-client";
 import { buildLoginUrl } from "@/lib/auth/return-path";
+import { holdsTeamRole } from "@/lib/access/staff-role";
+import { getRoleDashboardPath } from "@/lib/access/role-dashboard";
 import { VENDOR_STATUS } from "@/config/app.config";
-import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { ONBOARDING_STEP_KINDS } from "@/lib/vendors/vendor-onboarding-fields";
 import { VendorPlanPicker } from "@/components/vendor-plans/vendor-plan-picker";
 import { formatCurrency } from "@/lib/intl/money";
@@ -42,6 +44,7 @@ import type {
   ResolvedStep,
 } from "@/lib/vendors/vendor-onboarding";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 // System field keys the wizard maps to Vendor.documents.* at submit/draft time.
 const DOC_KEYS = new Set([
@@ -87,6 +90,7 @@ export function VendorRegistrationForm({
   const tAuth = useTranslations("auth");
   const tVendor = useTranslations("vendor");
   const tRoot = useTranslations();
+  const { storeName: marketplaceName } = useAppSettings();
 
   // Resolve a field/step's display label: admin override → i18n key → default.
   // next-intl returns the key (not throws) on a miss, so guard with `.has`.
@@ -113,6 +117,9 @@ export function VendorRegistrationForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Set for an admin or staff account, which cannot apply (holdsTeamRole):
+  // the wizard says so up front instead of refusing on the last step.
+  const [teamAccountRole, setTeamAccountRole] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [currentKey, setCurrentKey] = useState<string>(stepKeys[0] ?? "");
   // Starts on the plan marked Default, which the wizard shows as Recommended.
@@ -263,6 +270,13 @@ export function VendorRegistrationForm({
         const { data: session } = await authClient.getSession();
         const loggedIn = !!session?.user;
         setIsLoggedIn(loggedIn);
+        const account = session?.user as
+          | { role?: string; roles?: unknown }
+          | undefined;
+        if (account && holdsTeamRole(account)) {
+          setTeamAccountRole(account.role ?? "");
+          return;
+        }
 
         if (loggedIn) {
           setCurrentKey(firstNonAccountKey);
@@ -377,7 +391,7 @@ export function VendorRegistrationForm({
 
     return {
       storeName: str("storeName"),
-      description: str("description") || `New store on ${DEFAULT_STORE_NAME}`,
+      description: str("description") || `New store on ${marketplaceName}`,
       logo: null,
       banner: null,
       address: hasAddress ? address : null,
@@ -511,6 +525,7 @@ export function VendorRegistrationForm({
     }
     setIsSubmitting(true);
     try {
+      const str = (k: string) => String(data[k] ?? "");
       const payload = buildApplicationPayload(data);
 
       const res = await fetch("/api/vendor/apply", {
@@ -556,6 +571,33 @@ export function VendorRegistrationForm({
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>
+    );
+  }
+
+  if (teamAccountRole !== null) {
+    const dashboardHref = getRoleDashboardPath(locale, teamAccountRole);
+    return (
+      <Card className="border shadow-sm">
+        <CardContent className="pt-8 pb-8 text-center">
+          <div className="inline-flex p-3 rounded-full bg-muted mb-4">
+            <ShieldCheck className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h3 className="font-semibold text-lg mb-2">
+            {t("teamAccountTitle")}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            {t("teamAccountDesc")}
+          </p>
+          {dashboardHref ? (
+            <Button asChild>
+              <Link href={dashboardHref}>
+                {tRoot("common.dashboard")}{" "}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          ) : null}
+        </CardContent>
+      </Card>
     );
   }
 

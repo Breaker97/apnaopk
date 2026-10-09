@@ -37,7 +37,43 @@ import {
   type VendorAccessSubject,
 } from "@/lib/vendors/vendor-permissions";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
-import { auditUpdate, type AuditContext } from "@/lib/audit";
+import { audit, type AuditContext } from "@/lib/audit";
+
+/**
+ * Overrides as the audit log keeps them: `permission:mode:expiry`, sorted, and
+ * only for the permissions a decision touches. The admin vendor screen logs the
+ * same field in the same shape, so a store's access history reads the same
+ * whichever door a change came through.
+ */
+function overridesAuditValue(
+  overrides: unknown,
+  only: readonly VendorPermission[],
+): string[] {
+  if (!Array.isArray(overrides)) return [];
+  return overrides
+    .filter((row) => only.includes(row?.permission))
+    .map(
+      (row) =>
+        `${row.permission}:${row.mode}:${
+          row.expiresAt ? new Date(row.expiresAt).toISOString() : "never"
+        }`,
+    )
+    .sort();
+}
+
+/** An expiry as a reader of the log needs it: a day, with its year. */
+function expiryDay(date: Date): string {
+  return new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+/** Whose request it was, as the audit sentences say it. */
+const storesRequest = (storeName?: string) =>
+  `${storeName ? `${storeName}'s` : "the vendor's"} request`;
 
 /** Let every admin know a request is waiting. Best-effort: never blocks the write. */
 export async function notifyAdminsOfAccessRequest(params: {
@@ -203,12 +239,18 @@ export async function decideAccessRequest(params: {
   }
 
   const pack = request.pack as VendorPermissionPack;
+  // Named in the audit rows below, which are read by people who never open the
+  // request.
+  let storeName: string | undefined;
 
   if (params.decision === "approved") {
     const vendor = await Vendor.findById(request.vendorId)
-      .select(VENDOR_ACCESS_FIELDS)
-      .lean<(VendorAccessSubject & { userId?: string }) | null>();
+      .select(`${VENDOR_ACCESS_FIELDS} storeName`)
+      .lean<
+        (VendorAccessSubject & { userId?: string; storeName?: string }) | null
+      >();
     if (!vendor) throw new NotFoundError("Vendor");
+    storeName = vendor.storeName;
 
     const settings = await getSettings();
     const plan = vendor.planId
@@ -242,13 +284,46 @@ export async function decideAccessRequest(params: {
       params.actor,
     );
 
-    await auditUpdate(
-      params.auditContext,
-      "vendor",
-      String(request.vendorId),
-      before,
-      after,
-    );
+    // The grant, not the store: `before` and `after` are whole vendor documents,
+    // bank details among them, and a log row must carry only what this decision
+    // changed. Written here rather than after the request is saved so a failed
+    // save cannot leave a grant nobody recorded.
+    const granted = VENDOR_PERMISSION_PACKS[pack];
+    await audit(params.auditContext, {
+      action: "PERMISSION_CHANGE",
+      resource: "vendor",
+      resourceId: String(request.vendorId),
+      resourceName: storeName,
+      changes: {
+        before: {
+          permissionOverrides: overridesAuditValue(
+            before.permissionOverrides,
+            granted,
+          ),
+        },
+        after: {
+          permissionOverrides: overridesAuditValue(
+            after.permissionOverrides,
+            granted,
+          ),
+        },
+        fields: ["permissionOverrides"],
+        summary: `Approved ${storesRequest(storeName)} for ${
+          VENDOR_PACK_LABELS[pack]
+        } access: granted ${granted.length} permission${
+          granted.length === 1 ? "" : "s"
+        } ${expiresAt ? `until ${expiryDay(expiresAt)}` : "with no expiry"}`,
+      },
+      metadata: {
+        // Not `requestId`: `audit()` keeps the HTTP request's id under that name.
+        accessRequestId: String(request._id),
+        pack,
+        duration: request.duration,
+        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+        requestReason: request.reason,
+        ...(params.note?.trim() ? { note: params.note.trim() } : {}),
+      },
+    });
 
     if (vendor.userId) {
       await notifyVendorOfDecision({
@@ -259,8 +334,9 @@ export async function decideAccessRequest(params: {
     }
   } else {
     const vendor = await Vendor.findById(request.vendorId)
-      .select("userId")
-      .lean<{ userId?: string } | null>();
+      .select("userId storeName")
+      .lean<{ userId?: string; storeName?: string } | null>();
+    storeName = vendor?.storeName;
     if (vendor?.userId) {
       await notifyVendorOfDecision({
         vendorUserId: String(vendor.userId),
@@ -279,6 +355,29 @@ export async function decideAccessRequest(params: {
   request.decidedAt = new Date();
   request.decisionNote = params.note?.trim() || null;
   await request.save();
+
+  // Nothing else records a refusal: it changes no override. Written once the
+  // request is saved as declined, which is the only thing it changed.
+  if (params.decision === "declined") {
+    const reason = request.decisionNote || undefined;
+    await audit(params.auditContext, {
+      action: "REJECTION",
+      resource: "vendor",
+      resourceId: String(request.vendorId),
+      resourceName: storeName,
+      changes: {
+        summary: `Declined ${storesRequest(storeName)} for ${
+          VENDOR_PACK_LABELS[pack]
+        } access${reason ? `: ${reason}` : ""}`,
+      },
+      metadata: {
+        accessRequestId: String(request._id),
+        pack,
+        requestReason: request.reason,
+        ...(reason ? { reason } : {}),
+      },
+    });
+  }
 
   return request;
 }

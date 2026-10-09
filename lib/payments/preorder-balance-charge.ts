@@ -12,60 +12,68 @@ import {
 import { getPreorderBalanceDue } from "@/lib/orders/order-payment-status";
 import { PREORDER_ITEM_STATUS } from "@/lib/orders/preorders";
 import {
+  collectionScope,
+  cycleMismatch,
+  type ScopeSubOrder,
+} from "@/lib/orders/preorder-scope";
+import { findStaleTermsLines } from "@/lib/orders/preorder-terms";
+import {
   PREORDER_BALANCE_CHECKOUT_KIND,
   settlePreorderBalanceFromIntent,
 } from "@/lib/payments/preorder-balance";
 
 /**
- * Taking the pre-order balance off the card the shopper left with us.
+ * Taking the pre-order balance off the card the shopper left with us — only
+ * once they have been told, and only for the request they were told about.
  *
- * This is the half the whole card-on-file chain was built for. The Customer
- * exists (`stripe-customer.ts`), the card is saved against it and the shopper
- * authorised the charge (`preorder-mandate.ts`); this is where that permission
- * is finally used, so that a shopper who agreed to it never has to come back
- * and type a card again for money they already said we could take.
+ * The card-on-file chain (the Customer in `stripe-customer.ts`, the card saved
+ * at checkout, the mandate in `preorder-mandate.ts`) ends here. What changed is
+ * WHEN it may be used. The request paths used to charge the moment a balance
+ * was asked for; the mandate promised the shopper would hear first, and the
+ * shopper heard afterwards, if at all. Now a charge needs a collection cycle
+ * (`lib/orders/preorder-collection.ts`) whose advance notice the mail server
+ * accepted, whose notice window (`chargeNotBefore`) has passed, and which
+ * still describes the order: the same consignments, amount, currency and
+ * readiness, every consignment's stock allocated, no product date waiting to
+ * be carried to it. Every caller — the scheduled pass, a retry, anything else
+ * — goes through {@link preorderBalanceChargeEligibility} and then a claim
+ * that re-checks the same conditions in the database at the moment of
+ * charging.
  *
  * **It is an attempt, never a guarantee.** An off-session charge fails in ways
  * an on-session one does not — the card expired during a six-month lead time,
  * the bank wants the shopper present for 3-D Secure, the funds are not there.
- * So every failure path here ends in the same two places: the shopper is told
- * what happened and pointed at the page where they can pay it themselves, and
- * the reason is written down. The manual page is not a fallback bolted on, it
- * is the other half of the design.
+ * Every refusal ends with the shopper told and pointed at the page where they
+ * can pay it themselves. And an attempt whose ANSWER was lost — a timeout, a
+ * dropped connection — is never read as a refusal: the next run asks Stripe
+ * what happened to that exact attempt before anything else is tried.
  *
- * Nothing here decides to give up on an order. When the retries are spent the
- * balance simply stays owed, and the expiry sweep cancels and refunds it at
- * the store's grace deadline exactly as it does for a shopper who never paid —
- * one rule for an unpaid balance, whoever was supposed to collect it.
+ * Retries keep their old shape — at most {@link PREORDER_BALANCE_MAX_ATTEMPTS}
+ * per request, {@link PREORDER_BALANCE_RETRY_HOURS} apart — and all fall under
+ * the one notice of the request they belong to: same amount, same request,
+ * the shopper told after every failure. A changed amount or scope is a NEW
+ * request with its own notice and its own attempts.
  */
 
-/** How long a failed attempt waits before the sweep may try again. */
+/** How long a failed attempt waits before the next may be made. */
 export const PREORDER_BALANCE_RETRY_HOURS = 24;
 
-/**
- * How many times in all, counting the first.
- *
- * Three over three days sits comfortably inside even the shortest grace period
- * a store is likely to set, so the retries are always finished — and the
- * shopper always warned — before anything is cancelled.
- */
+/** Attempts per request, counting the first. */
 export const PREORDER_BALANCE_MAX_ATTEMPTS = 3;
 
 const HOUR_MS = 60 * 60 * 1000;
+/**
+ * How long an attempt whose answer was lost is left alone before Stripe's
+ * silence is read as "never received" — Stripe gives up on a request well
+ * inside this, so a request still on its way cannot be mistaken for none.
+ */
+const UNCONFIRMED_ATTEMPT_SETTLE_MS = 10 * 60 * 1000;
 
 /**
- * Stripe codes that no amount of retrying will get past, because they are not
- * about the card at all: they are the bank asking for the shopper.
- *
- * Retrying one off-session produces the identical refusal, so a sweep that did
- * would burn its attempts on a certainty and leave nothing for a card that
- * might genuinely have recovered.
+ * Stripe codes no retry gets past: the bank is asking for the shopper.
  */
 const NEEDS_THE_SHOPPER_CODES: ReadonlySet<string> = new Set([
   "authentication_required",
-  // The same answer when Stripe returns it as the intent's status instead of
-  // throwing: every retry left another open intent and another "payment
-  // failed" message, and none of them could ever pass.
   "requires_action",
 ]);
 
@@ -79,6 +87,8 @@ type ChargeableOrder = {
   preorderBalanceRequestedAt?: Date;
   status?: string;
   paymentStatus?: string;
+  paymentMethod?: string | null;
+  total?: number;
   preorderStatus?: string;
   preorderOutstandingAmount?: number;
   preorderBalancePaidAt?: Date | null;
@@ -89,48 +99,117 @@ type ChargeableOrder = {
   preorderBalanceChargeAttempts?: number | null;
   preorderBalanceLastChargeAt?: Date | null;
   preorderBalanceLastChargeCode?: string | null;
-  subOrders?: Array<{
-    status?: string;
-    items?: Array<{ preorderOutstandingAmount?: number | null }> | null;
-  }> | null;
+  preorderBalanceChargeOutcome?: string | null;
+  preorderBalanceChargeKey?: string | null;
+  preorderReadinessRevision?: number | null;
+  preorderCollection?: {
+    cycleId?: string | null;
+    state?: string | null;
+    scopeSubOrderIds?: unknown[] | null;
+    amount?: number | null;
+    currency?: string | null;
+    readinessRevision?: number | null;
+    autoCharge?: boolean | null;
+    chargeNotBefore?: Date | null;
+    notice?: { acceptedAt?: Date | null; bounced?: boolean | null } | null;
+  } | null;
+  subOrders?: Array<
+    ScopeSubOrder & {
+      items?: Array<{
+        purchaseType?: string;
+        quantity?: number;
+        preorderOutstandingAmount?: number | null;
+      }> | null;
+    }
+  > | null;
 };
 
 type ChargeEligibility =
-  | { chargeable: true }
+  | { chargeable: true; cycleId: string }
   | { chargeable: false; reason: string };
 
+function orderCurrency(order: ChargeableOrder, fallback?: string) {
+  return String(order.currency || fallback || "USD").trim().toUpperCase();
+}
+
 /**
- * Whether this order may be charged off-session right now.
+ * Whether this order may be charged off-session right now — the one rule.
  *
- * Pure, and the only place the rule lives: the sweep uses it to decide, the
- * charge uses it to refuse, and the tests read it directly. The database query
- * that finds candidates only narrows — it never decides.
+ * Pure: the scheduled pass narrows candidates with a query, but this decides,
+ * and the charge itself re-checks it under a claim.
  */
 export function preorderBalanceChargeEligibility(
   order: ChargeableOrder,
   now: Date = new Date(),
+  fallbackCurrency?: string,
 ): ChargeEligibility {
   if (String(order.status || "") === ORDER_STATUS.CANCELLED) {
     return { chargeable: false, reason: "The order was cancelled" };
   }
-  // Only once the store has actually asked. A reservation still waiting on
-  // stock has a balance on paper, and charging it would be taking money for
-  // goods nobody has yet.
   if (order.preorderStatus !== PREORDER_ITEM_STATUS.PAYMENT_DUE) {
     return { chargeable: false, reason: "The balance has not been asked for" };
   }
-  if (getPreorderBalanceDue(order) <= 0) {
-    return { chargeable: false, reason: "No balance is due" };
-  }
+  const balanceDue = getPreorderBalanceDue(order);
+  if (balanceDue <= 0) return { chargeable: false, reason: "No balance is due" };
   if (!order.preorderSavedPaymentMethodId) {
     return { chargeable: false, reason: "No card was saved for this order" };
   }
-  // The card may be on file from a checkout that predates the mandate, or
-  // from one where the shopper declined it. Either way there is no permission.
   if (!order.preorderMandateAcceptedAt) {
     return {
       chargeable: false,
       reason: "The shopper did not authorise a card-on-file charge",
+    };
+  }
+  const cycle = order.preorderCollection;
+  if (!cycle?.cycleId) {
+    // A request from before advance notices existed: never charged
+    // automatically until it has been adopted into a request with a notice.
+    return { chargeable: false, reason: "No advance notice has been given for this balance" };
+  }
+  if (cycle.state !== "awaiting_payment") {
+    return {
+      chargeable: false,
+      reason:
+        cycle.state === "notice_pending"
+          ? "The advance notice has not been delivered yet"
+          : cycle.state === "attention"
+            ? "The advance notice did not reach the shopper"
+            : "The balance request is no longer open",
+    };
+  }
+  if (!cycle.autoCharge) {
+    return { chargeable: false, reason: "This request was not set up for an automatic charge" };
+  }
+  if (!cycle.notice?.acceptedAt) {
+    return { chargeable: false, reason: "The advance notice has not been delivered yet" };
+  }
+  if (cycle.notice.bounced) {
+    return { chargeable: false, reason: "The advance notice bounced" };
+  }
+  const notBefore = cycle.chargeNotBefore ? new Date(cycle.chargeNotBefore).getTime() : NaN;
+  if (!Number.isFinite(notBefore) || now.getTime() < notBefore) {
+    return { chargeable: false, reason: "The advance notice period has not passed" };
+  }
+  const mismatch = cycleMismatch(
+    order,
+    cycle,
+    balanceDue,
+    orderCurrency(order, fallbackCurrency),
+  );
+  if (mismatch) {
+    return {
+      chargeable: false,
+      reason: `The balance request no longer matches the order (${mismatch.replace(/_/g, " ")})`,
+    };
+  }
+  const scope = collectionScope(order);
+  if (scope.some((sub) => sub.preorderAllocation?.state !== "committed")) {
+    return { chargeable: false, reason: "The goods for this request are not allocated" };
+  }
+  if (order.preorderBalanceChargeOutcome === "unknown") {
+    return {
+      chargeable: false,
+      reason: "The last attempt's outcome is still being confirmed",
     };
   }
   const code = String(order.preorderBalanceLastChargeCode || "");
@@ -150,7 +229,7 @@ export function preorderBalanceChargeEligibility(
   if (lastAt && now.getTime() - lastAt < PREORDER_BALANCE_RETRY_HOURS * HOUR_MS) {
     return { chargeable: false, reason: "The retry window has not elapsed" };
   }
-  return { chargeable: true };
+  return { chargeable: true, cycleId: cycle.cycleId };
 }
 
 type PreorderBalanceChargeResult =
@@ -158,10 +237,11 @@ type PreorderBalanceChargeResult =
   | {
       charged: false;
       /**
-       * `skipped` means nothing was attempted — ineligible, or another caller
-       * held the claim. The rest mean a charge was made and refused.
+       * `skipped`: nothing was attempted. `unknown`: an attempt was made and
+       * its answer lost — it is reconciled before anything else. The rest
+       * mean the card was tried and refused.
        */
-      outcome: "skipped" | "needs_shopper" | "declined" | "error";
+      outcome: "skipped" | "needs_shopper" | "declined" | "error" | "unknown";
       reason: string;
       code?: string;
     };
@@ -181,12 +261,41 @@ function stripeErrorMessage(err: unknown): string {
 }
 
 /**
+ * Whether Stripe's answer to a charge was lost rather than given: the request
+ * may have been carried out. Never read as a refusal.
+ */
+export function chargeOutcomeUnknown(err: unknown): boolean {
+  const error = err as {
+    type?: string;
+    name?: string;
+    code?: string;
+    statusCode?: number;
+    message?: string;
+  } | null;
+  if (!error) return false;
+  if (
+    error.type === "StripeConnectionError" ||
+    error.type === "StripeAPIError" ||
+    error.type === "StripeRateLimitError"
+  ) {
+    return true;
+  }
+  if (error.name === "AbortError" || error.name === "TimeoutError") return true;
+  if (typeof error.statusCode === "number" && error.statusCode >= 500) return true;
+  return ["ECONNRESET", "ETIMEDOUT", "EPIPE"].includes(String(error.code || ""));
+}
+
+/** Stable per request and attempt: a replay of THIS attempt is the same charge. */
+export function offSessionChargeKey(orderId: string, cycleId: string, attempt: number) {
+  return `preorder-balance-offsession:${orderId}:${cycleId}:${attempt}`;
+}
+
+/**
  * Try to collect the balance from the saved card.
  *
- * Safe to call from anywhere and at any frequency: the claim below is what
- * decides who charges, and it doubles as the retry backoff, so a sweep that
- * overlaps itself — or a store action that lands in the same second as a
- * sweep — cannot produce two charges.
+ * Safe from anywhere, at any frequency: the claim below is the only thing
+ * that decides who charges, it re-checks the request in the database, and it
+ * doubles as the retry backoff.
  */
 export async function chargePreorderBalanceOffSession(params: {
   orderId: string;
@@ -197,20 +306,49 @@ export async function chargePreorderBalanceOffSession(params: {
   if (!Types.ObjectId.isValid(params.orderId)) {
     return { charged: false, outcome: "skipped", reason: "Order not found" };
   }
+  const settings = params.settings || (await getSettings());
+  const fallbackCurrency = String(settings.general?.defaultCurrency || "USD");
 
-  const order = (await Order.findById(
-    params.orderId,
-  ).lean()) as ChargeableOrder | null;
-  if (!order) {
-    return { charged: false, outcome: "skipped", reason: "Order not found" };
+  let order = (await Order.findById(params.orderId).lean()) as ChargeableOrder | null;
+  if (!order) return { charged: false, outcome: "skipped", reason: "Order not found" };
+
+  // An attempt whose answer was lost comes first: Stripe is asked what became
+  // of it, and nothing new is tried until that is known.
+  if (order.preorderBalanceChargeOutcome === "unknown") {
+    const reconciled = await reconcileUnknownCharge(order, settings, now);
+    if (reconciled) return reconciled;
+    order = (await Order.findById(params.orderId).lean()) as ChargeableOrder | null;
+    if (!order) return { charged: false, outcome: "skipped", reason: "Order not found" };
   }
 
-  const eligibility = preorderBalanceChargeEligibility(order, now);
+  const eligibility = preorderBalanceChargeEligibility(order, now, fallbackCurrency);
   if (!eligibility.chargeable) {
     return { charged: false, outcome: "skipped", reason: eligibility.reason };
   }
+  const cycleId = eligibility.cycleId;
 
-  const settings = params.settings || (await getSettings());
+  // A product date that moved and has not reached this order yet: the goods
+  // may not be coming on the date the shopper was told. Carried to it now; a
+  // request it turns stale is reset there, and this charge does not happen.
+  const stale = await findStaleTermsLines(order);
+  if (stale.length > 0) {
+    const { reconcileOrderPreorderTerms } = await import("@/lib/orders/preorder-terms-sync");
+    await reconcileOrderPreorderTerms(String(order._id), { now }).catch((error) =>
+      console.error("Failed to reconcile a pre-order's dates before charging:", error),
+    );
+    const refreshed = (await Order.findById(params.orderId).lean()) as ChargeableOrder | null;
+    if (!refreshed || (await findStaleTermsLines(refreshed)).length > 0) {
+      return {
+        charged: false,
+        outcome: "skipped",
+        reason: "A release date change is still being applied to this order",
+      };
+    }
+    order = refreshed;
+    const again = preorderBalanceChargeEligibility(order, now, fallbackCurrency);
+    if (!again.chargeable) return { charged: false, outcome: "skipped", reason: again.reason };
+  }
+
   const secretKey = resolveStripeCredentials(settings.payment?.stripe).secretKey;
   if (!isStripeSecretKeyConfigured(secretKey)) {
     return {
@@ -219,11 +357,6 @@ export async function chargePreorderBalanceOffSession(params: {
       reason: "Card payments are not configured",
     };
   }
-
-  // The card is attached to the shopper's Customer, and Stripe will only
-  // charge it off-session when both are named. An order whose shopper has no
-  // Customer cannot have a saved card in the first place, so this is a
-  // consistency check rather than an expected branch.
   const customerId = await resolveOrderStripeCustomerId(order);
   if (!customerId) {
     return {
@@ -232,37 +365,31 @@ export async function chargePreorderBalanceOffSession(params: {
       reason: "No Stripe customer to charge the saved card against",
     };
   }
-
-  const currency = String(
-    order.currency || settings.general?.defaultCurrency || "USD",
-  )
-    .trim()
-    .toUpperCase();
+  const currency = orderCurrency(order, fallbackCurrency);
   const balanceDue = getPreorderBalanceDue(order);
   const amount = toStripeAmount(balanceDue, currency);
   if (!(amount > 0)) {
     return { charged: false, outcome: "skipped", reason: "No balance is due" };
   }
 
-  // The claim, and the backoff, in one write: only the caller that moves the
-  // stamp charges, and it can only be moved once the window has elapsed. A
-  // loser is not an error — it means somebody else is already doing this.
-  const retryCutoff = new Date(
-    now.getTime() - PREORDER_BALANCE_RETRY_HOURS * HOUR_MS,
-  );
+  // The claim, the backoff and the attempt's identity in one write. Every
+  // condition the eligibility rule checked that the database can hold is
+  // re-checked here, at the moment of charging.
+  const previousAttempts = Number(order.preorderBalanceChargeAttempts || 0);
+  const attempt = previousAttempts + 1;
+  const chargeKey = offSessionChargeKey(String(order._id), cycleId, attempt);
+  const retryCutoff = new Date(now.getTime() - PREORDER_BALANCE_RETRY_HOURS * HOUR_MS);
   const claimed = await Order.findOneAndUpdate(
     {
       _id: order._id,
       status: { $ne: ORDER_STATUS.CANCELLED },
       preorderStatus: PREORDER_ITEM_STATUS.PAYMENT_DUE,
-      // Re-read under the claim, not just in the eligibility check above: the
-      // shopper can pay from their own order page at any moment, and the
-      // window between deciding and charging is exactly where they would.
-      // The settle path would refund a charge it cannot record, so the money
-      // would come back — but not before their statement showed it going out.
-      paymentStatus: {
-        $in: [PAYMENT_STATUS.PENDING, PAYMENT_STATUS.PARTIALLY_PAID],
-      },
+      paymentStatus: { $in: [PAYMENT_STATUS.PENDING, PAYMENT_STATUS.PARTIALLY_PAID] },
+      "preorderCollection.cycleId": cycleId,
+      "preorderCollection.state": "awaiting_payment",
+      "preorderCollection.chargeNotBefore": { $lte: now },
+      "preorderCollection.notice.bounced": { $ne: true },
+      preorderBalanceChargeOutcome: { $ne: "unknown" },
       $and: [
         {
           $or: [
@@ -277,14 +404,29 @@ export async function chargePreorderBalanceOffSession(params: {
             { preorderBalanceLastChargeAt: { $lt: retryCutoff } },
           ],
         },
+        previousAttempts > 0
+          ? { preorderBalanceChargeAttempts: previousAttempts }
+          : {
+              $or: [
+                { preorderBalanceChargeAttempts: 0 },
+                { preorderBalanceChargeAttempts: null },
+                { preorderBalanceChargeAttempts: { $exists: false } },
+              ],
+            },
       ],
     },
     {
-      $set: { preorderBalanceLastChargeAt: now },
-      $inc: { preorderBalanceChargeAttempts: 1 },
+      $set: {
+        preorderBalanceLastChargeAt: now,
+        preorderBalanceChargeAttempts: attempt,
+        preorderBalanceChargeKey: chargeKey,
+        // Unknown until Stripe answers; a crash right after this write is
+        // reconciled exactly like a lost answer.
+        preorderBalanceChargeOutcome: "unknown",
+      },
     },
     { returnDocument: "after" },
-  ).lean<{ preorderBalanceChargeAttempts?: number } | null>();
+  ).lean();
   if (!claimed) {
     return {
       charged: false,
@@ -292,48 +434,35 @@ export async function chargePreorderBalanceOffSession(params: {
       reason: "Another attempt is already in progress",
     };
   }
-  const attempt = Number(claimed.preorderBalanceChargeAttempts || 1);
 
   const stripe = getStripeForSecretKey(secretKey);
   let paymentIntent: Stripe.PaymentIntent;
   try {
     paymentIntent = await stripe.paymentIntents.create(
-      {
-        amount,
-        currency: currency.toLowerCase(),
-        customer: customerId,
-        payment_method: String(order.preorderSavedPaymentMethodId),
-        // The two together are what make this a charge against a stored
-        // mandate rather than a payment nobody is there to complete.
-        off_session: true,
-        confirm: true,
-        description: `Pre-order balance for order #${order.orderNumber}`,
-        metadata: {
-          // The same tag the shopper's own payment carries, so the webhook
-          // settles this one down the identical path — there is no second
-          // kind of balance payment, only a second way of starting one.
-          kind: PREORDER_BALANCE_CHECKOUT_KIND,
-          orderId: String(order._id),
-          orderNumber: String(order.orderNumber || ""),
-          offSession: "true",
-        },
-      },
-      {
-        // The attempt number is in the key so a retry a day later is a new
-        // request, while a replay of THIS attempt — a timeout, a crashed
-        // sweep — returns the charge that was already made instead of making
-        // a second one.
-        idempotencyKey: `preorder-balance-offsession:${String(order._id)}:${amount}:${currency}:${attempt}`,
-      },
+      offSessionIntentParams({ order, amount, currency, customerId, cycleId, attempt }),
+      { idempotencyKey: chargeKey },
     );
   } catch (err) {
+    if (chargeOutcomeUnknown(err)) {
+      // Left `unknown`: the next run asks Stripe about this attempt by its key.
+      console.error(
+        `The saved-card charge for ${order.orderNumber} has an unknown outcome:`,
+        stripeErrorMessage(err),
+      );
+      return {
+        charged: false,
+        outcome: "unknown",
+        reason: "Stripe did not answer; the attempt will be confirmed before any other",
+      };
+    }
     const code = stripeErrorCode(err);
-    const message = stripeErrorMessage(err);
     const needsShopper = NEEDS_THE_SHOPPER_CODES.has(code);
-    // The code itself is what stops the retries when the bank wants the
-    // shopper — no attempt is handed back, because handing one back would buy
-    // a retry that `preorderBalanceChargeEligibility` refuses anyway.
-    await recordChargeFailure({ orderId: order._id, code });
+    await recordChargeOutcome({
+      orderId: order._id,
+      key: chargeKey,
+      outcome: needsShopper ? "needs_shopper" : err && (err as { type?: string }).type === "StripeCardError" ? "declined" : "error",
+      code,
+    });
     await notifyBalanceChargeFailed({
       attempt,
       order,
@@ -345,54 +474,92 @@ export async function chargePreorderBalanceOffSession(params: {
     return {
       charged: false,
       outcome: needsShopper ? "needs_shopper" : "declined",
-      reason: message,
+      reason: stripeErrorMessage(err),
       code,
     };
   }
+  return finishIntent({ order, paymentIntent, settings, chargeKey, attempt, balanceDue, currency });
+}
 
+function offSessionIntentParams(params: {
+  order: ChargeableOrder;
+  amount: number;
+  currency: string;
+  customerId: string;
+  cycleId: string;
+  attempt: number;
+}): Stripe.PaymentIntentCreateParams {
+  return {
+    amount: params.amount,
+    currency: params.currency.toLowerCase(),
+    customer: params.customerId,
+    payment_method: String(params.order.preorderSavedPaymentMethodId),
+    off_session: true,
+    confirm: true,
+    description: `Pre-order balance for order #${params.order.orderNumber}`,
+    metadata: {
+      kind: PREORDER_BALANCE_CHECKOUT_KIND,
+      orderId: String(params.order._id),
+      orderNumber: String(params.order.orderNumber || ""),
+      offSession: "true",
+      preorderCycle: params.cycleId,
+      preorderAttempt: String(params.attempt),
+    },
+  };
+}
+
+async function finishIntent(params: {
+  order: ChargeableOrder;
+  paymentIntent: Stripe.PaymentIntent;
+  settings: Awaited<ReturnType<typeof getSettings>>;
+  chargeKey: string;
+  attempt: number;
+  balanceDue: number;
+  currency: string;
+}): Promise<PreorderBalanceChargeResult> {
+  const { order, paymentIntent, settings, chargeKey, attempt, balanceDue, currency } = params;
   if (paymentIntent.status !== "succeeded") {
-    // `processing` belongs to slower methods than the cards this path uses,
-    // but it is not an error: the webhook settles it when it lands. Anything
-    // else is a refusal that did not throw.
     if (paymentIntent.status === "processing") {
+      // Settled by the webhook when it lands; left `unknown` until then so no
+      // second attempt is made beside it.
       return {
         charged: false,
-        outcome: "skipped",
+        outcome: "unknown",
         reason: "The payment is still processing",
       };
     }
-    await recordChargeFailure({ orderId: order._id, code: paymentIntent.status });
+    const needsShopper = paymentIntent.status === "requires_action";
+    await recordChargeOutcome({
+      orderId: order._id,
+      key: chargeKey,
+      outcome: needsShopper ? "needs_shopper" : "declined",
+      code: paymentIntent.status,
+    });
     await notifyBalanceChargeFailed({
       attempt,
       order,
       amount: balanceDue,
       currency,
-      needsShopper: paymentIntent.status === "requires_action",
+      needsShopper,
       settings,
     });
     return {
       charged: false,
-      outcome:
-        paymentIntent.status === "requires_action" ? "needs_shopper" : "declined",
+      outcome: needsShopper ? "needs_shopper" : "declined",
       reason: `The payment ended as ${paymentIntent.status}`,
       code: paymentIntent.status,
     };
   }
 
   // Down the same path the shopper's own payment takes, including the release
-  // for fulfilment and the "ready" message. Idempotent against the webhook,
-  // which is about to be told about this very intent.
-  const settlement = await settlePreorderBalanceFromIntent(
-    paymentIntent,
-    settings,
-  );
-
-  // A capture is not a collection. The settle path refunds any balance it
-  // cannot record — the order was cancelled underneath us, an admin wrote the
-  // balance off first — and reporting that as collected would have the caller
-  // skip the "please pay" message for money that has already gone back.
-  // `alreadySettled` is the happy loser: somebody else recorded this exact
-  // intent, so the balance really is in.
+  // for fulfilment. Idempotent against the webhook for this very intent.
+  const settlement = await settlePreorderBalanceFromIntent(paymentIntent, settings);
+  await recordChargeOutcome({
+    orderId: order._id,
+    key: chargeKey,
+    outcome: settlement.settled || settlement.alreadySettled ? "succeeded" : "error",
+    code: settlement.settled || settlement.alreadySettled ? undefined : settlement.reason,
+  });
   if (!settlement.settled && !settlement.alreadySettled) {
     console.error(
       `Charged the saved card for ${order.orderNumber} but the balance was not recorded: ${settlement.reason || "unknown"}`,
@@ -400,12 +567,10 @@ export async function chargePreorderBalanceOffSession(params: {
     return {
       charged: false,
       outcome: "error",
-      reason:
-        "The payment was taken but could not be applied, so it was refunded",
+      reason: "The payment was taken but could not be applied, so it was refunded",
       code: settlement.reason,
     };
   }
-
   return {
     charged: true,
     paymentIntentId: paymentIntent.id,
@@ -415,52 +580,109 @@ export async function chargePreorderBalanceOffSession(params: {
 }
 
 /**
- * The store has just asked for the balance — take it if we can.
+ * Find out what happened to an attempt whose answer was lost, by asking Stripe
+ * for the intent that attempt would have created. Read-only: nothing is
+ * charged here.
  *
- * What the two "mark ready" routes call, so that a shopper who left a card and
- * authorised it is never asked for money the store can simply collect. It
- * answers the only two things the caller needs to know: whether the money
- * arrived, and whether the shopper has already been written to — because both
- * a success and a failure send their own message, and the routes' own
- * "please pay the balance" ask would be a second one saying something else.
+ * Returns a result when the attempt was resolved into one (settled, refused,
+ * still processing, or Stripe could not be asked), or null when it never
+ * reached Stripe at all and the order is free for a normal attempt.
  */
-export async function collectPreorderBalanceOnRequest(orderId: string): Promise<{
-  collected: boolean;
-  shopperAlreadyTold: boolean;
-}> {
-  try {
-    const result = await chargePreorderBalanceOffSession({ orderId });
-    if (result.charged) {
-      // The settle path releases the order and sends its own "ready".
-      return { collected: true, shopperAlreadyTold: true };
-    }
-    // Only the two refusal paths write to the shopper. A skip tried nothing,
-    // and an `error` is a capture that was refunded without a word — both
-    // leave the caller's own "please pay the balance" ask to do the telling.
+async function reconcileUnknownCharge(
+  order: ChargeableOrder,
+  settings: Awaited<ReturnType<typeof getSettings>>,
+  now: Date,
+): Promise<PreorderBalanceChargeResult | null> {
+  const key = String(order.preorderBalanceChargeKey || "");
+  // `preorder-balance-offsession:<order>:<cycle>:<attempt>`
+  const [, keyOrderId, cycleId, attemptText] = key.split(":");
+  if (keyOrderId !== String(order._id)) {
     return {
-      collected: false,
-      shopperAlreadyTold:
-        result.outcome === "declined" || result.outcome === "needs_shopper",
+      charged: false,
+      outcome: "unknown",
+      reason: "The last attempt's key does not belong to this order",
     };
-  } catch (err) {
-    // Nothing is known about whether the shopper heard anything, so assume
-    // they did not: a duplicate ask is a nuisance, silence is a lost sale.
-    console.error(
-      "Failed to charge a saved card when the balance was requested:",
-      err,
-    );
-    return { collected: false, shopperAlreadyTold: false };
   }
+  const secretKey = resolveStripeCredentials(settings.payment?.stripe).secretKey;
+  const customerId = await resolveOrderStripeCustomerId(order);
+  if (!key || !cycleId || !isStripeSecretKeyConfigured(secretKey) || !customerId) {
+    return {
+      charged: false,
+      outcome: "unknown",
+      reason: "The last attempt cannot be confirmed with Stripe from here",
+    };
+  }
+  const since = order.preorderBalanceLastChargeAt
+    ? Math.floor(new Date(order.preorderBalanceLastChargeAt).getTime() / 1000) - 300
+    : Math.floor(now.getTime() / 1000) - 7 * 24 * 3600;
+  let match: Stripe.PaymentIntent | undefined;
+  try {
+    const stripe = getStripeForSecretKey(secretKey);
+    const intents = await stripe.paymentIntents.list({
+      customer: customerId,
+      created: { gte: since },
+      limit: 100,
+    });
+    match = intents.data.find(
+      (intent) =>
+        intent.metadata?.orderId === String(order._id) &&
+        intent.metadata?.preorderCycle === cycleId &&
+        intent.metadata?.preorderAttempt === attemptText,
+    );
+  } catch (error) {
+    console.error("Failed to confirm a saved-card attempt with Stripe:", error);
+    return {
+      charged: false,
+      outcome: "unknown",
+      reason: "Stripe could not be asked about the last attempt",
+    };
+  }
+  if (!match) {
+    const startedAt = order.preorderBalanceLastChargeAt
+      ? new Date(order.preorderBalanceLastChargeAt).getTime()
+      : 0;
+    if (startedAt && now.getTime() - startedAt < UNCONFIRMED_ATTEMPT_SETTLE_MS) {
+      // Too recent to conclude anything: the request may still be on its way.
+      return {
+        charged: false,
+        outcome: "unknown",
+        reason: "The last attempt is too recent to confirm with Stripe yet",
+      };
+    }
+    // Stripe holds no such attempt: nothing was charged. The attempt number
+    // is handed back, so the next attempt is sent under the SAME idempotency
+    // key — were the lost request to land after all, Stripe answers both with
+    // one charge — and a charge that never happened neither counts against
+    // the ceiling nor waits out the backoff.
+    const attempt = Number(attemptText) || 1;
+    await Order.updateOne(
+      { _id: order._id, preorderBalanceChargeKey: key, preorderBalanceChargeOutcome: "unknown" },
+      {
+        $set: {
+          preorderBalanceChargeOutcome: "error",
+          preorderBalanceLastChargeCode: "not_sent",
+          preorderBalanceChargeAttempts: Math.max(0, attempt - 1),
+        },
+        $unset: { preorderBalanceLastChargeAt: "" },
+      },
+    );
+    return null;
+  }
+  return finishIntent({
+    order,
+    paymentIntent: match,
+    settings,
+    chargeKey: key,
+    attempt: Number(attemptText) || 1,
+    balanceDue: getPreorderBalanceDue(order),
+    currency: orderCurrency(order, settings.general?.defaultCurrency),
+  });
 }
 
 /**
- * The Stripe Customer the order's saved card belongs to.
- *
- * The order's own record comes first, because it names the Customer the card
- * was ACTUALLY saved against — and for a guest it is the only record there is:
- * their Customer was minted for the cart and never lived on any account.
- * Orders that predate that record fall back to the shopper's account, which is
- * where a signed-in shopper's Customer has always been kept.
+ * The Stripe Customer the order's saved card belongs to: the order's own
+ * record first (the Customer the card was ACTUALLY saved against, and a
+ * guest's only one), then the shopper's account.
  */
 async function resolveOrderStripeCustomerId(
   order: ChargeableOrder,
@@ -477,15 +699,22 @@ async function resolveOrderStripeCustomerId(
   return stored || undefined;
 }
 
-async function recordChargeFailure(params: {
+async function recordChargeOutcome(params: {
   orderId: unknown;
-  code: string;
+  key: string;
+  outcome: "succeeded" | "declined" | "needs_shopper" | "error";
+  code?: string;
 }) {
   await Order.updateOne(
-    { _id: params.orderId },
-    { $set: { preorderBalanceLastChargeCode: params.code } },
+    { _id: params.orderId, preorderBalanceChargeKey: params.key },
+    {
+      $set: {
+        preorderBalanceChargeOutcome: params.outcome,
+        ...(params.code ? { preorderBalanceLastChargeCode: params.code } : {}),
+      },
+    },
   ).catch((err) =>
-    console.error("Failed to record a pre-order balance charge failure:", err),
+    console.error("Failed to record a pre-order balance charge outcome:", err),
   );
 }
 
@@ -513,12 +742,78 @@ async function notifyBalanceChargeFailed(params: {
       outstandingAmount: params.amount,
       releaseDate: order.preorderReleaseDate,
       balanceRequestedAt: order.preorderBalanceRequestedAt,
+      preorderCollection: order.preorderCollection,
       chargeNeedsShopper: params.needsShopper,
       chargeAttempt: params.attempt,
+      balanceCycleId: order.preorderCollection?.cycleId || undefined,
       guestEmail,
       settings: params.settings,
     },
   ).catch((err) =>
     console.error("Failed to tell a shopper their balance charge failed:", err),
   );
+}
+
+/**
+ * The scheduled pass: every request whose notice window has passed, oldest
+ * first, through the same charge. A skip tried nothing.
+ */
+export async function chargeDuePreorderBalances(
+  options: { limit?: number; now?: Date } = {},
+): Promise<{
+  paused: boolean;
+  attempted: number;
+  charged: number;
+  needsShopper: number;
+  declined: number;
+  unknown: number;
+  skipped: number;
+}> {
+  const now = options.now || new Date();
+  const summary = {
+    paused: false,
+    attempted: 0,
+    charged: 0,
+    needsShopper: 0,
+    declined: 0,
+    unknown: 0,
+    skipped: 0,
+  };
+  // Rollback lever: pauses automatic collection without touching any request,
+  // notice or allocation. Voluntary payment is unaffected.
+  if (process.env.PREORDER_AUTO_CHARGE_PAUSED === "true") {
+    return { ...summary, paused: true };
+  }
+  const settings = await getSettings();
+  const candidates = await Order.find({
+    "preorderCollection.state": "awaiting_payment",
+    "preorderCollection.chargeNotBefore": { $lte: now },
+    status: { $ne: ORDER_STATUS.CANCELLED },
+    preorderSavedPaymentMethodId: { $nin: [null, ""] },
+    preorderMandateAcceptedAt: { $ne: null },
+  })
+    .sort({ "preorderCollection.chargeNotBefore": 1, _id: 1 })
+    .limit(Math.min(Math.max(options.limit ?? 100, 1), 500))
+    .select("_id orderNumber")
+    .lean<Array<{ _id: Types.ObjectId; orderNumber: string }>>();
+  for (const order of candidates) {
+    const result = await chargePreorderBalanceOffSession({
+      orderId: String(order._id),
+      settings,
+      now,
+    }).catch((err: unknown) => {
+      console.error(`Failed to charge the saved card for ${order.orderNumber}:`, err);
+      return { charged: false as const, outcome: "error" as const, reason: "" };
+    });
+    if (!result.charged && result.outcome === "skipped") {
+      summary.skipped += 1;
+      continue;
+    }
+    summary.attempted += 1;
+    if (result.charged) summary.charged += 1;
+    else if (result.outcome === "needs_shopper") summary.needsShopper += 1;
+    else if (result.outcome === "declined") summary.declined += 1;
+    else if (result.outcome === "unknown") summary.unknown += 1;
+  }
+  return summary;
 }

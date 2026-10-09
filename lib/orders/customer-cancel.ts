@@ -1,5 +1,10 @@
 import { Order } from "@/models";
-import { AuthorizationError, ValidationError } from "@/lib/api/errors";
+import {
+  AuthorizationError,
+  ConflictError,
+  ServiceUnavailableError,
+  ValidationError,
+} from "@/lib/api/errors";
 import { ORDER_STATUS } from "@/config/app.config";
 import type { AuditContext } from "@/lib/audit";
 import { restoreOrderInventory } from "@/lib/orders/order-inventory";
@@ -16,6 +21,7 @@ import {
 } from "@/lib/orders/order-status-apply";
 import { reconcileOrderStatus } from "@/lib/orders/order-status-reconcile";
 import { getPendingPaymentLock } from "@/lib/orders/pending-payment-lock";
+import { CUSTOMER_CANCELLABLE_STATUSES } from "@/lib/orders/customer-cancel-policy";
 
 /**
  * A shopper cancelling their own order.
@@ -58,13 +64,15 @@ export async function cancelOrderForCustomer(params: {
   // the refund can tell which of them this cancellation actually called off.
   const existing = await Order.findOne(params.orderFilter)
     .select(
-      "status paymentMethod paymentStatus channel subOrders._id subOrders.status",
+      "_id status paymentMethod paymentStatus channel hasPreorder subOrders._id subOrders.status",
     )
     .lean<{
+      _id: unknown;
       status?: string;
       paymentMethod?: string;
       paymentStatus?: string;
       channel?: string;
+      hasPreorder?: boolean;
       subOrders?: Array<{ _id?: unknown; status?: string }>;
     }>();
   if (!existing) return null;
@@ -76,6 +84,19 @@ export async function cancelOrderForCustomer(params: {
   // them their money. See `lib/orders/pending-payment-lock.ts`.
   const pendingPaymentLock = getPendingPaymentLock(existing);
   if (pendingPaymentLock) throw new ValidationError(pendingPaymentLock);
+
+  // A pre-order is cancelled by the same transactional, resumable operation
+  // the store, its sellers and the expiry use: status, allocated stock,
+  // reservation places, the open balance request and a durable record of the
+  // refund and the rest, together. Where the deployment cannot run that
+  // transaction, the cascade below still applies (its restores read the
+  // allocation evidence), as it always has.
+  if (existing.hasPreorder) {
+    const { getTransactionSupport } = await import("@/lib/db-transaction");
+    if ((await getTransactionSupport()).supported) {
+      return cancelPreorderForCustomer({ ...params, by, existing });
+    }
+  }
 
   // Built from the shared cascade so a customer cancelling writes exactly
   // what an admin cancelling writes. It previously used a bare `$[]`,
@@ -95,7 +116,7 @@ export async function cancelOrderForCustomer(params: {
     {
       ...params.orderFilter,
       status: {
-        $in: params.allowedStatuses ?? [ORDER_STATUS.PENDING, ORDER_STATUS.PREORDERED],
+        $in: params.allowedStatuses ?? [...CUSTOMER_CANCELLABLE_STATUSES],
       },
     },
     { $set: updates },
@@ -128,6 +149,15 @@ export async function cancelOrderForCustomer(params: {
   await voidLabelsForCancellation({ orderId: order._id }).catch((err) =>
     console.error("Failed to void labels on customer cancel:", err),
   );
+
+  // A pre-order's open balance request goes with what it covered; a part
+  // that survived gets a request of its own.
+  if (order.hasPreorder) {
+    const { afterPreorderScopeChange } = await import("@/lib/orders/preorder-collection");
+    await afterPreorderScopeChange(String(order._id)).catch((err) =>
+      console.error("Failed to reconcile a pre-order after a customer cancel:", err),
+    );
+  }
 
   // Only when the whole order actually went. If a co-vendor's parcel
   // survived the cancellation, the customer is still receiving goods they
@@ -195,4 +225,69 @@ export async function cancelOrderForCustomer(params: {
   });
 
   return { order, ...(refund ? { refund } : {}) };
+}
+
+/**
+ * `cancelOrderForCustomer` for a pre-order: the shared cancellation, guarded
+ * by the caller's proof (`orderFilter`) and the statuses it may start from —
+ * both re-read inside the transaction.
+ */
+async function cancelPreorderForCustomer(params: {
+  orderFilter: Record<string, unknown>;
+  auditContext: AuditContext;
+  createdBy?: string;
+  reason?: string;
+  by: "customer" | "system";
+  allowedStatuses?: string[];
+  existing: { _id: unknown; status?: string };
+}) {
+  const { cancelPreorder } = await import("@/lib/orders/preorder-cancellation");
+  const allowed = params.allowedStatuses ?? [ORDER_STATUS.PENDING, ORDER_STATUS.PREORDERED];
+  const system = params.by === "system";
+  const reason =
+    params.reason ||
+    (system ? "Cancelled automatically" : "Pre-order cancelled by the customer");
+  const outcome = await cancelPreorder({
+    orderId: String(params.existing._id),
+    actor: system ? "system" : params.createdBy || params.auditContext.userId || "customer",
+    actorRole: system ? "system" : params.auditContext.userRole || "customer",
+    actorEmail: params.auditContext.userEmail,
+    source: system ? "system" : "customer",
+    reason,
+    scopeFilter: { ...params.orderFilter, status: { $in: allowed } },
+    // The shopper asked (and is answered by the response), or the caller
+    // sends its own message — as this cascade always behaved.
+    notifyCustomer: false,
+  });
+  if (outcome.kind === "in_progress") {
+    throw new ConflictError("This order is changing right now — try again in a moment.");
+  }
+  if (outcome.kind === "unavailable") {
+    throw new ServiceUnavailableError(outcome.reason);
+  }
+  if (outcome.kind === "refused") {
+    throw new AuthorizationError("You can only cancel pending orders");
+  }
+  const order = await Order.findById(params.existing._id);
+  if (!order) return null;
+  await auditOrderCancelled(params.auditContext, order, {
+    from: String(params.existing.status),
+    by: params.by,
+    reason: params.reason,
+  });
+  const refund = outcome.refund;
+  return {
+    order,
+    ...(refund
+      ? {
+          refund: {
+            refunded: refund.refunded,
+            ...(typeof refund.amount === "number" ? { amount: refund.amount } : {}),
+            ...(refund.currency ? { currency: refund.currency } : {}),
+            ...(refund.reason ? { reason: refund.reason } : {}),
+            ...(refund.pending ? { pending: true } : {}),
+          },
+        }
+      : {}),
+  };
 }

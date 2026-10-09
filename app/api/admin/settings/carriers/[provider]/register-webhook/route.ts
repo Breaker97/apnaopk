@@ -2,7 +2,12 @@ import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { getSettings } from "@/models/settings.model";
-import { CARRIER_PROVIDERS, type CarrierProvider } from "@/lib/shipping/carrier-config";
+import { audit, createAuditContext } from "@/lib/audit";
+import {
+  CARRIER_PROVIDERS,
+  CARRIER_PROVIDER_LABELS,
+  type CarrierProvider,
+} from "@/lib/shipping/carrier-config";
 import { revalidateSettingsContent } from "@/lib/cache-invalidation";
 import {
   createCarrierWebhookSecret,
@@ -45,6 +50,11 @@ export const POST = withApi<{ provider: string }>(
 
     const secret = createCarrierWebhookSecret();
     const settings = await getSettings();
+    // Asked before the new secret replaces it: a second registration breaks the
+    // URL already pasted into the carrier's dashboard.
+    const replaced = Boolean(
+      settings.get("shipping.carriers.shippo.webhookSecretHash"),
+    );
     settings.set("shipping.carriers.shippo.webhookSecret", secret);
     settings.set(
       "shipping.carriers.shippo.webhookSecretHash",
@@ -53,6 +63,22 @@ export const POST = withApi<{ provider: string }>(
     settings.set("shipping.carriers.shippo.webhookRegisteredAt", new Date());
     settings.updatedBy = session.user.id;
     await settings.save();
+
+    // Neither the secret nor the URL that carries it goes in the row: the log is
+    // read by more people than the carrier's dashboard is.
+    const carrier = CARRIER_PROVIDER_LABELS[params.provider];
+    await audit(createAuditContext(request, session), {
+      action: "SETTINGS_CHANGE",
+      resource: "settings",
+      resourceId: params.provider,
+      resourceName: `Settings: ${params.provider}`,
+      changes: {
+        summary: replaced
+          ? `Registered the ${carrier} tracking webhook again; its secret URL was replaced, so the old one no longer works`
+          : `Registered the ${carrier} tracking webhook; a secret URL was generated for it`,
+      },
+      metadata: { provider: params.provider, replaced },
+    });
 
     revalidateSettingsContent();
 

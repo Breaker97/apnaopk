@@ -1,3 +1,5 @@
+import { VendorSubscriptionPayment } from "@/models/vendorSubscriptionPayment.model";
+import { syncVendorSubscriptionRefunds } from "@/lib/vendors/vendor-subscription-refunds";
 import "server-only";
 
 import type Stripe from "stripe";
@@ -140,7 +142,7 @@ async function syncStripeRefunds(
     if (++seen > MAX_PAGES * PAGE_SIZE) break;
     if (DEAD_STATUSES.has(String(refund.status || ""))) {
       // Undone off the books if it was ever on them; nothing otherwise.
-      await tallied(tally, "reversed", () => reverseFailedOrderRefund(refund));
+      await tallied(tally, "reversed", async () => await syncVendorSubscriptionRefunds({ payment_intent: refund.payment_intent }, stripe, now) || await reverseFailedOrderRefund(refund));
     } else {
       live.push(refund);
     }
@@ -160,7 +162,7 @@ async function syncStripeRefunds(
   const intents = Array.from(new Set(unknown.map(intentOf).filter(Boolean)));
   const ours = new Set<string>();
   if (intents.length > 0) {
-    const [orders, payments] = await Promise.all([
+    const [orders, payments, subscriptions] = await Promise.all([
       Order.find({
         $or: [
           { stripePaymentIntentId: { $in: intents } },
@@ -179,6 +181,7 @@ async function syncStripeRefunds(
       PlatformPayment.find({ stripePaymentIntentId: { $in: intents } })
         .select("stripePaymentIntentId")
         .lean<Array<{ stripePaymentIntentId?: string | null }>>(),
+      VendorSubscriptionPayment.find({ provider: "stripe", providerPaymentIntentId: { $in: intents } }).select("providerPaymentIntentId").lean(),
     ]);
     for (const order of orders) {
       for (const id of [
@@ -188,6 +191,9 @@ async function syncStripeRefunds(
       ]) {
         if (id) ours.add(String(id));
       }
+    }
+    for (const subscription of subscriptions) {
+      if (subscription.providerPaymentIntentId) ours.add(subscription.providerPaymentIntentId);
     }
     for (const payment of payments) {
       if (payment.stripePaymentIntentId) ours.add(String(payment.stripePaymentIntentId));
@@ -207,7 +213,8 @@ async function syncStripeRefunds(
       // Or one of the marketplace's own payments — a boost, a subscription.
       const { processPlatformChargeRefunded } = await import("@/lib/boosts/boost-billing");
       const platform = await processPlatformChargeRefunded(charge);
-      return recorded > 0 || platform;
+      const subscription = await syncVendorSubscriptionRefunds(charge, stripe, now);
+      return recorded > 0 || platform || subscription;
     });
   }
   return "synced";

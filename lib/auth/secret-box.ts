@@ -29,21 +29,23 @@ export interface EncryptedSecret {
   authTag: string;
 }
 
-type SecretKeyName =
+export type SecretKeyName =
   | "MESSAGING_ENCRYPTION_KEY"
-  | "CARRIER_ENCRYPTION_KEY";
+  | "CARRIER_ENCRYPTION_KEY"
+  | "META_CATALOG_ENCRYPTION_KEY";
 
 /**
  * Resolve the key material.
  *
- * `CARRIER_ENCRYPTION_KEY` falls back to the messaging key so an existing
- * deployment gains vendor carrier credentials without a new environment
- * variable — and a deployment that wants them separated simply sets it.
+ * `CARRIER_ENCRYPTION_KEY` and `META_CATALOG_ENCRYPTION_KEY` fall back to the
+ * messaging key so an existing deployment gains vendor carrier credentials and
+ * the Meta catalog token without a new environment variable — and a
+ * deployment that wants them separated simply sets its own.
  */
 function encryptionKey(keyName: SecretKeyName) {
   const configured =
     process.env[keyName] ||
-    (keyName === "CARRIER_ENCRYPTION_KEY"
+    (keyName !== "MESSAGING_ENCRYPTION_KEY"
       ? process.env.MESSAGING_ENCRYPTION_KEY
       : undefined);
 

@@ -26,6 +26,16 @@ const loadStoreCurrencyCode = unstable_cache(
 );
 
 /**
+ * The store currency, or a thrown error when the settings cannot be read.
+ * For code whose result is cached as a whole (an `unstable_cache` reader, a
+ * static mobile route), where `getStoreCurrency()`'s fallback would be kept
+ * as the store's currency.
+ */
+export async function readStoreCurrency(): Promise<Currency> {
+  return resolveCurrency(await loadStoreCurrencyCode());
+}
+
+/**
  * Store currency for server components and route handlers.
  *
  * The client mirrors `settings.general.defaultCurrency` through
@@ -36,7 +46,7 @@ const loadStoreCurrencyCode = unstable_cache(
  */
 export async function getStoreCurrency(): Promise<Currency> {
   try {
-    return resolveCurrency(await loadStoreCurrencyCode());
+    return await readStoreCurrency();
   } catch {
     // A settings read failure must not blank out an entire page — fall back to
     // the configured default rather than throwing out of a stats strip.

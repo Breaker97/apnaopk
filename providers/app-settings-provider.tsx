@@ -70,7 +70,12 @@ interface AppSettingsContextValue {
   faviconUrl?: string;
   socialLinks: SocialLinks;
   shareSettings: ShareSettings;
-  refreshSettings: () => Promise<void>;
+  /**
+   * Re-reads `/api/settings/public` into this provider. Resolves true once
+   * the new values are in, false when they could not be loaded (the provider
+   * then keeps what it had). Never rejects.
+   */
+  refreshSettings: () => Promise<boolean>;
 }
 
 export type InitialAppSettings = Partial<
@@ -107,7 +112,8 @@ const defaultAppSettings: AppSettingsContextValue = {
   faviconUrl: undefined,
   socialLinks: {},
   shareSettings: DEFAULT_SHARE_SETTINGS,
-  refreshSettings: async () => {},
+  // No provider, nothing to refresh.
+  refreshSettings: async () => false,
 };
 
 const AppSettingsContext =
@@ -141,7 +147,7 @@ export function AppSettingsProvider({
     isLoading: !initialSettings,
   });
 
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (): Promise<boolean> => {
     try {
       const res = await fetch("/api/settings/public");
       if (res.ok) {
@@ -191,11 +197,14 @@ export function AppSettingsProvider({
             shareSettings: resolveShareSettings(data.data.share),
             refreshSettings: fetchSettings,
           });
+          return true;
         }
       }
+      return false;
     } catch (error) {
       console.error("Failed to fetch app settings:", error);
       setSettings((prev) => ({ ...prev, isLoading: false }));
+      return false;
     }
   }, []);
 
@@ -288,7 +297,7 @@ export function useAppSettings(): AppSettingsContextValue {
 export function useMultiVendorMode(): {
   isMultiVendor: boolean;
   isLoading: boolean;
-  refreshSettings: () => Promise<void>;
+  refreshSettings: () => Promise<boolean>;
 } {
   const { isMultiVendor, isLoading, refreshSettings } = useAppSettings();
   return { isMultiVendor, isLoading, refreshSettings };

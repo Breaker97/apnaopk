@@ -1,171 +1,37 @@
 import { getTranslations } from "next-intl/server";
-import { unstable_cache } from "next/cache";
-import { connectDB, mongoose } from "@/lib/db";
-import { Product, Vendor } from "@/models";
 import { type Locale } from "@/config/i18n.config";
-import { VENDOR_STATUS, PRODUCT_STATUS } from "@/config/app.config";
-import { CACHE_TAGS } from "@/lib/cache-invalidation";
-import { isStorefrontMultiVendorEnabled } from "@/lib/catalog/product-visibility";
-import { getExternalVendorFilter } from "@/lib/vendors/multi-vendor";
-import {
-  EMPTY_VENDOR_REVIEW_STATS,
-  getVendorReviewStatsMap,
-  getVendorUnitsSoldMap,
-} from "@/lib/storefront/storefront-vendors";
-import { getStoreCurrency } from "@/lib/intl/server-currency";
 import { HomeTopVendorsCarouselLazy as HomeTopVendorsCarousel } from "@/components/store/home-top-vendors-carousel-lazy";
+import type { TopVendorsLabels } from "@/components/store/home-top-vendors-carousel";
+import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
+import { fetchTopVendors } from "@/lib/storefront/section-data/top-vendors";
 import type {
-  TopVendorCard,
-  TopVendorsLabels,
-} from "@/components/store/home-top-vendors-carousel";
-import { withFallback } from "@/lib/storefront/cached-read";
+  TopVendorSource,
+  TopVendorsDisplay,
+} from "@/lib/storefront/sections/top-vendors";
+
+/** Which stores the section shows: the part of its settings the read uses. */
+interface TopVendorsQuery {
+  source: TopVendorSource;
+  /** Hand-picked Vendor ids in display order; read when source is "manual". */
+  vendorIds: string[];
+  limit: number;
+  /** Leave out stores with no active products. */
+  hideEmptyStores: boolean;
+}
 
 interface HomeTopVendorsProps {
   locale: Locale;
   title: string;
-  limit: number;
+  subtitle: string;
+  /** Empty means the translated "Go to Shop". */
+  ctaLabel: string;
+  /** Empty hides the link. */
+  viewAllLabel: string;
+  viewAllLink: string;
+  query: TopVendorsQuery;
+  display: TopVendorsDisplay;
+  preview?: boolean;
 }
-
-/**
- * Upper bound on how many vendors are ranked. Ranking happens in JS because the
- * ordering keys (rating, units sold) are aggregated, not stored, so the work has
- * to stay bounded on a page this hot.
- */
-const CANDIDATE_POOL_CAP = 60;
-
-/**
- * Price band shown on a vendor card, in the store's own currency.
- *
- * "$$$" reads as a price band, but "UShUShUSh" does not — so only
- * single-character symbols are repeated; longer ones take "+" marks instead.
- */
-function priceTier(
-  avgPrice: number | null | undefined,
-  symbol: string,
-): string {
-  const level =
-    !avgPrice || !Number.isFinite(avgPrice) || avgPrice <= 0 || avgPrice < 50
-      ? 1
-      : avgPrice < 200
-        ? 2
-        : 3;
-
-  return symbol.length === 1
-    ? symbol.repeat(level)
-    : `${symbol}${"+".repeat(level - 1)}`;
-}
-
-const fetchTopVendors = withFallback(
-  unstable_cache(
-    async (limit: number): Promise<TopVendorCard[]> => {
-      await connectDB();
-
-      const enabled = await isStorefrontMultiVendorEnabled();
-      if (!enabled) return [];
-
-      // Cached alongside the cards and invalidated by CACHE_TAGS.settings, so
-      // switching the store currency refreshes the bands with it.
-      const storeCurrency = await getStoreCurrency();
-      const currencySymbol = storeCurrency.symbol || storeCurrency.code;
-
-      // A candidate pool wider than `limit`, because "top" is decided on
-              // derived figures that no column holds. Bounded so the home page
-      // never aggregates over an unbounded vendor list.
-      const candidates = await Vendor.find({
-        ...getExternalVendorFilter(),
-        status: VENDOR_STATUS.APPROVED,
-      })
-        .select("storeName slug description logo banner createdAt")
-        .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(limit * 5, 24), CANDIDATE_POOL_CAP))
-        .lean<
-          {
-            _id: mongoose.Types.ObjectId;
-            storeName: string;
-            slug: string;
-            description?: string;
-            logo?: string;
-            banner?: string;
-          }[]
-        >();
-
-      if (candidates.length === 0) return [];
-
-      const vendorIds = candidates.map((v) => v._id);
-
-      const [aggregates, reviewStats, unitsSold] = await Promise.all([
-        Product.aggregate<{
-          _id: mongoose.Types.ObjectId;
-          avgPrice: number;
-          productCount: number;
-        }>([
-          {
-            $match: {
-              vendorId: { $in: vendorIds },
-              status: PRODUCT_STATUS.ACTIVE,
-            },
-          },
-          {
-            $group: {
-              _id: "$vendorId",
-              avgPrice: { $avg: "$price" },
-              productCount: { $sum: 1 },
-            },
-          },
-        ]),
-        // Shared with the vendor storefront page, so a store's rating reads the
-        // same in both places. `Vendor.rating` and `Vendor.totalSales` are not
-        // used: nothing writes them, so every card used to show 0.0 and no sales.
-        getVendorReviewStatsMap(vendorIds),
-        getVendorUnitsSoldMap(vendorIds),
-      ]);
-
-      const aggregateMap = new Map<
-        string,
-        { avgPrice: number; productCount: number }
-      >();
-      for (const item of aggregates) {
-        aggregateMap.set(String(item._id), {
-          avgPrice: item.avgPrice,
-          productCount: item.productCount,
-        });
-      }
-
-      return (
-        candidates
-          .map((vendor) => {
-            const key = String(vendor._id);
-            const stats = aggregateMap.get(key);
-            const reviews = reviewStats.get(key) ?? EMPTY_VENDOR_REVIEW_STATS;
-
-            return {
-              id: key,
-              storeName: vendor.storeName,
-              slug: vendor.slug,
-              tagline: vendor.description?.trim() || "",
-              logo: vendor.logo || "",
-              banner: vendor.banner || "",
-              rating: reviews.rating,
-              reviewCount: reviews.reviewCount,
-              unitsSold: unitsSold.get(key) ?? 0,
-              priceTier: priceTier(stats?.avgPrice, currencySymbol),
-            };
-          })
-          // Best rated first, then best selling. Candidates arrive newest-first, so
-          // ties keep that order and a brand-new store is not buried forever.
-          //
-          .sort((a, b) => b.rating - a.rating || b.unitsSold - a.unitsSold)
-          .slice(0, limit)
-      );
-    },
-    ["home-top-vendors"],
-    {
-      revalidate: 60,
-      tags: [CACHE_TAGS.products, CACHE_TAGS.settings],
-    },
-  ),
-  () => [],
-);
 
 async function getLabels(locale: Locale): Promise<TopVendorsLabels> {
   const tHome = await getTranslations({ locale, namespace: "home" });
@@ -174,7 +40,9 @@ async function getLabels(locale: Locale): Promise<TopVendorsLabels> {
       | "topVendorsRating"
       | "topVendorsSold"
       | "topVendorsPrice"
-      | "topVendorsGoToShop",
+      | "topVendorsGoToShop"
+      | "scrollLeft"
+      | "scrollRight",
     fallback: string,
   ) => {
     try {
@@ -189,29 +57,58 @@ async function getLabels(locale: Locale): Promise<TopVendorsLabels> {
     sold: safe("topVendorsSold", "sold"),
     price: safe("topVendorsPrice", "Price"),
     goToShop: safe("topVendorsGoToShop", "Go to Shop"),
-    scrollLeft: "Scroll left",
-    scrollRight: "Scroll right",
+    scrollLeft: safe("scrollLeft", "Scroll left"),
+    scrollRight: safe("scrollRight", "Scroll right"),
   };
 }
 
 export async function HomeTopVendors({
   locale,
   title,
-  limit,
+  subtitle,
+  ctaLabel,
+  viewAllLabel,
+  viewAllLink,
+  query,
+  display,
+  preview,
 }: HomeTopVendorsProps) {
   const [vendors, labels] = await Promise.all([
-    fetchTopVendors(limit),
+    fetchTopVendors(
+      query.limit,
+      query.source,
+      query.vendorIds.join(","),
+      query.hideEmptyStores,
+    ),
     getLabels(locale),
   ]);
 
-  if (vendors.length === 0) return null;
+  if (vendors.length === 0) {
+    return sectionEmptyState(
+      { preview },
+      {
+        title: title || "Top Vendors",
+        hint:
+          query.source === "manual"
+            ? "Pick approved stores for this section."
+            : "No approved stores to show yet. Approved marketplace stores appear here automatically.",
+      },
+    );
+  }
 
   return (
     <HomeTopVendorsCarousel
       locale={locale}
       title={title}
+      subtitle={subtitle}
+      viewAll={
+        viewAllLabel && viewAllLink
+          ? { label: viewAllLabel, href: viewAllLink }
+          : undefined
+      }
       vendors={vendors}
-      labels={labels}
+      labels={ctaLabel ? { ...labels, goToShop: ctaLabel } : labels}
+      display={display}
     />
   );
 }

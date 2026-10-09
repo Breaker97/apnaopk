@@ -3,6 +3,12 @@ import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import mongoose from "mongoose";
 import { revalidateCategoryContent } from "@/lib/cache-invalidation";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditCatalogDelete,
+  auditCatalogUpdate,
+  CATEGORY_AUDIT,
+} from "@/lib/catalog/catalog-audit";
 import { withApi } from "@/lib/api/handler";
 import {
   MAX_CATEGORY_DEPTH,
@@ -121,7 +127,7 @@ export const GET = withApi<{ id: string }>(
  */
 export const PUT = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -130,7 +136,13 @@ export const PUT = withApi<{ id: string }>(
 
     const body = await validateBody(request, CategoryUpdateSchema);
 
-    const existingCategory = await Category.findById(id).select("slug").lean();
+    // The slug is what the route needs; the rest is what the Activity Log
+    // compares the saved category against.
+    const existingCategory = await Category.findById(id)
+      .select(
+        "slug name description image icon parentId order isActive featured seo options",
+      )
+      .lean();
     if (!existingCategory) {
       return notFoundResponse("Category");
     }
@@ -212,6 +224,13 @@ export const PUT = withApi<{ id: string }>(
       return notFoundResponse("Category");
     }
 
+    await auditCatalogUpdate(
+      createAuditContext(request, session),
+      CATEGORY_AUDIT,
+      existingCategory,
+      category,
+    );
+
     revalidateCategoryContent({
       slugs: [String(existingCategory.slug || ""), String(category.slug || "")],
     });
@@ -226,7 +245,7 @@ export const PUT = withApi<{ id: string }>(
  */
 export const DELETE = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -254,6 +273,12 @@ export const DELETE = withApi<{ id: string }>(
     if (!category) {
       return notFoundResponse("Category");
     }
+
+    await auditCatalogDelete(
+      createAuditContext(request, session),
+      CATEGORY_AUDIT,
+      category,
+    );
 
     revalidateCategoryContent({ slugs: [String(category.slug || "")] });
 

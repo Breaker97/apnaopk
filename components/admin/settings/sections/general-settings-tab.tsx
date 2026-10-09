@@ -2,8 +2,9 @@
 
 import { usePathname, useRouter } from "@/hooks/use-locale-navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Store, Globe, Languages, MapPinned } from "lucide-react";
+import { Store, Globe, Languages, MapPinned, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CountryMultiSelect } from "@/components/common/country-multi-select";
 import { toast } from "@/components/ui/toast-notification";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import type { Settings } from "@/components/admin/settings/types";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
@@ -40,6 +42,18 @@ export function GeneralSettingsTab(props: {
   const router = useRouter();
   const pathname = usePathname();
 
+  // A store installed without demo data before 2.4.1 has no house profile,
+  // and saving this page is what creates it — so the page says so, and offers
+  // Save even though nothing on it was edited.
+  const storeProfileMissing = props.settings._meta?.storeProfileMissing === true;
+  // Why, when Save cannot make it: every admin owns a store, or an older
+  // profile probably exists. Save is not offered for those — it would only
+  // repeat the refusal.
+  const storeProfileProblem = props.settings._meta?.storeProfileProblem;
+  const storeProfileSaveFixes =
+    storeProfileMissing &&
+    storeProfileProblem !== "no_owner" &&
+    storeProfileProblem !== "needs_review";
   const defaultLanguage = props.settings.general.defaultLanguage || "en";
   const storeCurrency = props.settings.general.defaultCurrency || "USD";
   const countryAvailabilityMode =
@@ -61,6 +75,17 @@ export function GeneralSettingsTab(props: {
       defaultLanguage,
     ]),
   ).filter(isValidLocale);
+
+  const handleDefaultLanguageChange = (code: string) => {
+    if (!isValidLocale(code)) return;
+    if (!supportedLanguages.includes(code)) {
+      props.updateNestedField("general.supportedLanguages", [
+        ...supportedLanguages,
+        code,
+      ]);
+    }
+    props.updateNestedField("general.defaultLanguage", code);
+  };
 
   const handleToggleLanguage = (code: string, checked: boolean) => {
     const next = checked
@@ -108,6 +133,30 @@ export function GeneralSettingsTab(props: {
           title={t("admin.settings.general.title")}
           description={t("admin.settings.general.description")}
         />
+
+        {storeProfileMissing ? (
+          <WarningBanner
+            title={tSafe(
+              "admin.settings.general.storeProfileMissingTitle",
+              "Your store profile is missing",
+            )}
+          >
+            {storeProfileProblem === "no_owner"
+              ? tSafe(
+                  "admin.storeProfile.noOwner",
+                  "It can't be created because every admin account already owns a seller store, and a store has one owner. Add an admin account that owns no store.",
+                )
+              : storeProfileProblem === "needs_review"
+                ? tSafe(
+                    "admin.storeProfile.needsReview",
+                    "An older store profile probably exists under an admin's own store, so a new one wasn't created. A developer can review it with pnpm db:migrate house-profile --dry-run.",
+                  )
+                : tSafe(
+                    "admin.settings.general.storeProfileMissingBody",
+                    "Products, inventory and the POS belong to it. Check the store name, language and currency below, then save to create it.",
+                  )}
+          </WarningBanner>
+        ) : null}
 
         {/* Section 1 -- Store Information */}
         <div className="rounded-lg border bg-card text-card-foreground">
@@ -240,20 +289,18 @@ export function GeneralSettingsTab(props: {
           <div className="px-6 py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>{t("admin.settings.general.defaultLanguage")}</Label>
+                <Label htmlFor="defaultLanguage">
+                  {t("admin.settings.general.defaultLanguage")}
+                </Label>
                 <SearchableSelect
-                  value={props.settings.general.defaultLanguage || "en"}
-                  onValueChange={(v) =>
-                    props.updateNestedField("general.defaultLanguage", v)
-                  }
-                  options={supportedLanguages.map((code) => {
-                    const language = LANGUAGE_OPTIONS.find((x) => x.code === code);
-                    return {
-                      value: code,
-                      label: language?.name || code,
-                      keywords: language?.englishName,
-                    };
-                  })}
+                  id="defaultLanguage"
+                  value={defaultLanguage}
+                  onValueChange={handleDefaultLanguageChange}
+                  options={LANGUAGE_OPTIONS.map((language) => ({
+                    value: language.code,
+                    label: language.name,
+                    keywords: language.englishName,
+                  }))}
                   searchPlaceholder={t("admin.settings.general.searchLanguage")}
                 />
               </div>
@@ -397,32 +444,51 @@ export function GeneralSettingsTab(props: {
                 const isDefault = l.code === defaultLanguage;
                 const isChecked = supportedLanguages.includes(l.code);
                 return (
-                  <label
+                  <div
                     key={l.code}
-                    className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors cursor-pointer hover:bg-muted/50 ${
+                    className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors hover:bg-muted/50 ${
                       isChecked
                         ? "border-primary/30 bg-primary/5"
                         : "border-border"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
+                    <label
+                      htmlFor={`supported-language-${l.code}`}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
+                    >
                       <Checkbox
+                        id={`supported-language-${l.code}`}
                         checked={isChecked}
                         onCheckedChange={(v) =>
                           handleToggleLanguage(l.code, Boolean(v))
                         }
                       />
-                      <span className="font-medium">{l.name}</span>
-                    </span>
-                    {isDefault && (
+                      <span className="font-medium truncate">{l.name}</span>
+                    </label>
+                    {isDefault ? (
                       <Badge
                         variant="secondary"
                         className="text-[10px] px-1.5 py-0"
                       >
                         {t("admin.settings.general.defaultBadge")}
                       </Badge>
+                    ) : (
+                      // Icon only: a text button took the row's width in the
+                      // longer languages and cut every language name to two
+                      // letters ("Setha njengokuzenzakalelayo" in Zulu).
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 text-muted-foreground hover:text-primary"
+                        title={t("admin.settings.general.setDefault")}
+                        aria-label={`${t("admin.settings.general.setDefault")}: ${l.name}`}
+                        onClick={() => handleDefaultLanguageChange(l.code)}
+                      >
+                        <Star className="size-3.5" />
+                      </Button>
                     )}
-                  </label>
+                  </div>
                 );
               })}
             </div>
@@ -434,7 +500,7 @@ export function GeneralSettingsTab(props: {
       <StickySaveFooter
         label={t("admin.settings.general.save")}
         isSaving={props.isSaving}
-        isDirty={props.isDirty}
+        isDirty={props.isDirty || storeProfileSaveFixes}
         onSave={handleSave}
       />
     </div>

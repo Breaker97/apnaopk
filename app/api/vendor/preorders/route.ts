@@ -8,8 +8,14 @@ import { getSettings } from "@/models/settings.model";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { sanitizeSearchString } from "@/lib/api/validate";
 import { withApi } from "@/lib/api/handler";
-import { fetchPreorderList } from "@/lib/orders/preorder-list";
+import {
+  VENDOR_PREORDER_CSV_HEADERS,
+  fetchPreorderExportRows,
+  fetchPreorderList,
+  vendorPreorderCsvRows,
+} from "@/lib/orders/preorder-list";
 import { parsePageLimit } from "@/lib/api/list-query";
+import { buildCsv, csvResponse } from "@/lib/finance/csv";
 
 export const GET = withApi(
   { auth: "user" },
@@ -44,6 +50,22 @@ export const GET = withApi(
     );
     const status = (searchParams.get("status") || "all").trim();
     const view = (searchParams.get("view") || "all").trim();
+
+    // The same filters as the list, unpaginated, as a file. The vendor comes
+    // from the session, never the query, so the file is always their own.
+    if (searchParams.get("format") === "csv") {
+      const rows = await fetchPreorderExportRows(
+        { search, status, view },
+        { vendorId: vendor._id },
+      );
+      return csvResponse(
+        `preorders-${new Date().toISOString().slice(0, 10)}.csv`,
+        buildCsv(
+          [...VENDOR_PREORDER_CSV_HEADERS],
+          vendorPreorderCsvRows(rows, String(vendor._id)),
+        ),
+      );
+    }
 
     const list = await fetchPreorderList(
       { page, limit, search, status, view },

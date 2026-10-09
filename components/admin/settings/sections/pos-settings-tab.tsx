@@ -1,36 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
-  Loader2,
-  Power,
-  ShieldCheck,
-  Globe,
-  LayoutGrid,
-  CreditCard,
-  RotateCcw,
   Banknote,
-  FileText,
-  MapPin,
-  Monitor,
-  Printer,
-  Users,
-  Receipt,
-  WifiOff,
-  Volume2,
-  ShoppingCart,
-  CircleCheckBig,
-  AlertCircle,
-  Play,
   Building2,
+  CreditCard,
+  Play,
+  ShieldCheck,
+  Store,
+  Tag,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
+import Link from "@/components/language/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -39,630 +33,485 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import type { Settings } from "@/components/admin/settings/types";
+import { Switch } from "@/components/ui/switch";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { previewPOSSound } from "@/lib/pos/pos-sounds";
+import type { Settings } from "@/components/admin/settings/types";
+import { FeatureRow } from "@/components/admin/settings/fields/feature-row";
+import {
+  SettingList,
+  SettingRow,
+  SettingSwitchItem,
+} from "@/components/admin/settings/fields/setting-row";
+import type { POSLocationList } from "@/components/admin/settings/use-pos-locations";
 import { SettingsTabHeader } from "./settings-tab-header";
 import { StickySaveFooter } from "./sticky-save-footer";
+import { isPackOn } from "./vendor-permissions-settings-tab";
 
-// ============================================
-// Types
-// ============================================
+const linkClass = "text-primary font-medium hover:underline";
+const cautionClass = "text-amber-700 dark:text-amber-400";
 
-interface POSSettingsTabProps {
+/** The ways to pay, in the order the register lists them (components/pos/take-payment-dialog.tsx). */
+const PAYMENT_ORDER = ["cash", "card", "bank", "manual"] as const;
+type PaymentMethod = (typeof PAYMENT_ORDER)[number];
+/** What a store that never saved the list takes (lib/pos/payment.ts). */
+const DEFAULT_PAYMENT_METHODS: readonly string[] = ["cash", "card"];
+
+/** The number after the prefix in the example; lib/orders/order-number.ts pads to six digits. */
+const EXAMPLE_ORDER_SEQUENCE = "000017";
+
+/** The select's value for "no default counter"; the setting itself is then empty. */
+const NO_COUNTER = "none";
+
+/** For `t.rich`: the tagged words of a message, as a link to another admin page. */
+function linkTo(href: string) {
+  return function RichLink(chunks: ReactNode) {
+    return (
+      <Link href={href} className={linkClass}>
+        {chunks}
+      </Link>
+    );
+  };
+}
+
+/**
+ * Settings → Point of Sale: the switch, who can open the register, what it
+ * takes as payment, how a register is set up, and its sounds.
+ *
+ * With POS off the page is its header: nothing below applies, and six greyed
+ * cards used to say so at length. Each switch is here once. The state used to
+ * be told three times over (a badge, a card named after the switch, and the
+ * switch row under it).
+ *
+ * Two controls say what else they depend on, because each did nothing on its
+ * own and the page never said so: "Vendors" needs Multi-Vendor Mode's Point of
+ * Sale permission, and "Staff" needs the staff member's own.
+ *
+ * There is no "Offline payments" switch. Nothing read it: a register that
+ * loses its connection queues its sales whatever the switch said
+ * (hooks/use-pos-offline.ts).
+ */
+export function POSSettingsTab(props: {
   settings: Settings;
+  /** The store's locations, for the default counter (usePOSLocations). */
+  locations: POSLocationList;
   isSaving: boolean;
   isDirty: boolean;
   updateField: (path: string, value: unknown) => void;
   onSave: () => void | Promise<unknown>;
-}
-
-interface LocationOption {
-  _id: string;
-  name: string;
-  isDefault: boolean;
-  isActive: boolean;
-}
-
-// ============================================
-// Section Card Component
-// ============================================
-
-function SectionCard({
-  icon: Icon,
-  title,
-  description,
-  children,
-  badge,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  badge?: React.ReactNode;
+  onDiscard?: () => void;
 }) {
-  return (
-    <div className="rounded-lg border bg-card text-card-foreground">
-      <div className="flex items-center gap-3 border-b px-6 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold">{title}</h3>
-            {badge}
-          </div>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <div className="px-6 py-5 space-y-5">{children}</div>
-    </div>
-  );
-}
+  const t = useTranslations("admin.settings.pos");
+  const tSettings = useTranslations("admin.settings");
+  const locale = useLocale();
+  const { settings, updateField } = props;
+  const pos = settings.pos;
+  const enabled = Boolean(pos.enabled);
 
-// ============================================
-// Toggle Row Component
-// ============================================
+  // A vendor's dashboard exists only with Multi-Vendor Mode on, so a store
+  // without vendors has no vendor register to allow.
+  const vendorsOn = Boolean(settings.multiVendorMode?.enabled);
+  const vendorsAllowed = Boolean(pos.allowVendorSales);
+  const nobody =
+    !pos.allowAdminSales && !pos.allowSellerSales && !(vendorsOn && vendorsAllowed);
+  const vendorPackOff = vendorsAllowed && !isPackOn(settings.multiVendorMode, "pos");
 
-function ToggleRow({
-  icon: Icon,
-  label,
-  description,
-  checked,
-  onChange,
-  disabled,
-}: {
-  icon?: React.ComponentType<{ className?: string }>;
-  label: string;
-  description?: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
-      <div className="flex items-center gap-3 min-w-0">
-        {Icon && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted shrink-0">
-            <Icon className="h-4 w-4 text-muted-foreground" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-sm font-medium">{label}</p>
-          {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          )}
-        </div>
-      </div>
-      <Switch
-        checked={checked}
-        onCheckedChange={onChange}
-        disabled={disabled}
-      />
-    </div>
-  );
-}
-
-// ============================================
-// Main Component
-// ============================================
-
-export function POSSettingsTab(props: POSSettingsTabProps) {
-  const t = useTranslations();
-  const pos = props.settings.pos;
-  const [locations, setLocations] = useState<LocationOption[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
-
-  // Fetch locations for the dropdown
-  useEffect(() => {
-    async function fetchLocations() {
-      setLoadingLocations(true);
-      try {
-        const res = await fetch("/api/admin/locations?includeInactive=true");
-        const json = await res.json();
-        if (json.success) {
-          setLocations(json.data);
-        }
-      } catch {
-        // silent
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-    fetchLocations();
-  }, []);
-
-  const paymentMethods: ("cash" | "card" | "manual" | "bank")[] =
-    pos.checkout?.paymentMethods ?? ["cash", "card"];
-
-  const togglePaymentMethod = (
-    method: "cash" | "card" | "manual" | "bank",
-    checked: boolean
-  ) => {
-    const current = [...paymentMethods];
-    if (checked && !current.includes(method)) {
-      current.push(method);
-    } else if (!checked) {
-      const filtered = current.filter((m) => m !== method);
-      if (filtered.length === 0) return; // keep at least one
-      props.updateField("pos.checkout.paymentMethods", filtered);
-      return;
-    }
-    props.updateField("pos.checkout.paymentMethods", current);
+  const storedMethods: readonly string[] =
+    pos.checkout?.paymentMethods ?? DEFAULT_PAYMENT_METHODS;
+  const methods = PAYMENT_ORDER.filter((method) => storedMethods.includes(method));
+  const setMethod = (method: PaymentMethod, on: boolean) => {
+    updateField(
+      "pos.checkout.paymentMethods",
+      // In the register's order, so switching one off and on again is no edit.
+      PAYMENT_ORDER.filter((entry) =>
+        entry === method ? on : methods.includes(entry),
+      ),
+    );
   };
+  // The register takes a card on a reader, or typed in through Stripe. Without
+  // Stripe only the reader works, which is a way to run a shop, not a fault.
+  const stripeReady =
+    Boolean(settings.payment?.stripe?.enabled) &&
+    settings._meta?.checkoutGateways?.stripe?.ready !== false;
 
-  const paymentMethodOptions = [
+  const customize = pos.customize;
+  const printing = Boolean(customize?.printedReceiptsEnabled);
+  const soundOn = customize?.soundEnabled !== false;
+  const volume = customize?.soundVolume ?? 50;
+  const prefix = pos.orders?.orderNumberPrefix ?? "POS";
+
+  const paymentOptions: Array<{
+    method: PaymentMethod;
+    icon: LucideIcon;
+    name: string;
+    note: ReactNode;
+  }> = [
     {
-      value: "cash" as const,
-      label: t("admin.settings.pos.paymentCash"),
-      description: t("admin.settings.pos.paymentCashDesc"),
+      method: "cash",
       icon: Banknote,
-      color: "text-green-600 dark:text-green-400",
-      bg: "bg-green-100 dark:bg-green-900/40",
+      name: t("paymentCash"),
+      note: t("paymentCashDesc"),
     },
     {
-      value: "card" as const,
-      label: t("admin.settings.pos.paymentCard"),
-      description: t("admin.settings.pos.paymentCardDesc"),
+      method: "card",
       icon: CreditCard,
-      color: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-100 dark:bg-blue-900/40",
+      name: t("paymentCard"),
+      note: stripeReady
+        ? t("paymentCardDesc")
+        : t.rich("paymentCardNoStripe", {
+            link: linkTo("/admin/settings/payment"),
+          }),
     },
     {
-      value: "manual" as const,
-      label: t("admin.settings.pos.paymentManual"),
-      description: t("admin.settings.pos.paymentManualDesc"),
-      icon: FileText,
-      color: "text-orange-600 dark:text-orange-400",
-      bg: "bg-orange-100 dark:bg-orange-900/40",
-    },
-    {
-      value: "bank" as const,
-      label: t("admin.settings.pos.paymentBank"),
-      description: t("admin.settings.pos.paymentBankDesc"),
+      method: "bank",
       icon: Building2,
-      color: "text-amber-600 dark:text-amber-400",
-      bg: "bg-amber-100 dark:bg-amber-900/40",
+      name: t("paymentBank"),
+      note: t("paymentBankDesc"),
+    },
+    {
+      method: "manual",
+      icon: Tag,
+      name: t("paymentManual"),
+      note: t("paymentManualDesc"),
     },
   ];
 
+  const sounds = [
+    { key: "soundAddToCart", type: "addToCart", name: t("soundAddToCart") },
+    { key: "soundPayment", type: "payment", name: t("soundPayment") },
+    { key: "soundOrderComplete", type: "orderComplete", name: t("soundOrderComplete") },
+    { key: "soundError", type: "error", name: t("soundError") },
+  ] as const;
+
   return (
-    <div className="relative">
-      <div className="space-y-6">
-        <SettingsTabHeader
-          title={t("admin.settings.pos.title")}
-          description={t("admin.settings.pos.description")}
-        />
-
-        {/* Section 1: Enable POS */}
-        <SectionCard
-          icon={Power}
-          title={t("admin.settings.pos.enable")}
-          description={t("admin.settings.pos.enableDesc")}
-          badge={
-            pos.enabled ? (
-              <Badge
-                variant="default"
-                className="text-[10px] px-1.5 py-0 bg-green-600"
-              >
-                {t("admin.settings.pos.enabled")}
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                {t("admin.settings.pos.disabled")}
-              </Badge>
-            )
-          }
-        >
-          <ToggleRow
-            icon={Monitor}
-            label={t("admin.settings.pos.enable")}
-            description={t("admin.settings.pos.enableDesc")}
-            checked={Boolean(pos.enabled)}
-            onChange={(v) => props.updateField("pos.enabled", v)}
+    <div className="space-y-4">
+      <SettingsTabHeader
+        title={t("title")}
+        description={enabled ? t("description") : t("descriptionOff")}
+        control={
+          <Switch
+            className="mt-1"
+            checked={enabled}
+            aria-label={t("title")}
+            onCheckedChange={(on) => updateField("pos.enabled", on)}
           />
-        </SectionCard>
+        }
+      />
 
-        {/* Section 2: Role Access */}
-        <SectionCard
-          icon={ShieldCheck}
-          title={t("admin.settings.pos.access")}
-          description={t("admin.settings.pos.accessDesc")}
-        >
-          <div className="space-y-2">
-            <ToggleRow
-              icon={ShieldCheck}
-              label={t("admin.settings.pos.admin")}
-              description={t("admin.settings.pos.adminDesc")}
-              checked={Boolean(pos.allowAdminSales)}
-              onChange={(v) => props.updateField("pos.allowAdminSales", v)}
-              disabled={!pos.enabled}
-            />
-            <ToggleRow
-              icon={Users}
-              label={t("admin.settings.pos.vendor")}
-              description={t("admin.settings.pos.vendorDesc")}
-              checked={Boolean(pos.allowVendorSales)}
-              onChange={(v) => props.updateField("pos.allowVendorSales", v)}
-              disabled={!pos.enabled}
-            />
-            <ToggleRow
-              icon={Users}
-              label={t("admin.settings.pos.seller")}
-              description={t("admin.settings.pos.sellerDesc")}
-              checked={Boolean(pos.allowSellerSales)}
-              onChange={(v) => props.updateField("pos.allowSellerSales", v)}
-              disabled={!pos.enabled}
-            />
-          </div>
-        </SectionCard>
+      {enabled ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("access")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <SettingList>
+                <FeatureRow
+                  icon={ShieldCheck}
+                  title={t("admin")}
+                  description={t("adminDesc")}
+                  checked={Boolean(pos.allowAdminSales)}
+                  onCheckedChange={(on) => updateField("pos.allowAdminSales", on)}
+                />
+                {vendorsOn ? (
+                  <FeatureRow
+                    icon={Store}
+                    title={t("vendor")}
+                    description={
+                      vendorPackOff ? (
+                        <span className={cautionClass}>
+                          {t.rich("vendorPackOff", {
+                            link: linkTo("/admin/settings/marketplace"),
+                          })}
+                        </span>
+                      ) : (
+                        t("vendorDesc")
+                      )
+                    }
+                    checked={vendorsAllowed}
+                    onCheckedChange={(on) => updateField("pos.allowVendorSales", on)}
+                  />
+                ) : null}
+                <FeatureRow
+                  icon={Users}
+                  title={t("seller")}
+                  description={t.rich("sellerDesc", { link: linkTo("/admin/staff") })}
+                  checked={Boolean(pos.allowSellerSales)}
+                  onCheckedChange={(on) => updateField("pos.allowSellerSales", on)}
+                />
+              </SettingList>
+              {nobody ? <WarningBanner>{t("accessNone")}</WarningBanner> : null}
+            </CardContent>
+          </Card>
 
-        {/* Section 3: General Settings */}
-        <SectionCard
-          icon={Globe}
-          title={t("admin.settings.pos.general")}
-          description={t("admin.settings.pos.generalDesc")}
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="posDefaultLocation">
-                {t("admin.settings.pos.defaultLocation")}
-              </Label>
-              {loadingLocations ? (
-                <div className="flex items-center gap-2 h-9 px-3 text-sm text-muted-foreground border rounded-md">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {t("common.loading")}...
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("checkout")}</CardTitle>
+              <CardDescription>{t("checkoutDesc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="@container">
+                {/* Hairlines are the grid's own background showing through the gaps. */}
+                <div className="bg-border grid gap-px overflow-hidden rounded-lg border @2xl:grid-cols-2">
+                  {paymentOptions.map((option) => {
+                    const on = methods.includes(option.method);
+                    return (
+                      <div key={option.method} className="bg-card">
+                        <FeatureRow
+                          icon={option.icon}
+                          title={option.name}
+                          description={option.note}
+                          checked={on}
+                          // One way to pay stays on: with none, the register
+                          // could not take a sale.
+                          disabled={on && methods.length === 1}
+                          onCheckedChange={(next) => setMethod(option.method, next)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : locations.length > 0 ? (
-                <Select
-                  value={pos.defaultPosLocationId || "none"}
-                  onValueChange={(v) =>
-                    props.updateField(
-                      "pos.defaultPosLocationId",
-                      v === "none" ? "" : v
-                    )
-                  }
-                  disabled={!pos.enabled}
-                >
-                  <SelectTrigger id="posDefaultLocation">
-                    <SelectValue
-                      placeholder={t(
-                        "admin.settings.pos.selectLocation"
-                      )}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      {t("admin.settings.pos.noLocation")}
-                    </SelectItem>
-                    {locations
-                      .filter((loc) => loc.isActive)
-                      .map((loc) => (
-                        <SelectItem key={loc._id} value={loc._id}>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span>{loc.name}</span>
-                            {loc.isDefault && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] px-1 py-0"
-                              >
-                                {t("admin.settings.pos.defaultBadge")}
-                              </Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id="posDefaultLocation"
-                  placeholder={t("admin.settings.pos.locationIdPlaceholder")}
+              </div>
+              {/* It used to refuse the last switch without a word. */}
+              {methods.length <= 1 ? (
+                <p className="text-muted-foreground text-sm">{t("paymentLast")}</p>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("register")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SettingList>
+                <DefaultCounterRow
+                  locations={props.locations}
                   value={pos.defaultPosLocationId || ""}
-                  onChange={(e) =>
-                    props.updateField(
-                      "pos.defaultPosLocationId",
-                      e.target.value
-                    )
+                  onChange={(locationId) =>
+                    updateField("pos.defaultPosLocationId", locationId)
                   }
-                  disabled={!pos.enabled}
                 />
-              )}
-              <p className="text-xs text-muted-foreground">
-                {t("admin.settings.pos.defaultLocationHint")}
-              </p>
-            </div>
-          </div>
-        </SectionCard>
 
-        {/* Section 4: Payment Methods */}
-        <SectionCard
-          icon={CreditCard}
-          title={t("admin.settings.pos.checkout")}
-          description={t("admin.settings.pos.checkoutDesc")}
-        >
-          <div className="space-y-5">
-            <div>
-              <Label className="mb-3 block">
-                {t("admin.settings.pos.paymentMethods")}
-              </Label>
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                {paymentMethodOptions.map((method) => {
-                  const isChecked = paymentMethods.includes(method.value);
-                  const MethodIcon = method.icon;
-                  return (
-                    <label
-                      key={method.value}
-                      className={`relative flex min-h-[112px] cursor-pointer flex-col rounded-md border p-3 pr-9 text-sm transition-colors hover:bg-muted/40 ${
-                        isChecked
-                          ? "border-primary/35 bg-primary/[0.04]"
-                          : "border-border"
-                      } ${!pos.enabled ? "opacity-50 pointer-events-none" : ""}`}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={(v) =>
-                          togglePaymentMethod(method.value, Boolean(v))
-                        }
-                        disabled={!pos.enabled}
-                        className="absolute right-3 top-3"
-                      />
-                      <div className="flex items-start gap-2.5">
-                        <span
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${method.bg}`}
-                        >
-                          <MethodIcon className={`h-4 w-4 ${method.color}`} />
-                        </span>
-                        <span className="min-w-0 space-y-1">
-                          <span className="block text-sm font-medium leading-snug">
-                            {method.label}
-                          </span>
-                          <span className="block text-xs leading-snug text-muted-foreground">
-                            {method.description}
-                          </span>
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
+                <SettingRow
+                  inputId="posOrderNumberPrefix"
+                  label={t("orderNumberPrefix")}
+                  hint={t.rich("orderNumberPrefixExample", {
+                    example: `${prefix || "POS"}${EXAMPLE_ORDER_SEQUENCE}`,
+                    strong: (chunks) => (
+                      <strong className="text-foreground font-medium">{chunks}</strong>
+                    ),
+                  })}
+                >
+                  {/* Left empty, the register numbers with POS (the placeholder). */}
+                  <Input
+                    id="posOrderNumberPrefix"
+                    className="w-28 uppercase"
+                    value={prefix}
+                    onChange={(event) =>
+                      updateField(
+                        "pos.orders.orderNumberPrefix",
+                        event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                      )
+                    }
+                    placeholder="POS"
+                    maxLength={10}
+                  />
+                </SettingRow>
 
-            <div className="space-y-2">
-              <ToggleRow
-                icon={WifiOff}
-                label={t("admin.settings.pos.offlinePayments")}
-                description={t("admin.settings.pos.offlinePaymentsDesc")}
-                checked={Boolean(pos.checkout?.offlinePaymentsEnabled)}
-                onChange={(v) =>
-                  props.updateField("pos.checkout.offlinePaymentsEnabled", v)
-                }
-                disabled={!pos.enabled}
-              />
-            </div>
-          </div>
-        </SectionCard>
-
-        {/* Section 5: Customize */}
-        <SectionCard
-          icon={LayoutGrid}
-          title={t("admin.settings.pos.customize")}
-          description={t("admin.settings.pos.customizeDesc")}
-        >
-          <div className="space-y-2">
-            <ToggleRow
-              icon={Printer}
-              label={t("admin.settings.pos.printedReceipts")}
-              description={t("admin.settings.pos.printedReceiptsDesc")}
-              checked={Boolean(pos.customize?.printedReceiptsEnabled)}
-              onChange={(v) =>
-                props.updateField("pos.customize.printedReceiptsEnabled", v)
-              }
-              disabled={!pos.enabled}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {pos.customize?.printedReceiptsEnabled && (
-              <div className="space-y-2">
-                <Label htmlFor="receiptPrinter" className="flex items-center gap-2">
-                  <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t("admin.settings.pos.receiptPrinter")}
-                </Label>
-                <Input
-                  id="receiptPrinter"
-                  placeholder={t(
-                    "admin.settings.pos.receiptPrinterPlaceholder"
-                  )}
-                  value={pos.customize?.receiptPrinter || ""}
-                  onChange={(e) =>
-                    props.updateField(
-                      "pos.customize.receiptPrinter",
-                      e.target.value
-                    )
+                <SettingSwitchItem
+                  title={t("printedReceipts")}
+                  description={t("printedReceiptsDesc")}
+                  checked={printing}
+                  onCheckedChange={(on) =>
+                    updateField("pos.customize.printedReceiptsEnabled", on)
                   }
-                  disabled={!pos.enabled}
                 />
-              </div>
-            )}
-          </div>
-        </SectionCard>
-
-        {/* Section 6: Sound Effects */}
-        <SectionCard
-          icon={Volume2}
-          title={t("admin.settings.pos.sound")}
-          description={t("admin.settings.pos.soundDesc")}
-          badge={
-            pos.customize?.soundEnabled !== false ? (
-              <Badge
-                variant="default"
-                className="text-[10px] px-1.5 py-0 bg-green-600"
-              >
-                {t("admin.settings.pos.enabled")}
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                {t("admin.settings.pos.disabled")}
-              </Badge>
-            )
-          }
-        >
-          <ToggleRow
-            icon={Volume2}
-            label={t("admin.settings.pos.soundEnable")}
-            description={t("admin.settings.pos.soundEnableDesc")}
-            checked={pos.customize?.soundEnabled !== false}
-            onChange={(v) =>
-              props.updateField("pos.customize.soundEnabled", v)
-            }
-            disabled={!pos.enabled}
-          />
-
-          {pos.customize?.soundEnabled !== false && (
-            <div className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
-              {/* Volume Slider */}
-              <div className="space-y-3 rounded-lg border px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2 text-sm font-medium">
-                    <Volume2 className="h-4 w-4 text-muted-foreground" />
-                    {t("admin.settings.pos.soundVolume")}
-                  </Label>
-                  <span className="text-sm font-mono tabular-nums text-muted-foreground">
-                    {pos.customize?.soundVolume ?? 50}%
-                  </span>
-                </div>
-                <Slider
-                  value={[pos.customize?.soundVolume ?? 50]}
-                  onValueChange={([v]) =>
-                    props.updateField("pos.customize.soundVolume", v)
-                  }
-                  min={0}
-                  max={100}
-                  step={5}
-                  disabled={!pos.enabled}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Individual Sound Toggles */}
-              <div className="space-y-2">
-                {(
-                  [
-                    {
-                      key: "soundAddToCart" as const,
-                      soundType: "addToCart" as const,
-                      icon: ShoppingCart,
-                      label: t("admin.settings.pos.soundAddToCart"),
-                      desc: t("admin.settings.pos.soundAddToCartDesc"),
-                    },
-                    {
-                      key: "soundPayment" as const,
-                      soundType: "payment" as const,
-                      icon: CreditCard,
-                      label: t("admin.settings.pos.soundPayment"),
-                      desc: t("admin.settings.pos.soundPaymentDesc"),
-                    },
-                    {
-                      key: "soundOrderComplete" as const,
-                      soundType: "orderComplete" as const,
-                      icon: CircleCheckBig,
-                      label: t("admin.settings.pos.soundOrderComplete"),
-                      desc: t("admin.settings.pos.soundOrderCompleteDesc"),
-                    },
-                    {
-                      key: "soundError" as const,
-                      soundType: "error" as const,
-                      icon: AlertCircle,
-                      label: t("admin.settings.pos.soundError"),
-                      desc: t("admin.settings.pos.soundErrorDesc"),
-                    },
-                  ] as const
-                ).map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3"
+                {printing ? (
+                  <SettingRow
+                    inputId="posReceiptPrinter"
+                    label={t("receiptPrinter")}
+                    hint={t("receiptPrinterHint")}
+                    className="bg-muted/30"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted shrink-0">
-                        <item.icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.desc}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        disabled={
-                          !pos.enabled ||
-                          !pos.customize?.[item.key]
-                        }
-                        onClick={() =>
-                          previewPOSSound(
-                            item.soundType,
-                            pos.customize?.soundVolume ?? 50
-                          )
-                        }
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    <Switch
-                      checked={pos.customize?.[item.key] !== false}
-                      onCheckedChange={(v) =>
-                        props.updateField(`pos.customize.${item.key}`, v)
+                    <Input
+                      id="posReceiptPrinter"
+                      value={customize?.receiptPrinter || ""}
+                      onChange={(event) =>
+                        updateField("pos.customize.receiptPrinter", event.target.value)
                       }
-                      disabled={!pos.enabled}
+                      placeholder={t("receiptPrinterPlaceholder")}
                     />
+                  </SettingRow>
+                ) : null}
+              </SettingList>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("sound")}</CardTitle>
+              <CardDescription>{t("soundDesc")}</CardDescription>
+              <CardAction>
+                <Switch
+                  checked={soundOn}
+                  aria-label={t("sound")}
+                  onCheckedChange={(on) => updateField("pos.customize.soundEnabled", on)}
+                />
+              </CardAction>
+            </CardHeader>
+            {soundOn ? (
+              <CardContent>
+                <div className="@container">
+                  <div className="bg-border grid gap-px overflow-hidden rounded-lg border @lg:grid-cols-2">
+                    <div className="bg-card flex flex-col gap-3 p-4 @xl:flex-row @xl:items-center @xl:gap-6 @lg:col-span-2">
+                      <p className="min-w-0 flex-1 text-sm font-medium">
+                        {t("soundVolume")}
+                      </p>
+                      <div className="flex shrink-0 items-center gap-3 @xl:w-72">
+                        <Slider
+                          aria-label={t("soundVolume")}
+                          className="flex-1"
+                          value={[volume]}
+                          min={0}
+                          max={100}
+                          step={5}
+                          onValueChange={([next]) =>
+                            updateField("pos.customize.soundVolume", next)
+                          }
+                        />
+                        <span className="text-muted-foreground w-12 text-end text-sm tabular-nums">
+                          {new Intl.NumberFormat(locale, { style: "percent" }).format(
+                            volume / 100,
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    {sounds.map((sound) => {
+                      const on = customize?.[sound.key] !== false;
+                      return (
+                        <div
+                          key={sound.key}
+                          className="bg-card flex items-center gap-3 px-4"
+                        >
+                          {/* A muted chip like the icons of the cards above:
+                              "secondary" is the store's brand colour here. */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground shrink-0"
+                            aria-label={t("soundPlay", { sound: sound.name })}
+                            disabled={!on}
+                            onClick={() => previewPOSSound(sound.type, volume)}
+                          >
+                            <Play className="size-3.5" />
+                          </Button>
+                          <label className="flex min-h-14 min-w-0 flex-1 cursor-pointer items-center gap-3">
+                            <span className="min-w-0 flex-1 text-sm font-medium">
+                              {sound.name}
+                            </span>
+                            <Switch
+                              checked={on}
+                              aria-label={sound.name}
+                              onCheckedChange={(next) =>
+                                updateField(`pos.customize.${sound.key}`, next)
+                              }
+                            />
+                          </label>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </SectionCard>
-
-        {/* Section 7: Orders */}
-        <SectionCard
-          icon={RotateCcw}
-          title={t("admin.settings.pos.orders")}
-          description={t("admin.settings.pos.ordersDesc")}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="posOrderNumberPrefix" className="flex items-center gap-2">
-              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
-              {t("admin.settings.pos.orderNumberPrefix")}
-            </Label>
-            <Input
-              id="posOrderNumberPrefix"
-              value={pos.orders?.orderNumberPrefix || "POS"}
-              onChange={(e) =>
-                props.updateField(
-                  "pos.orders.orderNumberPrefix",
-                  e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")
-                )
-              }
-              placeholder="POS"
-              disabled={!pos.enabled}
-              className="max-w-xs"
-            />
-            <p className="text-xs text-muted-foreground">
-              {t("admin.settings.pos.orderNumberPrefixHint")}
-            </p>
-          </div>
-
-        </SectionCard>
-      </div>
+                </div>
+              </CardContent>
+            ) : null}
+          </Card>
+        </>
+      ) : null}
 
       <StickySaveFooter
-        label={t("admin.settings.pos.save")}
+        label={tSettings("general.save")}
         isSaving={props.isSaving}
         isDirty={props.isDirty}
         onSave={props.onSave}
+        onDiscard={props.onDiscard}
       />
     </div>
+  );
+}
+
+/**
+ * The counter a register starts at, until its cashier picks their own.
+ *
+ * Only a place a register may stand at is offered: active, and selling over
+ * a counter. The register accepts no other (lib/pos/resolve-location.ts), so
+ * a warehouse picked here was dropped without a word and the register sold
+ * from somewhere else. A saved counter that has stopped being one is named.
+ */
+function DefaultCounterRow(props: {
+  locations: POSLocationList;
+  /** The saved location id; empty for none. */
+  value: string;
+  onChange: (locationId: string) => void;
+}) {
+  const t = useTranslations("admin.settings.pos");
+  const tCommon = useTranslations("common");
+  const { locations, value } = props;
+
+  const loaded = Array.isArray(locations) ? locations : null;
+  const counters = (loaded ?? []).filter(
+    (location) => location.isActive === true && location.sellsAtCounter !== false,
+  );
+  const saved = value ? loaded?.find((location) => location._id === value) : undefined;
+  const gone =
+    loaded !== null &&
+    value !== "" &&
+    !counters.some((location) => location._id === value);
+
+  const locationsLink = linkTo("/admin/locations");
+
+  const hint =
+    locations === "failed" ? (
+      <span className={cautionClass}>{t("locationsFailed")}</span>
+    ) : gone ? (
+      <span className={cautionClass}>
+        {saved ? t("locationGone", { name: saved.name }) : t("locationMissing")}
+      </span>
+    ) : loaded !== null && counters.length === 0 ? (
+      t.rich("locationsEmpty", { link: locationsLink })
+    ) : (
+      t.rich("defaultLocationHint", { link: locationsLink })
+    );
+
+  return (
+    <SettingRow inputId="posDefaultCounter" label={t("defaultLocation")} hint={hint}>
+      <Select
+        // Empty shows the placeholder: while the list loads, and for a saved
+        // counter that is no longer one.
+        value={loaded !== null && !gone ? value || NO_COUNTER : ""}
+        onValueChange={(next) => props.onChange(next === NO_COUNTER ? "" : next)}
+        disabled={loaded === null}
+      >
+        <SelectTrigger id="posDefaultCounter" className="w-full">
+          <SelectValue
+            placeholder={locations === null ? tCommon("loading") : t("selectLocation")}
+          />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_COUNTER}>{t("noLocation")}</SelectItem>
+          {counters.map((location) => (
+            <SelectItem key={location._id} value={location._id}>
+              <span className="truncate">{location.name}</span>
+              {location.isDefault ? (
+                <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                  {t("defaultBadge")}
+                </Badge>
+              ) : null}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SettingRow>
   );
 }

@@ -12,6 +12,7 @@ export interface NormalizedStripeInvoice {
   amountDue: number;
   amountPaid: number;
   amountRefunded: number;
+  refundsKnown?: boolean;
   currency: string;
   periodStart: Date | null;
   periodEnd: Date | null;
@@ -99,6 +100,7 @@ export function normalizeStripeInvoice(
     amountDue: raw.amount_due ?? 0,
     amountPaid: raw.amount_paid ?? 0,
     amountRefunded: raw.amount_refunded ?? 0,
+    refundsKnown: typeof raw.amount_refunded === "number",
     currency: String(raw.currency || "usd").toUpperCase(),
     periodStart: starts.length > 0 ? stripeDate(Math.min(...starts)) : null,
     periodEnd: ends.length > 0 ? stripeDate(Math.max(...ends)) : null,

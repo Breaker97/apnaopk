@@ -671,6 +671,55 @@ interface IMaintenanceSettings {
 }
 
 // ============================================
+// Mobile App Settings Sub-interface
+// ============================================
+
+/**
+ * The store's apps (lib/settings/mobile-app.ts). `shop` is the shopper app and
+ * the API under /api/mobile/shop; `biz` is the business app (the store's
+ * operators) and the API under /api/mobile/biz.
+ */
+interface IMobileAppSettings {
+  shop: {
+    enabled: boolean;
+    scheme?: string;
+    ios: {
+      bundleId?: string;
+      teamId?: string;
+      appStoreUrl?: string;
+      minVersion?: string;
+      latestVersion?: string;
+    };
+    android: {
+      packageName?: string;
+      sha256CertFingerprints: string[];
+      playStoreUrl?: string;
+      minVersion?: string;
+      latestVersion?: string;
+    };
+    allowDigitalPurchases: boolean;
+    /** Credential: sent to Expo's push service when the account requires it. */
+    expoAccessToken?: string;
+  };
+  biz: {
+    enabled: boolean;
+    scheme?: string;
+    ios: {
+      bundleId?: string;
+      appStoreUrl?: string;
+      minVersion?: string;
+      latestVersion?: string;
+    };
+    android: {
+      packageName?: string;
+      playStoreUrl?: string;
+      minVersion?: string;
+      latestVersion?: string;
+    };
+  };
+}
+
+// ============================================
 // Security Settings Sub-interface
 // ============================================
 
@@ -756,7 +805,6 @@ type POSPaymentMethod = POSSelectablePaymentMethod;
 
 interface IPOSCheckoutSettings {
   paymentMethods: POSPaymentMethod[];
-  offlinePaymentsEnabled: boolean;
 }
 
 interface IPOSOrdersSettings {
@@ -847,6 +895,14 @@ export interface IPreorderSettings {
   /** Days to wait past the release date before {@link autoRelease} acts. */
   autoReleaseDelayDays: number;
   /**
+   * Hours between a balance notice the mail server ACCEPTED and the earliest
+   * automatic charge of a saved card for it — 1 to 168, 24 by default. Frozen
+   * on each balance request when it is made, so a later edit never shortens a
+   * notice a shopper already has. A product decision, not a statement about
+   * any jurisdiction's rules. See `lib/orders/preorder-notice.ts`.
+   */
+  balanceChargeNoticeHours: number;
+  /**
    * Share of a pre-order payout held back against a late dispute, as a
    * percent. Zero — the default — switches the reserve off entirely.
    *
@@ -908,6 +964,37 @@ interface IVendorConfigSettings {
   defaultPlanId?: string;
   /** Gateways vendors may pay plan subscriptions through. */
   paymentMethods: IPlatformPaymentMethodSettings;
+  /**
+   * Whether a vendor sees the email and phone of a shopper asking for a price
+   * on its product. Off hides them from the vendor's Quotes page, its API and
+   * its search alike; the vendor can still price the quote, because the store
+   * sends the price to the shopper. Absent reads as on.
+   */
+  showQuoteContactToVendors: boolean;
+  /**
+   * Whether a vendor has Orders → Abandoned checkouts: the checkouts that held
+   * its own products, with only its own lines and no shopper named. Off hides
+   * the page, its menu entry and its API. Absent reads as on.
+   */
+  showAbandonedCheckoutsToVendors: boolean;
+  /**
+   * Whether vendors may send their own discount to a shopper who abandoned a
+   * checkout with their goods, and the store's limits on it. Off by default:
+   * the store's own recovery emails never offer money off, so a marketplace
+   * decides for itself whether its sellers may. See
+   * `lib/orders/abandoned-offers.ts`.
+   */
+  abandonedOffers?: {
+    enabled?: boolean;
+    /** Vendors may also set a standing offer the recovery email carries. */
+    automatic?: boolean;
+    /** The most an offer may take off the vendor's goods, in percent. */
+    maxPercent?: number;
+    /** Offers one vendor may send in a day. */
+    maxPerVendorPerDay?: number;
+    /** The longest an offer may stay valid (never past the recovery link's 14 days). */
+    maxValidDays?: number;
+  };
 }
 
 // ============================================
@@ -1215,6 +1302,7 @@ export interface ISettings extends Document {
   social: ISocialSettings;
   analytics: IAnalyticsSettings;
   maintenance: IMaintenanceSettings;
+  mobileApp: IMobileAppSettings;
   security: ISecuritySettings;
   pos: IPOSSettings;
   multiVendorMode: IMultiVendorModeSettings;
@@ -2271,6 +2359,89 @@ const SettingsSchema = new Schema<ISettings>(
       default: () => ({}),
     },
 
+    // Mobile apps. Off until the admin switches an app's API on; formats are
+    // checked on save (validateMobileAppSettings), never here.
+    mobileApp: {
+      type: new Schema(
+        {
+          shop: {
+            type: new Schema(
+              {
+                enabled: { type: Boolean, default: false },
+                scheme: { type: String, default: "" },
+                ios: {
+                  type: new Schema(
+                    {
+                      bundleId: String,
+                      teamId: String,
+                      appStoreUrl: String,
+                      minVersion: String,
+                      latestVersion: String,
+                    },
+                    { _id: false },
+                  ),
+                  default: () => ({}),
+                },
+                android: {
+                  type: new Schema(
+                    {
+                      packageName: String,
+                      sha256CertFingerprints: { type: [String], default: [] },
+                      playStoreUrl: String,
+                      minVersion: String,
+                      latestVersion: String,
+                    },
+                    { _id: false },
+                  ),
+                  default: () => ({}),
+                },
+                allowDigitalPurchases: { type: Boolean, default: false },
+                expoAccessToken: String,
+              },
+              { _id: false },
+            ),
+            default: () => ({}),
+          },
+          biz: {
+            type: new Schema(
+              {
+                enabled: { type: Boolean, default: false },
+                scheme: { type: String, default: "" },
+                ios: {
+                  type: new Schema(
+                    {
+                      bundleId: String,
+                      appStoreUrl: String,
+                      minVersion: String,
+                      latestVersion: String,
+                    },
+                    { _id: false },
+                  ),
+                  default: () => ({}),
+                },
+                android: {
+                  type: new Schema(
+                    {
+                      packageName: String,
+                      playStoreUrl: String,
+                      minVersion: String,
+                      latestVersion: String,
+                    },
+                    { _id: false },
+                  ),
+                  default: () => ({}),
+                },
+              },
+              { _id: false },
+            ),
+            default: () => ({}),
+          },
+        },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
+
     // Security Settings
     security: {
       type: new Schema(
@@ -2371,7 +2542,6 @@ const SettingsSchema = new Schema<ISettings>(
                   enum: [...POS_SELECTABLE_PAYMENT_METHODS],
                   default: ["cash", "card"],
                 },
-                offlinePaymentsEnabled: { type: Boolean, default: false },
               },
               { _id: false },
             ),
@@ -2437,6 +2607,7 @@ const SettingsSchema = new Schema<ISettings>(
           // on its behalf.
           autoRelease: { type: Boolean, default: false },
           autoReleaseDelayDays: { type: Number, default: 0, min: 0, max: 90 },
+          balanceChargeNoticeHours: { type: Number, default: 24, min: 1, max: 168 },
           // Off by default: withholding a vendor's money is a policy a store
           // opts into, never something a version bump starts doing to them.
           reservePercent: { type: Number, default: 0, min: 0, max: 50 },
@@ -2462,6 +2633,21 @@ const SettingsSchema = new Schema<ISettings>(
           defaultPlanId: { type: String },
           paymentMethods: {
             type: PlatformPaymentMethodsSchema,
+            default: () => ({}),
+          },
+          showQuoteContactToVendors: { type: Boolean, default: true },
+          showAbandonedCheckoutsToVendors: { type: Boolean, default: true },
+          abandonedOffers: {
+            type: new Schema(
+              {
+                enabled: { type: Boolean, default: false },
+                automatic: { type: Boolean, default: true },
+                maxPercent: { type: Number, min: 1, max: 90, default: 30 },
+                maxPerVendorPerDay: { type: Number, min: 1, max: 1000, default: 20 },
+                maxValidDays: { type: Number, min: 1, max: 14, default: 14 },
+              },
+              { _id: false },
+            ),
             default: () => ({}),
           },
         },
@@ -3265,7 +3451,6 @@ export async function migrateSettings(): Promise<void> {
     if (!doc.pos.checkout) {
       needsMigration = true;
       updates["pos.checkout.paymentMethods"] = ["cash", "card"];
-      updates["pos.checkout.offlinePaymentsEnabled"] = false;
     }
   }
 

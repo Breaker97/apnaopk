@@ -5,13 +5,87 @@ import { useTranslations } from "next-intl";
 import { Circle, Package } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { cn } from "@/lib/utils";
-import type { QuoteStage } from "@/lib/quotes/quote-status";
+import {
+  vendorQuoteMoves,
+  type QuoteActorRole,
+  type QuoteStage,
+} from "@/lib/quotes/quote-status";
 import type { QuoteLotLimit } from "@/lib/quotes/quote-lot-fit";
+import type { AdminQuoteRow } from "@/lib/quotes/quotes";
 
 /**
  * The small pieces the Quotes table, the detail sheet and the price dialog
  * all draw, so the three never show the same quote two different ways.
  */
+
+/**
+ * Whose Quotes page this is. The store's works every quote through
+ * `/api/admin/quotes`; a vendor's works its own through `/api/vendor/quotes`,
+ * which answers with the same rows minus what the vendor may not see.
+ */
+export type QuoteScope = "admin" | "vendor";
+
+export function quoteApiPath(scope: QuoteScope, id?: string, sub?: "offer") {
+  return `/api/${scope}/quotes${id ? `/${id}` : ""}${sub ? `/${sub}` : ""}`;
+}
+
+/**
+ * The moves a quote offers on this page, before the viewer's own grant
+ * (`canManage`) is applied. The store may make any move the quote's stage
+ * allows; a vendor only those `vendorQuoteMoves` leaves it — the same rule its
+ * routes enforce — and never a delete.
+ */
+export function quoteMovesFor(
+  scope: QuoteScope,
+  quote: Pick<
+    AdminQuoteRow,
+    "stage" | "status" | "pricedByAdmin" | "lostByRole" | "offer"
+  >,
+) {
+  if (scope === "vendor") {
+    return { ...vendorQuoteMoves(quote), canDelete: false };
+  }
+  const open =
+    quote.stage === "needs_reply" ||
+    quote.stage === "offer_sent" ||
+    quote.stage === "expired";
+  const onOrder = quote.stage === "ordered" || quote.stage === "won";
+  const canReopen =
+    quote.stage === "closed" && quote.status === "lost" && !quote.offer?.withdrawnAt;
+  return {
+    lockedByStore: false,
+    canSendPrice:
+      !onOrder && (open || (quote.stage === "closed" && Boolean(quote.offer) && !canReopen)),
+    canWithdraw: quote.stage === "offer_sent",
+    canMarkLost: open,
+    canReopen,
+    canDelete: true,
+  };
+}
+
+/** Who sent a price — the store or the vendor — beside the price itself. */
+export function QuoteOfferBy({
+  role,
+  className,
+}: {
+  role: QuoteActorRole;
+  className?: string;
+}) {
+  const t = useTranslations("admin.quotesPage.by");
+  return (
+    <span
+      className={cn(
+        "inline-flex h-[18px] shrink-0 items-center rounded-sm px-1.5 text-[10px] font-semibold",
+        role === "vendor"
+          ? "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-200"
+          : "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+        className,
+      )}
+    >
+      {t(role)}
+    </span>
+  );
+}
 
 /**
  * One colour per stage, in the Orders list's pill style. The order of warmth

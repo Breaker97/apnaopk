@@ -10,6 +10,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { connectDB } from "@/lib/db";
 import { Coupon } from "@/models";
+import { MERCHANT_COUPON_FILTER } from "@/models/coupon.model";
 import {
   AdminStatsStrip,
   type AdminStatsStripItem,
@@ -111,7 +112,7 @@ async function getVendorCouponStats(vendorId: string): Promise<CouponStats> {
   const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
 
   const [stats] = await Coupon.aggregate([
-    { $match: { vendorId: vendorObjectId } },
+    { $match: { vendorId: vendorObjectId, ...MERCHANT_COUPON_FILTER } },
     {
       $facet: {
         totalCoupons: [{ $count: "count" }],

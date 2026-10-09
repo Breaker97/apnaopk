@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 /**
  * Writing to the ledger.
  *
@@ -25,6 +26,9 @@ import {
   type LedgerAccount,
   type LedgerBook,
 } from "@/lib/finance/accounts";
+
+const strictRecovery = new AsyncLocalStorage<boolean>();
+export const withStrictLedger = <T>(work: () => Promise<T>) => strictRecovery.run(true, work);
 
 export interface LedgerPosting {
   date: Date;
@@ -169,9 +173,10 @@ export function applyPeriodClose(
  */
 export async function postLedgerEntries(
   postings: LedgerPosting[],
-  { strict = false }: { strict?: boolean } = {},
+  { strict = false, resolvedDates = false }: { strict?: boolean; resolvedDates?: boolean } = {},
 ): Promise<number> {
-  const closedThrough = await getClosedThrough().catch(() => null);
+  strict ||= strictRecovery.getStore() === true;
+  const closedThrough = resolvedDates ? null : await getClosedThrough().catch(() => null);
   const rows = postings.filter(usable).map((raw) => {
     const posting = applyPeriodClose(raw, closedThrough);
     return {

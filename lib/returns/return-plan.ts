@@ -399,19 +399,47 @@ export async function openReturnQuantitiesByIndex(orderId: unknown) {
     status: { $in: QUANTITY_CONSUMING_RETURN_STATUSES },
   })
     .select("returnNumber items")
-    .lean<
-      Array<{
-        returnNumber?: string;
-        items?: Array<{
-          orderItemIndex?: number;
-          quantityRequested?: number;
-          quantityApproved?: number;
-        }>;
-      }>
-    >();
+    .lean<OpenReturnRow[]>();
+  return foldOpenReturns(returns || []);
+}
 
+/**
+ * `openReturnQuantitiesByIndex` for several orders in one query, by order id:
+ * a list of orders reads what each still has out on a return without asking
+ * once per order. An order with no open return gets an empty map.
+ */
+export async function openReturnQuantitiesByOrder(orderIds: unknown[]) {
+  const byOrder = new Map<string, ReturnType<typeof foldOpenReturns>>();
+  if (orderIds.length === 0) return byOrder;
+  const returns = await ReturnRequest.find({
+    orderId: { $in: orderIds },
+    status: { $in: QUANTITY_CONSUMING_RETURN_STATUSES },
+  })
+    .select("orderId returnNumber items")
+    .lean<Array<OpenReturnRow & { orderId?: unknown }>>();
+  const grouped = new Map<string, OpenReturnRow[]>();
+  for (const row of returns || []) {
+    const key = String(row.orderId || "");
+    grouped.set(key, [...(grouped.get(key) || []), row]);
+  }
+  for (const id of orderIds) {
+    byOrder.set(String(id), foldOpenReturns(grouped.get(String(id)) || []));
+  }
+  return byOrder;
+}
+
+type OpenReturnRow = {
+  returnNumber?: string;
+  items?: Array<{
+    orderItemIndex?: number;
+    quantityRequested?: number;
+    quantityApproved?: number;
+  }>;
+};
+
+function foldOpenReturns(returns: OpenReturnRow[]) {
   const map = new Map<number, { quantity: number; returnNumber: string }>();
-  for (const request of returns || []) {
+  for (const request of returns) {
     for (const item of request.items || []) {
       const index = Number(item?.orderItemIndex);
       const quantity = returnClaimedQuantity(item);
@@ -551,28 +579,68 @@ export async function refundedQuantitiesByIndex(
   const rows = await PaymentTransaction.find({
     orderId,
     type: "refund",
-    status: "succeeded",
+    $or: [{ status: "succeeded" }, { status: "pending", bizOperationId: { $exists: true }, "metadata.bizHeadroomReserved": true }],
     "metadata.refundedLines.0": { $exists: true },
     ...(before ? { createdAt: { $lt: before } } : {}),
   })
-    .select("metadata.refundedLines")
-    .lean<
-      Array<{
-        metadata?: {
-          refundedLines?: Array<{ orderItemIndex?: number; quantity?: number }>;
-        };
-      }>
-    >();
+    .select("bizOperationId metadata.refundedLines")
+    .lean<RefundedLinesRow[]>();
+  return foldRefundedLines(rows || []);
+}
 
-  const map = new Map<number, number>();
+/**
+ * `refundedQuantitiesByIndex` for several orders in one query, by order id.
+ * An order nothing of which was refunded line by line gets an empty map.
+ */
+export async function refundedQuantitiesByOrder(orderIds: unknown[]) {
+  const byOrder = new Map<string, Map<number, number>>();
+  if (orderIds.length === 0) return byOrder;
+  const rows = await PaymentTransaction.find({
+    orderId: { $in: orderIds },
+    type: "refund",
+    $or: [{ status: "succeeded" }, { status: "pending", bizOperationId: { $exists: true }, "metadata.bizHeadroomReserved": true }],
+    "metadata.refundedLines.0": { $exists: true },
+  })
+    .select("orderId bizOperationId metadata.refundedLines")
+    .lean<Array<RefundedLinesRow & { orderId?: unknown }>>();
+  const grouped = new Map<string, RefundedLinesRow[]>();
   for (const row of rows || []) {
+    const key = String(row.orderId || "");
+    grouped.set(key, [...(grouped.get(key) || []), row]);
+  }
+  for (const id of orderIds) {
+    byOrder.set(String(id), foldRefundedLines(grouped.get(String(id)) || []));
+  }
+  return byOrder;
+}
+
+type RefundedLinesRow = {
+  bizOperationId?: string;
+  metadata?: {
+    refundedLines?: Array<{ orderItemIndex?: number; quantity?: number }>;
+  };
+};
+
+function foldRefundedLines(rows: RefundedLinesRow[]) {
+  const map = new Map<number, number>();
+  // Gateway and restored-credit legs belong to one quantity claim. Keep that
+  // claim while its provider outcome is unknown, and count it once across legs.
+  const operations = new Map<string, Map<number, number>>();
+  for (const row of rows) {
     for (const line of row?.metadata?.refundedLines || []) {
       const index = Number(line?.orderItemIndex);
       const quantity = Math.max(0, Number(line?.quantity || 0));
       if (!Number.isInteger(index) || index < 0 || quantity <= 0) continue;
-      map.set(index, (map.get(index) || 0) + quantity);
+      if (row.bizOperationId) {
+        const lines = operations.get(row.bizOperationId) || new Map<number, number>();
+        lines.set(index, Math.max(lines.get(index) || 0, quantity));
+        operations.set(row.bizOperationId, lines);
+      } else {
+        map.set(index, (map.get(index) || 0) + quantity);
+      }
     }
   }
+  for (const lines of operations.values()) for (const [index, quantity] of lines) map.set(index, (map.get(index) || 0) + quantity);
   return map;
 }
 
@@ -1129,16 +1197,35 @@ function isDigitalLine(
 export async function nonReturnableItemIndexes(
   items: ReadonlyArray<{ productId?: unknown; variantId?: unknown }> | null | undefined,
 ): Promise<number[]> {
+  const [indexes] = await nonReturnableItemIndexesOf([items]);
+  return indexes;
+}
+
+/**
+ * `nonReturnableItemIndexes` for the lines of several orders, with one read
+ * of the products they share: the answer of each, in the same order.
+ */
+export async function nonReturnableItemIndexesOf(
+  orders: ReadonlyArray<
+    ReadonlyArray<{ productId?: unknown; variantId?: unknown }> | null | undefined
+  >,
+): Promise<number[][]> {
   const ids = Array.from(
-    new Set((items || []).map((item) => String(item?.productId || "")).filter(Boolean)),
+    new Set(
+      orders.flatMap((items) =>
+        (items || []).map((item) => String(item?.productId || "")).filter(Boolean),
+      ),
+    ),
   );
-  if (ids.length === 0) return [];
+  if (ids.length === 0) return orders.map(() => []);
   const products = await Product.find({ _id: { $in: ids } })
     .select("_id shipping.isPhysicalProduct variants._id variants.requiresShipping")
     .lean<Array<DigitalLineProduct & { _id: unknown }>>();
   const byId = new Map(products.map((product) => [String(product._id), product]));
-  return (items || []).flatMap((item, index) =>
-    isDigitalLine(byId.get(String(item?.productId || "")), item?.variantId) ? [index] : [],
+  return orders.map((items) =>
+    (items || []).flatMap((item, index) =>
+      isDigitalLine(byId.get(String(item?.productId || "")), item?.variantId) ? [index] : [],
+    ),
   );
 }
 

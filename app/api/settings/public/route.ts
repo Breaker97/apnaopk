@@ -185,8 +185,6 @@ const getPublicSettingsPayload = unstable_cache(
           defaultPosLocationId: settings.pos?.defaultPosLocationId,
           printedReceiptsEnabled:
             settings.pos?.customize?.printedReceiptsEnabled || false,
-          offlinePaymentsEnabled:
-            settings.pos?.checkout?.offlinePaymentsEnabled || false,
           allowAdminSales: settings.pos?.allowAdminSales ?? true,
           allowVendorSales: settings.pos?.allowVendorSales ?? true,
           allowSellerSales: settings.pos?.allowSellerSales ?? true,

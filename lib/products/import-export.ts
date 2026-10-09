@@ -1,10 +1,7 @@
 import { mongoose } from "@/lib/db";
-import { Product, Category, Brand, Vendor } from "@/models";
+import { Product, Category, Brand, User, Vendor } from "@/models";
 import { syncProductAggregates } from "@/models/product.model";
-import {
-  assertCategoryAcceptsProducts,
-  syncProductCategory,
-} from "@/lib/catalog/categories";
+import { syncProductCategory } from "@/lib/catalog/categories";
 import { updateAllCollectionProductCounts } from "@/lib/catalog/collections";
 import {
   isProductFormatChange,
@@ -18,6 +15,7 @@ import {
   parseCsv,
 } from "@/lib/catalog/csv";
 import { revalidateBulkProductContent } from "@/lib/cache-invalidation";
+import { markForMetaCatalog } from "@/lib/meta-catalog/mark-later";
 import { escapeRegExp, slugify } from "@/lib/strings";
 import { isRecord } from "@/lib/utils";
 import { PRODUCT_STATUS, type ProductStatus } from "@/config/app.config";
@@ -50,12 +48,14 @@ import { mergeScopeFilter } from "@/lib/access/staff-scope";
 import { releaseBoostInventoryIfProductWentDark } from "@/lib/boosts/boosts";
 import { MediaUrlSchema } from "@/lib/validations";
 import { MAX_IMPORT_ROWS } from "@/lib/products/import-limits";
+import { MAX_PRODUCT_MEDIA } from "@/lib/products/media-limits";
+import { productSlugBase, uniqueProductSlug } from "@/lib/products/product-slug";
 import type { ProductMedia } from "@/types";
 
 /**
  * The product file's columns, in the order the export writes them. The import
- * reads all of them except `marketplaceEligible` and `vendor`, which only
- * describe the row for whoever opens the export.
+ * reads all of them except `marketplaceEligible`, which only describes the row
+ * for whoever opens the export.
  */
 const PRODUCT_CSV_HEADERS = [
   "id",
@@ -97,14 +97,19 @@ const PRODUCT_CSV_HEADERS = [
 
 type ProductCsvHeader = (typeof PRODUCT_CSV_HEADERS)[number];
 
-const EXPORT_ONLY_COLUMNS = new Set<string>(["marketplaceEligible", "vendor"]);
+const EXPORT_ONLY_COLUMNS = new Set<string>(["marketplaceEligible"]);
 
 /**
  * Every column the importer reads. `options` and `variants` carry the JSON
- * catalog's structured fields through the same row pipeline.
+ * catalog's structured fields through the same row pipeline. `vendorEmail` and
+ * `vendorSlug` name a product's store the way a file from another platform
+ * can: by its owner's email or its web address. The export never writes the
+ * email — a product export must not hand out sellers' addresses.
  */
 const IMPORT_COLUMNS = [
   ...PRODUCT_CSV_HEADERS.filter((column) => !EXPORT_ONLY_COLUMNS.has(column)),
+  "vendorEmail",
+  "vendorSlug",
   "options",
   "variants",
 ];
@@ -125,6 +130,9 @@ const COLUMN_BY_KEY = new Map<string, string>([
   ["image", "images"],
   ["categoryname", "category"],
   ["brandname", "brand"],
+  ["vendorname", "vendor"],
+  ["storename", "vendor"],
+  ["storeslug", "vendorSlug"],
 ]);
 
 const EXPORT_ONLY_KEYS = new Set([...EXPORT_ONLY_COLUMNS].map(columnKey));
@@ -132,8 +140,6 @@ const EXPORT_ONLY_KEYS = new Set([...EXPORT_ONLY_COLUMNS].map(columnKey));
 /** A row needs one of these to either create (title) or find (the rest) a product. */
 const ROW_KEY_COLUMNS = new Set(["title", "id", "slug", "sku"]);
 
-/** Same cap the product form's media uploader and the product API enforce. */
-const MAX_PRODUCT_MEDIA = 10;
 const MAX_DOWNLOAD_LIMIT = 1000;
 
 const PRODUCT_STATUSES = Object.values(PRODUCT_STATUS);
@@ -530,12 +536,20 @@ function readRow(cells: Cells) {
     hsCode: cellText(cells, "hsCode"),
     productSource: cellChoice(cells, "productSource", PRODUCT_SOURCES),
     vendorId: cellText(cells, "vendorId"),
+    vendorEmail: cellText(cells, "vendorEmail")?.toLowerCase(),
+    vendorSlug: cellText(cells, "vendorSlug"),
+    vendorName: cellText(cells, "vendor"),
     options: cellJsonArray(cells, "options"),
     variants: cellJsonArray(cells, "variants"),
   };
 }
 
 type ProductRow = ReturnType<typeof readRow>;
+
+/** Whether a row says whose product it is, in any of the vendor columns. */
+function namesVendor(row: ProductRow): boolean {
+  return Boolean(row.vendorId || row.vendorSlug || row.vendorEmail || row.vendorName);
+}
 
 type BarcodePayload = Record<string, unknown> & { variants?: Record<string, unknown>[] };
 
@@ -610,25 +624,6 @@ async function findExistingProduct(
   }
 
   return null;
-}
-
-/**
- * A slug no other product uses — checked across every vendor, not just this
- * one: the storefront finds a product by slug alone, so two vendors sharing
- * one would leave one of the products unreachable.
- */
-async function uniqueProductSlug(base: string, excludeId?: unknown): Promise<string> {
-  const taken = await Product.find({
-    slug: { $regex: `^${escapeRegExp(base)}(-\\d+)?$` },
-    ...(excludeId ? { _id: { $ne: excludeId } } : {}),
-  })
-    .select("slug")
-    .lean<{ slug?: string }[]>();
-  const used = new Set(taken.map((product) => product.slug));
-  if (!used.has(base)) return base;
-  let suffix = 2;
-  while (used.has(`${base}-${suffix}`)) suffix++;
-  return `${base}-${suffix}`;
 }
 
 /**
@@ -749,17 +744,18 @@ type CategoryNode = { id: string; name: string; slug: string; parentId: string |
 /**
  * Everything one file's rows share: the category tree (loaded once — a store
  * has hundreds of categories at most, and a thousand-row file names the same
- * few dozen over and over), memoised brand/vendor/leaf checks, and what the
+ * few dozen over and over), memoised brand/vendor checks, and what the
  * run touched, so counts and caches are refreshed once at the end instead of
  * once per row.
  */
 function createImportRun(context: ProductImportContext) {
   let categoryNodes: Promise<CategoryNode[]> | undefined;
-  const leafChecks = new Map<string, Promise<void>>();
   const brands = new Map<string, Promise<string>>();
   const vendors = new Map<string, Promise<void>>();
+  const vendorLookups = new Map<string, Promise<string>>();
   const touchedSlugs = new Set<string>();
   const touchedCategoryIds = new Set<string>();
+  const touchedProductIds = new Set<string>();
   let created = 0;
 
   function loadCategories() {
@@ -856,16 +852,6 @@ function createImportRun(context: ProductImportContext) {
     return node.id;
   }
 
-  /** The one leaf rule, asked once per category however many rows use it. */
-  function assertLeafCategory(categoryId: string) {
-    let check = leafChecks.get(categoryId);
-    if (!check) {
-      check = assertCategoryAcceptsProducts(categoryId);
-      leafChecks.set(categoryId, check);
-    }
-    return check;
-  }
-
   function resolveBrand(row: ProductRow): Promise<string> {
     const key = `${row.brandId ?? ""}|${(row.brand ?? "").toLowerCase()}`;
     let pending = brands.get(key);
@@ -914,6 +900,80 @@ function createImportRun(context: ProductImportContext) {
     return check;
   }
 
+  function lookUpVendor(key: string, find: () => Promise<string>) {
+    let pending = vendorLookups.get(key);
+    if (!pending) {
+      pending = find();
+      vendorLookups.set(key, pending);
+    }
+    return pending;
+  }
+
+  function vendorBySlug(value: string) {
+    const slug = slugify(value);
+    return lookUpVendor(`slug:${slug}`, async () => {
+      const vendor = slug
+        ? await Vendor.findOne({ slug }).select("_id").lean<{ _id: unknown } | null>()
+        : null;
+      if (!vendor) throw new Error(`vendorSlug: no vendor has the slug "${value}".`);
+      return String(vendor._id);
+    });
+  }
+
+  function vendorByEmail(email: string) {
+    return lookUpVendor(`email:${email}`, async () => {
+      const owner = await User.findOne({ email }).select("_id").lean<{ _id: unknown } | null>();
+      const vendor = owner
+        ? await Vendor.findOne({ userId: owner._id }).select("_id").lean<{ _id: unknown } | null>()
+        : null;
+      if (!vendor) throw new Error(`vendorEmail: no vendor is owned by "${email}".`);
+      return String(vendor._id);
+    });
+  }
+
+  function vendorByName(name: string) {
+    return lookUpVendor(`name:${name.toLowerCase()}`, async () => {
+      const named = await Vendor.find({
+        storeName: { $regex: `^${escapeRegExp(name)}$`, $options: "i" },
+      })
+        .select("_id slug")
+        .limit(2)
+        .lean<Array<{ _id: unknown; slug?: string }>>();
+      if (named.length === 0) throw new Error(`vendor: no vendor is named "${name}".`);
+      if (named.length > 1) {
+        throw new Error(
+          `vendor: several vendors are named "${name}". Add vendorSlug or vendorEmail to say which one.`,
+        );
+      }
+      return String(named[0]._id);
+    });
+  }
+
+  /**
+   * The vendor a row names, or null when it names none. `vendorId` wins
+   * outright — an export's own rows carry it next to the store's name. The
+   * other columns may name the store together, but must name the same one.
+   */
+  async function resolveVendor(row: ProductRow): Promise<string | null> {
+    if (row.vendorId) {
+      if (!mongoose.Types.ObjectId.isValid(row.vendorId)) {
+        throw new Error(`vendorId "${row.vendorId}" is not a valid id.`);
+      }
+      return row.vendorId;
+    }
+    const lookups = [
+      row.vendorSlug ? vendorBySlug(row.vendorSlug) : null,
+      row.vendorEmail ? vendorByEmail(row.vendorEmail) : null,
+      row.vendorName ? vendorByName(row.vendorName) : null,
+    ].filter((lookup): lookup is Promise<string> => lookup !== null);
+    if (lookups.length === 0) return null;
+    const ids = await Promise.all(lookups);
+    if (new Set(ids).size > 1) {
+      throw new Error("vendorSlug, vendorEmail and vendor name different vendors. Keep the columns that agree.");
+    }
+    return ids[0];
+  }
+
   function assertPlanAllowsAnother() {
     const limit = context.productLimit;
     if (limit && limit.current + created >= limit.limit) {
@@ -923,9 +983,14 @@ function createImportRun(context: ProductImportContext) {
     }
   }
 
-  function touch(slugs: Array<string | undefined>, categoryIds: Array<unknown>) {
+  function touch(
+    slugs: Array<string | undefined>,
+    categoryIds: Array<unknown>,
+    productId?: unknown,
+  ) {
     for (const slug of slugs) if (slug) touchedSlugs.add(slug);
     for (const id of categoryIds) if (id) touchedCategoryIds.add(String(id));
+    if (productId) touchedProductIds.add(String(productId));
   }
 
   async function finish() {
@@ -939,14 +1004,15 @@ function createImportRun(context: ProductImportContext) {
       console.error("[product-import] collection counts:", error),
     );
     revalidateBulkProductContent([...touchedSlugs]);
+    await markForMetaCatalog(touchedProductIds);
   }
 
   return {
     context,
     resolveCategory,
-    assertLeafCategory,
     resolveBrand,
     assertVendorExists,
+    resolveVendor,
     assertPlanAllowsAnother,
     touch,
     finish,
@@ -997,13 +1063,11 @@ async function createProduct(
     await run.assertVendorExists(vendorId);
   }
   const categoryId = await run.resolveCategory(row);
-  await run.assertLeafCategory(categoryId);
   const brandId = row.brand || row.brandId ? await run.resolveBrand(row) : null;
 
-  // A title in a script slugify drops (বাংলা, العربية, 中文) still needs a URL.
   const productId = new mongoose.Types.ObjectId();
   const slug = await uniqueProductSlug(
-    slugify(row.slug || row.title) || slugify(row.sku || "") || `product-${String(productId).slice(-8)}`,
+    productSlugBase({ handle: row.slug, title: row.title, sku: row.sku, productId }),
   );
   const images = row.images ?? [];
 
@@ -1013,7 +1077,7 @@ async function createProduct(
     // Only a row that names its vendor carries that product's own source —
     // the round trip of a vendor's product through an admin export.
     productSource:
-      context.allowVendorColumn && row.vendorId && row.productSource
+      context.allowVendorColumn && namesVendor(row) && row.productSource
         ? row.productSource
         : context.productSource,
     name: row.title,
@@ -1092,13 +1156,14 @@ async function createProduct(
   }
 
   run.countCreated();
-  run.touch([product.slug], [categoryId]);
+  run.touch([product.slug], [categoryId], product._id);
 }
 
 async function updateProduct(
   row: ProductRow,
   existing: ExistingProduct,
   run: ImportRun,
+  namedVendorId: string | null,
 ): Promise<void> {
   const { context } = run;
   if (context.updateRefusal) throw new Error(context.updateRefusal);
@@ -1106,11 +1171,13 @@ async function updateProduct(
 
   if (
     context.allowVendorColumn &&
-    row.vendorId &&
-    row.vendorId !== getObjectId(existing.vendorId)
+    namedVendorId &&
+    namedVendorId !== getObjectId(existing.vendorId)
   ) {
     throw new Error(
-      "vendorId does not match the product this row updates. An import cannot move a product to another vendor.",
+      row.vendorId
+        ? "vendorId does not match the product this row updates. An import cannot move a product to another vendor."
+        : "The vendor this row names is not the product's own. An import cannot move a product to another vendor.",
     );
   }
   if (
@@ -1183,11 +1250,7 @@ async function updateProduct(
   const oldCategoryId = existing.category ? String(existing.category) : "";
   if (row.category || row.categoryId) {
     const categoryId = await run.resolveCategory(row);
-    if (categoryId !== oldCategoryId) {
-      // Only a move has to satisfy the leaf rule, as in the product PUT routes.
-      await run.assertLeafCategory(categoryId);
-      set.category = categoryId;
-    }
+    if (categoryId !== oldCategoryId) set.category = categoryId;
   }
   if (row.brand || row.brandId) set.brand = await run.resolveBrand(row);
 
@@ -1223,14 +1286,22 @@ async function updateProduct(
 
   // The row's variants replace the stored ones whole; their reservation
   // counters must not reset with them.
-  await carryPreorderCounters({ filter: { _id: existing._id }, updateSet: set });
+  const counterPin = await carryPreorderCounters({
+    filter: { _id: existing._id },
+    updateSet: set,
+  });
 
   let updated: ExistingProduct | null;
   try {
     await reserveProductBarcodeRegistry(productId, barcodePayload);
     updated = await Product.findOneAndUpdate(
       { _id: existing._id },
-      { $set: set },
+      {
+        // A moved release date is propagated by a durable job recorded in
+        // this same write, exactly as a save from the product form.
+        $set: { ...set, ...(counterPin?.termsUpdate?.$set || {}) },
+        ...(counterPin?.termsUpdate ? { $inc: counterPin.termsUpdate.$inc } : {}),
+      },
       { returnDocument: "after", runValidators: true },
     ).lean<ExistingProduct | null>();
   } catch (error) {
@@ -1250,7 +1321,7 @@ async function updateProduct(
   // the same as saving that change from the product form.
   await releaseBoostInventoryIfProductWentDark(productId, existing, updated);
 
-  run.touch([existing.slug, updated.slug], [oldCategoryId, updated.category]);
+  run.touch([existing.slug, updated.slug], [oldCategoryId, updated.category], productId);
 }
 
 async function importProductRecords(
@@ -1278,15 +1349,17 @@ async function importProductRecords(
     try {
       if ("error" in record) throw new Error(record.error);
       const row = readRow(record.values);
-      const vendorId =
-        context.allowVendorColumn && row.vendorId ? row.vendorId : context.defaultVendorId;
+      // Resolved before the product is looked up: a SKU only means something
+      // inside one vendor's catalog.
+      const namedVendorId = context.allowVendorColumn ? await run.resolveVendor(row) : null;
+      const vendorId = namedVendorId ?? context.defaultVendorId;
       if (!mongoose.Types.ObjectId.isValid(vendorId)) {
         throw new Error(`vendorId "${vendorId}" is not a valid id.`);
       }
 
       const existing = await findExistingProduct(row, vendorId, context);
       if (existing) {
-        await updateProduct(row, existing, run);
+        await updateProduct(row, existing, run, namedVendorId);
         result.updated++;
       } else {
         await createProduct(row, vendorId, run);

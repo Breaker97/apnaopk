@@ -107,7 +107,10 @@ export function ProfileForm() {
           name: fullName,
           phone: data.phone,
           birthday: data.birthday,
-          gender: data.gender,
+          // "No answer" is null: the profile route takes male, female, other
+          // or null, and refused the empty string, so a shopper who left
+          // gender unpicked could not save their phone or birthday.
+          gender: data.gender || null,
         }),
       });
 

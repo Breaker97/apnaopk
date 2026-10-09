@@ -41,6 +41,7 @@ async function cancelBoostsForDeletedProduct(productId: string) {
  */
 export async function cleanupDeletedProductReferences(
   productId: string,
+  options: { strict?: boolean } = {},
 ): Promise<void> {
   const results = await Promise.allSettled([
     Review.deleteMany({ productId }),
@@ -67,4 +68,10 @@ export async function cleanupDeletedProductReferences(
       );
     }
   });
+  if (
+    options.strict &&
+    results.some((result) => result.status === "rejected")
+  ) {
+    throw new Error("Product reference cleanup is incomplete");
+  }
 }

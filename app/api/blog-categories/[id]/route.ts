@@ -4,6 +4,12 @@ import { revalidateBlogContent } from "@/lib/cache-invalidation";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  BLOG_CATEGORY_CONTENT,
+  auditContentDeleted,
+  auditContentUpdated,
+} from "@/lib/site-config/audit-content";
 import { UpdateBlogCategorySchema } from "@/lib/validations";
 import { pickSubmittedKeys } from "@/lib/api/validate";
 import { slugify } from "@/lib/strings";
@@ -18,7 +24,7 @@ export const GET = withApi<RouteParams>({}, async ({ params }) => {
 
 export const PUT = withApi<RouteParams>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid id");
@@ -30,6 +36,11 @@ export const PUT = withApi<RouteParams>(
         parsed.error.flatten().fieldErrors as Record<string, string[]>,
       );
     }
+    // What the audit row compares the save against.
+    const before = await BlogCategory.findById(id)
+      .select("name slug description image order isActive")
+      .lean();
+    if (!before) throw new NotFoundError("Blog category");
     // Only write back what the caller sent — `.partial()` keeps the
     // base schema's `.default()` values, which would otherwise overwrite
     // untouched fields on a partial update.
@@ -48,6 +59,13 @@ export const PUT = withApi<RouteParams>(
       returnDocument: "after",
     }).lean();
     if (!cat) throw new NotFoundError("Blog category");
+    await auditContentUpdated(
+      createAuditContext(request, session),
+      BLOG_CATEGORY_CONTENT,
+      { id: String(cat._id), name: cat.name },
+      before,
+      cat,
+    );
     revalidateBlogContent();
     return successResponse(cat);
   },
@@ -55,12 +73,23 @@ export const PUT = withApi<RouteParams>(
 
 export const DELETE = withApi<RouteParams>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid id");
     }
-    await BlogCategory.findByIdAndDelete(id);
+    const cat = await BlogCategory.findByIdAndDelete(id)
+      .select("name slug isActive")
+      .lean();
+    // Deleting a category that is already gone answers success and changed nothing.
+    if (cat) {
+      await auditContentDeleted(
+        createAuditContext(request, session),
+        BLOG_CATEGORY_CONTENT,
+        { id: String(cat._id), name: cat.name },
+        { name: cat.name, slug: cat.slug, isActive: cat.isActive },
+      );
+    }
     revalidateBlogContent();
     return successResponse({ deleted: true });
   },

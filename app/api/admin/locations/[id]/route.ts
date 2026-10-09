@@ -11,10 +11,16 @@ import {
   dispatchFieldsFromBody,
   pickupAddressError,
   pickupFieldsFromBody,
+  locationAuditContext,
   requireScope,
   resolveLocationGeo,
   returnsFieldsFromBody,
 } from "@/lib/locations/location-api";
+import {
+  auditCatalogDelete,
+  auditCatalogUpdate,
+  LOCATION_AUDIT,
+} from "@/lib/catalog/catalog-audit";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -79,6 +85,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { status: 404 }
       );
     }
+    // As stored, before the fields below are written onto the document.
+    const before = existing.toObject();
 
     // Validate name if provided
     if (name !== undefined) {
@@ -163,6 +171,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     await existing.save();
 
+    await auditCatalogUpdate(
+      locationAuditContext(request, authResult),
+      LOCATION_AUDIT,
+      before,
+      existing,
+    );
+
     return NextResponse.json({
       success: true,
       data: existing.toObject(),
@@ -178,7 +193,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const authResult = await requireScope("write");
     if (!authResult.ok) return authResult.response;
@@ -264,6 +279,28 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     await InventoryLocation.findByIdAndDelete(id);
 
+    await auditCatalogDelete(
+      locationAuditContext(request, authResult),
+      LOCATION_AUDIT,
+      location,
+    );
+
+    // The products that held a row here, for the Meta catalog's live sync: a
+    // pulled row can be a negative one that the stock total still counted.
+    let heldHere: Array<{ _id: unknown }> = [];
+    try {
+      heldHere = await Product.find({
+        $or: [
+          { "locationInventory.locationId": id },
+          { "variants.locationInventory.locationId": id },
+        ],
+      })
+        .select("_id")
+        .lean<Array<{ _id: unknown }>>();
+    } catch (error) {
+      console.error("Failed to read the products held at a deleted location:", error);
+    }
+
     // Clean up zero-quantity references so nothing points at a ghost location.
     await Promise.allSettled([
       Product.updateMany(
@@ -275,6 +312,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
         { $pull: { "variants.$[].locationInventory": { locationId: id } } },
       ),
     ]);
+    if (heldHere.length > 0) {
+      const { markForMetaCatalog } = await import("@/lib/meta-catalog/mark-later");
+      await markForMetaCatalog(heldHere.map((product) => product._id));
+    }
 
     return NextResponse.json({
       success: true,

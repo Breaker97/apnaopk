@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
@@ -25,6 +26,9 @@ import { cn } from "@/lib/utils";
  */
 
 export type AppliedDateRange = { from: Date; to: Date };
+
+/** Anything the popover can position itself against — an element, in practice. */
+type Measurable = { getBoundingClientRect(): DOMRect };
 
 /** Local midnight. Ranges are compared and formatted in the viewer's timezone. */
 export function startOfDay(date: Date): Date {
@@ -104,6 +108,10 @@ export function DateRangePicker({
   onSelectPreset,
   customLabel,
   summary,
+  collapseCalendar = false,
+  open: openProp,
+  onOpenChange,
+  anchorRef,
 }: {
   value: AppliedDateRange;
   onApply: (range: AppliedDateRange) => void;
@@ -142,25 +150,55 @@ export function DateRangePicker({
    */
   summary?: (draft: AppliedDateRange | null) => React.ReactNode;
   /**
+   * Show only the preset list until the `customLabel` entry is clicked, which
+   * then reveals the calendar and the Apply footer. Needs `presets` and
+   * `customLabel`; without it the calendar is always shown beside the rail.
+   */
+  collapseCalendar?: boolean;
+  /**
    * Forwarded to the calendar: `disabled`, `modifiers`, `modifiersClassNames`,
    * `startMonth`, `endMonth`, `excludeDisabled`, and anything else DayPicker
    * accepts. Booked-day painting rides on this.
    */
   calendarProps?: ForwardedCalendarProps;
+  /** Controlled open state. Without it the picker opens from its own trigger. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /**
+   * Opens the popover against this element instead of rendering a trigger of
+   * its own, for a picker that is reached from elsewhere — a row in a filter
+   * menu — and so needs `open` as well.
+   */
+  anchorRef?: React.RefObject<Measurable | null>;
 }) {
-  const [open, setOpen] = React.useState(false);
+  const [ownOpen, setOwnOpen] = React.useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (nextOpen: boolean) => {
+    setOwnOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
   const [draft, setDraft] = React.useState<DateRange | undefined>({
     from: value.from,
     to: value.to,
   });
   const normalizedDraft = normalizeDateRange(draft);
+  const collapsible = Boolean(collapseCalendar && presets?.length && customLabel);
+  const [calendarOpen, setCalendarOpen] = React.useState(false);
+  const showCalendar = !collapsible || calendarOpen;
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    // Reopening always restarts from the applied value, so an abandoned draft
-    // never leaks into the next interaction.
-    if (nextOpen) setDraft({ from: value.from, to: value.to });
-    setOpen(nextOpen);
-  };
+  // Opening always restarts from the applied value, so an abandoned draft never
+  // leaks into the next interaction. Done as the open state changes rather than
+  // in the trigger's handler, because a controlled picker is opened by its
+  // parent and never passes through one.
+  const [wasOpen, setWasOpen] = React.useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setDraft({ from: value.from, to: value.to });
+      // A custom range is already applied: open straight onto its calendar.
+      setCalendarOpen(!activePresetId);
+    }
+  }
 
   const handleApply = () => {
     if (!normalizedDraft) return;
@@ -168,43 +206,71 @@ export function DateRangePicker({
     setOpen(false);
   };
 
+  // A popover hands focus back to its trigger when it closes, and an anchored
+  // picker has none. Hand it back to the anchor instead — except after a click
+  // elsewhere, where focus belongs to whatever was clicked.
+  const dismissedOutsideRef = React.useRef(false);
+  const handleCloseAutoFocus = (event: Event) => {
+    const anchor = anchorRef?.current;
+    if (anchor instanceof HTMLElement && !dismissedOutsideRef.current) {
+      event.preventDefault();
+      anchor.focus();
+    }
+    dismissedOutsideRef.current = false;
+  };
+
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "h-8 w-full max-w-full justify-between gap-2 rounded-[6px] border-border bg-muted/40 px-3 text-xs font-medium text-foreground hover:bg-muted/60 sm:w-auto",
-            triggerClassName,
-          )}
-        >
-          <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
-            <CalendarDays
-              className={cn("size-3.5 text-muted-foreground", iconClassName)}
-            />
-            <span className="truncate text-left">
-              {triggerLabel ?? formatLabel(value, locale)}
+    <Popover open={open} onOpenChange={setOpen}>
+      {anchorRef ? (
+        <PopoverAnchor virtualRef={anchorRef as React.RefObject<Measurable>} />
+      ) : (
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "h-8 w-full max-w-full justify-between gap-2 rounded-[6px] border-border bg-muted/40 px-3 text-xs font-medium text-foreground hover:bg-muted/60 sm:w-auto",
+              triggerClassName,
+            )}
+          >
+            <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
+              <CalendarDays
+                className={cn("size-3.5 text-muted-foreground", iconClassName)}
+              />
+              <span className="truncate text-left">
+                {triggerLabel ?? formatLabel(value, locale)}
+              </span>
             </span>
-          </span>
-          <ChevronDown
-            className={cn("size-4 text-muted-foreground", iconClassName)}
-          />
-        </Button>
-      </PopoverTrigger>
+            <ChevronDown
+              className={cn("size-4 text-muted-foreground", iconClassName)}
+            />
+          </Button>
+        </PopoverTrigger>
+      )}
       <PopoverContent
         align={align}
         sideOffset={10}
+        onInteractOutside={() => {
+          dismissedOutsideRef.current = true;
+        }}
+        onCloseAutoFocus={handleCloseAutoFocus}
         className={cn(
           "w-[calc(100vw-2rem)] overflow-hidden p-0",
           // The rail needs room of its own; without this the two months and
           // the presets shared 636px and the calendar clipped its last column.
           presets?.length ? "max-w-[820px]" : "max-w-[636px]",
+          !showCalendar && "w-56",
           contentClassName,
         )}
       >
         <div className="flex items-stretch">
           {presets?.length ? (
-            <div className="hidden w-44 shrink-0 flex-col gap-0.5 border-r p-3 sm:flex">
+            <div
+              className={cn(
+                "w-44 shrink-0 flex-col gap-0.5 p-3",
+                showCalendar ? "hidden border-r sm:flex" : "flex w-full",
+                collapsible && showCalendar && "flex",
+              )}
+            >
               {presetsTitle ? (
                 <p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {presetsTitle}
@@ -236,15 +302,29 @@ export function DateRangePicker({
               {customLabel ? (
                 <>
                   <div className="my-2 h-px bg-border" />
-                  <span
-                    className={cn(
-                      "flex h-8 items-center rounded-md px-2 text-[13px]",
-                      !activePresetId &&
-                        "bg-accent font-medium text-accent-foreground",
-                    )}
-                  >
-                    {customLabel}
-                  </span>
+                  {collapsible ? (
+                    <button
+                      type="button"
+                      onClick={() => setCalendarOpen(true)}
+                      className={cn(
+                        "flex h-8 items-center rounded-md px-2 text-left text-[13px] transition-colors hover:bg-muted",
+                        (calendarOpen || !activePresetId) &&
+                          "bg-accent font-medium text-accent-foreground",
+                      )}
+                    >
+                      {customLabel}
+                    </button>
+                  ) : (
+                    <span
+                      className={cn(
+                        "flex h-8 items-center rounded-md px-2 text-[13px]",
+                        !activePresetId &&
+                          "bg-accent font-medium text-accent-foreground",
+                      )}
+                    >
+                      {customLabel}
+                    </span>
+                  )}
                 </>
               ) : null}
             </div>
@@ -253,6 +333,7 @@ export function DateRangePicker({
               anchor HERE and not to the popover: with a preset rail beside
               them, the previous-month arrow landed on top of the rail's
               heading. */}
+          {showCalendar ? (
           <div className="relative min-w-0 flex-1 overflow-x-auto px-5 pb-5 pt-6">
           <Calendar
             mode="range"
@@ -270,7 +351,9 @@ export function DateRangePicker({
             {...calendarProps}
           />
           </div>
+          ) : null}
         </div>
+        {showCalendar ? (
         <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
           <span className="truncate text-xs text-muted-foreground">
             {summary ? summary(normalizedDraft) : null}
@@ -296,6 +379,7 @@ export function DateRangePicker({
           </Button>
           </div>
         </div>
+        ) : null}
       </PopoverContent>
     </Popover>
   );

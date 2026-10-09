@@ -80,16 +80,17 @@ async function run() {
   // Resolved by query rather than through lib/multi-vendor.ts: the helpers there
   // are `unstable_cache`d (no Next runtime here) and the get-or-create variant
   // would WRITE to the vendor and to the owner's roles.
+  // The app's one rule (lib/vendors/multi-vendor.ts `findDefaultVendorRow`):
+  // the canonical slug, then the oldest flagged vendor. Flag-first, with ties
+  // broken arbitrarily, could pick a stray seller over the real house.
   const houseVendor = ownerArg
     ? await vendors.findOne({ _id: new mongoose.Types.ObjectId(ownerArg) })
-    : await vendors.findOne(
-        { $or: [{ isDefault: true }, { slug: "main-store" }] },
-        { sort: { isDefault: -1 } },
-      );
+    : ((await vendors.findOne({ slug: "main-store" }, { sort: { _id: 1 } })) ??
+      (await vendors.findOne({ isDefault: true }, { sort: { _id: 1 } })));
 
   if (!houseVendor) {
     throw new Error(
-      `${LOG} No default vendor found. Save your store settings first, or pass --owner-vendor-id=<id>.`,
+      `${LOG} No default vendor found. Open the product form or save your store settings first, or pass --owner-vendor-id=<id>.`,
     );
   }
 
@@ -107,11 +108,11 @@ async function run() {
     );
   }
 
-  // `isDefault` is not a unique index, and stores are found carrying it on more
-  // than one vendor — usually a leftover from an early multi-vendor switch.
-  // While it is ambiguous, `findOne({ isDefault: true })` answers whichever
-  // document Mongo returns first, so "the house store" can change between
-  // requests and location scoping drifts with it.
+  // Other vendors carrying `isDefault` are reported, never cleared here. A
+  // flagged seller's sales are booked to the store's own book, and the finance
+  // cron re-posts old orders with the live set of house vendors: clearing the
+  // flag of one with history posts that history a second time. The
+  // house-profile migration clears only the flags it is safe to.
   const strayDefaults = await vendors
     .find({ isDefault: true, _id: { $ne: houseVendor._id } })
     .toArray();
@@ -125,20 +126,9 @@ async function run() {
         `${LOG}   - ${stray.storeName || "(unnamed)"} [${String(stray._id)}] slug=${stray.slug ?? "-"}`,
       );
     }
-    if (dryRun) {
-      console.log(
-        `${LOG} Would clear isDefault on ${strayDefaults.length} vendor(s), keeping ${houseVendorId}.`,
-      );
-    } else {
-      const cleared = await vendors.updateMany(
-        { isDefault: true, _id: { $ne: houseVendor._id } },
-        { $set: { isDefault: false } },
-      );
-      console.log(
-        `${LOG} Cleared isDefault on ${cleared.modifiedCount} vendor(s). ` +
-          `To undo: set isDefault back to true on the ids listed above.`,
-      );
-    }
+    console.warn(
+      `${LOG} Left as they are. Review them with: pnpm db:migrate house-profile --dry-run`,
+    );
   }
 
   // ------------------------------------- phase 0b: rescue the admin's address

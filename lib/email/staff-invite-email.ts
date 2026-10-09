@@ -56,7 +56,7 @@ export function staffInviteEmailHtml(params: {
       <div style="height: 1px; background: #e4e4e7; margin: 24px 0;"></div>
 
       <p style="color: #71717a; font-size: 13px; line-height: 1.6;">
-        This link will expire in 1 hour. If it expires, ask for a new invite.
+        This link will expire in 7 days. If it expires, ask for a new invite.
       </p>
       <p style="color: #71717a; font-size: 13px; line-height: 1.6;">
         If you didn't expect this invitation, you can safely ignore this email.

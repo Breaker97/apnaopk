@@ -12,6 +12,7 @@ import {
   MessageSquare,
   type LucideIcon,
   Package,
+  ShoppingBag,
   ShoppingCart,
   Users,
   UserRound,
@@ -69,12 +70,19 @@ interface StaffSidebarProps {
   permissions: StaffPermission[];
   posEnabled: boolean;
   storeName?: string;
+  /**
+   * Whether the staff member's scope can be read against an abandoned
+   * checkout: false for one limited by locations alone, whom the page turns
+   * away (`staffScopeReachesAbandonedCheckouts`). Absent reads as true.
+   */
+  abandonedCheckoutsInScope?: boolean;
 }
 
 function buildStaffNav(
   locale: Locale,
   permissions: StaffPermission[],
   posEnabled: boolean,
+  abandonedCheckoutsInScope = true,
 ): NavGroup[] {
   const has = (perm: StaffPermission) => permissions.includes(perm);
 
@@ -93,6 +101,17 @@ function buildStaffNav(
       href: "/staff/orders",
       label: "admin.sidebar.orders",
       icon: ClipboardList,
+    });
+  }
+
+  // A grant of its own, not a part of Orders: these are shoppers who did not
+  // buy, with their contact details.
+  if (has(STAFF_PERMISSIONS.VIEW_ABANDONED_CHECKOUTS) && abandonedCheckoutsInScope) {
+    mainItems.push({
+      key: "abandoned-checkouts",
+      href: "/staff/abandoned-checkouts",
+      label: "admin.sidebar.abandonedCheckouts",
+      icon: ShoppingBag,
     });
   }
 
@@ -201,6 +220,7 @@ export function StaffSidebar({
   permissions,
   posEnabled,
   storeName,
+  abandonedCheckoutsInScope = true,
 }: StaffSidebarProps) {
   const t = useTranslations();
   const pathname = usePathname();
@@ -235,8 +255,8 @@ export function StaffSidebar({
   );
 
   const navGroups = React.useMemo(
-    () => buildStaffNav(locale, permissions, posEnabled),
-    [locale, permissions, posEnabled],
+    () => buildStaffNav(locale, permissions, posEnabled, abandonedCheckoutsInScope),
+    [locale, permissions, posEnabled, abandonedCheckoutsInScope],
   );
 
   // Polled only when Inbox is in the nav — without inbox access the endpoint

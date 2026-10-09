@@ -1,5 +1,6 @@
-import { revokeOtherSessions } from "@/lib/auth/session-revocation";
-import { assertRecentSignIn } from "@/lib/auth/recent-sign-in";
+import { RECENT_SIGN_IN_MESSAGE } from "@/lib/auth/recent-sign-in";
+import { updateOwnProfile } from "@/lib/customers/own-profile";
+import { createAuditContext } from "@/lib/audit";
 import { ObjectId } from "mongodb";
 import { mongoose } from "@/lib/db";
 import { successResponse } from "@/lib/api/response";
@@ -10,7 +11,6 @@ import {
 } from "@/lib/api/errors";
 import { validateBody } from "@/lib/api/validate";
 import { UpdateUserProfileSchema } from "@/lib/validations";
-import { USER_ROLES } from "@/config/app.config";
 import {
   getTwoFactorPolicy,
   isTwoFactorAvailableForUser,
@@ -85,77 +85,35 @@ export const PUT = withApi(
     });
     if (demoBlock) return demoBlock;
 
-    const db = mongoose.connection.db;
-    if (!db) throw new Error("Database not connected");
-
-    const userId = new ObjectId(session.user.id);
     const body = await validateBody(request, UpdateUserProfileSchema);
-    const updateFields: Record<string, unknown> = {};
-
-    const currentUser = await db.collection("user").findOne(
-      { _id: userId },
+    const result = await updateOwnProfile(
       {
-        projection: {
-          email: 1,
-          role: 1,
-          roles: 1,
-        },
+        userId: session.user.id,
+        sessionId: session.session.id,
+        signedInAt: session.session.createdAt,
+        auditContext: createAuditContext(request, session),
       },
+      body,
     );
-
-    if (!currentUser) throw new AuthenticationError();
-
-    if (body.name !== undefined) updateFields.name = body.name;
-    if (body.email !== undefined) {
-      const roles = Array.isArray(currentUser.roles)
-        ? currentUser.roles.map(String)
-        : [];
-      const isAdmin =
-        currentUser.role === USER_ROLES.ADMIN || roles.includes(USER_ROLES.ADMIN);
-
-      if (!isAdmin) {
-        throw new AuthorizationError("Only admins can update profile email");
-      }
-
-      if (body.email !== currentUser.email) {
-        assertRecentSignIn(session);
-        const existingUser = await db.collection("user").findOne(
-          {
-            _id: { $ne: userId },
-            email: body.email,
-          },
-          { projection: { _id: 1 } },
-        );
-
-        if (existingUser) {
+    if (!result.ok) {
+      switch (result.refusal) {
+        case "NO_ACCOUNT":
+          throw new AuthenticationError();
+        case "EMAIL_CHANGE_NOT_ALLOWED":
+          throw new AuthorizationError("Only admins can update profile email");
+        case "RECENT_SIGN_IN_REQUIRED":
+          throw new AuthorizationError(RECENT_SIGN_IN_MESSAGE);
+        case "EMAIL_TAKEN":
           throw new ConflictError("Another user already uses this email");
-        }
-
-        updateFields.email = body.email;
-        updateFields.emailVerified = false;
-        updateFields.emailVerifiedAt = null;
       }
     }
-    if (body.image !== undefined) updateFields.image = body.image;
-    if (body.phone !== undefined) updateFields.phone = body.phone;
-    if (body.birthday !== undefined) updateFields.birthday = body.birthday;
-    if (body.gender !== undefined) updateFields.gender = body.gender;
-
-    if (Object.keys(updateFields).length === 0) {
+    if (!result.updated) {
       return successResponse({ updated: false }, "No fields to update");
     }
 
-    await db
-      .collection("user")
-      .updateOne(
-        { _id: userId },
-        { $set: { ...updateFields, updatedAt: new Date() } },
-      );
-    // A new login email signs every other device out, as a new password does.
-    if (updateFields.email) {
-      await revokeOtherSessions(session.user.id, session.session.id);
-    }
-
+    const db = mongoose.connection.db;
+    if (!db) throw new Error("Database not connected");
+    const userId = new ObjectId(session.user.id);
     const user = await db.collection("user").findOne(
       { _id: userId },
       {

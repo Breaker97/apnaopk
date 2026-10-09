@@ -24,6 +24,7 @@ import {
   type CartFinalSale,
 } from "@/lib/returns/final-sale-collections";
 import { CANONICAL_CART_WEIGHT_UNIT } from "@/lib/shipping/shipping";
+import { getPurchasableQuantity } from "@/lib/products/stock-policy";
 import {
   isStorefrontMultiVendorEnabled,
   isStorefrontProductSourceAllowed,
@@ -58,7 +59,7 @@ export function cartLineKey(item: CartProductLine): string {
  * reported without a third. Merging them makes vendor identity free: the
  * documents were already being loaded, just not asked for it.
  */
-type CartProductFacts = {
+export type CartProductFacts = {
   visible: boolean;
   requiresShipping: boolean;
   /**
@@ -88,6 +89,25 @@ type CartProductFacts = {
    * checkout can say so before they pay. See lib/returns/final-sale.ts.
    */
   finalSale?: boolean;
+  /** Read only for the app's cart: see `CartLineAppFacts`. */
+  app?: CartLineAppFacts;
+};
+
+/**
+ * What the app's cart line shows beyond the web's, read only when
+ * `readCartProducts` is asked `forApp`: the web's cart answers without them,
+ * and every page load reads that one.
+ */
+export type CartLineAppFacts = {
+  slug: string;
+  /**
+   * How many of this line may be bought right now, by the stock policy: the
+   * variant's stock when the line has one.
+   */
+  purchasable: number;
+  /** The product's (or the variant's) price before a discount. */
+  compareAtPrice?: number;
+  vendorSlug?: string;
 };
 
 type CartProductRow = {
@@ -95,6 +115,11 @@ type CartProductRow = {
   status?: string;
   productSource?: unknown;
   priceOnRequest?: boolean;
+  /** These four, `variants.stock` and `variants.comparePrice` are read `forApp` only. */
+  slug?: string;
+  stock?: number;
+  comparePrice?: number;
+  inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
   shipping?: {
     isPhysicalProduct?: boolean;
     weight?: number;
@@ -108,12 +133,14 @@ type CartProductRow = {
     weight?: number;
     weightUnit?: "g" | "kg" | "lb" | "oz";
     finalSale?: boolean;
+    stock?: number;
+    comparePrice?: number;
   }[];
   options?: { name?: string }[];
   returns?: { finalSale?: boolean };
   collectionIds?: unknown[];
-  /** The seller, if it still exists: only its store name. */
-  vendor: { _id: unknown; storeName?: string }[];
+  /** The seller, if it still exists: only its store name (and slug, `forApp`). */
+  vendor: { _id: unknown; storeName?: string; slug?: string }[];
   /** One of the seller's usable collection points, if it has any. */
   pickupLocations: unknown[];
 };
@@ -121,6 +148,8 @@ type CartProductRow = {
 /** What `readCartProducts` read, for `cartProductFacts`. */
 type CartProductRows = {
   isMultiVendorEnabled: boolean;
+  /** Read with the app's fields. */
+  forApp?: boolean;
   products: CartProductRow[];
   /** Final sale by collection, hand-picked or by an automated one's rules. */
   finalSale?: CartFinalSale;
@@ -149,6 +178,7 @@ type CartProductRows = {
  */
 export async function readCartProducts(
   items: CartProductLine[],
+  options: { forApp?: boolean } = {},
 ): Promise<CartProductRows> {
   const productIds = Array.from(
     new Set(
@@ -158,6 +188,7 @@ export async function readCartProducts(
     ),
   );
   if (!productIds.length) return { isMultiVendorEnabled: false, products: [] };
+  const forApp = Boolean(options.forApp);
 
   const [isMultiVendorEnabled, products, finalSale] = await Promise.all([
     isStorefrontMultiVendorEnabled(),
@@ -186,6 +217,17 @@ export async function readCartProducts(
           "returns.finalSale": 1,
           collectionIds: 1,
           vendorId: 1,
+          ...(forApp
+            ? {
+                slug: 1,
+                stock: 1,
+                comparePrice: 1,
+                "inventory.tracked": 1,
+                "inventory.continueSellingWhenOutOfStock": 1,
+                "variants.stock": 1,
+                "variants.comparePrice": 1,
+              }
+            : {}),
         },
       },
       {
@@ -193,7 +235,7 @@ export async function readCartProducts(
           from: Vendor.collection.name,
           localField: "vendorId",
           foreignField: "_id",
-          pipeline: [{ $project: { storeName: 1 } }],
+          pipeline: [{ $project: forApp ? { storeName: 1, slug: 1 } : { storeName: 1 } }],
           as: "vendor",
         },
       },
@@ -223,7 +265,7 @@ export async function readCartProducts(
     readCartFinalSale(productIds),
   ]);
 
-  return { isMultiVendorEnabled, products, finalSale };
+  return { isMultiVendorEnabled, products, finalSale, forApp };
 }
 
 /**
@@ -239,7 +281,7 @@ type CartProductFactsOptions = {
 /** The facts for each line of the cart, from what `readCartProducts` read. */
 export function cartProductFacts(
   items: CartProductLine[],
-  { isMultiVendorEnabled, products, finalSale }: CartProductRows,
+  { isMultiVendorEnabled, products, finalSale, forApp }: CartProductRows,
   options: CartProductFactsOptions = {},
 ): Map<string, CartProductFacts> {
   const facts = new Map<string, CartProductFacts>();
@@ -318,6 +360,17 @@ export function cartProductFacts(
           finalSale?.collectionIds ?? [],
           finalSale?.byRule.get(id),
         ),
+      app: forApp
+        ? {
+            slug: product.slug ?? "",
+            purchasable: getPurchasableQuantity(
+              product,
+              variant ? variant.stock : product.stock,
+            ),
+            compareAtPrice: (variant ? variant.comparePrice : product.comparePrice) || undefined,
+            vendorSlug: vendor?.slug || undefined,
+          }
+        : undefined,
     });
   }
 

@@ -6,6 +6,8 @@ import {
   productTracksStock,
 } from "@/lib/products/stock-policy";
 import { isPlainObject } from "@/lib/utils";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory/low-stock";
+import { markForMetaCatalog } from "@/lib/meta-catalog/mark-later";
 
 export type InventoryAdjustmentLine = {
   productId: string;
@@ -671,6 +673,10 @@ export async function decrementInventory(
     // is reflected immediately rather than waiting for the 60s revalidate
     // window.
     invalidateProductCache(applied, lineData.slugs, after, -1);
+    // Every movement, not only one that flips availability: a pre-order's
+    // open window or places left can change what Meta is sent without the
+    // count crossing zero.
+    await markForMetaCatalog(applied.map((line) => line.productId));
 
     // Low-stock alerts. Fired only when this decrement CROSSED the threshold
     // (previous stock above, new stock at/below) so a product sitting at low
@@ -683,9 +689,6 @@ export async function decrementInventory(
   }
   await aftermath;
 }
-
-// Matches the admin inventory screen's low-stock boundary.
-const LOW_STOCK_THRESHOLD = 10;
 
 /** A product's stock as it stands right after a movement. */
 type StockAfterMovement = {
@@ -823,35 +826,64 @@ async function maybeNotifyLowStock(
         continue;
       }
 
-      const name = product.name || "Product";
-      const { notifyStaffLowStock, notifyLowStock } = await import(
+      const { notifyLowStockCrossing } = await import(
         "@/lib/notifications/notifications"
       );
-      await notifyStaffLowStock(name, stock, {
+      await notifyLowStockCrossing({
         productId: String(product._id),
+        productName: product.name || "Product",
+        stock,
         vendorId: product.vendorId ? String(product.vendorId) : undefined,
-      }).catch((err) => console.error("Failed to notify staff low stock:", err));
-
-      if (product.vendorId) {
-        const { Vendor } = await import("@/models");
-        const vendor = (await Vendor.findById(product.vendorId)
-          .select("userId notificationPreferences.lowStock")
-          .lean()) as {
-          userId?: unknown;
-          notificationPreferences?: { lowStock?: boolean };
-        } | null;
-        // The vendor's own "Low stock alerts" switch (Settings → Notifications)
-        // was saved and never read, so switching it off changed nothing.
-        if (vendor?.userId && vendor.notificationPreferences?.lowStock !== false) {
-          await notifyLowStock(String(vendor.userId), name, stock).catch(
-            (err) => console.error("Failed to notify vendor low stock:", err),
-          );
-        }
-      }
+      });
     }
   } catch (err) {
     // Alerts must never break order placement.
     console.error("Low-stock notification check failed:", err);
+  }
+}
+
+/**
+ * What follows a stock movement that was written somewhere else — inside a
+ * transaction that has now committed (`lib/orders/preorder-allocation.ts`):
+ * the storefront's cached copies of the moved products, and, for a
+ * decrement, the low-stock alert this movement may have crossed.
+ *
+ * Best-effort, like the same steps after `decrementInventory`: the movement
+ * already happened, and a cache refresh or an alert failing must never be
+ * reported as the movement failing. The listings' own 60 s revalidation
+ * bounds a missed refresh.
+ */
+export async function runStockMovementAftermath(
+  lines: InventoryAdjustmentLine[],
+  direction: 1 | -1,
+): Promise<void> {
+  const moved = lines.filter(
+    (line) => line.productId && Number.isFinite(line.quantity) && line.quantity > 0,
+  );
+  if (moved.length === 0) return;
+  try {
+    const productIds = Array.from(new Set(moved.map((line) => String(line.productId))));
+    const docs = (await Product.find(
+      { _id: { $in: productIds } },
+      {
+        slug: 1,
+        name: 1,
+        stock: 1,
+        vendorId: 1,
+        "shipping.isPhysicalProduct": 1,
+        inventory: 1,
+        "variants._id": 1,
+        "variants.stock": 1,
+      },
+    ).lean()) as Array<StockAfterMovement & { slug?: string }>;
+    const slugs = docs
+      .map((doc) => doc.slug)
+      .filter((slug): slug is string => typeof slug === "string" && slug.length > 0);
+    invalidateProductCache(moved, slugs, docs, direction);
+    await markForMetaCatalog(moved.map((line) => line.productId));
+    if (direction === -1) await maybeNotifyLowStock(moved, docs);
+  } catch (err) {
+    console.error("Failed to run the aftermath of a stock movement:", err);
   }
 }
 
@@ -1021,9 +1053,10 @@ export async function restoreInventory(
     await readStockAfterMovement(lines),
     1,
   );
+  await markForMetaCatalog(lines.map((line) => line.productId));
 }
 
-type StockChangeRequest = {
+export type StockChangeRequest = {
   productId: string;
   variantId?: string;
   locationId?: string;
@@ -1032,27 +1065,45 @@ type StockChangeRequest = {
   adjustment: boolean;
   /** Extra filter (staff scope, vendorId) merged into every match. */
   scopeFilter?: Record<string, unknown>;
+  /** Stored with the stock write, so retries survive a lost API response. */
+  receipt?: { key: string; hash: string; durable?: boolean };
+  /** Consequential business operations refuse a partial/clamped decrement. */
+  rejectNegative?: boolean;
+  /** Trusted standing policy/restock accounting may retain negative counters. */
+  allowNegative?: boolean;
+  /** A location counter must be changed whenever it backs the aggregate. */
+  requireLocationWhenTracked?: boolean;
+  session?: import("mongoose").ClientSession;
 };
 
-type StockChangeResult = { success: boolean; error?: string };
+export type StockChangeResult = { success: boolean; error?: string; replayed?: boolean };
+
+export const STOCK_ADJUSTMENT_KEY_REUSED = "Stock adjustment idempotency key reused";
+const STOCK_RECEIPT_LIFETIME_MS = 24 * 60 * 60_000;
 
 type StockSnapshot = {
   variantStock: number;
   productStock: number;
   locations: Array<{ locationId?: unknown; quantity?: number }>;
   variantFound: boolean;
+  receipt?: { key: string; hash: string };
 };
 
 async function readStockSnapshot(
   request: StockChangeRequest,
 ): Promise<StockSnapshot | null> {
+  const receiptProjection = request.receipt
+    ? { stockAdjustmentReceipts: { $elemMatch: { key: request.receipt.key } } }
+    : {};
   const doc = (await Product.findOne(
     { _id: request.productId, ...(request.scopeFilter || {}) },
     request.variantId
-      ? { stock: 1, variants: { $elemMatch: { _id: request.variantId } } }
-      : { stock: 1, locationInventory: 1 },
+      ? { stock: 1, variants: { $elemMatch: { _id: request.variantId } }, ...receiptProjection }
+      : { stock: 1, locationInventory: 1, ...receiptProjection },
+    request.session ? { session: request.session } : undefined,
   ).lean()) as {
     stock?: number;
+    stockAdjustmentReceipts?: Array<{ key: string; hash: string }>;
     locationInventory?: Array<{ locationId?: unknown; quantity?: number }>;
     variants?: Array<{
       stock?: number;
@@ -1062,6 +1113,7 @@ async function readStockSnapshot(
   if (!doc) return null;
   const variant = request.variantId ? doc.variants?.[0] : undefined;
   return {
+    receipt: doc.stockAdjustmentReceipts?.[0],
     variantFound: !request.variantId || Boolean(variant),
     variantStock: Number(variant?.stock || 0),
     productStock: Number(doc.stock || 0),
@@ -1093,11 +1145,53 @@ export async function applyStockChangeAtomic(
     return { success: false, error: "quantity must be a number" };
   }
 
+  // Receipts live at least as long as the API's response records. Removing
+  // expired ones bounds the history without evicting a recent adjustment.
+  if (request.receipt) {
+    const expiredBefore = new Date(Date.now() - STOCK_RECEIPT_LIFETIME_MS);
+    await Product.updateOne(
+      {
+        _id: request.productId,
+        ...(request.scopeFilter || {}),
+        stockAdjustmentReceipts: { $elemMatch: { appliedAt: { $lt: expiredBefore }, durable: { $ne: true } } },
+      },
+      { $pull: { stockAdjustmentReceipts: { appliedAt: { $lt: expiredBefore }, durable: { $ne: true } } } },
+      { timestamps: false, ...(request.session ? { session: request.session } : {}) },
+    );
+  }
+
+  // The receipt and every stock aggregate change in the SAME document write.
+  // The exclusion also stops two requests that read the same snapshot from
+  // both applying a delta, even when their API locks have been lost.
+  const updateStock = (
+    filter: Record<string, unknown>,
+    update: {
+      $set?: Record<string, unknown>;
+      $inc?: Record<string, number>;
+      $push?: Record<string, unknown>;
+    },
+    options?: Parameters<typeof Product.updateOne>[2],
+  ) => Product.updateOne(
+    request.receipt ? { ...filter, "stockAdjustmentReceipts.key": { $ne: request.receipt.key } } : filter,
+    request.receipt
+      ? { ...update, $push: { ...update.$push, stockAdjustmentReceipts: { ...request.receipt, appliedAt: new Date() } } }
+      : update,
+    request.session ? { ...options, session: request.session } : options,
+  );
+
   for (let attempt = 0; attempt < 3; attempt++) {
     const snapshot = await readStockSnapshot(request);
     if (!snapshot) return { success: false, error: "Product not found" };
+    if (request.receipt && snapshot.receipt) {
+      return snapshot.receipt.hash === request.receipt.hash
+        ? { success: true, replayed: true }
+        : { success: false, error: STOCK_ADJUSTMENT_KEY_REUSED };
+    }
     if (!snapshot.variantFound) {
       return { success: false, error: "Variant not found" };
+    }
+    if (request.requireLocationWhenTracked && !request.locationId && snapshot.locations.length > 0) {
+      return { success: false, error: "Choose a stock location for this movement" };
     }
 
     const scope = request.scopeFilter || {};
@@ -1108,15 +1202,18 @@ export async function applyStockChangeAtomic(
         (loc) => String(loc.locationId) === request.locationId,
       );
       const current = Number(entry?.quantity || 0);
+      if (request.rejectNegative && (request.adjustment ? current + request.quantity : request.quantity) < 0) {
+        return { success: false, error: "Insufficient stock" };
+      }
       const nextValue = Math.max(
-        0,
+        request.allowNegative ? Number.NEGATIVE_INFINITY : 0,
         request.adjustment ? current + request.quantity : request.quantity,
       );
       const delta = nextValue - current;
 
       if (entry) {
         if (request.variantId) {
-          const result = await Product.updateOne(
+          const result = await updateStock(
             {
               _id: request.productId,
               ...scope,
@@ -1154,7 +1251,7 @@ export async function applyStockChangeAtomic(
           );
           matched = result.matchedCount;
         } else {
-          const result = await Product.updateOne(
+          const result = await updateStock(
             {
               _id: request.productId,
               ...scope,
@@ -1191,7 +1288,7 @@ export async function applyStockChangeAtomic(
         const nextAggregate = existingSum + nextValue;
         if (request.variantId) {
           const delta2 = nextAggregate - snapshot.variantStock;
-          const result = await Product.updateOne(
+          const result = await updateStock(
             {
               _id: request.productId,
               ...scope,
@@ -1220,7 +1317,7 @@ export async function applyStockChangeAtomic(
           );
           matched = result.matchedCount;
         } else {
-          const result = await Product.updateOne(
+          const result = await updateStock(
             {
               _id: request.productId,
               ...scope,
@@ -1242,12 +1339,15 @@ export async function applyStockChangeAtomic(
       }
     } else if (request.variantId) {
       const current = snapshot.variantStock;
+      if (request.rejectNegative && (request.adjustment ? current + request.quantity : request.quantity) < 0) {
+        return { success: false, error: "Insufficient stock" };
+      }
       const nextValue = Math.max(
-        0,
+        request.allowNegative ? Number.NEGATIVE_INFINITY : 0,
         request.adjustment ? current + request.quantity : request.quantity,
       );
       const delta = nextValue - current;
-      const result = await Product.updateOne(
+      const result = await updateStock(
         {
           _id: request.productId,
           ...scope,
@@ -1265,11 +1365,14 @@ export async function applyStockChangeAtomic(
       matched = result.matchedCount;
     } else {
       const current = snapshot.productStock;
+      if (request.rejectNegative && (request.adjustment ? current + request.quantity : request.quantity) < 0) {
+        return { success: false, error: "Insufficient stock" };
+      }
       const nextValue = Math.max(
-        0,
+        request.allowNegative ? Number.NEGATIVE_INFINITY : 0,
         request.adjustment ? current + request.quantity : request.quantity,
       );
-      const result = await Product.updateOne(
+      const result = await updateStock(
         { _id: request.productId, ...scope, stock: current },
         { $set: { stock: nextValue } },
       );

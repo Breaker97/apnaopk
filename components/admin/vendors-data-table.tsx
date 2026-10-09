@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
-import { useTranslations } from "next-intl";
 import {
   BadgeCheck,
-  ChevronsUpDown,
+  KeyRound,
   CheckCircle2,
   Download,
   FileText,
@@ -15,9 +14,9 @@ import {
   ShieldBan,
   Store,
   Trash2,
-  Upload,
   UserCheck,
 } from "lucide-react";
+import { AccountEmailProgress } from "@/components/admin/customers/account-email-progress";
 import {
   DataTable,
   DateCell,
@@ -25,16 +24,20 @@ import {
   StatusCell,
   TextCell,
   type DataTableAction,
+  type DataTableBulkAction,
   type DataTableColumn,
   type DataTableTab,
 } from "@/components/ui/data-table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/components/ui/toast-notification";
 import { USER_ACCOUNT_STATUS, VENDOR_STATUS } from "@/config/app.config";
 import { useCurrency } from "@/providers/currency-provider";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
+import { useVendorAccountEmail } from "@/components/admin/vendors/use-vendor-account-email";
+import { useTranslations } from "next-intl";
 import { useAdminPhrase } from "@/hooks/use-admin-phrase";
 
 interface Vendor {
@@ -83,8 +86,25 @@ export function VendorsDataTable({
   data,
   pagination,
 }: VendorsDataTableProps) {
-  const t = useTranslations();
   const tr = useAdminPhrase();
+  const tVendors = useTranslations("admin.vendorsDataTable");
+  const { confirm } = useConfirmation();
+  // Bumped when invitations are sent, so the invitations line starts following them.
+  const [inviteRefresh, setInviteRefresh] = useState(0);
+  const [selectedVendors, setSelectedVendors] = useState<Vendor[]>([]);
+  const onEmailsSent = useCallback(() => {
+    setSelectedVendors([]);
+    setInviteRefresh(value => value + 1);
+  }, []);
+  const accountEmail = useVendorAccountEmail(onEmailsSent);
+  const bulkActions: DataTableBulkAction<Vendor>[] = [{
+    id: "account-email",
+    label: accountEmail.label,
+    disabled: accountEmail.sending,
+    icon: <KeyRound className="h-4 w-4" />,
+    variant: "outline",
+    onClick: items => accountEmail.send(items.map(item => item._id)),
+  }];
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
@@ -92,6 +112,33 @@ export function VendorsDataTable({
     items: data,
     pagination,
   });
+
+  // The file is the view on screen — this search, status tab and sort — but all
+  // of it, not the page being shown; the route reads the same three params.
+  const handleExport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (list.search) params.set("search", list.search);
+      if (list.activeTab && list.activeTab !== "all") {
+        params.set("status", list.activeTab);
+      }
+      params.set("sortOrder", list.sortOrder);
+      const res = await fetch(`/api/admin/vendors/export?${params.toString()}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vendors-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success(tr("Vendors exported", "ভেন্ডরদের তালিকা এক্সপোর্ট হয়েছে"));
+    } catch {
+      toast.error(tr("Vendors could not be exported", "ভেন্ডরদের তালিকা এক্সপোর্ট করা যায়নি"));
+    }
+  }, [list.activeTab, list.search, list.sortOrder, tr]);
 
   const handleUpdateStatus = useCallback(
     async (vendorId: string, status: string) => {
@@ -122,9 +169,20 @@ export function VendorsDataTable({
   );
 
   const handleDeleteVendor = useCallback(
-    async (vendorId: string) => {
+    async (vendor: Vendor) => {
+      const name = vendor.storeName || tVendors("thisVendor");
+      const confirmed = await confirm({
+        title: tr("Delete vendor", "ভেন্ডর মুছুন"),
+        description: tVendors("deleteSingleDescription", { name }),
+        confirmText: tr("Delete", "মুছুন"),
+        cancelText: tr("Cancel", "বাতিল"),
+        variant: "destructive",
+      });
+
+      if (!confirmed) return;
+
       try {
-        await apiClient.delete(`/api/admin/vendors/${vendorId}`);
+        await apiClient.delete(`/api/admin/vendors/${vendor._id}`);
         toast.success(tr("Vendor deleted", "ভেন্ডর মুছে ফেলা হয়েছে"));
         list.refetch();
       } catch (error) {
@@ -132,7 +190,7 @@ export function VendorsDataTable({
         toast.error(tr("Failed to delete vendor", "ভেন্ডর মুছতে ব্যর্থ"));
       }
     },
-    [list, tr],
+    [confirm, list, tr, tVendors],
   );
 
   const columns = useMemo<DataTableColumn<Vendor>[]>(
@@ -244,27 +302,17 @@ export function VendorsDataTable({
           href: "/admin/vendors/new",
           variant: "default",
         },
+        // Export only: a vendor joins by applying and being approved, never
+        // by file.
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: tr("Export", "এক্সপোর্ট"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: tr("Export", "এক্সপোর্ট"),
-              icon: <Download className="h-4 w-4" />,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.productsDataTable.actions.import"),
-              icon: <Upload className="h-4 w-4" />,
-              disabled: true,
-            },
-          ],
+          onClick: handleExport,
         },
       }),
-    [locale, t, tr],
+    [handleExport, tr],
   );
 
   const rowActions = useCallback(
@@ -334,7 +382,7 @@ export function VendorsDataTable({
         label: tr("Delete vendor", "ভেন্ডর মুছুন"),
         icon: <Trash2 className="h-4 w-4" />,
         variant: "destructive",
-        onClick: () => handleDeleteVendor(row._id),
+        onClick: () => handleDeleteVendor(row),
       });
 
       return actionsList;
@@ -343,36 +391,48 @@ export function VendorsDataTable({
   );
 
   return (
-    <DataTable
-      data={list.items}
-      columns={columns}
-      keyField="_id"
-      isLoading={list.isLoading}
-      loadingMode="rows"
-      title={tableHeader.title}
-      tabs={tabs}
-      activeTab={list.activeTab}
-      onTabChange={list.handleTabChange}
-      actions={tableHeader.actions}
-      searchable
-      searchPlaceholder={tr("Search vendors...", "ভেন্ডর খুঁজুন...")}
-      searchValue={list.search}
-      onSearchChange={list.handleSearchChange}
-      toolbarActions={tableHeader.toolbarActions}
-      toolbarLayout={tableHeader.toolbarLayout}
-      tabsVariant={tableHeader.tabsVariant}
-      filtersVariant={tableHeader.filtersVariant}
-      appearance={tableHeader.appearance}
-      stackedTopControls={tableHeader.stackedTopControls}
-      showToolbarSortButton={tableHeader.showToolbarSortButton}
-      pagination={list.pagination}
-      onPageChange={list.handlePageChange}
-      onPageSizeChange={list.handlePageSizeChange}
-      rowActions={rowActions}
-      rowActionsHeader={tr("Actions", "অ্যাকশন")}
-      rowActionsVariant="inline"
-      onRowClick={(row) => router.push(`/admin/vendors/${row._id}`)}
-      emptyMessage={tr("No vendors found", "কোনো ভেন্ডর পাওয়া যায়নি")}
-    />
+    <>
+      <AccountEmailProgress
+        refreshKey={inviteRefresh}
+        endpoint="/api/admin/vendors/account-emails"
+        namespace="admin.vendorAccountEmail"
+        dismissedKey="storify:vendor-invites:dismissed"
+      />
+      <DataTable
+        data={list.items}
+        columns={columns}
+        keyField="_id"
+        selectable
+        selectedItems={selectedVendors}
+        onSelectionChange={setSelectedVendors}
+        bulkActions={bulkActions}
+        isLoading={list.isLoading}
+        loadingMode="rows"
+        title={tableHeader.title}
+        tabs={tabs}
+        activeTab={list.activeTab}
+        onTabChange={list.handleTabChange}
+        actions={tableHeader.actions}
+        searchable
+        searchPlaceholder={tr("Search vendors...", "ভেন্ডর খুঁজুন...")}
+        searchValue={list.search}
+        onSearchChange={list.handleSearchChange}
+        toolbarActions={tableHeader.toolbarActions}
+        toolbarLayout={tableHeader.toolbarLayout}
+        tabsVariant={tableHeader.tabsVariant}
+        filtersVariant={tableHeader.filtersVariant}
+        appearance={tableHeader.appearance}
+        stackedTopControls={tableHeader.stackedTopControls}
+        showToolbarSortButton={tableHeader.showToolbarSortButton}
+        pagination={list.pagination}
+        onPageChange={list.handlePageChange}
+        onPageSizeChange={list.handlePageSizeChange}
+        rowActions={rowActions}
+        rowActionsHeader={tr("Actions", "অ্যাকশন")}
+        rowActionsVariant="inline"
+        onRowClick={(row) => router.push(`/admin/vendors/${row._id}`)}
+        emptyMessage={tr("No vendors found", "কোনো ভেন্ডর পাওয়া যায়নি")}
+      />
+    </>
   );
 }

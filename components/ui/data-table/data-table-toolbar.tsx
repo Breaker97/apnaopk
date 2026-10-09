@@ -11,14 +11,25 @@ import {
   useEffect,
   useCallback,
   type KeyboardEvent,
+  type RefObject,
 } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DateRangePicker,
+  formatAppliedDateRange,
+  startOfDay,
+  type AppliedDateRange,
+} from "@/components/ui/date-range-picker";
+import {
+  dayToLocalDate,
+  encodeDayRange,
+  parseDayRange,
+} from "@/lib/date-filter";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -35,10 +46,92 @@ import {
 } from "lucide-react";
 import type {
   DataTableAction,
+  DataTableDateFilter,
   DataTableFilter,
   DataTableTab,
   DataTableToolbarLabels,
 } from "./types";
+
+type DateFilter = DataTableFilter & { date: DataTableDateFilter };
+
+function isDateFilter(filter: DataTableFilter): filter is DateFilter {
+  return filter.type === "date" && Boolean(filter.date);
+}
+
+/**
+ * What a date filter's value means to the picker and to the menu row.
+ *
+ * A picked range reads as its dates; a preset as its name, except "all", which
+ * is no filter and so has nothing to show on the row — though it still marks
+ * itself active in the picker, so "All time" is highlighted when nothing is set.
+ */
+function readDateFilter(
+  date: DataTableDateFilter,
+  value: string,
+): { applied: AppliedDateRange; activePresetId?: string; label?: string } {
+  const picked = parseDayRange(value);
+  if (picked) {
+    const applied = {
+      from: dayToLocalDate(picked.from),
+      to: dayToLocalDate(picked.to),
+    };
+    return {
+      applied,
+      label: formatAppliedDateRange(applied, date.locale),
+    };
+  }
+
+  const preset = date.presets.find((candidate) => candidate.id === value);
+  const today = startOfDay(new Date());
+  return {
+    applied: preset?.range ?? { from: today, to: today },
+    activePresetId: preset?.id,
+    label: preset && preset.id !== "all" ? preset.label : undefined,
+  };
+}
+
+function DateFilterPicker({
+  filter,
+  value,
+  open,
+  onOpenChange,
+  onChange,
+  anchorRef,
+}: {
+  filter: DateFilter;
+  value: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChange: (value: string) => void;
+  anchorRef: RefObject<HTMLElement | null>;
+}) {
+  const { date } = filter;
+  const { applied, activePresetId } = readDateFilter(date, value);
+
+  return (
+    <DateRangePicker
+      open={open}
+      onOpenChange={onOpenChange}
+      anchorRef={anchorRef}
+      value={applied}
+      locale={date.locale}
+      align="end"
+      collapseCalendar
+      presets={date.presets}
+      presetsTitle={date.presetsTitle}
+      activePresetId={activePresetId}
+      customLabel={date.customLabel}
+      onSelectPreset={(preset) => onChange(preset.id)}
+      onApply={(range) => onChange(encodeDayRange(range.from, range.to))}
+      summary={date.summary}
+      cancelLabel={date.cancelLabel}
+      applyLabel={date.applyLabel}
+      calendarProps={
+        date.maxDate ? { disabled: { after: date.maxDate } } : undefined
+      }
+    />
+  );
+}
 
 interface DataTableToolbarProps {
   searchable?: boolean;
@@ -283,7 +376,6 @@ export function DataTableToolbar({
     focusSearch:
       labels?.focusSearch ?? tt("ui.dataTable.focusSearch", "Focus search"),
     filter: labels?.filter ?? tt("ui.dataTable.filter", "Filter"),
-    filters: labels?.filters ?? tt("ui.dataTable.filters", "Filters"),
     clearAll: labels?.clearAll ?? tt("ui.dataTable.clearAll", "Clear all"),
     clearAllFilters:
       labels?.clearAllFilters ??
@@ -297,6 +389,12 @@ export function DataTableToolbar({
     value: searchValue,
   }));
   const inputRef = useRef<HTMLInputElement>(null);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
+  // A date filter's picker is a popover reached from a row in the Filters menu.
+  // It opens once the menu has finished closing (see `onCloseAutoFocus`), so
+  // the menu's focus handling and the picker's never run at the same time.
+  const [openDateFilterId, setOpenDateFilterId] = useState<string | null>(null);
+  const pendingDateFilterIdRef = useRef<string | null>(null);
   const isCompact = toolbarDensity === "compact";
   const localValue =
     localSearch.propValue === searchValue ? localSearch.value : searchValue;
@@ -366,7 +464,10 @@ export function DataTableToolbar({
 
   const activeFilterCount = filters.reduce((count, filter) => {
     const val = filterValues[filter.id];
-    return val && val !== "all" ? count + 1 : count;
+    // A filter's default window is what the list shows with nothing chosen.
+    return val && val !== "all" && val !== filter.defaultValue
+      ? count + 1
+      : count;
   }, 0);
   const hasActiveSearch = localValue.length > 0;
   const hasActiveFilters = activeFilterCount > 0;
@@ -564,7 +665,9 @@ export function DataTableToolbar({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            {/* `lg:ml-auto`: with no search box beside it, `justify-between`
+                would leave the filter button at the start of the row. */}
+            <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:justify-end">
               {toolbarActions.map((action) => (
                 <ToolbarActionButton
                   key={action.id}
@@ -578,6 +681,7 @@ export function DataTableToolbar({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
+                      ref={filterButtonRef}
                       variant="outline"
                       size="sm"
                       className={cn(
@@ -597,10 +701,41 @@ export function DataTableToolbar({
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>{text.filters}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56"
+                    onCloseAutoFocus={(event) => {
+                      const pendingId = pendingDateFilterIdRef.current;
+                      if (!pendingId) return;
+                      // The menu was closed to reach a picker: leave focus to
+                      // the picker rather than handing it back to the button.
+                      event.preventDefault();
+                      pendingDateFilterIdRef.current = null;
+                      setOpenDateFilterId(pendingId);
+                    }}
+                  >
                     {filters.map((filter) => {
+                      if (isDateFilter(filter)) {
+                        const { label } = readDateFilter(
+                          filter.date,
+                          filterValues[filter.id] || "all",
+                        );
+                        return (
+                          <DropdownMenuItem
+                            key={filter.id}
+                            onSelect={() => {
+                              pendingDateFilterIdRef.current = filter.id;
+                            }}
+                          >
+                            <span>{filter.label}</span>
+                            {label ? (
+                              <span className="ml-auto max-w-[8.5rem] truncate text-xs text-muted-foreground">
+                                {label}
+                              </span>
+                            ) : null}
+                          </DropdownMenuItem>
+                        );
+                      }
                       if (filter.type !== "select" || !filter.options) return null;
                       const currentValue = filterValues[filter.id] || "all";
                       return (
@@ -608,7 +743,14 @@ export function DataTableToolbar({
                           <DropdownMenuSubTrigger>
                             <span>{filter.label}</span>
                           </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="w-52">
+                          {/* A filter with dozens of options (an audit log's actions and
+                              record types) scrolls inside a short list instead of
+                              stretching edge to edge: capped at 22rem, or the room the
+                              menu has when that is less, with a gap to the screen edge. */}
+                          <DropdownMenuSubContent
+                            collisionPadding={12}
+                            className="max-h-[min(22rem,var(--radix-dropdown-menu-content-available-height))] w-52 overflow-y-auto overscroll-contain"
+                          >
                             {filter.options.map((option) => (
                               <DropdownMenuCheckboxItem
                                 key={option.value}
@@ -644,6 +786,21 @@ export function DataTableToolbar({
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+
+              {filtersVariant === "dropdown" &&
+                filters.filter(isDateFilter).map((filter) => (
+                  <DateFilterPicker
+                    key={filter.id}
+                    filter={filter}
+                    value={filterValues[filter.id] || "all"}
+                    open={openDateFilterId === filter.id}
+                    onOpenChange={(open) =>
+                      setOpenDateFilterId(open ? filter.id : null)
+                    }
+                    onChange={(value) => onFilterChange?.(filter.id, value)}
+                    anchorRef={filterButtonRef}
+                  />
+                ))}
 
               {canSort && showToolbarSortButton && (
                 <Button

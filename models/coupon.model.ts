@@ -17,6 +17,20 @@ export enum CouponStatus {
   EXPIRED = "expired",
 }
 
+/** Where a code the store made itself came from. */
+export const COUPON_SOURCE = {
+  /** A vendor's discount to a shopper who abandoned a checkout with its goods. */
+  ABANDONED_OFFER: "abandoned_offer",
+} as const;
+
+/**
+ * The codes merchants made: what every Discounts list, its counts and the
+ * store-page coupon picker read. The store's own one-off codes stay out.
+ */
+export const MERCHANT_COUPON_FILTER = {
+  source: { $ne: COUPON_SOURCE.ABANDONED_OFFER },
+} as const;
+
 interface ICoupon extends Document {
   code: string;
   label?: string;
@@ -39,6 +53,15 @@ interface ICoupon extends Document {
   applicableProducts?: mongoose.Types.ObjectId[];
   applicableCategories?: mongoose.Types.ObjectId[];
   excludedProducts?: mongoose.Types.ObjectId[];
+  listed?: boolean;
+  /** Set on a code the store made itself — see `COUPON_SOURCE`. */
+  source?: (typeof COUPON_SOURCE)[keyof typeof COUPON_SOURCE];
+  /** The abandoned checkout an offer code was made for. */
+  abandonedCheckoutId?: mongoose.Types.ObjectId;
+  /** Only this shopper may use it: their checkout email, lower-cased. */
+  restrictedToEmail?: string;
+  /** ...or their account, when they were signed in. */
+  restrictedToUserId?: mongoose.Types.ObjectId;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -165,6 +188,44 @@ const CouponSchema = new Schema<ICoupon>(
         ref: "Product",
       },
     ],
+    /**
+     * Offered to shoppers: the shopper app's coupon list (GET /coupons) shows
+     * it. Off by default, so a code the store hands out privately (an
+     * influencer's, a win-back email's) is never shown to everybody; it still
+     * works when typed.
+     */
+    listed: {
+      type: Boolean,
+      default: false,
+    },
+    /**
+     * A code the store made itself rather than a merchant typing it in: a
+     * vendor's offer to a shopper who left its goods in a checkout. Kept out
+     * of every Discounts list, count and picker (`MERCHANT_COUPON_FILTER`) —
+     * one is made per offer, and they are nobody's to edit or advertise.
+     */
+    source: {
+      type: String,
+      enum: Object.values(COUPON_SOURCE),
+    },
+    abandonedCheckoutId: {
+      type: Schema.Types.ObjectId,
+      ref: "AbandonedCheckout",
+    },
+    /**
+     * Who may use the code: the shopper it was sent to, by the email they
+     * gave at checkout or by their account. Checked by
+     * `assertCouponOpenToShopper`; anyone else is told the code is invalid.
+     */
+    restrictedToEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    restrictedToUserId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
     createdBy: {
       type: String,
       required: true,
@@ -182,6 +243,8 @@ const CouponSchema = new Schema<ICoupon>(
 CouponSchema.index({ status: 1, createdAt: -1 });
 CouponSchema.index({ endDate: 1 });
 CouponSchema.index({ vendorId: 1, createdAt: -1 });
+// The shopper app's coupon list: the listed, active ones.
+CouponSchema.index({ listed: 1, status: 1, endDate: 1 });
 
 // Virtual to check if coupon is valid
 CouponSchema.virtual("isValid").get(function () {
@@ -196,6 +259,15 @@ CouponSchema.virtual("isValid").get(function () {
       this.usedCount < usageLimit)
   );
 });
+
+// A dev session that cached the schema before the offer fields existed would
+// silently drop them on write — an offer code anyone could use.
+if (
+  mongoose.models.Coupon &&
+  !mongoose.models.Coupon.schema.path("restrictedToEmail")
+) {
+  delete mongoose.models.Coupon;
+}
 
 export const Coupon: Model<ICoupon> =
   mongoose.models.Coupon || mongoose.model<ICoupon>("Coupon", CouponSchema);

@@ -70,7 +70,7 @@
     "noResults": "Aisu oye",
     "tryAgain": "Gbiyegnjẹ sii",
     "allRightsReserved": "Gbogbo oluber laarin ipamo",
-    "dashboard": "Dashboard",
+    "dashboard": "Dasibodu",
     "actions": "Awon ise",
     "view": "Wo",
     "viewDetails": "Wo Awon Alaye",
@@ -145,9 +145,17 @@
       "empty": "A kò rí orílẹ̀-èdè kankan.",
       "clear": "Pa orílẹ̀-èdè rẹ́",
       "selected": "{count, plural, other {A ti yan orílẹ̀-èdè #}}",
-      "remove": "Yọ {country} kúrò"
+      "remove": "Yọ {country} kúrò",
+      "lockedHint": "A máa ń fi ránṣẹ́ sí {country} nìkan.",
+      "replaced": "A fi pamọ́ gẹ́gẹ́ bí {previous}, tí kì í ṣe ọ̀kan lára àwọn orílẹ̀-èdè ilé ìtajà mọ́. Tí o bá fi pamọ́, yóò yí padà sí {current}."
     },
-    "clear": "Pa á rẹ́"
+    "clear": "Pa á rẹ́",
+    "continue": "Tẹ̀síwájú",
+    "loadMore": "Gbé síi wá",
+    "menu": "Mẹ́nù",
+    "more": "Síwájú sí i",
+    "optional": "àṣàyàn",
+    "tags": "Awon aami"
   },
   "ui": {
     "dataTable": {
@@ -170,6 +178,12 @@
       "selectAll": "Yan gbogbo",
       "selectRow": "Yan ila {key}",
       "noResults": "Aisu esi"
+    },
+    "fileUpload": {
+      "failed": "Gbígbé sókè kùnà",
+      "uploading": "Ó ń gbé sókè…",
+      "view": "Wo",
+      "remove": "Yọ fáìlì kúrò"
     }
   },
   "wishlist": {
@@ -259,7 +273,51 @@
     "revokeSessionsFailed": "Ajeji jade kuro",
     "revokeSessionsSuccess": "Gbogbo awon isẹ miiran ti jade kuro",
     "genericTryAgain": "Ajeji selẹ. Jọwọ gbiyegnjẹ sii.",
-    "qrCodeAlt": "Koodu QR 2FA"
+    "qrCodeAlt": "Koodu QR 2FA",
+    "deleteAccount": {
+      "title": "Pa akaunti rẹ́",
+      "description": "Ti akaunti rẹ pa, kí o sì pa àwọn àlàyé ara ẹni rẹ rẹ́. A kò lè yí èyí padà.",
+      "whatGoes": "A ó pa profaili rẹ, àwọn àdírẹ́sì rẹ, àlàyé ìwọlé, kẹ̀kẹ́ ìrajà, àkójọ ohun tí o fẹ́, àwọn àyẹ̀wò, àwọn ìfitónilétí, àwọn ilé ìtajà tí o ń tẹ̀lé àti ààyè rẹ lórí àwọn àkójọ ìdúró rẹ́, a ó sì mú ọ jáde níbi gbogbo.",
+      "whatStays": "Àwọn ìbéèrè ọjà rẹ, àwọn ìdápadà àti kírẹ́díìtì ilé ìtajà rẹ máa wà lọ́dọ̀ ilé ìtajà gẹ́gẹ́ bí àkọsílẹ̀ ìnáwó rẹ̀.",
+      "button": "Pa akaunti mi rẹ́",
+      "confirmTitle": "Ṣé kí a pa akaunti rẹ rẹ́?",
+      "confirmDescription": "Tẹ ọ̀rọ̀ aṣínà rẹ láti fìdí rẹ̀ múlẹ̀. A ó pa akaunti rẹ rẹ́ lẹ́sẹ̀kẹsẹ̀, a kò sì lè dá a padà.",
+      "password": "Ọ̀rọ̀ aṣínà",
+      "cancel": "Fagilé",
+      "confirm": "Pa akaunti rẹ́",
+      "errors": {
+        "wrongPassword": "Ọ̀rọ̀ aṣínà yẹn kò tọ̀nà.",
+        "signInAgain": "Fún ààbò akaunti rẹ, jáde kí o sì wọlé padà, lẹ́yìn náà pa akaunti rẹ rẹ́ láàárín ìṣẹ́jú mẹ́wàá.",
+        "notAllowed": "Akaunti yìí tún ń bá ilé ìtajà ṣiṣẹ́ tàbí ń ràn án lọ́wọ́, nítorí náà a kò lè pa á rẹ́ níbí. Kàn sí ilé ìtajà láti tì í pa.",
+        "generic": "A kò lè pa akaunti rẹ rẹ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i."
+      }
+    },
+    "deletionPage": {
+      "breadcrumb": "Pa akaunti rẹ rẹ́",
+      "title": "Pa akaunti {storeName} rẹ rẹ́",
+      "intro": "O lè pa akaunti {storeName} rẹ rẹ́, pẹ̀lú àwọn àlàyé ara ẹni tí a fi pamọ́ pẹ̀lú rẹ̀, nígbàkigbà.",
+      "inAppTitle": "Nínú ìṣàfilọ́lẹ̀",
+      "inAppSteps": "Nínú ìṣàfilọ́lẹ̀ {storeName}, wọlé, ṣí Akaunti kí o sì yan Pa akaunti rẹ́. Tẹ ọ̀rọ̀ aṣínà rẹ láti fìdí rẹ̀ múlẹ̀.",
+      "onWebTitle": "Lórí ojú-òpó wẹ́ẹ̀bù yìí",
+      "onWebSteps": "Wọlé, lọ sí Akaunti, lẹ́yìn náà Arogo, kí o sì yan Pa akaunti mi rẹ́. Tẹ ọ̀rọ̀ aṣínà rẹ láti fìdí rẹ̀ múlẹ̀.",
+      "onWebButton": "Lọ sí Arogo",
+      "cannotSignInTitle": "Tí o kò bá lè wọlé",
+      "cannotSignInReset": "Kọ́kọ́ <reset>tún ọ̀rọ̀ aṣínà rẹ ṣe</reset>, lẹ́yìn náà pa akaunti rẹ rẹ́ bí a ti ṣàlàyé lókè.",
+      "cannotSignInEmail": "Tàbí kọ̀wé sí <email></email> láti àdírẹ́sì ímeèlì tí ó wà lórí akaunti rẹ, kí o béèrè pé kí a pa á rẹ́.",
+      "cannotSignInContact": "Tàbí <contact>kàn sí ilé ìtajà</contact> láti àdírẹ́sì ímeèlì tí ó wà lórí akaunti rẹ, kí o béèrè pé kí a pa á rẹ́.",
+      "emailSubject": "Jọ̀wọ́ pa akaunti {storeName} mi rẹ́",
+      "whatGoesTitle": "Ohun tí a ń pa rẹ́",
+      "whatGoes": "Profaili rẹ, àwọn àdírẹ́sì tí o fi pamọ́, àlàyé ìwọlé (ọ̀rọ̀ aṣínà àti ìjẹ́rìísí onígbésẹ̀ méjì), kẹ̀kẹ́ ìrajà, àkójọ ohun tí o fẹ́, àwọn àyẹ̀wò, àwọn ìfitónilétí, àwọn ẹ̀rọ tí a forúkọ wọn sílẹ̀, àwọn ilé ìtajà tí o ń tẹ̀lé, àwọn àkójọ ìdúró fún ìbéèrè ṣáájú, àwọn ìsanwó tí kò parí àti àwọn ìjíròrò rẹ pẹ̀lú olùrànlọ́wọ́ ìrajà. A ó yọ orúkọ rẹ àti àlàyé ìbánisọ̀rọ̀ rẹ kúrò nínú àwọn ìjíròrò ìrànlọ́wọ́ rẹ, àti àdírẹ́sì ímeèlì rẹ àti àlàyé ìsopọ̀ rẹ kúrò nínú àwọn ọ̀rọ̀ ìwòye búlọ́ọ̀gù rẹ, tí yóò wà ní orúkọ tí o fi gbé wọn jáde. A ó mú ọ jáde lórí gbogbo ẹ̀rọ. Èyí ń ṣẹlẹ̀ lẹ́sẹ̀kẹsẹ̀, a kò sì lè yí i padà.",
+      "whatStaysTitle": "Ohun tí ilé ìtajà ń tọ́jú",
+      "whatStays": "Àwọn ìbéèrè ọjà rẹ, pẹ̀lú àwọn àlàyé tí ó wà lórí wọn, àti àwọn ìdápadà rẹ, àwọn ìbéèrè ìdíyelé àti kírẹ́díìtì ilé ìtajà rẹ máa wà lọ́dọ̀ ilé ìtajà gẹ́gẹ́ bí àkọsílẹ̀ ìnáwó tí ó gbọ́dọ̀ tọ́jú."
+    },
+    "quotes": "Àwọn ìdíyelé",
+    "quotesList": {
+      "viewOrder": "Wo òdà"
+    },
+    "inbox": {
+      "title": "Àpótí ìfiránṣẹ́"
+    }
   },
   "customerProfile": {
     "loyaltyPoints": "Awon aaye",
@@ -351,7 +409,8 @@
     "allProducts": "Gbogbo Awon oja",
     "wishlist": "Ohun ti mo fẹ",
     "blog": "Iwe Akoso",
-    "getHelp": "Kan Iranlowo"
+    "getHelp": "Kan Iranlowo",
+    "contact": "Enikọẹta"
   },
   "productsPage": {
     "empty": "Aisu oja",
@@ -412,7 +471,7 @@
   "navigation": {
     "home": "Ile",
     "products": "Awon oja",
-    "dashboard": "Dashboard",
+    "dashboard": "Dasibodu",
     "orders": "Awon asẹ",
     "users": "Awon olumillo",
     "settings": "Awon eto",
@@ -459,8 +518,8 @@
     "createAccountDescription": "Fi awon alaye re lati berẹ",
     "oauthCustomerOnly": "OAuth woliode ko wulo fun awon akaunti olufikun oja.",
     "vendorRole": "Olufikun oja",
-    "thisEmail": "imeeli yii",
     "oauthRoleConflict": "Imeeli yii ({email}) ti forukosilẹ bi akaunti {role}. Jọwọ woliode lori ona {role}, tabi yan Google/Facebook miiran.",
+    "oauthRoleConflictNoEmail": "Imeeli yii ti forukosilẹ bi akaunti {role}. Jọwọ woliode lori ona {role}, tabi yan Google/Facebook miiran.",
     "loginRequired": "Jọwọ woliode lati tẹsiwaju",
     "trustThisDevice": "Gbẹkẹle ẹrọ yii fun ọjọ 30",
     "errors": {
@@ -470,8 +529,21 @@
       "durationMinutes": "{count, plural, one {ìṣẹ́jú #} other {ìṣẹ́jú #}}",
       "durationSeconds": "{count, plural, one {ìṣẹ́jú-àáyá #} other {ìṣẹ́jú-àáyá #}}",
       "tooManyRequests": "Àwọn ìgbìyànjú pọ̀ jù láti ẹ̀rọ yìí. Dúró fún ìṣẹ́jú kan kí o tún gbìyànjú.",
-      "invalidCredentialsWithAttempts": "Imeeli tabi ọrọ igbaniwọle kò tọ́. {count, plural, one {Ìgbìyànjú # ló kù} other {Ìgbìyànjú # ló kù}} kí a tó tì àkàǹtì yìí."
-    }
+      "invalidCredentialsWithAttempts": "Imeeli tabi ọrọ igbaniwọle kò tọ́. {count, plural, one {Ìgbìyànjú # ló kù} other {Ìgbìyànjú # ló kù}} kí a tó tì àkàǹtì yìí.",
+      "oauthCancelled": "A ti fagilé wíwọlé. O lè tún gbìyànjú nígbàkígbà.",
+      "oauthSessionExpired": "Ìgbà wíwọlé rẹ ti parí tàbí a kò lè fìdí rẹ̀ múlẹ̀. Jọ̀wọ́ tún gbìyànjú.",
+      "oauthEmailMissing": "Akaunti yẹn kò pín àdírẹ́sì Imeeli. Gba ààyè sí Imeeli nígbà tí a bá béèrè, tàbí wọlé pẹ̀lú Imeeli àti ọrọ igbaniwọle rẹ.",
+      "oauthAccountExists": "Akaunti kan ti wà pẹ̀lú Imeeli yìí. Dípò bẹ́ẹ̀, wọlé pẹ̀lú Imeeli àti ọrọ igbaniwọle rẹ.",
+      "oauthEmailNotVerified": "Jọ̀wọ́ fìdí àdírẹ́sì Imeeli rẹ múlẹ̀ kí o tó wọlé.",
+      "oauthAccountInactive": "Akaunti yìí kò ṣiṣẹ́ tàbí a ti fòfin dè é. Kàn sí ìrànlọ́wọ́.",
+      "oauthFailed": "A kò lè mú ọ wọlé pẹ̀lú akaunti yẹn. Tún gbìyànjú, tàbí wọlé pẹ̀lú Imeeli àti ọrọ igbaniwọle rẹ."
+    },
+    "setYourPassword": "Ṣètò ọ̀rọ̀ aṣínà rẹ",
+    "setYourPasswordDescription": "Yan ọ̀rọ̀ aṣínà fún àkọọ́lẹ̀ rẹ",
+    "setPassword": "Ṣètò ọ̀rọ̀ aṣínà",
+    "passwordSetSuccess": "A ti ṣètò ọ̀rọ̀ aṣínà",
+    "passwordSetSuccessDescription": "A ti ṣètò ọ̀rọ̀ aṣínà rẹ. O lè wọlé báyìí.",
+    "newPassword": "Orọgbọsẹ tuntun"
   },
   "home": {
     "heroTitle": "Ku ajo si {storeName}",
@@ -492,7 +564,7 @@
     "topVendorsGoToShop": "Lo si Ipinle",
     "scrollLeft": "Fọwọsi si osi",
     "scrollRight": "Fọwọsi si ọtun",
-    "countdownDays": "Days",
+    "countdownDays": "Ọjọ́",
     "countdownHours": "Hours",
     "countdownMinutes": "Mins",
     "countdownSeconds": "Secs",
@@ -502,7 +574,35 @@
     "previewingDraft": "Previewing draft",
     "exitPreview": "Exit preview",
     "startingAt": "Starting at",
-    "countdownEndsIn": "Yóò parí ní"
+    "countdownEndsIn": "Yóò parí ní",
+    "productSourcePreview": {
+      "title": {
+        "category": "Àwọn ọjà ẹ̀ka",
+        "brand": "Àwọn ọjà ti àmì ọjà",
+        "collection": "Àwọn ọjà àkójọpọ̀",
+        "tabs": "Àwọn tábù ọjà",
+        "hiddenTabs": "Àwọn tábù tí ó farasin"
+      },
+      "unpicked": {
+        "category": "Yan ẹ̀ka kan fún abala yìí. Ó máa ń fi àwọn ọjà ẹ̀ka náà hàn, àti ti gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀.",
+        "brand": "Yan àmì ọjà kan fún abala yìí.",
+        "collection": "Yan àkójọpọ̀ kan fún abala yìí."
+      },
+      "unavailable": {
+        "category": "Ẹ̀ka tí a yàn ti parẹ́ tàbí a ti pa á. Yan òmíràn.",
+        "brand": "Àmì ọjà tí a yàn ti parẹ́, a ti fi í pamọ́, a ti pa á, tàbí a kò tíì fọwọ́ sí i. Yan òmíràn.",
+        "collection": "Àkójọpọ̀ tí a yàn ti parẹ́, ó jẹ́ àkọsílẹ̀, tàbí a kò tẹ̀ ẹ́ jáde sí Ilé ìtajà orí ayélujára. Yan òmíràn."
+      },
+      "empty": {
+        "category": "Ẹ̀ka tí a yàn àti gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀ kò tíì ní ọjà kankan láti fi hàn.",
+        "brand": "Àmì ọjà tí a yàn kò tíì ní ọjà kankan láti fi hàn.",
+        "collection": "Àkójọpọ̀ tí a yàn kò tíì ní ọjà kankan láti fi hàn."
+      },
+      "hiddenSection": "Àwọn olùrà kò ní rí abala yìí títí tí yóò fi ní ọjà.",
+      "hiddenTabs": "Àwọn olùrà kò ní rí àwọn tábù wọ̀nyí títí tí wọn yóò fi ní ọjà.",
+      "hiddenTab": "Tábù “{label}”: {reason}",
+      "untitledTab": "Aláìní orúkọ"
+    }
   },
   "features": {
     "wideSelection": "Ayanfẹ Ti Wọnyi",
@@ -532,7 +632,9 @@
     "writeReview": "Ko Asoye",
     "addToWishlist": "Fikun si Ohun ti mo fẹ",
     "removeFromWishlist": "Yo kuro ninu Ohun ti mo fẹ",
-    "share": "Pin",
+    "share": {
+      "copyLink": "Ṣe àdàkọ ìjápọ̀"
+    },
     "compare": "Fi bakanna",
     "sku": "SKU",
     "category": "eka",
@@ -645,7 +747,12 @@
     "orderPromptOne": "Ko asoye kukuru nipa {name} — o n ran awon olura miiran lọwọ.",
     "orderPromptMany": "Ọja {count} lati inu asẹ yii n duro de asoye rẹ.",
     "youRated": "O ti diyele rẹ",
-    "alreadyReviewed": "O ti ṣe asoye ọja yii tẹlẹ. A dupẹ pe o pin iriri rẹ!"
+    "alreadyReviewed": "O ti ṣe asoye ọja yii tẹlẹ. A dupẹ pe o pin iriri rẹ!",
+    "publishedImmediately": "Asoye rẹ yoo han lori oju-iwe ọja ni kete ti o ba fi ranṣẹ.",
+    "publishedAfterModeration": "Asoye rẹ yoo han ni kete ti ile itaja ba fọwọsi i.",
+    "statusPublished": "Ti tẹjade",
+    "statusPending": "N duro de ifọwọsi ile itaja",
+    "statusRejected": "Ile itaja ko tẹjade rẹ"
   },
   "cart": {
     "title": "Kaadi Ra",
@@ -680,7 +787,11 @@
       "color": "Awọ",
       "size": "Iwọn"
     },
-    "estimatedTotal": "Lapọ ti a samọ"
+    "estimatedTotal": "Lapọ ti a samọ",
+    "productColumn": "Ọjà",
+    "quantity": "Iye",
+    "product": "Ọjà",
+    "shoppingBag": "Àpò ìtajà"
   },
   "coupon": {
     "enterCode": "Jọwọ fi koodu coupon",
@@ -688,7 +799,25 @@
     "invalid": "Koodu coupon ti ko to",
     "removed": "Coupon ti yo kuro",
     "placeholder": "Fi koodu coupon",
-    "apply": "Lo"
+    "apply": "Lo",
+    "upTo": "Titi di {amount} ẹdinwo",
+    "selectedProductsOnly": "Awọn ọja ti a yan nikan",
+    "sellerOnly": "Lori awọn ọja lati ọdọ {seller} nikan",
+    "oncePerCustomer": "Ẹẹkan fun onibara kọọkan",
+    "usesPerCustomer": "Igba {count} fun onibara kọọkan",
+    "refusedNotFound": "Koodu yii ko si",
+    "refusedNotActive": "Koodu yii ko ṣiṣẹ",
+    "refusedNotStartedYet": "Koodu yii ko tii bẹrẹ iṣẹ",
+    "refusedNotStarted": "Bẹrẹ ni {date}",
+    "refusedExpired": "Koodu yii ti pari",
+    "refusedUsedUp": "Gbogbo lilo koodu yii ti pari",
+    "refusedAlreadyUsed": "O ti lo koodu yii tẹlẹ",
+    "refusedSpendMore": "Fi {amount} kun un lati lo koodu yii",
+    "refusedMinimum": "Aṣẹ rẹ kere ju iye to kere julọ fun koodu yii",
+    "refusedNotForCart": "Kii ṣe fun awọn ohun inu agbọn rẹ",
+    "refusedQuoted": "A ko le lo koodu lori iye owo ti a fun ọ",
+    "refusedShippingFree": "Ifijiṣẹ ti jẹ ọfẹ tẹlẹ lori aṣẹ yii",
+    "refusedNoSellerDelivery": "Koodu yii bo ifijiṣẹ olùtajà kan, ko si si eyi ninu aṣẹ yii"
   },
   "validation": {
     "required": "Aaye yii nilo",
@@ -768,12 +897,27 @@
       "mtnMomoDetail": "Sanwó pẹ̀lú MTN Mobile Money. Ìbéèrè yóò dé sórí fóònù rẹ láti fọwọ́ sí i pẹ̀lú PIN MoMo rẹ.",
       "mtnMomoPhoneLabel": "Nọ́mbà owó alágbèéká",
       "mtnMomoPhonePlaceholder": "b.a. {example}",
-      "mtnMomoPhoneHint": "Tẹ nọ́mbà MTN tí a ó gbà owó. Ìbéèrè ìfọwọ́sí yóò dé sórí fóònù yẹn."
+      "mtnMomoPhoneHint": "Tẹ nọ́mbà MTN tí a ó gbà owó. Ìbéèrè ìfọwọ́sí yóò dé sórí fóònù yẹn.",
+      "iotecMobileMoney": "Owó fóònù",
+      "iotecPhoneLabel": "Nọ́mbà owó alágbèéká"
     },
     "billingSame": "Bakanna bi adirẹsi ibiakia",
     "billingDifferent": "Lo adirẹsi iyoku fun owo sanwo",
     "switchToPickup": "Yipada si gbigba ni ile itaja",
-    "enterAddressForShipping": "Tẹ adirẹsi ibiakia rẹ sii lati wo awọn ọna ibiakia to wa."
+    "enterAddressForShipping": "Tẹ adirẹsi ibiakia rẹ sii lati wo awọn ọna ibiakia to wa.",
+    "staffNotice": {
+      "adminTitle": "O ti wọlé gẹ́gẹ́ bí alábòójútó",
+      "vendorTitle": "O ti wọlé gẹ́gẹ́ bí olùtajà",
+      "staffTitle": "O ti wọlé gẹ́gẹ́ bí ọmọ ẹgbẹ́ òṣìṣẹ́",
+      "body": "Àkáǹtì oníbàárà ni a fi ń ṣe àṣẹ ní ilé ìtajà yìí.",
+      "createOrder": "Ṣẹ̀dá àṣẹ",
+      "goToDashboard": "Lọ sí pátákó ìṣàkóso",
+      "signOut": "Jáde",
+      "hint": "Láti dán ìsanwó wò, jáde kí o sì lo ímeèlì mìíràn."
+    },
+    "emailNotAllowed": "A kò lè lo ímeèlì yìí fún ìsanwó. Jọ̀wọ́ lo ímeèlì mìíràn.",
+    "storeNotReady": "Ilé ìtajà yìí kò lè gba àṣẹ báyìí. Jọ̀wọ́ tún gbìyànjú nígbà míì.",
+    "changeMethod": "Yiyipada"
   },
   "orders": {
     "title": "Awon Asẹ Mi",
@@ -829,7 +973,34 @@
       "refunded": "A ti dá owó padà",
       "partially_refunded": "A dá apá kan owó padà"
     },
-    "importDuties": "Owó-orí ìkówọlé"
+    "importDuties": "Owó-orí ìkówọlé",
+    "preorderBalance": {
+      "autoCharge": "Gẹ́gẹ́ bí o ṣe fún wa láṣẹ, a máa gba owó lórí káàdì rẹ tí a fi pamọ́ ní {date} tàbí lẹ́yìn rẹ̀ àyàfi tí o bá kọ́kọ́ sanwó.",
+      "payWithPayPal": "Sanwo pelu PayPal"
+    },
+    "preOrders": "Àwọn àṣẹ-ṣáájú",
+    "returns": {
+      "title": "Àwọn ìbéèrè ìdápadà",
+      "cancelling": "N se fagilee...",
+      "dialog": {
+        "notes": "Àwọn àkíyèsí"
+      },
+      "breakdown": {
+        "tax": "Ora",
+        "restockingFee": "Owó ìdápadà sí ibi ìkó-ẹrù-sí"
+      },
+      "destination": {
+        "methods": {
+          "bank_transfer": "Gbígbé owó nípasẹ̀ báńkì",
+          "mobile_money": "Owó fóònù"
+        },
+        "mobileNumber": "Nọ́mbà owó alágbèéká"
+      },
+      "shipping": {
+        "trackingNumber": "Nọ́mbà ìtọpinpin",
+        "change": "Yiyipada"
+      }
+    }
   },
   "adminProfile": {
     "title": "Aprofaịli",
@@ -848,6 +1019,255 @@
     "avatarError": "Ajeji gbe avatar silẹ"
   },
   "admin": {
+    "csvImport": {
+      "wrongType": "Yan fáìlì .csv kan.",
+      "fileTooLarge": "Fáìlì yìí tóbi ju {size} MB lọ. Pín in sí àwọn fáìlì kéékèèké, kí o sì gbé wọn wọlé ní ọ̀kọ̀ọ̀kan.",
+      "tooManyRows": "Fáìlì yìí ní ìlà {count}; ìgbéwọlé kan kò lè ju ìlà {max} lọ. Pín in sí àwọn fáìlì kéékèèké.",
+      "emptyFile": "Fáìlì yìí kò ní ìlà kankan láti gbé wọlé.",
+      "readFailed": "A kò lè ka fáìlì náà.",
+      "requestFailed": "Ìbéèrè náà kùnà. Gbìyànjú lẹ́ẹ̀kan sí i.",
+      "dropTitle": "Ju fáìlì CSV sílẹ̀ síbí, tàbí tẹ ibí láti yan ọ̀kan",
+      "dropHint": "Títí dé ìlà {rows} àti {size} MB",
+      "removeFile": "Yọ fáìlì kúrò",
+      "check": "Ṣàyẹ̀wò fáìlì",
+      "checking": "À ń ṣàyẹ̀wò ìlà {done} nínú {total}…",
+      "previewTitle": "Ó ti ṣetán láti gbé wọlé",
+      "previewDescription": "{file} — a kò tíì fi nǹkan kan pamọ́.",
+      "import": "Gbé wọlé",
+      "back": "Padà",
+      "cancel": "Fagilé",
+      "importing": "À ń gbé ìlà {done} nínú {total} wọlé…",
+      "keepOpen": "Jẹ́ kí tábù yìí wà ní ṣíṣí títí ìgbéwọlé yóò fi parí. Pípa á dé yóò dá ìgbéwọlé dúró; àwọn ìlà tí a ti gbé wọlé yóò wà níbẹ̀.",
+      "stop": "Dá a dúró",
+      "stopping": "À ń dá a dúró lẹ́yìn ìpín yìí…",
+      "doneTitle": "Ìgbéwọlé ti parí",
+      "stoppedTitle": "Ìgbéwọlé ti dúró",
+      "stoppedNote": "Tún gbé fáìlì kan náà wọlé láti parí i. A ó dá àwọn ìlà tí a ti gbé wọlé mọ̀, a ó sì fò wọ́n dá.",
+      "failedNote": "Ìgbéwọlé dúró nítorí pé ìbéèrè kan kùnà: {error}",
+      "nothingToImport": "Kò sí nǹkan kan nínú fáìlì yìí tí a ó ṣẹ̀dá tàbí ṣe ìmúdójúìwọ̀n rẹ̀.",
+      "problemsTitle": "Àwọn ìlà láti ṣàyẹ̀wò ({count})",
+      "downloadProblems": "Gbà á sílẹ̀ bí CSV",
+      "moreProblems": "{count} mìíràn wà nínú CSV",
+      "rowLabel": "Ìlà {row}",
+      "importAnother": "Gbé fáìlì mìíràn wọlé",
+      "done": "Ó ti parí",
+      "counts": {
+        "toCreate": "Láti ṣẹ̀dá",
+        "toUpdate": "Láti ṣe ìmúdójúìwọ̀n",
+        "created": "A ti ṣẹ̀dá",
+        "updated": "A ti ṣe ìmúdójúìwọ̀n",
+        "skipped": "A fò wọ́n dá",
+        "errors": "Àṣìṣe"
+      },
+      "status": {
+        "create": "Tuntun",
+        "update": "Ìmúdójúìwọ̀n",
+        "skip": "A fò ó dá",
+        "error": "Àṣìṣe"
+      },
+      "csv": {
+        "row": "Ìlà",
+        "key": "A dá a mọ̀ nípasẹ̀",
+        "result": "Èsì",
+        "message": "Àlàyé"
+      }
+    },
+    "customerImport": {
+      "title": "Gbé àwọn oníbàárà wọlé",
+      "description": "Fi àwọn oníbàárà kún un láti inú fáìlì CSV: èyí tí o ṣe fúnra rẹ, tàbí fáìlì oníbàárà tí o gbé jáde láti Shopify tàbí WooCommerce.",
+      "sourceHint": "Bẹ̀rẹ̀ láti inú àwòṣe, tàbí gbé fáìlì oníbàárà tí o gbé jáde láti Shopify tàbí WooCommerce sókè bí ó ṣe wà.",
+      "downloadTemplate": "Gba àwòṣe sílẹ̀",
+      "guide": {
+        "columnsTitle": "Àwọn ọwọ̀n",
+        "columns": {
+          "firstName": "Orúkọ àkọ́kọ́ oníbàárà.",
+          "lastName": "Orúkọ ìdílé oníbàárà.",
+          "email": "A fi ń wá oníbàárà náà rí. Ìlà tí kò ní ímeèlì nílò nọ́mbà fóònù.",
+          "phone": "Nọ́mbà fóònù alágbèéká, pẹ̀lú kóòdù orílẹ̀-èdè rẹ̀, tàbí bí orílẹ̀-èdè àdírẹ́sì náà ṣe ń kọ ọ́.",
+          "acceptsEmailMarketing": "“yes” tàbí “no”. “yes” ń forúkọ àdírẹ́sì ímeèlì náà sílẹ̀ fún ìpolówó.",
+          "acceptsSmsMarketing": "“yes” tàbí “no”. “yes” ń forúkọ nọ́mbà fóònù náà sílẹ̀ fún ìpolówó nípasẹ̀ àtẹ̀jíṣẹ́.",
+          "address1": "Òpópónà àti nọ́mbà ilé.",
+          "address2": "Iyàrá, suite tàbí àjà ilé.",
+          "city": "Ìlú.",
+          "provinceCode": "Kóòdù ìpínlẹ̀ tàbí agbègbè, fún àpẹẹrẹ CA.",
+          "countryCode": "Kóòdù orílẹ̀-èdè onílẹ́tà méjì, fún àpẹẹrẹ US.",
+          "zip": "Kóòdù ìfìwéránṣẹ́.",
+          "addressPhone": "Nọ́mbà fóònù fún ìfijíṣẹ́ sí àdírẹ́sì yìí.",
+          "tags": "Àwọn àmì, tí a fi kọ́mà yà sọ́tọ̀.",
+          "note": "Àkíyèsí tí ẹgbẹ́ rẹ nìkan ń rí."
+        },
+        "otherPlatforms": "A máa ń ka fáìlì oníbàárà tí a gbé jáde láti Shopify àti àwọn ọwọ̀n ìsanwó WooCommerce bí wọ́n ṣe wà. A kò gbé Total Spent, Total Orders àti Tax Exempt wọlé: àpapọ̀ tí ó wà níbí ń ka àwọn àṣẹ tí a ṣe nínú ilé ìtajà yìí.",
+        "rulesTitle": "Bí a ṣe ń gbé àwọn ìlà wọlé",
+        "rules": {
+          "match": "A máa ń dá àwọn oníbàárà mọ̀ nípasẹ̀ ímeèlì, tàbí nípasẹ̀ fóònù tí ìlà kò bá ní ímeèlì. A máa ń fo àwọn oníbàárà tí ó ti wà nínú ilé ìtajà rẹ dá, àyàfi tí “Ṣe ìmúdójúìwọ̀n àwọn oníbàárà tó ti wà” bá wà ní títàn.",
+          "duplicates": "Tí fáìlì kan bá ní oníbàárà kan náà lẹ́ẹ̀mejì, ìlà tí ó kẹ́yìn ni a ó lò.",
+          "consent": "“yes” ń forúkọ àwọn oníbàárà tí kò tíì dáhùn sílẹ̀. Ẹnikẹ́ni tí ó ti jáwọ́, tí ímeèlì rẹ̀ ti padà, tàbí tí ó ti ní kí a má fi ímeèlì ránṣẹ́ sí òun, yóò wà bí ó ṣe wà.",
+          "address": "A máa ń fi àdírẹ́sì tí ó wà ní orílẹ̀-èdè tí ilé ìtajà rẹ kò ta ọjà sí sílẹ̀; a ṣì máa ń gbé oníbàárà náà wọlé.",
+          "rerun": "Kò séwu láti tún gbé fáìlì kan náà wọlé: a kò ní ṣẹ̀dá ẹnikẹ́ni lẹ́ẹ̀mejì."
+        }
+      },
+      "options": {
+        "updateExisting": "Ṣe ìmúdójúìwọ̀n àwọn oníbàárà tó ti wà",
+        "updateExistingHint": "Àwọn oníbàárà tí ó ti wà nínú ilé ìtajà rẹ yóò gba àlàyé inú fáìlì. Àwọn àyè òfo yóò pa ohun tí a ti fi pamọ́ mọ́.",
+        "updateExistingDenied": "Ó nílò àṣẹ láti ṣàtúnṣe àwọn oníbàárà àti ààyè sí gbogbo oníbàárà.",
+        "tag": "Àmì",
+        "tagHint": "A ó fi kún gbogbo oníbàárà tí ìgbéwọlé yìí bá ṣẹ̀dá tàbí ṣe ìmúdójúìwọ̀n rẹ̀.",
+        "tagInvalid": "Lo àmì kan ṣoṣo tí kò ju lẹ́tà {max} lọ, láìsí kọ́mà.",
+        "sendInvites": "Fi àwọn ìpè àkọọ́lẹ̀ ránṣẹ́",
+        "sendInvitesHint": "Àwọn oníbàárà tí ìgbéwọlé yìí bá ṣẹ̀dá yóò gba ímeèlì pẹ̀lú ọ̀nà àsopọ̀ láti ṣètò ọ̀rọ̀ aṣínà wọn."
+      },
+      "result": {
+        "tagged": "Wá àwọn oníbàárà wọ̀nyí pẹ̀lú àmì {tag}.",
+        "invitesQueued": "{count, plural, other {Ìpè àkọọ́lẹ̀ # wà lójú ọ̀nà.}}",
+        "invitesNotSent": "A kò fi ìpè kankan ránṣẹ́ nítorí pé ìgbéwọlé dúró. Ṣẹ́ àtòjọ náà pẹ̀lú àmì {tag}, kí o sì fi wọ́n ránṣẹ́ láti ibẹ̀."
+      },
+      "messages": {
+        "file_no_key_column": "Fáìlì náà nílò ọwọ̀n Email tàbí Phone. Ó bẹ̀rẹ̀ pẹ̀lú: {headers}.",
+        "file_columns_not_imported": "A kò gbé wọ̀nyí wọlé: {columns}.",
+        "file_columns_unknown": "Àwọn ọwọ̀n tí a kò dá mọ̀, tí a sì fi sílẹ̀: {columns}.",
+        "email_invalid": "{email} kì í ṣe àdírẹ́sì ímeèlì tó tọ́.",
+        "phone_invalid_no_email": "Ìlà náà kò ní ímeèlì, {phone} kò sì jẹ́ nọ́mbà fóònù tó tọ́.",
+        "no_email_or_phone": "Ìlà náà kò ní ímeèlì tàbí nọ́mbà fóònù.",
+        "phone_invalid": "Fóònù {phone} kì í ṣe nọ́mbà tó tọ́, a sì fi í sílẹ̀.",
+        "address_phone_invalid": "Fóònù àdírẹ́sì {phone} kì í ṣe nọ́mbà tó tọ́, a sì fi í sílẹ̀.",
+        "address_country_unknown": "A kò dá orílẹ̀-èdè {country} mọ̀, nítorí náà a fi àdírẹ́sì náà sílẹ̀.",
+        "address_country_not_allowed": "Ilé ìtajà rẹ kò ta ọjà sí {country}, nítorí náà a fi àdírẹ́sì náà sílẹ̀.",
+        "address_incomplete": "Àdírẹ́sì náà kò ní òpópónà, ìlú, orílẹ̀-èdè tàbí kóòdù ìfìwéránṣẹ́, nítorí náà a fi í sílẹ̀.",
+        "tags_too_long": "{count, plural, other {A fi àmì # tí ó gùn ju lẹ́tà {max} lọ sílẹ̀.}}",
+        "tags_too_many": "Àmì {max} àkọ́kọ́ nìkan ni a gbé wọlé.",
+        "name_too_long": "A gé orúkọ náà kúrú sí lẹ́tà {max}.",
+        "consent_value_unclear": "“{value}” kì í ṣe “yes” tàbí “no”, nítorí náà a kà á sí “no”.",
+        "sms_consent_no_phone": "Ìpolówó nípasẹ̀ àtẹ̀jíṣẹ́ nílò nọ́mbà fóònù tó tọ́, nítorí náà a kò tàn án.",
+        "note_too_long": "A gé àkíyèsí náà kúrú sí lẹ́tà {max}.",
+        "consent_suppressed": "Àdírẹ́sì yìí ti ní kí a má fi ímeèlì ránṣẹ́ sí i, nítorí náà a kò forúkọ rẹ̀ sílẹ̀.",
+        "consent_kept": "Ìpolówó nípasẹ̀ ímeèlì ṣì wà ní ipò {state}; fáìlì náà kò yí i padà.",
+        "sms_consent_kept": "Ìpolówó nípasẹ̀ àtẹ̀jíṣẹ́ ṣì wà ní ipò {state}; fáìlì náà kò yí i padà.",
+        "staff_account": "Ímeèlì yìí jẹ́ ti àkọọ́lẹ̀ ọmọ ẹgbẹ́, olùtajà tàbí alábòójútó.",
+        "exists": "Ó ti jẹ́ oníbàárà tẹ́lẹ̀.",
+        "phone_on_account": "Nọ́mbà fóònù yìí jẹ́ ti àkọọ́lẹ̀ kan. Fi oníbàárà yìí kún un pẹ̀lú ímeèlì dípò rẹ̀.",
+        "duplicate_in_file": "Oníbàárà kan náà tún farahàn ní ìlà {row}, ìlà yẹn ni a sì lò.",
+        "phone_not_saved": "A kò fi nọ́mbà fóònù náà pamọ́: oníbàárà yìí kò ní àkọọ́lẹ̀ tàbí àdírẹ́sì tí a lè fi pamọ́ sí.",
+        "write_failed": "A kò lè fi ìlà yìí pamọ́."
+      },
+      "consentStates": {
+        "unsubscribed": "ìjáwọ́",
+        "invalid": "àìtọ́",
+        "redacted": "ìparẹ́"
+      },
+      "export": {
+        "preparing": "À ń pèsè ìgbéjáde àwọn oníbàárà…",
+        "done": "A ti gbé àwọn oníbàárà jáde",
+        "failed": "A kò lè gbé àwọn oníbàárà jáde"
+      }
+    },
+    "vendorImport": {
+      "title": "Kó àwọn olùtajà wọlé",
+      "description": "Mú àwọn ilé ìtajà àti àwọn tó ni wọ́n wá láti ọjà mìíràn pẹ̀lú fáìlì CSV.",
+      "sourceHint": "Bẹ̀rẹ̀ pẹ̀lú àwòṣe, tàbí pẹ̀lú fáìlì àwọn olùtajà tí a kó jáde láti ilé ìtajà {storeName} kan.",
+      "downloadTemplate": "Ṣe ìgbàsílẹ̀ àwòṣe",
+      "guide": {
+        "columnsTitle": "Àwọn ọ̀wọ̀n",
+        "required": "Dandan",
+        "columns": {
+          "storeName": "Orúkọ ilé ìtajà náà, bí àwọn olùrà ṣe ń rí i.",
+          "ownerEmail": "Ímeèlì ẹni tó ni ilé ìtajà. Ó fi ń wọlé, ìpè náà sì ń lọ síbẹ̀.",
+          "ownerName": "Orúkọ kíkún ẹni tó ni ilé ìtajà.",
+          "ownerPhone": "Nọ́mbà fóònù ẹni tó ni ilé ìtajà.",
+          "slug": "Àdírẹ́sì wẹ́ẹ̀bù ilé ìtajà, fún àpẹẹrẹ green-leaf. Ó ń rí ilé ìtajà tí a ó ṣe àtúnṣe sí. Tí ó bá ṣófo, a ó ṣe é láti orúkọ ilé ìtajà.",
+          "description": "Nípa ilé ìtajà náà, tó ìwọ̀n lẹ́tà 1000.",
+          "logoUrl": "Ọ̀nà àsopọ̀ https:// gbangba sí àmì ìdánimọ̀. A ó da àwòrán náà kọ sí ilé ìkàwé mídíà rẹ.",
+          "bannerUrl": "Ọ̀nà àsopọ̀ https:// gbangba sí àsíá ilé ìtajà. A ó da àwòrán náà kọ sí ilé ìkàwé mídíà rẹ.",
+          "storePhone": "Nọ́mbà fóònù ilé ìtajà fúnra rẹ̀.",
+          "street": "Òpópónà àti nọ́mbà.",
+          "city": "Ìlú.",
+          "state": "Ìpínlẹ̀ tàbí agbègbè.",
+          "postalCode": "Kóòdù ìfìwéránṣẹ́.",
+          "country": "Orúkọ orílẹ̀-èdè tàbí kóòdù lẹ́tà méjì, fún àpẹẹrẹ BD.",
+          "plan": "Orúkọ tàbí slug ètò ọ̀fẹ́ kan. Tí ó bá ṣófo: ètò àìyípadà rẹ.",
+          "commission": "Owó àjọ ilé ìtajà ní ìdá ọgọ́rùn-ún, fún àpẹẹrẹ 12.5. Tí ó bá ṣófo: ìwọ̀n ètò rẹ̀ tàbí ìwọ̀n àìyípadà rẹ.",
+          "verified": "yes tàbí no: fi àmì Verified hàn lórí ilé ìtajà.",
+          "notes": "Àwọn àkọsílẹ̀ tí ẹgbẹ́ rẹ nìkan ń rí."
+        },
+        "notImported": "A kì í kó àlàyé báńkì, ètò ìsanwó àti àwọn ìwé ìjẹ́rìísí wọlé láé. Àwọn olùtajà ló ń fi wọ́n kún lẹ́yìn tí wọ́n bá wọlé.",
+        "rulesTitle": "Bí a ṣe ń kó àwọn ìlà wọlé",
+        "rules": {
+          "match": "A ń bá àwọn ilé ìtajà mu nípa slug, lẹ́yìn náà nípa ímeèlì ẹni tó ni wọ́n. A ó fo àwọn ilé ìtajà tó ti wà tẹ́lẹ̀ àyàfi tí \"Ṣe àtúnṣe àwọn olùtajà tó wà tẹ́lẹ̀\" bá wà ní títàn.",
+          "owner": "A ó kọ ímeèlì tó jẹ́ ti alábòójútó, ọmọ ẹgbẹ́ tàbí ẹni tó ni ilé ìtajà mìíràn. Oníbàárà tó ní ímeèlì yẹn ló máa di ẹni tó ni ilé ìtajà.",
+          "plan": "Ètò tí a ń sanwó fún nílò ìsanwó olùtajà fúnra rẹ̀, nítorí náà àwọn ilé ìtajà yẹn ń gba ètò àìyípadà rẹ dípò.",
+          "rerun": "Kíkó fáìlì kan náà wọlé lẹ́ẹ̀kan sí i kò léwu: a kì í ṣẹ̀dá ilé ìtajà kankan lẹ́ẹ̀mejì."
+        }
+      },
+      "options": {
+        "updateExisting": "Ṣe àtúnṣe àwọn olùtajà tó wà tẹ́lẹ̀",
+        "updateExistingHint": "Àwọn ilé ìtajà tó ti wà tẹ́lẹ̀ ń gba àlàyé inú fáìlì. Àwọn sẹ́ẹ̀lì tó ṣófo ń pa ohun tí a ti fipamọ́ mọ́.",
+        "startAs": "Àwọn olùtajà tí a kó wọlé bẹ̀rẹ̀ gẹ́gẹ́ bí",
+        "startAsApproved": "A ti fọwọ́ sí",
+        "startAsPending": "Ń dúró de àyẹ̀wò",
+        "startAsApprovedHint": "Àwọn tó ni ilé ìtajà ń gba ímeèlì láti ṣètò ọ̀rọ̀ aṣínà wọn, wọ́n sì lè bẹ̀rẹ̀ sí í tà lẹ́sẹ̀kẹsẹ̀.",
+        "startAsPendingHint": "A kò fi nǹkan kan ránṣẹ́ báyìí. Ẹni tó ni ilé ìtajà tí kò ní ọ̀rọ̀ aṣínà máa gba ìpè nígbà tí o bá fọwọ́ sí ilé ìtajà."
+      },
+      "result": {
+        "invitesQueued": "{count, plural, one {Ẹni # tó ni ilé ìtajà ń gba} other {Àwọn # tó ni ilé ìtajà ń gba}} ímeèlì láti ṣètò ọ̀rọ̀ aṣínà."
+      },
+      "messages": {
+        "file_missing_columns": "Fáìlì náà nílò àwọn ọ̀wọ̀n wọ̀nyí: {columns}.",
+        "file_columns_not_imported": "A kò kó wọlé: {columns}.",
+        "file_columns_unknown": "A fi àwọn ọ̀wọ̀n tí a kò mọ̀ sílẹ̀: {columns}.",
+        "row_missing": "{column} ṣófo.",
+        "row_email_invalid": "{value} kì í ṣe àdírẹ́sì ímeèlì tó tọ́.",
+        "row_too_long": "{column} gùn ju lẹ́tà {max} lọ.",
+        "row_slug_invalid": "{value} kò lè jẹ́ slug ilé ìtajà. Lo lẹ́tà, nọ́mbà àti àmì àlà.",
+        "row_slug_reserved": "A ti fi {value} pamọ́ fún ilé ìtajà tìrẹ.",
+        "row_image_invalid": "{column} kì í ṣe ọ̀nà àsopọ̀.",
+        "row_image_not_https": "{column} gbọ́dọ̀ bẹ̀rẹ̀ pẹ̀lú https://.",
+        "row_commission_invalid": "Owó àjọ {value} kì í ṣe ìdá ọgọ́rùn-ún láàárín 0 àti 100.",
+        "row_verified_invalid": "Verified {value} kì í ṣe yes tàbí no.",
+        "row_country_not_available": "{country} kò sí lára àwọn orílẹ̀-èdè ilé ìtajà rẹ, nítorí náà a fi àdírẹ́sì pamọ́ láìsí i.",
+        "row_slug_taken": "Slug {slug} jẹ́ ti ilé ìtajà ẹlòmíràn.",
+        "row_default_store": "Èyí ni ilé ìtajà tìrẹ, èyí tí kíkó wọlé kò lè yí padà.",
+        "row_owner_team": "Ímeèlì yìí jẹ́ ti alábòójútó tàbí ọmọ ẹgbẹ́.",
+        "row_owner_has_store": "Ímeèlì yìí ti ní ilé ìtajà kan tẹ́lẹ̀.",
+        "row_owner_banned": "Ímeèlì yìí jẹ́ ti àkọọ́lẹ̀ tí a ti fòfin dè.",
+        "row_owner_inactive": "Ímeèlì yìí jẹ́ ti àkọọ́lẹ̀ tí a ti pa.",
+        "row_plan_not_found": "Kò sí ètò tí a ń pè ní {plan}.",
+        "row_plan_ambiguous": "Ọ̀pọ̀ ètò ló ń jẹ́ {plan}. Lo slug rẹ̀.",
+        "row_plan_archived": "A ti fi {plan} pamọ́ sí àkójọ àtijọ́, nítorí náà a lo ètò àìyípadà.",
+        "row_plan_paid": "{plan} jẹ́ ètò tí a ń sanwó fún, nítorí náà a lo ètò àìyípadà. Olùtajà lè yí i padà lẹ́yìn tí ó bá wọlé.",
+        "row_plan_kept_paid": "Ilé ìtajà náà ń sanwó fún ètò rẹ̀, nítorí náà a kò gbé e lọ sí {plan}.",
+        "row_image_failed": "A kò lè da {column} kọ: {reason}.",
+        "row_duplicate_in_file": "Ìlà kan tó ṣáájú nínú fáìlì jẹ́ ilé ìtajà kan náà.",
+        "row_failed": "A kò lè kó ìlà náà wọlé. {message}",
+        "run_default_plan_paid": "Ètò àìyípadà rẹ, {plan}, jẹ́ èyí tí a ń sanwó fún, nítorí náà àwọn ilé ìtajà tuntun kò gba ètò kankan.",
+        "run_plans_off": "A ti pa àwọn ètò olùtajà, nítorí náà a fi ọ̀wọ̀n Plan sílẹ̀."
+      },
+      "imageReasons": {
+        "invalid_url": "kì í ṣe ọ̀nà àsopọ̀ tó tọ́",
+        "not_https": "ọ̀nà àsopọ̀ gbọ́dọ̀ bẹ̀rẹ̀ pẹ̀lú https://",
+        "private_address": "ọ̀nà àsopọ̀ náà tọ́ka sí nẹ́tíwọ́ọ̀kì àdáni",
+        "unreachable": "a kò lè dé ojú-ìwé náà",
+        "too_many_redirects": "ọ̀nà àsopọ̀ náà ń darí síbòmíràn lọ́pọ̀ ìgbà jù",
+        "http_error": "ojú-ìwé náà dáhùn pẹ̀lú àṣìṣe",
+        "timeout": "ojú-ìwé náà kò dáhùn ní àkókò",
+        "not_image": "ọ̀nà àsopọ̀ náà kì í ṣe àwòrán",
+        "too_large": "àwòrán náà tóbi jù",
+        "unreadable": "kì í ṣe àwòrán tí ilé ìtajà lè lò"
+      },
+      "export": {
+        "preparing": "À ń pèsè fáìlì àwọn olùtajà…",
+        "done": "A ti kó àwọn olùtajà jáde",
+        "failed": "A kò lè kó àwọn olùtajà jáde"
+      },
+      "invites": {
+        "progress": "À ń fi ìpè ránṣẹ́ sí àwọn tó ni ilé ìtajà · {done} nínú {total}",
+        "progressFailed": "A kò lè fi {count} ránṣẹ́",
+        "finished": "A ti fi ìpè {count} ránṣẹ́ sí àwọn tó ni ilé ìtajà",
+        "finishedWithFailures": "A kò lè fi ìpè {failed} nínú {total} ránṣẹ́ sí àwọn tó ni ilé ìtajà.",
+        "retry": "Gbìyànjú lẹ́ẹ̀kan sí i",
+        "dismiss": "Pa á dé",
+        "emailNotSetUp": "A kò tíì ṣètò ímeèlì. Kọ́kọ́ ṣètò rẹ̀ ní Ètò → Ímeèlì.",
+        "sendFailed": "A kò lè fi ímeèlì náà ránṣẹ́. Ṣàyẹ̀wò Ètò → Ímeèlì."
+      }
+    },
     "settings": {
       "title": "Ètò",
       "search": "Wá àwọn ètò",
@@ -875,7 +1295,7 @@
         "storeCurrencyHint": "Gbogbo iye owó, àṣẹ àti ìsanwó ló wà nínú owó yìí. Yíyí i padà máa ń yí àmì iye owó padà nìkan; kò ní ṣe ìyípadà wọn.",
         "countries": {
           "title": "Àwọn orílẹ̀-èdè tó wà",
-          "description": "Ṣàkóso àwọn àkójọ orílẹ̀-èdè tí a ń lò níbi ìsanwó, ìforúkọsílẹ̀ olùtajà, àdírẹ́sì, ìfiránṣẹ́ àti fọ́ọ̀mù ọjà.",
+          "description": "Ṣàkóso àwọn àkójọ orílẹ̀-èdè tí a ń lò níbi ìsanwó, ìforúkọsílẹ̀ olùtajà, àdírẹ́sì àti ìfiránṣẹ́. Tí orílẹ̀-èdè kan ṣoṣo bá jẹ́ àyànfẹ́, àwọn àyè àdírẹ́sì ìfijíṣẹ́ yóò fi hàn, kò sì ṣeé yí padà.",
           "all": "Gbogbo orílẹ̀-èdè",
           "allHint": "Fi gbogbo orílẹ̀-èdè tí a ń ṣàtìlẹ́yìn ({count}) hàn nínú gbogbo olùyàn orílẹ̀-èdè.",
           "specific": "Àwọn orílẹ̀-èdè pàtó",
@@ -887,8 +1307,11 @@
           "required": "Yan ó kéré tán orílẹ̀-èdè kan kí o tó fipamọ́.",
           "selected": "{count, plural, other {A ti yan orílẹ̀-èdè #.}}"
         },
+        "setDefault": "Ṣètò gẹ́gẹ́ bí àiyipada",
         "defaultBadge": "Àìyípadà",
-        "countryRequired": "Yan ó kéré tán orílẹ̀-èdè kan, tàbí yan Gbogbo orílẹ̀-èdè."
+        "countryRequired": "Yan ó kéré tán orílẹ̀-èdè kan, tàbí yan Gbogbo orílẹ̀-èdè.",
+        "storeProfileMissingTitle": "Àkọsílẹ̀ ilé ìtajà rẹ kò sí",
+        "storeProfileMissingBody": "Àwọn ọjà, ìṣura àti ibi tita jẹ́ tirẹ̀. Ṣàyẹ̀wò orúkọ ilé ìtajà, èdè àti owó nísàlẹ̀, lẹ́yìn náà fi pamọ́ láti ṣẹ̀dá rẹ̀."
       },
       "appearance": {
         "title": "Àmì ìdánimọ̀",
@@ -908,7 +1331,7 @@
         "description": "Ṣètò àwọn ẹnu-ọ̀nà ìsanwó àti àwọn àṣàyàn",
         "stripePublishableKey": "Kọ́kọ́rọ́ gbangba",
         "stripeWebhookSecret": "Àṣírí webhook",
-        "paypalClientId": "Client ID",
+        "paypalClientId": "ID oníbàárà",
         "paypalMode": "Ipò",
         "paypalSandbox": "Sandbox",
         "paypalLive": "Ní tààràtà",
@@ -925,7 +1348,7 @@
         "paypal": {
           "title": "PayPal",
           "description": "Ìsanwó àti àpò owó tí a gbẹ́kẹ̀lé kárí ayé",
-          "clientSecret": "Client Secret",
+          "clientSecret": "Àṣírí oníbàárà",
           "clientIdPlaceholder": "ID oníbàárà PayPal",
           "webhookIdPlaceholder": "ID webhook PayPal"
         },
@@ -1020,150 +1443,315 @@
         }
       },
       "email": {
-        "title": "Ìṣètò ímeèlì (SMTP)",
-        "description": "Ṣètò fífi ímeèlì ránṣẹ́ nípasẹ̀ SMTP",
-        "enable": "Mú ímeèlì SMTP ṣiṣẹ́",
-        "host": "Olupin SMTP",
-        "port": "Pọ́ọ̀tù SMTP",
-        "username": "Orúkọ olùlò SMTP",
-        "password": "Ọ̀rọ̀ aṣínà SMTP",
-        "fromEmail": "Ímeèlì olùfiránṣẹ́",
-        "fromName": "Orúkọ olùfiránṣẹ́",
+        "title": "Ímeèlì",
+        "description": "Ìmúdójúìwọ̀n àṣẹ, àtúntò ọ̀rọ̀ aṣínà àti ìkìlọ̀ ilé ìtajà ń jáde lọ nípasẹ̀ olùpín ímeèlì tìrẹ.",
+        "descriptionOff": "Ó wà ní pípa: ilé ìtajà kò fi ímeèlì kankan ránṣẹ́, kódà ìfìdímúlẹ̀ àṣẹ tàbí àtúntò ọ̀rọ̀ aṣínà. A ń pa àlàyé olùpín rẹ mọ́.",
+        "descriptionOffEnv": "Ó wà ní pípa níbí, ṣùgbọ́n sáfà yìí ní ìwọlé ímeèlì tirẹ̀ (SMTP_USER nínú .env), nítorí náà ímeèlì ṣì ń jáde nípasẹ̀ ìyẹn.",
+        "switchLabel": "Fi ímeèlì ránṣẹ́",
+        "stuck": {
+          "title": "A kò tún fi àwọn ímeèlì tí ó kùnà ránṣẹ́",
+          "neverRan": "Iṣẹ́ abẹ́lẹ̀ kan ló máa ń tún wọn fi ránṣẹ́ ní gbogbo ìṣẹ́jú 5, ṣùgbọ́n iṣẹ́ náà kò tíì ṣiṣẹ́ rí lórí sáfà yìí. Ímeèlì tó pẹ́ jù lọ ti ń dúró láti {date}, bí iṣẹ́ náà bá sì bẹ̀rẹ̀, gbogbo wọn yóò jáde nígbà náà.",
+          "stopped": "Iṣẹ́ abẹ́lẹ̀ kan ló máa ń tún wọn fi ránṣẹ́ ní gbogbo ìṣẹ́jú 5, ìgbà ìkẹyìn tí ó ṣiṣẹ́ sì ni {lastRun}. Ímeèlì tó pẹ́ jù lọ ti ń dúró láti {date}, bí iṣẹ́ náà bá sì tún bẹ̀rẹ̀, gbogbo wọn yóò jáde nígbà náà.",
+          "show": "Fi wọ́n hàn",
+          "cancel": "Fagilé wọn",
+          "cancelTitle": "{count, plural, other {Fagilé ímeèlì # tí ń dúró?}}",
+          "cancelDescription": "A kò ní fi wọ́n ránṣẹ́. Àkọsílẹ̀ yóò pa wọ́n mọ́ bí Ti fagilé.",
+          "cancelConfirm": "Fagilé ímeèlì",
+          "keep": "Pa wọ́n mọ́",
+          "cancelled": "{count, plural, other {A ti fagilé ímeèlì #.}}",
+          "cancelFailed": "A kò lè fagilé àwọn ímeèlì náà"
+        },
+        "server": {
+          "title": "Olùpín ímeèlì",
+          "tested": "A dán an wò ní {date}",
+          "testedNow": "A ṣẹ̀ṣẹ̀ dán an wò",
+          "untested": "A kò tíì dán an wò láti ìgbà àyípadà tó kẹ́yìn.",
+          "notSetUp": "A kò tíì ṣètò rẹ̀. Tẹ̀lé ìtọ́sọ́nà ní ìsàlẹ̀.",
+          "saveFirst": "Fi àwọn àyípadà rẹ pamọ́, lẹ́yìn náà fi ìdánwò ránṣẹ́.",
+          "failed": "Ìdánwò náà kùnà: {error}",
+          "lastFailed": "Ímeèlì tó kẹ́yìn kùnà ní {date}: {error}",
+          "host": "Olùpín",
+          "port": "Pọ́ọ̀tù",
+          "portTls": "Pọ́ọ̀tù 465 ní ìpàrokò TLS.",
+          "portStarttls": "Pọ́ọ̀tù 587 ní ìpàrokò STARTTLS.",
+          "portOther": "Pọ́ọ̀tù {port} ní ìpàrokò kìkì bí olùpín bá ṣe àtìlẹ́yìn rẹ̀.",
+          "portEmpty": "Ọ̀pọ̀ jù lọ olùpèsè ló ń lo pọ́ọ̀tù 587.",
+          "username": "Orúkọ olùlò",
+          "password": "Ọ̀rọ̀ aṣínà",
+          "passwordSaved": "A ti fi pamọ́, ó sì farasin. Tẹ tuntun láti rọ́pò rẹ̀.",
+          "passwordReplace": "Yóò rọ́pò ọ̀rọ̀ aṣínà tí a fi pamọ́ nígbà tí o bá fi pamọ́.",
+          "passwordRemoved": "A ó yọ ọ́ kúrò nígbà tí o bá fi pamọ́.",
+          "passwordGmail": "Fún Gmail, lo ọ̀rọ̀ aṣínà áàpù, kì í ṣe ọ̀rọ̀ aṣínà àkàǹtì rẹ.",
+          "remove": "Yọ kúrò",
+          "locked": "A tì í pa nígbà tí ìjẹ́rìísí ìforúkọsílẹ̀ bá wà ní títàn, kí àwọn àkàǹtì tuntun lè máa gba ìjápọ̀ wọn. Láti yí olùpín padà, kọ́kọ́ <link>pa ìjẹ́rìísí</link>."
+        },
         "test": {
-          "label": "Ímeèlì ìdánwò",
-          "placeholder": "test@example.com",
-          "button": "Fi ímeèlì ìdánwò ránṣẹ́",
-          "success": "A ti fi ímeèlì ìdánwò ránṣẹ́!",
+          "button": "Fi ìdánwò ránṣẹ́",
+          "label": "Fi ìdánwò ránṣẹ́ sí",
+          "send": "Fi ránṣẹ́",
+          "sending": "Ń fi ránṣẹ́…",
+          "sent": "A ti fi ímeèlì ìdánwò ránṣẹ́ sí {email}",
           "error": "A kò lè fi ímeèlì ìdánwò ránṣẹ́"
         },
-        "save": "Fi ètò ímeèlì pamọ́",
-        "passwordPlaceholder": "Tẹ ọ̀rọ̀ aṣínà",
-        "fromNamePlaceholder": "Orúkọ ilé ìtajà rẹ",
-        "encryptionNote": "Ìpàrokò máa ń ṣẹlẹ̀ fúnra rẹ̀: ibùdó 465 ń lo TLS tààràtà, ibùdó 587 sì nílò STARTTLS."
+        "sender": {
+          "title": "Olùfiránṣẹ́",
+          "preview": "Àwọn olùgbà ń rí <strong>{sender}</strong>",
+          "fromName": "Orúkọ olùfiránṣẹ́",
+          "fromNameHint": "Bí ó bá ṣófo, a ó lo orúkọ ilé ìtajà rẹ.",
+          "fromEmail": "Ímeèlì olùfiránṣẹ́",
+          "fromEmailHint": "Bí ó bá ṣófo, a ó lo orúkọ olùlò.",
+          "fromEmailLocked": "A tì í pa pẹ̀lú olùpín.",
+          "gmailAlias": "Gmail ń fi ránṣẹ́ láti {user} àyàfi tí a bá fi {from} kún àkàǹtì Gmail náà gẹ́gẹ́ bí àdírẹ́sì “Send mail as”."
+        },
+        "verification": {
+          "title": "Ìjẹ́rìísí ìforúkọsílẹ̀",
+          "description": "Àwọn àkàǹtì tuntun máa ń jẹ́rìísí àdírẹ́sì ímeèlì wọn kí wọ́n tó lè wọlé. A kò dí àwọn àkàǹtì tí a ṣẹ̀dá kí o tó tan èyí.",
+          "customers": "Àwọn oníbàárà",
+          "vendors": "Àwọn olùtajà",
+          "vendorsHint": "Àwọn olùtajà tí o bá fọwọ́sí láti ìsinsìnyí lọ.",
+          "needTest": "Kọ́kọ́ fi ímeèlì ìdánwò tó yọrí sí rere ránṣẹ́, kí ìjápọ̀ lè dé ọ̀dọ̀ àwọn ènìyàn.",
+          "needSave": "Kọ́kọ́ fi àwọn àyípadà olùpín rẹ pamọ́ kí o sì fi ìdánwò ránṣẹ́.",
+          "failingTitle": "Àwọn àkàǹtì tuntun kò lè wọlé báyìí",
+          "failing": "Ìjápọ̀ wọn kò dé, nítorí pé àwọn ímeèlì ń kùnà. Pa ìjẹ́rìísí, ṣàtúnṣe olùpín kí o sì fi ìdánwò ránṣẹ́, lẹ́yìn náà tún tan án."
+        },
+        "guide": {
+          "title": "Ìtọ́sọ́nà ìṣètò {provider}",
+          "titleGeneric": "Ìtọ́sọ́nà ìṣètò olùpín ímeèlì",
+          "provider": "Olùpèsè rẹ",
+          "providers": {
+            "gmail": "Gmail",
+            "zoho": "Zoho Mail",
+            "hosting": "Ilé-iṣẹ́ hosting (cPanel)",
+            "brevo": "Brevo",
+            "sendgrid": "SendGrid",
+            "ses": "Amazon SES",
+            "other": "Òmíràn"
+          },
+          "docs": "Àlàyé kíkún: docs/EMAIL_SETUP.md",
+          "gmail": {
+            "step1": "Tan 2-Step Verification lórí àkàǹtì Google tí o máa lò láti fi ránṣẹ́.",
+            "step2": "Ṣẹ̀dá ọ̀rọ̀ aṣínà áàpù tí orúkọ rẹ̀ ń jẹ́ {storeName}, kí o sì ṣe àdàkọ ọ̀rọ̀ aṣínà onílẹ́tà 16 náà. Ẹ̀ẹ̀kan ṣoṣo ni Google ń fi í hàn.",
+            "step3": "Tẹ olùpín àti pọ́ọ̀tù lókè, àdírẹ́sì Gmail rẹ ní kíkún gẹ́gẹ́ bí orúkọ olùlò, àti ọ̀rọ̀ aṣínà áàpù gẹ́gẹ́ bí ọ̀rọ̀ aṣínà.",
+            "step4": "Láti fi ránṣẹ́ bí àdírẹ́sì mìíràn, bí info@yourstore.com, kọ́kọ́ fi kún un nínú Gmail ní abẹ́ Settings → Accounts and Import → Send mail as.",
+            "step5": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "Àkàǹtì Gmail ti ara ẹni lè fi ímeèlì tó 500 ránṣẹ́ lójúmọ́, Google Workspace tó 2,000. Ilé ìtajà tí ó ní ọ̀pọ̀ àṣẹ nílò iṣẹ́ ìfiránṣẹ́ ímeèlì.",
+            "link": "Ṣí App passwords"
+          },
+          "zoho": {
+            "step1": "Lo smtppro.zoho.com fún àdírẹ́sì lórí domain tìrẹ, tàbí smtp.zoho.com fún èyí tí ó parí sí @zoho.com.",
+            "step2": "Ṣé o ń lo ìwọlé onígbésẹ̀ méjì? Ṣẹ̀dá ọ̀rọ̀ aṣínà áàpù ní abẹ́ Security → App Passwords kí o sì lò ó gẹ́gẹ́ bí ọ̀rọ̀ aṣínà.",
+            "step3": "Tẹ olùpín àti pọ́ọ̀tù 587 lókè, pẹ̀lú àdírẹ́sì Zoho rẹ ní kíkún gẹ́gẹ́ bí orúkọ olùlò.",
+            "step4": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "Àkàǹtì ní agbègbè mìíràn máa ń lo olùpín agbègbè náà, bí smtppro.zoho.in tàbí smtppro.zoho.eu.",
+            "link": "Ṣí àkàǹtì Zoho"
+          },
+          "hosting": {
+            "step1": "Nínú cPanel, ṣí Email Accounts kí o sì tẹ Connect Devices lẹ́gbẹ̀ẹ́ àdírẹ́sì tí o máa fi ránṣẹ́.",
+            "step2": "Ní abẹ́ Secure SSL/TLS Settings, ṣe àdàkọ Outgoing Server àti SMTP Port.",
+            "step3": "Tẹ wọ́n lókè, pẹ̀lú àdírẹ́sì ímeèlì ní kíkún gẹ́gẹ́ bí orúkọ olùlò àti ọ̀rọ̀ aṣínà àpótí ímeèlì náà.",
+            "step4": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "Àṣìṣe ìwé-ẹ̀rí sábà máa ń túmọ̀ sí orúkọ olùpín mìíràn. Lo èyí tí cPanel fi hàn, kódà bí ó bá dà bí server123.yourhost.com."
+          },
+          "brevo": {
+            "step1": "Nínú Brevo, ṣí SMTP & API, lẹ́yìn náà SMTP tab, kí o sì ṣe àdàkọ orúkọ ìwọlé SMTP rẹ. Ó parí sí @smtp-brevo.com.",
+            "step2": "Tẹ Generate a new SMTP key kí o sì ṣe àdàkọ kọ́kọ́rọ́ náà. Ọ̀rọ̀ aṣínà Brevo rẹ kò ní ṣiṣẹ́ níbí.",
+            "step3": "Fi ímeèlì olùfiránṣẹ́ rẹ kún àwọn olùfiránṣẹ́ nínú Brevo, tàbí jẹ́rìísí domain rẹ.",
+            "step4": "Tẹ olùpín àti pọ́ọ̀tù lókè, orúkọ ìwọlé SMTP gẹ́gẹ́ bí orúkọ olùlò àti kọ́kọ́rọ́ náà gẹ́gẹ́ bí ọ̀rọ̀ aṣínà.",
+            "step5": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "Ṣé o ń fi ránṣẹ́ láti domain tìrẹ? Ṣàfikún àwọn àkọsílẹ̀ SPF àti DKIM tí Brevo fún ọ, bí bẹ́ẹ̀ kọ́ àwọn ímeèlì rẹ lè já sí spam.",
+            "link": "Ṣí Brevo"
+          },
+          "sendgrid": {
+            "step1": "Nínú SendGrid, ṣí Settings → API Keys kí o sì ṣẹ̀dá kọ́kọ́rọ́ tí ó ní àṣẹ Mail Send. Ẹ̀ẹ̀kan ṣoṣo ni SendGrid ń fi í hàn.",
+            "step2": "Jẹ́rìísí ímeèlì olùfiránṣẹ́ rẹ, tàbí gbogbo domain rẹ, ní abẹ́ Settings → Sender Authentication.",
+            "step3": "Tẹ olùpín àti pọ́ọ̀tù lókè. Orúkọ olùlò ni ọ̀rọ̀ náà apikey, ọ̀rọ̀ aṣínà sì ni kọ́kọ́rọ́ náà.",
+            "step4": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "SendGrid kì í gba ímeèlì láti àdírẹ́sì olùfiránṣẹ́ tí kò tíì jẹ́rìísí.",
+            "link": "Ṣí SendGrid"
+          },
+          "ses": {
+            "step1": "Nínú console Amazon SES, jẹ́rìísí domain rẹ tàbí ímeèlì olùfiránṣẹ́ ní abẹ́ Identities.",
+            "step2": "Ṣí SMTP settings kí o sì ṣe àdàkọ SMTP endpoint. Lẹ́yìn náà tẹ Create SMTP credentials kí o sì ṣe àdàkọ orúkọ olùlò àti ọ̀rọ̀ aṣínà: ẹ̀ẹ̀kan ṣoṣo ni a ń fi wọ́n hàn.",
+            "step3": "Tẹ wọ́n lókè. Àwọn kọ́kọ́rọ́ ìwọlé AWS rẹ kò ní ṣiṣẹ́ níbí.",
+            "step4": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "Àkàǹtì tuntun lè fi ránṣẹ́ sí àwọn àdírẹ́sì tí a ti jẹ́rìísí nìkan. Béèrè production access kí ilé ìtajà rẹ tó ṣí sílẹ̀ fún gbogbo ènìyàn.",
+            "link": "Ṣí Amazon SES"
+          },
+          "other": {
+            "step1": "Wá “SMTP settings” nínú ìrànlọ́wọ́ olùpèsè rẹ, tàbí béèrè lọ́wọ́ wọn fún olùpín ímeèlì tí ń jáde.",
+            "step2": "Tẹ olùpín lókè pẹ̀lú pọ́ọ̀tù 587, tàbí 465. Yẹra fún pọ́ọ̀tù 25: ọ̀pọ̀ nẹ́tíwọ̀ọ̀kì ló ń dí i.",
+            "step3": "Orúkọ olùlò sábà máa ń jẹ́ àdírẹ́sì ímeèlì rẹ ní kíkún. Bí olùpèsè rẹ bá ní ọ̀rọ̀ aṣínà áàpù, lo ọ̀kan.",
+            "step4": "Fi pamọ́, lẹ́yìn náà fi ímeèlì ìdánwò ránṣẹ́.",
+            "caution": "Outlook.com àti Hotmail dẹ́kun gbígba ọ̀rọ̀ aṣínà àkàǹtì láti àwọn áàpù mìíràn ní 2024. Microsoft 365 ṣì ń gbà á, ṣùgbọ́n Microsoft yóò pa èyí ní àbáwọlé ní òpin 2026, nítorí náà iṣẹ́ ìfiránṣẹ́ ímeèlì ni àṣàyàn tó láàbò jù."
+          },
+          "fix": {
+            "title": "Bí ìdánwò bá kùnà",
+            "intro": "Wá àwọn ọ̀rọ̀ wọ̀nyí nínú àṣìṣe ní abẹ́ Olùpín ímeèlì.",
+            "login": "Orúkọ olùlò tàbí ọ̀rọ̀ aṣínà kò tọ̀nà. Gmail, àti Zoho tí ó ní ìwọlé onígbésẹ̀ méjì, nílò ọ̀rọ̀ aṣínà áàpù, kì í ṣe ọ̀rọ̀ aṣínà àkàǹtì.",
+            "timeout": "Ṣàyẹ̀wò olùpín àti pọ́ọ̀tù. Bí ilé-iṣẹ́ hosting rẹ bá ń dí pọ́ọ̀tù 587, gbìyànjú 465.",
+            "sender": "Àkàǹtì yìí kò ní àṣẹ láti fi ránṣẹ́ bí ímeèlì olùfiránṣẹ́ rẹ. Lo àdírẹ́sì àkàǹtì náà fúnra rẹ̀, tàbí jẹ́rìísí èkejì lọ́dọ̀ olùpèsè rẹ.",
+            "certificate": "Lo orúkọ olùpín gan-an tí olùpèsè rẹ fún ọ, kì í ṣe àdírẹ́sì IP."
+          }
+        }
       },
       "notifications": {
-        "title": "Ètò ìfitónilétí",
-        "description": "Yan àwọn ìṣẹ̀lẹ̀ tí ó máa ń ṣẹ̀dá ìfitónilétí dáṣíbọ́ọ̀dù, ímeèlì, ìkìlọ̀ push àti SMS.",
-        "events": {
-          "admin": {
-            "newOrders": {
-              "title": "Àwọn àṣẹ tuntun",
-              "description": "Sọ fún àwọn alábòójútó nígbà tí a bá fi àṣẹ sílẹ̀."
-            },
-            "newCustomers": {
-              "title": "Àwọn oníbàárà tuntun",
-              "description": "Sọ fún àwọn alábòójútó nígbà tí a bá ṣẹ̀dá ìwé àkọsílẹ̀ oníbàárà."
-            },
-            "newVendors": {
-              "title": "Àwọn ìbéèrè olùtajà tuntun",
-              "description": "Sọ fún àwọn alábòójútó nígbà tí ìbéèrè olùtajà bá ń dúró."
-            },
-            "returns": {
-              "title": "Àwọn ìbéèrè ìdápadà",
-              "description": "Sọ fún àwọn alábòójútó nígbà tí ìbéèrè ìdápadà bá nílò àyẹ̀wò."
-            },
-            "payments": {
-              "title": "Àwọn ìsanwó",
-              "description": "Sọ fún àwọn alábòójútó nígbà tí a bá kọ ìgbòkègbodò ìsanwó sílẹ̀."
-            },
-            "preorderAccessRequests": {
-              "title": "Àwọn ìbéèrè àṣẹ ìwọlé àṣẹ-ṣáájú",
-              "description": "Sọ fún àwọn alábòójútó nígbà tí olùtajà bá béèrè láti ta àṣẹ-ṣáájú."
-            }
-          },
-          "vendor": {
-            "applicationStatus": {
-              "title": "Ipò ìbéèrè olùtajà",
-              "description": "Sọ fún àwọn olùtajà nígbà tí a bá fọwọ́sí tàbí kọ àkàǹtì wọn."
-            },
-            "newOrders": {
-              "title": "Àwọn àṣẹ tuntun olùtajà",
-              "description": "Sọ fún àwọn olùtajà nígbà tí wọ́n bá gba àṣẹ tuntun."
-            },
-            "returns": {
-              "title": "Àwọn ìbéèrè ìdápadà olùtajà",
-              "description": "Sọ fún àwọn olùtajà nígbà tí ìbéèrè ìdápadà bá jẹ́ tiwọn."
-            },
-            "preorderAccess": {
-              "title": "Àṣẹ ìwọlé àṣẹ-ṣáájú olùtajà",
-              "description": "Sọ fún àwọn olùtajà nígbà tí a bá fọwọ́sí, kọ, tàbí gba àṣẹ ìwọlé àṣẹ-ṣáájú wọn padà."
-            }
-          },
-          "staff": {
-            "newOrders": {
-              "title": "Àwọn àṣẹ tuntun fún òṣìṣẹ́",
-              "description": "Sọ fún àwọn òṣìṣẹ́ tí wọ́n ní àṣẹ ìwọlé sí àṣẹ nígbà tí a bá fi àṣẹ sílẹ̀."
-            },
-            "newCustomers": {
-              "title": "Àwọn oníbàárà tuntun fún òṣìṣẹ́",
-              "description": "Sọ fún àwọn òṣìṣẹ́ tí wọ́n ní àṣẹ ìwọlé sí oníbàárà nígbà tí a bá ṣẹ̀dá ìwé àkọsílẹ̀ oníbàárà."
-            },
-            "returns": {
-              "title": "Àwọn ìbéèrè ìdápadà fún òṣìṣẹ́",
-              "description": "Sọ fún àwọn òṣìṣẹ́ tí wọ́n ní àṣẹ ìwọlé sí àṣẹ nígbà tí àwọn ìbéèrè ìdápadà bá nílò àyẹ̀wò."
-            },
-            "payments": {
-              "title": "Àwọn ìsanwó fún òṣìṣẹ́",
-              "description": "Sọ fún àwọn òṣìṣẹ́ POS àti àṣẹ nígbà tí a bá kọ ìgbòkègbodò ìsanwó sílẹ̀."
-            },
-            "lowStock": {
-              "title": "Ọjà tó kù díẹ̀ fún òṣìṣẹ́",
-              "description": "Sọ fún àwọn òṣìṣẹ́ ọjà nígbà tí àwọn ọjà bá nílò àfikún."
-            }
-          },
-          "customer": {
-            "orderUpdates": {
-              "title": "Ìròyìn àṣẹ oníbàárà",
-              "description": "Sọ fún àwọn oníbàárà nígbà tí ipò àṣẹ bá yípadà."
-            },
-            "returnUpdates": {
-              "title": "Ìròyìn ìdápadà oníbàárà",
-              "description": "Sọ fún àwọn oníbàárà nígbà tí ipò ìdápadà bá yípadà."
-            }
-          }
+        "title": "Ìfitónilétí",
+        "description": "Yan ẹni tí yóò gbọ́ nípa ìṣẹ̀lẹ̀ kọ̀ọ̀kan, àti bí wọ́n ṣe máa gbọ́.",
+        "audiencesLabel": "Àwọn tó ń gba ìfitónilétí",
+        "audiences": {
+          "admin": "Alábòójútó",
+          "staff": "Òṣìṣẹ́",
+          "vendor": "Olùtajà",
+          "customer": "Oníbàárà"
         },
+        "who": {
+          "admin": "Gbogbo àkàǹtì alábòójútó ló ń gba ìwọ̀nyí.",
+          "staff": "Òṣìṣẹ́ tó ń ṣiṣẹ́ ń gba kìkì ohun tí àṣẹ ìwọlé wọn jẹ́ kí wọ́n rí.",
+          "vendor": "Ẹni tó ni olùtajà kọ̀ọ̀kan, nípa ilé ìtajà tirẹ̀ nìkan.",
+          "customer": "Àwọn olùrà, nípasẹ̀ àkàǹtì wọn, tàbí ímeèlì àti fóònù orí àṣẹ àlejò."
+        },
+        "teamLink": "Ẹgbẹ́",
+        "noStaff": "Kò sí ẹnìkan nínú ẹgbẹ́ rẹ síbẹ̀, nítorí náà kò sí ẹni tó ń gba ìwọ̀nyí.",
         "event": "Ìṣẹ̀lẹ̀",
         "channels": {
           "inApp": "Nínú áàpù",
           "email": "Ímeèlì",
-          "browserPush": "Ìfitónilétí aṣàwákiri",
+          "browserPush": "Push",
           "sms": "SMS"
         },
-        "smsSettingsLink": "Ètò SMS",
-        "smsOffWarning": "A ti ṣètò àwọn ìṣẹ̀lẹ̀ kan láti fi SMS ránṣẹ́, ṣùgbọ́n SMS wà ní pípa tàbí a kò tíì ṣètò rẹ̀ ní kíkún, nítorí náà kò sí èyí tí yóò lọ.",
-        "smsSetupHint": "Láti fi SMS ránṣẹ́, kọ́kọ́ ṣètò Twilio.",
-        "groups": {
-          "admin": {
-            "title": "Ìfitónilétí alábòójútó",
-            "description": "Àwọn ìṣẹ̀lẹ̀ tí ó yẹ kí ó kìlọ̀ fún ẹgbẹ́ alábòójútó ilé ìtajà."
+        "channelNotSetUp": "A kò tíì ṣètò rẹ̀.",
+        "tips": {
+          "inApp": {
+            "admin": "Agogo inú dáṣíbọ́ọ̀dù alábòójútó.",
+            "staff": "Agogo inú dáṣíbọ́ọ̀dù òṣìṣẹ́.",
+            "vendor": "Agogo inú dáṣíbọ́ọ̀dù olùtajà.",
+            "customer": "Ojú ìwé ìfitónilétí nínú àkàǹtì olùrà. Àwọn àlejò kò ní èyí."
           },
-          "vendor": {
-            "title": "Ìfitónilétí olùtajà",
-            "description": "Àwọn ìṣẹ̀lẹ̀ tí a ń fi ránṣẹ́ sí àkàǹtì àwọn olùtajà."
+          "email": "A ń fi ránṣẹ́ láti olùpín ímeèlì rẹ (Ètò → Ímeèlì).",
+          "browserPush": {
+            "team": "Ìkìlọ̀ tó ń yọ jáde nínú aṣàwákiri níbi tí wọ́n ti mú ìfitónilétí ṣiṣẹ́ láti ara agogo.",
+            "customer": "Ó ń dé ọ̀dọ̀ àwọn olùrà tó ń lo áàpù fóònù rẹ nìkan. Ilé ìtajà orí wẹ́ẹ̀bù kò ní ìforúkọsílẹ̀ fún Push."
+          },
+          "sms": {
+            "team": "Àtẹ̀jíṣẹ́ sí fóònù tó wà lórí profaili wọn. Twilio ń gba owó fún àtẹ̀jíṣẹ́ kọ̀ọ̀kan.",
+            "vendor": "Àtẹ̀jíṣẹ́ sí fóònù ilé ìtajà, tàbí ti ẹni tó ni ín. Twilio ń gba owó fún àtẹ̀jíṣẹ́ kọ̀ọ̀kan.",
+            "customer": "Àtẹ̀jíṣẹ́ sí fóònù tó wà lórí àṣẹ. Twilio ń gba owó fún àtẹ̀jíṣẹ́ kọ̀ọ̀kan."
+          }
+        },
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "Àwọn àṣẹ tuntun"
+            },
+            "newCustomers": {
+              "title": "Àwọn oníbàárà tuntun"
+            },
+            "newVendors": {
+              "title": "Àwọn ìbéèrè olùtajà"
+            },
+            "returns": {
+              "title": "Àwọn ìbéèrè ìdápadà"
+            },
+            "payments": {
+              "title": "Àwọn ìsanwó tí a gbà"
+            },
+            "preorderAccessRequests": {
+              "title": "Àwọn ìbéèrè àṣẹ ìwọlé àṣẹ-ṣáájú"
+            },
+            "lowStock": {
+              "title": "Ọjà tó kù díẹ̀",
+              "hint": "Ọ̀kan nínú àwọn ọjà tìrẹ kù sí 10 tàbí kéré sí i"
+            }
           },
           "staff": {
-            "title": "Ìfitónilétí òṣìṣẹ́",
-            "description": "Àwọn ìṣẹ̀lẹ̀ tí a ń fi ránṣẹ́ sí àwọn òṣìṣẹ́ tó ń ṣiṣẹ́ gẹ́gẹ́ bí àṣẹ módù wọn."
+            "newOrders": {
+              "title": "Àwọn àṣẹ tuntun",
+              "hint": "Òṣìṣẹ́ tó lè rí àwọn àṣẹ",
+              "nobody": "Kò sí ẹnìkan nínú ẹgbẹ́ tó lè rí àwọn àṣẹ, nítorí náà kò sí ẹni tó ń gba èyí."
+            },
+            "newCustomers": {
+              "title": "Àwọn oníbàárà tuntun",
+              "hint": "Òṣìṣẹ́ tó lè rí àwọn oníbàárà",
+              "nobody": "Kò sí ẹnìkan nínú ẹgbẹ́ tó lè rí àwọn oníbàárà, nítorí náà kò sí ẹni tó ń gba èyí."
+            },
+            "returns": {
+              "title": "Àwọn ìbéèrè ìdápadà",
+              "hint": "Òṣìṣẹ́ tó lè rí àwọn àṣẹ",
+              "nobody": "Kò sí ẹnìkan nínú ẹgbẹ́ tó lè rí àwọn àṣẹ, nítorí náà kò sí ẹni tó ń gba èyí."
+            },
+            "payments": {
+              "title": "Àwọn ìsanwó tí a gbà",
+              "hint": "Òṣìṣẹ́ tó ní àṣẹ ìwọlé sí àṣẹ tàbí POS",
+              "nobody": "Kò sí ẹnìkan nínú ẹgbẹ́ tó lè rí àwọn àṣẹ tàbí lo POS, nítorí náà kò sí ẹni tó ń gba èyí."
+            },
+            "lowStock": {
+              "title": "Ọjà tó kù díẹ̀",
+              "hint": "Òṣìṣẹ́ tó lè rí ìṣúra ọjà",
+              "nobody": "Kò sí ẹnìkan nínú ẹgbẹ́ tó lè rí ìṣúra ọjà, nítorí náà kò sí ẹni tó ń gba èyí."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "Ìròyìn ìbéèrè",
+              "hint": "A gbà á, a fọwọ́ sí i, a kọ̀ ọ́, ìránnilétí ìsanwó"
+            },
+            "newOrders": {
+              "title": "Àwọn àṣẹ tuntun"
+            },
+            "returns": {
+              "title": "Àwọn ìbéèrè ìdápadà",
+              "hint": "Pẹ̀lú ìdápadà owó tí wọ́n jẹ"
+            },
+            "preorderAccess": {
+              "title": "Àṣẹ ìwọlé àṣẹ-ṣáájú",
+              "hint": "A fọwọ́ sí i, a kọ̀ ọ́ tàbí a gbà á padà"
+            }
           },
           "customer": {
-            "title": "Ìfitónilétí oníbàárà",
-            "description": "Àwọn ìṣẹ̀lẹ̀ tí a ń fi ránṣẹ́ sí àkàǹtì àwọn oníbàárà."
+            "orderUpdates": {
+              "title": "Ìròyìn àṣẹ",
+              "hint": "Ìyípadà ipò, ìròyìn àṣẹ-ṣáájú, ìránnilétí owó tó kù, ìbéèrè àtúnṣe àdírẹ́sì",
+              "guestsMiss": "Àwọn àlejò kò gbọ́ nǹkan kan mọ́ báyìí, kódà ìránnilétí owó tó kù tàbí ìbéèrè àtúnṣe àdírẹ́sì."
+            },
+            "returnUpdates": {
+              "title": "Ìròyìn ìdápadà",
+              "hint": "Gbogbo ipò, àmì ìfiránṣẹ́ àti ìpààrọ̀",
+              "guestsMiss": "Àwọn àlejò kò gbọ́ nǹkan kan mọ́ nípa ìdápadà wọn."
+            }
           }
-        }
+        },
+        "notes": {
+          "paymentProblems": "Àwọn ìṣòro ìsanwó, bíi chargeback tàbí ìdápadà owó tó kùnà, máa ń dé ọ̀dọ̀ àwọn alábòójútó nígbà gbogbo nínú áàpù àti nípasẹ̀ ímeèlì.",
+          "orderConfirmation": "Ímeèlì ìfìdímúlẹ̀ àṣẹ, pẹ̀lú ìwé owó rẹ̀, máa ń lọ nígbà gbogbo.",
+          "shopperOptOut": "Àwọn olùrà tó ní àkàǹtì lè pa ímeèlì àti àtẹ̀jíṣẹ́ àṣẹ ní Akaunti → Awon ayanfẹ.",
+          "smsHidden": "Ṣé o fẹ́ àtẹ̀jíṣẹ́ pẹ̀lú? Tí a bá ti ṣètò SMS, ọ̀wọ̀n SMS yóò hàn níbí. <link>Ètò SMS</link>"
+        },
+        "warnings": {
+          "email": "A kò tíì ṣètò Ímeèlì, nítorí náà kò sí ohun tí a sàmì sí fún ímeèlì tí yóò lọ. <link>Ṣètò Ímeèlì</link>",
+          "sms": "{count, plural, other {A ti ṣètò ìṣẹ̀lẹ̀ # láti fi àtẹ̀jíṣẹ́ ránṣẹ́}}, ṣùgbọ́n a kò tíì ṣètò SMS, nítorí náà kò sí àtẹ̀jíṣẹ́ tí yóò lọ. <link>Ṣètò SMS</link>",
+          "push": "A kò tíì ṣètò Push lórí sáfà yìí, nítorí náà kò sí ìkìlọ̀ tí yóò yọ jáde. Fi àwọn kọ́kọ́rọ́ WEB_PUSH kún .env (README → Web Push notifications)."
+        },
+        "moreOptions": "Àwọn àṣàyàn míì",
+        "restore": "Dá ètò tí a dámọ̀ràn padà",
+        "restoreHint": "Gbogbo olùgbà. Kò sí ohun tí a fi pamọ́ títí o bá fi pamọ́."
       },
       "security": {
         "title": "Ààbò àti ìṣàkóso ìwọlé",
         "description": "Ṣètò ipò ọ̀pọ̀ olùtajà, ààbò ìgbà ìwọlé, àti àwọn ìlànà ọ̀rọ̀ aṣínà",
         "multiVendor": {
           "label": "Ipò ọ̀pọ̀ olùtajà",
-          "description": "Mú àwọn ẹ̀yà ọjà ṣiṣẹ́: ìforúkọsílẹ̀ olùtajà, ọ̀pọ̀ ilé ìtajà, dasibodu olùtajà",
-          "manageLink": "Ṣàkóso ìforúkọsílẹ̀ àwọn olùtajà, àwọn ètò àti ìlànà"
-        },
-        "emailVerification": {
-          "title": "Ìjẹ́rìísí ímeèlì",
-          "required": "Béèrè ìjẹ́rìísí ímeèlì",
-          "requiredDesc": "Àwọn olùlò gbọ́dọ̀ jẹ́rìísí ímeèlì kí wọ́n tó wọ ilé ìtajà",
-          "vendorRequired": "Béèrè fún àwọn olùtajà"
+          "description": "Jẹ́ kí àwọn olùtajà mìíràn forúkọ sílẹ̀, ṣàkóso ilé ìtajà àti dasibodu tiwọn, kí wọ́n sì máa tajà lẹ́gbẹ̀ẹ́ rẹ.",
+          "registrationLink": "Ìforúkọsílẹ̀, ètò àti kọmíṣọ̀n",
+          "vendorsLink": "Gbogbo àwọn olùtajà",
+          "turnOff": {
+            "title": "Pa Ipò ọ̀pọ̀ olùtajà?",
+            "description": "Kò sí ohun tí a ó pa rẹ́. Àwọn àkọọ́lẹ̀, ilé ìtajà àti ọjà àwọn olùtajà yóò padà dé nígbà tí o bá tún tàn án. Nígbà tí ó bá wà ní pípa:",
+            "registration": "Kò sí ẹni tí ó lè béèrè láti di olùtajà.",
+            "dashboards": "Àwọn olùtajà kò lè ṣí dasibodu wọn, ojú-ìwé ilé ìtajà wọn yóò sì kúrò lórí ilé ìtajà orí ayélujára.",
+            "sales": "Àwọn ọjà olùtajà yóò máa wà fún títà, ṣùgbọ́n a ó ka àwọn àṣẹ náà sí títà ilé ìtajà rẹ, kì í ṣe ti olùtajà.",
+            "payouts": "Ìsanwó fún àwọn olùtajà yóò dúró fún ìgbà díẹ̀.",
+            "confirm": "Pa á"
+          }
         },
         "session": {
           "duration": "Gígùn ìgbà ìwọlé (ọjọ́)",
@@ -1204,19 +1792,15 @@
       },
       "orders": {
         "title": "Ètò àṣẹ",
-        "description": "Ṣètò àwọn ètò àṣẹ àti kọmíṣọ̀n",
+        "description": "Nọ́mbà àṣẹ, owó orí àti ìdápadà.",
         "prefix": "Ìbẹ̀rẹ̀ nọ́mbà àṣẹ",
-        "taxRate": "Ìwọ̀n owó orí (%)",
-        "shippingCost": "Iye owó ìfiránṣẹ́ àìyípadà ($)",
-        "freeShippingThreshold": "Ààlà ìfiránṣẹ́ ọ̀fẹ́ ($)",
-        "freeShippingPlaceholder": "Ṣètò sí 0 láti pa á",
-        "shippingHandledByZones": "Àwọn agbegbe fífiránṣẹ́ ti ṣíṣí, nítorí náà a kò lo àwọn iye méjì yìí. Owó wá láti ètò Fífiránṣẹ́ àti Ìfijíṣẹ́.",
-        "commissionRate": "Ìwọ̀n kọmíṣọ̀n (%)",
-        "minWithdrawal": "Iye yíyọ owó tó kéré jù ($)",
+        "taxRate": "Ìwọ̀n owó orí",
+        "shippingCost": "Ìfiránṣẹ́ déédéé",
+        "freeShippingThreshold": "Ìfiránṣẹ́ ọ̀fẹ́ tí àṣẹ bá tó",
+        "shippingHandledByZones": "Owó ń wá láti àwọn agbègbè ìfiránṣẹ́ rẹ.",
         "returnInstructions": "Ìtọ́sọ́nà ìdápadà",
         "returnInstructionsHint": "A máa ń fi ránṣẹ́ sí olùrà pẹ̀lú àdírẹ́sì ìdápadà nígbà tí a bá fọwọ́ sí ìdápadà kan. Lo {returnNumber} fún nọ́ńbà ìdápadà. Fi sílẹ̀ ní òfo láti lo ọ̀rọ̀ tí a fi hàn.",
         "finalSaleCollections": "Àwọn àkójọpọ̀ títà ìkẹyìn",
-        "finalSaleCollectionsSearch": "Wá àwọn àkójọpọ̀",
         "finalSaleCollectionsNone": "A kò rí àkójọpọ̀ kankan",
         "finalSaleCollectionMissing": "Àkójọpọ̀ tí a ti yọ kúrò",
         "finalSaleCollectionUnnamed": "Àkójọpọ̀",
@@ -1224,24 +1808,23 @@
         "billVendorCodShipping": "Gba owó ìfiránṣẹ́ ìsanwó-nígbà-ìfijíṣẹ́ lọ́wọ́ àwọn olùtajà",
         "billVendorCodShippingHint": "Nígbà tí olùtajà bá gba owó lẹ́nu ọ̀nà, òun ló ń mú owó ìfijíṣẹ́ náà pẹ̀lú. Tan èyí láti gba owó lọ́wọ́ wọn fún àwọn ẹrù tí olùfiránṣẹ́ tìrẹ gbé, pẹ̀lú kọmíṣọ̀n tí wọ́n jẹ ọ́.",
         "loyaltyHeading": "Pọ́ìǹtì ìdúróṣinṣin",
-        "loyaltySpendPerPoint": "Ìnáwó fún pọ́ìǹtì ìdúróṣinṣin kan",
-        "loyaltySpendPerPointHint": "Àwọn oníbàárà ń gba pọ́ìǹtì 1 fún iye yìí kọ̀ọ̀kan tí wọ́n bá ná. Àwọn ìpele bẹ̀rẹ̀ láti pọ́ìǹtì {silver, number} fún Fàdákà, {gold, number} fún Wúrà àti {platinum, number} fún Platinum. Ìwọ̀n tuntun ń ka láti àṣẹ tó kàn tí a sanwó fún; àwọn pọ́ìǹtì tí a ti fúnni ń tọ́jú ìwọ̀n tí wọ́n fi rí wọn gbà.",
-        "refundAdminFee": "Owó ìṣàkóso ìdápadà owó (%)",
+        "loyaltySpendPerPointHint": "Àwọn ìpele bẹ̀rẹ̀ láti pọ́ìǹtì {silver, number} (Fàdákà), {gold, number} (Wúrà) àti {platinum, number} (Platinum). Ìwọ̀n tuntun ń ka láti àṣẹ tó kàn tí a sanwó fún.",
+        "refundAdminFee": "Owó ìṣàkóso ìdápadà owó",
         "refundAdminFeeCap": "Ààlà owó fún ìdápadà kọ̀ọ̀kan ({currency})",
         "refundAdminFeeCapHint": "Ṣètò sí 0 fún àìsí ààlà.",
         "refundAdminFeeHint": "Ìpín kọmíṣọ̀n rẹ tí o ń tọ́jú nígbà tí a bá dá ọjà tí a tà padà. A máa ń dá owó olùrà padà ní kíkún ní ọ̀nà méjèèjì; iye owó náà ń lọ sọ́dọ̀ olùtajà.",
-        "restockingFee": "Owó ìdápadà sí ibi ìkó-ẹrù-sí (%)",
+        "restockingFee": "Owó ìdápadà sí ibi ìkó-ẹrù-sí",
         "restockingFeeHint": "A ń yọ ọ́ kúrò nínú ẹrù tí a dá padà, kì í ṣe nínú owó orí.",
-        "returnShippingFee": "Owó ìfiránṣẹ́ ìdápadà ({currency})",
+        "returnShippingFee": "Owó ìfiránṣẹ́ ìdápadà",
         "returnShippingFeeHint": "A ń gbà á lẹ́ẹ̀kan fún olùtajà kọ̀ọ̀kan tí olùrà bá fi ẹrù ránṣẹ́ padà sí.",
-        "returnWindowDays": "Àkókò ìdápadà (ọjọ́)",
+        "returnWindowDays": "Àkókò ìdápadà",
         "returnWindowDaysHint": "Bí ó ti pẹ́ tó lẹ́yìn ìfijíṣẹ́ tí olùrà ṣì lè béèrè láti dá àṣẹ padà. A ń fi hàn lórí gbogbo ojú-ìwé ọjà.",
         "windowUnlimited": "Kò sí òpin àkókò",
         "windowStart": "Àkókò bẹ̀rẹ̀",
         "windowStartParcel": "Nígbà tí a bá fi páálí kọ̀ọ̀kan jíṣẹ́",
         "windowStartLast": "Nígbà tí a bá fi páálí tí ó kẹ́yìn nínú àṣẹ jíṣẹ́",
         "windowStartHint": "Kíkà láti páálí tí ó kẹ́yìn ń fún àṣẹ kọ̀ọ̀kan ní àkókò kan ṣoṣo, ó sì ń dá ìsanwó olùtajà kọ̀ọ̀kan dúró títí páálí tí ó kẹ́yìn yóò fi dé.",
-        "payoutHoldMaxDays": "Àkókò tí ó gùn jù láti dá ìsanwó dúró (ọjọ́)",
+        "payoutHoldMaxDays": "Àkókò tí ó gùn jù láti dá ìsanwó dúró",
         "payoutHoldMaxDaysHint": "Láìsí òpin àkókò, a máa ń san owó ọjà tí olùtajà tà fún un ní iye ọjọ́ yìí lẹ́yìn ìfijíṣẹ́. Owó tí a dá padà lẹ́yìn náà máa ń wá láti inú ìsanwó rẹ̀ tí ó kàn.",
         "windowOverrides": "Àkókò ìdápadà gẹ́gẹ́ bí àkójọpọ̀",
         "windowOverrideDays": "Ọjọ́",
@@ -1249,15 +1832,33 @@
         "windowOverrideRemove": "Yọ kúrò",
         "windowOverridesSearch": "Fi àkójọpọ̀ kún un",
         "windowOverridesHint": "A lè dá àwọn ọjà inú àwọn àkójọpọ̀ wọ̀nyí padà láàárín iye ọjọ́ yìí dípò bẹ́ẹ̀. Ọjà kan tún lè ṣètò tirẹ̀; bí ọ̀pọ̀ bá kàn án, èyí tí ó kúrú jù ni a ń lò.",
-        "returnsHeading": "Ìdápadà àti ìdápadà owó",
-        "returnsHint": "Wọ̀nyí bẹ̀rẹ̀ pẹ̀lú bí Storify ṣe ń ṣiṣẹ́ kí wọ́n tó di ètò, nítorí náà kò sí ohun tó máa yípadà títí o fi yí i padà.",
+        "returnsHeading": "Ìdápadà",
         "selfServe": "Àwọn oníbàárà lè béèrè ìdápadà",
-        "selfServeHint": "Bí a bá pa á, àwọn oníbàárà máa kàn sí ọ, ìwọ ni yóò sì ṣí ìdápadà fún wọn láti inú àṣẹ náà. Wọ́n ṣì ń rí ìdápadà wọn, wọ́n sì lè fagilé wọn.",
-        "shippingRefund": "Dá owó ìfijíṣẹ́ padà nígbà ìdápadà",
+        "selfServeHint": "Bí a bá pa á, ìwọ ni yóò ṣí ìdápadà fún àwọn oníbàárà láti ojú-ìwé àṣẹ náà.",
+        "shippingRefund": "Dá owó ìfijíṣẹ́ padà",
         "shippingRefundAlways": "Nígbà gbogbo",
         "shippingRefundHint": "Àṣìṣe wa túmọ̀ sí pé ó bàjẹ́ tàbí ó ní àbùkù, kò rí bí a ṣe ṣàpèjúwe rẹ̀, tàbí a fi ohun tí kò tọ́ ránṣẹ́.",
         "shippingRefundMerchantFault": "Nígbà tí ìdápadà bá jẹ́ àṣìṣe wa nìkan",
-        "shippingRefundNever": "Rárá — olùrà ti gba ìfijíṣẹ́ náà"
+        "shippingRefundNever": "Rárá",
+        "ordersHeading": "Àwọn àṣẹ",
+        "prefixExample": "Nọ́mbà àṣẹ yóò rí báyìí: <strong>{example}</strong>.",
+        "taxRateHint": "A máa ń fi kún àwọn àṣẹ nígbà ìsanwó àti ní POS.",
+        "shipping": "Ìfiránṣẹ́",
+        "shippingLink": "Ìfiránṣẹ́ àti ìfijíṣẹ́",
+        "shippingCostHint": "Ohun tí àṣẹ kan ń san fún ìfijíṣẹ́ nígbà tí àwọn agbègbè ìfiránṣẹ́ bá wà ní pípa.",
+        "freeShippingHint": "0 máa ń pa ìfiránṣẹ́ ọ̀fẹ́. Fún owó gẹ́gẹ́ bí orílẹ̀-èdè, <link>ṣètò àwọn agbègbè ìfiránṣẹ́</link>.",
+        "loyaltyUnit": "{currency} fún pọ́ìǹtì kan",
+        "returnsDescription": "Ìgbà tí àwọn oníbàárà lè dá nǹkan padà, àti ohun tí wọ́n máa rí gbà.",
+        "eligibilityHeading": "Ohun tí a lè dá padà",
+        "windowStartHintStore": "Kíkà láti páálí tí ó kẹ́yìn ń fún gbogbo àṣẹ náà ní àkókò kan ṣoṣo.",
+        "refundsHeading": "Ìdápadà owó",
+        "returnShippingFeeHintStore": "A ń gbà á lẹ́ẹ̀kan fún ìdápadà kọ̀ọ̀kan.",
+        "vendorSalesHeading": "Títà àwọn olùtajà",
+        "vendorSalesDescription": "Bí a ṣe ń yanjú ìdápadà àti ìsanwó-nígbà-ìfijíṣẹ́ pẹ̀lú àwọn olùtajà.",
+        "commissionSummaryLabel": "Kọmíṣọ̀n àti ìsanwó tó kéré jù",
+        "commissionSummary": "Kọmíṣọ̀n {rate}%, ìsanwó tó kéré jù {amount}.",
+        "vendorConfigLink": "Ìṣètò olùtajà",
+        "refundAdminFeeUpTo": "%, títí dé"
       },
       "seo": {
         "title": "Ètò SEO",
@@ -1342,22 +1943,60 @@
           "bypassCount": "{count, plural, other {IP # ṣì lè wọ ilé ìtajà.}}"
         }
       },
+      "mobileApp": {
+        "title": "Ìṣàfilọ́lẹ̀ alágbèéká",
+        "description": "So ìṣàfilọ́lẹ̀ rírajà ilé ìtajà rẹ pọ̀. Ìṣàfilọ́lẹ̀ náà ń ka ilé ìtajà nípasẹ̀ API tirẹ̀, tí yóò wà ní pípa títí tí o fi tàn án níbí.",
+        "apiTitle": "API alágbèéká",
+        "apiDesc": "Dáhùn àwọn ìbéèrè láti inú ìṣàfilọ́lẹ̀ rírajà rẹ. Nígbà tí èyí bá wà ní pípa, ìṣàfilọ́lẹ̀ náà kò lè dé ilé ìtajà.",
+        "scheme": "Ìlànà ìjápọ̀ ìṣàfilọ́lẹ̀",
+        "schemeHelp": "Ìlànà tí a fi kọ́ ìṣàfilọ́lẹ̀ rẹ, láìsí \"://\" (fún àpẹẹrẹ mystore). Ìṣàfilọ́lẹ̀ náà ń padà nípasẹ̀ rẹ̀ lẹ́yìn wíwọlé àti sísanwó.",
+        "iosTitle": "iOS",
+        "androidTitle": "Android",
+        "bundleId": "Bundle ID",
+        "bundleIdHelp": "Bundle ID ìṣàfilọ́lẹ̀ iOS, fún àpẹẹrẹ com.example.store.",
+        "teamId": "Apple Team ID",
+        "teamIdHelp": "ID oní-lẹ́tà 10 ti ẹgbẹ́ olùgbéejáde Apple tí ó ń gbé ìṣàfilọ́lẹ̀ náà jáde. Pẹ̀lú Bundle ID, ó jẹ́ kí àwọn ìjápọ̀ sí ilé ìtajà rẹ ṣí nínú ìṣàfilọ́lẹ̀ iOS.",
+        "packageName": "Orúkọ àpò",
+        "packageNameHelp": "Application ID ìṣàfilọ́lẹ̀ Android, fún àpẹẹrẹ com.example.store.",
+        "fingerprints": "Ìtẹ̀ka ìwé-ẹ̀rí ìbuwọ́lù (SHA-256)",
+        "fingerprintsHelp": "Ọ̀kan ní ìlà kọ̀ọ̀kan, bí Google Play Console ṣe ń fi wọ́n hàn lábẹ́ App signing. Pẹ̀lú orúkọ àpò, wọ́n jẹ́ kí àwọn ìjápọ̀ sí ilé ìtajà rẹ ṣí nínú ìṣàfilọ́lẹ̀ Android.",
+        "minVersion": "Ẹ̀dà tó kéré jù",
+        "minVersionHelp": "Àwọn ẹ̀dà àtijọ́ ṣì lè wo nǹkan, ṣùgbọ́n wọ́n gbọ́dọ̀ ṣe ìmúdójúìwọ̀n kí wọ́n tó yí ohunkóhun padà, bí apẹ̀rẹ̀ tàbí àṣẹ.",
+        "latestVersion": "Ẹ̀dà tuntun jù",
+        "latestVersionHelp": "A ń fún àwọn ẹ̀dà àtijọ́ ní ìmúdójúìwọ̀n.",
+        "appStoreUrl": "Ìjápọ̀ App Store",
+        "playStoreUrl": "Ìjápọ̀ Google Play",
+        "digitalTitle": "Ta àwọn ọjà oní-nọ́ńbà nínú ìṣàfilọ́lẹ̀",
+        "digitalDesc": "Àwọn ilé ìtajà ìṣàfilọ́lẹ̀ ń béèrè ètò ìsanwó tiwọn fún àwọn ọjà oní-nọ́ńbà. Fi èyí sílẹ̀ ní pípa àyàfi tí a bá gba àwọn ìṣàfilọ́lẹ̀ rẹ láàyè láti tà wọ́n.",
+        "expoAccessToken": "Tókìnnì ìwọlé Expo",
+        "expoAccessTokenPlaceholder": "Kìkì tí àkáǹtì Expo rẹ bá béèrè rẹ̀",
+        "expoAccessTokenHelp": "Ó pọndandan nígbà tí ààbò ìfitónilétí push bá wà ní títàn nínú àkáǹtì Expo rẹ. Láìsí rẹ̀, a ń fi àwọn ìfitónilétí push ránṣẹ́ bí ó ti máa ń rí.",
+        "save": "Fi ètò ìṣàfilọ́lẹ̀ alágbèéká pamọ́",
+        "bizTitle": "Ìṣàfilọ́lẹ̀ iṣẹ́ òwò",
+        "bizDescription": "Ìṣàfilọ́lẹ̀ tí ìwọ, ẹgbẹ́ rẹ àti àwọn olùtajà rẹ fi ń ṣiṣẹ́ ilé ìtajà: àwọn àṣẹ, àwọn ọjà àti ọjà ní ìpamọ́, àpótí ìfiránṣẹ́, àwọn ìsanwó àti àwọn ìbéèrè olùtajà. Ó ní API tirẹ̀, tí ó wà ní pípa títí o fi tàn án.",
+        "bizApiTitle": "API ìṣàfilọ́lẹ̀ iṣẹ́ òwò",
+        "bizApiDesc": "Dáhùn àwọn ìbéèrè láti inú ìṣàfilọ́lẹ̀ iṣẹ́ òwò rẹ. Nígbà tí èyí bá wà ní pípa, kò sí ẹni tí ó lè wọlé sí i.",
+        "bizScheme": "Ìlànà ìjápọ̀ ìṣàfilọ́lẹ̀ iṣẹ́ òwò",
+        "bizSchemeHelp": "Ìlànà tí a fi kọ́ ìṣàfilọ́lẹ̀ iṣẹ́ òwò, láìsí \"://\" (fún àpẹẹrẹ mystorebiz). Ó gbọ́dọ̀ yàtọ̀ sí ti ìṣàfilọ́lẹ̀ rírajà.",
+        "bizBundleIdHelp": "Bundle ID iOS ìṣàfilọ́lẹ̀ iṣẹ́ òwò, fún àpẹẹrẹ com.example.business.",
+        "bizPackageNameHelp": "Application ID Android ìṣàfilọ́lẹ̀ iṣẹ́ òwò, fún àpẹẹrẹ com.example.business.",
+        "bizMinVersionHelp": "Àwọn ẹ̀dà àtijọ́ ṣì lè wo nǹkan, ṣùgbọ́n wọ́n gbọ́dọ̀ ṣe ìmúdójúìwọ̀n kí wọ́n tó yí ohunkóhun padà, bí àṣẹ tàbí iye owó."
+      },
       "shipping": {
         "title": "Ìfiránṣẹ́ àti ìfijíṣẹ́",
-        "description": "Ṣètò àwọn agbègbè ìfiránṣẹ́, iye owó, àti ìfojúdíwọ̀n ìfijíṣẹ́ bíi Shopify.",
+        "description": "Ibi tí o ń fi ẹrù ránṣẹ́ sí, iye owó rẹ̀, àti bí àwọn ẹrù ṣe ń dé ibẹ̀.",
         "enable": {
-          "label": "Mú iye owó ìfiránṣẹ́ ṣiṣẹ́",
-          "help": "Tí ó bá ń ṣiṣẹ́, ìsanwó ń lo àwọn agbègbè àti iye owó ìfiránṣẹ́ rẹ. Bí bẹ́ẹ̀ kọ́, yóò padà sí ìfiránṣẹ́ oníye-kan nínú Ètò àṣẹ."
+          "label": "Lo àwọn agbègbè ìfiránṣẹ́ níbi ìsanwó"
         },
         "weightUnit": {
           "label": "Ẹ̀yọ ìwúwo",
-          "help": "Ẹ̀yọ ìwọ̀n tí a ń lò fún ìwúwo ọjà àti iye owó ìfiránṣẹ́ gẹ́gẹ́ bí ìwúwo.",
+          "help": "Fún ìwúwo ọjà àti iye owó gẹ́gẹ́ bí ìwúwo.",
           "kg": "Kìlógíráàmù (kg)",
           "lb": "Pọ́ọ̀nù (lb)"
         },
         "origin": {
-          "title": "Ibi ìbẹ̀rẹ̀ ìfiránṣẹ́",
-          "description": "A ń lò ó fún ìtọ́kasí iṣẹ́ àti fún ìsopọ̀ olùgbé-ẹrù ọjọ́ iwájú.",
+          "title": "Àdírẹ́sì tí a ti ń fi ẹrù ránṣẹ́",
+          "description": "Àdírẹ́sì ẹni tó fi ẹrù ránṣẹ́ lórí àwọn àmì ìfiránṣẹ́ olùgbé-ẹrù. Orílẹ̀-èdè rẹ̀ ló ń pinnu àwọn àṣẹ tí a kà sí ti ilẹ̀ òkèèrè.",
           "country": "Orílẹ̀-èdè",
           "state": "Ìpínlẹ̀ / Agbègbè",
           "statePlaceholder": "CA",
@@ -1368,25 +2007,24 @@
           "address1": "Ìlà àdírẹ́sì 1",
           "address1Placeholder": "123 Market St",
           "address2": "Ìlà àdírẹ́sì 2",
-          "address2Placeholder": "Suite 100 (kò pọn dandan)"
+          "address2Placeholder": "Suite 100 (kò pọn dandan)",
+          "empty": "A kò tíì ṣètò rẹ̀.",
+          "edit": "Ṣàtúnṣe àdírẹ́sì"
         },
         "delivery": {
-          "title": "Ìfojúdíwọ̀n ìfijíṣẹ́",
-          "description": "Ṣètò àkókò ìṣiṣẹ́ tí a ó fi kún àkókò ìfijíṣẹ́ iye owó nígbà tí a bá fi hàn.",
-          "processingMin": "Ọjọ́ ìṣiṣẹ́ (tó kéré jù)",
-          "processingMax": "Ọjọ́ ìṣiṣẹ́ (tó pọ̀ jù)",
-          "showEstimated": "Fi àwọn ìfojúdíwọ̀n hàn níbi ìsanwó"
+          "processingMax": "Àkókò ìṣiṣẹ́, tó gùn jù",
+          "showEstimated": "Fi àwọn ìfojúdíwọ̀n ìfijíṣẹ́ hàn níbi ìsanwó",
+          "processing": "Àkókò ìṣiṣẹ́",
+          "processingHint": "A máa ń fi kún àkókò ìfijíṣẹ́ iye owó kọ̀ọ̀kan níbi ìsanwó.",
+          "showEstimatedHint": "Iye owó kọ̀ọ̀kan ń sọ bí ó ṣe ń pẹ́ tó láti dé."
         },
         "zones": {
-          "title": "Àwọn agbègbè ìfiránṣẹ́",
-          "description": "Ṣẹda awọn agbegbe kí o sì ṣàlàyé owó. Yan awọn orílẹ̀-èdè láti inú àkọsílẹ̀, lẹ́yìn náà o lè dín agbegbe kù sí àwọn ìpínlẹ̀ pàtó — fi àwọn ìpínlẹ̀ sílẹ̀ ní òfo láti bo gbogbo orílẹ̀-èdè.",
           "add": "Ṣàfikún agbègbè",
           "empty": "Kò sí agbègbè kankan síbẹ̀. Ṣàfikún agbègbè kan láti bẹ̀rẹ̀ ṣíṣètò iye owó ìfiránṣẹ́."
         },
         "zone": {
           "name": "Orúkọ agbègbè",
           "namePlaceholder": "Nínú orílẹ̀-èdè",
-          "remove": "Yọ kúrò",
           "countries": "Àwọn orílẹ̀-èdè",
           "countriesPlaceholder": "Yan àwọn orílẹ̀-èdè",
           "searchCountries": "Wá àwọn orílẹ̀-èdè...",
@@ -1397,63 +2035,118 @@
           "regionsFreeTextPlaceholder": "CA, NY, TX",
           "searchRegions": "Wá àwọn ìpínlẹ̀...",
           "noRegionMatches": "Kò sí ìpínlẹ̀ tí a rí.",
-          "conditionalRatesWarning": "⚠️ Gbogbo owó nínú agbegbe yìí ní ipò. Àpò ọjà tí kò bá pàdé ìkankan nínú àwọn ipò wọ̀nyí kò ní rí owó láti agbegbe yìí — yóò yí padà sí owó ìdúró, tàbí a ó sọ fún oníbàárà pé fífiránṣẹ́ kò sí. Fi owó pẹlẹbẹ kún un láti bo ìyókù.",
+          "conditionalRatesWarning": "Gbogbo iye owó nínú agbègbè yìí ló ní àmúyẹ. Apẹ̀rẹ̀ tí kò bá ìkankan nínú wọn mu kò ní rí iye owó láti agbègbè yìí: yóò padà sí iye owó àfidípò, tàbí a ó sọ fún oníbàárà pé ìfiránṣẹ́ kò sí. Ṣàfikún iye owó irú \"Iye kan ṣoṣo\" láti bo ìyókù.",
           "isFallback": "Àwọn ibòmíràn lágbàyé",
-          "isFallbackHint": "Ó ń sọ owó fún àdírẹ́sì tí kò sí agbegbe mìíràn tí ó bò. A ń fojú fo àwọn orílẹ̀-èdè àti ìpínlẹ̀ rẹ̀, ó sì rọ́pò owó ìdúró kan ṣoṣo tí ó wà nísàlẹ̀."
+          "isFallbackHint": "Ó ń díye lé àdírẹ́sì èyíkéyìí tí agbègbè mìíràn kò bò. A kì í ka àwọn orílẹ̀-èdè àti ìpínlẹ̀ rẹ̀ sí, ó sì rọ́pò iye owó àfidípò.",
+          "nameHint": "Fún ìtọ́kasí tìrẹ nìkan. Iye owó tí kò ní orúkọ yóò fi èyí hàn níbi ìsanwó.",
+          "edit": "Ṣàtúnṣe agbègbè",
+          "dialogTitleNew": "Ṣàfikún agbègbè",
+          "delete": "Pa agbègbè rẹ́",
+          "untitled": "Agbègbè tí kò ní orúkọ",
+          "summaryRestOfWorld": "Gbogbo àdírẹ́sì tí agbègbè mìíràn kò bò",
+          "summaryNoCountries": "Kò sí orílẹ̀-èdè kankan síbẹ̀",
+          "allRegions": "gbogbo ìpínlẹ̀",
+          "moreCount": "+{count} mìíràn",
+          "regionsHint": "Fi sílẹ̀ ní òfo láti bo gbogbo orílẹ̀-èdè."
         },
         "rates": {
           "title": "Àwọn iye owó",
           "add": "Ṣàfikún iye owó",
-          "empty": "Kò sí iye owó nínú agbègbè yìí síbẹ̀. Ṣàfikún iye owó kan (fún àpẹẹrẹ Déédé tàbí Kíákíá)."
+          "empty": "Kò sí iye owó nínú agbègbè yìí síbẹ̀. Ṣàfikún iye owó kan (fún àpẹẹrẹ Déédé tàbí Kíákíá).",
+          "cardTitle": "Iye owó ìfiránṣẹ́",
+          "cardDescription": "Ohun tí a ń gbà fún ìfiránṣẹ́ níbi ìsanwó, gẹ́gẹ́ bí ibi tí àṣẹ ń lọ.",
+          "cardDescriptionOff": "Ó wà ní pípa: gbogbo àṣẹ ń san iye owó ìfiránṣẹ́ kan ṣoṣo tó wà nínú <link>Ètò àṣẹ</link>.",
+          "off": "Ó wà ní pípa",
+          "edit": "Ṣàtúnṣe",
+          "editRate": "Ṣàtúnṣe {name}",
+          "columns": {
+            "rate": "Orúkọ iye owó",
+            "condition": "Àmúyẹ",
+            "delivery": "Ìfijíṣẹ́",
+            "price": "Iye owó",
+            "actions": "Àwọn ìṣe"
+          },
+          "condition": {
+            "any": "Àṣẹ èyíkéyìí",
+            "freeFrom": "Àwọn àṣẹ láti {amount} sókè",
+            "subtotalBetween": "Àwọn àṣẹ láti {min} sí {max}",
+            "subtotalFrom": "Àwọn àṣẹ láti {min} sókè",
+            "subtotalUpTo": "Àwọn àṣẹ títí dé {max}",
+            "weightBetween": "{min} sí {max} {unit}",
+            "weightFrom": "Láti {min} {unit} sókè",
+            "weightUpTo": "Títí dé {max} {unit}"
+          },
+          "price": {
+            "free": "Ọ̀fẹ́",
+            "perWeight": "{price} + {perUnit}/{unit}"
+          },
+          "deliveryDays": "{days, plural, other {ọjọ́ #}}",
+          "deliveryRange": "ọjọ́ {min}–{max}"
         },
         "rate": {
           "name": "Orúkọ iye owó",
           "namePlaceholder": "Déédé",
-          "typeLabel": "Irú",
+          "typeLabel": "Bí a ṣe ń díye lé e",
           "type": {
-            "flat": "Iye owó kan ṣoṣo",
-            "freeOver": "Ọ̀fẹ́ ju àròpọ̀-kékeré lọ",
-            "subtotalRange": "Ìbú àròpọ̀-kékeré",
-            "weightRange": "Ìbú ìwúwo"
+            "flat": "Iye kan ṣoṣo",
+            "freeOver": "Ọ̀fẹ́ láti",
+            "subtotalRange": "Iye àṣẹ",
+            "weightRange": "Ìwúwo"
           },
-          "typePlaceholder": "Yan irú",
           "price": "Iye owó",
-          "freeOver": "Ọ̀fẹ́ ju",
-          "minSubtotal": "Àròpọ̀-kékeré tó kéré jù",
-          "maxSubtotal": "Àròpọ̀-kékeré tó pọ̀ jù",
-          "minWeight": "Ìwúwo tó kéré jù",
-          "maxWeight": "Ìwúwo tó pọ̀ jù",
-          "pricePerWeightUnit": "Iye owó fún",
-          "minDays": "Ọjọ́ ìfijíṣẹ́ (tó kéré jù)",
-          "maxDays": "Ọjọ́ ìfijíṣẹ́ (tó pọ̀ jù)",
-          "active": "Ó ń ṣiṣẹ́"
+          "freeOver": "Ọ̀fẹ́ fún àwọn àṣẹ láti",
+          "maxSubtotal": "Iye àṣẹ tó ga jù",
+          "maxWeight": "Ìwúwo àṣẹ tó pọ̀ jù",
+          "pricePerWeightUnit": "Iye owó fún {unit} kọ̀ọ̀kan",
+          "maxDays": "Àkókò ìfijíṣẹ́, tó gùn jù",
+          "dialogTitleNew": "Ṣàfikún iye owó",
+          "dialogTitleEdit": "Ṣàtúnṣe iye owó",
+          "nameHint": "Àwọn oníbàárà ń rí orúkọ yìí níbi ìsanwó.",
+          "typeHint": {
+            "flat": "Iye owó kan ṣoṣo fún gbogbo àṣẹ nínú agbègbè yìí.",
+            "freeOver": "Ìfiránṣẹ́ ọ̀fẹ́ ní kété tí àṣẹ bá tó iye kan. Àwọn àṣẹ tó kéré ju bẹ́ẹ̀ lọ kì í rí iye owó yìí.",
+            "subtotalRange": "Iye owó fún àwọn àṣẹ tí iye wọn wà láàárín ìbú kan.",
+            "weightRange": "Iye owó fún àwọn àṣẹ tí ìwúwo wọn wà láàárín ìbú kan, pẹ̀lú iye kan fún ẹ̀yọ ìwúwo kọ̀ọ̀kan."
+          },
+          "orderValueRange": "Iye àṣẹ",
+          "weightRangeLabel": "Ìwúwo àṣẹ",
+          "noLimit": "Kò sí ààlà",
+          "perUnit": "fún {unit} kọ̀ọ̀kan",
+          "deliveryTime": "Àkókò ìfijíṣẹ́",
+          "processingAdded": "A máa ń fi àkókò ìṣiṣẹ́ rẹ ({time}) kún èyí níbi ìsanwó.",
+          "offer": "Pèsè iye owó yìí",
+          "offerHint": "Tí ó bá wà ní pípa, iye owó náà yóò wà níbí ṣùgbọ́n a kò ní fi hàn níbi ìsanwó.",
+          "delete": "Pa iye owó rẹ́"
         },
         "fallback": {
-          "title": "Iye owó àfidípò",
-          "description": "Tí kò bá sí agbègbè tó bá àdírẹ́sì mu, o lè lo iye owó àìyípadà.",
-          "supersededByZone": "Agbegbe \"{zone}\" ń bo àwọn ibòmíràn lágbàyé, nítorí náà a kò lo owó kan ṣoṣo yìí mọ́. Ṣàtúnṣe agbegbe yẹn láti yí ohun tí a ń gbà lórí àwọn àdírẹ́sì tí kò bo padà.",
-          "enable": "Mú iye owó àfidípò ṣiṣẹ́",
-          "name": "Orúkọ",
-          "price": "Iye owó",
-          "minDays": "Ọjọ́ tó kéré jù",
-          "maxDays": "Ọjọ́ tó pọ̀ jù"
+          "everywhereElse": "Gbogbo ibòmíràn",
+          "none": "Kò sí iye owó. A máa ń sọ fún àwọn oníbàárà tí kò sí nínú àwọn agbègbè rẹ pé ìfiránṣẹ́ kò sí.",
+          "covered": "Agbègbè {zone} ló bò ó.",
+          "add": "Ṣàfikún iye owó àfidípò",
+          "dialogTitle": "Iye owó àfidípò",
+          "dialogHint": "A ń gbà á nígbà tí kò bá sí agbègbè tó ní iye owó fún àdírẹ́sì náà.",
+          "remove": "Yọ iye owó àfidípò kúrò"
         },
         "vendorShipping": {
           "title": "Ìfiránṣẹ́ fún olùtajà kọ̀ọ̀kan",
-          "description": "Tí ó bá ń ṣiṣẹ́, a ń díwọ̀n iye owó àwọn ọjà olùtajà kọ̀ọ̀kan nínú apẹ̀rẹ̀ ọ̀pọ̀ olùtajà gẹ́gẹ́ bí àkọsílẹ̀ ìfiránṣẹ́ olùtajà náà fúnra rẹ̀ (pẹ̀lú àkọsílẹ̀ pèpéle yìí gẹ́gẹ́ bí àfidípò). A ń gba owó ìfiránṣẹ́ a sì ń pín in fún olùtajà kọ̀ọ̀kan."
+          "description": "A ń díwọ̀n iye owó àwọn ọjà olùtajà kọ̀ọ̀kan gẹ́gẹ́ bí àkọsílẹ̀ ìfiránṣẹ́ olùtajà náà fúnra rẹ̀, tàbí gẹ́gẹ́ bí èyí tí kò bá ní. A ń gba owó ìfiránṣẹ́ fún olùtajà kọ̀ọ̀kan."
         },
         "customs": {
           "title": "Kọ́sítọ́ọ̀mù àti owó orí",
-          "description": "Ṣàkóso owó orí ìkówọlé fún àwọn àṣẹ tó ré ààlà orílẹ̀-èdè kọjá. DDP ń gba iye owó orí tí a fojú díwọ̀n níbi ìsanwó; DDU/DAP ń fi owó orí sílẹ̀ fún oníbàárà láti san nígbà ìfijíṣẹ́.",
+          "description": "Owó orí ìkówọlé lórí àwọn àṣẹ tó ń kúrò ní orílẹ̀-èdè tí o ti ń fi ẹrù ránṣẹ́.",
           "dutyMode": "Ìṣàkóso owó orí",
           "ddu": "DDU — oníbàárà ń sanwó nígbà ìfijíṣẹ́",
           "ddp": "DDP — gba owó orí ìkówọlé níbi ìsanwó",
-          "dutyRatePercent": "Ìwọ̀n owó orí tí a fojú díwọ̀n (%)",
-          "deMinimis": "De-minimis (láìsí owó orí ní ìsàlẹ̀)"
+          "dutyRatePercent": "Ìwọ̀n owó orí tí a fojú díwọ̀n",
+          "deMinimis": "Láìsí owó orí títí dé",
+          "dutyModeHintDdu": "Oníbàárà ń san owó orí èyíkéyìí fún olùgbé-ẹrù nígbà ìfijíṣẹ́.",
+          "dutyModeHintDdp": "A ń fi owó orí tí a fojú díwọ̀n kún àṣẹ níbi ìsanwó.",
+          "dutyRateHint": "Ìpín kan nínú àròpọ̀-kékeré àṣẹ.",
+          "deMinimisHint": "Àwọn àṣẹ tí iye wọn kò ju èyí lọ kì í san owó orí."
         },
         "codCollectedBy": {
           "title": "Ta ni ó ń gba owó nígbà ìfijíṣẹ́",
-          "description": "Bí olùtà bá fi ọkọ̀ tirẹ̀ fi jíṣẹ́, òun ni yóò gba owó náà yóò sì jẹ ọ́ ní owó iṣẹ́. Bí ẹrù rẹ bá fi jíṣẹ́, ìwọ ni yóò gba owó náà, ìwọ yóò sì jẹ olùtà ní èrè rẹ̀ — alábòójútó nìkan ló lè samisi àwọn àṣẹ wọ̀nyẹn bí a ti san. Ó kan àwọn àṣẹ tuntun.",
+          "description": "Bí àwọn olùtajà bá fi jíṣẹ́ fúnra wọn, àwọn ni yóò gba owó náà, wọn yóò sì jẹ ọ́ ní kọmíṣọ̀n. Bí olùfiránṣẹ́ rẹ bá fi jíṣẹ́, ìwọ ni yóò gba owó náà, ìwọ yóò sì jẹ àwọn olùtajà ní èrè wọn, alábòójútó nìkan ló sì lè sàmì sí àwọn àṣẹ wọ̀nyẹn pé a ti sanwó. Ó kan àwọn àṣẹ tuntun.",
           "vendor": "Olùtà",
           "platform": "Ilé ìtajà"
         },
@@ -1478,7 +2171,8 @@
             "labelFormat": "Ìrísí àmì ìfiránṣẹ́",
             "liveToken": "Tókìnnì API tààràtà",
             "modeHint": "Shippo kò ní sandbox ọ̀tọ̀ — tókìnnì tí o ń lò ló ń pinnu bóyá àmì ìfiránṣẹ́ jẹ́ gidi. Fi méjèèjì pamọ́ kí o sì yí padà níbí.",
-            "testToken": "Tókìnnì API ìdánwò"
+            "testToken": "Tókìnnì API ìdánwò",
+            "webhookHint": "Lẹ URL webhook mọ́ Shippo kí àwọn ẹrù lè máa ṣe ìmúdójúìwọ̀n fúnra wọn."
           },
           "shiprocket": {
             "pickupPlaceholder": "Yan ibi ìgbàjà kan",
@@ -1491,19 +2185,26 @@
           },
           "authFailed": "Olùgbé-ẹrù yìí ń kọ àwọn ẹ̀rí rẹ — kò sí ohun tí a lè fi ránṣẹ́ nípasẹ̀ rẹ̀.",
           "authFailedHint": "Ṣe ìmúdójúìwọ̀n àwọn ẹ̀rí ní ìsàlẹ̀, lẹ́yìn náà tẹ Dán ìsopọ̀ wò. Ìkìlọ̀ náà yóò pòórá fúnra rẹ̀ ní kété tí olùgbé-ẹrù bá gbà wọ́n.",
-          "description": "So àkàǹtì olùgbé-ẹrù pọ̀ láti ra àwọn àmì ìfiránṣẹ́ gidi àti láti tọpinpin àwọn ẹrù láìfọwọ́kàn. Ìsanwó ń bá a lọ láti lo iye owó ìfiránṣẹ́ tìrẹ.",
+          "description": "Ra àwọn àmì ìfiránṣẹ́ kí o sì tọpinpin àwọn ẹrù nípasẹ̀ àkàǹtì olùgbé-ẹrù. Ìsanwó ń bá a lọ láti lo iye owó tìrẹ.",
           "disconnect": "Já ìsopọ̀",
-          "enable": "Mú àwọn olùgbé-ẹrù ṣiṣẹ́",
-          "mode": "Àyíká",
-          "modeLive": "Tààràtà",
-          "modeTest": "Ìdánwò",
-          "originNotSupported": "Shiprocket ń fi ẹrù ránṣẹ́ láti India nìkan. Ṣètò orílẹ̀-èdè ìbẹ̀rẹ̀ ìfiránṣẹ́ rẹ sí India láti mú un ṣiṣẹ́.",
+          "enable": "Lo àwọn àkàǹtì olùgbé-ẹrù",
+          "mode": "Irú àmì ìfiránṣẹ́",
+          "modeLive": "Àmì gidi",
+          "modeTest": "Àmì ìdánwò",
+          "originNotSupported": "Shiprocket ń fi ẹrù ránṣẹ́ láti India nìkan. Láti lò ó, sọ orílẹ̀-èdè tí o ti ń fi ẹrù ránṣẹ́ di India.",
           "pickupLocation": "Ibi ìgbàjà",
           "refreshPickupLocations": "Ṣe ìmúdójúìwọ̀n àwọn ibi ìgbàjà",
           "registerWebhook": "Ṣẹ̀dá URL webhook",
           "testConnection": "Dán ìsopọ̀ wò",
-          "title": "Àwọn olùgbé-ẹrù",
-          "webhookUrl": "URL webhook — lẹ̀ èyí mọ́ dasibodu olùgbé-ẹrù"
+          "title": "Àwọn olùgbé-ẹrù àti àmì ìfiránṣẹ́",
+          "webhookUrl": "URL webhook — lẹ̀ èyí mọ́ dasibodu olùgbé-ẹrù",
+          "accountsHeading": "Àwọn àkàǹtì olùgbé-ẹrù",
+          "manage": "Ṣàkóso",
+          "connect": "So pọ̀",
+          "off": "Ó wà ní pípa",
+          "rejected": "A kọ àwọn ẹ̀rí",
+          "enableHint": "Tí ó bá wà ní pípa, àwọn ẹ̀rí yóò wà ní ìpamọ́ ṣùgbọ́n a kò ní lo olùgbé-ẹrù yìí.",
+          "trackingUpdates": "Àwọn ìmúdójúìwọ̀n ìtọpinpin"
         },
         "addressHold": {
           "title": "Àwọn àdírẹ́sì tí a kò lè fi jíṣẹ́ sí",
@@ -1514,21 +2215,21 @@
           "checkAfterOrderHint": "Dá àṣẹ dúró ní kété tí àdírẹ́sì rẹ̀ bá kùnà nínú àyẹ̀wò, dípò kí a dúró de olùfijíṣẹ́ láti kọ àmì náà.",
           "autoRequest": "Béèrè lọ́wọ́ oníbàárà fúnra rẹ̀",
           "autoRequestHint": "Fi ímeèlì ránṣẹ́ sí oníbàárà pẹ̀lú ìjápọ̀ láti ṣàtúnṣe àdírẹ́sì ní kété tí a bá dá àṣẹ dúró. Tí ó bá wà ní pípa, àwọn òṣìṣẹ́ ló máa ṣe é.",
-          "reminderDays": "Rán létí lẹ́yìn (ọjọ́)",
+          "reminderDays": "Àwọn ìránnilétí",
           "reminderDaysHint": "Àwọn ọjọ́ lẹ́yìn ìbéèrè àkọ́kọ́, tí a fi kọ́mà yà sọ́tọ̀. Fi sílẹ̀ ní òfo tí o kò bá fẹ́ ìránnilétí.",
-          "deadlineDays": "Gbèdéke (ọjọ́)",
+          "deadlineDays": "Gbèdéke",
           "deadlineDaysHint": "Bí àkókò tí oníbàárà ní láti dáhùn ṣe gùn tó, láti ìbéèrè àkọ́kọ́.",
           "onDeadline": "Nígbà tí gbèdéke bá kọjá",
-          "onDeadlineNotify": "Sọ fún ilé ìtajà kí o sì dá àṣẹ dúró",
-          "onDeadlineCancel": "Fagi lé àṣẹ náà kí o sì dá owó padà ní kíkún",
+          "onDeadlineNotify": "Sọ fún ilé ìtajà, jẹ́ kó wà ní ìdádúró",
+          "onDeadlineCancel": "Fagi lé e, dá owó padà ní kíkún",
           "keepReturnShipping": "Pa owó ìdápadà ẹrù mọ́ nígbà tí páàsẹ̀lì bá padà",
           "keepReturnShippingHint": "Nígbà tí a bá dá páàsẹ̀lì padà sí olùfiránṣẹ́ nítorí àdírẹ́sì búburú, owó àmì náà ni a máa ń yọ kúrò nínú owó ìdápadà tí a fún. A kò fi àwọn àṣẹ tí a dá dúró ránṣẹ́ rí, nítorí náà a máa ń dá owó wọn padà ní kíkún nígbà gbogbo."
         },
         "automation": {
           "buyLabel": "Ra àmì ìfiránṣẹ́ láìfọwọ́kàn",
           "buyLabelHint": "Tí ó bá wà ní pípa, yóò ṣẹ̀dá àkọsílẹ̀ lẹ́yìn ìfiwéra iye owó yóò sì dúró, yóò fi rírà sílẹ̀ fún ènìyàn.",
-          "description": "Ṣẹ̀dá ìfiránṣẹ́ ní kété tí a bá sanwó fún àṣẹ tí a sì gbé e lọ sí ìṣiṣẹ́. O lè máa fi àṣẹ ránṣẹ́ sí olùfiránṣẹ́ ní ọwọ́ dípò bẹ́ẹ̀ nígbà gbogbo.",
-          "enable": "Mú ìfiránṣẹ́ láìfọwọ́kàn ṣiṣẹ́",
+          "description": "Ó ń ṣẹ̀dá ìfiránṣẹ́ nígbà tí a bá sanwó fún àṣẹ tí ó sì lọ sí ìṣiṣẹ́. O ṣì lè fi àṣẹ èyíkéyìí ránṣẹ́ sí olùfiránṣẹ́ fúnra rẹ.",
+          "enable": "Fi àwọn àṣẹ tí a ti sanwó fún ránṣẹ́ láìfọwọ́kàn",
           "fixedServiceHint": "Ìdámọ̀ iṣẹ́ ti olùgbé-ẹrù fúnra rẹ̀. Fi àṣẹ kan ránṣẹ́ sí olùfiránṣẹ́ ní ọwọ́ láti rí àwọn tókìnnì tí àkàǹtì rẹ ń dá padà.",
           "fixedServiceToken": "Tókìnnì iṣẹ́",
           "includeCod": "Fi àwọn àṣẹ ìsanwó-nígbà-ìfijíṣẹ́ kún un",
@@ -1538,28 +2239,42 @@
           "maxLabelCost": "Dá dúró tí iye àmì ìfiránṣẹ́ bá ju",
           "maxLabelCostHint": "Ní owó àkàǹtì olùgbé-ẹrù rẹ, kì í ṣe ti ilé ìtajà.",
           "maxOrderValue": "Iye àṣẹ tó ga jù",
-          "minOrderValue": "Iye àṣẹ tó kéré jù",
           "noLimit": "Kò sí ààlà",
           "rateChoice": "Iye owó wo ni kí a rà",
           "rateChoiceCheapest": "Èyí tó rọ̀ jù",
           "rateChoiceFastest": "Èyí tó yára jù",
           "rateChoiceFixed": "Iṣẹ́ pàtó kan",
-          "requiresCarrier": "Kọ́kọ́ so olùgbé-ẹrù kan pọ̀ — ìṣiṣẹ́ láìfọwọ́kàn kò ní ibi tí yóò ti ra àmì ìfiránṣẹ́.",
           "restrictCountries": "Ṣe láìfọwọ́kàn fún àwọn ibi-àfojúsùn wọ̀nyí nìkan",
           "restrictCountriesHint": "Fi sílẹ̀ ní òfo láti ṣe láìfọwọ́kàn fún gbogbo ibi-àfojúsùn.",
-          "title": "Ìfiránṣẹ́ láìfọwọ́kàn"
+          "title": "Ìfiránṣẹ́ láìfọwọ́kàn",
+          "customize": "Ṣe àtúnṣe",
+          "dialogHint": "Ohun tó ń ṣẹlẹ̀ nígbà tí àṣẹ tí a ti sanwó fún bá lọ sí ìṣiṣẹ́.",
+          "summary": {
+            "cheapest": "Ó ń ra àmì ìfiránṣẹ́ tó rọ̀ jù.",
+            "fastest": "Ó ń ra àmì ìfiránṣẹ́ tó yára jù.",
+            "fixed": "Ó ń ra iṣẹ́ {service}.",
+            "fixedUnset": "Ó ń ra iṣẹ́ kan, èyí tí a kò tíì yàn.",
+            "draft": "Ó ń pèsè àkọsílẹ̀ ìfiránṣẹ́ sílẹ̀, ó sì ń fi rírà sílẹ̀ fún ọ.",
+            "marksShipped": "Lẹ́yìn náà ó ń sàmì sí àṣẹ pé a ti fi ránṣẹ́.",
+            "codIncluded": "Ó kan àwọn àṣẹ ìsanwó-nígbà-ìfijíṣẹ́ pẹ̀lú.",
+            "codExcluded": "A fi àwọn àṣẹ ìsanwó-nígbà-ìfijíṣẹ́ sílẹ̀ fún ọ.",
+            "limited": "Àwọn ààlà rẹ ń yọ àwọn àṣẹ kan sílẹ̀."
+          },
+          "limitsHeading": "Àwọn ààlà",
+          "orderValue": "Iye àṣẹ"
         },
         "courierLinks": {
           "add": "Ṣàfikún olùfiránṣẹ́",
-          "builtIn": "A ti so wọ́n pọ̀ tẹ́lẹ̀ láìsí ìṣètò kankan:",
+          "builtIn": "A ti so wọ́n pọ̀ mọ́ ojú-ìwé ìtọpinpin wọn tẹ́lẹ̀: {couriers}. Ṣàfikún olùfiránṣẹ́ mìíràn èyíkéyìí tí o ń lò.",
           "carrier": "Orúkọ olùfiránṣẹ́",
-          "description": "Fún àwọn ẹrù tí o ń tẹ̀ sí i ní ọwọ́. Lo {tracking} níbi tí nọ́mbà ìtọpinpin yóò wà; ìjápọ̀ tí kò ní ibi-ìdúró yóò ní in ní ìparí rẹ̀.",
+          "description": "Lo {tracking} níbi tí nọ́mbà ìtọpinpin yóò wà; ìjápọ̀ tí kò ní ibi-ìdúró yóò ní in ní ìparí rẹ̀.",
           "remove": "Yọ ìjápọ̀ olùfiránṣẹ́ kúrò",
-          "title": "Àwọn ìjápọ̀ ìtọpinpin olùfiránṣẹ́",
-          "urlTemplate": "URL ìtọpinpin"
+          "title": "Àwọn ìjápọ̀ ìtọpinpin",
+          "urlTemplate": "URL ìtọpinpin",
+          "heading": "Àwọn nọ́mbà ìtọpinpin tí o ń tẹ̀ fúnra rẹ"
         },
         "packages": {
-          "active": "Ó ń ṣiṣẹ́",
+          "active": "Lo páálí yìí",
           "add": "Ṣàfikún páálí",
           "default": "Páálí àìyípadà",
           "description": "Àwọn páálí tí a lè fi díwọ̀n iye owó olùgbé-ẹrù. A ń lo àìyípadà nígbàkúùgbà tí àwọn ọjà inú àṣẹ kò bá ní ìwọ̀n tiwọn.",
@@ -1571,10 +2286,36 @@
           "name": "Orúkọ",
           "newName": "Páálí tuntun",
           "noLimit": "Kò sí ààlà",
-          "remove": "Yọ páálí kúrò",
-          "title": "Àwọn páálí tí a fi pamọ́",
+          "remove": "Pa páálí rẹ́",
+          "title": "Àwọn páálí",
           "unit": "Ẹ̀yọ ìwọ̀n",
-          "width": "Fífẹ̀"
+          "width": "Fífẹ̀",
+          "edit": "Ṣàtúnṣe",
+          "editNamed": "Ṣàtúnṣe {name}",
+          "dialogTitleNew": "Ṣàfikún páálí",
+          "dialogTitleEdit": "Ṣàtúnṣe páálí",
+          "defaultBadge": "Àìyípadà",
+          "off": "Ó wà ní pípa",
+          "dimensions": "{length} × {width} × {height} {unit}",
+          "emptyWeightShort": "ó wúwo tó {weight} {unit} ní òfo",
+          "maxWeightShort": "ó lè gba títí dé {weight} {unit}",
+          "size": "Ìwọ̀n (gígùn × fífẹ̀ × gíga)",
+          "weightUnit": "Ẹ̀yọ ìwúwo",
+          "maxWeightHint": "Àwọn ohun inú rẹ̀ tó bá wúwo ju èyí lọ yóò lọ sínú páálí tó tóbi jù.",
+          "defaultHint": "A ń lò ó nígbà tí àwọn ọjà inú àṣẹ kò bá ní ìwọ̀n tiwọn, tàbí tí wọn kò bá wọ páálí kankan.",
+          "activeHint": "Tí ó bá wà ní pípa, páálí náà yóò wà níbí ṣùgbọ́n a kò ní di àṣẹ sínú rẹ̀."
+        },
+        "units": {
+          "to": "sí",
+          "days": "ọjọ́"
+        },
+        "dispatch": {
+          "title": "Fífi ẹrù ránṣẹ́",
+          "description": "Ibi tí àwọn ẹrù ti ń jáde, àti bí ó ṣe ń pẹ́ tó kí o tó fi wọ́n ránṣẹ́."
+        },
+        "vendors": {
+          "title": "Àwọn olùtajà",
+          "description": "Bí ìfiránṣẹ́ ṣe ń ṣiṣẹ́ nígbà tí àṣẹ kan bá ní ọjà ọ̀pọ̀ olùtajà."
         }
       },
       "twoFactor": {
@@ -1637,71 +2378,59 @@
         "verifyFailed": "Ìjẹ́rìísí kùnà"
       },
       "pos": {
-        "title": "Ìwọlé Ibi Títà (POS)",
-        "description": "Ṣètò àwọn ipa tí ó lè wọ ètò POS",
-        "enable": "Mú ètò POS ṣiṣẹ́",
-        "enableDesc": "Jẹ́ kí títà nínú ṣọ́ọ̀bù ṣeé ṣe nípasẹ̀ mọ́dù Ibi Títà (POS)",
-        "access": "Ìwọlé POS gẹ́gẹ́ bí ipa",
+        "title": "Ibi Títà",
+        "description": "Tà ní ojúkojú láti ojú-ìbojú títà, pẹ̀lú àwọn ọjà àti ọjà inú ìpamọ́ kan náà bí ti ilé ìtajà orí ayélujára rẹ.",
+        "descriptionOff": "Ó wà ní pípa: kò sí ẹni tí ó lè ṣí ojú-ìbojú títà. A pa àwọn ètò rẹ mọ́ di ìgbà tí o bá tún tàn án.",
+        "access": "Ta ni ó lè tà",
+        "accessNone": "Kò sí ẹni tí ó lè ṣí ojú-ìbojú títà báyìí. Tan ó kéré tán ọ̀kan.",
         "admin": "Àwọn alábòójútó",
-        "adminDesc": "Jẹ́ kí àwọn alábòójútó tà nípasẹ̀ POS",
+        "adminDesc": "Wọ́n ń ta àwọn ọjà ti ilé ìtajà fúnra rẹ̀.",
         "vendor": "Àwọn olùtajà",
-        "vendorDesc": "Jẹ́ kí àwọn olùtajà ta àwọn ọjà wọn nípasẹ̀ POS",
-        "general": "Gbogbogbò",
-        "defaultLocation": "ID ibi POS àìyípadà",
-        "customize": "Ṣe àtúnṣe ara ẹni",
-        "printedReceipts": "Àwọn rìsíìtì tí a tẹ̀ jáde",
-        "checkout": "Ìsanwó",
-        "offlinePayments": "Ìsanwó láìsí ayélujára",
-        "orders": "Àwọn àṣẹ",
-        "orderNumberPrefix": "Ìbẹ̀rẹ̀ nọ́mbà àṣẹ",
-        "orderNumberPrefixHint": "Àwọn àṣẹ POS tuntun ń lo ìbẹ̀rẹ̀ yìí pẹ̀lú nọ́mbà oní-díjì mẹ́fà, fún àpẹẹrẹ POS000017.",
-        "save": "Fi ètò POS pamọ́",
-        "enabled": "Ó ń ṣiṣẹ́",
-        "disabled": "Kò ṣiṣẹ́",
-        "accessDesc": "Ṣàkóso àwọn ipa olùlò tí ó lè wọ ẹ̀rọ POS",
-        "generalDesc": "Ṣètò èdè àti ibi àìyípadà fún POS",
-        "selectLocation": "Yan ibi kan",
-        "noLocation": "Kò sí ibi àìyípadà",
-        "defaultBadge": "Àìyípadà",
-        "locationIdPlaceholder": "Tẹ ID ibi sí i",
-        "defaultLocationHint": "Ibi tí a ń lò gẹ́gẹ́ bí àìyípadà fún àwọn àṣẹ POS tuntun",
-        "checkoutDesc": "Ṣètò àwọn ọ̀nà ìsanwó àti bí ìsanwó ṣe ń ṣiṣẹ́",
-        "paymentMethods": "Àwọn ọ̀nà ìsanwó tí a gbà",
-        "paymentCash": "Owó lọ́wọ́",
-        "paymentCashDesc": "Gba ìsanwó owó lọ́wọ́",
-        "paymentCard": "Káàdì (Stripe)",
-        "paymentCardDesc": "Gba ìsanwó káàdì kírẹ́dítì/débítì nípasẹ̀ Stripe",
-        "paymentManual": "Ní ọwọ́",
-        "paymentManualDesc": "Àwọn ọ̀nà ìsanwó àdáni",
-        "offlinePaymentsDesc": "Ṣe ìsanwó nígbà tí ẹ̀rọ kò sí lórí ayélujára",
-        "customizeDesc": "Ṣe àtúnṣe ìrísí àti ìhùwàsí ẹ̀rọ POS",
-        "printedReceiptsDesc": "Tẹ rìsíìtì jáde lẹ́yìn ìdúnàádúrà kọ̀ọ̀kan",
-        "receiptPrinter": "Ẹ̀rọ ìtẹ̀wé rìsíìtì",
-        "receiptPrinterPlaceholder": "fún àpẹẹrẹ Star TSP143",
-        "ordersDesc": "Ṣètò àwọn ìlànà ìdápadà fún àwọn àṣẹ POS",
-        "sound": "Àwọn ìró",
-        "soundDesc": "Ṣètò ìdáhùn ohùn fún ìbáṣepọ̀ pẹ̀lú ẹ̀rọ POS",
-        "soundEnable": "Mú àwọn ìró ṣiṣẹ́",
-        "soundEnableDesc": "Máa dún àmì ohùn nígbà iṣẹ́ POS",
-        "soundVolume": "Ìwọ̀n ohùn",
-        "soundAddToCart": "Ṣàfikún sí apẹ̀rẹ̀",
-        "soundAddToCartDesc": "Dún nígbà tí a bá ṣàfikún ọjà sí apẹ̀rẹ̀",
-        "soundPayment": "A ti gba ìsanwó",
-        "soundPaymentDesc": "Ìró nígbà tí a bá ṣe ìsanwó",
-        "soundOrderComplete": "Àṣẹ ti parí",
-        "soundOrderCompleteDesc": "Agogo nígbà tí àṣẹ bá parí",
-        "soundError": "Ìkìlọ̀ àṣìṣe",
-        "soundErrorDesc": "Ìró ìkìlọ̀ fún àṣìṣe àti ìkìlọ̀ ọjà inú ìpamọ́",
-        "paymentBank": "Gbígbé owó nípasẹ̀ báńkì",
-        "paymentBankDesc": "Gba gbígbé owó báńkì pẹ̀lú ìtọ́kasí",
+        "vendorDesc": "Olùtajà kọ̀ọ̀kan ń ta àwọn ọjà tirẹ̀ láti dasibodu rẹ̀.",
+        "vendorPackOff": "Àwọn olùtajà kò ní àṣẹ láti lo Ibi Títà, nítorí náà èyí kò tíì ṣe nǹkan kan. Tan án nínú <link>Ipò ọ̀pọ̀ olùtajà</link>.",
         "seller": "Òṣìṣẹ́",
-        "sellerDesc": "Jẹ́ kí àwọn òṣìṣẹ́ tà nípasẹ̀ POS"
+        "sellerDesc": "Àwọn òṣìṣẹ́ tí a fún ní àṣẹ POS nìkan, tí a ṣètò nínú <link>Ẹgbẹ́</link>.",
+        "checkout": "Àwọn ìsanwó",
+        "checkoutDesc": "Ohun tí agbowó lè gbà ní kọ́ńtà.",
+        "paymentCash": "Owó lọ́wọ́",
+        "paymentCashDesc": "Ó ń ṣírò ṣéńjì.",
+        "paymentCard": "Káàdì",
+        "paymentCardDesc": "Lórí ẹ̀rọ káàdì, tàbí nípa títẹ̀ ẹ́ wọlé nípasẹ̀ Stripe.",
+        "paymentCardNoStripe": "Lórí ẹ̀rọ káàdì. Láti tún lè tẹ àlàyé káàdì wọlé, ṣètò Stripe nínú <link>Ètò ìsanwó</link>.",
+        "paymentBank": "Gbígbé owó nípasẹ̀ báńkì",
+        "paymentBankDesc": "A ń kọ ọ́ sílẹ̀ pẹ̀lú ìtọ́kasí tí kò pọn dandan.",
+        "paymentManual": "Ní ọwọ́",
+        "paymentManualDesc": "Ọ̀nà ìsanwó mìíràn èyíkéyìí.",
+        "paymentLast": "Ọ̀nà ìsanwó kan gbọ́dọ̀ wà ní títàn.",
+        "register": "Ojú-ìbojú títà",
+        "defaultLocation": "Kọ́ńtà àìyípadà",
+        "defaultLocationHint": "Kọ́ńtà tí ojú-ìbojú títà ti ń tà títí agbowó rẹ̀ yóò fi yan òmíràn. Ó ń fi <link>àwọn ibi</link> rẹ tí ó ń tà ní kọ́ńtà hàn.",
+        "locationGone": "A kò lè lo {name} gẹ́gẹ́ bí kọ́ńtà mọ́, nítorí náà àwọn ojú-ìbojú títà kò kà á sí. Yan òmíràn.",
+        "locationMissing": "Kọ́ńtà tí a fipamọ́ kò sí mọ́, nítorí náà àwọn ojú-ìbojú títà kò kà á sí. Yan òmíràn.",
+        "locationsEmpty": "<link>Àwọn ibi</link> rẹ kò tíì ń tà ní kọ́ńtà, nítorí náà àwọn ojú-ìbojú títà ń tà láti inú gbogbo ọjà inú ìpamọ́ rẹ.",
+        "locationsFailed": "A kò lè gbé àwọn ibi rẹ wá. Tún gbé ojú-ìwé yìí wá láti yí kọ́ńtà padà.",
+        "selectLocation": "Yan kọ́ńtà kan",
+        "noLocation": "Kò sí kọ́ńtà àìyípadà",
+        "defaultBadge": "Àìyípadà",
+        "orderNumberPrefix": "Ìbẹ̀rẹ̀ nọ́mbà àṣẹ",
+        "orderNumberPrefixExample": "Nọ́mbà títà yóò rí báyìí: <strong>{example}</strong>.",
+        "printedReceipts": "Tẹ rìsíìtì jáde lẹ́yìn títà kọ̀ọ̀kan",
+        "printedReceiptsDesc": "Ó ń ṣí fèrèsé ìtẹ̀wé ní kété tí a bá ti sanwó títà kan.",
+        "receiptPrinter": "Ẹ̀rọ ìtẹ̀wé rìsíìtì",
+        "receiptPrinterHint": "Àkíyèsí fún ẹgbẹ́ rẹ. Inú fèrèsé ìtẹ̀wé aṣàwákiri ni a ti ń yan ẹ̀rọ ìtẹ̀wé fúnra rẹ̀.",
+        "receiptPrinterPlaceholder": "fún àpẹẹrẹ Star TSP143",
+        "sound": "Àwọn ìró",
+        "soundDesc": "Wọ́n ń dún lórí ojú-ìbojú títà bí agbowó ṣe ń ṣiṣẹ́.",
+        "soundVolume": "Ìwọ̀n ohùn",
+        "soundAddToCart": "A ti ṣàfikún ọjà",
+        "soundPayment": "A ti gba ìsanwó",
+        "soundOrderComplete": "Títà ti parí",
+        "soundError": "Àṣìṣe tàbí ìkìlọ̀ ọjà inú ìpamọ́",
+        "soundPlay": "Mú ìró dún: {sound}"
       },
       "vendorPermissions": {
         "title": "Ìlànà ọjà",
-        "description": "Ìyípadà kan fún agbára kọ̀ọ̀kan, jákèjádò pèpéle. Ìwọ̀nyí kì í ṣe àwọn ètò àìyípadà fún àwọn olùtajà tuntun — ọ̀kọ̀ọ̀kan ń ṣiṣẹ́ lẹ́sẹ̀kẹsẹ̀ lórí gbogbo ilé ìtajà tó wà.",
-        "warning": "Mú Ipò ọ̀pọ̀ olùtajà ṣiṣẹ́ láti ṣètò ìlànà ọjà.",
-        "liveWarning": "Pípa ọ̀kan yóò yọ agbára náà kúrò lọ́wọ́ gbogbo olùtajà lórí ọjà yìí lẹ́ẹ̀kan náà, kì í ṣe àwọn tuntun nìkan. Olùtajà tí ó bá kàn án yóò rí ojú-ìwé tí ó dárúkọ ètò yìí gẹ́gẹ́ bí ìdí.",
+        "description": "Ohun tí àwọn olùtajà lè lò. Ìyípadà kọ̀ọ̀kan ń kan gbogbo olùtajà lẹ́ẹ̀kan náà, kì í ṣe àwọn tuntun nìkan.",
         "packAiStudio": "Kíkọ pẹ̀lú AI fún àwọn àkọsílẹ̀ ọjà àti mídíà",
         "packAnalytics": "Ìròyìn títà àti àbẹ̀wò",
         "packBoosts": "Ra àwọn ipò onígbọ̀wọ́",
@@ -1712,7 +2441,14 @@
         "packPayouts": "Iye owó tó kù àti ìbéèrè yíyọ owó fúnra ẹni",
         "packPos": "Títà ojúkojú",
         "packStaff": "Pè àti ṣàkóso àwọn ipò òṣìṣẹ́ ilé ìtajà",
-        "packStorefront": "Ojú-ìwé ilé ìtajà, àmì ìdánimọ̀, ètò ìfiránṣẹ́"
+        "packStorefront": "Ojú-ìwé ilé ìtajà, àmì ìdánimọ̀, ètò ìfiránṣẹ́",
+        "groups": {
+          "selling": "Títà",
+          "store": "Ilé ìtajà àti ẹgbẹ́",
+          "money": "Owó",
+          "insights": "Òye àti AI"
+        },
+        "turningOff": "Nígbà tí o bá fi pamọ́, gbogbo olùtajà kò ní lè lo {pack} mọ́, wọn yóò sì rí ojú-ìwé tí ó dárúkọ ètò yìí gẹ́gẹ́ bí ìdí."
       },
       "storage": {
         "title": "Ètò ibi ìpamọ́",
@@ -1859,6 +2595,135 @@
         "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
         "save": "Fi ètò ìtúpalẹ̀ pamọ́"
       },
+      "metaCatalog": {
+        "title": "Katalogi Meta",
+        "description": "Facebook àti Instagram ń ka àwọn ọjà rẹ láti URL feed àdáni kan, fún àwọn ṣọ́ọ̀bù àti ìpolówó katalogi.",
+        "descriptionOff": "Tan èyí láti pín àwọn ọjà rẹ pẹ̀lú Facebook àti Instagram, fún àwọn ṣọ́ọ̀bù àti ìpolówó katalogi.",
+        "loadFailed": "A kò lè gbé ètò feed wá.",
+        "retry": "Gbìyànjú lẹ́ẹ̀kan sí i",
+        "feedUrl": "URL feed",
+        "feedUrlHint": "Lẹ̀ èyí sínú Meta Commerce Manager. Ẹnikẹ́ni tí ó bá ní URL yìí lè ka katalogi rẹ, nítorí náà pa á mọ́ ní ìkọ̀kọ̀.",
+        "copy": "Ṣe ẹ̀dà URL feed",
+        "copyFailed": "A kò lè ṣe ẹ̀dà. Yan URL náà kí o sì ṣe ẹ̀dà rẹ̀ fúnra rẹ.",
+        "rotate": "Ṣẹ̀dá URL tuntun",
+        "status": {
+          "fetched": "Ìgbà tí a gbà á kẹ́yìn: {when} · {count, plural, other {ọjà #}}",
+          "notFetched": "Meta kò tíì gba URL yìí.",
+          "skipped": "A fi sílẹ̀: {reasons}",
+          "preorder": "{count} lórí àṣẹ-ṣáájú",
+          "noImage": "{count} láìsí àwòrán tí a lè lò",
+          "noPrice": "{count} láìsí iye owó"
+        },
+        "toast": {
+          "on": "Feed katalogi Meta ti wà ní títàn",
+          "off": "Feed katalogi Meta ti wà ní pípa",
+          "rotated": "A ti ṣẹ̀dá URL feed tuntun. Lẹ̀ ẹ́ sínú Commerce Manager.",
+          "failed": "A kò lè fi pamọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i.",
+          "liveOn": "Ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ ti wà ní títàn",
+          "liveOff": "Ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ ti wà ní pípa. Àwọn ọjà tó ti wà nínú Meta yóò wà níbẹ̀.",
+          "sourceFeed": "Meta ń ka URL feed báyìí",
+          "sourceLive": "Ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ ni orísun katalogi náà báyìí"
+        },
+        "rotateConfirm": {
+          "title": "Ṣẹ̀dá URL feed tuntun?",
+          "description": "URL lọ́wọ́lọ́wọ́ yóò dẹ́kun iṣẹ́ lẹ́sẹ̀kẹsẹ̀. Títí tí o fi lẹ̀ tuntun náà sínú Commerce Manager, gbígbà tí Meta ń ṣe ní àkókò tí a ṣètò yóò kùnà.",
+          "confirm": "Ṣẹ̀dá URL tuntun",
+          "cancel": "Fagilé"
+        },
+        "guide": {
+          "title": "Ìtọ́sọ́nà ìṣètò Commerce Manager",
+          "step1": "Ṣí Meta Commerce Manager kí o sì yan katalogi rẹ, tàbí ṣẹ̀dá katalogi ìtajà orí ayélujára.",
+          "step2": "Lọ sí Catalog → Data sources → Add items, yan Data feed, lẹ́yìn náà Next.",
+          "step3": "Yan Scheduled feed kí o sì lẹ̀ URL feed tó wà lókè.",
+          "step4": "Ṣètò rẹ̀ láti máa tún ṣe ní Hourly, yan {currency} gẹ́gẹ́ bí owó, lẹ́yìn náà Upload.",
+          "step5": "Nínú Events Manager, so katalogi náà pọ̀ mọ́ Meta Pixel tí o tẹ̀ sínú Settings → Analytics, kí àwọn ìpolówó lè so ìwòran àti ìrajà pọ̀ mọ́ àwọn ọjà.",
+          "step6": "Lẹ́yìn gbígbà àkọ́kọ́, Catalog → Issues yóò ṣe àkójọ ọjà èyíkéyìí tí Meta kọ̀.",
+          "caution": "Lẹ́yìn tí o bá ṣẹ̀dá URL tuntun, yí URL orísun data tó wà tẹ́lẹ̀ padà. Orísun data kejì yóò ṣe àkójọ ọjà kọ̀ọ̀kan lẹ́ẹ̀mejì.",
+          "link": "Ṣí Commerce Manager",
+          "docs": "Àlàyé kíkún: docs/META_CATALOG.md"
+        },
+        "descriptionLive": "Facebook àti Instagram ń gba àwọn àyípadà ọjà rẹ láàárín ìṣẹ́jú díẹ̀ nípasẹ̀ Catalog API ti Meta.",
+        "source": {
+          "title": "Bí Meta ṣe ń gba àwọn ọjà rẹ",
+          "feed": "URL feed",
+          "feedHint": "Meta máa ń gba fáìlì àwọn ọjà rẹ sílẹ̀ ní gbogbo wákàtí.",
+          "live": "Ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀",
+          "liveHint": "Àwọn àyípadà máa ń dé ọ̀dọ̀ Meta láàárín ìṣẹ́jú díẹ̀ nípasẹ̀ Catalog API."
+        },
+        "live": {
+          "catalogId": "ID katalogi",
+          "catalogIdHint": "Nọ́mbà tó wà lábẹ́ orúkọ katalogi náà nínú Commerce Manager.",
+          "token": "Tòkẹ́nì ìwọlé System User",
+          "tokenHint": "A fi ìpàrokò pa á mọ́. Fi sílẹ̀ ní òfo láti pa tòkẹ́nì tí a ti fipamọ́ mọ́.",
+          "tokenSaved": "A ti fipamọ́ (fi sílẹ̀ ní òfo láti pa á mọ́)",
+          "tokenRemoving": "A ó yọ tòkẹ́nì tí a ti fipamọ́ kúrò nígbà tí o bá fipamọ́.",
+          "save": "Fipamọ́",
+          "test": "Dán ìsopọ̀ wò",
+          "connected": "A ti so pọ̀ mọ́ “{name}”",
+          "problem": {
+            "token": "Meta kò gba tòkẹ́nì ìwọlé náà. Ó lè jẹ́ pé ó ti parí tàbí a ti fagilé e.",
+            "permission": "Tòkẹ́nì yìí kò lè ṣàkóso àwọn katalogi. Yan katalogi náà fún System User pẹ̀lú àṣẹ Manage, kí o sì ṣẹ̀dá tòkẹ́nì náà pẹ̀lú catalog_management.",
+            "catalog": "Tòkẹ́nì yìí kò lè rí katalogi yẹn. Ṣàyẹ̀wò ID katalogi náà, àti pé a ti yan katalogi náà fún System User.",
+            "key": "A kò lè ka tòkẹ́nì tí a fipamọ́ lórí sáfà yìí. Lẹ̀ ẹ́ lẹ́ẹ̀kan sí i kí o sì fipamọ́.",
+            "config": "A kò ṣètò META_GRAPH_API_VERSION lórí sáfà.",
+            "throttle": "Meta kò ráyè báyìí. Gbìyànjú lẹ́ẹ̀kan sí i ní ìṣẹ́jú kan.",
+            "other": "A kò lè dé ọ̀dọ̀ Meta: {message}"
+          },
+          "paused": {
+            "title": "A ti dá ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ dúró",
+            "kept": "A ń pa àwọn àyípadà mọ́, a ó sì fi wọ́n ránṣẹ́ nígbà tí ìsopọ̀ bá tún ṣiṣẹ́.",
+            "meta": "Meta sọ pé: {reason}"
+          },
+          "setup": {
+            "version": "Ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ nílò META_GRAPH_API_VERSION lórí sáfà",
+            "versionHint": "Ṣètò rẹ̀ sí ẹ̀yà Graph API tí app Meta rẹ ń lò, fún àpẹẹrẹ v23.0, kí o sì tún ilé ìtajà bẹ̀rẹ̀.",
+            "key": "Fífi tòkẹ́nì pamọ́ nílò META_CATALOG_ENCRYPTION_KEY lórí sáfà",
+            "keyHint": "Ṣètò rẹ̀ sí ó kéré tán àwọn ohun kíkọ 32 tí a yàn láìlétò, kí o sì tún ilé ìtajà bẹ̀rẹ̀. A ó lo MESSAGING_ENCRYPTION_KEY tí a kò bá ṣètò rẹ̀."
+          },
+          "status": {
+            "lastSync": "Ìmúṣiṣẹ́pọ̀ tó kẹ́yìn: {when}",
+            "never": "A kò tíì fi nǹkan kan ránṣẹ́",
+            "waiting": "{count, plural, other {àyípadà # ń dúró}}",
+            "checking": "ń ṣàyẹ̀wò gbogbo ọjà",
+            "throttled": "Meta ní ká dín ìyára kù. Fífi ránṣẹ́ yóò tún bẹ̀rẹ̀ {when}.",
+            "runError": "Ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ kò lè ṣiṣẹ́: {message}"
+          },
+          "skipped": {
+            "line": "A fi sílẹ̀ nígbà àyẹ̀wò tó kẹ́yìn: {reasons}",
+            "preorder": "{count} lórí àṣẹ-ṣáájú",
+            "noImage": "{count} láìsí àwòrán tí a lè lò",
+            "noPrice": "{count} láìsí iye owó"
+          },
+          "syncNow": "Mú gbogbo rẹ̀ ṣiṣẹ́pọ̀ báyìí",
+          "toast": {
+            "syncStarted": "A ń fi gbogbo katalogi rẹ ránṣẹ́ sí Meta lẹ́ẹ̀kan sí i.",
+            "saved": "A ti fipamọ́",
+            "failed": "A kò lè fi pamọ́. Jọ̀wọ́ gbìyànjú lẹ́ẹ̀kan sí i."
+          },
+          "rejected": {
+            "title": "{count, plural, other {Meta kọ ọjà #}}",
+            "titleFailing": "A kò lè fi àwọn ọjà kan ránṣẹ́",
+            "edit": "Ṣàtúnṣe",
+            "noReason": "Meta kò sọ ìdí rẹ̀ níbí. Commerce Manager → Catalog → Issues ní ìdí náà.",
+            "failing": "A kò lè fi ránṣẹ́: {message}",
+            "loadFailed": "A kò lè gbé àwọn ọjà tí a kọ̀ wá.",
+            "retry": "Gbìyànjú lẹ́ẹ̀kan sí i"
+          },
+          "guide": {
+            "title": "Ìtọ́sọ́nà ìṣètò ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀",
+            "step1": "Nínú Meta Business Manager, ṣí Business settings → Users → System users, kí o sì fi system user kan kún un pẹ̀lú ipa Admin.",
+            "step2": "Tẹ Assign assets, yan Catalogs, mú katalogi rẹ kí o sì tan Manage catalog.",
+            "step3": "Tẹ Generate new token, yan app rẹ, ṣètò rẹ̀ kí ó má parí láéláé kí o sì fi àmì sí àṣẹ yìí. Ṣe ẹ̀dà tòkẹ́nì náà:",
+            "step4": "Nínú Commerce Manager, ṣí katalogi náà kí o sì ṣe ẹ̀dà ID rẹ̀, nọ́mbà tó wà lábẹ́ orúkọ rẹ̀.",
+            "step5": "Lẹ̀ méjèèjì sínú àwọn àyè tó wà lókè kí o sì tẹ Fipamọ́. Ìmúṣiṣẹ́pọ̀ àkọ́kọ́ máa ń fi gbogbo ọjà ránṣẹ́; lẹ́yìn náà ohun tó yí padà nìkan ni a ó fi ránṣẹ́, láàárín nǹkan bí ìṣẹ́jú mẹ́ta.",
+            "step6": "Tí katalogi yìí bá ní orísun data feed tí a ṣètò àkókò rẹ̀, pa á rẹ́ nínú Catalog → Data sources, kí orísun kan ṣoṣo lè máa kọ àwọn ọjà.",
+            "caution": "Ṣọ́ tòkẹ́nì náà bí ọ̀rọ̀ aṣínà. Tí a bá fagilé e tàbí tí ó bá parí, ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ yóò dúró, a ó sì fi tó àwọn alábòójútó létí.",
+            "off": "Pípa ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ máa ń fi àwọn ọjà tó ti wà nínú Meta sílẹ̀ bí wọ́n ṣe wà. Yọ wọ́n kúrò nínú Commerce Manager tí o kò bá fẹ́ wọn mọ́.",
+            "link": "Ṣí Business settings",
+            "docs": "Àlàyé kíkún: docs/META_CATALOG.md"
+          }
+        }
+      },
       "loadError": "A kò lè gbé àwọn ètò wá",
       "unsavedChanges": {
         "title": "Àwọn àyípadà tí a kò tíì fi pamọ́",
@@ -1928,33 +2793,65 @@
       "saveChanges": "Fipamọ Awọn Iyipada",
       "boosting": {
         "title": "Ìgbéga ọjà",
-        "description": "Jẹ́ kí àwọn olùtà san owó láti gbé ọjà wọn ga ní àwọn ipò ìgbọ́wọ́lé jákèjádò ilé ìtajà.",
-        "enable": "Mú ìgbéga ṣiṣẹ́",
-        "enableDescription": "Ìtẹ̀ àkọ́kọ́. Nígbà tí ó bá pa, kò sí ohun tí a fi hàn ní ilé ìtajà, àwọn olùtà kò sì lè ra ìgbéga.",
-        "paymentMethods": "Àwọn ọ̀nà ìsanwó",
-        "paymentMethodsDescription": "Àwọn ẹ̀rọ ìsanwó tí àwọn olùtà lè san owó ìgbéga nípasẹ̀ wọn. A ń tò àwọn ẹ̀rí sí Ìtòlẹ́sẹẹsẹ Ìsanwó.",
-        "gatewayDisabledHint": "Kọ́kọ́ mú ẹ̀rọ ìsanwó yìí ṣiṣẹ́ ní Ìtòlẹ́sẹẹsẹ Ìsanwó",
-        "placements": "Àwọn ipò",
-        "placementsDescription": "Ibi tí àwọn ọjà ìgbọ́wọ́lé yóò hàn ní ilé ìtajà.",
-        "placementHome": "Apá ojú ìwé ilé",
-        "placementListing": "Àtòjọ ilé ìtajà àti ẹ̀ka",
-        "placementProductPage": "Ìyípo ojú ìwé ọjà",
-        "listingSlots": "Ìjìnlẹ̀ àkàbà lórí ojú-ìwé àtòjọ",
-        "listingSlotsDescription": "Iye àwọn ipò òkè àkàbà tí yóò hàn ní ojú-ìwé ilé-ìtajà àti ẹ̀ka (1–12). Àwọn ipò tí ó wà ní ìsàlẹ̀ ìjìnlẹ̀ yìí kò ní hàn níbẹ̀ rárá.",
-        "hideOutOfStock": "Fi àwọn ọjà tí ó tán pamọ́",
-        "hideOutOfStockDescription": "Ọjà tí a gbà tí ó bá tán ni a ó yọ kúrò ní ààyè rẹ̀, a ó sì kà ọjọ́ náà fún olùtajà ní ìwọ̀n.",
-        "managePositions": "Ṣàkóso àkàbà ipò àti owó",
-        "productPageSlots": "Ìjìnlẹ̀ àkàbà lórí ojú-ìwé ọjà",
-        "productPageSlotsDescription": "Iye àwọn ipò òkè àkàbà tí yóò hàn nínú ìlà ojú-ìwé ọjà (1–12).",
-        "ladderDepth": "Àwọn ipò tí ó jinlẹ̀ ju èyí tí ó tóbi jù nínú àwọn ìjìnlẹ̀ wọ̀nyí kò ní hàn níbìkíbì, a kò sì lè tà wọ́n.",
-        "booking": "Àwọn òfin ìfipamọ́",
-        "bookingDescription": "Bí àwọn olùtajà ṣe lè fi ààyè pamọ́ tó sí iwájú, bí ìfipamọ́ ṣe lè pẹ́ tó, àti bí ìsanwó tí kò tíì parí ṣe ń dì ọjọ́ rẹ̀ mú tó.",
-        "bookingHorizonDays": "Ààlà ìfipamọ́ (ọjọ́)",
-        "bookingHorizonDaysDescription": "Bí kàlẹ́ndà ṣe ń ṣí sí iwájú tó (7–365).",
-        "maxBookingDays": "Ìfipamọ́ kan tí ó gùn jù (ọjọ́)",
-        "maxBookingDaysDescription": "Ó ń dí olùtajà kan lọ́wọ́ láti dì ipò kan mú fún gbogbo àkókò nínú ìdúnàádúrà kan (1–365).",
-        "holdMinutes": "Ìdìmú ìsanwó (ìṣẹ́jú)",
-        "holdMinutesDescription": "Bí ìsanwó tí kò tíì parí ṣe ń mú ọjọ́ rẹ̀ kúrò lọ́jà tó (35–120). Ní ìsàlẹ̀ 35, Stripe yóò kọ ìjókòó ìsanwó náà."
+        "description": "Àwọn olùtajà ń sanwó láti fi ọjà wọn hàn ní àwọn àyè onígbọ̀wọ́ nínú ilé ìtajà.",
+        "descriptionOff": "Ó wà ní pípa: kò sí ọjà onígbọ̀wọ́ tí ó ń hàn, àwọn olùtajà kò sì lè ṣe ìfipamọ́. Tàn án láti ṣètò àkàbà ipò kí o sì ta ìgbéga.",
+        "needsVendors": "Àwọn olùtajà ni a ń ta ìgbéga fún, nítorí náà èyí nílò Ipò ọ̀pọ̀ olùtajà. Ó wà ní pípa fún ilé ìtajà yìí.",
+        "openMultiVendor": "Ṣí Ipò ọ̀pọ̀ olùtajà",
+        "links": {
+          "ladder": "Àkàbà ipò àti iye owó",
+          "campaigns": "Àwọn ìpolongo ìgbéga"
+        },
+        "ladder": {
+          "count": "{count, plural, other {ipò #}}",
+          "onePrice": "{count, plural, other {ipò #}}, {price} lójúmọ́",
+          "range": "{count, plural, other {ipò #}}, {min} sí {max} lójúmọ́",
+          "empty": "Àkàbà kò tíì ní ipò kankan, nítorí náà àwọn olùtajà kò ní ohun tí wọ́n lè gbà sílẹ̀."
+        },
+        "surfaces": {
+          "title": "Ibi tí àwọn ọjà onígbọ̀wọ́ ti ń hàn",
+          "description": "Ojú-ìwé kọ̀ọ̀kan ń fi àwọn ipò òkè àkàbà hàn.",
+          "home": "Ojú-ìwé ilé",
+          "homeHint": "Abala onígbọ̀wọ́. A ń ṣètò ìwọ̀n rẹ̀ nínú <link>irinṣẹ́ ìkọ́ ojú-ìwé</link>.",
+          "homeMissing": "Ojú-ìwé ilé rẹ kò ní abala onígbọ̀wọ́ báyìí, nítorí náà kò sí ohun tí ó ń hàn níbẹ̀. Fi abala náà kún un nínú <link>irinṣẹ́ ìkọ́ ojú-ìwé</link>.",
+          "listing": "Ojú-ìwé ṣọ́ọ̀bù àti ẹ̀ka",
+          "listingHint": "Àwọn káàdì àkọ́kọ́ lójú-ìwé 1. Àwọn ojú-ìwé ìwádìí àti àwọn tí a sẹ́ máa ń wà bí wọ́n ṣe wà.",
+          "productPage": "Ojú-ìwé ọjà",
+          "productPageHint": "Karúsẹ́ẹ̀lì onígbọ̀wọ́ lórí ojú-ìwé ọjà kọ̀ọ̀kan.",
+          "productPageMissing": "Ojú-ìwé ọjà rẹ kò ní abala onígbọ̀wọ́ báyìí, nítorí náà kò sí ohun tí ó ń hàn níbẹ̀. Fi abala náà kún un nínú <link>irinṣẹ́ ìkọ́ ojú-ìwé</link>.",
+          "top": "Ipò <input></input> àkọ́kọ́",
+          "topFixed": "Ipò {count} àkọ́kọ́",
+          "topLabel": "Àwọn ipò tí a fi hàn: {page}",
+          "unseenOne": "Ipò {position} ({name}) kò ní hàn lójú-ìwé kankan.",
+          "unseenMany": "Àwọn ipò {positions} kò ní hàn lójú-ìwé kankan.",
+          "unseenAll": "Kò sí ojú-ìwé tí ó ń fi ọjà onígbọ̀wọ́ hàn báyìí.",
+          "hideOutOfStock": "Fo àwọn ọjà tí ó tán kọjá",
+          "hideOutOfStockHint": "Àyè náà yóò fi ọjà lásán hàn dípò rẹ̀, a ó sì ka apá ọjọ́ yẹn fún olùtajà."
+        },
+        "rules": {
+          "title": "Àwọn òfin ìfipamọ́",
+          "window": "Ààlà ìfipamọ́",
+          "windowHint": "Bí kàlẹ́ndà ìfipamọ́ ṣe ń ṣí sí iwájú tó.",
+          "longest": "Ìfipamọ́ tí ó gùn jù",
+          "longestHint": "Ó ń dí olùtajà kan lọ́wọ́ láti di ipò kan mú fún odindi sáà kan.",
+          "longestOverWindow": "Ó gùn ju ààlà ìfipamọ́ lọ, nítorí náà ààlà ìfipamọ́ ni ó ń ṣiṣẹ́.",
+          "hold": "Ìdìmú ìsanwó tí kò tíì parí",
+          "holdHint": "Ìsanwó tí kò tíì parí yóò di àwọn ọjọ́ rẹ̀ mú fún àkókò yìí, lẹ́yìn náà wọn yóò padà sí ọjà. Stripe nílò ó kéré tán ìṣẹ́jú {minutes}.",
+          "days": "ọjọ́",
+          "minutes": "ìṣẹ́jú"
+        },
+        "payments": {
+          "title": "Àwọn ọ̀nà ìsanwó",
+          "description": "Ohun tí àwọn olùtajà lè fi san owó ìgbéga. Ẹnu-ọ̀nà ìsanwó kan tún gbọ́dọ̀ wà ní títàn nínú <link>Ètò ìsanwó</link>."
+        },
+        "turnOff": {
+          "title": "Pa Ìgbéga ọjà?",
+          "description": "Àwọn ọjà onígbọ̀wọ́ kò ní hàn mọ́ lójú-ìwé kankan, àwọn olùtajà kò sì lè ṣe ìfipamọ́. A ó pa àkàbà, iye owó rẹ̀ àti àwọn ètò wọ̀nyí mọ́.",
+          "bookings": "Ìfipamọ́ tí ń lọ lọ́wọ́: {running}. Tí yóò bẹ̀rẹ̀ lọ́jọ́ iwájú: {upcoming}.",
+          "bookingsUnknown": "Ó ṣeé ṣe kí àwọn ìfipamọ́ kan máa lọ lọ́wọ́ tàbí kí wọ́n fẹ́ bẹ̀rẹ̀.",
+          "notCredited": "Wọn kò ní hàn mọ́, a kò sì ní ka àwọn ọjọ́ yẹn padà fún àwọn olùtajà. Kọ́kọ́ dá wọn dúró tàbí dá owó wọn padà.",
+          "confirm": "Pa á",
+          "cancel": "Jẹ́ kí ó wà ní títàn"
+        }
       },
       "groups": {
         "store": "Ilé ìtajà",
@@ -1978,7 +2875,13 @@
         "savedKeysHint": "Fún ààbò, a kò ní fi àwọn kọ́kọ́rọ́ tí a fipamọ́ hàn mọ́.",
         "savedSecretsHint": "Fún ààbò, a kò ní fi àwọn àṣírí tí a fipamọ́ hàn mọ́.",
         "savedPasswordsHint": "Fún ààbò, a kò ní fi àwọn ọ̀rọ̀ aṣínà tí a fipamọ́ hàn mọ́.",
-        "enableProvider": "Tan {name}"
+        "enableProvider": "Tan {name}",
+        "platformPayments": {
+          "allow": "Jẹ́ kí àwọn olùtajà sanwó pẹ̀lú {name}",
+          "offInPayments": "Ó wà ní pípa nínú Ètò ìsanwó: {gateways}.",
+          "noneOn": "Kò tíì sí ẹnu-ọ̀nà ìsanwó tí ó wà ní títàn nínú Ètò ìsanwó.",
+          "noneAllowed": "Bí gbogbo ọ̀nà bá wà ní pípa, àwọn olùtajà kò ní ọ̀nà láti sanwó."
+        }
       },
       "demoMode": "Ipò àfihàn",
       "vendorConfig": {
@@ -2025,32 +2928,89 @@
           "description": "Àwọn olùbéèrè gbọ́dọ̀ yan ètò kí wọ́n tó parí. Bí bẹ́ẹ̀ kọ́, a ó lo ètò àìyípadà.",
           "label": "Béèrè ètò nígbà ìforúkọsílẹ̀"
         },
-        "title": "Ìṣètò olùtajà"
+        "title": "Ìṣètò olùtajà",
+        "quotes": {
+          "title": "Àwọn ìdíyelé",
+          "showContact": {
+            "label": "Àwọn olùtajà máa ń rí ímeèlì àti fóònù oníbàárà",
+            "description": "Lórí ìbéèrè fún iye owó ọjà olùtajà. Tí a bá pa á, àwọn olùtajà máa ń rí orúkọ àti ìfiránṣẹ́ oníbàárà, ṣùgbọ́n kì í ṣe bí wọ́n ṣe lè kàn sí i. Wọ́n ṣì lè fi iye owó ránṣẹ́, èyí tí ilé ìtajà máa ń fi jíṣẹ́."
+          }
+        },
+        "abandonedCheckouts": {
+          "title": "Ìsanwó tí a pa tì",
+          "show": {
+            "label": "Àwọn olùtajà ń rí ìsanwó tí a pa tì tí ó ní àwọn ọjà wọn",
+            "description": "Ó ń ṣàfikún Ìsanwó tí a pa tì lábẹ́ Àṣẹ nínú dashboard olùtajà. Olùtajà máa ń rí àwọn ọjà tirẹ̀ nìkan nínú ìsanwó kọ̀ọ̀kan, kò sì ní mọ ẹni tí oníbàárà náà jẹ́. Àwọn ímeèlì ìmúpadàbọ̀sípò wà lọ́wọ́ ilé ìtajà."
+          }
+        },
+        "abandonedOffers": {
+          "title": "Àwọn ìfilọ̀ lórí ìsanwó tí a pa tì",
+          "enabled": {
+            "label": "Àwọn olùtajà lè fi ìfilọ̀ ránṣẹ́",
+            "description": "Olùtajà lè fi ẹ̀dínwó tirẹ̀ ránṣẹ́ sí oníbàárà tí ó fi àwọn ọjà rẹ̀ sílẹ̀ nínú ìsanwó. Ilé ìtajà ló ń fi ímeèlì ránṣẹ́, olùtajà kì í rí ẹni tí oníbàárà náà jẹ́, a sì ń yọ ẹ̀dínwó náà kúrò nínú èrè olùtajà."
+          },
+          "automatic": {
+            "label": "Àwọn olùtajà lè ṣètò ìfilọ̀ aládàáṣe",
+            "description": "Ìfilọ̀ tí ó dúró ti olùtajà máa ń lọ pẹ̀lú ímeèlì ìmúpadàbọ̀sípò kejì ti ilé ìtajà. Ó nílò kí a tan ímeèlì ìmúpadàbọ̀sípò aládàáṣe nínú ètò ìsanwó."
+          },
+          "maxPercent": {
+            "label": "Ìfilọ̀ tó tóbi jùlọ",
+            "description": "Èyí tó pọ̀ jùlọ tí ìfilọ̀ lè yọ kúrò lórí àwọn ọjà olùtajà."
+          },
+          "maxPerVendorPerDay": {
+            "label": "Ìfilọ̀ fún olùtajà kọ̀ọ̀kan lójúmọ́",
+            "description": "Iye ìfilọ̀ tí olùtajà kan lè fi ránṣẹ́ láàárín wákàtí 24."
+          },
+          "maxValidDays": {
+            "label": "Àkókò tó gùn jùlọ fún ìfilọ̀",
+            "description": "Ọjọ́ 14 ní pupọ̀ jùlọ, nígbà tí ìjápọ̀ ìmúpadàbọ̀sípò kò ní ṣiṣẹ́ mọ́.",
+            "unit": "ọjọ́"
+          }
+        }
       },
       "sms": {
-        "authTokenPlaceholder": "Tẹ Auth Token",
-        "authTokenHint": "Ó tún ń ṣàyẹ̀wò ìwé ẹ̀rí ìfijíṣẹ́ Twilio. A kò ní fi àwọn tókìnì tí a fipamọ́ hàn mọ́.",
-        "messagingServiceSidHint": "A dámọ̀ràn rẹ̀. Twilio máa ń yan olùfiránṣẹ́ tó tọ́ fún ibi kọ̀ọ̀kan, ó sì máa ń bójú tó àwọn èsì STOP.",
-        "fromNumberHint": "A máa ń lò ó nígbà tí kò bá sí Messaging Service: nọ́mbà Twilio kan, tàbí ID olùfiránṣẹ́ onílẹ́tà àti nọ́mbà níbi tí àwọn ibi tí o ń fi ránṣẹ́ sí bá gbà á láyè.",
-        "defaultCountryPlaceholder": "Lo orílẹ̀-èdè ìbẹ̀rẹ̀ ìfiránṣẹ́",
-        "defaultCountryHint": "Ó ń ka àwọn nọ́mbà ìwé àkọsílẹ̀ tí a fipamọ́ láìsí kóòdù orílẹ̀-èdè. Fóònù àṣẹ ni a máa ń kà gẹ́gẹ́ bí orílẹ̀-èdè ìfiránṣẹ́ rẹ̀ nígbà gbogbo.",
-        "includeLinksHint": "Ó ń fi ojú ìwé àṣẹ tàbí ti ìtọpinpin kún un. Ìjápọ̀ sábà máa ń ti ìfiránṣẹ́ sí apá kejì, èyí tí a máa ń gba owó rẹ̀ bí ìfiránṣẹ́ kejì.",
-        "consentNote": "A máa ń fi SMS ránṣẹ́ sí àwọn oníbàárà lórí fóònù tó wà nínú àṣẹ wọn, wọ́n sì lè jáwọ́ nínú Akaunti → Awon ayanfẹ tàbí nípa fífèsì STOP. A máa ń fi ránṣẹ́ sí àwọn alábòójútó, òṣìṣẹ́ àti olùtajà lórí fóònù ìwé àkọsílẹ̀ tàbí ilé ìtajà wọn. Yan àwọn ìṣẹ̀lẹ̀ nínú <link>Ètò ìfitónilétí</link>. Kọ̀wé sí àwọn tí wọ́n gbà láti gbọ́ láti ọ̀dọ̀ rẹ nìkan.",
-        "testSent": "A ti fi SMS ìdánwò ránṣẹ́",
-        "testFailed": "A kò lè fi SMS ìdánwò ránṣẹ́",
+        "title": "SMS (Twilio)",
+        "description": "Fi ìmúdójúìwọ̀n àṣẹ, ìdápadà àti ìsanwó ránṣẹ́ gẹ́gẹ́ bí àtẹ̀jíṣẹ́ nípasẹ̀ àkàǹtì Twilio rẹ. Twilio ń gba owó fún àtẹ̀jíṣẹ́ kọ̀ọ̀kan.",
+        "descriptionOff": "Ó wà ní pípa: kò sí àtẹ̀jíṣẹ́ tí a ń fi ránṣẹ́. A ń pa àlàyé Twilio rẹ mọ́ fún ìgbà tí o bá tún mú un ṣiṣẹ́.",
+        "offEnvReady": "A ti ṣètò Twilio nínú àyíká sáfà (.env), nítorí náà mímú un ṣiṣẹ́ nìkan ti tó.",
+        "eventsCount": "{count, plural, other {Ìṣẹ̀lẹ̀ # ń fi àtẹ̀jíṣẹ́ ránṣẹ́.}} <link>Yí wọn padà nínú Ìfitónilétí</link>",
+        "eventsNone": "Kò tíì sí ìṣẹ̀lẹ̀ tó ń fi àtẹ̀jíṣẹ́ ránṣẹ́, nítorí náà kò sí ohun tí a ń fi ránṣẹ́. Yan wọn nínú <link>Ìfitónilétí</link>.",
+        "eventsAfterSave": "Lẹ́yìn tí a bá fi Twilio pamọ́, yan àwọn ìṣẹ̀lẹ̀ tí yóò fi àtẹ̀jíṣẹ́ ránṣẹ́ nínú <link>Ìfitónilétí</link>.",
+        "accountTitle": "Àkàǹtì Twilio",
+        "accountDescription": "Da àwọn wọ̀nyí kọ láti inú Account Info lórí <link>Twilio Console</link> rẹ.",
+        "disconnect": "Ge ìsopọ̀",
         "accountSid": "Account SID",
+        "accountSidInvalid": "Account SID máa ń bẹ̀rẹ̀ pẹ̀lú AC, lẹ́tà àti nọ́mbà 32 ló sì máa ń tẹ̀lé e.",
         "authToken": "Auth Token",
-        "defaultCountry": "Orílẹ̀-èdè àìyípadà fún nọ́mbà fóònù",
-        "description": "Fi ìmúdójúìwọ̀n àṣẹ, ìdápadà àti ìsanwó ránṣẹ́ gẹ́gẹ́ bí àtẹ̀jíṣẹ́ nípasẹ̀ àkàǹtì Twilio rẹ.",
-        "enable": "Mú ìfitónilétí SMS ṣiṣẹ́",
-        "enableHint": "Twilio ń gba owó fún àtẹ̀jíṣẹ́ kọ̀ọ̀kan. A kò ní fi àtẹ̀jíṣẹ́ kankan ránṣẹ́ títí o fi yan àwọn ìṣẹ̀lẹ̀ nínú Ètò ìfitónilétí pẹ̀lú.",
-        "fromNumber": "Nọ́mbà olùfiránṣẹ́ tàbí ID olùfiránṣẹ́",
-        "includeLinks": "Fi ìjápọ̀ kún un",
-        "messagingServiceSid": "Messaging Service SID",
-        "save": "Fi ètò SMS pamọ́",
-        "testButton": "Fi SMS ìdánwò ránṣẹ́",
-        "testLabel": "Fi àtẹ̀jíṣẹ́ ìdánwò ránṣẹ́ sí",
-        "title": "SMS (Twilio)"
+        "authTokenHint": "A kò ní fi í hàn mọ́ lẹ́yìn tí a bá fi í pamọ́.",
+        "authTokenPlaceholder": "Lẹ̀ Auth Token rẹ",
+        "sender": "Fi ránṣẹ́ láti",
+        "senderService": "Messaging Service",
+        "senderNumber": "Nọ́mbà tàbí orúkọ",
+        "senderServiceHint": "A dámọ̀ràn rẹ̀. Twilio máa ń yan nọ́mbà tó tọ́ fún orílẹ̀-èdè kọ̀ọ̀kan, ó sì máa ń bójú tó àwọn èsì STOP.",
+        "senderNumberHint": "Nọ́mbà Twilio pẹ̀lú kóòdù orílẹ̀-èdè rẹ̀, tàbí orúkọ tí kò ju lẹ́tà 11 lọ níbi tí orílẹ̀-èdè náà bá gbà á láyè.",
+        "senderNumberPlaceholder": "+15551234567 tàbí {senderId}",
+        "senderServiceInvalid": "Messaging Service SID máa ń bẹ̀rẹ̀ pẹ̀lú MG, lẹ́tà àti nọ́mbà 32 ló sì máa ń tẹ̀lé e.",
+        "senderNumberInvalid": "Lo nọ́mbà pẹ̀lú kóòdù orílẹ̀-èdè rẹ̀, bí +15551234567, tàbí orúkọ tí kò ju lẹ́tà àti nọ́mbà 11 lọ.",
+        "senderNameNote": "Àwọn ènìyàn kò lè fèsì sí orúkọ, nítorí náà wọn kò lè fi STOP ránṣẹ́. Wọ́n ṣì lè jáwọ́ nínú àtẹ̀jíṣẹ́ ní Akaunti → Awon ayanfẹ.",
+        "senderEnvServiceWins": "Messaging Service SID tí a ṣètò nínú .env ṣì ń fi ránṣẹ́ dípò nọ́mbà yìí.",
+        "testLabel": "Fi àtẹ̀jíṣẹ́ ìdánwò ránṣẹ́",
+        "testHint": "Twilio ń gba owó rẹ̀ bí àtẹ̀jíṣẹ́ mìíràn.",
+        "testSaveFirst": "Kọ́kọ́ fi pamọ́: ìdánwò náà ń lo àlàyé rẹ tí a ti fi pamọ́.",
+        "testSetupFirst": "Kọ́kọ́ fi àlàyé Twilio rẹ kún un, kí o sì fi pamọ́.",
+        "testButton": "Fi ránṣẹ́",
+        "testSent": "Twilio ti gba àtẹ̀jíṣẹ́ sí {to}. Ìfijíṣẹ́ rẹ̀ yóò hàn nínú àkọsílẹ̀ ní ìsàlẹ̀.",
+        "testFailed": "A kò lè fi àtẹ̀jíṣẹ́ ìdánwò ránṣẹ́.",
+        "messagesTitle": "Àwọn ìfiránṣẹ́",
+        "defaultCountry": "Nọ́mbà tí kò ní kóòdù orílẹ̀-èdè",
+        "defaultCountryHint": "Àwọn nọ́mbà ìwé àkọsílẹ̀ tí a fipamọ́ láìsí kóòdù orílẹ̀-èdè ni a máa ń kà sí ti orílẹ̀-èdè yìí. Fóònù àṣẹ máa ń lo orílẹ̀-èdè ìfiránṣẹ́ rẹ̀ nígbà gbogbo.",
+        "defaultCountryOrigin": "{country} (ìbẹ̀rẹ̀ ìfiránṣẹ́)",
+        "defaultCountryNone": "Yan orílẹ̀-èdè",
+        "includeLinks": "Fi ìjápọ̀ àṣẹ kún un",
+        "includeLinksHint": "Ó ń ṣí ojú ìwé àṣẹ tàbí ti ìtọpinpin.",
+        "previewCaption": "Àtẹ̀jíṣẹ́ àṣẹ tí ó ti dé, bí oníbàárà rẹ ṣe ń gbà á",
+        "previewCount": "{characters, plural, other {lẹ́tà #}} · {segments, plural, other {a ń gba owó rẹ̀ bí àtẹ̀jíṣẹ́ #}}",
+        "previewUnicode": "Orúkọ ilé ìtajà rẹ ní lẹ́tà tí kò sí nínú álífábẹ́ẹ̀tì SMS ìpìlẹ̀, nítorí náà àtẹ̀jíṣẹ́ kọ̀ọ̀kan ń gba lẹ́tà 70 dípò 160."
       },
       "brandAssets": {
         "wrongFormat": "Ó gbọ́dọ̀ jẹ́ fáìlì {formats}",
@@ -2089,7 +3049,7 @@
         }
       },
       "preorder": {
-        "title": "Àwọn àṣẹ-ṣáájú",
+        "title": "Àṣẹ-ṣáájú àwọn olùtajà",
         "description": "Ohun tí olùtajà lè ṣèlérí nígbà tí ó bá ń ta nǹkan kí ó tó wà — àti ẹni tí a gbà láyè.",
         "storeOff": "A ti pa àṣẹ-ṣáájú fún gbogbo ilé ìtajà. Tàn wọ́n nínú <link>Eto → Àwọn ọjà</link> láti ṣètò ohun tí àwọn olùtajà lè ṣèlérí.",
         "requireApproval": {
@@ -2111,6 +3071,11 @@
           "unit": "ọjọ́ lẹ́yìn ọjọ́ ìtújáde",
           "hint": "A ó fagi lé àṣẹ náà, a ó tú ààyè rẹ̀ sílẹ̀, a ó sì dá owó ìdógò padà ní kíkún."
         },
+        "chargeNotice": {
+          "label": "Ìkìlọ̀ kí a tó gba owó lórí káàdì tí a fi pamọ́",
+          "unit": "wákàtí",
+          "hint": "A máa ń fi ímeèlì ránṣẹ́ sí oníbàárà nípa owó tó kù àti ìgbà tí a máa gba owó lórí káàdì rẹ̀. A máa ń gba owó náà ní tàbí lẹ́yìn wákàtí wọ̀nyí lẹ́yìn tí ímeèlì náà dé — kì í ṣe ṣáájú. Ó lè sanwó fúnra rẹ̀ ṣáájú nígbàkigbà."
+        },
         "autoRelease": {
           "title": "Béèrè owó tó kù fúnra rẹ̀",
           "description": "Ní ọjọ́ ìtújáde, a ó béèrè owó tó kù lọ́wọ́ àṣẹ-ṣáájú kọ̀ọ̀kan, a ó sì tú àwọn tí wọ́n ti san tán sílẹ̀. Fi sílẹ̀ ní pípa tí ọjọ́ rẹ bá lè yẹ̀ — bíbéèrè owó túmọ̀ sí pé ọjà ti ṣetán.",
@@ -2118,41 +3083,50 @@
           "hint": "Àṣẹ-ṣáájú tí a ti san ní kíkún ni a máa ń tú sílẹ̀ nígbà tí a bá ti kọ ọjà rẹ̀ sílẹ̀ ní tòótọ́ nìkan — kàlẹ́ńdà nìkan kì í fi nǹkan ránṣẹ́."
         },
         "reserve": {
-          "label": "Dá dúró lára ìsanwó àṣẹ-ṣáájú",
+          "label": "Ìpamọ́ ìsanwó",
           "percentUnit": "% fún",
           "daysUnit": "ọjọ́",
-          "hint": "A máa ń ka àríyànjiyàn káàdì láti ọjọ́ ìfijíṣẹ́ tí a retí, nítorí náà a lè gba owó àṣẹ-ṣáájú padà ní ọ̀pọ̀lọpọ̀ ìgbà lẹ́yìn tí a ti san owó fún olùtajà. Òdo máa ń pa ìpamọ́ náà."
+          "hint": "Ó ń bo àríyànjiyàn káàdì tó dé lẹ́yìn tí a ti san owó fún olùtajà. 0 máa ń pa á."
         },
         "access": {
-          "title": "Àṣẹ ìwọlé àwọn olùtajà",
           "waiting": "{count} ń dúró",
           "reviewOff": "A ti pa àyẹ̀wò, nítorí náà gbogbo olùtajà ti lè ṣí àṣẹ-ṣáájú. Fífọwọ́sí síbí kò yí nǹkan padà títí tí o fi tan àyẹ̀wò lókè, a kò sì ní sọ fún olùtajà.",
           "empty": "Kò sí olùtajà tí ó tíì béèrè àṣẹ ìwọlé àṣẹ-ṣáájú.",
-          "revokeNote": "Gbígba àṣẹ padà máa ń dá àṣẹ-ṣáájú tó kàn dúró. Àwọn ọjà tí wọ́n ń tà lọ́wọ́ máa ń mú ìlérí wọn ṣẹ — àwọn olùrà ti san owó ìdógò lé wọn lórí."
-        }
+          "revokeNote": "Gbígba àṣẹ padà máa ń dá àṣẹ-ṣáájú tó kàn dúró. Àwọn ọjà tí wọ́n ń tà lọ́wọ́ máa ń mú ìlérí wọn ṣẹ — àwọn olùrà ti san owó ìdógò lé wọn lórí.",
+          "approvedToggle": "{count, plural, other {Olùtajà # tí a ti fọwọ́sí}}"
+        },
+        "movedNote": "Bíbéèrè owó tó kù àti ìparí àkókò kan gbogbo àṣẹ-ṣáájú, tìrẹ náà, nítorí náà wọ́n wà nínú <link>Eto → Àwọn ọjà</link>."
       },
       "deliveryLogs": {
+        "title": "Àkọsílẹ̀ ìfijíṣẹ́",
         "email": {
-          "title": "Àkọsílẹ̀ ìfijíṣẹ́ ímeèlì",
-          "description": "A máa ń yọ àkóónú tí a fi ránṣẹ́ kúrò lẹ́sẹ̀kẹsẹ̀; àlàyé ìfijíṣẹ́ nìkan ni a máa ń pa mọ́. Fi ètò ímeèlì pamọ́ lẹ́yìn tí o bá yí àkókò ìpamọ́ padà.",
+          "retentionNote": "Àwọn ímeèlì tí a fi ránṣẹ́ máa ń wà níbí fún {count, plural, other {ọjọ́ #}}, láìsí àkóónú wọn. Àwọn tí ó kùnà máa ń wà fún ọjọ́ 90.",
+          "keepFor": "Pa ímeèlì tí a fi ránṣẹ́ mọ́ fún",
+          "clearSent": "Pa ímeèlì tí a fi ránṣẹ́ rẹ́…",
+          "clearTitle": "Pa ímeèlì tí a fi ránṣẹ́ rẹ́?",
+          "clearDescription": "{count, plural, other {Èyí yóò pa ímeèlì # tí a fi ránṣẹ́ rẹ́ nínú àkọsílẹ̀ títí láé.}} Àwọn ímeèlì tí ó kùnà àti àwọn tí ń dúró yóò wà níbẹ̀.",
+          "clearConfirm": "Pa ímeèlì tí a fi ránṣẹ́ rẹ́",
+          "deleteTitle": "{count, plural, other {Pa ímeèlì # rẹ́ nínú àkọsílẹ̀?}}",
+          "deleteDescription": "{count, plural, other {Àkọsílẹ̀ nìkan ni a ń yọ kúrò. Kò yí ohun tí a ti fi ránṣẹ́ padà.}}",
           "summaryLabel": "Àkòrí",
-          "searchPlaceholder": "Olùgbà, àkòrí tàbí ẹ̀ka",
-          "clearTitle": "Pa àkọsílẹ̀ àwọn ímeèlì tí a fi ránṣẹ́ rẹ́?",
-          "deleteTitle": "Pa àkọsílẹ̀ ímeèlì tí a yàn rẹ́?",
-          "clearDescription": "{count, plural, other {Èyí yóò pa gbogbo àkọsílẹ̀ # ti àwọn ímeèlì tí a fi ránṣẹ́ rẹ́ títí láé. A kò lè dá ìgbésẹ̀ yìí padà.}}",
-          "deleteDescription": "{count, plural, other {Èyí yóò pa àkọsílẹ̀ # tí ó ti parí tí a yàn rẹ́ títí láé. A kì í pa àwọn ímeèlì tí ó wà ní ìlà tàbí tí a ń fi ránṣẹ́ rẹ́ láé.}}",
-          "queuedForRetry": "{count, plural, other {A ti fi ímeèlì # tí ó kùnà sí ìlà fún ìgbìyànjú mìíràn.}}"
+          "searchPlaceholder": "Wá nípasẹ̀ olùgbà tàbí àkòrí",
+          "queuedForRetry": "{count, plural, other {A ti fi ímeèlì # tí ó kùnà sí ìlà fún ìgbìyànjú mìíràn.}}",
+          "emptyTitle": "Kò tíì sí ímeèlì"
         },
         "sms": {
-          "title": "Àkọsílẹ̀ ìfijíṣẹ́ SMS",
-          "description": "A máa ń pa SMS kọ̀ọ̀kan mọ́ pẹ̀lú ìdájọ́ ilé-iṣẹ́ ìbánisọ̀rọ̀ títí àkókò ìpamọ́ yóò fi parí. Fi ètò SMS pamọ́ lẹ́yìn tí o bá yí àkókò ìpamọ́ padà.",
+          "retentionNote": "Àwọn àtẹ̀jíṣẹ́ tí a fi ránṣẹ́ máa ń wà níbí fún {count, plural, other {ọjọ́ #}}, àwọn tí ó kùnà fún ọjọ́ 90.",
+          "keepFor": "Pa àtẹ̀jíṣẹ́ tí a fi ránṣẹ́ mọ́ fún",
+          "clearSent": "Pa àtẹ̀jíṣẹ́ tí a fi ránṣẹ́ rẹ́…",
+          "clearTitle": "Pa àtẹ̀jíṣẹ́ tí a fi ránṣẹ́ rẹ́?",
+          "clearDescription": "{count, plural, other {Èyí yóò pa àtẹ̀jíṣẹ́ # tí a fi ránṣẹ́ rẹ́ nínú àkọsílẹ̀ títí láé.}} Àwọn àtẹ̀jíṣẹ́ tí ó kùnà àti àwọn tí ń dúró yóò wà níbẹ̀.",
+          "clearConfirm": "Pa àtẹ̀jíṣẹ́ tí a fi ránṣẹ́ rẹ́",
+          "deleteTitle": "{count, plural, other {Pa àtẹ̀jíṣẹ́ # rẹ́ nínú àkọsílẹ̀?}}",
+          "deleteDescription": "{count, plural, other {Àkọsílẹ̀ nìkan ni a ń yọ kúrò. Kò yí ohun tí a ti fi ránṣẹ́ padà.}}",
           "summaryLabel": "Ìfiránṣẹ́",
-          "searchPlaceholder": "Nọ́mbà fóònù, ìfiránṣẹ́ tàbí ẹ̀ka",
-          "clearTitle": "Pa àkọsílẹ̀ àwọn SMS tí a fi ránṣẹ́ rẹ́?",
-          "deleteTitle": "Pa àkọsílẹ̀ SMS tí a yàn rẹ́?",
-          "clearDescription": "{count, plural, other {Èyí yóò pa gbogbo àkọsílẹ̀ # ti àwọn SMS tí a fi ránṣẹ́ rẹ́ títí láé. A kò lè dá ìgbésẹ̀ yìí padà.}}",
-          "deleteDescription": "{count, plural, other {Èyí yóò pa àkọsílẹ̀ # tí ó ti parí tí a yàn rẹ́ títí láé. A kì í pa àwọn SMS tí ó wà ní ìlà tàbí tí a ń fi ránṣẹ́ rẹ́ láé.}}",
-          "queuedForRetry": "{count, plural, other {A ti fi SMS # tí ó kùnà sí ìlà fún ìgbìyànjú mìíràn.}}"
+          "searchPlaceholder": "Wá nípasẹ̀ nọ́mbà tàbí àtẹ̀jíṣẹ́",
+          "queuedForRetry": "{count, plural, other {A ti fi SMS # tí ó kùnà sí ìlà fún ìgbìyànjú mìíràn.}}",
+          "emptyTitle": "Kò tíì sí àtẹ̀jíṣẹ́",
+          "noReceipts": "Níbí, àwọn àtẹ̀jíṣẹ́ máa ń dúró sí ipò A ti fi ránṣẹ́: Twilio máa ń ròyìn ìfijíṣẹ́ sí àdírẹ́sì https gbangba nìkan, ilé ìtajà yìí sì ń ṣiṣẹ́ ní {origin}."
         },
         "status": {
           "sent": "A ti fi ránṣẹ́",
@@ -2161,18 +3135,18 @@
           "failed": "Ó kùnà",
           "queued": "Wà ní ìlà",
           "retrying": "Ń gbìyànjú lẹ́ẹ̀kan sí i",
-          "sending": "Ń fi ránṣẹ́"
+          "sending": "Ń fi ránṣẹ́",
+          "cancelled": "Ti fagile"
         },
-        "keepSentLogs": "Pa àkọsílẹ̀ tí a fi ránṣẹ́ mọ́",
-        "retentionDays": "{count, plural, other {ọjọ́ #}}",
-        "refresh": "Sọ di tuntun",
-        "stats": {
-          "total": "Àpapọ̀",
+        "tabs": {
+          "all": "Gbogbo",
           "sent": "A ti fi ránṣẹ́",
-          "failed": "Kùnà",
-          "pending": "Ń dúró"
+          "failed": "Ó kùnà",
+          "waiting": "Ń dúró"
         },
-        "allStatuses": "Gbogbo ipò",
+        "tabsLabel": "Fi hàn ní ìbámu pẹ̀lú ipò",
+        "searchLabel": "Wá nínú àkọsílẹ̀",
+        "rangeLabel": "Àkókò",
         "range": {
           "today": "Òní",
           "last7": "Ọjọ́ 7 sẹ́yìn",
@@ -2180,23 +3154,30 @@
           "last90": "Ọjọ́ 90 sẹ́yìn",
           "all": "Gbogbo ìgbà"
         },
-        "deleteSelected": "Pa àwọn tí a yàn rẹ́",
-        "retrySelectedFailed": "Tún gbìyànjú àwọn tí ó kùnà tí a yàn",
-        "retryAllFailed": "Tún gbìyànjú gbogbo àwọn tí ó kùnà",
-        "clearSent": "Pa àkọsílẹ̀ tí a fi ránṣẹ́ rẹ́",
-        "deleteLogs": "Pa àkọsílẹ̀ rẹ́",
-        "selectPage": "Yan àwọn àkọsílẹ̀ tí ó ti parí lórí ojú ìwé yìí",
-        "selectRow": "Yan {name}",
+        "refresh": "Sọ di tuntun",
+        "options": "Àwọn àṣàyàn àkọsílẹ̀",
+        "retentionDays": "{count, plural, other {ọjọ́ #}}",
         "columns": {
-          "created": "A ṣẹ̀dá",
-          "recipient": "Olùgbà",
+          "date": "Ọjọ́",
+          "to": "Olùgbà",
           "status": "Ipò",
-          "tries": "Ìgbìyànjú",
-          "action": "Ìgbésẹ̀"
+          "actions": "Ìgbésẹ̀"
         },
-        "empty": "Kò sí ìfijíṣẹ́ tó bá a mu.",
-        "segments": "{count, plural, other {apá #}}",
+        "selectPage": "Yan àwọn ìlà tí ó ti parí lórí ojú ìwé yìí",
+        "selectRow": "Yan {name}",
+        "rowActions": "Àwọn ìgbésẹ̀ fún {name}",
+        "selected": "A ti yan {count}",
+        "retry": "Tún gbìyànjú",
         "retryNow": "Tún gbìyànjú báyìí",
+        "retryAll": "Tún gbìyànjú gbogbo {count}",
+        "delete": "Pa rẹ́",
+        "clearSelection": "Yọ àṣàyàn",
+        "emptyHint": "Wọn yóò hàn níbí bí a ṣe ń fi wọ́n ránṣẹ́.",
+        "noMatch": "Kò sí ohun tó bá a mu.",
+        "showAll": "Fi gbogbo rẹ̀ hàn",
+        "tryOf": "Ìgbìyànjú {attempt} nínú {max}",
+        "tryOfError": "Ìgbìyànjú {attempt} nínú {max} · {error}",
+        "billedAs": "{count, plural, other {A ń gba owó rẹ̀ bí àtẹ̀jíṣẹ́ #}}",
         "retryFailed": "Ìgbìyànjú kejì kùnà",
         "retrySent": "A fi ránṣẹ́ ní àṣeyọrí",
         "actionFailed": "Ìgbésẹ̀ kùnà",
@@ -2215,7 +3196,10 @@
         "saveOauthFirst": "Fi ètò OAuth pamọ́ kí o tó ṣàyẹ̀wò àwọn ẹ̀rí",
         "savePaymentFirst": "Fi ètò ìsanwó pamọ́ kí o tó forúkọ URL IPN Pesapal sílẹ̀",
         "saveSmsFirst": "Fi ètò SMS pamọ́ kí o tó fi àtẹ̀jíṣẹ́ ìdánwò ránṣẹ́",
-        "saved": "A ti fi àwọn ètò pamọ́"
+        "saved": "A ti fi àwọn ètò pamọ́",
+        "defaultVendorSyncFailed": "A ti fi àwọn ètò pamọ́, ṣùgbọ́n a kò lè ṣẹ̀dá tàbí ṣe àtúnṣe àkọsílẹ̀ ilé ìtajà, nítorí náà àwọn ọjà, ìṣura àti ibi tita lè má ṣiṣẹ́ báyìí. Tún fi pamọ́; bí ó bá ń ṣẹlẹ̀ lemọ́lemọ́, ṣàyẹ̀wò àkọsílẹ̀ olupin.",
+        "defaultVendorNoOwner": "A ti fi àwọn ètò pamọ́, ṣùgbọ́n a kò lè ṣẹ̀dá àkọsílẹ̀ ilé ìtajà: gbogbo àkọọ́lẹ̀ alábòójútó ti ní ilé ìtajà olùtajà tirẹ̀, ẹnì kan ṣoṣo sì ni ó lè ni ilé ìtajà kan. Ṣàfikún àkọọ́lẹ̀ alábòójútó tí kò ní ilé ìtajà kankan, lẹ́yìn náà tún fi pamọ́.",
+        "defaultVendorNeedsReview": "A ti fi àwọn ètò pamọ́, ṣùgbọ́n a kò ṣẹ̀dá àkọsílẹ̀ ilé ìtajà tuntun: ó ṣeé ṣe kí àtijọ́ kan wà lábẹ́ ilé ìtajà alábòójútó kan. Olùgbéejáde lè ṣàyẹ̀wò rẹ̀ pẹ̀lú pnpm db:migrate house-profile --dry-run."
       },
       "conflict": {
         "description": "Ẹlòmíràn ti yí àwọn ètò wọ̀nyí padà láti ìgbà tí o ti ṣí wọn. Tún gbé e wá láti rí èyí tuntun, tàbí fi pamọ́ lẹ́ẹ̀kan síi láti kọ lé e lórí.",
@@ -2237,18 +3221,31 @@
         "physical": "Àwọn ọjà tí a lè fọwọ́ kàn",
         "physicalDesc": "A ń fi ránṣẹ́ sí oníbàárà, pẹ̀lú ọjà inú ìpamọ́, ìwọ̀n àti àlàyé kọ́sítọ́ọ̀mù.",
         "preorders": "Àwọn àṣẹ-ṣáájú",
-        "preordersDesc": "Gba àṣẹ kí ọjà tó dé, pẹ̀lú ọjọ́ ìtújáde àti owó ìdógò tí kò pọn dandan. Ìfọwọ́sí àwọn olùtajà àti ààlà wà lábẹ́ Ìṣàkóso Ọ̀pọ̀ Olùtajà.",
+        "preordersDesc": "Gba àṣẹ kí ọjà tó dé, pẹ̀lú ọjọ́ ìtújáde àti owó ìdógò tí kò pọn dandan. Ìfọwọ́sí àwọn olùtajà àti ààlà wà lábẹ́ Ipò ọ̀pọ̀ olùtajà.",
         "priceOnRequest": "Iye owó nípa ìbéèrè",
         "priceOnRequestDesc": "Fi iye owó ọjà pamọ́ kí o sì fi bọ́tìnnì “Béèrè iye owó” hàn dípò rẹ̀.",
         "sellingHeading": "Àwọn àṣàyàn títà",
         "title": "Àwọn ọjà",
         "typesHeading": "Àwọn irú ọjà",
         "typesHint": "Ó kéré tán irú ọjà kan yóò wà ní títàn."
+      },
+      "saveBar": {
+        "unsaved": "Àwọn àyípadà tí a kò tíì fi pamọ́",
+        "discard": "Pa á rẹ́"
       }
     },
     "analyticsPage": {
       "visitors": "Awọn alejo",
-      "pageviews": "Wiwo oju-iwe"
+      "pageviews": "Wiwo oju-iwe",
+      "countries": "Àwọn orílẹ̀-èdè",
+      "periods": {
+        "day": "Òní"
+      },
+      "columns": {
+        "source": "Orísun",
+        "visitors": "Awọn alejo",
+        "page": "Ojú-ìwé"
+      }
     },
     "dashboardPage": {
       "goodMorning": "E kaaro, {name}.",
@@ -2298,6 +3295,14 @@
         "cashOnDelivery": "Owo nigbati o ba de",
         "upi": "UPI",
         "card": "Kaadi"
+      },
+      "addCollection": "Fi àkójọpọ̀ kún un",
+      "addCustomer": "Fikun alejo",
+      "date": "Ọjọ́",
+      "period": {
+        "title": "Àkókò",
+        "today": "Òní",
+        "yesterday": "Àná"
       }
     },
     "sidebar": {
@@ -2363,7 +3368,9 @@
       "traffic": "Àwọn àlejò",
       "vendorConfiguration": "Ìṣètò",
       "vendorOnboarding": "Ìlànà ìwọlé olùtajà",
-      "vendorPlans": "Àwọn ètò olùtajà"
+      "vendorPlans": "Àwọn ètò olùtajà",
+      "activityLog": "Àkọsílẹ̀ iṣẹ́",
+      "staffMembers": "Àwọn ọmọ ẹgbẹ́"
     },
     "seoChecklist": {
       "title": "Àtòjọ àyẹ̀wò SEO",
@@ -2393,12 +3400,27 @@
         "sponsoredProducts": {
           "title": "Àwọn ọjà ìgbọ́wọ́lé",
           "subtitle": "Àwọn ipò ìgbéga tí a san owó — àwọn ọjà wá láti inú ìpolongo olùtà tí ń lọ lọ́wọ́"
+        },
+        "topVendors": {
+          "title": "Àwọn Olùtajà Tó Ga Jùlọ"
+        },
+        "featuredProducts": {
+          "title": "Àwọn ọjà àyànfẹ́"
         }
       },
       "editor": {
         "sponsoredTitlePlaceholder": "A gbà á níyànjú fún ọ",
         "sponsoredLimit": "Ìjìnlẹ̀ àkàbà lórí ìlà ojú-ilé",
-        "sponsoredHint": "Pẹpẹ àkópọ̀: àwọn ipò àkàbà tí a gbà yóò hàn ní ààyè tiwọn, a ó sì fi ọjà lásán kún ìyókù. Apá yìí yóò fi ara rẹ̀ pamọ́ nígbà tí ìgbélárugẹ bá pa tàbí tí kò sí ohun tí a gbà nínú ìjìnlẹ̀ yìí."
+        "sponsoredHint": "Pẹpẹ àkópọ̀: àwọn ipò àkàbà tí a gbà yóò hàn ní ààyè tiwọn, a ó sì fi ọjà lásán kún ìyókù. Apá yìí yóò fi ara rẹ̀ pamọ́ nígbà tí ìgbélárugẹ bá pa tàbí tí kò sí ohun tí a gbà nínú ìjìnlẹ̀ yìí.",
+        "description": "Apejuwe",
+        "banner": "Bánà",
+        "addSlide": "Fi sílàìdì kún un",
+        "topVendorsTitlePlaceholder": "Àwọn Olùtajà Tó Ga Jùlọ",
+        "becomeVendor": {
+          "image": "Àwòrán",
+          "subtitle": "Àkọlé kékeré",
+          "buttonHref": "Ọ̀nà asopọ̀ bọ́tìnnì"
+        }
       }
     },
     "productForm": {
@@ -2409,19 +3431,66 @@
       },
       "fields": {
         "priceOnRequest": "Owó lórí ìbéèrè",
-        "quoteButtonLabel": "Àkọlé bọ́tìnì ìdíyelé"
+        "quoteButtonLabel": "Àkọlé bọ́tìnì ìdíyelé",
+        "description": "Apejuwe",
+        "quantity": "Iye",
+        "weight": "Ìwúwo",
+        "brand": "Àmì ọjà",
+        "type": "Irú",
+        "tags": "Awon aami",
+        "length": "Gígùn",
+        "height": "Gíga",
+        "sizeUnit": "Ẹ̀yọ ìwọ̀n"
       },
       "quote": {
         "priceOnRequestHelp": "Fi owó pamọ́, kí o sì fi bọ́tìnì “Béèrè fún owó” hàn dípò rẹ̀.",
         "hiddenPricingTitle": "Owó lórí ìbéèrè",
         "hiddenPricingHelp": "Àwọn ońrà máa rí “Owó lórí ìbéèrè” àti bọ́tìnì ìdíyelé dípò owó, a kò sì lè fi ọjà yìí sínú kẹ̀kẹ́ ìrajà. Pa àmúlò tó wà nísàlẹ̀ láti dá owó rẹ̀ sí lọ́nà déédéé."
+      },
+      "formOptions": {
+        "failedTitle": "A kò lè gbé àwọn ẹ̀ka, àmì ọjà àti ibi ìṣura wá",
+        "failedBody": "A ti pa àwọn àyípadà rẹ mọ́. O lè fi ọjà náà pamọ́ nígbà tí wọ́n bá dé.",
+        "failedAfterLoadedBody": "Àwọn àkójọ tí a gbé wá tẹ́lẹ̀ ṣì ń hàn, wọ́n sì lè ti di àtijọ́.",
+        "storeProfileMissing": "Àkọsílẹ̀ ilé ìtajà tí àwọn àkójọ wọ̀nyí jẹ́ tirẹ̀ kò sí. Alábòójútó máa ṣẹ̀dá rẹ̀ nípa fífi Ètò → Ètò gbogbogbò pamọ́; lẹ́yìn náà tẹ Tún gbìyànjú. A ti pa àwọn àyípadà rẹ mọ́.",
+        "storeProfileNoOwner": "A kò lè ṣẹ̀dá àkọsílẹ̀ ilé ìtajà tí àwọn àkójọ wọ̀nyí jẹ́ tirẹ̀: gbogbo àkọọ́lẹ̀ alábòójútó ti ní ilé ìtajà olùtajà tirẹ̀, ẹnì kan ṣoṣo sì ni ó lè ni ilé ìtajà kan. Ṣàfikún àkọọ́lẹ̀ alábòójútó tí kò ní ilé ìtajà kankan, lẹ́yìn náà tẹ Tún gbìyànjú. A ti pa àwọn àyípadà rẹ mọ́.",
+        "storeProfileNeedsReview": "Àkọsílẹ̀ ilé ìtajà tí àwọn àkójọ wọ̀nyí jẹ́ tirẹ̀ kò sí, ó sì ṣeé ṣe kí àtijọ́ kan wà lábẹ́ ilé ìtajà alábòójútó kan. Olùgbéejáde lè ṣàyẹ̀wò rẹ̀ pẹ̀lú pnpm db:migrate house-profile --dry-run; lẹ́yìn náà tẹ Tún gbìyànjú. A ti pa àwọn àyípadà rẹ mọ́.",
+        "retry": "Tún gbìyànjú",
+        "loadingCategories": "Ń gbé àwọn ẹ̀ka wá…",
+        "categoriesUnavailable": "A kò lè gbé àwọn ẹ̀ka wá. Lo Tún gbìyànjú lókè.",
+        "saveBlocked": "O lè fi ọjà náà pamọ́ nígbà tí àwọn ẹ̀ka, àmì ọjà àti ibi ìṣura bá ti dé."
+      },
+      "optional": "Kò pọn dandan",
+      "sections": {
+        "details": "Awon alaye",
+        "media": "Amóhùnmáwòrán",
+        "inventory": "Iṣura",
+        "preorder": "Àwọn àṣẹ-ṣáájú"
+      },
+      "tabs": {
+        "description": "Apejuwe",
+        "specifications": "Awon ilana"
+      },
+      "actions": {
+        "view": "Wo"
+      },
+      "placeholders": {
+        "category": "Yan eka kan",
+        "addTag": "Fi àmì kún un"
+      },
+      "media": {
+        "selected": "A ti yan {count}",
+        "deleteSelected": "Pa àwọn tí a yàn rẹ́",
+        "dropzoneTitle": "Fa awon faili wa sibi, tabi tẹ lati wa wọn"
       }
     },
     "onlineStorePage": {
       "sections": {
         "customize": {
-          "title": "Customize",
+          "title": "Ṣe àtúnṣe",
           "description": "Edit every storefront page — templates, landing pages, header and footer — in one visual editor."
+        },
+        "pages": {
+          "title": "Awọn oju-iwe"
         }
       }
     },
@@ -2824,6 +3893,85 @@
       "widgets": {
         "description": "Tan tàbí pa àwọn ìdarí àṣàyàn láìsí fọwọ́ kan kóòdù ilé ìtajà.",
         "title": "Àwọn Wíjẹ́ẹ̀tì Orí Ojú-ìwé"
+      },
+      "panel": {
+        "placeholderLanguage": "Èdè ọ̀rọ̀ àpẹẹrẹ",
+        "placeholderDefault": "Tí ààyè yìí bá ṣófo, a ó lo ìtumọ̀ ilé ìtajà. A ó fi ọ̀rọ̀ àdáni pamọ́ fún èdè tí a yàn.",
+        "row": "Ìlà",
+        "drawerSides": {
+          "left": "Òsì",
+          "right": "Ọ̀tún"
+        },
+        "drawerField": "Pápá",
+        "drawerFieldStyles": {
+          "outline": "Ìlà ìta"
+        },
+        "height": "Gíga",
+        "gap": "Àlàfo",
+        "brandTheme": {
+          "light": "Ìmọ́lẹ̀",
+          "dark": "Òkùnkùn"
+        },
+        "text": "Ọ̀rọ̀",
+        "content": "Ọ̀rọ̀",
+        "buttonVariant": {
+          "outline": "Ìlà ìta"
+        },
+        "fontWeight": "Ìwúwo",
+        "greeting": "Ikíni",
+        "weight": {
+          "300": "Ìmọ́lẹ̀"
+        },
+        "collectionsLimit": "Fi hàn"
+      },
+      "menus": {
+        "none": "Kò sí"
+      },
+      "builder": {
+        "title": "Ìtòlẹ́sẹẹsẹ"
+      },
+      "items": {
+        "brand": "Àmì ọjà",
+        "text": "Ọ̀rọ̀",
+        "categories": "Gbogbo Awon eka",
+        "location": "Ipò",
+        "language": "Ede"
+      },
+      "icons": {
+        "contact": "Enikọẹta",
+        "language": "Ede",
+        "menu": "Mẹ́nù"
+      },
+      "canvas": {
+        "addRow": "Ìlà"
+      },
+      "chrome": {
+        "announcement": "Pátákó Ìkéde",
+        "topTags": "Àwọn àmì gbajúmọ̀",
+        "text": "Ọ̀rọ̀",
+        "untitledTag": "Aláìní orúkọ",
+        "addTag": "Fi àmì kún un",
+        "show": "Fi hàn"
+      },
+      "tags": {
+        "title": "Awon aami",
+        "sourceLabel": "Orísun",
+        "source": {
+          "collection": "Àkójọpọ̀",
+          "product": "Ọjà"
+        },
+        "searchProducts": "Ṣàwárí àwọn ọjà…",
+        "change": "Yiyipada"
+      },
+      "links": {
+        "megaMenuNone": "Kò sí",
+        "title": "Àwọn ìjápọ̀",
+        "remove": "Yọ ọ̀nà asopọ̀ kúrò",
+        "addLink": "Fi Ọ̀nà Asopọ̀ Kún Un",
+        "untitled": "Aláìní orúkọ",
+        "uploadIcon": "Gbé àwòrán sókè",
+        "menuGrid": "Gíríìdì àwòrán",
+        "blurb": "Apejuwe"
       }
     },
     "onlineStoreThemePage": {
@@ -2851,7 +3999,7 @@
         },
         "women-fashion": {
           "description": "Ìfihàn aṣọ ní ọ̀nà ìwé ìròyìn: àwòrán ìpolongo tó gba gbogbo fífẹ̀, àwọn tailì lookbook àti àwọn àkójọpọ̀ àsìkò.",
-          "name": "Fashion",
+          "name": "Aso",
           "styleNote": "A kọ́ ọ fún aṣọ, bàtà àti ohun ọ̀ṣọ́ — àwòrán ló ń ṣáájú, àwọn yòókù ń sẹ́yìn."
         }
       },
@@ -2881,7 +4029,8 @@
         "item": "Ohun",
         "slide": "Sílàìdì",
         "tab": "Tábù",
-        "tag": "Àmì"
+        "tag": "Àmì",
+        "brand": "Àmì ọjà"
       },
       "categories": {
         "categories": "Àwọn ẹ̀ka",
@@ -2947,7 +4096,13 @@
         "title": "Àkọlé",
         "transition": "Ìyípadà",
         "url": "URL ọ̀nà asopọ̀",
-        "width": "Ìbú"
+        "endless": "Yíyí lọ láìlópin",
+        "width": "Ìbú",
+        "categoryId": "Ẹ̀ka",
+        "brandId": "Àmì ọjà",
+        "condition": "Àmúyẹ",
+        "filterLayout": "Awon oorun",
+        "showDescription": "Apejuwe"
       },
       "groupCutoverNote": "Ilé ìtajà máa fi orí àti ìsàlẹ̀ ojú-ìwé déédéé hàn títí di ìtẹ̀jáde àkọ́kọ́ rẹ, tí yóò yí ẹgbẹ́ yìí padà sí olùkọ́ pátápátá.",
       "groupSubtitle": "Àwọn abala wọ̀nyí máa hàn ní GBOGBO ojú-ìwé ilé ìtajà. Títẹ̀jáde máa fi wọ́n sílò ní gbogbo ilé ìtajà.",
@@ -3015,7 +4170,12 @@
         "threeQuarters": "Ìdámẹ́ta nínú mẹ́rin ojú ìwòye",
         "topLevel": "Ipele òkè",
         "truck": "Ìfiránṣẹ́ ọjà",
-        "wallet": "Ìdápadà owó"
+        "wallet": "Ìdápadà owó",
+        "category": "Ẹ̀ka",
+        "brand": "Àmì ọjà",
+        "collection": "Àkójọpọ̀",
+        "square": "Onígun mẹ́rin",
+        "show": "Fi hàn"
       },
       "pageFull": "Ojú-ìwé yìí ti kún — yọ apá kan kúrò láti fi òmíràn kún un.",
       "pending": "A kò fipamọ́…",
@@ -3298,7 +4458,96 @@
       "toggleVisibility": "Yí ìfihàn padà",
       "unknownSection": "Irú abala yìí kò sí nínú kàtálọ́gù lọ́wọ́lọ́wọ́.",
       "unpublishedNote": "O ní àwọn àyípadà tí a kò tíì tẹ̀ jáde. Àwọn oníbàárà ń rí ẹ̀dà tí a tẹ̀ jáde kẹ́yìn títí o fi tẹ̀ jáde.",
-      "variantLabel": "Àgbékalẹ̀"
+      "variantLabel": "Àgbékalẹ̀",
+      "fieldHints": {
+        "product-grid": {
+          "categoryId": "Àwọn ọjà láti inú ẹ̀ka yìí àti gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀, tuntun jùlọ ní àkọ́kọ́.",
+          "brandId": "Àwọn ọjà tí ó jẹ́ ti àmì ọjà yìí, tuntun jùlọ ní àkọ́kọ́.",
+          "collectionId": "Àwọn ọjà inú àkójọpọ̀ náà, ní ìtòlẹ́sẹẹsẹ àkójọpọ̀ náà fúnra rẹ̀."
+        },
+        "product-browser": {
+          "categoryId": "Àwọn ọjà láti inú ẹ̀ka yìí àti gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀, tuntun jùlọ ní àkọ́kọ́.",
+          "brandId": "Àwọn ọjà tí ó jẹ́ ti àmì ọjà yìí, tuntun jùlọ ní àkọ́kọ́.",
+          "collectionId": "Àwọn ọjà inú àkójọpọ̀ náà, ní ìtòlẹ́sẹẹsẹ àkójọpọ̀ náà fúnra rẹ̀."
+        },
+        "product-group": {
+          "categoryId": "Àwọn ọjà láti inú ẹ̀ka yìí àti gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀, tuntun jùlọ ní àkọ́kọ́.",
+          "brandId": "Àwọn ọjà tí ó jẹ́ ti àmì ọjà yìí, tuntun jùlọ ní àkọ́kọ́.",
+          "collectionId": "Àwọn ọjà inú àkójọpọ̀ náà, ní ìtòlẹ́sẹẹsẹ àkójọpọ̀ náà fúnra rẹ̀."
+        }
+      },
+      "sliderBlock": {
+        "height": "Gíga",
+        "cellImage": "Àwòrán",
+        "cellSlider": "Ìfihàn Sílàìdì",
+        "back": "Padà",
+        "widths": {
+          "full": "Ìbú kíkún",
+          "fullPadding": "Ìbú kíkún pẹ̀lú àyè",
+          "fullHeight": "Ìbú kíkún / gíga kíkún",
+          "fullHeightPadding": "Ìbú kíkún / gíga kíkún pẹ̀lú àyè"
+        }
+      },
+      "panelGroups": {
+        "layout": "Ìtòlẹ́sẹẹsẹ"
+      },
+      "productLayoutTitle": "Awon Alaye oja",
+      "orderTitle": "Asẹ",
+      "productRows": {
+        "brand": "Àmì ọjà",
+        "description": "Apejuwe",
+        "gap": "Àlàfo"
+      },
+      "detailStyle": {
+        "gap": "Àlàfo",
+        "brand": "Àmì ọjà",
+        "actions": "Fi hàn",
+        "buttonLayout": "Ìtòlẹ́sẹẹsẹ",
+        "buttonHeight": "Gíga"
+      },
+      "detailTypography": {
+        "weight": "Ìwúwo"
+      },
+      "brandEditor": {
+        "brandList": "Àkójọ Àmì Ọjà"
+      },
+      "featuredCollection": {
+        "picksSearching": "Ń wá…",
+        "picksClear": "Nu gbogbo"
+      },
+      "blockGroups": {
+        "tag": "Awon aami"
+      },
+      "countdown": {
+        "dealsTitle": "Awon alagbe"
+      },
+      "rowSettings": {
+        "height": "Gíga"
+      },
+      "buttonCases": {
+        "theme": "Ìpéwọ̀n àkòrí"
+      },
+      "shareNetworks": {
+        "copyLink": "Ṣe àdàkọ ìjápọ̀"
+      },
+      "categoryStyle": {
+        "layout": "Ìtòlẹ́sẹẹsẹ",
+        "rowLayout": "Ìlà",
+        "none": "Kò sí",
+        "image": "Àwòrán",
+        "imageFit": "Bá A Mu",
+        "text": "Ọ̀rọ̀",
+        "textPosition": "Ipò",
+        "textWeight": "Ìwúwo",
+        "heading": "Àkọlé",
+        "arrowPosition": "Ipò",
+        "options": {
+          "square": "Onígun mẹ́rin",
+          "left": "Òsì",
+          "right": "Ọ̀tún",
+          "fade": "Ìrẹ̀wẹ̀sì"
+        }
+      }
     },
     "themeSettings": {
       "activateDescription": "Àkòrí kọ̀ọ̀kan máa ń pa ètò tirẹ̀ mọ́; pípadà lẹ́yìn náà kò pàdánù ohunkóhun. Yan nísàlẹ̀ ohun tí yóò ṣẹlẹ̀ sí àwọn ìtòlẹ́sẹẹsẹ ojú-ìwé rẹ.",
@@ -3322,12 +4571,59 @@
         "branding": "Àmì ìdánimọ̀",
         "settings": "Ètò àkòrí",
         "css": "CSS àdáni"
-      }
+      },
+      "customCss": {
+        "title": "CSS àdáni"
+      },
+      "preview": {
+        "pages": {
+          "search": "Wa"
+        }
+      },
+      "launchTitle": "Ètò àkòrí"
     },
     "phrases": {
       "guest": "Àlejò",
       "guest_customers_have_no_account_status": "Àwọn oníbàárà àlejò kò ní ipò àkáǹtì",
-      "last_order": "Ìbéèrè tó kẹ́yìn"
+      "last_order": "Ìbéèrè tó kẹ́yìn",
+      "update": "Ìmúdójúìwọ̀n",
+      "account": "Akaunti",
+      "inactive": "Ti o ko n sisẹ",
+      "bronze": "Bronzo",
+      "silver": "Fẹẹẹfila",
+      "gold": "Gọọldu",
+      "platinum": "Platoọnu",
+      "points": "Awon aaye",
+      "tags": "Awon aami",
+      "tag": "Àmì",
+      "export": "Gbé Jáde",
+      "add_customer": "Fikun alejo",
+      "no_customers_found": "Ko si alejo ti a rii",
+      "none": "Kò sí",
+      "commission": "Ìdíwọ̀n owó",
+      "sales": "Awọn tita",
+      "details": "Awon alaye",
+      "type": "Irú",
+      "fixed": "Tí ó dúró",
+      "value": "Iye",
+      "import": "Gbé wọlé",
+      "optional": "Kò pọn dandan",
+      "description": "Apejuwe",
+      "inventory": "Iṣura",
+      "administrator": "Alakoso",
+      "not_needed": "Kò pọndandan",
+      "who_pays_for_this_discount": "Ta ni yóò san fún ẹ̀dínwó yìí",
+      "the_store": "Ilé ìtajà",
+      "the_sellers_who_deliver_the_parcels": "Àwọn olùtajà tí ń fi ẹrù ránṣẹ́",
+      "the_sellers_whose_items_it_discounts": "Àwọn olùtajà tí ọjà wọn ní ẹ̀dínwó",
+      "when_the_store_pays_sellers_still_earn_the_delivery_charge_their_parcel_was_rated_at_applies_to_orders_placed_from_now_on": "Tí ilé ìtajà bá sanwó, àwọn olùtajà ṣì máa gba owó ìfiránṣẹ́ tí a díwọ̀n fún ẹrù wọn. Ó kan àwọn àṣẹ tí a bá ṣe láti ìsinsìnyí lọ.",
+      "when_the_store_pays_sellers_are_paid_as_if_their_items_sold_at_full_price_applies_to_orders_placed_from_now_on": "Tí ilé ìtajà bá sanwó, a máa san owó fún àwọn olùtajà bí ẹni pé wọ́n ta ọjà wọn ní iye kíkún. Ó kan àwọn àṣẹ tí a bá ṣe láti ìsinsìnyí lọ.",
+      "show_to_shoppers": "Fihàn sí àwọn olùrajà",
+      "list_this_code_in_the_shopping_app_s_coupon_sheet_off_it_works_only_when_typed": "Ṣe àkójọ kóòdù yìí sínú àtòjọ kúpọ́ọ̀nù ti áàpù ìrajà. Pípa: ó máa ṣiṣẹ́ nìkan tí a bá tẹ̀ ẹ́.",
+      "team_members_exported": "A ti gbé àwọn ọmọ ẹgbẹ́ jáde",
+      "team_members_could_not_be_exported": "A kò lè gbé àwọn ọmọ ẹgbẹ́ jáde",
+      "vendors_exported": "A ti gbé àwọn olùtajà jáde",
+      "vendors_could_not_be_exported": "A kò lè gbé àwọn olùtajà jáde"
     },
     "returnsPage": {
       "stats": {
@@ -3482,11 +4778,963 @@
       "selectUpTo": "{max, plural, other {Yan tó fáìlì #}}",
       "selectedCount": "A ti yan {count} nínú {max}",
       "title": "Yan àwọn fáìlì"
+    },
+    "orderDetails": {
+      "walkInCustomer": "Oníbàárà tí ó wọlé",
+      "soldBy": "Ẹni tó tà á: {name}",
+      "placedOn": "Ti a fi silẹ lori",
+      "tracking": "Ìtọpinpin",
+      "invoiceDownloadFailed": "Ajeji da iwe-oba kọ silẹ",
+      "back": "Padà",
+      "trackingNumber": "Nọ́mbà ìtọpinpin",
+      "trackingNumberPlaceholder": "Nọ́mbà ìtọpinpin",
+      "returnRequests": "Àwọn ìbéèrè ìdápadà",
+      "orderItems": "Awon Ohun Ninu Asẹ",
+      "item": "Ohun",
+      "quantity": "Iye",
+      "subtotal": "Alakomeji",
+      "tax": "Ora",
+      "importDuties": "Owó-orí ìkówọlé",
+      "payment": "Sisanwo",
+      "orderStatus": {
+        "preordered": "Ìbéèrè ṣáájú"
+      },
+      "paymentStatus": {
+        "paid": "A ti san"
+      },
+      "courier": {
+        "shipments": "Àwọn ìfiránṣẹ́",
+        "back": "Padà"
+      }
+    },
+    "customerAccountEmail": {
+      "sendReset": "Fi àtúntò ọ̀rọ̀ aṣínà ránṣẹ́",
+      "sendInvite": "Fi ìpè àkọọ́lẹ̀ ránṣẹ́",
+      "confirmResetTitle": "Ṣé kí a fi ọ̀nà àsopọ̀ àtúntò ọ̀rọ̀ aṣínà ránṣẹ́?",
+      "confirmResetDescription": "{email} yóò gba ọ̀nà àsopọ̀ láti yan ọ̀rọ̀ aṣínà tuntun. Ó ń ṣiṣẹ́ fún wákàtí 1.",
+      "confirmInviteTitle": "Ṣé kí a fi ìpè àkọọ́lẹ̀ ránṣẹ́?",
+      "confirmInviteDescription": "{email} yóò gba ọ̀nà àsopọ̀ láti ṣètò ọ̀rọ̀ aṣínà fún àkọọ́lẹ̀ rẹ̀. Ó ń ṣiṣẹ́ fún ọjọ́ 7.",
+      "send": "Firánṣẹ́",
+      "cancel": "Fagilé",
+      "resetSent": "A ti fi ọ̀nà àsopọ̀ àtúntò ọ̀rọ̀ aṣínà ránṣẹ́ sí {email}",
+      "inviteSent": "A ti fi ìpè àkọọ́lẹ̀ ránṣẹ́ sí {email}",
+      "emailNotSetUp": "A kò tíì ṣètò ímeèlì. Kọ́kọ́ ṣètò rẹ̀ ní Ètò → Ímeèlì.",
+      "sendFailed": "A kò lè fi ímeèlì náà ránṣẹ́. Ṣàyẹ̀wò Ètò → Ímeèlì.",
+      "reason": {
+        "nonCustomer": "Àkọọ́lẹ̀ yìí jẹ́ ti olùtajà tàbí ọmọ ẹgbẹ́.",
+        "banned": "A ti fòfin de oníbàárà yìí.",
+        "inactive": "Àkọọ́lẹ̀ oníbàárà yìí kò ṣiṣẹ́.",
+        "noEmail": "Oníbàárà yìí kò ní àdírẹ́sì ímeèlì.",
+        "recent": "A fi ímeèlì àkọọ́lẹ̀ ránṣẹ́ sí oníbàárà yìí láàárín ìṣẹ́jú 15 sẹ́yìn.",
+        "duplicate": "Oníbàárà yìí wà nínú àtòjọ lẹ́ẹ̀mejì."
+      },
+      "bulkAction": "Fi ímeèlì àkọọ́lẹ̀ ránṣẹ́",
+      "sendToAllMatching": "Fi ránṣẹ́ sí gbogbo {count} tó bá mu",
+      "confirmBulkTitle": "Ṣé kí a fi àwọn ímeèlì àkọọ́lẹ̀ ránṣẹ́?",
+      "confirmBulkDescription": "Oníbàárà {count} yóò gba ímeèlì: ọ̀nà àsopọ̀ àtúntò ọ̀rọ̀ aṣínà tí wọ́n bá ní ọ̀kan, tàbí ìpè láti ṣètò ọ̀kan tí wọn kò bá ní.",
+      "skippedSummary": "A ó fi {count} sílẹ̀: {reasons}.",
+      "skippedReason": {
+        "nonCustomer": "àkọọ́lẹ̀ ẹgbẹ́ tàbí olùtajà {count}",
+        "banned": "{count} tí a fòfin dè",
+        "inactive": "{count} tí kò ṣiṣẹ́",
+        "noEmail": "{count} láìsí ímeèlì",
+        "recent": "{count} tí wọ́n gba ímeèlì láàárín ìṣẹ́jú 15 sẹ́yìn",
+        "duplicate": "{count} tí a tún kọ"
+      },
+      "nobodyToSend": "A kò lè fi ímeèlì àkọọ́lẹ̀ ránṣẹ́ sí ẹnikẹ́ni nínú àwọn oníbàárà wọ̀nyí.",
+      "queued": "À ń fi ímeèlì àkọọ́lẹ̀ {count} ránṣẹ́",
+      "progress": "À ń fi àwọn ímeèlì àkọọ́lẹ̀ ránṣẹ́ · {done} nínú {total}",
+      "progressFailed": "A kò lè fi {count} ránṣẹ́",
+      "finished": "A ti fi ímeèlì àkọọ́lẹ̀ {count} ránṣẹ́",
+      "finishedWithFailures": "A kò lè fi ímeèlì àkọọ́lẹ̀ {failed} nínú {total} ránṣẹ́.",
+      "retry": "Gbìyànjú lẹ́ẹ̀kan sí i",
+      "dismiss": "Pa á dé"
+    },
+    "productsDataTable": {
+      "importDialog": {
+        "columns": {
+          "vendorSlug": "Slug ilé ìtajà olùtajà, fún àpẹẹrẹ green-leaf. Ó ń dá olùtajà mọ̀ nígbà tí vendorId bá ṣófo.",
+          "vendorEmail": "Ímeèlì tí ẹni tó ni ilé ìtajà náà fi ń wọlé. Ó ń dá olùtajà mọ̀ nígbà tí vendorId bá ṣófo.",
+          "vendor": "Orúkọ ilé ìtajà olùtajà. A kọ ìlà náà tí ilé ìtajà méjì bá ní orúkọ kan náà; lo vendorSlug tàbí vendorEmail nígbà náà.",
+          "title": "Orúkọ ọjà.",
+          "price": "Iye owó títà, fún àpẹẹrẹ 24.99.",
+          "category": "Ẹ̀ka tó ti wà: orúkọ rẹ̀, slug rẹ̀, tàbí ipa ọ̀nà bí Obìnrin > Gáùn.",
+          "sku": "Kóòdù ìṣura rẹ. Ó tún ń rí ọjà tí a ó ṣe ìmúdójúìwọ̀n rẹ̀.",
+          "slug": "Àdírẹ́sì wẹ́ẹ̀bù ọjà náà. Tí ó bá ṣófo, a ó ṣe é láti orúkọ ọjà. Ó tún ń rí ọjà tí a ó ṣe ìmúdójúìwọ̀n rẹ̀.",
+          "id": "Nínú àwọn fáìlì tí a gbé jáde nìkan. Ó ń rí ọjà gan-an tí a ó ṣe ìmúdójúìwọ̀n rẹ̀.",
+          "description": "Àpèjúwe kíkún. A gba HTML láàyè.",
+          "shortDescription": "Títí dé lẹ́tà 500.",
+          "comparePrice": "Iye owó àtilẹ̀wá, tí a fi ìlà fà kọjá.",
+          "cost": "Iye tí ọjà náà ná ọ. Àwọn oníbàárà kì í rí i láé.",
+          "stock": "Iye ọjà inú ìpamọ́, ní nọ́mbà odidi.",
+          "status": "active, draft tàbí archived. Àwọn ọjà tuntun jẹ́ draft àyàfi tí fáìlì bá sọ nǹkan mìíràn.",
+          "brand": "Orúkọ àmì ọjà tó ti wà.",
+          "tags": "Tí a fi | yà sọ́tọ̀, fún àpẹẹrẹ ẹ̀rùn|òwú.",
+          "images": "Àwọn ọ̀nà àsopọ̀ àwòrán gbangba (https://…) tí a fi | yà sọ́tọ̀. Àkọ́kọ́ ni àwòrán pàtàkì. Títí dé {max}.",
+          "onlineStore": "true tàbí false: fi ọjà náà hàn nínú ilé ìtajà orí ayélujára. Àìyípadà: true.",
+          "pointOfSale": "true tàbí false: tà á ní ibi títà. Àìyípadà: false.",
+          "featured": "true tàbí false: gbé ọjà náà yọ lórí ilé ìtajà.",
+          "productType": "Ọ̀rọ̀ èyíkéyìí, fún àpẹẹrẹ T-Shirt.",
+          "isPhysicalProduct": "true fún ẹrù tí o ń fi ránṣẹ́, false fún àwọn ìgbàsílẹ̀ oní-nọ́ńbà. Kò lè yí padà lẹ́yìn tí a bá ti ṣẹ̀dá ọjà náà.",
+          "inventoryTracked": "true tàbí false: ka ọjà inú ìpamọ́ fún ọjà yìí. Àìyípadà: true.",
+          "digitalDownloadLimit": "Iye ìgbàsílẹ̀ tí a gbà láàyè fún àṣẹ kọ̀ọ̀kan lórí ọjà oní-nọ́ńbà. 0 túmọ̀ sí àìlópin.",
+          "weight": "Ìwúwo fún ìfiránṣẹ́, fún àpẹẹrẹ 0.5.",
+          "weightUnit": "g, kg, lb tàbí oz. Àìyípadà: kg.",
+          "countryOfOrigin": "Orúkọ orílẹ̀-èdè tàbí kóòdù lẹ́tà méjì, fún àpẹẹrẹ BD.",
+          "hsCode": "Kóòdù owó orí kọ́sítọ́ọ̀mù.",
+          "barcode": "EAN-13, UPC-A, GTIN-14 tàbí Code 128. A ó ṣẹ̀dá rẹ̀ tí ó bá ṣófo.",
+          "vendorId": "Olùtajà tí ọjà náà jẹ́ tirẹ̀, bí ó ṣe hàn nínú fáìlì àwọn olùtajà tí a gbé jáde. Àìyípadà: ilé ìtajà tìrẹ."
+        },
+        "title": "Gbé àwọn ọjà wọlé",
+        "description": "Fi ọ̀pọ̀ ọjà tuntun kún un tàbí ṣe ìmúdójúìwọ̀n àwọn tó ti wà lẹ́ẹ̀kan náà láti inú fáìlì CSV tàbí JSON.",
+        "sampleTitle": "Bẹ̀rẹ̀ láti inú fáìlì àpẹẹrẹ",
+        "sampleDescription": "Ó ní àwọn ọ̀wọ̀n tí ìgbéwọlé ń kà àti àwọn ọjà àpẹẹrẹ díẹ̀, tí a ti fi sí abẹ́ àwọn ẹ̀ka ilé ìtajà yìí. Fi àwọn ọjà tìrẹ rọ́pò àwọn àpẹẹrẹ náà, fi ìlà àkọ́kọ́ sílẹ̀ bí ó ṣe wà, kí o sì gbé fáìlì náà sókè síbí.",
+        "sampleCsv": "CSV àpẹẹrẹ",
+        "sampleJson": "JSON àpẹẹrẹ",
+        "sampleJsonHint": "Lo JSON fún àwọn ọjà tó ní àwọn àṣàyàn àti oríṣiríṣi, bí ìwọ̀n àti àwọ̀.",
+        "sampleFailed": "A kò lè gba fáìlì àpẹẹrẹ náà sílẹ̀",
+        "dropTitle": "Yan fáìlì kan tàbí fà á wá síbí",
+        "dropHint": "CSV tàbí JSON · títí dé ọjà {rows} · {size} MB",
+        "removeFile": "Yọ fáìlì kúrò",
+        "fileTooLarge": "Fáìlì yìí tóbi ju {size} MB lọ. Pín in sí àwọn fáìlì kéékèèké.",
+        "wrongType": "Yan fáìlì .csv tàbí .json kan.",
+        "rulesTitle": "Bí a ṣe ń gbé àwọn ìlà wọlé",
+        "rules": {
+          "match": "Ìlà tó ní id, slug tàbí SKU ọjà tó ti wà ń ṣe ìmúdójúìwọ̀n ọjà náà. Gbogbo ìlà mìíràn ń ṣẹ̀dá ọjà tuntun.",
+          "blank": "Sẹ́ẹ̀lì tó ṣófo ń pa ohun tí ọjà náà ní báyìí mọ́.",
+          "category": "Àwọn ẹ̀ka àti àmì ọjà gbọ́dọ̀ ti wà tẹ́lẹ̀. Kọ orúkọ ẹ̀ka kan — tàbí, nígbà tí ẹ̀ka méjì bá ní orúkọ kan náà, ipa ọ̀nà rẹ̀ (Obìnrin > Gáùn) tàbí slug rẹ̀.",
+          "categoryAdmin": "Àwọn àmì ọjà gbọ́dọ̀ ti wà tẹ́lẹ̀, bẹ́ẹ̀ náà sì ni àwọn ẹ̀ka — àyàfi nínú fáìlì JSON tí alábòójútó gbé wọlé, èyí tó ń ṣẹ̀dá àwọn ẹ̀ka tó dárúkọ. Kọ orúkọ ẹ̀ka kan — tàbí, nígbà tí ẹ̀ka méjì bá ní orúkọ kan náà, ipa ọ̀nà rẹ̀ (Obìnrin > Gáùn) tàbí slug rẹ̀.",
+          "format": "Kọ àwọn nọ́mbà láìsí àmì mìíràn (1299.99, kì í ṣe $1,299.99), kí o sì fi | ya àwọn àmì àti ọ̀nà àsopọ̀ àwòrán sọ́tọ̀."
+        },
+        "columnsTitle": "Ìtọ́sọ́nà àwọn ọ̀wọ̀n",
+        "required": "Dandan fún àwọn ọjà tuntun",
+        "adminOnly": "Alábòójútó nìkan",
+        "cancel": "Fagilé",
+        "submit": "Gbé àwọn ọjà wọlé",
+        "importing": "À ń gbé e wọlé… àwọn fáìlì ńlá lè gba ìṣẹ́jú kan. Jẹ́ kí fèrèsé yìí wà ní ṣíṣí.",
+        "requestFailed": "A kò lè gbé fáìlì náà wọlé. Gbìyànjú lẹ́ẹ̀kan sí i.",
+        "resultTitle": "Ìgbéwọlé ti parí",
+        "resultFailedTitle": "A kò lè gbé fáìlì náà wọlé",
+        "created": "A ti ṣẹ̀dá",
+        "updated": "A ti ṣe ìmúdójúìwọ̀n",
+        "failed": "Ó kùnà",
+        "warnings": "Àwọn àkíyèsí",
+        "errorsTitle": "Àwọn ìlà tí a kò gbé wọlé",
+        "errorsHint": "Ṣàtúnṣe àwọn ìlà wọ̀nyí nínú fáìlì rẹ, kí o sì tún gbé e wọlé. Àwọn ìlà tó ní slug tàbí SKU yóò ṣe ìmúdójúìwọ̀n àwọn ọjà tí ìgbéwọlé yìí ti ṣẹ̀dá dípò kí wọ́n fi ẹ̀dà mìíràn kún un.",
+        "rowLabel": "Ìlà {row}",
+        "productLabel": "Ọjà {row}",
+        "fileLabel": "Fáìlì",
+        "moreErrors": "…àti {count} mìíràn nínú àtòjọ tí o lè gbà sílẹ̀.",
+        "downloadErrors": "Gba àtòjọ àṣìṣe sílẹ̀",
+        "importAnother": "Gbé fáìlì mìíràn wọlé",
+        "done": "Ó ti parí"
+      },
+      "columns": {
+        "product": "Ọjà",
+        "inventory": "Iṣura"
+      },
+      "channels": {
+        "online": "Lori ayelujara"
+      },
+      "tabs": {
+        "archived": "Tí a fi pamọ́"
+      },
+      "filters": {
+        "tag": "Àmì",
+        "archived": "Tí a fi pamọ́"
+      },
+      "actions": {
+        "export": "Gbé Jáde",
+        "import": "Gbé wọlé"
+      },
+      "rowActions": {
+        "view": "Wo"
+      },
+      "dialogs": {
+        "updateStatus": {
+          "confirm": "Ìmúdójúìwọ̀n"
+        }
+      }
+    },
+    "catalogPicker": {
+      "searching": "Ń wá…",
+      "none": "Kò sí",
+      "category": {
+        "placeholder": "Yan ẹ̀ka…",
+        "search": "Wá àwọn ẹ̀ka…",
+        "empty": "A kò rí ẹ̀ka kankan",
+        "hidden": "A ti pa ẹ̀ka yìí, nítorí náà ilé ìtajà kò fi í hàn.",
+        "missing": "Ẹ̀ka tí a ti pa rẹ́",
+        "missingIssue": "Ẹ̀ka yìí kò sí mọ́. Yan òmíràn."
+      },
+      "brand": {
+        "placeholder": "Yan àmì ọjà…",
+        "search": "Wá àwọn àmì ọjà…",
+        "empty": "A kò rí àmì ọjà kankan",
+        "archived": "A ti fi àmì ọjà yìí pamọ́, nítorí náà ilé ìtajà kò fi í hàn.",
+        "unapproved": "A kò tíì fọwọ́ sí àmì ọjà yìí, nítorí náà ilé ìtajà kò fi í hàn.",
+        "inactive": "A ti pa àmì ọjà yìí, nítorí náà ilé ìtajà kò fi í hàn.",
+        "missing": "Àmì ọjà tí a ti pa rẹ́",
+        "missingIssue": "Àmì ọjà yìí kò sí mọ́. Yan òmíràn."
+      },
+      "collection": {
+        "search": "Wá àwọn àkójọpọ̀…",
+        "empty": "A kò rí àkójọpọ̀ kankan",
+        "draft": "Àkójọpọ̀ yìí jẹ́ àkọsílẹ̀, nítorí náà ilé ìtajà kò fi í hàn.",
+        "unpublished": "A kò tẹ̀ àkójọpọ̀ yìí jáde sí Ilé ìtajà orí ayélujára, nítorí náà ilé ìtajà kò fi í hàn.",
+        "missing": "Àkójọpọ̀ tí a ti pa rẹ́",
+        "missingIssue": "Àkójọpọ̀ yìí kò sí mọ́. Yan òmíràn."
+      }
+    },
+    "collectionConditions": {
+      "title": "Àwọn àmúyẹ àkójọpọ̀",
+      "matchLabel": "Àwọn ọjà gbọ́dọ̀ kájú:",
+      "matchAll": "Gbogbo àmúyẹ",
+      "matchAny": "Ó kéré tán àmúyẹ kan",
+      "empty": "Kò sí àmúyẹ kankan. Fi àmúyẹ kan kún kí àwọn ọjà lè wọ inú rẹ̀ fúnra wọn.",
+      "fieldLabel": "Pápá",
+      "operatorLabel": "Àmúyẹ",
+      "valueLabel": "Iye",
+      "add": "Fi àmúyẹ kún un",
+      "remove": "Yọ àmúyẹ kúrò",
+      "loadingVendors": "Ń gbé àwọn olùtajà wá…",
+      "selectVendor": "Yan olùtajà",
+      "enterNumber": "Tẹ nọ́mbà",
+      "enterValue": "Tẹ iye",
+      "categoryBranchHint": "Ẹ̀ka kan máa ń kó gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀ mọ́ra.",
+      "legacyOperator": "{operator} (òfin àtijọ́)",
+      "legacyCategoryText": "Òfin àtijọ́ yìí ń fi orúkọ àwọn ẹ̀ka wéra gẹ́gẹ́ bí ọ̀rọ̀. Yan “jẹ́” tàbí “kì í ṣe” kí o sì yan ẹ̀ka kan; nígbà náà òfin náà yóò tún bo gbogbo ẹ̀ka tó wà lábẹ́ rẹ̀.",
+      "legacyCategorySet": "Òfin àtijọ́ yìí bá gbogbo ọjà mu. Yan “jẹ́” tàbí “kì í ṣe” kí o sì yan ẹ̀ka kan.",
+      "legacyCategoryNotSet": "Òfin àtijọ́ yìí kò bá ọjà kankan mu. Yan “jẹ́” tàbí “kì í ṣe” kí o sì yan ẹ̀ka kan.",
+      "categoryTextMatched": "A fi pamọ́ gẹ́gẹ́ bí ọ̀rọ̀ “{value}”, èyí tí ó bá ẹ̀ka yìí mu. Tún un yàn láti fi ẹ̀ka náà gan-an pamọ́.",
+      "categoryTextUnmatched": "Kò sí ẹ̀ka tí ó bá “{value}” mu, nítorí náà òfin yìí kò bá ọjà kankan mu. Yan ẹ̀ka kan.",
+      "brandText": "A fi pamọ́ gẹ́gẹ́ bí ọ̀rọ̀ “{value}”. Yan àmì ọjà náà láti inú àkójọ.",
+      "fields": {
+        "title": "Àkọlé ọjà",
+        "productType": "Irú ọjà",
+        "vendor": "Olùtajà",
+        "brand": "Àmì ọjà",
+        "tag": "Tag ọjà",
+        "price": "Iye owó",
+        "comparePrice": "Iye owó àfiwé",
+        "weight": "Ìwúwo",
+        "stock": "Iye ọjà inú ìpamọ́",
+        "category": "Ẹ̀ka"
+      },
+      "operators": {
+        "equals": "dọ́gba pẹ̀lú",
+        "not_equals": "kò dọ́gba pẹ̀lú",
+        "contains": "ní nínú",
+        "not_contains": "kò ní nínú",
+        "starts_with": "bẹ̀rẹ̀ pẹ̀lú",
+        "ends_with": "parí pẹ̀lú",
+        "greater_than": "pọ̀ ju",
+        "less_than": "kéré ju",
+        "is_set": "a ti ṣètò rẹ̀",
+        "is_not_set": "a kò ṣètò rẹ̀",
+        "is": "jẹ́",
+        "isNot": "kì í ṣe"
+      }
+    },
+    "storeProfile": {
+      "title": "A kò tíì ṣètò àkọsílẹ̀ ilé ìtajà rẹ",
+      "missing": "A kò lè ṣẹ̀dá rẹ̀ báyìí. Fífi Ètò → Ètò gbogbogbò pamọ́ máa ṣẹ̀dá rẹ̀.",
+      "noOwner": "A kò lè ṣẹ̀dá rẹ̀ nítorí pé gbogbo àkọọ́lẹ̀ alábòójútó ti ní ilé ìtajà olùtajà tirẹ̀, ẹnì kan ṣoṣo sì ni ó lè ni ilé ìtajà kan. Ṣàfikún àkọọ́lẹ̀ alábòójútó tí kò ní ilé ìtajà kankan.",
+      "needsReview": "Ó ṣeé ṣe kí àkọsílẹ̀ ilé ìtajà àtijọ́ wà lábẹ́ ilé ìtajà alábòójútó kan, nítorí náà a kò ṣẹ̀dá tuntun. Olùgbéejáde lè ṣàyẹ̀wò rẹ̀ pẹ̀lú pnpm db:migrate house-profile --dry-run.",
+      "pickerNote": "Àwọn ibi máa hàn níbí nígbà tí a bá ti ṣètò àkọsílẹ̀ ilé ìtajà. Ètò → Ètò gbogbogbò ń fi ohun tí ó kù hàn."
+    },
+    "vendorAccountEmail": {
+      "sendReset": "Fi àtúntò ọ̀rọ̀ aṣínà ránṣẹ́",
+      "sendInvite": "Fi ìpè àkọọ́lẹ̀ ránṣẹ́",
+      "confirmResetTitle": "Ṣé kí a fi ọ̀nà àsopọ̀ àtúntò ọ̀rọ̀ aṣínà ránṣẹ́?",
+      "confirmResetDescription": "{email} yóò gba ọ̀nà àsopọ̀ láti yan ọ̀rọ̀ aṣínà tuntun. Ó ń ṣiṣẹ́ fún wákàtí 1.",
+      "confirmInviteTitle": "Ṣé kí a fi ìpè àkọọ́lẹ̀ ránṣẹ́?",
+      "confirmInviteDescription": "{email} yóò gba ọ̀nà àsopọ̀ láti ṣètò ọ̀rọ̀ aṣínà fún àkọọ́lẹ̀ rẹ̀. Ó ń ṣiṣẹ́ fún ọjọ́ 7.",
+      "send": "Firánṣẹ́",
+      "cancel": "Fagilé",
+      "resetSent": "A ti fi ọ̀nà àsopọ̀ àtúntò ọ̀rọ̀ aṣínà ránṣẹ́ sí {email}",
+      "inviteSent": "A ti fi ìpè àkọọ́lẹ̀ ránṣẹ́ sí {email}",
+      "emailNotSetUp": "A kò tíì ṣètò ímeèlì. Kọ́kọ́ ṣètò rẹ̀ ní Ètò → Ímeèlì.",
+      "sendFailed": "A kò lè fi ímeèlì náà ránṣẹ́. Ṣàyẹ̀wò Ètò → Ímeèlì.",
+      "reason": {
+        "nonCustomer": "Àkọọ́lẹ̀ yìí jẹ́ ti olùtajà tàbí ọmọ ẹgbẹ́.",
+        "banned": "A ti fòfin de oníbàárà yìí.",
+        "inactive": "Àkọọ́lẹ̀ oníbàárà yìí kò ṣiṣẹ́.",
+        "noEmail": "Oníbàárà yìí kò ní àdírẹ́sì ímeèlì.",
+        "recent": "A fi ímeèlì àkọọ́lẹ̀ ránṣẹ́ sí oníbàárà yìí láàárín ìṣẹ́jú 15 sẹ́yìn.",
+        "duplicate": "Oníbàárà yìí wà nínú àtòjọ lẹ́ẹ̀mejì."
+      },
+      "bulkAction": "Fi ímeèlì àkọọ́lẹ̀ ránṣẹ́",
+      "sendToAllMatching": "Fi ránṣẹ́ sí gbogbo {count} tó bá mu",
+      "confirmBulkTitle": "Ṣé kí a fi àwọn ímeèlì àkọọ́lẹ̀ ránṣẹ́?",
+      "confirmBulkDescription": "Oníbàárà {count} yóò gba ímeèlì: ọ̀nà àsopọ̀ àtúntò ọ̀rọ̀ aṣínà tí wọ́n bá ní ọ̀kan, tàbí ìpè láti ṣètò ọ̀kan tí wọn kò bá ní.",
+      "skippedSummary": "A ó fi {count} sílẹ̀: {reasons}.",
+      "skippedReason": {
+        "nonCustomer": "àkọọ́lẹ̀ ẹgbẹ́ tàbí olùtajà {count}",
+        "banned": "{count} tí a fòfin dè",
+        "inactive": "{count} tí kò ṣiṣẹ́",
+        "noEmail": "{count} láìsí ímeèlì",
+        "recent": "{count} tí wọ́n gba ímeèlì láàárín ìṣẹ́jú 15 sẹ́yìn",
+        "duplicate": "{count} tí a tún kọ"
+      },
+      "nobodyToSend": "A kò lè fi ímeèlì àkọọ́lẹ̀ ránṣẹ́ sí ẹnikẹ́ni nínú àwọn oníbàárà wọ̀nyí.",
+      "queued": "À ń fi ímeèlì àkọọ́lẹ̀ {count} ránṣẹ́",
+      "progress": "À ń fi àwọn ímeèlì àkọọ́lẹ̀ ránṣẹ́ · {done} nínú {total}",
+      "progressFailed": "A kò lè fi {count} ránṣẹ́",
+      "finished": "A ti fi ímeèlì àkọọ́lẹ̀ {count} ránṣẹ́",
+      "finishedWithFailures": "A kò lè fi ímeèlì àkọọ́lẹ̀ {failed} nínú {total} ránṣẹ́.",
+      "retry": "Gbìyànjú lẹ́ẹ̀kan sí i",
+      "dismiss": "Pa á dé"
+    },
+    "quotesPage": {
+      "title": "Àwọn ìdíyelé",
+      "export": "Gbé Jáde",
+      "columns": {
+        "product": "Ọjà"
+      },
+      "filters": {
+        "last30": "Ọjọ́ 30 sẹ́yìn",
+        "last90": "Ọjọ́ 90 sẹ́yìn"
+      },
+      "table": {
+        "contactHidden": "Ilé ìtajà ti fi àlàyé olùbásọ̀rọ̀ pamọ́"
+      },
+      "actions": {
+        "reopen": "Ṣí padà"
+      },
+      "sheet": {
+        "account": "Akaunti",
+        "contactHidden": "Ilé ìtajà ti fi pamọ́",
+        "vendorNote": "Àkọsílẹ̀ olùtajà",
+        "vendorNotePlaceholder": "Àkọsílẹ̀ tìrẹ lórí ìdíyelé yìí. Ilé ìtajà lè kà á; oníbàárà kò lè kà á.",
+        "vendorNoteReadOnly": "Olùtajà ló kọ ọ́. Olùtajà nìkan ló lè yí i padà.",
+        "lockedByStore": "Ilé ìtajà ti gba ìdíyelé yìí, nítorí náà ilé ìtajà ló ń pinnu iye rẹ̀ báyìí. O ṣì lè kà á kí o sì tọ́jú àkọsílẹ̀ rẹ."
+      },
+      "history": {
+        "paid": "A ti san",
+        "unpaid": "Ń dúró de ìsanwó"
+      },
+      "dialog": {
+        "days": "{count, plural, other {ọjọ́ #}}",
+        "guestNoteHidden": "Àlejò ni {name}. Ilé ìtajà yóò fi iye náà ránṣẹ́ sí i nípasẹ̀ ímeèlì; yóò wọlé pẹ̀lú àdírẹ́sì tí ó fi béèrè láti rà á.",
+        "storeFinal": "Ilé ìtajà lè fi iye tirẹ̀ rọ́pò iye rẹ, iye ilé ìtajà sì ni ìkẹyìn."
+      },
+      "by": {
+        "admin": "Ilé ìtajà",
+        "vendor": "Olùtajà"
+      }
+    },
+    "vendorAccess": {
+      "policyOn": "Ṣi",
+      "overrideNone": "Kò sí",
+      "overrideRevoke": "Gbà á padà"
+    },
+    "accessRequests": {
+      "pendingCount": "{count} ń dúró",
+      "approve": "Fọwọ́sí",
+      "decline": "Kọ̀ ọ́"
+    },
+    "ordersPage": {
+      "plusMore": "+{count} mìíràn",
+      "item": "ohun",
+      "export": "Gbé Jáde",
+      "table": {
+        "date": "Ọjọ́",
+        "payment": "Sisanwo"
+      },
+      "paymentStatus": {
+        "paid": "A ti san"
+      },
+      "tabs": {
+        "archived": "Tí a fi pamọ́"
+      },
+      "filters": {
+        "orderStatus": "Ipo òdà",
+        "date": "Ọjọ́"
+      },
+      "pagination": {
+        "showing": "Nfihan",
+        "of": "ti",
+        "results": "esi",
+        "rowsPerPage": "Awon ila fun oju-iwe"
+      },
+      "stats": {
+        "totalOrders": {
+          "title": "Gbogbo Awon asẹ"
+        },
+        "averageOrderValue": {
+          "title": "Iyewo. Owo Asẹ"
+        }
+      }
+    },
+    "totalOrders": "Gbogbo Awon asẹ",
+    "totalVisitors": "Gbogbo Awọn Alejo",
+    "pendingOrders": "Awon asẹ ti o n duro",
+    "topVendors": "Àwọn Olùtajà Tó Ga Jùlọ",
+    "vendorsManagement": {
+      "table": {
+        "commission": "Ìdíwọ̀n owó",
+        "sales": "Awọn tita",
+        "visitStore": "Lo si Ipinle"
+      },
+      "toasts": {
+        "statusError": "Ajeji imudojuiwọn ipo"
+      }
+    },
+    "productsManagement": {
+      "status": {
+        "all": "Gbogbo Ipo",
+        "archived": "Tí a fi pamọ́"
+      },
+      "table": {
+        "image": "Àwòrán",
+        "view": "Wo"
+      }
+    },
+    "collectionsManagement": {
+      "status": {
+        "all": "Gbogbo Ipo"
+      },
+      "table": {
+        "image": "Àwòrán",
+        "type": "Irú",
+        "channels": "Àwọn ìkànnì",
+        "noCollections": "A kò rí àkójọpọ̀ kankan"
+      },
+      "form": {
+        "description": "Apejuwe",
+        "clearAll": "Nu gbogbo",
+        "conditionField": "Pápá",
+        "conditionOperator": "Àmúyẹ",
+        "conditionValue": "Iye"
+      }
+    },
+    "inventory": {
+      "title": "Iṣura",
+      "export": "Gbé Jáde",
+      "import": "Gbé wọlé",
+      "tabs": {
+        "online": "Lori ayelujara"
+      },
+      "columns": {
+        "product": "Ọjà"
+      },
+      "csvHeaders": {
+        "product": "Ọjà"
+      },
+      "stats": {
+        "lowStock": "Ọjà tó kù díẹ̀",
+        "outOfStock": "Laisi stock"
+      }
+    },
+    "users": "Awon olumillo",
+    "reports": "Ìròyìn",
+    "dashboard": "Dasibodu",
+    "collectionsDataTable": {
+      "empty": "A kò rí àkójọpọ̀ kankan",
+      "columns": {
+        "collection": "Àkójọpọ̀",
+        "type": "Irú"
+      },
+      "channels": {
+        "online": "Lori ayelujara"
+      },
+      "filters": {
+        "type": "Irú"
+      },
+      "actions": {
+        "export": "Gbé Jáde",
+        "import": "Gbé wọlé",
+        "addCollection": "Fi àkójọpọ̀ kún un"
+      },
+      "dialogs": {
+        "updateStatus": {
+          "confirm": "Ìmúdójúìwọ̀n"
+        }
+      }
+    },
+    "categoriesDataTable": {
+      "empty": "A kò rí ẹ̀ka kankan",
+      "tabs": {
+        "inactive": "Ti o ko n sisẹ"
+      },
+      "stats": {
+        "inactive": "Ti o ko n sisẹ"
+      },
+      "actions": {
+        "export": "Gbé Jáde",
+        "import": "Gbé wọlé"
+      },
+      "dialogs": {
+        "activate": {
+          "confirm": "Mu Sisẹ"
+        },
+        "deactivate": {
+          "confirm": "Mu Ko sisẹ"
+        }
+      }
+    },
+    "transfers": {
+      "list": {
+        "title": "Awọn gbigbe",
+        "columns": {
+          "to": "Olùgbà",
+          "updated": "A ti ṣe ìmúdójúìwọ̀n"
+        },
+        "locationFilter": "Ipò"
+      },
+      "create": {
+        "max": "Pupọe",
+        "columns": {
+          "product": "Ọjà"
+        },
+        "toasts": {
+          "loadLocationsError": "Ajeji gbe awon ibẹẹẹ",
+          "locationNameRequired": "Oruko ibẹẹẹ nilo"
+        }
+      },
+      "details": {
+        "note": "Àkíyèsí",
+        "meta": {
+          "created": "A ti ṣẹ̀dá"
+        },
+        "columns": {
+          "product": "Ọjà",
+          "qty": "Iye"
+        }
+      },
+      "receive": {
+        "columns": {
+          "item": "Ohun",
+          "outstanding": "Tí ó kù"
+        },
+        "note": "Àkíyèsí"
+      }
+    },
+    "customersDataTable": {
+      "deleteSingleDescription": "Njẹ o da ọ loju pe o fẹ paara {name}?"
+    },
+    "vendorsDataTable": {
+      "thisVendor": "olùtajà yìí",
+      "deleteSingleDescription": "Njẹ o da ọ loju pe o fẹ paara {name}?"
+    },
+    "inboxPage": {
+      "title": "Àpótí ìfiránṣẹ́"
+    },
+    "footerStudio": {
+      "tabsLabel": "Ìsàlẹ̀ Ojú-ìwé",
+      "redo": "Tún ṣe",
+      "items": {
+        "text": "Ọ̀rọ̀",
+        "contact": "Enikọẹta",
+        "copyright": "Ẹ̀tọ́ àdàkọ"
+      },
+      "canvas": {
+        "removeColumn": "Yọ ọwọ̀n kúrò"
+      },
+      "panel": {
+        "row": "Ìlà",
+        "item": "Ohun",
+        "nothing": "Ìsàlẹ̀ Ojú-ìwé",
+        "text": "Ọ̀rọ̀",
+        "showPhone": "Fi fóònù hàn",
+        "showEmail": "Fi ímeèlì hàn",
+        "showAddress": "Fi àdírẹ́sì hàn",
+        "menu": "Mẹ́nù",
+        "links": "Àwọn ìjápọ̀",
+        "addLink": "Fi ọ̀nà asopọ̀ kún un",
+        "removeLink": "Yọ ọ̀nà asopọ̀ kúrò",
+        "showYear": "Fi ọdún hàn",
+        "showStoreName": "Fi orúkọ ilé ìtajà hàn",
+        "imageAlt": "Ọ̀rọ̀ àfidípò"
+      },
+      "toast": {
+        "saveFailed": "Ìfipamọ́ kùnà"
+      }
+    },
+    "productCardStudio": {
+      "title": "Kaadi ọja",
+      "order": "Asẹ",
+      "elements": {
+        "brand": "Àmì ọjà",
+        "stock": "Laisi stock"
+      },
+      "styleGap": "Àlàfo",
+      "hoverEffects": {
+        "zoom": "Sún Mọ́",
+        "none": "Kò sí"
+      },
+      "none": "Kò sí",
+      "cartActions": {
+        "view": "Wo ọjà",
+        "quick-view": "Wo yiyalẹẹẹ"
+      },
+      "cartVariants": {
+        "outline": "Ìlà ìta"
+      },
+      "colorTokens": {
+        "foreground": "Ọ̀rọ̀"
+      },
+      "styleBrand": "Àmì ọjà"
+    },
+    "menusPage": {
+      "locations": {
+        "footer": "Ìsàlẹ̀ Ojú-ìwé",
+        "sidebar": "Ọ̀pá ẹ̀gbẹ́"
+      },
+      "table": {
+        "location": "Ipò"
+      },
+      "actions": {
+        "customize": "Ṣe àtúnṣe"
+      }
+    },
+    "menuForm": {
+      "status": {
+        "inactive": "Ti o ko n sisẹ"
+      },
+      "actions": {
+        "back": "Padà",
+        "addItem": "Fi ohun kún un"
+      },
+      "tabs": {
+        "item": "Ohun",
+        "menu": "Mẹ́nù"
+      },
+      "toast": {
+        "saveFailed": "Fifipamọ kuna",
+        "genericError": "Ajeji sele"
+      },
+      "mega": {
+        "links": "Àwọn ìjápọ̀",
+        "addLink": "Fi ọ̀nà asopọ̀ kún un",
+        "viewAllCategories": "Wo Gbogbo Awon eka",
+        "viewAll": "Wo gbogbo"
+      },
+      "canvas": {
+        "addCard": "Fi káàdì kún un",
+        "untitled": "Aláìní orúkọ"
+      }
+    },
+    "onlineStorePagesPage": {
+      "title": "Awọn oju-iwe",
+      "status": {
+        "visible": "Ó hàn"
+      },
+      "actions": {
+        "clearFilters": "Nu awon oorun"
+      },
+      "builtIn": {
+        "cookies": {
+          "title": "Ìlànà cookie"
+        },
+        "accessibility": {
+          "title": "Ìrọ̀rùn ìwọlé"
+        },
+        "contact": {
+          "title": "Enikọẹta"
+        },
+        "about": {
+          "title": "Nipa Wa"
+        }
+      }
+    },
+    "customPageForm": {
+      "toast": {
+        "saveFailed": "Fifipamọ kuna"
+      }
+    },
+    "contentPageEditor": {
+      "toast": {
+        "saveFailed": "Fifipamọ kuna"
+      },
+      "pages": {
+        "cookies": {
+          "title": "Ìlànà cookie"
+        },
+        "accessibility": {
+          "title": "Ìrọ̀rùn ìwọlé"
+        }
+      }
+    },
+    "blogPostsPage": {
+      "title": "Awọn ifiweranṣẹ bulọọgi",
+      "tabs": {
+        "archived": "Tí a fi pamọ́"
+      },
+      "table": {
+        "date": "Ọjọ́"
+      },
+      "status": {
+        "archived": "Tí a fi pamọ́"
+      },
+      "actions": {
+        "publish": "Tẹ̀ jáde",
+        "archive": "Fi pamọ́"
+      }
+    },
+    "blogPostForm": {
+      "fields": {
+        "imageAlt": "Ọ̀rọ̀ àfidípò àwòrán",
+        "tags": "Awon aami"
+      },
+      "actions": {
+        "back": "Padà",
+        "improveSeo": "Mú SEO dára sí i"
+      },
+      "status": {
+        "archived": "Tí a fi pamọ́"
+      },
+      "toast": {
+        "saveFailed": "Fifipamọ kuna",
+        "genericError": "Ajeji sele"
+      }
+    },
+    "staffDashboard": {
+      "last30Days": "Ọjọ́ 30 sẹ́yìn",
+      "unitsSold": "ti a ta",
+      "outOfStock": "Laisi stock"
+    },
+    "reviewsPage": {
+      "table": {
+        "product": "Ọjà",
+        "date": "Ọjọ́"
+      },
+      "publish": "Tẹ̀ jáde",
+      "empty": "Ko si awon asoye lowo",
+      "bulk": {
+        "publish": "Tẹ̀ jáde"
+      }
+    },
+    "paymentsOverviewPage": {
+      "actions": {
+        "transactions": "Awọn iṣowo"
+      },
+      "recentTransactions": {
+        "columns": {
+          "order": "Asẹ",
+          "type": "Irú",
+          "amount": "Iye owó",
+          "date": "Ọjọ́"
+        }
+      },
+      "transactionTypes": {
+        "charge": "Sanwo"
+      }
+    },
+    "payoutsPage": {
+      "createSection": {
+        "selectVendor": "Yan olùtajà"
+      },
+      "listSection": {
+        "allStatuses": "Gbogbo ipo",
+        "columns": {
+          "amount": "Iye owó",
+          "period": "Àkókò",
+          "details": "Awon alaye"
+        }
+      },
+      "statuses": {
+        "paid": "A ti san"
+      }
+    },
+    "paymentTransactionsPage": {
+      "settlement": {
+        "note": "Àkíyèsí"
+      },
+      "filters": {
+        "title": "Awon oorun"
+      },
+      "table": {
+        "columns": {
+          "order": "Asẹ",
+          "type": "Irú",
+          "date": "Ọjọ́",
+          "details": "Awon alaye"
+        }
+      },
+      "transactionTypes": {
+        "charge": "Sanwo"
+      }
+    },
+    "sliders": {
+      "title": "Àwọn slider",
+      "stateNone": "Kò sí",
+      "stateOn": "Ṣi",
+      "inspector": {
+        "back": "Padà"
+      },
+      "gap": "Àlàfo",
+      "transition": "Ìyípadà",
+      "product": "Ọjà",
+      "uploadImage": "Gbé àwòrán sókè",
+      "searchProducts": "Ṣàwárí àwọn ọjà…",
+      "clearProduct": "Yọ ọjà kúrò",
+      "elements": {
+        "heading": "Àkọlé",
+        "description": "Apejuwe",
+        "tagline": "Gbólóhùn ìpolówó"
+      },
+      "reveals": {
+        "fade": "Ìrẹ̀wẹ̀sì",
+        "zoom-out": "Jìnnà Sí"
+      },
+      "transitions": {
+        "fade": "Ìrẹ̀wẹ̀sì"
+      },
+      "textStyle": {
+        "weight": "Ìwúwo",
+        "transformOptions": {
+          "none": "Kò sí"
+        },
+        "highlightOptions": {
+          "none": "Kò sí"
+        }
+      },
+      "bg": {
+        "image": "Àwòrán",
+        "upload": "Gbé Àwòrán Sókè",
+        "hoverOptions": {
+          "none": "Kò sí"
+        },
+        "overlayEdges": {
+          "left": "Òsì",
+          "right": "Ọ̀tún"
+        }
+      },
+      "countdown": {
+        "days": "Ọjọ́"
+      },
+      "placeholders": {
+        "tagline": "Gbólóhùn ìpolówó",
+        "cta": "Ra Saa Vi"
+      },
+      "image": "Àwòrán",
+      "ctaHeight": "Gíga",
+      "ctaVariants": {
+        "dark": "Òkùnkùn",
+        "light": "Ìmọ́lẹ̀",
+        "outline": "Ìlà ìta"
+      },
+      "publish": "Tẹ̀ jáde",
+      "draftSaved": "A ti fi àkọsílẹ̀ pamọ́",
+      "redo": "Tún ṣe",
+      "language": "Ede",
+      "history": {
+        "restore": "Dá padà"
+      },
+      "controls": {
+        "arrowStyles": {
+          "none": "Kò sí",
+          "square": "Onígun mẹ́rin"
+        },
+        "dotStyles": {
+          "none": "Kò sí"
+        },
+        "dotPositions": {
+          "start": "Òsì",
+          "end": "Ọ̀tún"
+        }
+      },
+      "templates": {
+        "title": "Àwọn tẹ́ńpílètì",
+        "namePlaceholder": "Orúkọ àwòṣe"
+      },
+      "library": {
+        "search": "Wá àwọn fáìlì…",
+        "loadMore": "Gbé síi wá"
+      },
+      "clipboard": {
+        "copy": "Ṣe àdàkọ"
+      }
+    },
+    "navigationHub": {
+      "title": "Ìlọkiri",
+      "header": {
+        "title": "Orí Ojú-ìwé"
+      },
+      "footer": {
+        "title": "Ìsàlẹ̀ Ojú-ìwé"
+      }
+    },
+    "themeEditor": {
+      "title": "Ètò àkòrí",
+      "saved": "A ti fi ètò àkòrí pamọ́",
+      "saveFailed": "Ìfipamọ́ kùnà",
+      "brandRef": "Àmì ọjà",
+      "modeLight": "Ìmọ́lẹ̀",
+      "modeDark": "Òkùnkùn",
+      "groups": {
+        "colors": {
+          "label": "Awon awọ"
+        },
+        "layout": {
+          "label": "Ìtòlẹ́sẹẹsẹ"
+        }
+      }
+    },
+    "searchInsights": {
+      "title": "Òye ìwádìí",
+      "periods": {
+        "days": "{count, plural, other {ọjọ́ #}}"
+      }
+    },
+    "activityLogPage": {
+      "title": "Àkọsílẹ̀ iṣẹ́",
+      "filters": {
+        "date": "Ọjọ́"
+      },
+      "dates": {
+        "last30": "Ọjọ́ 30 sẹ́yìn"
+      },
+      "actions": {
+        "CREATE": "A ti ṣẹ̀dá",
+        "UPDATE": "A ti ṣe ìmúdójúìwọ̀n",
+        "PAYMENT": "Sisanwo",
+        "EXPORT": "Gbé Jáde"
+      },
+      "resources": {
+        "product": "Ọjà",
+        "order": "Asẹ",
+        "payment": "Sisanwo",
+        "inventory": "Iṣura",
+        "location": "Ipò",
+        "collection": "Àkójọpọ̀",
+        "brand": "Àmì ọjà",
+        "slider": "Ìfihàn Sílàìdì",
+        "menu": "Mẹ́nù"
+      },
+      "empty": {
+        "clearFilters": "Nu awon oorun"
+      },
+      "sheet": {
+        "store": "Ilé ìtajà",
+        "errorMessage": "Àṣìṣe",
+        "field": "Pápá",
+        "before": "Ṣáájú",
+        "after": "Lẹ́yìn"
+      },
+      "recordTabs": {
+        "title": "Àkọsílẹ̀ iṣẹ́",
+        "filterTitle": "Fifo"
+      }
     }
   },
   "vendor": {
     "ordersTable": {
-      "createOrder": "Ṣẹda aṣẹ"
+      "createOrder": "Ṣẹda aṣẹ",
+      "empty": "Ko si asẹ ti a rii",
+      "columns": {
+        "order": "Asẹ",
+        "date": "Ọjọ́",
+        "payment": "Sisanwo"
+      },
+      "tabs": {
+        "archived": "Tí a fi pamọ́"
+      },
+      "shipDialog": {
+        "trackingLabel": "Nọ́mbà ìtọpinpin"
+      }
     },
     "featureLocked": {
       "staff": {
@@ -3595,7 +5843,71 @@
     "payouts": "Àwọn ìsanwó",
     "products": "Àwọn ọjà",
     "settings": "Ètò ilé ìtajà",
-    "statements": "Àwọn ìwé ìṣirò owó"
+    "statements": "Àwọn ìwé ìṣirò owó",
+    "registration": {
+      "teamAccountTitle": "Akaunti yìí jẹ́ ti ẹgbẹ́ ilé ìtajà",
+      "teamAccountDesc": "Àwọn akaunti alábòójútó àti òṣìṣẹ́ kò lè béèrè láti di olùtajà. Láti ṣí ilé ìtajà, jáde kí o sì béèrè pẹ̀lú akaunti oníbàárà.",
+      "confirmPassword": "Jejrisi Orọgbọsẹ",
+      "storeNameLabel": "Orúkọ ilé ìtajà",
+      "storeDescLabel": "Àpèjúwe ilé ìtajà",
+      "streetLabel": "Adirẹsi Opopona",
+      "requiredField": "Aaye yii nilo",
+      "optional": "Kò pọn dandan"
+    },
+    "accessGate": {
+      "layers": {
+        "policy": "Ìlànà ọjà"
+      },
+      "actions": {
+        "send": "Fi ìbéèrè ránṣẹ́"
+      }
+    },
+    "onboarding": {
+      "fields": {
+        "state": "Ipinle"
+      }
+    },
+    "totalOrders": "Gbogbo Awon asẹ",
+    "pendingOrders": "Awon asẹ ti o n duro",
+    "storeName": "Orúkọ ilé ìtajà",
+    "storeDescription": "Àpèjúwe ilé ìtajà",
+    "management": "Ise Afowokọ",
+    "payment": "Sisanwo",
+    "paymentSettings": "Ètò ìsanwó",
+    "productsTable": {
+      "allStatus": "Gbogbo Ipo",
+      "image": "Àwòrán",
+      "view": "Wo"
+    },
+    "status": {
+      "archived": "Tí a fi pamọ́"
+    },
+    "paymentStatus": {
+      "paid": "A ti san"
+    },
+    "settingsForm": {
+      "addressPrecision": "Fi hàn",
+      "socialAdd": "Fi ọ̀nà asopọ̀ kún un",
+      "socialRemove": "Yọ ọ̀nà asopọ̀ kúrò",
+      "shareButtons": "Àwọn bọ́tìnnì pínpín"
+    },
+    "payoutsPage": {
+      "listSection": {
+        "columns": {
+          "details": "Awon alaye"
+        }
+      }
+    },
+    "storefront": {
+      "online": "Lori ayelujara",
+      "copyAddress": "Ṣe àdàkọ",
+      "processingTime": "Àkókò ìṣiṣẹ́",
+      "basedOnReviews": "Lori {count} awon asoye",
+      "noReviews": "Ko si awon asoye lowo"
+    },
+    "activityLog": {
+      "title": "Àkọsílẹ̀ iṣẹ́"
+    }
   },
   "footer": {
     "aboutUs": "Nipa Wa",
@@ -4101,7 +6413,7 @@
     }
   },
   "aiStudioHub": {
-    "title": "AI Studio",
+    "title": "Ilé iṣẹ́ AI",
     "subtitle": "Dá àkóónú ọjà, àwòrán, àti SEO pẹ̀lú AI — tí a kọ́ sínú gbogbo fọ́ọ̀mù ní ilé-ìtajà rẹ.",
     "statusConfigured": "AI ti ṣètò tí ó sì ti ṣetán",
     "statusNotConfigured": "AI kò tíì ṣètò",
@@ -4134,7 +6446,7 @@
   },
   "aiStudio": {
     "breadcrumbTitle": "AI Image Studio",
-    "mediaTitle": "Media",
+    "mediaTitle": "Amóhùnmáwòrán",
     "quickPromptTitle": "Ìbéèrè Kíákíá",
     "uploadImage": "Gbé Àwòrán Sókè",
     "badgeAi": "AI",
@@ -4267,6 +6579,17 @@
     "radiusNeedsPoint": "Lo ipò rẹ lọ́wọ́lọ́wọ́ láti ṣàyẹ̀wò nípa ìjìnnà."
   },
   "chat": {
+    "shareProduct": "Pín ọjà kan",
+    "searchProducts": "Wá àwọn ọjà pẹ̀lú orúkọ tàbí SKU",
+    "noProductsFound": "A kò rí ọjà kankan",
+    "productsUnavailable": "A kò lè gbé àwọn ọjà wá",
+    "shareProductNamed": "Pín {name}",
+    "removeProduct": "Yọ {name} kúrò",
+    "productNotAvailable": "A kò lè pín ọjà yìí nínú ìjíròrò yìí.",
+    "attachmentNotAccepted": "Ìjíròrò yìí kò gba irú fáìlì yìí.",
+    "attachmentTooLargeFor": "Fáìlì yìí tóbi ju {size} lọ, èyí tí ó pọ̀ jù tí ìjíròrò yìí ń gbà.",
+    "conversationClosedNotice": "Ìjíròrò yìí ti parí, nítorí náà a kò lè fi ìfiránṣẹ́ mìíràn ránṣẹ́ mọ́.",
+    "unreadCount": "{count} tí a kò kà",
     "channels": "Àwọn ìkànnì",
     "liveChatSettings": {
       "title": "Ìbánisọ̀rọ̀ tààrà ti pẹpẹ",
@@ -4323,9 +6646,9 @@
     },
     "signup": {
       "whatsappTitle": "A gbà nímọ̀ràn: Ìforúkọsílẹ̀ Ìdàpọ̀ ti Meta",
-      "whatsappHint": "Jẹ́ kí Meta yan kí ó sì fún àkáǹtì WhatsApp Business àti nọ́mbà fóònù ní àṣẹ ní ààbò. A kò fi ààmì àṣẹ kankan sínú Storify.",
+      "whatsappHint": "Jẹ́ kí Meta yan kí ó sì fún àkáǹtì WhatsApp Business àti nọ́mbà fóònù ní àṣẹ ní ààbò. A kò fi ààmì àṣẹ kankan sínú {storeName}.",
       "instagramTitle": "A gbà nímọ̀ràn: tẹ̀ síwájú pẹ̀lú Facebook",
-      "instagramHint": "Meta yóò fún ojú-ìwé Facebook tí ó so mọ́ àkáǹtì aláṣẹ Instagram rẹ ní àṣẹ, Storify yóò sì forúkọ sílẹ̀ fún àwọn webhook ìsọ̀rọ̀. A kò fi ààmì àṣẹ kankan sínú Storify.",
+      "instagramHint": "Meta yóò fún ojú-ìwé Facebook tí ó so mọ́ àkáǹtì aláṣẹ Instagram rẹ ní àṣẹ, {storeName} yóò sì forúkọ sílẹ̀ fún àwọn webhook ìsọ̀rọ̀. A kò fi ààmì àṣẹ kankan sínú {storeName}.",
       "continue": "Tẹ̀ síwájú pẹ̀lú Facebook",
       "sdkFailed": "A kò lè gbé SDK Facebook wọlé",
       "sdkInitFailed": "SDK Facebook kò bẹ̀rẹ̀",
@@ -4395,7 +6718,6 @@
     },
     "attachFile": "So fáìlì mọ́",
     "selectConversation": "Yan ìjíròrò kan.",
-    "attachmentTooLarge": "Àwọn àfikún ìbánisọ̀rọ̀ kò gbọdọ̀ ju MB 16 lọ",
     "whatsappTemplate": "Àwòṣe WhatsApp",
     "closeComposer": "Ti ibi ìkọ àwòṣe",
     "signIn": "Wọlé",
@@ -4441,7 +6763,7 @@
         "telegram": {
           "botfather": "Ṣí @BotFather nínú Telegram kí o sì fi /newbot ránṣẹ́.",
           "token": "Ṣàdàkọ tòkẹ́nì tí ó dá padà kí o sì kún un sí pápá tòkẹ́nì bot.",
-          "connect": "So pọ̀. Storify fúnra rẹ̀ ni ó ń forúkọ webhook sílẹ̀, nítorí náà kò sí ohun tí a ó lẹ̀ sí dáṣíbọ́ọ̀dù kankan.",
+          "connect": "So pọ̀. {storeName} fúnra rẹ̀ ni ó ń forúkọ webhook sílẹ̀, nítorí náà kò sí ohun tí a ó lẹ̀ sí dáṣíbọ́ọ̀dù kankan.",
           "share": "Pín ọ̀nà t.me ti bot náà kí àwọn oníbàárà lè bẹ̀rẹ̀ ìjíròrò.",
           "caution": "Telegram kò nílò àyẹ̀wò app, kò sì ní fèrèsé ìdáhùn — bot lè dáhùn ìjíròrò èyíkéyìí tí ó bẹ̀rẹ̀ pẹ̀lú rẹ̀ nígbàkúgbà."
         }
@@ -4550,7 +6872,12 @@
     "noFiles": "Kò sí fáìlì tí a pín síbẹ̀",
     "noLinks": "Kò sí ìjápọ̀ tí a pín síbẹ̀",
     "subject": "Àkòrí",
-    "viewProduct": "Wo ọjà"
+    "viewProduct": "Wo ọjà",
+    "messageProduct": {
+      "open": "Ṣí {name}",
+      "priceOnRequest": "Iye owó lórí ìbéèrè"
+    },
+    "internalNote": "Àkọsílẹ̀ inú · ẹgbẹ́ rẹ nìkan ló ń rí i"
   },
   "boosts": {
     "title": "Ìgbéga",
@@ -4637,7 +6964,7 @@
     "purchase": {
       "subtitle": "Fi ààyè tí ó ní nọ́mbà pamọ́ lórí àkàbà ìgbélárugẹ fún àwọn ọjọ́ tí o yàn.",
       "stepProduct": "Ọjà",
-      "stepPayment": "Payment",
+      "stepPayment": "Sisanwo",
       "searchProducts": "Wá àwọn ọjà rẹ…",
       "noProducts": "A kò rí ọjà tí ń ṣiṣẹ́",
       "noMethods": "Kò sí ọ̀nà ìsanwó. Kàn sí alábòójútó ọjà.",
@@ -4890,7 +7217,22 @@
     "storeTitle": "Àwọn ìpìlẹ̀ ilé ìtajà",
     "subtitle": "Ìgbésẹ̀ díẹ̀, o sì ń ta ọjà",
     "templateTitle": "Yan tẹ́ńpílètì ilé ìtajà rẹ",
-    "title": "Ṣètò ilé ìtajà rẹ"
+    "title": "Ṣètò ilé ìtajà rẹ",
+    "incompleteTitle": "A ti fi ilé ìtajà rẹ sórí ẹ̀rọ, ṣùgbọ́n ìṣètò kò tíì parí",
+    "incompleteSubtitle": "Àkáǹtì alábòójútó rẹ ń ṣiṣẹ́, ṣùgbọ́n a kò lè ṣẹ̀dá àkọsílẹ̀ ilé ìtajà tí àwọn ọjà rẹ jẹ́ tirẹ̀. Parí rẹ̀ láti inú ìṣàkóso:",
+    "incompleteStepSignIn": "Wọlé pẹ̀lú àkáǹtì alábòójútó tí o ṣẹ̀ṣẹ̀ ṣẹ̀dá.",
+    "incompleteStepGeneral": "Ṣí Ètò → Ètò gbogbogbò.",
+    "incompleteStepSave": "Ṣàyẹ̀wò orúkọ ilé ìtajà, èdè àti owó, lẹ́yìn náà tẹ Fipamọ.",
+    "incompleteNote": "Fífipamọ́ yóò ṣẹ̀dá àkọsílẹ̀ ilé ìtajà tí ó sọnù. A kò lè tún ṣe ìfisípò mọ́ nítorí àkáǹtì rẹ ti wà báyìí.",
+    "settingsRefreshFailed": "A ti fi ilé ìtajà rẹ sórí ẹ̀rọ, ṣùgbọ́n ojú-ewé yìí kò lè gbé orúkọ àti owó tuntun rẹ̀ wá. A ó gbé wọn wá nígbà tí o bá wọlé.",
+    "settingsRefreshRetry": "Gbìyànjú lẹ́ẹ̀kan sí i",
+    "warnings": {
+      "sampleCatalogEmpty": "Kò sí àkójọ àpẹẹrẹ pẹ̀lú àwòṣe yìí — o lè gbé ọ̀kan wọlé láti Awọn ọja lẹ́yìn tí o bá wọlé.",
+      "sampleCatalogFailed": "A kò lè gbé àkójọ àpẹẹrẹ wọlé — o lè gbé ọ̀kan wọlé láti Awọn ọja lẹ́yìn tí o bá wọlé.",
+      "sampleCatalogSkipped": "A kò gbé àkójọ àpẹẹrẹ wọlé. Nígbà tí ìṣètò bá parí, o lè gbé ọ̀kan wọlé láti Awọn ọja.",
+      "templateFailed": "A kò lè lo àwòṣe náà — yàn án ní Ile itaja ori ayelujara → Awọn akori lẹ́yìn tí o bá wọlé.",
+      "templateSkipped": "A kò lo àwòṣe náà. Nígbà tí ìṣètò bá parí, yàn án ní Ile itaja ori ayelujara → Awọn akori."
+    }
   },
   "compare": {
     "title": "Fi ọjà wé ara wọn",
@@ -4911,7 +7253,7 @@
     "clear": "Nù ú"
   },
   "permissionPacks": {
-    "aiStudio": "AI Studio",
+    "aiStudio": "Ilé iṣẹ́ AI",
     "analytics": "Ìtúpalẹ̀",
     "boosts": "Ìgbéga",
     "catalog": "Kátálọ́ọ̀gì",
@@ -4922,5 +7264,101 @@
     "pos": "Ibi Títà",
     "staff": "Òṣìṣẹ́",
     "storefront": "Ilé ìtajà"
+  },
+  "finance": {
+    "reliability": {
+      "breakdown": "Àlàyé ìsanwó",
+      "eligibleEarnings": "Èrè tó yẹ",
+      "recoveryDeducted": "Ìgbàpadà tí a yọ",
+      "recoveryReturned": "Ìgbàpadà tí a dá padà",
+      "reserveHeld": "Owó ìpamọ́ tuntun",
+      "reserveReleased": "Owó ìpamọ́ tí a tú sílẹ̀",
+      "reserveCreditDeducted": "Owó ìpamọ́ tí a gbà padà",
+      "reserveCreditReturned": "Ìgbàpadà ìpamọ́ tí a dá padà",
+      "commissionOffset": "Owó iṣẹ́ tí a yọ",
+      "commissionCredit": "Kirẹditi owó iṣẹ́ tí a san",
+      "netAmount": "Ìsanwó àpapọ̀ tí a fojú díwọ̀n",
+      "currency": "Owó orílẹ̀-èdè",
+      "utcDays": "Gbogbo ọjọ́ ìkẹyìn wà nínú àkókò, ní UTC.",
+      "pending": "A ti fi pamọ́. Ìṣírò owó ṣì ń dúró; ṣàyẹ̀wò ipò.",
+      "checkStatus": "Ṣàyẹ̀wò ipò",
+      "completed": "Ìṣírò owó ti parí",
+      "readError": "Kò ṣeé gbé jáde. Gbìyànjú lẹ́ẹ̀kan sí i.",
+      "notFound": "A kò rí ìsanwó",
+      "legacy": "Ìsanwó àtijọ́: iye àṣẹ òde òní jẹ́ ìfojúdíwọ̀n, kì í ṣe ìṣírò àtijọ́.",
+      "paidAt": "A ti san",
+      "returnedAt": "A ti dá padà",
+      "noPayable": "Kò sí owó láti san",
+      "belowMinimum": "Ó kéré ju iye ìyọkúrò tó kere jù",
+      "tooManyOrders": "Dín àkókò kù: àṣẹ 500 tó pọ̀ jù",
+      "collectionScope": "Owó tí a gbà lọ́wọ́ oníbàárà, pẹ̀lú tí àwọn olùtajà gbà",
+      "estimatedCollections": "Ó ní ìwé ẹ̀rí ìsanwó àtijọ́ {count} tí a fojú díwọ̀n",
+      "asOf": "Ìṣírò ní {date}"
+    },
+    "account": {
+      "unapplied_payment_payable": "Gbèsè owó tí a kò tíì pín sí iṣẹ́",
+      "inventory": "Iṣura",
+      "commission_income": "Ìdíwọ̀n owó",
+      "boost_income": "Ìgbéga"
+    },
+    "expenses": {
+      "title": "Ìnáwó",
+      "date": "Ọjọ́",
+      "amount": "Iye owó",
+      "description": "Apejuwe",
+      "note": "Àkíyèsí",
+      "pausedBadge": "Tí a dá dúró",
+      "viewReceipt": "Wo",
+      "showOutstanding": "Fi wọ́n hàn",
+      "keepEditing": "Máa ṣàtúnṣe síwájú",
+      "saving": "Ó ń fipamọ́…"
+    },
+    "period": {
+      "30d": "Ọjọ́ 30 sẹ́yìn",
+      "90d": "Ọjọ́ 90 sẹ́yìn"
+    },
+    "overview": {
+      "title": "Ìṣúnná owó"
+    },
+    "statement": {
+      "date": "Ọjọ́",
+      "type": "Irú",
+      "amount": "Iye owó",
+      "kind": {
+        "sale": "Alagbe",
+        "commission": "Ìdíwọ̀n owó"
+      },
+      "statements": "Àwọn ìwé ìṣirò owó"
+    },
+    "reports": {
+      "title": "Ìròyìn"
+    },
+    "periods": {
+      "reopen": "Ṣí padà"
+    }
+  },
+  "storeBrandsPage": {
+    "productCount": "{count, plural, one {# oja} other {# awon oja}}"
+  },
+  "storeBrandDetailPage": {
+    "productsCount": "{count, plural, one {# oja} other {# awon oja}}",
+    "sortByLabel": "Sara pelu:",
+    "sortPlaceholder": "Sara pelu",
+    "sortOptions": {
+      "bestSelling": "Tajo julo",
+      "priceLowHigh": "Owon: Kekeke si Giga",
+      "priceHighLow": "Owon: Giga si Kekeke",
+      "newest": "Tuntun julo"
+    },
+    "pagination": {
+      "pageOf": "Oju-iwe {current} ti {total}"
+    }
+  },
+  "filters": {
+    "title": "Awon oorun",
+    "clear": "Nu awon oorun"
+  },
+  "search": {
+    "search": "Wa"
   }
 }

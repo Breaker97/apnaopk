@@ -1,5 +1,9 @@
+import { withStrictLedger } from "./ledger";
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+import { FinanceRecoveryCheckpoint, FinanceRecoveryFailure } from "@/models/finance-recovery.model";
+import type { Query } from "mongoose";
 import { Types } from "mongoose";
 import { Order } from "@/models/order.model";
 import { Payout } from "@/models/payout.model";
@@ -77,7 +81,7 @@ export function deepSweepWindow(now: Date = new Date()): {
   until: Date;
 } {
   const slice = Math.floor(now.getTime() / DAY_MS) % SWEEP_SLICES;
-  const until = new Date(now.getTime() - slice * SWEEP_SLICE_DAYS * DAY_MS);
+  const until = new Date(Math.floor(now.getTime() / DAY_MS) * DAY_MS - slice * SWEEP_SLICE_DAYS * DAY_MS);
   return {
     since: new Date(until.getTime() - SWEEP_SLICE_DAYS * DAY_MS),
     until,
@@ -89,6 +93,9 @@ interface LedgerReconcileResult {
   written: number;
   /** True when the time budget ran out before every scan had run. */
   stoppedEarly: boolean;
+  continued: string[];
+  failures: number;
+  complete: boolean;
   scanned: {
     orders: number;
     writeOffs: number;
@@ -111,6 +118,7 @@ interface LedgerReconcileResult {
 
 export async function reconcileRecentLedger(params: {
   since: Date;
+  group?: string;
   /** The far end of the window; now, unless an older slice is being swept. */
   until?: Date;
   limit?: number;
@@ -123,8 +131,18 @@ export async function reconcileRecentLedger(params: {
   budgetMs?: number;
 }): Promise<LedgerReconcileResult> {
   const limit = params.limit ?? PAGE_LIMIT;
-  const since = params.since;
-  const until = params.until ?? null;
+  let since = params.since;
+  let until = params.until ?? new Date();
+  const group = params.group ?? (params.until ? "history" : "recent");
+  const owner = randomUUID();
+  const continued: string[] = [];
+  let failures = 0;
+  let currentSource = "";
+  let currentCheckpoint: { _id: unknown; cursor?: unknown; key: string } | null = null;
+  const recoveryQuery = <R, D>(query: Query<R, D>) => {
+    if (currentCheckpoint?.cursor) query.find({ _id: { $gt: currentCheckpoint.cursor } });
+    return query.sort({ _id: 1 });
+  };
   const startedAt = Date.now();
   const outOfTime = () =>
     params.budgetMs !== undefined && Date.now() - startedAt >= params.budgetMs;
@@ -159,24 +177,38 @@ export async function reconcileRecentLedger(params: {
    * far past its budget — forty orders took over forty seconds — and every
    * scan after it, and the older-history sweep, never ran at all.
    */
-  const each = async <T,>(rows: T[], post: (row: T) => Promise<number>) => {
-    for (const row of rows) {
-      if (outOfTime()) {
-        stoppedEarly = true;
-        return;
+  const each = async <T extends { _id?: unknown }>(rows: T[], post: (row: T) => Promise<number>) => {
+    const retryRows = await FinanceRecoveryFailure.find({ source: currentSource, nextAttemptAt: { $lte: new Date() } }).sort({ nextAttemptAt: 1, _id: 1 }).limit(Math.min(limit, 20)).lean();
+    const attempt = async (row: T, retry = false) => {
+      const key = `${currentSource}:${String(row._id)}`;
+      try {
+        written += await withStrictLedger(() => post(row));
+        await FinanceRecoveryFailure.deleteOne({ key });
+      } catch (error) {
+        failures++;
+        await FinanceRecoveryFailure.updateOne({ key }, { $set: { source: currentSource, sourceId: String(row._id), payload: row, error: String(error).slice(0, 2000), nextAttemptAt: new Date(Date.now() + 60_000) }, $inc: { attempts: 1 } }, { upsert: true });
       }
-      written += await post(row).catch(logAndCountNothing);
+      if (!retry) await FinanceRecoveryCheckpoint.updateOne({ _id: currentCheckpoint!._id, leaseOwner: owner }, { $set: { cursor: row._id }, $inc: { processed: 1 } });
+    };
+    for (const failed of retryRows) { if (outOfTime()) break; await attempt(failed.payload as T, true); }
+    let processed = 0;
+    for (const row of rows) {
+      if (outOfTime()) { stoppedEarly = true; break; }
+      await attempt(row); processed++;
     }
+    const complete = processed === rows.length && rows.length < limit;
+    if (!complete) continued.push(currentSource);
+    await FinanceRecoveryCheckpoint.updateOne({ _id: currentCheckpoint!._id, leaseOwner: owner }, { $set: { complete, lastRunAt: new Date() }, $unset: { leaseOwner: "", leaseUntil: "" } });
   };
 
   const scans: Array<[keyof LedgerReconcileResult["scanned"], () => Promise<void>]> = [
     ["orders", async () => {
-      const rows = await Order.find({
+      const rows = await recoveryQuery(Order.find({
         paymentStatus: {
           $in: ["paid", "partially_paid", "partially_refunded", "refunded"],
         },
         ...within("updatedAt"),
-      })
+      }))
         .select("_id")
         .limit(limit)
         .lean<Array<{ _id: unknown }>>();
@@ -186,11 +218,11 @@ export async function reconcileRecentLedger(params: {
     // A called-off deposit pre-order's unpaid balance — see
     // `balanceWriteOffPostings`.
     ["writeOffs", async () => {
-      const rows = await Order.find({
+      const rows = await recoveryQuery(Order.find({
         preorderOutstandingAmount: { $gt: 0 },
         ...within("updatedAt"),
         $or: [{ status: "cancelled" }, { "subOrders.status": "cancelled" }],
-      })
+      }))
         .select("_id")
         .limit(limit)
         .lean<Array<{ _id: unknown }>>();
@@ -198,12 +230,12 @@ export async function reconcileRecentLedger(params: {
       await each(rows, (order) => postBalanceWriteOff(order._id));
     }],
     ["refunds", async () => {
-      const rows = await PaymentTransaction.find({
+      const rows = await recoveryQuery(PaymentTransaction.find({
         type: "refund",
         status: "succeeded",
         ...within("createdAt"),
       })
-        .sort({ _id: 1 })
+        .sort({ _id: 1 }))
         .select("_id orderId grossAmount createdAt")
         .limit(limit)
         .lean<Array<{ _id: unknown; orderId: unknown; grossAmount?: number; createdAt?: Date }>>();
@@ -219,12 +251,12 @@ export async function reconcileRecentLedger(params: {
     }],
     // A refund the gateway later failed is reversed with entries of its own.
     ["reversedRefunds", async () => {
-      const rows = await PaymentTransaction.find({
+      const rows = await recoveryQuery(PaymentTransaction.find({
         type: "refund",
         status: "failed",
         ...within("updatedAt"),
       })
-        .sort({ _id: 1 })
+        .sort({ _id: 1 }))
         .select("_id orderId grossAmount")
         .limit(limit)
         .lean<Array<{ _id: unknown; orderId: unknown; grossAmount?: number }>>();
@@ -245,7 +277,7 @@ export async function reconcileRecentLedger(params: {
       });
     }],
     ["payouts", async () => {
-      const rows = await Payout.find({ status: "paid", ...within("paidAt") })
+      const rows = await recoveryQuery(Payout.find({ status: "paid", ...within("paidAt") }))
         .select(
           "_id payoutNumber vendorId netAmount commissionOffset commissionCredit paidFrom currency paidAt",
         )
@@ -255,10 +287,10 @@ export async function reconcileRecentLedger(params: {
       await each(rows, (payout) => postPayoutPaid(payout));
     }],
     ["platformPayments", async () => {
-      const rows = await PlatformPayment.find({
-        status: "paid",
-        ...within("paidAt"),
-      })
+      const rows = await recoveryQuery(PlatformPayment.find({
+        status: { $in: ["paid", "refunded"] },
+        ...within("updatedAt"),
+      }))
         // `provider` decides the cash account — without it every healed
         // payment would re-post into the gateway, including the ones an admin
         // collected by hand.
@@ -271,12 +303,12 @@ export async function reconcileRecentLedger(params: {
     // A cancelled sale the store's own coupon paid for in full: no refund will
     // ever unwind it, because the shopper handed over nothing to give back.
     ["cancellations", async () => {
-      const rows = await Order.find({
+      const rows = await recoveryQuery(Order.find({
         "coupon.fundedBy": "platform",
         discount: { $gt: 0 },
         ...within("updatedAt"),
         $or: [{ status: "cancelled" }, { "subOrders.status": "cancelled" }],
-      })
+      }))
         .select("_id")
         .limit(limit)
         .lean<Array<{ _id: unknown }>>();
@@ -285,7 +317,7 @@ export async function reconcileRecentLedger(params: {
     }],
     // A payout the bank sent back.
     ["reversedPayouts", async () => {
-      const rows = await Payout.find({ status: "failed", ...within("reversedAt") })
+      const rows = await recoveryQuery(Payout.find({ status: "failed", ...within("reversedAt") }))
         .select(
           "_id payoutNumber vendorId netAmount commissionOffset commissionCredit paidFrom currency reversedAt",
         )
@@ -297,11 +329,11 @@ export async function reconcileRecentLedger(params: {
     // Plan income billed by the provider's own engine never becomes a platform
     // payment, so a store on provider billing had none of it healed here.
     ["subscriptions", async () => {
-      const rows = await VendorSubscriptionPayment.find({
+      const rows = await recoveryQuery(VendorSubscriptionPayment.find({
         status: { $in: ["paid", "refunded"] },
         amountPaid: { $gt: 0 },
-        ...within("paidAt"),
-      })
+        ...within("updatedAt"),
+      }))
         .select(
           "_id vendorId providerInvoiceId status amountPaid amountRefunded currency paidAt providerCreatedAt",
         )
@@ -312,11 +344,11 @@ export async function reconcileRecentLedger(params: {
     }],
     // What a carrier label cost, and the delivery charge a store label moved.
     ["labels", async () => {
-      const rows = await Shipment.find({
+      const rows = await recoveryQuery(Shipment.find({
         "rate.amount": { $gt: 0 },
         "purchase.state": { $in: ["purchased", "voided"] },
         ...within("updatedAt"),
-      })
+      }))
         .select(
           // `providerMode` is what tells a free test label from a real one;
           // without it every test label a merchant tried was booked as a cost.
@@ -393,10 +425,10 @@ export async function reconcileRecentLedger(params: {
      * ask about one that was never refunded.
      */
     ["labelVoids", async () => {
-      const rows = await Shipment.find({
+      const rows = await recoveryQuery(Shipment.find({
         "refunds.state": "refunded",
         ...within("updatedAt"),
-      })
+      }))
         .select("_id vendorId orderId subOrderId providerMode refunds")
         .limit(limit)
         .lean<
@@ -470,10 +502,10 @@ export async function reconcileRecentLedger(params: {
     // and their sale.
     ["storeCredit", async () => {
       const { StoreCreditTransaction } = await import("@/models/store-credit.model");
-      const rows = await StoreCreditTransaction.find({
+      const rows = await recoveryQuery(StoreCreditTransaction.find({
         $or: [{ type: "issue", source: "goodwill" }, { type: "expire" }],
         ...within("createdAt"),
-      })
+      }))
         .select("_id type source amount currency createdAt")
         .limit(limit)
         .lean<Array<Parameters<typeof postStoreCreditEvent>[0]>>();
@@ -481,22 +513,24 @@ export async function reconcileRecentLedger(params: {
       await each(rows, (row) => postStoreCreditEvent(row));
     }],
     ["expenses", async () => {
-      const rows = await Expense.find({
+      const rows = await recoveryQuery(Expense.find({
         scope: { $ne: "vendor" },
         ...within("updatedAt"),
-      })
+      }))
         .select(
-          "_id date book category amount currency description paidFrom vendorId revision debitAccount settlement",
+          "_id date book category amount currency description paidFrom vendorId revision version debitAccount settlement",
         )
         .limit(limit)
         .lean<
-          Array<Parameters<typeof postExpense>[0] & ExpenseLedgerRow>
+          Array<Parameters<typeof postExpense>[0] & ExpenseLedgerRow & { version?: number }>
         >();
       scanned.expenses = rows.length;
-      await each(rows, (expense) => postExpense(expense));
+      // Versioned sources belong to durable operations. Rebuilding them from
+      // mutable rows can race a correction and bypass resolved posting dates.
+      await each(rows, (expense) => expense.version === undefined ? postExpense(expense) : Promise.resolve(0));
       // And what the row cannot replay: a payment, and the reversal of a
       // revision that was corrected while the database was failing.
-      if (!outOfTime()) written += await healExpenseLedger(rows);
+      if (!outOfTime()) written += await healExpenseLedger(rows.filter((expense) => expense.version === undefined));
     }],
     /*
      * Goods back on the shelf, taken back out of cost of goods — see
@@ -505,10 +539,10 @@ export async function reconcileRecentLedger(params: {
      * under its own key (`returnRestockEventKey`).
      */
     ["returnRestocks", async () => {
-      const rows = await ReturnRequest.find({
+      const rows = await recoveryQuery(ReturnRequest.find({
         "restockedLines.0": { $exists: true },
         ...within("updatedAt"),
-      })
+      }))
         .select("_id orderId restockedLines")
         .limit(limit)
         .lean<
@@ -547,10 +581,10 @@ export async function reconcileRecentLedger(params: {
      * put back on sale — one event each, under the key the live path used.
      */
     ["heldRestocks", async () => {
-      const rows = await ReturnRequest.find({
+      const rows = await recoveryQuery(ReturnRequest.find({
         "unsellableDispositions.action": "restocked",
         ...within("updatedAt"),
-      })
+      }))
         .select("_id orderId unsellableDispositions")
         .limit(limit)
         .lean<
@@ -573,14 +607,14 @@ export async function reconcileRecentLedger(params: {
      * reversed some of them from being counted twice.
      */
     ["cancelRestocks", async () => {
-      const rows = await Order.find({
+      const rows = await recoveryQuery(Order.find({
         subOrders: {
           $elemMatch: { status: "cancelled", inventoryReserved: false },
         },
         // Only orders that costed anything have a cost of goods to give back.
         "subOrders.items.cost": { $exists: true },
         ...within("updatedAt"),
-      })
+      }))
         .select(
           "_id subOrders._id subOrders.status subOrders.inventoryReserved subOrders.items.productId subOrders.items.variantId subOrders.items.quantity",
         )
@@ -623,21 +657,29 @@ export async function reconcileRecentLedger(params: {
     }],
   ];
 
-  // Under a budget, a different scan goes first each day, so a busy store
-  // whose first few scans eat the budget still gets every kind of event healed
-  // within a cycle rather than the last few never. Unbudgeted, they run in the
-  // order written.
-  const rotation =
-    params.budgetMs === undefined
-      ? 0
-      : Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % scans.length;
-  const ordered = [...scans.slice(rotation), ...scans.slice(0, rotation)];
-  for (const [, scan] of ordered) {
-    if (outOfTime()) {
-      stoppedEarly = true;
-      break;
+  // Least recently served sources go first; unfinished older windows retain their cursor.
+  const progress = await FinanceRecoveryCheckpoint.find({ group }).select("source lastRunAt").lean();
+  const lastRun = (source: string) => (progress.filter((p) => p.source === source).reduce((latest, p) => Math.max(latest, new Date(p.lastRunAt).getTime()), 0));
+  const ordered = [...scans].sort(([a], [b]) => lastRun(a) - lastRun(b));
+  for (const [source, scan] of ordered) {
+    if (outOfTime()) { stoppedEarly = true; break; }
+    const desiredSince = new Date(Math.floor(params.since.getTime() / DAY_MS) * DAY_MS);
+    const desiredUntil = params.until ?? new Date(Math.ceil(Date.now() / DAY_MS) * DAY_MS);
+    const key = `${group}:${source}:${desiredSince.toISOString()}:${desiredUntil.toISOString()}`;
+    await FinanceRecoveryCheckpoint.updateOne({ key }, { $setOnInsert: { group, source, since: desiredSince, until: desiredUntil } }, { upsert: true });
+    let candidate = await FinanceRecoveryCheckpoint.findOne({ group, source, complete: false }).sort({ since: 1 }).lean();
+    if (!candidate) {
+      await FinanceRecoveryCheckpoint.updateOne({ key, complete: true }, { $set: { complete: false, cursor: null, processed: 0 }, $inc: { generation: 1 } });
+      candidate = await FinanceRecoveryCheckpoint.findOne({ key }).lean();
     }
-    await scan();
+    const leased = await FinanceRecoveryCheckpoint.findOneAndUpdate({ _id: candidate!._id, $or: [{ leaseUntil: null }, { leaseUntil: { $lt: new Date() } }] }, { $set: { leaseOwner: owner, leaseUntil: new Date(Date.now() + 90_000) } }, { returnDocument: "after" }).lean();
+    if (!leased) { continued.push(source); continue; }
+    currentSource = source; currentCheckpoint = leased; since = leased.since; until = leased.until;
+    try { await scan(); } catch (error) {
+      failures++; continued.push(source);
+      await FinanceRecoveryCheckpoint.updateOne({ _id: leased._id, leaseOwner: owner }, { $set: { lastRunAt: new Date() }, $unset: { leaseOwner: "", leaseUntil: "" } });
+      console.error(`Finance recovery scan ${source} failed`, error);
+    }
   }
 
   if (written > 0) {
@@ -646,10 +688,5 @@ export async function reconcileRecentLedger(params: {
     );
   }
 
-  return { written, stoppedEarly, scanned };
-}
-
-function logAndCountNothing(error: unknown): number {
-  console.error("Ledger reconcile: an event could not be re-posted", error);
-  return 0;
+  return { written, stoppedEarly, scanned, continued, failures, complete: !stoppedEarly && !continued.length && !failures };
 }

@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
 import { DetailFormSkeleton } from "@/components/admin/detail-form-skeleton";
 import { USER_ACCOUNT_STATUS, VENDOR_STATUS } from "@/config/app.config";
+import { useVendorAccountEmail } from "./use-vendor-account-email";
 import { VendorDetailHeader } from "./vendor-detail-header";
 import type {
   PackLayerSnapshot,
@@ -41,6 +42,7 @@ import type {
 import { ProfileTab } from "./tabs/profile-tab";
 import { AccessTab } from "./tabs/access-tab";
 import { VendorPreorderAccessCard } from "./vendor-preorder-access-card";
+import { VendorLandingPageCard } from "./vendor-landing-page-card";
 import { SubscriptionTab } from "./tabs/subscription-tab";
 import { ProductsTab } from "./tabs/products-tab";
 import { OrdersTab } from "./tabs/orders-tab";
@@ -56,6 +58,8 @@ import {
   type VendorStats,
   type VendorSubscriptionSummary,
 } from "./vendor-detail-types";
+import { settleCountryForPolicy } from "@/lib/intl/country-availability";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 interface VendorDetailShellProps {
   locale: string;
@@ -204,6 +208,7 @@ export function VendorDetailShell({
   vendorId,
   readOnly,
 }: VendorDetailShellProps) {
+  const accountEmail = useVendorAccountEmail();
   const router = useRouter();
   const { confirm } = useConfirmation();
   const basePath = `/${locale}/admin`;
@@ -230,6 +235,16 @@ export function VendorDetailShell({
   const [onboardingResponses, setOnboardingResponses] = useState<
     Array<{ key: string; label: string; value: string | boolean }>
   >([]);
+  /** The saved address country the store's country policy replaced on load. */
+  const [replacedAddressCountry, setReplacedAddressCountry] = useState("");
+
+  const { countryAvailability } = useAppSettings();
+  // Read when the vendor loads rather than a dependency of that load: a
+  // settings refresh must never reload the record over unsaved edits.
+  const countryAvailabilityRef = useRef(countryAvailability);
+  useEffect(() => {
+    countryAvailabilityRef.current = countryAvailability;
+  }, [countryAvailability]);
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -257,6 +272,13 @@ export function VendorDetailShell({
     vendor: VendorResponse,
     options?: { keepEdits?: boolean },
   ) => {
+    // An editable form opens on the country the locked picker will hold, so
+    // the record doesn't read as changed the moment it opens. A read-only
+    // view reports what is saved.
+    const savedCountry = vendor.address?.country || "";
+    const country = readOnly
+      ? { value: savedCountry, replaced: "" }
+      : settleCountryForPolicy(savedCountry, countryAvailabilityRef.current);
     const loaded: VendorFormValues = {
       storeName: vendor.storeName || "",
       slug: vendor.slug || "",
@@ -293,7 +315,7 @@ export function VendorDetailShell({
       addressCity: vendor.address?.city || "",
       addressState: vendor.address?.state || "",
       addressPostalCode: vendor.address?.postalCode || "",
-      addressCountry: vendor.address?.country || "",
+      addressCountry: country.value,
       addressPhone: vendor.address?.phone || "",
       bankAccountName: vendor.bankDetails?.accountName || "",
       bankAccountNumber: vendor.bankDetails?.accountNumber || "",
@@ -313,6 +335,7 @@ export function VendorDetailShell({
     setSavedForm(loaded);
     if (!options?.keepEdits || !isDirtyRef.current) {
       setForm(loaded);
+      setReplacedAddressCountry(country.replaced);
     }
     setSubscription(mapSubscription(vendor));
     setHeader({
@@ -339,7 +362,7 @@ export function VendorDetailShell({
         value: v?.value ?? "",
       })),
     );
-  }, []);
+  }, [readOnly]);
 
   const loadVendor = useCallback(
     async (options?: { keepEdits?: boolean }) => {
@@ -656,6 +679,14 @@ export function VendorDetailShell({
         }
         actions={
           <>
+            {!readOnly && !isFetching && savedForm.ownerEmail && (
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => accountEmail.send([vendorId], true)}
+                disabled={accountEmail.sending || isSaving || isDeleting}>
+                {accountEmail.sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {accountEmail.label}
+              </Button>
+            )}
             {!readOnly && (
               <Button
                 size="sm"
@@ -720,7 +751,12 @@ export function VendorDetailShell({
           {isFetching ? (
             <DetailFormSkeleton />
           ) : (
-            <ProfileTab form={form} setField={setField} readOnly={readOnly} />
+            <ProfileTab
+              form={form}
+              setField={setField}
+              readOnly={readOnly}
+              replacedAddressCountry={replacedAddressCountry}
+            />
           )}
 
           {!isFetching && onboardingResponses.length > 0 && (
@@ -792,6 +828,7 @@ export function VendorDetailShell({
                 storeName={form.storeName}
                 readOnly={readOnly}
               />
+              <VendorLandingPageCard vendorId={vendorId} readOnly={readOnly} />
             </div>
           )}
         </TabsContent>

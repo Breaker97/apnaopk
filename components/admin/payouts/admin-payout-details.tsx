@@ -1,4 +1,6 @@
 "use client";
+import { useFinanceRequest } from "@/hooks/use-finance-request";
+import { PayoutBreakdown } from "@/components/payouts/payout-breakdown";
 
 import Link from "@/components/language/link";
 import { useEffect, useMemo, useState } from "react";
@@ -44,6 +46,9 @@ type PayoutDetailsPayload = {
     periodEnd: string;
     createdAt: string;
     paidAt?: string;
+    version?: number;
+    breakdown?: Record<string, number>;
+    legacyCalculation?: boolean;
     /** When the money that left came back — a bounced transfer. */
     reversedAt?: string;
     note?: string;
@@ -69,7 +74,7 @@ type PayoutDetailsPayload = {
 /** The happy path, in order. Failed and cancelled are exits, not steps. */
 const STEPS = ["pending", "processing", "paid"] as const;
 
-const ACCOUNTS = ["bank", "cash", "gateway", "other"] as const;
+const ACCOUNTS = ["bank", "cash", "gateway"] as const;
 
 const STATUS_TONE: Record<string, string> = {
   paid: "border-green-600/25 bg-green-600/10 text-green-700 dark:text-green-400",
@@ -121,6 +126,7 @@ export function AdminPayoutDetails({
       account.charAt(0).toUpperCase() + account.slice(1),
     );
 
+  const financeRequest = useFinanceRequest();
   const [data, setData] = useState<PayoutDetailsPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -231,13 +237,15 @@ export function AdminPayoutDetails({
           note,
           paymentReference: reference,
           paidFrom,
+          expectedVersion: payout?.version ?? 0,
+          requestKey: financeRequest.key(`payout:${payoutId}`, { status, note, reference, paidFrom, version: payout?.version ?? 0 }),
         }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || "Failed to update payout");
       }
-      toast.success(label("finance.payout.updated", "Payout updated."));
+      financeRequest.completed(json.data, label("finance.payout.updated", "Payout updated."));
       await load();
     } catch (error) {
       toast.error(
@@ -361,6 +369,8 @@ export function AdminPayoutDetails({
         adjustment — IS the net. Printed as separate cards, the difference read
         as an error on the one screen whose entire purpose is being checked.
       */}
+      {payout.breakdown && <PayoutBreakdown breakdown={payout.breakdown} currency={payout.currency} />}
+      {!payout.breakdown && <p className="text-muted-foreground">{t("finance.reliability.legacy")}</p>}
       <Card className="gap-0 py-6">
         <CardContent className="grid gap-8 px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div>
@@ -576,6 +586,7 @@ export function AdminPayoutDetails({
                 {label("finance.expenses.paidFrom", "Paid from")}
               </Label>
               <Select
+                disabled={Boolean(payout.paidAt)}
                 value={paidFrom || "unset"}
                 onValueChange={(value) =>
                   setPaidFrom(value === "unset" ? "" : value)

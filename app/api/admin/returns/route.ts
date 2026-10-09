@@ -12,6 +12,7 @@ import {
 } from "@/lib/access/staff-scope";
 import { buildVendorStaffReturnFilter } from "@/lib/returns/return-staff-scope";
 import { withMaskedRefundAccount } from "@/lib/returns/refund-settlement";
+import { markWalkInReturns } from "@/lib/returns/return-walk-in";
 
 export const GET = withApi(
   {
@@ -89,7 +90,10 @@ export const GET = withApi(
     // short — which is a page that shows less, never a page that leaks.
     // Staff never see the shopper's full refund account — the admin sends
     // that money. See `withMaskedRefundAccount`.
-    const shown = staff?.permissions ? returns.map(withMaskedRefundAccount) : returns;
+    // A return on a walk-in POS sale names no customer — see markWalkInReturns.
+    const shown = await markWalkInReturns(
+      staff?.permissions ? returns.map(withMaskedRefundAccount) : returns,
+    );
     if (hasStaffScope(staff?.scope)) {
       const visible = await Order.find({
         _id: { $in: returns.map((request) => request.orderId) },

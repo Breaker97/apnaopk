@@ -1,3 +1,4 @@
+import { financeSession } from "@/lib/finance/transaction";
 /**
  * Audit Logging Utility
  * Helper functions for creating audit log entries
@@ -20,6 +21,7 @@ import {
 import { connectDB } from "./db";
 import { resolveClientIp } from "@/lib/api/client-ip";
 import { redactCredentialPaths } from "@/lib/settings/credential-fields";
+import { resolveActorVendorId } from "@/lib/activity-log/actor-vendor";
 
 /**
  * Context for audit operations
@@ -27,9 +29,20 @@ import { redactCredentialPaths } from "@/lib/settings/credential-fields";
  */
 export interface AuditContext {
   request?: NextRequest;
+  /**
+   * Where the change came from when there is no Next request to read it off:
+   * the mobile API's handlers see the request's facts, not the request.
+   */
+  origin?: { ip?: string; requestId?: string; method?: string; path?: string; userAgent?: string };
   userId?: string;
   userEmail?: string;
   userRole?: string;
+  /**
+   * The store the actor is acting for, when the caller already holds it — a
+   * vendor route has the `Vendor` in hand and need not have it looked up. Left
+   * unset, `audit()` works it out from the actor (see `resolveActorVendorId`).
+   */
+  vendorId?: string;
 }
 
 /**
@@ -52,8 +65,11 @@ interface AuditParams {
 }
 
 /**
- * Fields that should be redacted from audit logs
- * These patterns match field names (case-insensitive)
+ * Fields that should be redacted from audit logs.
+ *
+ * These match anywhere in a field name (case-insensitive). They are specific
+ * enough that a stray hit costs little, and a substring is what catches the
+ * names nobody thought to list (`appsecret`, `resetPasswordToken`).
  */
 const SENSITIVE_FIELD_PATTERNS = [
   "password",
@@ -66,11 +82,8 @@ const SENSITIVE_FIELD_PATTERNS = [
   "privatekey",
   "private_key",
   "credential",
-  "auth",
   "bearer",
   "jwt",
-  "session",
-  "cookie",
   "webhook_secret",
   "webhooksecret",
   "client_secret",
@@ -80,13 +93,67 @@ const SENSITIVE_FIELD_PATTERNS = [
 ];
 
 /**
+ * Two-word names, matched on the words rather than the spelling, so `x-api-key`
+ * and `api key` are caught as well as `apiKey` and `api_key`.
+ */
+const SENSITIVE_WORD_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ["api", "key"],
+  ["access", "key"],
+  ["private", "key"],
+  ["encryption", "key"],
+  ["client", "secret"],
+  ["webhook", "secret"],
+];
+
+/** The words of a field name: `authToken`, `auth_token` and `x-auth-token` are auth + token. */
+function fieldWords(fieldName: string): string[] {
+  return fieldName
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+/** What makes a name containing "session" a credential rather than a setting. */
+const SESSION_CREDENTIAL_WORDS = new Set(["id", "token", "cookie", "secret", "key"]);
+
+/**
  * Check if a field name is sensitive
+ *
+ * `auth`, `session` and `cookie` are not in the list above, because as plain
+ * substrings they hid `author`, `authority`, a session's lifetime and a cookie
+ * banner's switch — and "who changed the session length, and to what" is a
+ * question the log has to be able to answer. They are matched as words instead:
+ * `auth` and `authorization` on their own, a session's id, token, cookie or
+ * secret (not its length), and a name that ends in `cookie`.
  */
 function isSensitiveField(fieldName: string): boolean {
   const lowerName = fieldName.toLowerCase();
-  return SENSITIVE_FIELD_PATTERNS.some((pattern) =>
-    lowerName.includes(pattern.toLowerCase())
-  );
+  if (SENSITIVE_FIELD_PATTERNS.some((pattern) => lowerName.includes(pattern))) {
+    return true;
+  }
+
+  const words = fieldWords(fieldName);
+  if (
+    words.some(
+      (word) => word === "auth" || word === "authorization" || word === "authorisation"
+    )
+  ) {
+    return true;
+  }
+  if (
+    SENSITIVE_WORD_PAIRS.some(([first, second]) =>
+      words.some((word, index) => word === first && words[index + 1] === second)
+    )
+  ) {
+    return true;
+  }
+  if (words.some((word) => word === "session" || word === "sessions")) {
+    return words.length === 1 || words.some((word) => SESSION_CREDENTIAL_WORDS.has(word));
+  }
+  const last = words[words.length - 1];
+  return last === "cookie" || last === "cookies";
 }
 
 /**
@@ -119,6 +186,32 @@ function sanitizeForAudit(
 }
 
 /**
+ * What one request has already worked out for its audit rows.
+ *
+ * Keyed on the request object, which every `audit()` call in a request shares,
+ * so it needs no scope opened by the route and none of the routes that already
+ * audit has to change. (`requestMemo` would not do: it only memoizes inside
+ * `withRequestScope`, which only the checkout routes open.)
+ */
+interface RequestAuditState {
+  /** Stands in for a missing `x-request-id`, so a request's rows share one id. */
+  requestId?: string;
+  /** The store each actor in this request was acting for, looked up once. */
+  actorVendors: Map<string, Promise<string | undefined>>;
+}
+
+const requestAuditStates = new WeakMap<object, RequestAuditState>();
+
+function requestAuditState(scope: object): RequestAuditState {
+  let state = requestAuditStates.get(scope);
+  if (!state) {
+    state = { actorVendors: new Map() };
+    requestAuditStates.set(scope, state);
+  }
+  return state;
+}
+
+/**
  * Extract metadata from a Next.js request
  */
 function extractRequestMetadata(
@@ -127,14 +220,34 @@ function extractRequestMetadata(
   if (!request) return {};
 
   const ip = resolveClientIp(request.headers) ?? "unknown";
+  const state = requestAuditState(request);
 
   return {
     ip,
     userAgent: request.headers.get("user-agent") || "unknown",
-    requestId: request.headers.get("x-request-id") || crypto.randomUUID(),
+    // Nothing upstream sets `x-request-id`. A fresh id per row would make the id
+    // useless for what it is for: telling which rows one request wrote.
+    requestId:
+      request.headers.get("x-request-id") ||
+      (state.requestId ??= crypto.randomUUID()),
     method: request.method,
     path: request.nextUrl.pathname,
   };
+}
+
+/** The store the context's actor acts for — one lookup per actor per request. */
+function actorVendorIdOf(context: AuditContext): Promise<string | undefined> {
+  const { userId, userRole } = context;
+  const { actorVendors } = requestAuditState(
+    context.request ?? context.origin ?? context
+  );
+  const key = `${userId ?? ""}:${userRole ?? ""}`;
+  let pending = actorVendors.get(key);
+  if (!pending) {
+    pending = resolveActorVendorId(userId, userRole);
+    actorVendors.set(key, pending);
+  }
+  return pending;
 }
 
 /**
@@ -162,16 +275,22 @@ function diffObjects(
 
 /**
  * Create an audit context from a request and session
+ *
+ * A vendor route that already holds the caller's `Vendor` passes its id, so the
+ * row is stamped without a lookup. Every other caller leaves it out and
+ * `audit()` resolves it.
  */
 export function createAuditContext(
   request: NextRequest,
-  session?: { user?: { id?: string; email?: string; role?: string } } | null
+  session?: { user?: { id?: string; email?: string; role?: string } } | null,
+  options?: { vendorId?: string | { toString(): string } | null }
 ): AuditContext {
   return {
     request,
     userId: session?.user?.id,
     userEmail: session?.user?.email,
     userRole: session?.user?.role,
+    ...(options?.vendorId ? { vendorId: String(options.vendorId) } : {}),
   };
 }
 
@@ -208,7 +327,8 @@ export async function audit(
     } = params;
 
     const { request, userId, userEmail, userRole } = context;
-    const requestMeta = extractRequestMetadata(request);
+    const requestMeta = request ? extractRequestMetadata(request) : (context.origin ?? {});
+    const actorVendorId = context.vendorId ?? (await actorVendorIdOf(context));
 
     // Sanitize changes to remove sensitive data
     const sanitizedChanges = changes
@@ -222,7 +342,7 @@ export async function audit(
         }
       : undefined;
 
-    const logEntry = await AuditLog.create({
+    const logData = {
       action,
       resource,
       resourceId,
@@ -234,6 +354,7 @@ export async function audit(
       userId: userId && /^[0-9a-f]{24}$/i.test(String(userId)) ? userId : undefined,
       userEmail,
       userRole,
+      actorVendorId,
       changes: sanitizedChanges,
       metadata: {
         ...requestMeta,
@@ -241,11 +362,15 @@ export async function audit(
       },
       success,
       errorMessage,
-    });
+    };
+    const logEntry = financeSession()
+      ? (await AuditLog.create([logData], { session: financeSession() }))[0]!
+      : await AuditLog.create(logData);
 
     return logEntry;
   } catch (error) {
     // Log error but don't throw - audit logging should not break the main flow
+    if (financeSession()) throw error;
     console.error("[Audit] Failed to create audit log:", error);
     return null;
   }
@@ -421,56 +546,9 @@ export async function auditVendorDecision(
 }
 
 // Order lifecycle events (placed / paid / shipped / refunded / cancelled) live
-// in `lib/audit-order.ts` — they are what the admin order Timeline renders, and
+// in `lib/orders/audit-order.ts` — they are what the admin order Timeline renders, and
 // several are emitted from gateway webhooks with no session to build a context
 // from.
 
-// ============================================
-// Query Functions for Audit Logs
-// ============================================
-
-/**
- * Query audit logs with filters
- */
-export async function queryAuditLogs(filters: {
-  userId?: string;
-  resource?: AuditResource;
-  resourceId?: string;
-  action?: AuditAction;
-  success?: boolean;
-  startDate?: Date;
-  endDate?: Date;
-  limit?: number;
-  skip?: number;
-}): Promise<{ logs: IAuditLog[]; total: number }> {
-  await connectDB();
-
-  const query: Record<string, unknown> = {};
-
-  if (filters.userId) query.userId = filters.userId;
-  if (filters.resource) query.resource = filters.resource;
-  if (filters.resourceId) query.resourceId = filters.resourceId;
-  if (filters.action) query.action = filters.action;
-  if (typeof filters.success === "boolean") query.success = filters.success;
-
-  if (filters.startDate || filters.endDate) {
-    query.createdAt = {};
-    if (filters.startDate) {
-      (query.createdAt as Record<string, Date>).$gte = filters.startDate;
-    }
-    if (filters.endDate) {
-      (query.createdAt as Record<string, Date>).$lte = filters.endDate;
-    }
-  }
-
-  const [logs, total] = await Promise.all([
-    AuditLog.find(query)
-      .sort({ createdAt: -1 })
-      .skip(filters.skip || 0)
-      .limit(filters.limit || 50)
-      .lean(),
-    AuditLog.countDocuments(query),
-  ]);
-
-  return { logs: logs as IAuditLog[], total };
-}
+// Reading the log back lives in `lib/activity-log/list.ts`: one validated, scoped
+// query for the admin page, the vendor page and their API routes.

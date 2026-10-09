@@ -386,6 +386,8 @@ export function AddressManager() {
                 onChange={(value) =>
                   setFormData({ ...formData, country: value })
                 }
+                // The notice below already says where the store delivers.
+                lockedHint={!countryReplacedByPolicy}
                 ariaLabel={t("checkout.country")}
                 placeholder=" "
                 searchPlaceholder={t("checkout.searchCountry")}

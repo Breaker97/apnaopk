@@ -155,6 +155,49 @@ export function getAllowedCountryOptions(
 }
 
 /**
+ * The one country a store sells into, or undefined when it sells into more
+ * (including "all"). Delivery country pickers lock to this country.
+ */
+export function soleAllowedCountry(
+  availability: unknown,
+): RegionOption | undefined {
+  const options = getAllowedCountryOptions(availability);
+  return options.length === 1 ? options[0] : undefined;
+}
+
+/**
+ * The value a form should load into a delivery country field, plus the saved
+ * country that value displaced, if any.
+ *
+ * With one country on offer, `CountrySelect` locks to it and writes it into
+ * the form whenever the value differs. That write comes after the form has
+ * loaded, so a saved record reads as changed the moment it opens, and a saved
+ * foreign country is replaced without a word. Loading this value instead keeps
+ * the field and the form in step from the first render. `replaced` lets the
+ * form say what saving will change.
+ *
+ * Returns the saved value untouched (and `replaced` empty) when the store
+ * sells into more than one country, or when the saved value already names the
+ * sole country in any spelling ("BD" or "Bangladesh").
+ */
+export function settleCountryForPolicy(
+  saved: unknown,
+  availability: unknown,
+  valueFormat: "name" | "code" = "name",
+): { value: string; replaced: string } {
+  const current = typeof saved === "string" ? saved : "";
+  const sole = soleAllowedCountry(availability);
+  if (!sole) return { value: current, replaced: "" };
+  if (current.trim() && areCountryValuesEquivalent(current, sole.value)) {
+    return { value: current, replaced: "" };
+  }
+  return {
+    value: valueFormat === "code" ? sole.value : sole.label,
+    replaced: current.trim(),
+  };
+}
+
+/**
  * The country an address form should open on.
  *
  * The store's shipping origin first — the country a store operates from is the

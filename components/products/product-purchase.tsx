@@ -20,7 +20,11 @@ import { toast } from "@/components/ui/toast-notification";
 import { type Locale } from "@/config/i18n.config";
 import type { ProductFulfillmentNotes } from "@/lib/products/fulfillment-notes";
 import { formatCurrency } from "@/lib/intl/money";
-import { trackAddToCart, trackProductView } from "@/lib/analytics/events";
+import {
+  metaContentId,
+  trackAddToCart,
+  trackProductView,
+} from "@/lib/analytics/events";
 import {
   UNTRACKED_PURCHASE_CAP,
   getPurchasableQuantity,
@@ -304,6 +308,24 @@ function useProductPurchaseState({
     setQuantity(1);
   });
 
+  // A link to one variant lands with it picked: a Meta catalog ad shows one
+  // size and colour, and its link says which (`?variant=<id>`, see
+  // lib/meta-catalog). Read in the browser only — the rendered page is cached
+  // and shared, so the server never sees the query — and only on arrival, so
+  // the address never overrides what the shopper picks afterwards.
+  useApplyOnChange([hasMounted, product._id], () => {
+    if (!hasMounted || !requiresVariantChoice) return;
+    const wanted = new URLSearchParams(window.location.search).get("variant");
+    if (!wanted) return;
+    const variant = product.variants?.find(
+      (candidate) => String(candidate._id) === wanted,
+    );
+    const values = (variant?.optionValues ?? []).map((value) =>
+      typeof value === "string" ? value : value.value,
+    );
+    if (values.length > 0 && values.every(Boolean)) setSelectedOptions(values);
+  });
+
   // A variant with its own picture brings the gallery to it.
   useApplyOnChange([product.media, selectedVariant], () => {
     if (selectedVariant?.mediaIndex !== undefined) {
@@ -397,6 +419,7 @@ function useProductPurchaseState({
   const analyticsItem = useMemo(
     () => ({
       item_id: String(product._id),
+      meta_id: metaContentId(product._id, selectedVariant?._id),
       item_name: product.name,
       item_variant: selectedVariant?._id
         ? String(selectedVariant._id)
@@ -421,13 +444,26 @@ function useProductPurchaseState({
     ],
   );
 
+  // Until a variant is picked, a product with variants is viewed as the
+  // whole group: the feed's `item_group_id` is the product's id.
+  const viewedAsGroup =
+    Array.isArray(product.variants) &&
+    product.variants.length > 0 &&
+    !selectedVariant;
   useEffect(() => {
     trackProductView({
       currency: currency.code,
       value: selectedVariant?.price ?? product.price,
+      metaContentType: viewedAsGroup ? "product_group" : "product",
       items: [analyticsItem],
     });
-  }, [analyticsItem, currency.code, product.price, selectedVariant?.price]);
+  }, [
+    analyticsItem,
+    currency.code,
+    product.price,
+    selectedVariant?.price,
+    viewedAsGroup,
+  ]);
 
   /**
    * What the shopper is waiting to be told when the purchase controls are

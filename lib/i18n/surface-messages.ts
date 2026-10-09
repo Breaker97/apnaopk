@@ -94,11 +94,13 @@ export const STOREFRONT_BACK_OFFICE_PATHS: Readonly<
   ],
   // "My orders" in the header and the mobile menu.
   orders: ["myOrders"],
-  // Become-a-vendor wizard, vendor directory, vendor storefront chrome, and
-  // the password rules the account page shares with the vendor settings form.
+  // Become-a-vendor wizard (its approved card's dashboard button included),
+  // vendor directory, vendor storefront chrome, and the password rules the
+  // account page shares with the vendor settings form.
   vendor: [
     "becomeVendor",
     "directory",
+    "goToDashboard",
     "onboarding",
     "registration",
     "settingsForm",

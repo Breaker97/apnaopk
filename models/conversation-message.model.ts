@@ -48,6 +48,26 @@ export interface IConversationAttachment {
   providerMediaId?: string;
 }
 
+/**
+ * A product shared in a message, as it was when it was sent: the card the
+ * thread shows keeps its name, picture and price after the product changes
+ * or is gone. The message's `body` carries the product's name and link when
+ * nothing was written with it, which is all an external channel (WhatsApp,
+ * Messenger…) sends.
+ */
+export interface IConversationMessageProduct {
+  productId: Types.ObjectId;
+  name: string;
+  slug: string;
+  imageUrl?: string;
+  variantName?: string;
+  /** The price shown when it was sent; absent for a price-on-request product. */
+  price?: number;
+  compareAtPrice?: number;
+  /** The store's currency code the prices are in. */
+  currency?: string;
+}
+
 export interface IConversationMessage extends Document {
   conversationId: Types.ObjectId;
   channel: ConversationChannel;
@@ -57,6 +77,13 @@ export interface IConversationMessage extends Document {
   senderName: string;
   body: string;
   attachments: IConversationAttachment[];
+  product?: IConversationMessageProduct;
+  /**
+   * The body is the product's name and link, written for the sender (nothing
+   * was typed with the product). A client that shows the product's card
+   * hides it; every other reader still has text.
+   */
+  bodyIsFallback?: boolean;
   clientMessageId?: string;
   providerMessageId?: string;
   providerMetadata?: Record<string, unknown>;
@@ -80,6 +107,20 @@ const AttachmentSchema = new Schema<IConversationAttachment>(
     mimeType: { type: String, trim: true, maxlength: 160 },
     size: { type: Number, min: 0 },
     providerMediaId: { type: String, trim: true, maxlength: 500 },
+  },
+  { _id: false },
+);
+
+const MessageProductSchema = new Schema<IConversationMessageProduct>(
+  {
+    productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+    name: { type: String, required: true, trim: true, maxlength: 500 },
+    slug: { type: String, required: true, trim: true, maxlength: 500 },
+    imageUrl: { type: String, maxlength: 2000 },
+    variantName: { type: String, trim: true, maxlength: 160 },
+    price: { type: Number, min: 0 },
+    compareAtPrice: { type: Number, min: 0 },
+    currency: { type: String, trim: true, maxlength: 10 },
   },
   { _id: false },
 );
@@ -110,6 +151,8 @@ const ConversationMessageSchema = new Schema<IConversationMessage>(
     senderName: { type: String, required: true, trim: true, maxlength: 120 },
     body: { type: String, default: "", maxlength: 4000 },
     attachments: { type: [AttachmentSchema], default: [] },
+    product: { type: MessageProductSchema, default: undefined },
+    bodyIsFallback: { type: Boolean, default: false },
     clientMessageId: { type: String, trim: true, maxlength: 100 },
     providerMessageId: { type: String, trim: true, maxlength: 500 },
     providerMetadata: { type: Schema.Types.Mixed },

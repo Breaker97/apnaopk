@@ -149,14 +149,19 @@ const PAYMENT_RECORDED_STATUSES: string[] = [
   PAYMENT_STATUS.PARTIALLY_REFUNDED,
 ];
 
-function isPaymentAlreadyRecorded(status: unknown): boolean {
+export function isPaymentAlreadyRecorded(status: unknown): boolean {
   return PAYMENT_RECORDED_STATUSES.includes(String(status || ""));
 }
 
-const CANCELLED_BEFORE_CAPTURE =
+/**
+ * The refusals of a payment that arrived and is being sent back, as the
+ * finalizers word them. Exported so a caller can tell "refunded" from
+ * "refused" (the shopper app's redirect verify) without copying the text.
+ */
+export const CANCELLED_BEFORE_CAPTURE =
   "This order was cancelled before the payment arrived, so the payment is being refunded.";
 
-const SOLD_OUT_AFTER_CAPTURE =
+export const SOLD_OUT_AFTER_CAPTURE =
   "The items sold out before your payment was confirmed, so the order was cancelled and the payment is being refunded.";
 
 /**

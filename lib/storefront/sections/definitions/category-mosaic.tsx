@@ -1,4 +1,5 @@
 import { CategoryMosaic } from "@/components/store/sections/category-mosaic";
+import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
 import { TileRowSkeleton } from "@/components/store/sections/section-skeletons";
 import { lt } from "../localized";
 import type { LocalizedText, SectionDefinition } from "../types";
@@ -27,6 +28,17 @@ export const categoryMosaic: SectionDefinition = {
         source={settings.source as "featured" | "topLevel" | "manual"}
         limit={settings.limit as number}
         categoryIds={settings.categoryIds as string[]}
+        // A vendor's landing page: the same sources, read among the store's
+        // own categories, each opening its Products tab filtered to it.
+        vendor={ctx.vendor}
+        emptyState={
+          ctx.vendor
+            ? sectionEmptyState(ctx, {
+                title: "Category mosaic",
+                hint: "The mosaic needs at least three categories from its source — Featured, Top-level, or picked by hand among the categories your products are in.",
+              })
+            : null
+        }
       />
     );
   },

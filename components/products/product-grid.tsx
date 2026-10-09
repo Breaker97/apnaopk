@@ -27,13 +27,7 @@ import {
 } from "@/lib/products/product-grid-pagination";
 import { getTranslations } from "next-intl/server";
 import { hasLocationCoordinates } from "@/lib/locations/shopper-location";
-import {
-  applyLadderToResults,
-  getSponsoredLadderPool,
-  getSponsoredPlacementDepths,
-  getStorefrontBoostingSettings,
-  resolveLadderAt,
-} from "@/lib/boosts/sponsored-products";
+import { placeSponsoredInListing } from "@/lib/boosts/sponsored-placement";
 import {
   CARD_GRID_GAP,
 } from "@/components/store/product-grid-columns";
@@ -337,72 +331,25 @@ export async function ProductGrid(props: ProductGridProps) {
   );
 }
 
-/**
- * Sponsored-slot injection, page 1 only. Additive by design: organic order,
- * counts, and pagination are untouched (page 1 simply renders a few extra
- * cards), and pages 2+ from /api/products never carry sponsored items — so
- * canonical URLs and page semantics stay exactly as before. A sponsored
- * product that already sits in the organic page-1 results is badged in place
- * instead of duplicated. Category listings scope ads to their own category.
- */
-async function applySponsoredPositions(
+/** Sponsored slots on the grid's first page (lib/boosts/sponsored-placement.ts). */
+function applySponsoredPositions(
   products: ModernProduct[],
   props: ProductGridProps,
 ): Promise<ModernProduct[]> {
-  const isFirstPage = !props.page || props.page === 1;
-  if (!isFirstPage || products.length === 0) return products;
-  // Contexts where a sponsored card would misrepresent the grid: a vendor's own
-  // storefront shelf (another vendor's ad inside it), the curated pre-order
-  // shelf, and location-narrowed grids (a sponsored card carries no locality
-  // relevance and would break the "near you" claim).
-  //
-  // Search, brand, collection and the price facets are excluded for the same
-  // reason: the ladder is global, so on those pages it would splice a phone case
-  // into `?search=sofa`, a non-Nike product into `?brand=nike`, or a $900 item
-  // into a grid the shopper capped at $50. An ad matching none of the active
-  // facets is exactly the misrepresentation these exclusions exist to prevent.
-  if (
-    props.vendor ||
-    props.preorder ||
-    props.pickupNearby ||
-    hasLocationCoordinates(props.lat, props.lng) ||
-    props.city ||
-    props.search ||
-    props.brand ||
-    props.collection ||
-    props.minPrice ||
-    props.maxPrice
-  ) {
-    return products;
-  }
-
-  let boosting;
-  try {
-    boosting = await getStorefrontBoostingSettings();
-  } catch {
-    return products;
-  }
-  if (!boosting.enabled || !boosting.placements.listing) return products;
-
-  const [pool, depths] = await Promise.all([
-    getSponsoredLadderPool({ hideOutOfStock: boosting.hideOutOfStock }),
-    getSponsoredPlacementDepths(),
-  ]);
-  const ladder = resolveLadderAt(pool);
-  if (ladder.length === 0) return products;
-
-  // Raising the settings ceiling to 12 without this would let page 1 render a
-  // dozen ads above a dozen organic cards.
-  const depth = Math.max(
-    0,
-    Math.min(depths.listing, Math.ceil(products.length / 3)),
-  );
-  if (depth === 0) return products;
-
-  // The organic page-1 results ARE the fillers, so an unsold rung simply keeps
-  // the card already there. Each sold rung takes its OWN slot — see
-  // applyLadderToResults for why a lane index cannot be used here.
-  return applyLadderToResults(products, ladder, depth);
+  return placeSponsoredInListing(products, {
+    page: props.page,
+    vendor: props.vendor,
+    preorder: props.preorder,
+    pickupNearby: props.pickupNearby,
+    lat: props.lat,
+    lng: props.lng,
+    city: props.city,
+    search: props.search,
+    brand: props.brand,
+    collection: props.collection,
+    minPrice: props.minPrice,
+    maxPrice: props.maxPrice,
+  });
 }
 
 export function ProductSkeleton({ count = 12 }: { count?: number }) {

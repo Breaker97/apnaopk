@@ -1,4 +1,5 @@
 "use client";
+import { useFinanceRequest, type FinanceOutcome } from "@/hooks/use-finance-request";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -17,7 +18,8 @@ import {
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
+import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { ExpenseFormDialog } from "@/components/admin/finance/expense-form-dialog";
 import { ExpenseSettleDialog } from "@/components/admin/finance/expense-settle-dialog";
 import {
@@ -25,7 +27,6 @@ import {
   formatDay,
   isGeneratedCopy,
   localToday,
-  storedDay,
   type ExpenseRow,
 } from "@/components/admin/finance/expense-types";
 import { toast } from "@/components/ui/toast-notification";
@@ -43,6 +44,7 @@ import {
   expenseReceiptViewUrl,
   isPdfReceipt,
 } from "@/lib/finance/expense-receipts";
+import { expenseListRange } from "@/lib/finance/expense-list-range";
 
 interface MoneyByCurrency {
   currency: string;
@@ -59,18 +61,6 @@ interface ListPayload {
 }
 
 const API = "/api/admin/finance/expenses";
-
-/**
- * The end of the viewer's today as an expense date is stored.
- *
- * Dates are kept as midnight UTC of the day picked. East of Greenwich that
- * day is still tomorrow in UTC for the first hours of it, so a period ending
- * "now" left an expense recorded for today out of the list it was just
- * recorded in.
- */
-function endOfLocalToday(): Date {
-  return new Date(storedDay(localToday()).getTime() + 24 * 60 * 60 * 1000 - 1);
-}
 
 /**
  * Recording what the business spent.
@@ -99,10 +89,11 @@ export function ExpensesContent({
   /** The resolved period key, for the picker in this screen's own header. */
   period: string;
   /**
-   * The period the page resolved, in ISO. Sent with every request: the totals
-   * are computed over the whole filter, and a filter with no period at all
-   * made "total for this filter" mean every expense ever recorded — under a
-   * screen that looked like it was showing a month.
+   * The period the page resolved, as "YYYY-MM-DD" days ("" for all time).
+   * Every request is made against it: the totals are computed over the whole
+   * filter, and a filter with no period at all made "total for this filter"
+   * mean every expense ever recorded — under a screen that looked like it
+   * was showing a month.
    */
   from: string;
   to: string;
@@ -112,6 +103,7 @@ export function ExpensesContent({
   /** "unpaid" when the page was opened from "Show bills still owed". */
   initialPaidFrom: string;
 }) {
+  const financeRequest = useFinanceRequest();
   const t = useTranslations();
   const label = useFallbackTranslator(t);
   const locale = useLocale();
@@ -150,22 +142,15 @@ export function ExpensesContent({
   const load = useCallback(
     async (page = 1) => {
       setIsLoading(true);
-      // A named period ends "now"; widen it to the end of the viewer's own
-      // today, so an expense dated today is in the list it was recorded in.
-      // A picked range already ends on a whole day.
-      const until =
-        period === "custom"
-          ? to
-          : new Date(
-              Math.max(new Date(to).getTime(), endOfLocalToday().getTime()),
-            ).toISOString();
+      // Named periods are read from the viewer's own today, so an expense
+      // dated today is in the list it was recorded in.
+      const range = expenseListRange(period, from, to, localToday());
       try {
         const data = await apiClient.get<ListPayload>(API, {
           query: {
             page,
             limit: 20,
-            from,
-            to: until,
+            ...(range ?? {}),
             ...(search.trim() ? { search: search.trim() } : {}),
             ...(category !== "all" ? { category } : {}),
             ...(paidFrom !== "all" ? { paidFrom } : {}),
@@ -240,8 +225,8 @@ export function ExpensesContent({
       });
       if (!ok) return;
       try {
-        await apiClient.delete(`${API}/${row._id}`);
-        toast.success(label("finance.expenses.deleted", "Expense deleted"));
+        const outcome = await apiClient.delete<FinanceOutcome>(`${API}/${row._id}`, { headers: { "if-match": String(row.version ?? 0), "idempotency-key": financeRequest.key(`delete:${row._id}`, row.version) } });
+        financeRequest.completed(outcome, label("finance.expenses.deleted", "Expense deleted"));
         // The last row of the last page leaves that page empty.
         const page =
           rows.length === 1 && pagination.page > 1
@@ -272,8 +257,8 @@ export function ExpensesContent({
       });
       if (!ok) return;
       try {
-        await apiClient.delete(`${API}/${row._id}/settle`);
-        toast.success(label("finance.expenses.markedUnpaid", "Marked as not paid"));
+        const outcome = await apiClient.delete<FinanceOutcome>(`${API}/${row._id}/settle`, { headers: { "if-match": String(row.version ?? 0), "idempotency-key": financeRequest.key(`undo:${row._id}`, row.version) } });
+        financeRequest.completed(outcome, label("finance.expenses.markedUnpaid", "Marked as not paid"));
         refresh();
       } catch (error) {
         toast.error(
@@ -483,6 +468,12 @@ export function ExpensesContent({
 
   const showingOwed = paidFrom === "unpaid" && period === "all";
 
+  // The "Filter" dropdown the other admin tables have. The screen keeps its own
+  // heading above, so only the table's layout is taken from the shared header.
+  const tableHeader = buildAdminCommerceTableHeader({
+    title: label("finance.expenses.title", "Expenses"),
+  });
+
   return (
     <div className="space-y-5">
       {/*
@@ -505,12 +496,13 @@ export function ExpensesContent({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <FinancePeriodPicker
+          {/* The dashboard's own picker, so "this month" is worded and drawn
+              the same here as there. */}
+          <DashboardPeriodPicker
             period={period}
             from={from}
             to={to}
-            book="all"
-            showBookFilter={false}
+            defaultPeriod="month"
           />
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
@@ -555,6 +547,15 @@ export function ExpensesContent({
         columns={columns}
         keyField="_id"
         isLoading={isLoading}
+        // Rows, not the whole table: replacing it would unmount the search box
+        // — and its focus — on every keystroke's reload.
+        loadingMode="rows"
+        appearance={tableHeader.appearance}
+        toolbarLayout={tableHeader.toolbarLayout}
+        tabsVariant={tableHeader.tabsVariant}
+        filtersVariant={tableHeader.filtersVariant}
+        stackedTopControls={tableHeader.stackedTopControls}
+        showToolbarSortButton={tableHeader.showToolbarSortButton}
         searchable
         searchPlaceholder={label(
           "finance.expenses.searchPlaceholder",

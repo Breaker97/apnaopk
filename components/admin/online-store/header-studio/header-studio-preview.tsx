@@ -2,6 +2,8 @@
 
 import { type CSSProperties, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useAppSettings } from "@/providers/app-settings-provider";
+import { resolveLocalizedSetting, LEGACY_SEARCH_PLACEHOLDERS } from "@/lib/i18n/localized-setting";
 import {
   ChevronDown,
   ChevronRight,
@@ -268,6 +270,8 @@ function PreviewItem({
   location: ReactNode;
 }) {
   const t = useTranslations();
+  const locale = useLocale();
+  const { defaultLanguage } = useAppSettings();
   const pad = paddingStyle(item.padding);
 
   switch (item.type) {
@@ -368,7 +372,14 @@ function PreviewItem({
                 ...fillTextCss(item.textStyle.fill),
               }}
             >
-              {item.placeholder || t("common.searchPlaceholder")}
+              {resolveLocalizedSetting({
+                value: item.placeholder,
+                translations: item.placeholderTranslations,
+                locale,
+                defaultLocale: defaultLanguage,
+                fallback: t("common.searchPlaceholder"),
+                legacyDefaults: LEGACY_SEARCH_PLACEHOLDERS,
+              })}
             </span>
             {item.showCategoryFilter ? (
               <span className="relative flex shrink-0 items-center border-l border-current/20 pl-2 opacity-80">

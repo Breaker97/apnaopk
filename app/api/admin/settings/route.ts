@@ -1,3 +1,4 @@
+import { balanceChargeNoticeHoursError } from "@/lib/orders/preorder-gating";
 import { ValidationError } from "@/lib/api/errors";
 import { connectDB } from "@/lib/db";
 import { reloadAuthInstance } from "@/lib/auth/auth";
@@ -14,6 +15,7 @@ import {
   MIN_ALLOWED_PASSWORD_LENGTH,
 } from "@/lib/auth/password-policy";
 import { EmailDelivery, getSettings } from "@/models";
+import { SmsDelivery } from "@/models/sms-delivery.model";
 import { loadSettingsDocument } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -43,6 +45,13 @@ import {
 import {
   sanitizeSettings,
 } from "@/lib/settings/sanitize-settings";
+import {
+  DEFAULT_VENDOR_NEEDS_REVIEW,
+  DEFAULT_VENDOR_NO_OWNER,
+  DEFAULT_VENDOR_SYNC_FAILED,
+  type SettingsSaveWarning,
+} from "@/lib/settings/save-warnings";
+import { withStoreProfileStatus } from "@/lib/settings/store-profile-status";
 import { CARRIER_PROVIDERS } from "@/lib/shipping/carrier-config";
 import {
   revalidateProductContent,
@@ -100,6 +109,7 @@ import {
   MIN_LOYALTY_SPEND_PER_POINT,
 } from "@/lib/customers/loyalty";
 import { validateSmsSettings } from "@/lib/sms/sms-settings";
+import { validateMobileAppSettings } from "@/lib/settings/mobile-app";
 
 
 function toPlainRecord(value: unknown): Record<string, unknown> {
@@ -325,6 +335,21 @@ function validateBoostingSettings(data: Record<string, unknown>) {
       );
     }
   }
+}
+
+/**
+ * Bounds for the pre-order rules that decide when money moves.
+ *
+ * `balanceChargeNoticeHours` is how long a shopper has between the advance
+ * notice of a balance and the earliest automatic charge of their saved card.
+ * The schema's own bounds do not run on `findOneAndUpdate`, so a value outside
+ * 1–168 hours — or a fraction — is refused here rather than written. (The
+ * reader clamps as well, for a document written around this.)
+ */
+function validatePreorderSettings(data: Record<string, unknown>) {
+  if (!Object.prototype.hasOwnProperty.call(data, "balanceChargeNoticeHours")) return;
+  const error = balanceChargeNoticeHoursError(data.balanceChargeNoticeHours);
+  if (error) throw new ValidationError(error);
 }
 
 /**
@@ -1095,6 +1120,8 @@ function validateVendorConfigSettings(data: Record<string, unknown>) {
     "plansEnabled",
     "allowRegistration",
     "requirePlanSelection",
+    "showQuoteContactToVendors",
+    "showAbandonedCheckoutsToVendors",
   ] as const;
   for (const key of booleanKeys) {
     if (
@@ -1131,6 +1158,33 @@ function validateVendorConfigSettings(data: Record<string, unknown>) {
     typeof data.defaultPlanId !== "string"
   ) {
     throw new ValidationError("Default plan is invalid");
+  }
+
+  // Checked here because the save runs no Mongoose validators: a maximum of
+  // 500% or a validity past the recovery link's fourteen days would be stored
+  // as typed and handed to every vendor's offer.
+  if (Object.prototype.hasOwnProperty.call(data, "abandonedOffers")) {
+    const offers = data.abandonedOffers;
+    if (!isPlainObject(offers)) {
+      throw new ValidationError("Abandoned checkout offers must be an object");
+    }
+    for (const key of ["enabled", "automatic"] as const) {
+      if (
+        Object.prototype.hasOwnProperty.call(offers, key) &&
+        typeof offers[key] !== "boolean"
+      ) {
+        throw new ValidationError(`abandonedOffers.${key} must be true or false`);
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(offers, "maxPercent")) {
+      requireFiniteNumber(offers.maxPercent, "The largest offer", 1, 90);
+    }
+    if (Object.prototype.hasOwnProperty.call(offers, "maxPerVendorPerDay")) {
+      requireFiniteNumber(offers.maxPerVendorPerDay, "Offers per vendor per day", 1, 1000);
+    }
+    if (Object.prototype.hasOwnProperty.call(offers, "maxValidDays")) {
+      requireFiniteNumber(offers.maxValidDays, "The longest an offer is valid", 1, 14);
+    }
   }
 }
 
@@ -1233,7 +1287,7 @@ export const GET = withApi(
   async () => {
     const settings = await getSettings();
 
-    return successResponse(sanitizeSettings(settings));
+    return successResponse(await withStoreProfileStatus(sanitizeSettings(settings)));
   },
 );
 
@@ -1292,6 +1346,7 @@ export const PUT = withApi(
       const sectionData = applySectionAllowList(section, data);
       if (section === "general") validateGeneralSettings(sectionData);
       if (section === "boosting") validateBoostingSettings(sectionData);
+      if (section === "preorder") validatePreorderSettings(sectionData);
       if (section === "shipping") {
         validateShippingCountrySettings(
           sectionData,
@@ -1305,6 +1360,9 @@ export const PUT = withApi(
       if (section === "email") validateEmailSettings(sectionData);
       if (section === "sms") validateSmsSettings(sectionData);
       if (section === "vendorConfig") validateVendorConfigSettings(sectionData);
+      if (section === "mobileApp") {
+        validateMobileAppSettings(sectionData, beforeSettings.mobileApp);
+      }
       if (section === "catalog") {
         assertCatalogKeepsAFormat(sectionData, beforeSettings.catalog);
       }
@@ -1397,6 +1455,9 @@ export const PUT = withApi(
         if (key === "general" && isPlainObject(value)) {
           validateGeneralSettings(value);
         }
+        if (key === "preorder" && isPlainObject(value)) {
+          validatePreorderSettings(value);
+        }
         if (key === "boosting" && isPlainObject(value)) {
           validateBoostingSettings(value);
         }
@@ -1422,6 +1483,9 @@ export const PUT = withApi(
         }
         if (key === "vendorConfig" && isPlainObject(value)) {
           validateVendorConfigSettings(value);
+        }
+        if (key === "mobileApp" && isPlainObject(value)) {
+          validateMobileAppSettings(value, beforeSettings.mobileApp);
         }
         if (key === "catalog" && isPlainObject(value)) {
           assertCatalogKeepsAFormat(value, beforeSettings.catalog);
@@ -1633,6 +1697,34 @@ export const PUT = withApi(
       }
     }
 
+    if (smsWasUpdated) {
+      const beforeSms = isPlainObject(
+        (beforeSettings as unknown as Record<string, unknown>).sms,
+      )
+        ? ((beforeSettings as unknown as Record<string, unknown>)
+            .sms as Record<string, unknown>)
+        : {};
+      const previousRetention = Number(beforeSms.logRetentionDays || 30);
+      const nextRetention = settings.sms?.logRetentionDays ?? 30;
+      if (previousRetention !== nextRetention) {
+        // A sent text's expiry was fixed when it went out, so only texts sent
+        // after a change followed it. Counted again from the day each went:
+        // a shorter window clears the older ones, a longer one keeps them.
+        await SmsDelivery.updateMany({ status: { $in: ["sent", "delivered"] } }, [
+          {
+            $set: {
+              expiresAt: {
+                $add: [
+                  { $ifNull: ["$sentAt", "$createdAt"] },
+                  nextRetention * 24 * 60 * 60 * 1000,
+                ],
+              },
+            },
+          },
+        ]);
+      }
+    }
+
     const shouldClearStorageCache =
       section === "storage" ||
       (!section &&
@@ -1671,6 +1763,19 @@ export const PUT = withApi(
     // went with it. The merchant saw a red error, reloaded, was served the
     // still-cached old values, and reasonably concluded nothing had saved.
     let vendorSyncWarning: string | undefined;
+    let vendorSyncWarningCode: SettingsSaveWarning = DEFAULT_VENDOR_SYNC_FAILED;
+    // The reason a missing profile could not be made, worded by the screen.
+    const warningCodeFor = async (error: unknown): Promise<SettingsSaveWarning> => {
+      const { DefaultVendorUnavailableError } = await import(
+        "@/lib/vendors/multi-vendor"
+      );
+      if (!(error instanceof DefaultVendorUnavailableError)) {
+        return DEFAULT_VENDOR_SYNC_FAILED;
+      }
+      if (error.problem === "no_owner") return DEFAULT_VENDOR_NO_OWNER;
+      if (error.problem === "needs_review") return DEFAULT_VENDOR_NEEDS_REVIEW;
+      return DEFAULT_VENDOR_SYNC_FAILED;
+    };
     if (shouldSyncDefaultVendor) {
       try {
         const { syncDefaultVendorWithSettings } = await import(
@@ -1690,6 +1795,7 @@ export const PUT = withApi(
         // can decide whether that matters.
         vendorSyncWarning =
           error instanceof Error ? error.message : String(error);
+        vendorSyncWarningCode = await warningCodeFor(error);
         console.error("Default vendor sync failed after settings save:", error);
       }
     }
@@ -1720,23 +1826,50 @@ export const PUT = withApi(
       const isNowEnabled = Boolean(settings.multiVendorMode?.enabled);
 
       if (wasPreviouslyEnabled && !isNowEnabled) {
-        const { migrateToSingleVendor } = await import("@/lib/vendors/multi-vendor");
-        await migrateToSingleVendor(session.user.id);
+        // After the commit, like the sync above: a store whose profile may not
+        // be made (every admin owns a store) must still hear "saved" with the
+        // reason, not a 500 for a change that is already stored.
+        try {
+          const { migrateToSingleVendor } = await import(
+            "@/lib/vendors/multi-vendor"
+          );
+          await migrateToSingleVendor(session.user.id);
+        } catch (error) {
+          vendorSyncWarning ??=
+            error instanceof Error ? error.message : String(error);
+          vendorSyncWarningCode = await warningCodeFor(error);
+          console.error("Single-vendor switch could not finish:", error);
+        }
       }
     }
 
+    // Mobile app too: its switch and scheme decide which app origin sign-in
+    // trusts (lib/auth/session-audience.ts).
     const shouldReloadAuth =
       section === "security" ||
+      section === "mobileApp" ||
       emailWasUpdated ||
       (isPlainObject(data) &&
-        Object.prototype.hasOwnProperty.call(data, "security"));
+        (Object.prototype.hasOwnProperty.call(data, "security") ||
+          Object.prototype.hasOwnProperty.call(data, "mobileApp")));
     if (shouldReloadAuth) {
       setRateLimitSettingsFromSecurity(settings.security);
       await reloadAuthInstance();
     }
 
+    // Read after the sync above, so a save that just created the store
+    // profile answers that it is there now.
+    const saved = await withStoreProfileStatus(sanitizeSettings(settings));
+    if (vendorSyncWarning) {
+      // Saved, but the store profile that depends on these settings was not:
+      // a separate outcome the screen must not report as "Settings saved".
+      // A code for the admin UI to word; the sentence stays for API callers.
+      (saved._meta as Record<string, unknown>).saveWarnings = [
+        vendorSyncWarningCode,
+      ];
+    }
     return successResponse(
-      sanitizeSettings(settings),
+      saved,
       vendorSyncWarning
         ? `Settings saved, but the default vendor could not be synced: ${vendorSyncWarning}`
         : "Settings updated successfully",

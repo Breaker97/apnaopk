@@ -9,6 +9,13 @@ import { useCurrency } from "@/providers/currency-provider";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import type { RecentOrder } from "@/lib/admin/dashboard-types";
 
+/** Who the card names: nobody for a walk-in POS sale (lib/orders/pos-walk-in.ts). */
+function customerLabel(order: RecentOrder, t: ReturnType<typeof useTranslations>) {
+  return order.walkIn
+    ? t("admin.orderDetails.walkInCustomer")
+    : order.customerName || t("common.guest");
+}
+
 function getStatusPill(t: ReturnType<typeof useTranslations>, orderStatus: string) {
   const config: Record<string, { label: string; className: string }> = {
     pending: {
@@ -158,9 +165,7 @@ function RecentOrderCard({
         <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <User className="size-3.5" />
-            <span className="text-foreground">
-              {order.customerName || t("common.guest")}
-            </span>
+            <span className="text-foreground">{customerLabel(order, t)}</span>
           </span>
           <span aria-hidden="true">·</span>
           <span className="text-foreground">{qtyLabel}</span>
@@ -208,7 +213,7 @@ function RecentOrderCard({
           {t("admin.dashboardPage.customer")}
         </p>
         <p className="mt-1 text-sm font-medium text-foreground">
-          {order.customerName || t("common.guest")}
+          {customerLabel(order, t)}
         </p>
       </div>
 

@@ -76,6 +76,21 @@ export function getFulfillmentPaymentBlock(
   order: FulfillmentGateOrder,
   subOrder: SubOrderPaymentShape | null | undefined,
 ): string | null {
+  return describeFulfillmentPaymentBlock(order, subOrder)?.message ?? null;
+}
+
+/** Which of the gate's refusals this is, for a caller that answers by kind. */
+export type FulfillmentPaymentBlockKind = "refunded" | "not_paid" | "balance_due";
+
+/**
+ * `getFulfillmentPaymentBlock`, with the kind of refusal beside its words:
+ * the business app says each one its own way, where the website prints the
+ * sentence.
+ */
+export function describeFulfillmentPaymentBlock(
+  order: FulfillmentGateOrder,
+  subOrder: SubOrderPaymentShape | null | undefined,
+): { kind: FulfillmentPaymentBlockKind; message: string } | null {
   // A till sale changed hands at the counter.
   if (String(order.channel || "").toLowerCase() === "pos") return null;
 
@@ -88,7 +103,7 @@ export function getFulfillmentPaymentBlock(
     String(order.paymentStatus || "") === PAYMENT_STATUS.REFUNDED ||
     Boolean(order.goodsRefundedAt)
   ) {
-    return REFUNDED_MESSAGE;
+    return { kind: "refunded", message: REFUNDED_MESSAGE };
   }
 
   const method = String(order.paymentMethod || "").trim().toLowerCase();
@@ -100,7 +115,7 @@ export function getFulfillmentPaymentBlock(
   // Nothing captured at all — the abandoned-at-the-gateway case, deposit
   // pre-orders included, which is why it is asked before the balance.
   if (isGateway && paymentStatus === PAYMENT_STATUS.PENDING) {
-    return NOT_PAID_MESSAGE;
+    return { kind: "not_paid", message: NOT_PAID_MESSAGE };
   }
 
   // A pre-order whose balance has not arrived is not released, however it was
@@ -111,7 +126,11 @@ export function getFulfillmentPaymentBlock(
   // (`getPreorderBalanceDue`), so this gate and the pre-order screens can never
   // disagree about one order.
   if (order.hasPreorder && getPreorderBalanceDue(order) > 0) {
-    return "The customer has not paid the rest of this pre-order yet, so it cannot be fulfilled.";
+    return {
+      kind: "balance_due",
+      message:
+        "The customer has not paid the rest of this pre-order yet, so it cannot be fulfilled.",
+    };
   }
 
   if (!isGateway) return null;
@@ -129,6 +148,8 @@ export function getFulfillmentPaymentBlock(
   // status nothing recognises: nothing is here to ship against. A refund says
   // so, because "not received" sends someone looking for a payment that did
   // arrive.
-  if (paymentStatus === PAYMENT_STATUS.REFUNDED) return REFUNDED_MESSAGE;
-  return NOT_PAID_MESSAGE;
+  if (paymentStatus === PAYMENT_STATUS.REFUNDED) {
+    return { kind: "refunded", message: REFUNDED_MESSAGE };
+  }
+  return { kind: "not_paid", message: NOT_PAID_MESSAGE };
 }

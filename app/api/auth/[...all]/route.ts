@@ -4,6 +4,8 @@ import { auth, getActivePasswordPolicy } from "@/lib/auth/auth";
 import { isValidLocale } from "@/config/i18n.config";
 import { checkPasswordPolicy } from "@/lib/auth/password-policy";
 import { getClientIP } from "@/lib/api/rate-limit-middleware";
+import { auditFailedPasswordSignIn } from "@/lib/auth/auth-audit";
+import { readAuthRequestBody } from "@/lib/auth/auth-request-body";
 import {
   clearLoginLockout,
   describeLockout,
@@ -92,23 +94,12 @@ async function withAttemptsRemaining(
 
 /**
  * The address a sign-in is being attempted for, or null when this request is
- * not an email sign-in. Read from a clone so the original stream stays intact
- * for Better Auth.
+ * not an email sign-in. JSON or form-encoded, as Better Auth reads it.
  */
 async function readSignInEmail(request: NextRequest): Promise<string | null> {
   if (request.nextUrl.pathname !== SIGN_IN_PATH) return null;
 
-  let body: unknown;
-  try {
-    body = await request.clone().json();
-  } catch {
-    return null;
-  }
-
-  const email =
-    body && typeof body === "object"
-      ? (body as Record<string, unknown>).email
-      : undefined;
+  const email = (await readAuthRequestBody(request))?.email;
   return typeof email === "string" && email.trim() ? email : null;
 }
 
@@ -143,8 +134,8 @@ const PASSWORD_ENTRY_POINTS: Array<{ path: string; field: string }> = [
 
 /**
  * Returns a 400 when the submitted password breaks the configured policy, or
- * null to let the request continue. The body is re-read from a clone so the
- * original request stream stays intact for Better Auth.
+ * null to let the request continue. JSON or form-encoded, as Better Auth
+ * reads it; a body it cannot turn into fields it refuses itself.
  */
 async function enforcePasswordPolicy(
   request: NextRequest,
@@ -154,18 +145,7 @@ async function enforcePasswordPolicy(
   );
   if (!entry) return null;
 
-  let body: unknown;
-  try {
-    body = await request.clone().json();
-  } catch {
-    // Not JSON — Better Auth will reject it with its own validation error.
-    return null;
-  }
-
-  const password =
-    body && typeof body === "object"
-      ? (body as Record<string, unknown>)[entry.field]
-      : undefined;
+  const password = (await readAuthRequestBody(request))?.[entry.field];
   if (typeof password !== "string") return null;
 
   const error = checkPasswordPolicy(password, await getActivePasswordPolicy());
@@ -231,6 +211,13 @@ async function fallbackErrorURL(request: NextRequest): Promise<string> {
   return buildLocalePath(locale, "/login", storeDefault);
 }
 
+/**
+ * A callback that failed with JSON instead of a redirect left the shopper
+ * staring at a raw error body. Better Auth redirects the errors that carry a
+ * code itself; what still answers in JSON is an APIError without one (our
+ * session hook's "Authentication failed.") — sent back to the sign-in page
+ * the flow started from, like every other OAuth failure.
+ */
 async function redirectOAuthCallbackErrors(
   request: NextRequest,
   response: Response,
@@ -238,48 +225,37 @@ async function redirectOAuthCallbackErrors(
   const pathname = request.nextUrl.pathname;
   if (!pathname.startsWith("/api/auth/callback/")) return response;
   if (response.ok) return response;
+  // Better Auth's own error redirects are labelled JSON too, and already say
+  // where to go and why.
+  if (response.headers.has("location")) return response;
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) return response;
 
-  let body: unknown;
+  let body: Record<string, unknown> = {};
   try {
-    body = await response.clone().json();
+    const parsed: unknown = await response.clone().json();
+    if (typeof parsed === "object" && parsed !== null) {
+      body = parsed as Record<string, unknown>;
+    }
   } catch {
-    return response;
+    // An unreadable body still gets the generic message on the login page.
   }
-
-  const code =
-    typeof body === "object" && body !== null && "code" in body
-      ? String((body as { code: unknown }).code)
-      : "";
-  if (
-    code !== "OAUTH_SIGNIN_IS_ONLY_AVAILABLE_FOR_CUSTOMERS" &&
-    code !== "OAUTH_ACCOUNT_ROLE_CONFLICT"
-  ) {
-    return response;
-  }
+  const readField = (key: string) => {
+    const value = body[key];
+    return typeof value === "string" ? value.trim() : "";
+  };
 
   const baseErrorURL =
     (await getOAuthErrorRedirectBaseURL(request)) ||
     (await fallbackErrorURL(request));
   const redirectURL = new URL(baseErrorURL, request.url);
-
-  if (code === "OAUTH_ACCOUNT_ROLE_CONFLICT") {
-    redirectURL.searchParams.set("error", "oauth_account_role_conflict");
-    const role =
-      typeof body === "object" && body !== null && "role" in body
-        ? String((body as { role: unknown }).role)
-        : "";
-    const email =
-      typeof body === "object" && body !== null && "email" in body
-        ? String((body as { email: unknown }).email)
-        : "";
-    if (role) redirectURL.searchParams.set("role", role);
-    if (email) redirectURL.searchParams.set("email", email);
-  } else {
-    redirectURL.searchParams.set("error", "oauth_customer_only");
-  }
+  redirectURL.searchParams.set("error", readField("code") || "oauth_failed");
+  // The role-conflict refusal names the account it collided with.
+  const role = readField("role");
+  const email = readField("email");
+  if (role) redirectURL.searchParams.set("role", role);
+  if (email) redirectURL.searchParams.set("email", email);
 
   const redirectResponse = NextResponse.redirect(redirectURL, 303);
   for (const setCookie of extractSetCookieHeaders(response.headers)) {
@@ -289,7 +265,35 @@ async function redirectOAuthCallbackErrors(
   return redirectResponse;
 }
 
+const ERROR_PAGE_PATH = "/api/auth/error";
+
+/**
+ * Better Auth's own error page — an unbranded English screen in development,
+ * a bare `/?error=…` bounce to the home page in production. It is where an
+ * OAuth failure lands when the state cookie is gone, because the cookie is
+ * what carried the login page's `errorCallbackURL`. The themed sign-in page
+ * says what went wrong instead, in the visitor's language
+ * (describeOAuthError). Only the code travels: the description is Better
+ * Auth's English, and the page never shows it.
+ */
+async function redirectErrorPageToLogin(
+  request: NextRequest,
+): Promise<Response> {
+  const code = request.nextUrl.searchParams.get("error")?.trim() ?? "";
+  const redirectURL = new URL(await fallbackErrorURL(request), request.url);
+  redirectURL.searchParams.set(
+    "error",
+    /^[A-Za-z0-9_'-]{1,64}$/.test(code) ? code : "oauth_failed",
+  );
+  const response = NextResponse.redirect(redirectURL, 303);
+  response.headers.set("cache-control", "no-store");
+  return response;
+}
+
 export async function GET(request: NextRequest): Promise<Response> {
+  if (request.nextUrl.pathname === ERROR_PAGE_PATH) {
+    return redirectErrorPageToLogin(request);
+  }
   const response = await inner.GET(request);
   return redirectOAuthCallbackErrors(request, response);
 }
@@ -326,6 +330,16 @@ export async function POST(request: NextRequest): Promise<Response> {
         () => recordFailedLogin(signInEmail, clientIp),
         UNLOCKED_FALLBACK,
       );
+      // A wrong password on a team account goes in the Activity Log. This is
+      // the attempt that tripped a lock, if it did: the ones refused while the
+      // lock holds returned above and are not logged.
+      await auditFailedPasswordSignIn({
+        request,
+        email: signInEmail,
+        attemptsRemaining: lockout.attemptsRemaining,
+        locked: lockout.locked,
+        retryAfterSeconds: lockout.retryAfterSeconds,
+      });
       // Say so on the attempt that tripped it, rather than letting them find
       // out on the next one.
       if (lockout.locked) return lockedResponse(lockout);

@@ -104,6 +104,7 @@ export default async function AdminPreordersPage({
       <PreorderBalancePolicyNotice
         autoRelease={preorderPolicy.autoRelease}
         autoReleaseDelayDays={preorderPolicy.autoReleaseDelayDays}
+        noticeHours={preorderPolicy.balanceChargeNoticeHours}
         settingsHref="/admin/settings/marketplace"
       />
       <Suspense

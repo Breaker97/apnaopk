@@ -1,6 +1,6 @@
 import Link from "@/components/language/link";
 import { type Locale } from "@/config/i18n.config";
-import { fetchFeaturedCategories } from "@/components/store/home-featured-categories";
+import { fetchFeaturedCategories } from "@/lib/storefront/section-data/categories";
 import { CategoryTilesLazy as CategoryTiles } from "@/components/store/sections/category-tiles-lazy";
 import {
   listingActiveCategory,

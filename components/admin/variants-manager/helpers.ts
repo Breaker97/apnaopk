@@ -67,15 +67,6 @@ export interface MediaItem {
   alt?: string;
 }
 
-// Describes which variant(s) an AI-generated image should be applied to, plus
-// the colour context used to keep the generated image true to the variant.
-export interface VariantAiImageTarget {
-  variantIds: string[];
-  label: string;
-  colorName?: string;
-  colorHex?: string;
-}
-
 export interface InventoryLocationLite {
   _id: string;
   name: string;
@@ -90,7 +81,6 @@ export interface VariantsManagerProps {
   mediaItems?: MediaItem[];
   defaultPrice?: number;
   locations?: InventoryLocationLite[];
-  onRequestAiImage?: (target: VariantAiImageTarget) => void;
   defaultRequiresShipping?: boolean;
   defaultWeightUnit?: "g" | "kg" | "lb" | "oz";
   /**

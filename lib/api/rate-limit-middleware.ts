@@ -66,6 +66,27 @@ export function getClientIP(request: {
 }
 
 /**
+ * Counts one request against `identifier`'s limit, with no request to word a
+ * refusal from: the caller words it — the website in the visitor's language,
+ * the mobile API in its own envelope. Null when the request is allowed, or
+ * when the store has rate limiting off.
+ */
+export async function countRequest(
+  identifier: string,
+  preset: RateLimitPreset = "lenient",
+  allowance = 1,
+): Promise<{ resetIn: number } | null> {
+  const resolved = resolveRateLimitPresetForIdentifier(identifier, preset);
+  if (!resolved) return null;
+  const config = rateLimitPresets[resolved];
+  const result = await checkRateLimit(identifier, {
+    ...config,
+    max: config.max * allowance,
+  });
+  return result.allowed ? null : { resetIn: result.resetIn };
+}
+
+/**
  * Apply rate limiting with the given identifier and preset
  * @throws RateLimitError if rate limit exceeded
  */
@@ -75,18 +96,11 @@ async function applyRateLimit(
   preset: RateLimitPreset = "lenient",
   allowance = 1,
 ): Promise<void> {
-  const resolved = resolveRateLimitPresetForIdentifier(identifier, preset);
-  if (!resolved) return;
-  const config = rateLimitPresets[resolved];
-  const result = await checkRateLimit(identifier, {
-    ...config,
-    max: config.max * allowance,
-  });
-
-  if (!result.allowed) {
+  const refusal = await countRequest(identifier, preset, allowance);
+  if (refusal) {
     throw new RateLimitError(
-      await rateLimitMessage(request, result.resetIn),
-      result.resetIn,
+      await rateLimitMessage(request, refusal.resetIn),
+      refusal.resetIn,
     );
   }
 }
@@ -127,22 +141,6 @@ export async function rateLimitByIP(
   const ip = getClientIP(request);
   const scope = getRequestRateLimitScope(request);
   await applyRateLimit(request, `ip:${ip}:${scope}`, preset, allowance);
-}
-
-/**
- * Rate limit one address asking about one thing — an order number — so the
- * tight limit guards that thing, not the address. Order tracking used to give
- * an address five lookups in all: a household or a carrier's shared address
- * tracking different orders shared them, while guessing the contact details
- * of one order is still held to five.
- */
-export async function rateLimitByIPAndSubject(
-  request: NextRequest,
-  subject: string,
-  preset: RateLimitPreset = "strict",
-): Promise<void> {
-  const ip = getClientIP(request);
-  await applyRateLimit(request, `ip:${ip}:subject:${subject}`, preset);
 }
 
 /**

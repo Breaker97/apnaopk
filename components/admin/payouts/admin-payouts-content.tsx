@@ -1,7 +1,8 @@
 "use client";
+import { useFinanceRequest, type FinanceOutcome } from "@/hooks/use-finance-request";
 
 import { useRouter } from "@/hooks/use-locale-navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 import { toast } from "@/components/ui/toast-notification";
@@ -27,7 +28,8 @@ import {
   type PayoutTableRow,
 } from "@/components/payouts/payouts-table-card";
 import { useListNavigation } from "@/hooks/use-list-navigation";
-import { apiClient } from "@/lib/api/client";
+import { PayoutBreakdown } from "@/components/payouts/payout-breakdown";
+import { apiClient, ApiClientError } from "@/lib/api/client";
 
 type VendorOption = { _id: string; storeName: string };
 
@@ -52,11 +54,15 @@ export function AdminPayoutsContent({
   vendorOptions,
 }: AdminPayoutsContentProps) {
   const t = useTranslations();
+  const financeRequest = useFinanceRequest();
+  const [preview, setPreview] = useState<{ currency: string; availableCurrencies: string[]; calculationVersion: string; eligible: boolean; eligibilityReason: string | null; breakdown: Record<string, number> } | null>(null);
+  const [previewRevision, setPreviewRevision] = useState(0);
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [form, setForm] = useState({
     vendorId: "",
+    currency: "",
     periodStart: "",
     periodEnd: "",
     note: "",
@@ -69,8 +75,24 @@ export function AdminPayoutsContent({
     defaultPageSize: 20,
   });
 
+  useEffect(() => {
+    let active = true;
+    setPreview(null);
+    if (!form.vendorId || !form.periodStart || !form.periodEnd) return;
+    const timer = window.setTimeout(() => {
+      setPreview(null);
+      const query = new URLSearchParams({ vendorId: form.vendorId, currency: form.currency, periodStart: form.periodStart, periodEnd: form.periodEnd });
+      apiClient.get<typeof preview>(`/api/admin/payouts/preview?${query}`).then((value) => {
+        if (!active || !value) return;
+        setPreview(value);
+        if (!form.currency) setForm((previous) => ({ ...previous, currency: value.currency }));
+      }).catch((error) => { if (active) toast.error(error instanceof Error ? error.message : t("finance.reliability.readError")); });
+    }, 200);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [form.vendorId, form.currency, form.periodStart, form.periodEnd, previewRevision]);
+
   const createPayout = async () => {
-    if (!form.vendorId || !form.periodStart || !form.periodEnd) {
+    if (!form.vendorId || !form.periodStart || !form.periodEnd || !preview?.eligible) {
       toast.error(
         t("admin.payoutsPage.toast.requiredFields"),
       );
@@ -78,19 +100,20 @@ export function AdminPayoutsContent({
     }
     setIsCreating(true);
     try {
-      await apiClient.post("/api/admin/payouts", form);
-      toast.success(
-        t("admin.payoutsPage.toast.createSuccess"),
-      );
+      const payload = { ...form, expectedCalculationVersion: preview.calculationVersion };
+      const outcome = await apiClient.post<FinanceOutcome>("/api/admin/payouts", { ...payload, requestKey: financeRequest.key("payout:create", payload) });
+      financeRequest.completed(outcome, t("admin.payoutsPage.toast.createSuccess"));
       setIsCreateDialogOpen(false);
       setForm({
         vendorId: "",
+        currency: "",
         periodStart: "",
         periodEnd: "",
         note: "",
       });
       list.refetch();
     } catch (error) {
+      if (error instanceof ApiClientError && error.status === 409) setPreviewRevision((value) => value + 1);
       toast.error(
         error instanceof Error
           ? error.message
@@ -268,13 +291,22 @@ export function AdminPayoutsContent({
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="payout-currency">{t("finance.reliability.currency")}</Label>
+              <select id="payout-currency" value={form.currency} disabled={isCreating} className="h-10 w-full rounded-md border bg-background px-3" onChange={(event) => setForm((old) => ({ ...old, currency: event.target.value }))}>
+                {(preview?.availableCurrencies || (form.currency ? [form.currency] : [])).map((currency) => <option key={currency} value={currency}>{currency}</option>)}
+              </select>
+              <p className="text-xs text-muted-foreground">{t("finance.reliability.utcDays")}</p>
+              {preview && <PayoutBreakdown breakdown={preview.breakdown} currency={preview.currency} />}
+              {preview?.eligibilityReason && <p role="alert" className="text-sm text-destructive">{t(`finance.reliability.${preview.eligibilityReason === "No payable amount" ? "noPayable" : preview.eligibilityReason === "Below minimum withdrawal" ? "belowMinimum" : "tooManyOrders"}`)}</p>}
+            </div>
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="outline" disabled={isCreating}>
                   {t("common.cancel")}
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isCreating}>
+              <Button type="submit" disabled={isCreating || !preview?.eligible}>
                 {isCreating
                   ? t("admin.payoutsPage.createSection.creating")
                   : t("admin.payoutsPage.createSection.create")}

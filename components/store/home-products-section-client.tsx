@@ -40,11 +40,11 @@ import {
   productMatchesPriceFilter,
 } from "@/lib/products/price-display";
 import {
-  clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
   CARD_BROWSER_GRID_GAP,
 } from "./product-grid-columns";
 import { NumberInput } from "@/components/ui/number-input";
+import { clampDesktopColumns } from "@/lib/storefront/sections/shelf-columns";
 
 type ProductCategory =
   | string
@@ -77,6 +77,8 @@ interface HomeProductsSectionClientProps {
   locale: Locale;
   title?: string;
   desktopColumns?: number;
+  /** Where the phone menu's "All Categories" goes; the catalogue by default. */
+  allCategoriesHref?: string;
 }
 
 // Phones swap the chip row for one dropdown; its list is capped as well so the
@@ -122,6 +124,7 @@ export function HomeProductsSectionClient({
   locale,
   title,
   desktopColumns = 4,
+  allCategoriesHref = "/categories",
 }: HomeProductsSectionClientProps) {
   const t = useTranslations();
   const safeDesktopColumns = clampDesktopColumns(desktopColumns);
@@ -352,7 +355,7 @@ export function HomeProductsSectionClient({
                   <>
                     <Separator className="my-1.5" />
                     <Link
-                      href="/categories"
+                      href={allCategoriesHref}
                       onClick={() => setIsCategoryMenuOpen(false)}
                       className="block rounded-lg px-3 py-2 text-sm font-semibold text-primary"
                     >

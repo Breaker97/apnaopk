@@ -16,7 +16,6 @@ import { VendorsDataTable } from "@/components/admin/vendors-data-table";
 import {
   getExternalVendorFilter,
   isMultiVendorEnabled,
-  syncDefaultVendorWithSettings,
 } from "@/lib/vendors/multi-vendor";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { parsePageQuery } from "@/lib/api/validate";
@@ -145,7 +144,6 @@ async function VendorsStats({ locale }: { locale: string }) {
 
 async function getVendorsStats(): Promise<VendorsStats> {
   await connectDB();
-  await syncDefaultVendorWithSettings();
 
   const [[result], externalVendors] = await Promise.all([
     Vendor.aggregate([

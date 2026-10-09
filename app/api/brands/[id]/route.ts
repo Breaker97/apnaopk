@@ -3,6 +3,12 @@ import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { isAdmin } from "@/lib/access/rbac";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditCatalogDelete,
+  auditCatalogUpdate,
+  BRAND_AUDIT,
+} from "@/lib/catalog/catalog-audit";
 import {
   getRequestedBrandSlug,
   normalizeBrandSeo,
@@ -11,6 +17,7 @@ import {
 } from "@/lib/catalog/brands";
 import mongoose from "mongoose";
 import { revalidateBrandContent, revalidateProductContent } from "@/lib/cache-invalidation";
+import { markBrandProductsForCatalogSync } from "@/lib/meta-catalog/sync-marks";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
@@ -76,7 +83,7 @@ export const GET = withApi<RouteParams>(
  */
 export const PUT = withApi<RouteParams>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -84,7 +91,13 @@ export const PUT = withApi<RouteParams>(
     }
 
     const body = await validateBody(request, BrandUpdateSchema);
-    const before = await Brand.findById(id).select("slug").lean();
+    // The slug is what the route needs; the rest is what the Activity Log
+    // compares the saved brand against.
+    const before = await Brand.findById(id)
+      .select(
+        "slug name description logo website order isActive featured approvalStatus rejectionReason ownerVendorId deletedAt seo",
+      )
+      .lean();
 
     // Restore a soft-deleted (archived) brand.
     if (body.restore === true) {
@@ -94,6 +107,13 @@ export const PUT = withApi<RouteParams>(
         { returnDocument: "after" },
       );
       if (!restored) return notFoundResponse("Brand");
+      await auditCatalogUpdate(
+        createAuditContext(request, session),
+        BRAND_AUDIT,
+        before,
+        restored,
+        { summary: `Restored brand "${restored.name}" from the archive` },
+      );
       return successResponse(restored);
     }
 
@@ -141,6 +161,13 @@ export const PUT = withApi<RouteParams>(
       return notFoundResponse("Brand");
     }
 
+    await auditCatalogUpdate(
+      createAuditContext(request, session),
+      BRAND_AUDIT,
+      before,
+      brand,
+    );
+
     revalidateBrandContent({ slugs: [before?.slug, brand.slug] });
 
     return successResponse(brand);
@@ -154,7 +181,7 @@ export const PUT = withApi<RouteParams>(
  */
 export const DELETE = withApi<RouteParams>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -170,9 +197,22 @@ export const DELETE = withApi<RouteParams>(
         return notFoundResponse("Brand");
       }
 
+      // Named while the products still carry the brand: once it is cleared
+      // nothing says which products Meta now has the wrong brand for.
+      await markBrandProductsForCatalogSync(brand._id, { delayMs: 0 });
       await Product.updateMany(
         { brand: brand._id },
         { $set: { brand: null } },
+      );
+
+      await auditCatalogDelete(
+        createAuditContext(request, session),
+        BRAND_AUDIT,
+        brand,
+        {
+          summary: `Permanently deleted brand "${brand.name}" and cleared it from its products`,
+          metadata: { permanent: true },
+        },
       );
 
       revalidateBrandContent({ slugs: [brand.slug] });
@@ -181,15 +221,27 @@ export const DELETE = withApi<RouteParams>(
       return successResponse({ message: "Brand permanently deleted" });
     }
 
+    // The brand as it was before it was archived, which is what the log keeps.
+    // Nothing below reads the new state: it needs only the slug.
     const brand = await Brand.findByIdAndUpdate(
       id,
       { $set: { deletedAt: new Date(), isActive: false } },
-      { returnDocument: "after" },
+      { returnDocument: "before" },
     );
 
     if (!brand) {
       return notFoundResponse("Brand");
     }
+
+    await auditCatalogDelete(
+      createAuditContext(request, session),
+      BRAND_AUDIT,
+      brand,
+      {
+        summary: `Archived brand "${brand.name}" (it can be restored)`,
+        metadata: { permanent: false },
+      },
+    );
 
     // Archived (soft-deleted) brands keep their product references so the brand
     // can be restored later; STOREFRONT_BRAND_FILTER hides them in the meantime.

@@ -1,5 +1,7 @@
 "use client";
 
+import { resolveLocalizedSetting, LEGACY_SEARCH_PLACEHOLDERS } from "@/lib/i18n/localized-setting";
+
 import Link from "@/components/language/link";
 import {
   ShoppingCart,
@@ -34,6 +36,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
+import { useVendorSignupVisible } from "@/hooks/use-vendor-signup-visible";
+import {
+  withoutVendorSignupInHeaderLayout,
+  withoutVendorSignupMenuItems,
+} from "@/lib/vendors/vendor-signup-links";
 import { useCart } from "@/hooks/use-cart";
 import { useTranslations } from "next-intl";
 import { signOutAndReload } from "@/lib/auth/auth-client";
@@ -237,9 +244,9 @@ export function StoreHeader(props: StoreHeaderProps) {
 
 function StoreHeaderBar({
   locale,
-  menuItems,
-  megaMenuItems,
-  linkedMenus,
+  menuItems: allMenuItems,
+  megaMenuItems: allMegaMenuItems,
+  linkedMenus: allLinkedMenus,
   headerSettings,
   initialCategories,
   initialCollections,
@@ -249,8 +256,38 @@ function StoreHeaderBar({
   const router = useRouter();
   const { searchFor } = useHeaderSearchActions();
   const { user, isAuthenticated, isLoading } = useAuth();
+  // "Become a Vendor" leaves every menu, link list and button here for an
+  // admin, vendor or staff member — once, on the inputs, so no render path
+  // can miss it. The layout tree is pruned where it is built, below.
+  const showVendorSignup = useVendorSignupVisible();
+  const menuItems = useMemo(
+    () =>
+      showVendorSignup || !allMenuItems
+        ? allMenuItems
+        : withoutVendorSignupMenuItems(allMenuItems),
+    [showVendorSignup, allMenuItems],
+  );
+  const megaMenuItems = useMemo(
+    () =>
+      showVendorSignup || !allMegaMenuItems
+        ? allMegaMenuItems
+        : withoutVendorSignupMenuItems(allMegaMenuItems),
+    [showVendorSignup, allMegaMenuItems],
+  );
+  const linkedMenus = useMemo(
+    () =>
+      showVendorSignup || !allLinkedMenus
+        ? allLinkedMenus
+        : Object.fromEntries(
+            Object.entries(allLinkedMenus).map(([handle, items]) => [
+              handle,
+              withoutVendorSignupMenuItems(items),
+            ]),
+          ),
+    [showVendorSignup, allLinkedMenus],
+  );
   const { items: wishlistItems } = useWishlist();
-  const { storeName, logoUrl, darkModeLogoUrl } = useAppSettings();
+  const { storeName, logoUrl, darkModeLogoUrl, defaultLanguage } = useAppSettings();
   const { isDark, setTheme } = useAppTheme();
   const { currency } = useCurrency();
   const { language, languages } = useLanguage();
@@ -355,16 +392,19 @@ function StoreHeaderBar({
     // Rows marked "home page only" leave the tree everywhere else, before
     // anything measures it — so hide-on-scroll and the sticky offset count
     // only the rows actually on this page.
-    const stored = onHomePage
+    const onPage = onHomePage
       ? saved
       : { ...saved, rows: saved.rows.filter((row) => !row.homeOnly) };
+    const stored = showVendorSignup
+      ? onPage
+      : withoutVendorSignupInHeaderLayout(onPage);
     return darkScheme
       ? darkenHeaderLayout(
           stored,
           darkColors ?? getDefaultHeaderSettings().colors.dark,
         )
       : stored;
-  }, [headerSettings, darkScheme, darkColors, onHomePage]);
+  }, [headerSettings, darkScheme, darkColors, onHomePage, showVendorSignup]);
   const headerTransparent = headerColorMode === "transparent";
   /**
    * The floating bar. `overlapLayout` is the LAYOUT half — true for the
@@ -388,8 +428,28 @@ function StoreHeaderBar({
   const mobileLogoWidth = headerSettings?.brand.mobileLogoWidth ?? 112;
   const showSearch = headerSettings?.search.enabled ?? true;
   const showAiSearch = headerSettings?.search.showAiButton ?? true;
-  const searchPlaceholder =
-    headerSettings?.search.placeholder?.trim() || t("common.searchPlaceholder");
+  const globalSearchPlaceholder = resolveLocalizedSetting({
+    value: headerSettings?.search.placeholder,
+    translations: headerSettings?.search.placeholderTranslations,
+    locale,
+    defaultLocale: defaultLanguage,
+    fallback: t("common.searchPlaceholder"),
+    legacyDefaults: LEGACY_SEARCH_PLACEHOLDERS,
+  });
+  const primarySearchBar = tree.rows
+    .flatMap(row => row.columns.flatMap(column => column.items))
+    .find(item => item.type === "searchBar");
+  const placeholderForSearchBar = (item?: HeaderSearchBarItem) => resolveLocalizedSetting({
+    value: item?.placeholder,
+    translations: item?.placeholderTranslations,
+    locale,
+    defaultLocale: defaultLanguage,
+    fallback: globalSearchPlaceholder,
+    legacyDefaults: LEGACY_SEARCH_PLACEHOLDERS,
+  });
+  // The compact mobile bar and drawer inherit the same localized setting
+  // as the primary desktop search field.
+  const searchPlaceholder = placeholderForSearchBar(primarySearchBar);
   const searchHeight = headerSettings?.search.height ?? 40;
   const searchBorderRadius = headerSettings?.search.borderRadius ?? 999;
   const searchBorderColor =
@@ -422,11 +482,11 @@ function StoreHeaderBar({
   const showCategoryMenu = headerSettings?.categoryMenu.enabled ?? true;
   const showMegaMenu = headerSettings?.categoryMenu.showMegaMenu ?? true;
   const categoryMenuLabel =
-    headerSettings?.categoryMenu.label?.trim() || t("common.allCategories");
+    resolveLocalizedSetting({ value: headerSettings?.categoryMenu.label, locale, defaultLocale: defaultLanguage, fallback: t("common.allCategories"), legacyDefaults: ["All Categories"] });
   const categoryMobileLimit = headerSettings?.categoryMenu.mobileLimit ?? 8;
   const showCollectionsMenu = headerSettings?.collectionsMenu.enabled ?? true;
   const collectionsMenuLabel =
-    headerSettings?.collectionsMenu.label?.trim() || t("nav.collections");
+    resolveLocalizedSetting({ value: headerSettings?.collectionsMenu.label, locale, defaultLocale: defaultLanguage, fallback: t("nav.collections"), legacyDefaults: ["Collections"] });
   const collectionsLimit = headerSettings?.collectionsMenu.limit ?? 12;
   const showUtilityMenu = headerSettings?.utilityMenu.enabled ?? true;
   const showMobileSearch =
@@ -1650,7 +1710,7 @@ function StoreHeaderBar({
     return (
       <span style={paddingStyle(item.padding)}>
         <CollectionsMenu
-          label={item.label || t("nav.collections")}
+          label={resolveLocalizedSetting({ value: item.label, locale, defaultLocale: defaultLanguage, fallback: t("nav.collections"), legacyDefaults: ["Collections"] })}
           labelStyle={textStyleCss(item.textStyle)}
           showChevron={item.showChevron}
           columns={item.columns}
@@ -1749,7 +1809,7 @@ function StoreHeaderBar({
           className="min-w-0 flex-1 truncate"
           style={fillTextCss(item.textStyle.fill)}
         >
-          {item.label || categoryMenuLabel}
+          {resolveLocalizedSetting({ value: item.label, locale, defaultLocale: defaultLanguage, fallback: categoryMenuLabel, legacyDefaults: ["All Categories"] })}
         </span>
         {item.showChevron ? (
           <ChevronDown
@@ -1803,7 +1863,7 @@ function StoreHeaderBar({
           <div style={panelVars}>
             <CustomMegaMenuPanel
               roots={megaMenuRootItems}
-              railLabel={item.label || categoryMenuLabel}
+              railLabel={resolveLocalizedSetting({ value: item.label, locale, defaultLocale: defaultLanguage, fallback: categoryMenuLabel, legacyDefaults: ["All Categories"] })}
               viewAllHref={categoriesPageHref}
               viewAllLabel={t("home.viewAllCategories")}
               viewAllShortLabel={t("common.viewAll")}
@@ -1843,7 +1903,7 @@ function StoreHeaderBar({
   const renderSearchBar = (item: HeaderSearchBarItem) => {
     if (!showSearch) return null;
     const locationControl = locationControlFor(item.id);
-    const form = <HeaderSearchBar item={item} placeholder={searchPlaceholder} />;
+    const form = <HeaderSearchBar item={item} placeholder={placeholderForSearchBar(item)} />;
     // "Deliver to" leads the bar, the way every marketplace with a search
     // bar places it. Only wrapped when it is actually there, so a plain bar
     // keeps the exact box it had.

@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 export function SecretInput(props: {
   id: string;
   label?: string;
+  /** Match the label row height to adjacent fields. */
+  labelRowClassName?: string;
   value: string;
   onChange: (value: string) => void;
   /**
@@ -40,6 +42,12 @@ export function SecretInput(props: {
    * value is still masked, but an operator can proofread what they paste.
    */
   revealTyped?: boolean;
+  /** For a caller that checks the value once the field is left. */
+  onBlur?: () => void;
+  /** Marks the field as holding a value that will be refused. */
+  invalid?: boolean;
+  /** Read-only for now, e.g. while email verification holds the SMTP login. */
+  disabled?: boolean;
 }) {
   const t = useTranslations();
   const placeholder = props.secretSet
@@ -52,7 +60,7 @@ export function SecretInput(props: {
   return (
     <div className="space-y-2">
       {props.label || canClear ? (
-        <div className="flex items-center justify-between gap-2">
+        <div className={cn("flex items-center justify-between gap-2", props.labelRowClassName)}>
           {props.label ? <Label htmlFor={props.id}>{props.label}</Label> : <span />}
           {canClear ? (
             <Button
@@ -72,6 +80,9 @@ export function SecretInput(props: {
         type="text"
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
+        onBlur={props.onBlur}
+        disabled={props.disabled}
+        aria-invalid={props.invalid || undefined}
         placeholder={placeholder}
         autoComplete="off"
         autoCorrect="off"

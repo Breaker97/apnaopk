@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "@/components/language/link";
 import { ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,8 @@ interface StaffOrderRow {
   channel?: string;
   total: number;
   customerName?: string;
+  /** A walk-in POS sale: no customer (lib/access/staff-orders.ts). */
+  walkIn?: boolean;
   createdAt: string;
 }
 
@@ -91,6 +94,7 @@ export function OrdersTab({
   orderBasePath,
   onStatsChange,
 }: OrdersTabProps) {
+  const t = useTranslations();
   const { formatPrice } = useCurrency();
   const [rows, setRows] = useState<StaffOrderRow[]>([]);
   const [channel, setChannel] = useState<string>("all");
@@ -225,7 +229,9 @@ export function OrdersTab({
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {row.customerName || "Walk-in"}
+                        {row.walkIn
+                          ? t("admin.orderDetails.walkInCustomer")
+                          : row.customerName || t("common.guest")}
                       </td>
                       <td className="px-4 py-3 text-right text-sm tabular-nums">
                         {formatPrice(row.total)}

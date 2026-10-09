@@ -1,9 +1,6 @@
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
-import {
-  SectionGrid,
-  SectionGridSkeleton,
-  resolveGridCells,
-} from "../section-grid";
+import { SectionGrid, SectionGridSkeleton } from "../section-grid";
+import { resolveGridCells } from "@/lib/storefront/section-data/slider-cells";
 import {
   DEFAULT_SLIDER_GRID,
   DEFAULT_SLIDER_HEIGHT,

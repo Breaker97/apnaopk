@@ -1,3 +1,4 @@
+import { normalizeLocalizedSetting, type LocalizedSetting } from "@/lib/i18n/localized-setting";
 import {
   getDefaultHeaderLayout,
   resolveHeaderLayout,
@@ -231,6 +232,7 @@ export interface HeaderSettings {
     /** A category scope dropdown inside the search pill (desktop). */
     showCategoryDropdown: boolean;
     placeholder: string;
+    placeholderTranslations?: LocalizedSetting;
     desktopWidth: number;
     height: number;
     borderRadius: number;
@@ -392,7 +394,8 @@ const DEFAULT_HEADER_SETTINGS: HeaderSettings = {
     enabled: true,
     showAiButton: true,
     showCategoryDropdown: false,
-    placeholder: "Search products...",
+    placeholder: "",
+    placeholderTranslations: {},
     desktopWidth: 640,
     height: 40,
     borderRadius: 999,
@@ -777,6 +780,7 @@ export function normalizeHeaderSettings(value: unknown): HeaderSettings {
         search.placeholder,
         defaults.search.placeholder,
       ),
+      placeholderTranslations: normalizeLocalizedSetting(search.placeholderTranslations),
       desktopWidth: normalizeLimit(
         search.desktopWidth,
         defaults.search.desktopWidth,

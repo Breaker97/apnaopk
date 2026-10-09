@@ -7,6 +7,7 @@ import type {
 import { createAIAuthoringOpenAIClient, extractOutputText } from "./openai";
 import { assertOwnStorageUrl } from "./media";
 import { isPlainObject } from "@/lib/utils";
+import { foldForSlug } from "@/lib/strings";
 
 const SEO_TITLE_MAX = 70;
 const SEO_DESCRIPTION_MAX = 160;
@@ -35,8 +36,7 @@ function clampText(value: unknown, maxLength: number): string | undefined {
 }
 
 function generateHandle(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .trim()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
@@ -46,8 +46,7 @@ function generateHandle(value: string): string {
 }
 
 function sanitizeHandle(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .trim()
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")

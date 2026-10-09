@@ -45,6 +45,21 @@ interface CompareRow {
 }
 
 /**
+ * A product document's specifications as the comparison reads them: the
+ * entries that have a name and a value, both text. The page and the mobile
+ * API read them through this, so the rows can never differ between the two.
+ */
+export function compareAttributes(source: unknown): CompareProduct["attributes"] {
+  const attributes = (source as { attributes?: unknown } | null)?.attributes;
+  if (!Array.isArray(attributes)) return [];
+  return (attributes as { name?: unknown; value?: unknown }[]).flatMap((entry) =>
+    typeof entry?.name === "string" && typeof entry?.value === "string"
+      ? [{ name: entry.name, value: entry.value }]
+      : [],
+  );
+}
+
+/**
  * Parse the `?products=` selection: comma-separated slugs, de-duplicated in
  * place (order is the column order the shopper built) and capped.
  */
@@ -88,7 +103,9 @@ export function buildCompareHref(
  * absent from the others. Labels are matched case-insensitively because
  * "Display size" and "Display Size" are the same row to a shopper.
  */
-export function buildCompareRows(products: CompareProduct[]): CompareRow[] {
+export function buildCompareRows(
+  products: Pick<CompareProduct, "attributes">[],
+): CompareRow[] {
   const order: string[] = [];
   const labels = new Map<string, string>();
   const byProduct = products.map((product) => {

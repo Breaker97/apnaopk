@@ -46,6 +46,11 @@ export interface CustomerHeaderData {
   stats: CustomerStats;
   lastActiveAt?: string;
   createdAt?: string;
+  /**
+   * The account email the header offers: a reset link for an account with a
+   * password, an invite for one without (a guest's included), or none.
+   */
+  accountEmail?: "reset" | "invite" | null;
 }
 
 /**
@@ -154,4 +159,9 @@ export interface CustomerTabProps {
    * change it — the staff area shows it read-only (the route refuses too).
    */
   emailLocked?: boolean;
+  /**
+   * The saved shipping country the store's country policy replaced when the
+   * customer loaded. The country field says what saving will change.
+   */
+  replacedShippingCountry?: string;
 }

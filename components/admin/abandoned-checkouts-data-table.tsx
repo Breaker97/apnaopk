@@ -8,6 +8,9 @@ import {
   Circle,
   Clock,
   Copy,
+  Download,
+  ExternalLink,
+  Gift,
   Mail,
   RefreshCcw,
   RotateCcw,
@@ -25,12 +28,20 @@ import {
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { periodPickerConfig } from "@/components/admin/period-picker-config";
+import { useCsvImportExport } from "@/hooks/use-csv-import-export";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
 import {
   CheckoutPaymentTimelineDialog,
   type CheckoutPaymentEvent,
 } from "@/components/admin/checkout-payment-timeline-dialog";
+import {
+  AutomaticOfferDialog,
+  SendOfferDialog,
+  type AbandonedOfferLimits,
+} from "@/components/admin/abandoned-offer-dialogs";
 
 interface AbandonedCheckoutItem {
   name: string;
@@ -71,7 +82,47 @@ interface AbandonedCheckout {
   }>;
   /** Set once the shopper has asked to be left alone. */
   unsubscribedAt?: string;
+  /**
+   * A vendor's row only: whether the shopper was signed in — all a vendor
+   * learns about them (`toVendorAbandonedCheckout`).
+   */
+  customerType?: "registered" | "guest";
+  /** A vendor's row only: the order it became, when it holds the vendor's goods. */
+  order?: { _id: string; orderNumber?: string };
+  /** A vendor's row only: its own latest offer on the checkout. */
+  offer?: { kind: string; type: string; value: number; validUntil?: string; status: string };
+  /** A vendor's row only: whether an offer could go out now. */
+  offerAvailable?: boolean;
+  /** The store's rows: every vendor offer on the checkout, by seller. */
+  offerSummaries?: Array<{
+    vendorName: string;
+    kind?: string;
+    type?: string;
+    value?: number;
+    code?: string;
+    status: string;
+  }>;
 }
+
+/** An offer's state, as a list says it. */
+const OFFER_STATUS_LABELS: Record<string, string> = {
+  pending: "Sending",
+  sent: "Sent",
+  queued: "Sending",
+  failed: "Not sent",
+  suppressed: "Not sent",
+  used: "Used",
+  expired: "Expired",
+};
+
+/**
+ * Whose list this is:
+ * - `admin`: the store's, with every action;
+ * - `staff`: the staff area's, the recovery actions only with `canManage`;
+ * - `vendor`: a vendor's own lines, read-only, with no shopper named — the
+ *   rows arrive that way from the server, so this only lays them out.
+ */
+export type AbandonedCheckoutsArea = "admin" | "staff" | "vendor";
 
 interface AbandonedCheckoutsDataTableProps {
   locale: string;
@@ -83,9 +134,17 @@ interface AbandonedCheckoutsDataTableProps {
     total: number;
     totalPages: number;
   };
+  area?: AbandonedCheckoutsArea;
+  /** Staff: may send a recovery email and copy the recovery link. */
+  canManage?: boolean;
+  /**
+   * The vendor's offers, when the store allows them and the vendor may make
+   * discounts: a Send offer action on each row, and the standing offer.
+   */
+  offers?: { canSend: boolean; automatic: boolean; limits: AbandonedOfferLimits };
 }
 
-const ABANDONED_FILTER_IDS = ["emailStatus"];
+const ABANDONED_FILTER_IDS = ["emailStatus", "date"];
 
 /** First two words of a product title — how the Orders list shortens it. */
 function getTwoWordProductName(name?: string) {
@@ -158,14 +217,37 @@ export function AbandonedCheckoutsDataTable({
   locale,
   data,
   pagination,
+  area = "admin",
+  canManage = false,
+  offers,
 }: AbandonedCheckoutsDataTableProps) {
   const t = useTranslations();
+  const tOr = useFallbackTranslator(t);
   const router = useRouter();
   const { formatPrice } = useCurrency();
-  const basePath = `/${locale}/admin`;
+  const basePath = `/${locale}/${area}`;
+  const isStore = area === "admin";
+  const isVendor = area === "vendor";
+  /** Send the recovery email, copy or open the recovery link. */
+  const canRecover = isStore || (area === "staff" && canManage);
   const [isDetecting, setIsDetecting] = useState(false);
   /** The checkout whose payment timeline is open, if any. */
   const [timelineRow, setTimelineRow] = useState<AbandonedCheckout | null>(null);
+  /** The checkout a vendor is making an offer on; `nonce` mounts it fresh. */
+  const [offerTarget, setOfferTarget] = useState<{
+    row: AbandonedCheckout;
+    nonce: number;
+  } | null>(null);
+  const [automaticOpen, setAutomaticOpen] = useState(false);
+  const canSendOffers = isVendor && Boolean(offers?.canSend);
+  // Stable, so a dialog's own effects do not re-run (and refetch over what the
+  // vendor typed) each time this table renders.
+  const closeOffer = useCallback((open: boolean) => {
+    if (!open) setOfferTarget(null);
+  }, []);
+  const closeAutomatic = useCallback((open: boolean) => {
+    if (!open) setAutomaticOpen(false);
+  }, []);
 
   const list = useListNavigation<AbandonedCheckout>({
     items: data,
@@ -173,6 +255,14 @@ export function AbandonedCheckoutsDataTable({
     tabParam: "view",
     filterIds: ABANDONED_FILTER_IDS,
     defaultSortBy: "abandonedAt",
+  });
+
+  // The table's current view as a file — every matching checkout, not the page
+  // on screen: the server reads the same query string the page does.
+  const csv = useCsvImportExport({
+    endpoint: "/api/admin/abandoned-checkouts/export",
+    noun: "abandoned checkouts",
+    onImported: list.refetch,
   });
 
   const handleDetect = useCallback(async () => {
@@ -230,6 +320,15 @@ export function AbandonedCheckoutsDataTable({
     [list, locale],
   );
 
+  /** "10% off" or "$5.00 off". */
+  const offerText = useCallback(
+    (offer: { type?: string; value?: number }) =>
+      offer.type === "fixed"
+        ? `${formatPrice(Number(offer.value) || 0)} off`
+        : `${Number(offer.value) || 0}% off`,
+    [formatPrice],
+  );
+
   const handleCopyLink = useCallback((row: AbandonedCheckout) => {
     if (!row.checkoutUrl) {
       toast.error("No recovery link is available");
@@ -239,23 +338,36 @@ export function AbandonedCheckoutsDataTable({
     toast.success("Recovery link copied");
   }, []);
 
-  const columns = useMemo<DataTableColumn<AbandonedCheckout>[]>(
-    () => [
+  const columns = useMemo<DataTableColumn<AbandonedCheckout>[]>(() => {
+    const all: DataTableColumn<AbandonedCheckout>[] = [
       {
         id: "customer",
         header: "Customer",
-        cell: (row) => (
-          <div className="min-w-0">
+        // A vendor is told only whether the shopper was signed in: the row
+        // carries no name or contact to show.
+        cell: (row) =>
+          isVendor ? (
             <TextCell
-              value={row.customerName || t("common.guest")}
+              value={
+                row.customerType === "registered"
+                  ? "Registered customer"
+                  : t("common.guest")
+              }
               truncate
               maxWidth="220px"
             />
-            <div className="text-xs text-muted-foreground">
-              <TextCell value={row.email || row.phone} truncate maxWidth="220px" />
+          ) : (
+            <div className="min-w-0">
+              <TextCell
+                value={row.customerName || t("common.guest")}
+                truncate
+                maxWidth="220px"
+              />
+              <div className="text-xs text-muted-foreground">
+                <TextCell value={row.email || row.phone} truncate maxWidth="220px" />
+              </div>
             </div>
-          </div>
-        ),
+          ),
         className: "w-[260px]",
       },
       {
@@ -271,7 +383,9 @@ export function AbandonedCheckoutsDataTable({
                   count: items.length - 1,
                 })}`
               : label;
-          const productId = getFirstItemProductId(items);
+          // The store and a vendor open the product's editor; staff may not
+          // hold product permissions, so their row names it without a link.
+          const productId = area === "staff" ? null : getFirstItemProductId(items);
           const textClassName =
             "block max-w-[220px] truncate font-medium text-slate-700 dark:text-slate-300";
 
@@ -318,7 +432,8 @@ export function AbandonedCheckoutsDataTable({
       },
       {
         id: "totalPrice",
-        header: "Total",
+        // A vendor's figure is its own lines, never the whole basket.
+        header: isVendor ? "Your total" : "Total",
         cell: (row) => (
           <TextCell
             value={formatPrice(row.totalPrice || row.subtotalPrice || 0)}
@@ -366,14 +481,58 @@ export function AbandonedCheckoutsDataTable({
       {
         id: "recoveryStatus",
         header: "Recovery",
-        cell: (row) => <RecoveryBadge status={row.recoveryStatus} />,
+        // The store's rows also say which seller made an offer, and how it
+        // stands — the latest one, since a checkout holds one at a time.
+        cell: (row) => {
+          const latest = row.offerSummaries?.[row.offerSummaries.length - 1];
+          return (
+            <div className="space-y-1">
+              <RecoveryBadge status={row.recoveryStatus} />
+              {latest ? (
+                <div
+                  className="max-w-[200px] truncate text-[11px] text-muted-foreground"
+                  title={latest.code ? `Code ${latest.code}` : undefined}
+                >
+                  Offer {offerText(latest)} · {latest.vendorName} ·{" "}
+                  {OFFER_STATUS_LABELS[latest.status] ?? latest.status}
+                </div>
+              ) : null}
+            </div>
+          );
+        },
         className: "w-[150px] hidden md:table-cell",
         headerClassName: "hidden md:table-cell",
         sortable: true,
       },
-    ],
-    [basePath, formatPrice, t],
-  );
+      // A vendor's own offer on the checkout, when the store allows offers.
+      ...(isVendor && offers
+        ? [
+            {
+              id: "offer",
+              header: "Offer",
+              cell: (row: AbandonedCheckout) =>
+                row.offer ? (
+                  <div className="min-w-0">
+                    <TextCell value={offerText(row.offer)} />
+                    <div className="text-xs text-muted-foreground">
+                      {OFFER_STATUS_LABELS[row.offer.status] ?? row.offer.status}
+                      {row.offer.kind === "automatic" ? " · automatic" : ""}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                ),
+              className: "w-[130px]",
+            } satisfies DataTableColumn<AbandonedCheckout>,
+          ]
+        : []),
+    ];
+    // The recovery emails are the store's, so a vendor's list has no column
+    // for them.
+    return isVendor
+      ? all.filter((column) => column.id !== "recoveryEmailStatus")
+      : all;
+  }, [area, basePath, formatPrice, isVendor, offerText, offers, t]);
 
   const tabs = useMemo<DataTableTab[]>(
     () => [
@@ -384,7 +543,7 @@ export function AbandonedCheckoutsDataTable({
     [],
   );
 
-  const filters = useMemo<DataTableFilter[]>(
+  const selectFilters = useMemo<DataTableFilter[]>(
     () => [
       {
         id: "emailStatus",
@@ -402,18 +561,145 @@ export function AbandonedCheckoutsDataTable({
     [],
   );
 
+  // The Orders list's date filter, with the dashboard's period names and
+  // footer. Built on every render rather than memoised: "today" and the last
+  // day the calendar lets you pick move at midnight, and this tab can outlive it.
+  const now = new Date();
+  const dateFilter: DataTableFilter = {
+    id: "date",
+    label: tOr("admin.ordersPage.filters.date", "Date"),
+    type: "date",
+    date: { locale, ...periodPickerConfig(tOr, locale, now), maxDate: now },
+  };
+  // A vendor's rows carry no recovery-email state, so there is nothing for
+  // the email filter to narrow.
+  const filters = isVendor ? [dateFilter] : [...selectFilters, dateFilter];
+
+  // Export and detection are the store's alone: the file holds every
+  // shopper's contact details, and detection sweeps every checkout.
   const tableHeader = buildAdminCommerceTableHeader({
     title: "Abandoned checkouts",
-    secondaryActions: [
-      {
-        id: "detect",
-        label: isDetecting ? "Detecting..." : "Detect now",
-        icon: <RefreshCcw className={`h-4 w-4 ${isDetecting ? "animate-spin" : ""}`} />,
-        onClick: handleDetect,
-        disabled: isDetecting,
-      },
-    ],
+    ...(isStore
+      ? {
+          // Export only: a checkout is written by the storefront, never imported.
+          importExportAction: {
+            id: "toolbar-export",
+            label: tOr("admin.ordersPage.export", "Export"),
+            icon: <Download className="h-4 w-4" />,
+            variant: "outline" as const,
+            onClick: csv.exportCsv,
+            disabled: csv.isExporting,
+          },
+          secondaryActions: [
+            {
+              id: "detect",
+              label: isDetecting ? "Detecting..." : "Detect now",
+              icon: (
+                <RefreshCcw className={`h-4 w-4 ${isDetecting ? "animate-spin" : ""}`} />
+              ),
+              onClick: handleDetect,
+              disabled: isDetecting,
+            },
+          ],
+        }
+      : {}),
+    // A vendor's standing offer, which the store's recovery email carries.
+    ...(canSendOffers && offers?.automatic
+      ? {
+          secondaryActions: [
+            {
+              id: "automatic-offer",
+              label: "Automatic offer",
+              icon: <Gift className="h-4 w-4" />,
+              onClick: () => setAutomaticOpen(true),
+            },
+          ],
+        }
+      : {}),
   });
+
+  const rowActions = (row: AbandonedCheckout): DataTableAction[] => {
+    // A vendor reads, and — where the store allows it — sends its own offer.
+    // The one other thing to open is its own order, when the shopper came
+    // back and bought.
+    if (isVendor) {
+      return [
+        ...(canSendOffers
+          ? [
+              {
+                id: "send-offer",
+                label: "Send offer",
+                icon: <Gift className="h-4 w-4" />,
+                onClick: () =>
+                  setOfferTarget({ row, nonce: Date.now() }),
+                disabled: !row.offerAvailable,
+                hint: row.offerAvailable
+                  ? undefined
+                  : "An offer is already open on this checkout, or it has closed.",
+              },
+            ]
+          : []),
+        ...(row.order
+          ? [
+              {
+                id: "open-order",
+                label: row.order.orderNumber
+                  ? `View order ${row.order.orderNumber}`
+                  : "View order",
+                icon: <ExternalLink className="h-4 w-4" />,
+                href: `${basePath}/orders/${row.order._id}`,
+              },
+            ]
+          : []),
+      ];
+    }
+
+    return [
+      ...(row.paymentEvents?.length
+        ? [
+            {
+              id: "payment-timeline",
+              label: "Payment timeline",
+              icon: <Clock className="h-4 w-4" />,
+              onClick: () => setTimelineRow(row),
+            },
+          ]
+        : []),
+      ...(canRecover
+        ? [
+            {
+              id: "send-email",
+              label: "Send recovery email",
+              icon: <Mail className="h-4 w-4" />,
+              onClick: () => void handleSendEmail(row),
+              disabled: !row.email || row.recoveryStatus === "recovered",
+            },
+            {
+              id: "copy-link",
+              label: "Copy recovery link",
+              icon: <Copy className="h-4 w-4" />,
+              onClick: () => handleCopyLink(row),
+              disabled: !row.checkoutUrl,
+            },
+            ...(row.checkoutUrl
+              ? [
+                  {
+                    id: "open-recovery",
+                    label: "Open checkout",
+                    icon: <RotateCcw className="h-4 w-4" />,
+                    href: row.checkoutUrl,
+                  },
+                ]
+              : []),
+          ]
+        : []),
+    ];
+  };
+  // No column at all when no row on the page has anything to offer — a vendor's
+  // page without a recovered order, or staff who may only look. The store's
+  // list always has its recovery actions.
+  const showRowActions =
+    isStore || list.items.some((row) => rowActions(row).length > 0);
 
   return (
     <>
@@ -428,7 +714,12 @@ export function AbandonedCheckoutsDataTable({
       activeTab={list.activeTab}
       onTabChange={list.handleTabChange}
       searchable
-      searchPlaceholder="Search customer, email, phone, or product"
+      searchPlaceholder={
+        isVendor
+          ? "Search your products"
+          : "Search customer, email, phone, or product"
+      }
+      toolbarActions={tableHeader.toolbarActions}
       searchValue={list.search}
       onSearchChange={list.handleSearchChange}
       filters={filters}
@@ -442,45 +733,14 @@ export function AbandonedCheckoutsDataTable({
       onSortChange={list.handleSortChange}
       isLoading={list.isLoading}
       loadingMode="rows"
-      rowActions={(row): DataTableAction[] => [
-        ...(row.paymentEvents?.length
-          ? [
-              {
-                id: "payment-timeline",
-                label: "Payment timeline",
-                icon: <Clock className="h-4 w-4" />,
-                onClick: () => setTimelineRow(row),
-              },
-            ]
-          : []),
-        {
-          id: "send-email",
-          label: "Send recovery email",
-          icon: <Mail className="h-4 w-4" />,
-          onClick: () => void handleSendEmail(row),
-          disabled: !row.email || row.recoveryStatus === "recovered",
-        },
-        {
-          id: "copy-link",
-          label: "Copy recovery link",
-          icon: <Copy className="h-4 w-4" />,
-          onClick: () => handleCopyLink(row),
-          disabled: !row.checkoutUrl,
-        },
-        ...(row.checkoutUrl
-          ? [
-              {
-                id: "open-recovery",
-                label: "Open checkout",
-                icon: <RotateCcw className="h-4 w-4" />,
-                href: row.checkoutUrl,
-              },
-            ]
-          : []),
-      ]}
+      rowActions={showRowActions ? rowActions : undefined}
       rowActionsHeader={t("common.actions")}
       rowActionsVariant="dropdown"
-      emptyMessage="Abandoned checkouts will show here after a customer starts checkout and leaves before payment."
+      emptyMessage={
+        isVendor
+          ? "Checkouts that held your products will show here when a shopper leaves before paying."
+          : "Abandoned checkouts will show here after a customer starts checkout and leaves before payment."
+      }
       emptyIcon={<ShoppingCart className="h-8 w-8" />}
       appearance={tableHeader.appearance}
       toolbarLayout={tableHeader.toolbarLayout}
@@ -491,15 +751,34 @@ export function AbandonedCheckoutsDataTable({
       className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
     />
 
-    <CheckoutPaymentTimelineDialog
-      open={Boolean(timelineRow)}
-      onOpenChange={(open) => !open && setTimelineRow(null)}
-      locale={locale}
-      customerName={timelineRow?.customerName || t("common.guest")}
-      contact={timelineRow?.email || timelineRow?.phone}
-      statusBadge={<RecoveryBadge status={timelineRow?.recoveryStatus} />}
-      events={timelineRow?.paymentEvents || []}
-    />
+    {offerTarget && offers ? (
+      <SendOfferDialog
+        key={offerTarget.nonce}
+        open
+        onOpenChange={closeOffer}
+        checkoutId={offerTarget.row._id}
+        productNames={(offerTarget.row.items || []).map((item) => item.name)}
+        subtotal={Number(offerTarget.row.subtotalPrice ?? offerTarget.row.totalPrice ?? 0)}
+        limits={offers.limits}
+        onSent={() => list.refetch()}
+      />
+    ) : null}
+
+    {automaticOpen ? (
+      <AutomaticOfferDialog open onOpenChange={closeAutomatic} />
+    ) : null}
+
+    {isVendor ? null : (
+      <CheckoutPaymentTimelineDialog
+        open={Boolean(timelineRow)}
+        onOpenChange={(open) => !open && setTimelineRow(null)}
+        locale={locale}
+        customerName={timelineRow?.customerName || t("common.guest")}
+        contact={timelineRow?.email || timelineRow?.phone}
+        statusBadge={<RecoveryBadge status={timelineRow?.recoveryStatus} />}
+        events={timelineRow?.paymentEvents || []}
+      />
+    )}
     </>
   );
 }

@@ -33,7 +33,20 @@ interface VendorStorefrontHeaderProps {
   followAction?: React.ReactNode;
   /** Direct store contact control, such as live chat. */
   contactAction?: React.ReactNode;
+  /** The vendor's banner height (page settings); "standard" as it shipped. */
+  bannerSize?: "compact" | "standard" | "tall";
 }
+
+/**
+ * The banner box per size. "standard" is the header exactly as it shipped;
+ * the others keep its aspect-first rule (uncropped on narrow screens) and
+ * move only the cap.
+ */
+const BANNER_FRAME: Record<NonNullable<VendorStorefrontHeaderProps["bannerSize"]>, string> = {
+  compact: "aspect-[1360/240] max-h-28 lg:max-h-32",
+  standard: "aspect-[1360/314] max-h-40 lg:max-h-48",
+  tall: "aspect-[1360/420] max-h-56 lg:max-h-72",
+};
 
 /**
  * Deterministic hue from the store name, so a vendor with no banner still gets
@@ -106,6 +119,7 @@ export function VendorStorefrontHeader({
   labels,
   followAction,
   contactAction,
+  bannerSize = "standard",
 }: VendorStorefrontHeaderProps) {
   const hue = bannerHue(vendor.storeName);
   const initial = vendor.storeName.trim().slice(0, 1).toUpperCase() || "?";
@@ -115,7 +129,12 @@ export function VendorStorefrontHeader({
       {/* Banner. aspect-ratio, not a fixed height, so narrow screens keep the
           upload uncropped; the max-height caps it on wide ones, where the full
           1360/314 box pushed the store name and every product below the fold. */}
-      <div className="relative aspect-[1360/314] max-h-40 w-full overflow-hidden rounded-xl bg-muted lg:max-h-48">
+      <div
+        className={cn(
+          "relative w-full overflow-hidden rounded-xl bg-muted",
+          BANNER_FRAME[bannerSize] ?? BANNER_FRAME.standard,
+        )}
+      >
         {vendor.banner ? (
           <AppImage
             src={vendor.banner}

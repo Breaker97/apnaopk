@@ -4,11 +4,11 @@ import {
   type ModernProduct,
 } from "@/components/products/modern-product-card";
 import {
-  clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
   CARD_BROWSER_GRID_GAP,
 } from "@/components/store/product-grid-columns";
 import { cn } from "@/lib/utils";
+import { clampDesktopColumns } from "@/lib/storefront/sections/shelf-columns";
 
 /**
  * The catalogue browser's second layout: the products, and nothing else.

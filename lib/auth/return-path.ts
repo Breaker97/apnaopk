@@ -55,6 +55,17 @@ function isHomePath(value: string) {
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
 
 /**
+ * An empty segment or a backslash anywhere in the path, not only at its start.
+ * No page here has either, and both become another host once a locale prefix
+ * comes off the front: the store default's pages carry no prefix, so
+ * `toBrowserPath` (the client router, `localeHref`) turns `/en//evil.com/`
+ * into protocol-relative `//evil.com/`, and `/en/\evil.com/` into
+ * `/\evil.com/`, which browsers read the same way. The query and fragment may
+ * hold either — `?next=https://…` is just data.
+ */
+const AMBIGUOUS_PATH_PATTERN = /^[^?#]*(?:\/\/|\\)/;
+
+/**
  * Real return targets are short; browsers cap full URLs around 2k. Anything
  * longer only bloats the login URL and the Location header it ends up in.
  */
@@ -74,7 +85,7 @@ export function sanitizeReturnPath(
   if (!value || !value.startsWith("/")) return null;
   if (value.length > MAX_RETURN_PATH_LENGTH) return null;
   if (CONTROL_CHARACTER_PATTERN.test(value)) return null;
-  if (value.startsWith("//") || value.startsWith("/\\")) return null;
+  if (AMBIGUOUS_PATH_PATTERN.test(value)) return null;
   if (AUTH_PAGE_PATH_PATTERN.test(value)) return null;
   if (isHomePath(value)) return null;
   return value;

@@ -112,6 +112,7 @@ export function ProfileTab({
   readOnly,
   consent,
   emailLocked,
+  replacedShippingCountry,
 }: CustomerTabProps) {
   const setNotification = (
     key: keyof CustomerEmailNotifications,
@@ -468,6 +469,7 @@ export function ProfileTab({
                 id="customer-shipping-country"
                 value={form.shippingCountry}
                 onChange={(country) => setField("shippingCountry", country)}
+                replacedCountry={replacedShippingCountry}
                 placeholder="Select country"
                 disabled={readOnly}
               />

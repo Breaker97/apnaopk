@@ -18,6 +18,8 @@
  * consumers.
  */
 
+import { foldForSlug } from "@/lib/strings";
+
 /**
  * Page templates the engine knows. Every entry here has a storefront
  * renderer AND a Customize editor — a type without both would let the API
@@ -54,8 +56,7 @@ export function isValidPageHandle(handle: unknown): handle is string {
 
 /** Same slug rules the menus API applies. */
 export function slugifyPageHandle(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")

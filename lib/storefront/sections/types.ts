@@ -204,6 +204,22 @@ interface CollectionField extends BaseField {
   default?: string;
 }
 
+/**
+ * A single category id, at any level. A shelf reading it takes the
+ * category's whole branch — the category and every category below it — the
+ * same set the category page shows.
+ */
+interface CategoryField extends BaseField {
+  type: "category";
+  default?: string;
+}
+
+/** A single brand id. */
+interface BrandField extends BaseField {
+  type: "brand";
+  default?: string;
+}
+
 /** A single product id (the slide "product binding"). */
 interface ProductField extends BaseField {
   type: "product";
@@ -253,6 +269,25 @@ interface ProductListField extends BaseField {
 
 interface CategoryListField extends BaseField {
   type: "categoryList";
+}
+
+/**
+ * Hand-picked marketplace stores, in display order. Stored as Vendor ids so
+ * a store renaming itself or changing its slug never orphans the pick.
+ */
+interface VendorListField extends BaseField {
+  type: "vendorList";
+  max?: number;
+}
+
+/**
+ * Hand-picked reviews, in display order — a vendor's own approved reviews,
+ * stored as Review ids. The words are always the buyer's: a pick quotes a
+ * review, it never edits one.
+ */
+interface ReviewListField extends BaseField {
+  type: "reviewList";
+  max?: number;
 }
 
 /**
@@ -315,10 +350,14 @@ export type Field =
   | DatetimeField
   | ToggleField
   | CollectionField
+  | CategoryField
+  | BrandField
   | ProductField
   | ColorField
   | ProductListField
   | CategoryListField
+  | VendorListField
+  | ReviewListField
   | SliderField
   | SlidesField
   | BackgroundField
@@ -412,6 +451,13 @@ export interface SectionRenderContext extends SectionAvailabilityContext {
    * broken store — so the live pages leave this unset.
    */
   preview?: boolean;
+  /**
+   * Set only on a vendor's landing page (the Vendor CMS Home tab at
+   * /vendors/<slug>). Sections that list products read this vendor's alone,
+   * and their "view all" links stay on the store. Every admin surface leaves
+   * it unset, which keeps those sections marketplace-wide as before.
+   */
+  vendor?: { id: string; slug: string };
 }
 
 export interface SectionRenderProps {
@@ -602,6 +648,12 @@ export interface SectionDefinition {
   starter?: SectionStarter;
   /** Feature gate (e.g. multi-vendor sections). Absent means always on. */
   available?: (ctx: SectionAvailabilityContext) => boolean;
+  /**
+   * Drawn only on a vendor's landing page (it reads `ctx.vendor` — the
+   * store's reviews, its own sliders). Left out of the admin's catalogue
+   * and refused by the write gate anywhere but a vendor page.
+   */
+  vendorOnly?: boolean;
   /** Upgrades settings/blocks written by an older definition version. */
   migrate?: (instance: SectionInstance, fromVersion: number) => SectionInstance;
   /** Async server component; fetches its own data like today's sections. */

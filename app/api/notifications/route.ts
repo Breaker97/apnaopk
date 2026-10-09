@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/etag";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
+import { getNotificationVersion } from "@/lib/notifications/notification-version";
 
 type NotificationTab = "all" | "unread" | "archived";
 type NotificationAction = "read" | "unread" | "archive" | "unarchive";
@@ -40,31 +41,6 @@ async function getNotificationCounts(userId: string) {
   ]);
 
   return { all, unread, archived };
-}
-
-/**
- * Cheap "has anything changed for this user" pair.
- *
- * Two indexed reads (`{ userId: 1, updatedAt: -1 }`), against the five a full
- * snapshot costs. Every mutation moves one of them: a create bumps both, a
- * read/archive bumps `updatedAt` — Mongoose stamps it on `updateMany` — and a
- * delete drops the count. The rendered fields (title, message, link, data) are
- * write-once at creation, so nothing the UI shows can change without one of
- * these moving.
- */
-async function getNotificationVersion(userId: string) {
-  const [total, newest] = await Promise.all([
-    Notification.countDocuments({ userId }),
-    Notification.findOne({ userId })
-      .sort({ updatedAt: -1 })
-      .select("updatedAt")
-      .lean(),
-  ]);
-
-  return {
-    total,
-    updatedAt: (newest as { updatedAt?: Date } | null)?.updatedAt?.getTime() ?? 0,
-  };
 }
 
 const NotificationUpdateSchema = z.object({

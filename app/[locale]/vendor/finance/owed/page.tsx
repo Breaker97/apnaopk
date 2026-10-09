@@ -5,7 +5,8 @@ import {
   type DashboardStatCardItem,
 } from "@/components/admin/dashboard-stat-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
+import { dashboardPickerBounds } from "@/lib/finance/dashboard-finance-period";
 import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
 import { formatCurrency } from "@/lib/intl/money";
 import { loadVendorFinance } from "@/lib/finance/vendor-page-data";
@@ -33,7 +34,10 @@ export default async function VendorOwedPage({
   const { period, statements } = await loadVendorFinance({
     locale,
     searchParams: search,
+    // The dashboard's period and picker, opening on the month like the overview.
+    periods: "dashboard",
   });
+  const pickerBounds = dashboardPickerBounds(period);
 
   const t = await getTranslations({ locale });
   const label = (key: string, fallback: string) =>
@@ -53,12 +57,11 @@ export default async function VendorOwedPage({
             )}
           </p>
         </div>
-        <FinancePeriodPicker
+        <DashboardPeriodPicker
           period={period.key}
-          from={period.from.toISOString()}
-          to={period.to.toISOString()}
-          book="all"
-          showBookFilter={false}
+          from={pickerBounds.from}
+          to={pickerBounds.to}
+          defaultPeriod="month"
         />
       </div>
 
@@ -74,7 +77,7 @@ export default async function VendorOwedPage({
       ) : (
         statements.map((statement) => {
           const owedLines = statement.lines.filter(
-            (line) => line.affects === "owed",
+            (line) => (line.owedMovement ?? (line.affects === "owed" ? line.amount : 0)) !== 0,
           );
           return (
             <section key={statement.currency} className="space-y-3">

@@ -56,6 +56,7 @@ import { FieldLabel, humanize } from "./field-renderer";
 import { localizedDisplayValue, setLocalizedValue } from "./localized-value";
 import { ColorRow, SliderRow } from "./product-main-editor";
 import { SectionThumbnail } from "./section-thumbnails";
+import { useStoreBuilderScope } from "./builder-scope";
 
 interface CategoryOption {
   _id: string;
@@ -98,6 +99,9 @@ export function CategoryListEditor({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  // The store's categories by default; a vendor's builder reads the ones
+  // their own products are in, which is what their row draws.
+  const { categoriesEndpoint } = useStoreBuilderScope();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [categories, setCategories] = useState<CategoryOption[] | null>(null);
 
@@ -106,9 +110,7 @@ export function CategoryListEditor({
     apiClient
       // Flat list, storefront sort order (order, name) — the same rows the
       // section's own query reads, so the preview selection mirrors it.
-      .get<{ data?: CategoryOption[] } | CategoryOption[]>(
-        "/api/categories?flat=true",
-      )
+      .get<{ data?: CategoryOption[] } | CategoryOption[]>(categoriesEndpoint)
       .then((payload) => {
         if (cancelled) return;
         setCategories(Array.isArray(payload) ? payload : (payload?.data ?? []));
@@ -119,7 +121,7 @@ export function CategoryListEditor({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categoriesEndpoint]);
 
   const variants = entry.variants ?? [];
   const storedVariant = settings[VARIANT_FIELD_KEY];
@@ -618,6 +620,7 @@ export function CategoryListEditor({
           selectedCategories={categoryIds}
           onChange={(ids) => onSettingChange("categoryIds", ids)}
           title={tSafe("admin.storeBuilder.fields.categoryIds", "Categories")}
+          endpoint={categoriesEndpoint}
         />
       ) : null}
 

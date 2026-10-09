@@ -7,6 +7,12 @@ import { formatMenuValidationErrors } from "@/lib/site-config/menu-validation-er
 import { MAX_MEGA_MENU_DEPTH, trimMenuTreeDepth } from "@/lib/site-config/menu-depth";
 import { revalidateMenuContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  MENU_CONTENT,
+  auditContentDeleted,
+  auditContentUpdated,
+} from "@/lib/site-config/audit-content";
 import { pickSubmittedKeys } from "@/lib/api/validate";
 import { slugify } from "@/lib/strings";
 
@@ -39,11 +45,13 @@ export const GET = withApi<{ id: string }>(
 
 export const PUT = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
     const lookup = getMenuLookup(id);
+    // Everything the audit row compares the save against, besides what the
+    // write itself needs.
     const currentMenu = await Menu.findOne(lookup)
-      .select("_id location")
+      .select("_id location name handle description isActive items")
       .lean();
     if (!currentMenu) throw new NotFoundError("Menu");
 
@@ -76,6 +84,13 @@ export const PUT = withApi<{ id: string }>(
       { returnDocument: "after" },
     ).lean();
     if (!menu) throw new NotFoundError("Menu");
+    await auditContentUpdated(
+      createAuditContext(request, session),
+      MENU_CONTENT,
+      { id: String(menu._id), name: menu.name },
+      currentMenu,
+      menu,
+    );
     revalidateMenuContent();
     return successResponse(menu);
   },
@@ -83,9 +98,11 @@ export const PUT = withApi<{ id: string }>(
 
 export const DELETE = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
-    const menu = await Menu.findOne(getMenuLookup(id)).select("handle").lean();
+    const menu = await Menu.findOne(getMenuLookup(id))
+      .select("handle name location")
+      .lean();
     if (!menu) throw new NotFoundError("Menu");
     if (PROTECTED_MENU_HANDLES.has(menu.handle)) {
       throw new ValidationError(
@@ -93,6 +110,12 @@ export const DELETE = withApi<{ id: string }>(
       );
     }
     await Menu.findByIdAndDelete(menu._id);
+    await auditContentDeleted(
+      createAuditContext(request, session),
+      MENU_CONTENT,
+      { id: String(menu._id), name: menu.name },
+      { name: menu.name, handle: menu.handle, location: menu.location },
+    );
     revalidateMenuContent();
     return successResponse({ deleted: true });
   },

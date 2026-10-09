@@ -12,7 +12,13 @@ import {
   getDemoModeMutationResponse,
   isDemoModeEnabled,
 } from "@/lib/demo-mode";
-import { escapeRegExp } from "@/lib/strings";
+import {
+  DELIVERY_LOG_RANGES,
+  countDeliveryLogGroups,
+  deliveryLogFilter,
+  isDeliveryLogGroup,
+  statusesInGroup,
+} from "@/lib/notifications/delivery-log-groups";
 import * as z from "zod";
 
 const DELIVERY_STATUSES: EmailDeliveryStatus[] = [
@@ -22,7 +28,10 @@ const DELIVERY_STATUSES: EmailDeliveryStatus[] = [
   "sent",
   "failed",
 ];
-const TERMINAL_STATUSES: EmailDeliveryStatus[] = ["sent", "failed"];
+/** Finished rows, which may be deleted; "cancelled" is an email an admin called off. */
+const TERMINAL_STATUSES: string[] = ["sent", "failed", "cancelled"];
+/** What the log's search looks in. */
+const SEARCH_FIELDS = ["to", "subject", "category"] as const;
 
 async function requireAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -41,15 +50,12 @@ async function requireAdmin() {
   return null;
 }
 
-function getCreatedAfter(range: string | null) {
-  const days = range === "today" ? 1 : Number(range?.replace("d", ""));
-  if (![1, 7, 30, 90].includes(days)) return undefined;
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-}
-
 const RetryDeliveriesSchema = z.object({
   action: z.string().max(40).optional(),
   ids: z.array(z.string().max(64)).max(500).optional(),
+  // Without ids: every failed email the log is showing, by its range and search.
+  range: z.enum(DELIVERY_LOG_RANGES).optional(),
+  search: z.string().max(200).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -63,18 +69,21 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(Math.max(requestedLimit || 10, 5), 50);
   const page = Math.max(requestedPage || 1, 1);
   const status = params.get("status");
-  const search = params.get("search")?.trim().slice(0, 200);
-  const createdAfter = getCreatedAfter(params.get("range"));
+  const group = params.get("group");
+  // The range and search pick the rows; `group` is the tab. The tab counts are
+  // taken over the range and search, so they match the table under them.
+  const base = deliveryLogFilter({
+    range: params.get("range"),
+    search: params.get("search"),
+    searchFields: SEARCH_FIELDS,
+  });
 
-  const filter: Record<string, unknown> = {};
-  if (status && DELIVERY_STATUSES.includes(status as EmailDeliveryStatus)) {
+  const filter: Record<string, unknown> = { ...base };
+  if (isDeliveryLogGroup(group)) {
+    filter.status = { $in: statusesInGroup(group, DELIVERY_STATUSES) };
+  } else if (status && DELIVERY_STATUSES.includes(status as EmailDeliveryStatus)) {
     filter.status = status;
   }
-  if (search) {
-    const pattern = new RegExp(escapeRegExp(search), "i");
-    filter.$or = [{ to: pattern }, { subject: pattern }, { category: pattern }];
-  }
-  if (createdAfter) filter.createdAt = { $gte: createdAfter };
 
   // Migrate older successful records to metadata-only retention as they are read.
   const settings = await getSettings();
@@ -101,7 +110,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const [deliveries, total, sent, failed, pending] = await Promise.all([
+  const [deliveries, total, byStatus, clearable] = await Promise.all([
     EmailDelivery.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -111,11 +120,12 @@ export async function GET(request: NextRequest) {
       )
       .lean(),
     EmailDelivery.countDocuments(filter),
+    EmailDelivery.aggregate<{ _id: string; count: number }>([
+      { $match: base },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]),
+    // "Clear sent" deletes every sent email, whatever the filters show.
     EmailDelivery.countDocuments({ status: "sent" }),
-    EmailDelivery.countDocuments({ status: "failed" }),
-    EmailDelivery.countDocuments({
-      status: { $in: ["queued", "sending", "retrying"] },
-    }),
   ]);
 
   return NextResponse.json({
@@ -128,7 +138,8 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
-      stats: { total: sent + failed + pending, sent, failed, pending },
+      stats: countDeliveryLogGroups(byStatus),
+      clearable,
       retentionDays,
     },
   });
@@ -152,8 +163,14 @@ export async function POST(request: NextRequest) {
   const ids = Array.isArray(body.ids)
     ? body.ids.filter((id): id is string => typeof id === "string").slice(0, 100)
     : [];
-  const filter: Record<string, unknown> = { status: "failed" };
-  if (ids.length) filter._id = { $in: ids };
+  const filter: Record<string, unknown> = ids.length
+    ? { _id: { $in: ids } }
+    : deliveryLogFilter({
+        range: body.range,
+        search: body.search,
+        searchFields: SEARCH_FIELDS,
+      });
+  filter.status = "failed";
 
   const result = await EmailDelivery.updateMany(filter, {
     $set: { status: "queued", attempts: 0, nextAttemptAt: new Date() },

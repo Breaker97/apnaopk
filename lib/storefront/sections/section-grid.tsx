@@ -12,24 +12,10 @@ import {
   isExternalSectionHref,
   resolveSectionHref,
 } from "@/components/store/sections/section-shell";
-import {
-  buildRenderSlides,
-  collectSlideProductIds,
-  type RenderSliderSlide,
-  type SlideProductInfo,
-} from "@/lib/sliders/render";
-import {
-  getStorefrontSlider,
-  type ResolvedSlider,
-} from "@/lib/storefront/sliders";
-import {
-  getProductCompareAtRange,
-  getProductPriceRange,
-} from "@/lib/products/price-display";
-import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
+import type { DrawnGridCell } from "@/lib/storefront/section-data/slider-cells";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/config/i18n.config";
-import type { SliderCellContent, SliderGrid } from "./slider-grids";
+import type { SliderGrid } from "./slider-grids";
 
 /**
  * The grid-of-cells renderer, shared by every section built that way — the
@@ -38,18 +24,11 @@ import type { SliderCellContent, SliderGrid } from "./slider-grids";
  * A cell holds either a saved Slider or a static linked image, and the two
  * sections differ only in the frame they hang the grid in (their own width
  * and height rules). Keeping ONE implementation here is what stops them
- * drifting: the slider/product resolution, the empty-cell plate, the external
- * link handling and the category rail are all decided once.
+ * drifting: the empty-cell plate, the external link handling and the
+ * category rail are all decided once. What each cell draws is resolved by
+ * `resolveGridCells` (lib/storefront/section-data/slider-cells.ts), which the
+ * shopper app's home reads too.
  */
-
-/**
- * A cell as the grid will draw it: a linked image, or a slider with the
- * slides that are live right now. `null` draws the quiet plate.
- */
-type DrawnGridCell =
-  | { kind: "image"; image: string; link: string; alt: string }
-  | { kind: "slider"; slider: ResolvedSlider; slides: RenderSliderSlide[] }
-  | null;
 
 interface SectionGridProps {
   grid: SliderGrid;
@@ -68,6 +47,12 @@ interface SectionGridProps {
   gap?: number;
   radius?: string;
   className?: string;
+  /**
+   * Count slide views and clicks against the slider's handle. Off for a
+   * vendor's sliders: the counters are keyed by the store's own handles, and
+   * a vendor handle of the same name would be counted as the store's.
+   */
+  trackSliders?: boolean;
 }
 
 /**
@@ -88,83 +73,6 @@ function spacingVars(gap?: number, radius?: string): CSSProperties | undefined {
 
 const GRID_GAP_CLASS = "gap-[var(--hs-gap-m,0.75rem)] lg:gap-[var(--hs-gap,0.875rem)]";
 
-/** Resolve every bound slider, and every product across them, in one pass.
- * Exported for the collection rows, whose feature slot is a slider cell. */
-export async function resolveCellData(cells: (SliderCellContent | null)[]) {
-  const handles = Array.from(
-    new Set(
-      cells.flatMap((cell) =>
-        cell && cell.kind === "slider" && cell.slider ? [cell.slider] : [],
-      ),
-    ),
-  );
-  const sliders = new Map(
-    (
-      await Promise.all(
-        handles.map(
-          async (handle) => [handle, await getStorefrontSlider(handle)] as const,
-        ),
-      )
-    ).filter(([, slider]) => slider !== null),
-  );
-
-  const productIds = Array.from(
-    new Set(
-      Array.from(sliders.values()).flatMap((slider) =>
-        slider ? collectSlideProductIds(slider.slides) : [],
-      ),
-    ),
-  );
-  const products = new Map<string, SlideProductInfo>();
-  if (productIds.length > 0) {
-    try {
-      const cards = await getStorefrontProductCards({
-        ids: productIds,
-        limit: productIds.length,
-      });
-      for (const card of cards) {
-        if (!card.slug) continue;
-        const priceMin = getProductPriceRange(card).min;
-        const compareAtMax = getProductCompareAtRange(card)?.max;
-        products.set(String(card._id), {
-          slug: card.slug,
-          priceMin,
-          ...(compareAtMax !== undefined ? { compareAtMax } : {}),
-        });
-      }
-    } catch {
-      // Price is decoration on a promo cell; a failed lookup must not take
-      // the cell — or the page — down with it.
-    }
-  }
-  return { sliders, products };
-}
-
-/**
- * Resolve a grid's cells to what they will draw. A slider that is switched
- * off, deleted, or has no visible slide inside its schedule window draws
- * nothing — exactly like a cell nobody assigned — so a section can tell,
- * before it draws a frame, whether any cell has something to show.
- */
-export async function resolveGridCells(
-  cells: (SliderCellContent | null)[],
-  locale: Locale,
-): Promise<DrawnGridCell[]> {
-  const { sliders, products } = await resolveCellData(cells);
-  return cells.map((cell): DrawnGridCell => {
-    if (!cell) return null;
-    if (cell.kind === "image") {
-      return cell.image
-        ? { kind: "image", image: cell.image, link: cell.link, alt: cell.alt }
-        : null;
-    }
-    const slider = cell.slider ? sliders.get(cell.slider) : undefined;
-    if (!slider) return null;
-    const slides = buildRenderSlides(slider.slides, products, { locale });
-    return slides.length > 0 ? { kind: "slider", slider, slides } : null;
-  });
-}
-
 export function SectionGrid({
   grid,
   cells,
@@ -174,6 +82,7 @@ export function SectionGrid({
   gap,
   radius,
   className,
+  trackSliders = true,
 }: SectionGridProps) {
   const corners = radius === undefined ? roundedClass : "rounded-[var(--hs-radius)]";
 
@@ -236,7 +145,7 @@ export function SectionGrid({
             className={cn("h-full w-full aspect-auto", corners)}
             transition={slider.transition}
             controls={slider.controls}
-            handle={slider.handle}
+            handle={trackSliders ? slider.handle : undefined}
             autoplayDelayMs={slider.autoplaySeconds * 1000}
           />
         </div>

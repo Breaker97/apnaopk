@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { Coupon, Order, Product } from "@/models";
+import { Coupon, Order, Product, User } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
 import { CouponStatus, CouponType } from "@/models/coupon.model";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
@@ -21,6 +21,46 @@ import { splitCouponAcrossLines } from "@/lib/orders/coupon-line-split";
  * cancels — hands the use back on its own.
  */
 export const COUPON_HOLD_WINDOW_MS = 30 * 60 * 1000;
+
+/**
+ * Why a code does not apply, as a stable word: the same refusal the website
+ * prints as a sentence, for a client that words it itself (the shopper app's
+ * COUPON_INVALID and coupon list, contracts/mobile/shop/v1/coupons.ts).
+ */
+export const COUPON_REFUSALS = [
+  "NOT_FOUND",
+  "NOT_ACTIVE",
+  "NOT_STARTED",
+  "EXPIRED",
+  "USAGE_LIMIT_REACHED",
+  "ALREADY_USED",
+  "MINIMUM_NOT_MET",
+  "NOT_FOR_THIS_CART",
+  "QUOTED_PRICE",
+  "SHIPPING_ALREADY_FREE",
+  "NO_SELLER_DELIVERY",
+] as const;
+export type CouponRefusal = (typeof COUPON_REFUSALS)[number];
+
+/**
+ * A code refused by `validateAndCalculateCoupon`. Still a `ValidationError`
+ * with the message and field it always had, so the website reads it as
+ * before; `refusal` (also `details.couponRefusal`) says which rule, and a
+ * minimum not met carries what the cart is short of.
+ */
+export class CouponRefusedError extends ValidationError {
+  constructor(
+    readonly refusal: CouponRefusal,
+    message: string,
+    readonly facts: { minOrderAmount?: number; shortBy?: number; startsAt?: Date } = {},
+    /** Shown on the code field; the delivery refusals never were. */
+    onCode = true,
+  ) {
+    super(onCode ? { code: [message] } : message);
+    this.name = "CouponRefusedError";
+    this.details = { couponRefusal: refusal };
+  }
+}
 
 interface CouponCartItem {
   productId: string;
@@ -88,6 +128,12 @@ type ValidateCouponParams = {
   code: string;
   subtotal: number;
   shippingCost?: number;
+  /**
+   * Delivery is not priced yet (the app's coupon list, before checkout): a
+   * free-shipping coupon is judged on everything else and answers a zero
+   * discount, where it would otherwise be refused as "already free".
+   */
+  shippingUnknown?: boolean;
   /**
    * What each vendor's delivery costs, when the cart was rated per vendor.
    * Without it a coupon scoped to one seller cannot tell their delivery from
@@ -302,6 +348,8 @@ export async function resolveCouponLineDiscounts(params: {
   );
 }
 
+export type CouponDocument = NonNullable<Awaited<ReturnType<typeof Coupon.findOne>>>;
+
 export async function validateAndCalculateCoupon(
   params: ValidateCouponParams,
 ): Promise<ValidatedCouponResult> {
@@ -312,25 +360,53 @@ export async function validateAndCalculateCoupon(
 
   const coupon = await Coupon.findOne({ code });
   if (!coupon) {
-    throw new ValidationError({ code: ["Invalid coupon code"] });
+    throw new CouponRefusedError("NOT_FOUND", "Invalid coupon code");
+  }
+  await assertCouponOpenToShopper(coupon, params);
+  return calculateCouponForCart(coupon, params);
+}
+
+/**
+ * The rules no cart decides: the coupon is on, has started, has not ended,
+ * has uses left, and this shopper (by account, else by email) has not used
+ * up their share. Throws `CouponRefusedError`.
+ */
+export async function assertCouponOpenToShopper(
+  coupon: Pick<
+    CouponDocument,
+    "code" | "status" | "startDate" | "endDate" | "usageLimit" | "usedCount" | "perUserLimit"
+  > &
+    Partial<Pick<CouponDocument, "restrictedToEmail" | "restrictedToUserId">>,
+  params: Pick<ValidateCouponParams, "userId" | "email">,
+): Promise<void> {
+  // A code made for one shopper reads as no code at all to anyone else: it
+  // must not confirm that the offer, or the shopper it was for, exists.
+  if (!(await shopperMayUseRestrictedCoupon(coupon, params))) {
+    throw new CouponRefusedError("NOT_FOUND", "Invalid coupon code");
   }
 
+  if (coupon.status === CouponStatus.EXPIRED) {
+    throw new CouponRefusedError("EXPIRED", "This coupon is no longer active");
+  }
   if (coupon.status !== CouponStatus.ACTIVE) {
-    throw new ValidationError({ code: ["This coupon is no longer active"] });
+    throw new CouponRefusedError("NOT_ACTIVE", "This coupon is no longer active");
   }
 
   const now = new Date();
   if (coupon.startDate > now) {
-    throw new ValidationError({ code: ["This coupon is not yet valid"] });
+    throw new CouponRefusedError("NOT_STARTED", "This coupon is not yet valid", {
+      startsAt: coupon.startDate,
+    });
   }
   if (coupon.endDate < now) {
-    throw new ValidationError({ code: ["This coupon has expired"] });
+    throw new CouponRefusedError("EXPIRED", "This coupon has expired");
   }
 
   if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    throw new ValidationError({
-      code: ["This coupon has reached its usage limit"],
-    });
+    throw new CouponRefusedError(
+      "USAGE_LIMIT_REACHED",
+      "This coupon has reached its usage limit",
+    );
   }
 
   const guestEmail = params.email?.trim().toLowerCase();
@@ -354,21 +430,68 @@ export async function validateAndCalculateCoupon(
       paymentStatus: { $ne: PAYMENT_STATUS.REFUNDED },
     });
     if (userUsageCount >= coupon.perUserLimit) {
-      throw new ValidationError({
-        code: ["You have already used this coupon"],
-      });
+      throw new CouponRefusedError("ALREADY_USED", "You have already used this coupon");
     }
   }
+}
 
+/**
+ * Whether this shopper may use a code made for one shopper only (a vendor's
+ * offer on an abandoned checkout): their account, or the email they check
+ * out with, has to be the one it was made for.
+ *
+ * A caller that knows neither — the checkout page's preview, before a guest
+ * has typed an email — is let through: placing the order always carries the
+ * checkout email (`prepare-checkout`, `stripe-card-intent`), and that is where
+ * the code is refused for anyone else. A signed-in shopper known only by
+ * account is matched by that account's email as well.
+ */
+async function shopperMayUseRestrictedCoupon(
+  coupon: Partial<Pick<CouponDocument, "restrictedToEmail" | "restrictedToUserId">>,
+  params: Pick<ValidateCouponParams, "userId" | "email">,
+): Promise<boolean> {
+  const restrictedEmail = coupon.restrictedToEmail?.trim().toLowerCase() || "";
+  const restrictedUserId = coupon.restrictedToUserId
+    ? String(coupon.restrictedToUserId)
+    : "";
+  if (!restrictedEmail && !restrictedUserId) return true;
+
+  const email = params.email?.trim().toLowerCase() || "";
+  const userId = params.userId ? String(params.userId) : "";
+  if (!email && !userId) return true;
+
+  if (restrictedUserId && userId === restrictedUserId) return true;
+  if (restrictedEmail && email === restrictedEmail) return true;
+  if (restrictedEmail && userId && !email && Types.ObjectId.isValid(userId)) {
+    const user = await User.findById(userId)
+      .select("email")
+      .lean<{ email?: string } | null>();
+    return user?.email?.trim().toLowerCase() === restrictedEmail;
+  }
+  return false;
+}
+
+/**
+ * What the coupon takes off this cart, once `assertCouponOpenToShopper` has
+ * passed: its minimum, its scope, a quoted price, the delivery it pays for.
+ * Throws `CouponRefusedError`.
+ */
+export async function calculateCouponForCart(
+  coupon: CouponDocument,
+  params: Omit<ValidateCouponParams, "code">,
+): Promise<ValidatedCouponResult> {
   if (coupon.minOrderAmount && params.subtotal < coupon.minOrderAmount) {
-    throw new ValidationError({
-      code: [
-        `Minimum order amount is ${formatCurrency(
-          coupon.minOrderAmount,
-          params.currency || "USD",
-        )}`,
-      ],
-    });
+    throw new CouponRefusedError(
+      "MINIMUM_NOT_MET",
+      `Minimum order amount is ${formatCurrency(
+        coupon.minOrderAmount,
+        params.currency || "USD",
+      )}`,
+      {
+        minOrderAmount: coupon.minOrderAmount,
+        shortBy: coupon.minOrderAmount - params.subtotal,
+      },
+    );
   }
 
   const cartItems = await enrichMissingProductRefs(params.cartItems);
@@ -410,13 +533,12 @@ export async function validateAndCalculateCoupon(
   }
 
   if (applicableAmount <= 0) {
-    throw new ValidationError({
-      code: [
-        hasQuotedLine && cartItems.every((item) => item.quoted)
-          ? "A discount code can't be used on a quoted price"
-          : "This coupon is not applicable to items in your cart",
-      ],
-    });
+    throw hasQuotedLine && cartItems.every((item) => item.quoted)
+      ? new CouponRefusedError("QUOTED_PRICE", "A discount code can't be used on a quoted price")
+      : new CouponRefusedError(
+          "NOT_FOR_THIS_CART",
+          "This coupon is not applicable to items in your cart",
+        );
   }
 
   const couponType = resolveCouponType(coupon) as CouponType;
@@ -427,18 +549,29 @@ export async function validateAndCalculateCoupon(
   let discount = 0;
   // Which consignments' delivery this coupon actually pays for.
   let shippingShares: Record<string, number> | undefined;
-  if (couponType === CouponType.FREE_SHIPPING) {
+  if (couponType === CouponType.FREE_SHIPPING && params.shippingUnknown) {
+    // Judged on everything but the delivery, which checkout prices.
+    discount = 0;
+  } else if (couponType === CouponType.FREE_SHIPPING) {
     const shippingCost = Math.max(0, Number(params.shippingCost ?? 0));
     if (shippingCost <= 0) {
-      throw new ValidationError("Shipping is already free for this order");
+      throw new CouponRefusedError(
+        "SHIPPING_ALREADY_FREE",
+        "Shipping is already free for this order",
+        {},
+        false,
+      );
     }
     const byVendor = params.shippingByVendor;
     if (couponVendorId && byVendor) {
       // A seller's own coupon covers their own delivery and no one else's.
       const own = Math.max(0, Number(byVendor[couponVendorId] || 0));
       if (own <= 0) {
-        throw new ValidationError(
+        throw new CouponRefusedError(
+          "NO_SELLER_DELIVERY",
           "This coupon covers this seller's delivery, and there is none to discount",
+          {},
+          false,
         );
       }
       discount = Math.min(own, shippingCost);

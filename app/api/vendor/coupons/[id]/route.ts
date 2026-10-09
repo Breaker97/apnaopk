@@ -3,6 +3,8 @@ import { connectDB } from "@/lib/db";
 import { assertVendorPermission } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { Coupon } from "@/models";
+// An offer code the store made for one shopper is not the vendor's to edit or delete.
+import { MERCHANT_COUPON_FILTER } from "@/models/coupon.model";
 import { getSettings } from "@/models/settings.model";
 import { NotFoundError } from "@/lib/api/errors";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
@@ -43,7 +45,7 @@ export const GET = withApi<{ id: string }>(
     const { id } = params;
     if (!isValidObjectId(id)) return notFoundResponse("Coupon");
 
-    const coupon = await Coupon.findOne({ _id: id, vendorId: vendor._id }).lean();
+    const coupon = await Coupon.findOne({ _id: id, vendorId: vendor._id, ...MERCHANT_COUPON_FILTER }).lean();
     if (!coupon) return notFoundResponse("Coupon");
 
     return successResponse(coupon);
@@ -106,9 +108,9 @@ export const PUT = withApi<{ id: string }>(
       mutableBody.value = 0;
     }
 
-    const before = await Coupon.findOne({ _id: id, vendorId: vendor._id }).lean();
+    const before = await Coupon.findOne({ _id: id, vendorId: vendor._id, ...MERCHANT_COUPON_FILTER }).lean();
     const coupon = await Coupon.findOneAndUpdate(
-      { _id: id, vendorId: vendor._id },
+      { _id: id, vendorId: vendor._id, ...MERCHANT_COUPON_FILTER },
       { $set: mutableBody },
       { returnDocument: "after", runValidators: true },
     ).lean();
@@ -159,10 +161,11 @@ export const DELETE = withApi<{ id: string }>(
     const { id } = params;
     if (!isValidObjectId(id)) return notFoundResponse("Coupon");
 
-    const before = await Coupon.findOne({ _id: id, vendorId: vendor._id }).lean();
+    const before = await Coupon.findOne({ _id: id, vendorId: vendor._id, ...MERCHANT_COUPON_FILTER }).lean();
     const coupon = await Coupon.findOneAndDelete({
       _id: id,
       vendorId: vendor._id,
+      ...MERCHANT_COUPON_FILTER,
     });
 
     if (!coupon) return notFoundResponse("Coupon");

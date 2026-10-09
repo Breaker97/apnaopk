@@ -43,6 +43,7 @@ import type {
 } from "@/lib/storefront/sections/types";
 import { VARIANT_FIELD_KEY } from "@/lib/storefront/sections/types";
 import { buildBlockInstance } from "./instance-factory";
+import { useStoreBuilderScope } from "./builder-scope";
 
 /** English fallbacks for the shared slider-width labels. */
 const WIDTH_FALLBACKS: Record<BrandListWidth, string> = {
@@ -85,16 +86,16 @@ export function BrandListEditor({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  // The store's brands by default; a vendor's builder offers the brands its
+  // products carry, busiest first.
+  const { kind: scopeKind, brandsEndpoint } = useStoreBuilderScope();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [brands, setBrands] = useState<BrandOption[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     apiClient
-      // assignable = approved, live brands — the storefront-visible set.
-      .get<{ data?: BrandOption[] } | BrandOption[]>(
-        "/api/brands?assignable=true",
-      )
+      .get<{ data?: BrandOption[] } | BrandOption[]>(brandsEndpoint)
       .then((payload) => {
         if (cancelled) return;
         setBrands(Array.isArray(payload) ? payload : (payload?.data ?? []));
@@ -105,7 +106,7 @@ export function BrandListEditor({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [brandsEndpoint]);
 
   const brandById = new Map((brands ?? []).map((brand) => [brand._id, brand]));
   const pickedIds = new Set(
@@ -172,6 +173,17 @@ export function BrandListEditor({
       }));
     }
 
+    // A vendor's auto mode, as its section resolves it: the store's busiest
+    // ten brands, in the order the endpoint lists them.
+    if (scopeKind === "vendor") {
+      return brands.slice(0, 10).map((brand) => ({
+        key: brand._id,
+        image: brand.logo ?? "",
+        name: brand.name,
+        href: `/brands/${brand.slug}`,
+      }));
+    }
+
     // Auto mode, exactly as the section resolves it: the featured brands,
     // capped at ten, falling back to every brand only when none is starred.
     const featured = brands.filter((brand) => brand.featured);
@@ -185,7 +197,19 @@ export function BrandListEditor({
         name: brand.name,
         href: `/products?brand=${encodeURIComponent(brand.slug)}`,
       }));
-  }, [brands, blocks, locale]);
+  }, [brands, blocks, locale, scopeKind]);
+
+  // A vendor's brands are the ones its products carry, not a list it keeps.
+  const noBrandsLabel =
+    scopeKind === "vendor"
+      ? tSafe(
+          "admin.storeBuilder.brandEditor.noVendorBrands",
+          "No brands yet — set a brand on your products and it appears here.",
+        )
+      : tSafe(
+          "admin.storeBuilder.brandEditor.noBrands",
+          "No brands yet — add brands under Products → Brands first.",
+        );
 
   return (
     <div className="space-y-5">
@@ -199,10 +223,7 @@ export function BrandListEditor({
           <div className="h-24 animate-pulse rounded-md bg-black/[0.06] dark:bg-white/[0.08]" aria-hidden />
         ) : previewTiles.length === 0 ? (
           <div className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            {tSafe(
-              "admin.storeBuilder.brandEditor.noBrands",
-              "No brands yet — add brands under Products → Brands first.",
-            )}
+            {noBrandsLabel}
           </div>
         ) : (
           /* The real storefront component over the store's real brands, so
@@ -338,10 +359,7 @@ export function BrandListEditor({
             </div>
           ) : brands.length === 0 ? (
             <p className="py-4 text-sm text-muted-foreground">
-              {tSafe(
-                "admin.storeBuilder.brandEditor.noBrands",
-                "No brands yet — add brands under Products → Brands first.",
-              )}
+              {noBrandsLabel}
             </p>
           ) : (
             <div className="space-y-1">

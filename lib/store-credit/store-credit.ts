@@ -864,19 +864,25 @@ export async function storeCreditSummary(
   }).sort((a, b) => a.currency.localeCompare(b.currency));
 }
 
-/** A shopper's credit history, newest first. */
+/**
+ * A shopper's credit history, newest first. `after` continues a page (the
+ * shopper app's cursor): a condition on `createdAt` and `_id`, the order the
+ * history is sorted in.
+ */
 export async function storeCreditHistory(
   customerIdValue: IdLike,
-  params: { limit?: number } = {},
+  params: { limit?: number; after?: Record<string, unknown> } = {},
 ) {
   const customerId = toId(customerIdValue);
   return StoreCreditTransaction.find({
     customerId,
     // A spend given back never happened, as far as the shopper is concerned.
     $nor: [{ type: "redeem", status: "released" }],
+    ...(params.after ? { $and: [params.after] } : {}),
   })
-    .sort({ createdAt: -1 })
+    .sort({ createdAt: -1, _id: -1 })
     .limit(Math.min(200, Math.max(1, params.limit ?? 50)))
     .select("type amount currency remaining expiresAt status source orderId returnId note createdAt")
     .lean();
 }
+

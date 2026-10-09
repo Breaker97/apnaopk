@@ -1,31 +1,28 @@
-import { successResponse } from "@/lib/api/response";
+import { paginatedResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
-import { queryAuditLogs } from "@/lib/audit";
-import { AuditResource, AuditAction } from "@/models/audit-log.model";
+import { validateQuery } from "@/lib/api/validate";
+import { fetchActivityLogList } from "@/lib/activity-log/list";
+import { ActivityLogQuerySchema } from "@/lib/activity-log/query";
 
 /**
  * GET /api/admin/audit-logs
- * Get audit logs with filters
+ *
+ * The Activity Log, every row of it. Admin only: platform staff never read the
+ * log, and a vendor reads its own team's part through `/api/vendor/activity-log`.
+ *
+ * Filters are validated, not cast: an unknown `action` or `resource` is a 400
+ * rather than a query that silently matches nothing. A bare request reads the
+ * last 30 days; a record's own history (`resource` + `resourceId`) passes
+ * `date=all`.
  */
-export const GET = withApi({ auth: "admin" }, async ({ request }) => {
-  const searchParams = request.nextUrl.searchParams;
-  const resource = searchParams.get("resource") as AuditResource | undefined;
-  const resourceId = searchParams.get("resourceId") || undefined;
-  const userId = searchParams.get("userId") || undefined;
-  const action = searchParams.get("action") as AuditAction | undefined;
-  const rawLimit = parseInt(searchParams.get("limit") || "50", 10);
-  const limit = Math.min(200, Math.max(1, Number.isNaN(rawLimit) ? 50 : rawLimit));
-  const rawSkip = parseInt(searchParams.get("skip") || "0", 10);
-  const skip = Math.max(0, Number.isNaN(rawSkip) ? 0 : rawSkip);
-
-  const { logs, total } = await queryAuditLogs({
-    resource,
-    resourceId,
-    userId,
-    action,
-    limit,
-    skip,
-  });
-
-  return successResponse({ logs, total });
-});
+export const GET = withApi(
+  {
+    auth: "admin",
+    rateLimit: { action: "admin:audit-logs:list", preset: "lenient" },
+  },
+  async ({ request }) => {
+    const query = validateQuery(request, ActivityLogQuerySchema);
+    const list = await fetchActivityLogList(query, { kind: "admin" });
+    return paginatedResponse(list.items, list.page, list.limit, list.total);
+  },
+);

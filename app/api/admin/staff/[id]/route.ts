@@ -3,12 +3,12 @@ import { User, StaffProfile, AdminProfile } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { USER_ROLES } from "@/config/app.config";
+import { createAuditContext, auditRoleChange } from "@/lib/audit";
 import {
-  createAuditContext,
-  auditUpdate,
-  auditDelete,
-  auditRoleChange,
-} from "@/lib/audit";
+  auditStaffRemoved,
+  auditStaffUpdated,
+  staffAuditSnapshot,
+} from "@/lib/access/audit-staff";
 import { Types } from "mongoose";
 import {
   ADMIN_PERMISSIONS,
@@ -28,6 +28,8 @@ import {
 } from "@/lib/access/team-roles";
 import { STAFF_MANAGED_BY, isVendorOwnedStaff } from "@/lib/access/staff-ownership";
 import { withApi } from "@/lib/api/handler";
+import { notifyAccountStatusChange } from "@/lib/notifications/notifications";
+import { afterResponse } from "@/lib/after-response";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
@@ -188,6 +190,21 @@ export const PUT = withApi<{ id: string }>(
       }
     }
 
+    // The member as stored now, read before any write below changes it: the
+    // audit rows are the difference between this and what is stored afterwards.
+    const wasAdmin = user.role === USER_ROLES.ADMIN;
+    const [staffProfileBefore, adminProfileBefore] = await Promise.all([
+      StaffProfile.findOne({ userId: id }).lean(),
+      wasAdmin
+        ? AdminProfile.findOne({ userId: id }).select("department").lean()
+        : null,
+    ]);
+    const snapshotBefore = teamAuditSnapshot(
+      user,
+      staffProfileBefore,
+      wasAdmin ? adminProfileBefore?.department : staffProfileBefore?.department,
+    );
+
     // Update user fields
     const userUpdate: Record<string, unknown> = {};
     if (name?.trim()) userUpdate.name = name.trim();
@@ -196,6 +213,12 @@ export const PUT = withApi<{ id: string }>(
 
     if (Object.keys(userUpdate).length > 0) {
       await User.updateOne({ _id: id }, { $set: userUpdate });
+    }
+    // After the response, so the role written below words the notice.
+    if (wantsStatusChange) {
+      afterResponse(() =>
+        notifyAccountStatusChange({ userId: id, from: user.status, to: validStatus }),
+      );
     }
 
     const auditContext = createAuditContext(request, session);
@@ -289,19 +312,6 @@ export const PUT = withApi<{ id: string }>(
       }
     }
 
-    // Audit
-    await auditUpdate(
-      auditContext,
-      "user",
-      id,
-      { user, role: user.role } as unknown as Record<string, unknown>,
-      {
-        ...userUpdate,
-        ...(wantsRoleChange ? { role: requestedRole } : {}),
-      } as unknown as Record<string, unknown>,
-      user.email,
-    );
-
     // Return updated data
     const updatedUser = await User.findById(id)
       .select(
@@ -311,6 +321,28 @@ export const PUT = withApi<{ id: string }>(
     const updatedProfile = await StaffProfile.findOne({ userId: id })
       .populate("assignedBy", "name email")
       .lean();
+
+    // Audit what moved, diffed against what is stored now and not against what
+    // the form asked for: the form posts every field back on every save, and a
+    // save that changed nothing must leave no row. The role change was written
+    // above; permissions, scope, status and details are written here, one row
+    // for each kind that differs.
+    if (updatedUser) {
+      const isAdmin = finalRole === USER_ROLES.ADMIN;
+      const adminProfileAfter = isAdmin
+        ? await AdminProfile.findOne({ userId: id }).select("department").lean()
+        : null;
+      await auditStaffUpdated(
+        auditContext,
+        { userId: id, email: user.email },
+        snapshotBefore,
+        teamAuditSnapshot(
+          updatedUser,
+          updatedProfile,
+          isAdmin ? adminProfileAfter?.department : updatedProfile?.department,
+        ),
+      );
+    }
 
     return successResponse({
       ...stripPassword(updatedUser),
@@ -358,6 +390,14 @@ export const DELETE = withApi<{ id: string }>(
     const decision = decideTeamRemoval(ctx);
     if (!decision.allowed) throw new ValidationError(decision.reason);
 
+    // What they held, read while the profile still exists: the audit row names it.
+    const isAdministrator = user.role === USER_ROLES.ADMIN;
+    const staffProfile = isAdministrator
+      ? null
+      : await StaffProfile.findOne({ userId: id })
+          .select("permissions isActive")
+          .lean();
+
     // Revert to customer. Direct write, not setUserRole — a removed
     // administrator must actually lose admin membership in `roles`.
     await setTeamMemberRole(id, USER_ROLES.CUSTOMER);
@@ -369,19 +409,38 @@ export const DELETE = withApi<{ id: string }>(
       AdminProfile.deleteOne({ userId: id }),
     ]);
 
-    // Audit
-    const auditContext = createAuditContext(request, session);
-    await auditDelete(
-      auditContext,
-      "user",
-      id,
-      { name: user.name, email: user.email, action: "team_member_removed" },
-      user.email,
+    // Same row a vendor's removal of its own staff writes. An administrator holds
+    // no staff permissions, so theirs names none.
+    await auditStaffRemoved(
+      createAuditContext(request, session),
+      { userId: id, name: user.name, email: user.email },
+      {
+        account: isAdministrator ? "administrator" : "staff",
+        permissions: staffProfile?.permissions,
+        isActive: staffProfile?.isActive,
+        accountRemoved: true,
+      },
     );
 
     return successResponse({ message: "Team member removed successfully" });
   },
 );
+
+/**
+ * What the audit compares for a team member. Passed whole documents, but it
+ * reads only the fields it names, so the password hash on the account never
+ * gets near a row. An administrator's department lives on their admin profile,
+ * so the caller says which department applies; everything else is the staff
+ * profile, which an administrator keeps untouched while they are one, so
+ * promoting someone moves nothing in it.
+ */
+function teamAuditSnapshot(
+  account: Parameters<typeof staffAuditSnapshot>[0],
+  staffProfile: object | null | undefined,
+  department: unknown,
+) {
+  return staffAuditSnapshot(account, { ...staffProfile, department });
+}
 
 function sanitizeObjectIdList(input: unknown) {
   if (!Array.isArray(input)) return [];

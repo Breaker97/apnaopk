@@ -24,7 +24,7 @@ const SHOPPER_UPLOAD_LIMITS = {
 } as const;
 
 /** What phones and cameras produce. No SVG: a shopper has no use for a vector. */
-const SHOPPER_IMAGE_TYPES = new Set<string>([
+export const SHOPPER_IMAGE_TYPE_LIST = [
   "image/jpeg",
   "image/jpg",
   "image/png",
@@ -33,7 +33,23 @@ const SHOPPER_IMAGE_TYPES = new Set<string>([
   "image/avif",
   "image/heic",
   "image/heif",
-]);
+] as const;
+const SHOPPER_IMAGE_TYPES = new Set<string>(SHOPPER_IMAGE_TYPE_LIST);
+
+/** Whether a shopper may upload a file of this type. */
+export function isShopperImageType(contentType: string): boolean {
+  return SHOPPER_IMAGE_TYPES.has(mimeEssence(contentType));
+}
+
+/**
+ * The largest photo a shopper may upload: 10 MB, or the store's own image
+ * limit when it is smaller. `ceilingBytes` lowers it further for a channel
+ * with a smaller body cap (the shopper app's).
+ */
+export function shopperPhotoLimitBytes(config: StorageConfig, ceilingBytes = Infinity): number {
+  const storeLimitMB = config.maxImageSizeMB ?? config.maxFileSizeMB;
+  return Math.min(SHOPPER_UPLOAD_LIMITS.maxFileBytes, storeLimitMB * MB, ceilingBytes);
+}
 
 /** Files one request may carry. The store's own uploaders send one at a time. */
 const MAX_FILES_PER_UPLOAD = 20;
@@ -88,13 +104,12 @@ export function assertShopperUpload(
   size: number,
   config: StorageConfig,
 ): void {
-  if (!SHOPPER_IMAGE_TYPES.has(mimeEssence(contentType))) {
+  if (!isShopperImageType(contentType)) {
     throw new Error(
       "Only photos can be uploaded (JPEG, PNG, GIF, WebP, AVIF or HEIC)",
     );
   }
-  const storeLimitMB = config.maxImageSizeMB ?? config.maxFileSizeMB;
-  const limit = Math.min(SHOPPER_UPLOAD_LIMITS.maxFileBytes, storeLimitMB * MB);
+  const limit = shopperPhotoLimitBytes(config);
   if (size > limit) {
     throw new Error(`Photos can be at most ${Math.floor(limit / MB)} MB`);
   }

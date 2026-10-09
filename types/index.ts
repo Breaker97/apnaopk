@@ -227,6 +227,8 @@ export interface ICustomerProfile {
   emailNotifications: EmailNotificationPreferences;
   /** Covers order, pre-order and return texts. Absent on profiles saved before SMS. */
   smsNotifications?: { orderUpdates: boolean };
+  /** The shopper app's push topics. Absent on profiles saved before them. */
+  pushNotifications?: { orderUpdates: boolean; messages: boolean };
 
   // Cached Aggregated Stats
   stats: CustomerStats;
@@ -356,6 +358,16 @@ export interface IVendor {
     orderUpdates?: boolean;
     lowStock?: boolean;
     marketing?: boolean;
+  };
+  /**
+   * The vendor's standing offer to shoppers who leave its goods in a checkout,
+   * carried by the store's recovery email — see `lib/orders/abandoned-offers.ts`.
+   */
+  abandonedOffer?: {
+    enabled?: boolean;
+    type?: "percentage" | "fixed";
+    value?: number;
+    validDays?: number;
   };
   payoutSettings?: {
     schedule?: "weekly" | "biweekly" | "monthly";
@@ -918,6 +930,8 @@ export interface ProductVariant {
 }
 
 export interface IProduct {
+  /** Internal mobile stock mutation receipts, written atomically with stock. */
+  stockAdjustmentReceipts?: Array<{ key: string; hash: string; appliedAt: Date; durable?: boolean }>;
   _id: Types.ObjectId;
   vendorId: Types.ObjectId;
   productSource: ProductSource;
@@ -974,6 +988,32 @@ export interface IProduct {
   options?: ProductOption[];
   variants: ProductVariant[];
   preorder?: PreorderSettings;
+  /** Bumped whenever a pre-order release date changes — see the model. */
+  preorderTermsRevision?: number;
+  /** The durable date-propagation job — see the model. Never set by a form. */
+  preorderDateSync?: {
+    state: "pending" | "running" | "idle";
+    requestedAt?: Date;
+    appliedRevision?: number;
+    runRevision?: number;
+    cursor?: Types.ObjectId;
+    leaseOwner?: string;
+    leaseUntil?: Date;
+    fence?: number;
+    processed?: number;
+    moved?: number;
+    failures?: Array<{
+      orderId: Types.ObjectId;
+      error?: string;
+      attempts?: number;
+      at?: Date;
+    }>;
+    nextAttemptAt?: Date;
+    lastProgressAt?: Date;
+    startedAt?: Date;
+    completedAt?: Date;
+    lastError?: string;
+  };
   seo?: ProductSEO;
   /** Derived on every write; never set by a caller. */
   search?: ProductSearchIndex;
@@ -1153,6 +1193,8 @@ export interface OrderItem {
   preorderOutstandingAmount?: number;
   preorderSupplierEta?: Date;
   preorderBatchName?: string;
+  /** The product terms revision this line's date was reconciled against. */
+  preorderTermsRevision?: number;
   /** The quote whose offer priced this line, when it came from one. */
   quoteId?: Types.ObjectId;
   /**
@@ -1227,6 +1269,94 @@ interface OrderCustoms {
   collectedAtCheckout?: boolean;
 }
 
+export interface PreorderReadiness {
+  declaredAt: Date;
+  declaredBy?: string;
+  source: "vendor" | "admin" | "auto" | "legacy";
+}
+
+export interface PreorderAllocationLine {
+  productId: Types.ObjectId;
+  variantId?: Types.ObjectId;
+  quantity: number;
+  stockTracked: boolean;
+  parts?: Array<{ locationId: string; quantity: number }>;
+  quotaOwner?: "product" | "variant";
+  quotaReleased?: boolean;
+}
+
+export interface PreorderAllocation {
+  operationId: string;
+  state: "committed" | "restored";
+  source?: string;
+  committedAt: Date;
+  restoredAt?: Date;
+  restoreReason?: "cancelled" | "unallocated";
+  restoreOperationId?: string;
+  lines: PreorderAllocationLine[];
+}
+
+export interface PreorderNotice {
+  dedupeKey?: string;
+  attempt?: number;
+  deliveryId?: Types.ObjectId;
+  queuedAt?: Date;
+  acceptedAt?: Date;
+  failedAt?: Date;
+  failureReason?: string;
+  bounced?: boolean;
+  blockedReason?:
+    | "no_contact"
+    | "email_channel_disabled"
+    | "customer_opted_out"
+    | "email_unconfigured";
+  lastCheckedAt?: Date;
+}
+
+export type PreorderCollectionState =
+  | "notice_pending"
+  | "awaiting_payment"
+  | "attention"
+  | "paid"
+  | "void";
+
+export interface PreorderCollection {
+  cycleId: string;
+  revision: number;
+  state: PreorderCollectionState;
+  scopeSubOrderIds: Types.ObjectId[];
+  amount: number;
+  currency: string;
+  readinessRevision?: number;
+  allocationOperationId?: string;
+  source?: "vendor" | "admin" | "auto" | "legacy";
+  preparedAt: Date;
+  preparedBy?: string;
+  noticeHours: number;
+  autoCharge?: boolean;
+  notice?: PreorderNotice;
+  chargeNotBefore?: Date;
+  attentionReason?: string;
+  paidAt?: Date;
+  voidedAt?: Date;
+  voidReason?: string;
+}
+
+export interface PreorderReleaseState {
+  state: "requested" | "waiting" | "released" | "attention" | "superseded";
+  operationId?: string;
+  cycleId?: string;
+  requestedAt?: Date;
+  reason?: string;
+  detail?: string;
+  attempts?: number;
+  lastAttemptAt?: Date;
+  nextAttemptAt?: Date;
+  releasedAt?: Date;
+  /** When the release operation was confirmed to exist. */
+  operationCreatedAt?: Date;
+}
+
 export interface SubOrder {
   _id?: Types.ObjectId;
   vendorId: Types.ObjectId;
@@ -1272,6 +1402,10 @@ export interface SubOrder {
   deliveredAt?: Date;
   inventoryReserved?: boolean;
   preorderReserved?: boolean;
+  /** The seller's "goods available" — see the order model. */
+  preorderReadiness?: PreorderReadiness;
+  /** Durable evidence of allocated pre-order stock — see the order model. */
+  preorderAllocation?: PreorderAllocation;
   payoutStatus?: "unpaid" | "scheduled" | "paid";
   payoutId?: Types.ObjectId;
   payoutClaimedAt?: Date;
@@ -1424,6 +1558,10 @@ export interface IOrder {
   /** The checkout attempt this order was promoted from — see the order model. */
   checkoutAttemptId?: string;
   checkoutFingerprint?: string;
+  /** The shopper app's Idempotency-Key that placed it (cash on delivery). */
+  idempotencyKey?: string;
+  bizOperationId?: string;
+  bizQuoteHash?: string;
   gatewayCheckoutUrl?: string;
   razorpayPaymentId?: string;
   paystackReference?: string;
@@ -1511,6 +1649,43 @@ export interface IOrder {
   preorderBalanceLastChargeCode?: string;
   /** Balance-reminder stages already sent — see the order model. */
   preorderBalanceRemindersSent?: string[];
+  /** Last off-session charge attempt's key and outcome — see the order model. */
+  preorderBalanceChargeKey?: string;
+  preorderBalanceChargeOutcome?:
+    | "succeeded"
+    | "declined"
+    | "needs_shopper"
+    | "unknown"
+    | "error";
+  /** Bumped by every readiness change — see the order model. */
+  preorderReadinessRevision?: number;
+  /** The current balance request — see the order model. */
+  preorderCollection?: PreorderCollection;
+  preorderCollectionHistory?: Array<{
+    cycleId?: string;
+    state?: string;
+    amount?: number;
+    currency?: string;
+    preparedAt?: Date;
+    noticeAcceptedAt?: Date;
+    paidAt?: Date;
+    voidedAt?: Date;
+    voidReason?: string;
+  }>;
+  /** A paid order's release for fulfilment — see the order model. */
+  preorderRelease?: PreorderReleaseState;
+  /** When the pre-order lines were last reconciled with product terms. */
+  preorderTermsCheckedAt?: Date;
+  /** A delay notice owed after a product date moved — see the order model. */
+  preorderDateNotice?: {
+    state: "pending" | "sent";
+    key?: string;
+    previousReleaseDate?: Date;
+    releaseDate?: Date;
+    reason?: string;
+    queuedAt?: Date;
+    sentAt?: Date;
+  };
   channel: "online" | "pos";
   posLocationId?: string;
   staffId?: string;
@@ -1577,6 +1752,10 @@ export interface IReview {
   images?: string[];
   isVerified: boolean;
   isApproved: boolean;
+  /** Set when the store approves or unpublishes it by hand. */
+  moderatedAt?: Date;
+  /** Set when its author edits it. */
+  editedAt?: Date;
   reply?: IReviewReply;
   createdAt: Date;
   updatedAt: Date;
@@ -1619,7 +1798,8 @@ export type CollectionConditionField =
   | "weight"
   | "stock"
   | "createdAt"
-  | "category";
+  | "category"
+  | "brand";
 
 export type CollectionConditionOperator =
   | "equals"
@@ -1766,7 +1946,8 @@ export interface IBlogComment {
   parentId?: Types.ObjectId | null;
   userId?: Types.ObjectId;
   authorName: string;
-  authorEmail: string;
+  /** Absent once the author deleted their account. */
+  authorEmail?: string;
   authorWebsite?: string;
   content: string;
   status: BlogCommentStatus;

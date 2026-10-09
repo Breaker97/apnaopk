@@ -38,6 +38,8 @@ interface DashboardStatsSectionProps {
   stats: DashboardStats | null;
   /** When false, the In-store sales card is replaced so the dashboard still renders six cards. */
   posEnabled: boolean;
+  /** A period is selected, so "new this month" becomes "new in the period". */
+  ranged?: boolean;
 }
 
 function buildStatTrend(
@@ -58,6 +60,7 @@ function buildStatTrend(
 export function DashboardStatsSection({
   stats,
   posEnabled,
+  ranged = false,
 }: DashboardStatsSectionProps) {
   const t = useTranslations();
   const intlLocale = useLocale();
@@ -138,9 +141,13 @@ export function DashboardStatsSection({
       getMetric: (s) => s.customers,
       formatValue: (m) => numberFormatter.format(m.amount),
       formatSubLabel: (m) =>
-        t("admin.dashboardPage.stats.newThisMonth", {
-          count: compactFormatter.format(m.count),
-        }),
+        ranged && t.has("admin.dashboardPage.stats.newInPeriod")
+          ? t("admin.dashboardPage.stats.newInPeriod", {
+              count: compactFormatter.format(m.count),
+            })
+          : t("admin.dashboardPage.stats.newThisMonth", {
+              count: compactFormatter.format(m.count),
+            }),
     },
     {
       id: "refunds",

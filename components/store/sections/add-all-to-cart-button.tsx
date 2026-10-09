@@ -13,7 +13,7 @@ import {
   productRequiresVariantSelection,
 } from "@/lib/products/variant-selection";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
-import { trackAddToCart } from "@/lib/analytics/events";
+import { metaContentId, trackAddToCart } from "@/lib/analytics/events";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +71,7 @@ export function AddAllToCartButton({
             items: [
               {
                 item_id: String(product._id),
+                meta_id: metaContentId(product._id, onlyVariant?._id),
                 item_name: product.name,
                 item_variant: onlyVariant?._id,
                 price,

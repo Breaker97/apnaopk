@@ -110,6 +110,22 @@ export async function fetchBrandList(
   );
 }
 
+/** The most brands one CSV export holds, as for the other catalog exports. */
+export const BRAND_EXPORT_LIMIT = 5000;
+
+/**
+ * Admin brands for a CSV export: the list's search, tab and sort, without its
+ * paging. Read through the same filter as the table so the file holds what the
+ * admin was looking at.
+ */
+export async function fetchBrandsForExport(searchParams: URLSearchParams) {
+  await connectDB();
+
+  const listQuery = parseListQuery(withAliasedSort(searchParams), BRAND_LIST_SORT);
+  const filter = buildBrandListFilter(searchParams, listQuery, { isAdmin: true });
+  return Brand.find(filter).sort(listQuery.sort).limit(BRAND_EXPORT_LIMIT).lean();
+}
+
 interface BrandStats {
   totalBrands: number;
   activeBrands: number;

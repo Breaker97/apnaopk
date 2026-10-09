@@ -22,15 +22,44 @@
  * image optimizer's disk cache, and every product image would be re-encoded
  * on every request.
  *
- * It extends an internal Next module. After a Next upgrade,
- * tests/page-cache-handler.test.ts says whether that module is still there.
+ * One more rule, for the mobile API's cached routes (`/api/mobile/…`): a
+ * refusal (4xx) is answered but never kept, and it drops whatever was kept for
+ * that path. Next caches a route's 404 like a 200, so every made-up product
+ * slug or locale asked for became an entry of its own: 25,000 of them grew the
+ * heap by 54 MB, part of it in a map Next never evicts. Dropping the path also
+ * retires the answer a product had before it was deleted or unpublished.
+ *
+ * It extends internal Next modules. After a Next upgrade,
+ * tests/page-cache-handler.test.ts says whether they are still there.
  */
 const FileSystemCache =
   require("next/dist/server/lib/incremental-cache/file-system-cache").default;
+const {
+  SharedCacheControls,
+} = require("next/dist/server/lib/incremental-cache/shared-cache-controls.external");
+
+function isMobileApiRefusal(key, data) {
+  return (
+    data?.kind === "APP_ROUTE" &&
+    data.status >= 400 &&
+    data.status < 500 &&
+    typeof key === "string" &&
+    key.startsWith("/api/mobile/")
+  );
+}
 
 class MemoryOnlyCache extends FileSystemCache {
   constructor(ctx) {
     super({ ...ctx, flushToDisk: false });
+  }
+
+  async set(key, data, ctx) {
+    if (isMobileApiRefusal(key, data)) {
+      FileSystemCache.memoryCache?.remove(key);
+      SharedCacheControls.cacheControls.delete(key);
+      return;
+    }
+    return super.set(key, data, ctx);
   }
 }
 

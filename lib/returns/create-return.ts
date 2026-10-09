@@ -8,9 +8,12 @@ import { getNextReturnNumber } from "@/lib/returns/return-number";
 import {
   assertReturnEligible,
   nonReturnableItemIndexes,
+  nonReturnableItemIndexesOf,
   openReturnQuantitiesByIndex,
+  openReturnQuantitiesByOrder,
   planReturnRequest,
   refundedQuantitiesByIndex,
+  refundedQuantitiesByOrder,
   returnWindowClosedItemIndexes,
 } from "@/lib/returns/return-plan";
 import {
@@ -275,6 +278,65 @@ type ReturnLineBlock =
   | "not_delivered"
   | "unpaid";
 
+type ReturnableItem = {
+  productId?: unknown;
+  variantId?: unknown;
+  vendorId?: unknown;
+  name?: string;
+  image?: string;
+  price?: number;
+  quantity?: number;
+  finalSale?: boolean | null;
+};
+
+/** What `describeReturnableLines` reads from the database about one order. */
+export interface ReturnableLineFacts {
+  /** Units of each line out on an open return. */
+  claimed: Map<number, { quantity: number; returnNumber: string }>;
+  /** Units of each line already refunded. */
+  refunded: Map<number, number>;
+  /** The lines that are digital goods. */
+  digital: number[];
+}
+
+/**
+ * The facts `describeReturnableLines` needs of several orders, in three
+ * queries whatever their number: a list of orders says which can be returned
+ * without asking once per order. By order id.
+ */
+export async function loadReturnableLineFacts(
+  orders: ReadonlyArray<Pick<ReturnOrder, "_id" | "items">>,
+): Promise<Map<string, ReturnableLineFacts>> {
+  const ids = orders.map((order) => order._id);
+  const [claimed, refunded, digital] = await Promise.all([
+    openReturnQuantitiesByOrder(ids),
+    refundedQuantitiesByOrder(ids),
+    nonReturnableItemIndexesOf(orders.map((order) => (order.items || []) as ReturnableItem[])),
+  ]);
+  return new Map(
+    orders.map((order, index) => {
+      const id = String(order._id);
+      return [
+        id,
+        {
+          claimed: claimed.get(id) ?? new Map(),
+          refunded: refunded.get(id) ?? new Map(),
+          digital: digital[index] ?? [],
+        },
+      ];
+    }),
+  );
+}
+
+async function loadOwnFacts(order: ReturnOrder, items: ReturnableItem[]): Promise<ReturnableLineFacts> {
+  const [claimed, refunded, digital] = await Promise.all([
+    openReturnQuantitiesByIndex(order._id),
+    refundedQuantitiesByIndex(order._id),
+    nonReturnableItemIndexes(items),
+  ]);
+  return { claimed, refunded, digital };
+}
+
 /**
  * Each line of an order and how much of it may still be returned, for the
  * dialog the store or a seller opens a return from. The same counts the
@@ -283,23 +345,15 @@ type ReturnLineBlock =
 export async function describeReturnableLines(
   order: ReturnOrder,
   settings: ISettings,
-  options: { onlyVendorId?: string } = {},
+  options: {
+    onlyVendorId?: string;
+    /** What the database says of this order, read for a whole list at once (`loadReturnableLineFacts`). */
+    facts?: ReturnableLineFacts;
+  } = {},
 ) {
-  const items = (order.items || []) as Array<{
-    productId?: unknown;
-    variantId?: unknown;
-    vendorId?: unknown;
-    name?: string;
-    image?: string;
-    price?: number;
-    quantity?: number;
-    finalSale?: boolean | null;
-  }>;
-  const [claimed, refunded, digital] = await Promise.all([
-    openReturnQuantitiesByIndex(order._id),
-    refundedQuantitiesByIndex(order._id),
-    nonReturnableItemIndexes(items),
-  ]);
+  const items = (order.items || []) as ReturnableItem[];
+  const facts: ReturnableLineFacts = options.facts ?? (await loadOwnFacts(order, items));
+  const { claimed, refunded, digital } = facts;
   const windowClosed = new Set(
     returnWindowClosedItemIndexes(order, settings as unknown as PlanSettings),
   );

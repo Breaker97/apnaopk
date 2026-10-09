@@ -5,7 +5,6 @@ import Link from "@/components/language/link";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
-  ChevronsUpDown,
   Circle,
   Download,
   Eye,
@@ -15,7 +14,6 @@ import {
   UserCheck,
   UserMinus,
   ShieldBan,
-  Upload,
 } from "lucide-react";
 import {
   DataTable,
@@ -34,6 +32,7 @@ import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
 import { useAdminPhrase } from "@/hooks/use-admin-phrase";
+import { resolveMemberStatus } from "@/lib/access/staff-member-status";
 
 interface StaffListItem {
   _id: string;
@@ -97,20 +96,6 @@ const PERMISSION_LABELS: Record<string, string> = {
   delete_inventory: "Delete Inventory",
   view_analytics: "Analytics",
 };
-
-/**
- * One Status column with a precedence: a suspended account outranks an
- * inactive one, which outranks a staff profile whose access is switched off.
- * The two underlying fields stay separate toggles on the edit page.
- */
-function resolveMemberStatus(row: StaffListItem) {
-  if (row.status === "banned") return "suspended" as const;
-  if (row.status === "inactive") return "inactive" as const;
-  if (row.staffProfile && !row.staffProfile.isActive) {
-    return "accessOff" as const;
-  }
-  return "active" as const;
-}
 
 /** The Orders list's badge: 12px, soft fill, square corners. */
 const BADGE_CLASS =
@@ -186,6 +171,32 @@ export function StaffDataTable({
     },
     [apiBasePath, confirm, list, t, tr],
   );
+
+  // The file is the view on screen — this search and this status tab — but all
+  // of it, not the page being shown; the route reads the same two params.
+  const handleExport = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (list.search) params.set("search", list.search);
+      if (list.activeTab && list.activeTab !== "all") {
+        params.set("status", list.activeTab);
+      }
+      const res = await fetch(`${apiBasePath}/export?${params.toString()}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `team-members-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success(tr("Team members exported", "টিম সদস্যদের তালিকা এক্সপোর্ট হয়েছে"));
+    } catch {
+      toast.error(tr("Team members could not be exported", "টিম সদস্যদের তালিকা এক্সপোর্ট করা যায়নি"));
+    }
+  }, [apiBasePath, list.activeTab, list.search, tr]);
 
   const handleBulkDelete = useCallback(
     async (items: StaffListItem[]) => {
@@ -350,7 +361,7 @@ export function StaffDataTable({
           // names, then the rest as a count that is never cut off.
           const shown = perms
             .slice(0, 2)
-            .map((p) => tr(PERMISSION_LABELS[p] || p))
+            .map((p) => PERMISSION_LABELS[p] ? tr(PERMISSION_LABELS[p]) : p)
             .join(", ");
           const remaining = perms.length - 2;
           return (
@@ -401,28 +412,17 @@ export function StaffDataTable({
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
         },
+        // Export only: the team is added one person at a time (each needs a
+        // role and an invitation), so there is no import to hang a menu on.
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: tr("Export", "এক্সপোর্ট"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: tr("Export", "এক্সপোর্ট"),
-              icon: <Download className="h-4 w-4" />,
-              disabled: true,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.productsDataTable.actions.import"),
-              icon: <Upload className="h-4 w-4" />,
-              disabled: true,
-            },
-          ],
+          onClick: handleExport,
         },
       }),
-    [staffBasePath, t, tr],
+    [handleExport, staffBasePath, tr],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<StaffListItem>[]>(

@@ -1,73 +1,14 @@
-import { unstable_cache } from "next/cache";
 import {
   BrandListView,
   type BrandListAppearance,
   type BrandListWidth,
   type BrandTile,
 } from "@/components/store/sections/brand-list-view";
-import { type Locale } from "@/config/i18n.config";
-import { CACHE_TAGS } from "@/lib/cache-invalidation";
-import { STOREFRONT_BRAND_FILTER } from "@/lib/catalog/brands";
-import { connectDB } from "@/lib/db";
-import { Brand } from "@/models";
-import { withFallback } from "@/lib/storefront/cached-read";
-
-const fetchBrands = withFallback(
-  unstable_cache(
-    async (featuredOnly: boolean, limit: number) => {
-      await connectDB();
-      const query: Record<string, unknown> = { isActive: true };
-      if (featuredOnly) query.featured = true;
-      const brands = await Brand.find(query)
-        .select("name slug logo")
-        .sort({ featured: -1, name: 1 })
-        .limit(limit)
-        .lean();
-      return JSON.parse(JSON.stringify(brands)) as {
-        _id: string;
-        name: string;
-        slug: string;
-        logo?: string;
-      }[];
-    },
-    ["section-brand-list"],
-    {
-      revalidate: 60,
-      tags: [CACHE_TAGS.brands],
-    },
-  ),
-  () => [],
-);
-
-/** Curated picks resolved by id, public-storefront brands only. */
-const fetchBrandsByIds = withFallback(
-  unstable_cache(
-    async (ids: string[]) => {
-      await connectDB();
-      const brands = await Brand.find({
-        _id: { $in: ids },
-        ...STOREFRONT_BRAND_FILTER,
-      })
-        .select("name slug logo")
-        .lean();
-      return JSON.parse(JSON.stringify(brands)) as {
-        _id: string;
-        name: string;
-        slug: string;
-        logo?: string;
-      }[];
-    },
-    ["section-brand-list-picks"],
-    {
-      revalidate: 60,
-      tags: [CACHE_TAGS.brands],
-    },
-  ),
-  () => [],
-);
+import { loadBrandList } from "@/lib/storefront/section-data/brands";
+import { vendorProductsPath } from "@/lib/storefront/section-data/product-source";
+import { getVendorStoreTaxonomy } from "@/lib/vendors/vendor-store-taxonomy";
 
 interface BrandListProps {
-  locale: Locale;
   /** Picked Brand ids in row order; empty falls back to the Brands DB. */
   brandIds: string[];
   appearance?: BrandListAppearance;
@@ -75,50 +16,55 @@ interface BrandListProps {
   width?: BrandListWidth;
   /** Shown instead of nothing when there are no brands at all (preview only). */
   emptyState?: React.ReactNode;
+  /**
+   * A vendor's landing page: only the brands that store sells (picked ones
+   * in row order, else its busiest ten), each opening the store's own
+   * Products tab filtered to the brand.
+   */
+  vendor?: { id: string; slug: string };
 }
 
-async function resolveTiles(
-  locale: Locale,
-  brandIds: string[],
-): Promise<BrandTile[]> {
-  if (brandIds.length > 0) {
-    const brands = await fetchBrandsByIds(Array.from(new Set(brandIds)));
-    const byId = new Map(brands.map((brand) => [brand._id, brand]));
-    // Row order is the merchant's order; a brand that fell off the public
-    // storefront (deactivated, archived) simply drops out of the strip.
-    return brandIds
-      .map((id) => byId.get(id))
-      .filter((brand): brand is NonNullable<typeof brand> => Boolean(brand))
-      .map((brand) => ({
-        key: brand._id,
-        image: brand.logo ?? "",
-        name: brand.name,
-        href: `/brands/${brand.slug}`,
-      }));
-  }
+/** Auto mode's cap — the same ten the store-wide strip shows. */
+const AUTO_BRAND_LIMIT = 10;
 
-  // Auto mode: sections without picks keep showing the store's Brands,
-  // featured first — falling back to all active brands so the strip isn't
-  // empty before anyone has starred one.
-  let brands = await fetchBrands(true, 10);
-  if (brands.length === 0) brands = await fetchBrands(false, 10);
-  return brands.map((brand) => ({
-    key: brand._id,
+async function vendorTiles(
+  brandIds: string[],
+  vendor: { id: string; slug: string },
+): Promise<BrandTile[]> {
+  const brands =
+    (await getVendorStoreTaxonomy(vendor.id).catch(() => null))?.brands ?? [];
+  const byId = new Map(brands.map((brand) => [brand.id, brand]));
+  // A pick the store no longer sells drops out, like a deactivated brand.
+  const rows =
+    brandIds.length > 0
+      ? Array.from(new Set(brandIds))
+          .map((id) => byId.get(id))
+          .filter((brand): brand is NonNullable<typeof brand> => Boolean(brand))
+      : brands.slice(0, AUTO_BRAND_LIMIT);
+  return rows.map((brand) => ({
+    key: brand.id,
     image: brand.logo ?? "",
     name: brand.name,
-    href: `/products?brand=${encodeURIComponent(brand.slug)}`,
+    href: vendorProductsPath(vendor.slug, { key: "brand", slug: brand.slug }),
   }));
 }
 
 /** The brand logo strip; each logo links through to its brand page. */
 export async function BrandList({
-  locale,
   brandIds,
   appearance = "cards",
   width = "fixed",
   emptyState = null,
+  vendor,
 }: BrandListProps) {
-  const tiles = await resolveTiles(locale, brandIds);
+  const tiles: BrandTile[] = vendor
+    ? await vendorTiles(brandIds, vendor)
+    : (await loadBrandList(brandIds)).map((brand) => ({
+        key: brand.id,
+        image: brand.logo,
+        name: brand.name,
+        href: brand.href,
+      }));
   if (tiles.length === 0) return <>{emptyState}</>;
 
   return <BrandListView tiles={tiles} appearance={appearance} width={width} />;

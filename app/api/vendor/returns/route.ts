@@ -13,6 +13,7 @@ import { ReturnRequest } from "@/models";
 import { escapeRegExp } from "@/lib/strings";
 import { withApi } from "@/lib/api/handler";
 import { withoutRefundDestinationUnlessPayer } from "@/lib/returns/refund-settlement";
+import { markWalkInReturns } from "@/lib/returns/return-walk-in";
 import { vendorReturnsFilter } from "@/lib/returns/return-stats";
 
 export const GET = withApi(
@@ -83,8 +84,10 @@ export const GET = withApi(
     ]);
 
     // A shopper's refund account only where this seller is the one paying it.
+    // A return on a walk-in POS sale names no customer: the seller is never
+    // handed the cashier in its place. See markWalkInReturns.
     return paginatedResponse(
-      returns.map(withoutRefundDestinationUnlessPayer),
+      await markWalkInReturns(returns.map(withoutRefundDestinationUnlessPayer)),
       page,
       limit,
       total,

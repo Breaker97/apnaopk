@@ -26,6 +26,8 @@ import {
   normalizeMaintenanceSettings,
 } from "@/lib/maintenance";
 import { getSettings, Settings } from "@/models/settings.model";
+import { isMobileApiPath, mobileGate } from "@/lib/api-core/gate";
+import { resolveMobileAppSettings } from "@/lib/settings/mobile-app";
 
 /**
  * The store's default language owns the unprefixed URLs (`/products`), every
@@ -79,6 +81,17 @@ const FALLBACK_PROXY_ROUTING: LocaleRouting = {
 };
 
 const STATIC_FILE_PATTERN = /\.[^/]+$/;
+/**
+ * The signed-link pages: `/order/address/{token}`, `/order/pay/{token}`,
+ * `/pre-order/manage/{token}` and `/pre-order/balance/{token}`, with a
+ * language prefix or without. Their token is `{orderId}.{signature}`
+ * (lib/payments/preorder-balance-link.ts), so the path ends in a "file
+ * extension" and was let through as a file — the matcher below skipped it
+ * too. The emails and notifications link without a prefix, so in the store's
+ * default language the page never got its language rewrite and answered 404.
+ */
+const SIGNED_LINK_PAGE_PATTERN =
+  /^\/(?:[a-z]{2}\/)?(?:order\/(?:address|pay)|pre-order\/(?:manage|balance))\/[^/]+$/;
 const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const PAGE_BYPASS_PREFIXES = ["/admin", "/login", "/role-redirect", "/forbidden"];
 const API_BYPASS_PREFIXES = [
@@ -116,6 +129,7 @@ type MaintenanceSnapshot = {
   logoUrl?: string;
   faviconUrl?: string;
   routing: LocaleRouting;
+  mobileApp: { shopEnabled: boolean; bizEnabled: boolean };
 };
 
 let maintenanceSnapshotCache:
@@ -125,6 +139,13 @@ let maintenanceSnapshotCache:
     }
   | undefined;
 let maintenanceSnapshotRefresh: Promise<MaintenanceSnapshot> | undefined;
+/**
+ * Which store the snapshot belongs to. Bumped once, when this process first
+ * sees the store installed (`isStoreInstalled`): a read that started before
+ * then describes the store as it was before the install and must not be
+ * cached after it.
+ */
+let snapshotGeneration = 0;
 
 function stripLocalePrefix(pathname: string) {
   const { rest } = splitLocalePath(pathname);
@@ -271,6 +292,15 @@ function toUncachedTwin(response: NextResponse, request: NextRequest) {
  * Both signals of the lock are read, exactly as `lib/install/status.ts`
  * reads them, so a store set up from the command line (`pnpm create-admin`,
  * `pnpm db:seed`) is recognized as installed too.
+ *
+ * The moment this process first sees the store installed, it forgets the
+ * settings snapshot. The buyer's own visit to /install warmed it with the
+ * PRE-install settings (English only, the default name), and serving those
+ * for another 15 s — or once more after expiry, stale-while-revalidate — sent
+ * a Turkish store's first sign-in to English. Every process notices on its
+ * own: each one reads the lock live until it has seen it, so no message
+ * between workers or serverless instances is needed, and no request after
+ * the install is ever routed by the store that existed before it.
  */
 let installLocked = false;
 
@@ -281,17 +311,33 @@ async function isStoreInstalled(): Promise<boolean> {
   // Two projected reads, not `getSettings()`: that one upserts the singleton,
   // and this runs on every page request until the store is set up.
   const [adminExists, settings] = await Promise.all([
-    User.exists({ role: USER_ROLES.ADMIN }),
+    // Either field: an admin held only in `roles` is still the store's admin.
+    User.exists({
+      $or: [{ role: USER_ROLES.ADMIN }, { roles: USER_ROLES.ADMIN }],
+    }),
     Settings.findOne({})
       .select("installedAt")
       .lean<{ installedAt?: Date } | null>(),
   ]);
 
-  installLocked = isInstallLocked({
+  const locked = isInstallLocked({
     adminExists: Boolean(adminExists),
     installedAt: settings?.installedAt ?? null,
   });
-  return installLocked;
+  // Only ever false → true: a slower read that started before the install
+  // must not flip a process that has already seen it back.
+  if (locked && !installLocked) {
+    installLocked = true;
+    forgetPreInstallSnapshot();
+  }
+  return locked;
+}
+
+/** Drop the snapshot, and orphan any refresh that is still reading the old store. */
+function forgetPreInstallSnapshot() {
+  snapshotGeneration += 1;
+  maintenanceSnapshotCache = undefined;
+  maintenanceSnapshotRefresh = undefined;
 }
 
 /**
@@ -362,6 +408,7 @@ function createMaintenanceHeaders(retryAfter?: number) {
 async function loadMaintenanceSnapshot(): Promise<MaintenanceSnapshot> {
   await connectDB();
   const settings = await getSettings();
+  const mobileApp = resolveMobileAppSettings(settings.mobileApp);
   return {
     maintenance: normalizeMaintenanceSettings(
       settings.maintenance,
@@ -372,6 +419,10 @@ async function loadMaintenanceSnapshot(): Promise<MaintenanceSnapshot> {
     logoUrl: settings.general?.logoUrl,
     faviconUrl: resolveFaviconUrl(settings.general?.faviconUrl),
     routing: resolveLocaleRouting(settings.general),
+    mobileApp: {
+      shopEnabled: mobileApp.shop.enabled,
+      bizEnabled: mobileApp.biz.enabled,
+    },
   };
 }
 
@@ -382,17 +433,25 @@ async function loadMaintenanceSnapshot(): Promise<MaintenanceSnapshot> {
  */
 function refreshMaintenanceSnapshot() {
   if (!maintenanceSnapshotRefresh) {
-    maintenanceSnapshotRefresh = loadMaintenanceSnapshot()
+    const generation = snapshotGeneration;
+    const refresh: Promise<MaintenanceSnapshot> = loadMaintenanceSnapshot()
       .then((value) => {
-        maintenanceSnapshotCache = {
-          expiresAt: Date.now() + MAINTENANCE_SETTINGS_TTL_MS,
-          value,
-        };
+        // Read before the install was seen: answer the request that asked,
+        // but never cache the store that no longer exists.
+        if (generation === snapshotGeneration) {
+          maintenanceSnapshotCache = {
+            expiresAt: Date.now() + MAINTENANCE_SETTINGS_TTL_MS,
+            value,
+          };
+        }
         return value;
       })
       .finally(() => {
-        maintenanceSnapshotRefresh = undefined;
+        if (maintenanceSnapshotRefresh === refresh) {
+          maintenanceSnapshotRefresh = undefined;
+        }
       });
+    maintenanceSnapshotRefresh = refresh;
   }
 
   return maintenanceSnapshotRefresh;
@@ -416,6 +475,52 @@ async function getMaintenanceSnapshot() {
   }
 
   return refreshMaintenanceSnapshot();
+}
+
+/**
+ * The mobile API (`/api/mobile/*`), before its routes: a switched-off API
+ * answers 404 for every path, and maintenance answers 503 to every method —
+ * reads included, because an app has no maintenance page of its own to fall
+ * back on. The rules are lib/api-core/gate.ts; this reads the settings for
+ * them. When the settings cannot be read the request goes on, and the route
+ * checks the switch itself.
+ */
+async function routeMobileApi(request: NextRequest) {
+  let snapshot: MaintenanceSnapshot;
+  try {
+    snapshot = await getMaintenanceSnapshot();
+  } catch {
+    return passThrough(request);
+  }
+
+  const { maintenance } = snapshot;
+  const answer = mobileGate({
+    pathname: request.nextUrl.pathname,
+    shopEnabled: snapshot.mobileApp.shopEnabled,
+    bizEnabled: snapshot.mobileApp.bizEnabled,
+    maintenance:
+      maintenance.enabled &&
+      !isAllowedMaintenanceIp(getClientIp(request), maintenance.allowedIPs)
+        ? {
+            title: maintenance.title,
+            message: maintenance.message,
+            backgroundImageUrl: maintenance.backgroundImageUrl,
+            countdownEnabled: maintenance.countdownEnabled,
+            countdownEndsAt: maintenance.countdownEndsAt,
+            retryAfterSeconds: maintenance.retryAfterSeconds,
+          }
+        : null,
+    requestId: crypto.randomUUID(),
+  });
+  if (!answer) return passThrough(request);
+
+  const headers =
+    answer.status === 503
+      ? createMaintenanceHeaders(maintenance.retryAfterSeconds)
+      : new Headers({ "Cache-Control": "no-store" });
+  for (const [name, value] of Object.entries(answer.headers)) headers.set(name, value);
+  if (answer.body.requestId) headers.set("X-Request-Id", answer.body.requestId);
+  return NextResponse.json(answer.body, { status: answer.status, headers });
 }
 
 /**
@@ -444,10 +549,15 @@ export async function proxy(request: NextRequest) {
   // maintenance allow-list below checks it; a client-sent value is replaced.
   stampClientIp(request.headers);
 
+  // Before the static-file test below, which would let a dotted mobile path
+  // (`/products/a.b`) walk past the mobile API's maintenance and switch.
+  if (isMobileApiPath(pathname)) return routeMobileApi(request);
+
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/_vercel/") ||
-    STATIC_FILE_PATTERN.test(pathname) ||
+    (STATIC_FILE_PATTERN.test(pathname) &&
+      !SIGNED_LINK_PAGE_PATTERN.test(pathname)) ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
     pathname === "/manifest.webmanifest" ||
@@ -550,9 +660,17 @@ export const config = {
   // /api/auth is listed on its own because the first pattern skips any path
   // with a dot in it, and Better Auth believes CLIENT_IP_HEADER only because
   // every auth request comes through here to have a client-sent one replaced.
+  // /api/mobile for the same reason, and because its maintenance and on/off
+  // answers are given here: `/products/a.b` must not walk past them.
   matcher: [
     "/((?!_next|_vercel|api/upload|.*\\..*).*)",
     "/",
     "/api/auth/:path*",
+    "/api/mobile/:path*",
+    // The signed-link pages, whose token holds a dot (SIGNED_LINK_PAGE_PATTERN).
+    "/order/:path*",
+    "/pre-order/:path*",
+    "/:locale/order/:path*",
+    "/:locale/pre-order/:path*",
   ],
 };

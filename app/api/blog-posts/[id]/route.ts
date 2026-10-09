@@ -7,6 +7,12 @@ import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { UpdateBlogPostSchema } from "@/lib/validations";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  BLOG_POST_CONTENT,
+  auditContentDeleted,
+  auditContentUpdated,
+} from "@/lib/site-config/audit-content";
 import { pickSubmittedKeys } from "@/lib/api/validate";
 import { slugify } from "@/lib/strings";
 
@@ -44,12 +50,18 @@ export const GET = withApi<{ id: string }>(
 
 export const PUT = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid post id");
     }
-    const before = await BlogPost.findById(id).select("slug publishedAt").lean();
+    // Everything the audit row compares the save against, besides what the
+    // write itself needs.
+    const before = await BlogPost.findById(id)
+      .select(
+        "slug publishedAt title excerpt content status visibility isFeatured allowComments scheduledFor tags categoryIds featuredImage seo",
+      )
+      .lean();
     if (!before) throw new NotFoundError("Post");
 
     const body = await request.json();
@@ -98,6 +110,16 @@ export const PUT = withApi<{ id: string }>(
       { returnDocument: "after" },
     ).lean();
     if (!post) throw new NotFoundError("Post");
+    await auditContentUpdated(
+      createAuditContext(request, session),
+      BLOG_POST_CONTENT,
+      { id: String(post._id), name: post.title },
+      before,
+      // Publishing stamps the date itself; only a date the editor sent is an edit.
+      data.publishedAt === undefined
+        ? { ...post, publishedAt: before.publishedAt }
+        : post,
+    );
     revalidateBlogContent({ slugs: [before.slug, post.slug] });
     return successResponse(post);
   },
@@ -105,12 +127,23 @@ export const PUT = withApi<{ id: string }>(
 
 export const DELETE = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid post id");
     }
-    const post = await BlogPost.findByIdAndDelete(id).select("slug").lean();
+    const post = await BlogPost.findByIdAndDelete(id)
+      .select("slug title status")
+      .lean();
+    // Deleting a post that is already gone answers success and changed nothing.
+    if (post) {
+      await auditContentDeleted(
+        createAuditContext(request, session),
+        BLOG_POST_CONTENT,
+        { id: String(post._id), name: post.title },
+        { title: post.title, slug: post.slug, status: post.status },
+      );
+    }
     revalidateBlogContent({ slugs: [post?.slug] });
     return successResponse({ deleted: true });
   },

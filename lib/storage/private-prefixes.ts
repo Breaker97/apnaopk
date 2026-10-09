@@ -2,10 +2,12 @@ import { DIGITAL_ASSET_KEY_ROOT } from "@/lib/products/digital-assets";
 import { VENDOR_DOCUMENT_KEY_PREFIX } from "@/lib/vendors/vendor-documents";
 import { EXPENSE_RECEIPT_KEY_PREFIX } from "@/lib/finance/expense-receipts";
 
+export const BIZ_PRIVATE_UPLOAD_PREFIX = "biz-private/";
+
 /**
  * Where private files' keys start: every `uploadPrivateFile` caller writes
  * under one of these — digital deliverables, vendor identity documents,
- * expense receipts. Public media keys start with the storage path prefix
+ * expense receipts, the business app's private uploads. Public media keys start with the storage path prefix
  * ("uploads/" unless changed), so the two sets never meet, which is how
  * `db:migrate private-storage` finds the private files in a shared bucket.
  */
@@ -13,6 +15,7 @@ export const PRIVATE_STORAGE_PREFIXES: readonly string[] = [
   DIGITAL_ASSET_KEY_ROOT,
   VENDOR_DOCUMENT_KEY_PREFIX,
   EXPENSE_RECEIPT_KEY_PREFIX,
+  BIZ_PRIVATE_UPLOAD_PREFIX,
 ];
 
 /**

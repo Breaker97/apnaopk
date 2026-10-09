@@ -1,11 +1,13 @@
 "use client";
+import { PayoutBreakdown } from "@/components/payouts/payout-breakdown";
 
 import Link from "@/components/language/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCurrency } from "@/providers/currency-provider";
+import { useCurrencyFormatter } from "@/providers/currency-provider";
 
 type Payload = {
   payout: {
@@ -28,6 +30,9 @@ type Payload = {
     periodEnd: string;
     createdAt: string;
     paidAt?: string;
+    reversedAt?: string;
+    breakdown?: Record<string, number>;
+    legacyCalculation?: boolean;
     note?: string;
   };
   orders: Array<{
@@ -45,32 +50,37 @@ export function VendorPayoutDetails({
 }: {
   payoutId: string;
 }) {
-  const { formatPrice } = useCurrency();
+  const t = useTranslations();
   const [data, setData] = useState<Payload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const formatPrice = useCurrencyFormatter(data?.payout.currency);
+  const [retry, setRetry] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
       setIsLoading(true);
+      setData(null);
       try {
         const res = await fetch(`/api/vendor/payouts/${payoutId}`);
         const json = await res.json().catch(() => null);
         if (!active) return;
         if (res.ok && json?.success) {
           setData(json.data as Payload);
-        }
-      } finally {
+          setError(null);
+        } else { setError(res.status === 404 ? t("finance.reliability.notFound") : t("finance.reliability.readError")); }
+      } catch { if (active) setError(t("finance.reliability.readError")); } finally {
         if (active) setIsLoading(false);
       }
     })();
     return () => {
       active = false;
     };
-  }, [payoutId]);
+  }, [payoutId, retry, t]);
 
-  if (isLoading) return <p className="text-muted-foreground">Loading payout details...</p>;
-  if (!data) return <p className="text-muted-foreground">Payout not found.</p>;
+  if (isLoading) return <p className="text-muted-foreground">{t("common.loading")}</p>;
+  if (!data) return <div className="space-y-3"><p role="alert" className="text-muted-foreground">{error || t("finance.reliability.notFound")}</p>{error && <Button variant="outline" onClick={() => setRetry((value) => value + 1)}>{t("common.retry")}</Button>}</div>;
 
   const payout = data.payout;
   // The commission deduction sits inside `adjustments`; it has its own card,
@@ -156,6 +166,10 @@ export function VendorPayoutDetails({
         <Metric title="Net Payout" value={formatPrice(payout.netAmount)} />
       </div>
 
+      {payout.breakdown && <PayoutBreakdown breakdown={payout.breakdown} currency={payout.currency} />}
+      {payout.legacyCalculation && <p className="text-muted-foreground">{t("finance.reliability.legacy")}</p>}
+      {payout.paidAt && <p>{t("finance.reliability.paidAt")}: {new Date(payout.paidAt).toLocaleString()}</p>}
+      {payout.reversedAt && <p>{t("finance.reliability.returnedAt")}: {new Date(payout.reversedAt).toLocaleString()}</p>}
       <Card>
         <CardHeader>
           <CardTitle>Orders Included</CardTitle>

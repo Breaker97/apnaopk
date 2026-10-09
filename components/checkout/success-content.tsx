@@ -134,7 +134,8 @@ export function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const { refreshCart } = useCartActions();
   const { isAuthenticated } = useAuth();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currency } = useCurrency();
+  const storeCurrency = currency.code;
 
   const sessionId = searchParams.get("session_id");
   const orderNumber = searchParams.get("order");
@@ -218,7 +219,8 @@ export function CheckoutSuccessContent() {
             trackPurchase({
               ...analyticsPayloadFromOrder(order),
               orderId: order.orderNumber || verifiedOrder || orderId,
-              currency: snapshot?.currency,
+              // The order's own currency first: it is what was charged.
+              currency: order.currency || snapshot?.currency || storeCurrency,
             });
             clearCheckoutAnalyticsSnapshot();
             return;
@@ -231,7 +233,7 @@ export function CheckoutSuccessContent() {
       if (!active) return;
 
       trackPurchase({
-        ...(snapshot || { currency: "USD", value: 0, items: [] }),
+        ...(snapshot || { currency: storeCurrency, value: 0, items: [] }),
         orderId: verifiedOrder || orderId || String(transactionId),
       });
       clearCheckoutAnalyticsSnapshot();
@@ -242,7 +244,9 @@ export function CheckoutSuccessContent() {
     return () => {
       active = false;
     };
-  }, [orderId, verificationState, verifiedOrder]);
+    // `storeCurrency` settles once, as the store's settings reach the page; a
+    // second run is harmless, since a purchase is reported once per order id.
+  }, [orderId, storeCurrency, verificationState, verifiedOrder]);
 
   useEffect(() => {
     async function verifyStripePayment() {

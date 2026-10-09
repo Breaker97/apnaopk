@@ -164,7 +164,9 @@
       "empty": "No countries found.",
       "clear": "Clear country",
       "selected": "{count, plural, one {# country selected} other {# countries selected}}",
-      "remove": "Remove {country}"
+      "remove": "Remove {country}",
+      "lockedHint": "We deliver to {country} only.",
+      "replaced": "Saved as {previous}, which is no longer one of the store's countries. Saving will change it to {current}."
     }
   },
   "ui": {
@@ -335,7 +337,44 @@
     "storeCreditFromStore": "From the store",
     "storeCreditEmpty": "You have no store credit.",
     "storeCreditBalance": "Available",
-    "storeCreditExpires": "{amount} expires {date}"
+    "storeCreditExpires": "{amount} expires {date}",
+    "deleteAccount": {
+      "title": "Delete account",
+      "description": "Close your account and erase your personal details. This cannot be undone.",
+      "whatGoes": "Your profile, addresses, sign-in details, cart, wishlist, reviews, notifications, followed stores and waiting-list places are deleted, and you are signed out everywhere.",
+      "whatStays": "Your orders, returns and store credit stay with the store as its financial records.",
+      "button": "Delete my account",
+      "confirmTitle": "Delete your account?",
+      "confirmDescription": "Enter your password to confirm. Your account is deleted at once and cannot be restored.",
+      "password": "Password",
+      "cancel": "Cancel",
+      "confirm": "Delete account",
+      "errors": {
+        "wrongPassword": "That password is incorrect.",
+        "signInAgain": "For your account's safety, sign out and sign in again, then delete your account within ten minutes.",
+        "notAllowed": "This account also runs or helps run the store, so it cannot be deleted here. Contact the store to close it.",
+        "generic": "Your account could not be deleted. Please try again."
+      }
+    },
+    "deletionPage": {
+      "breadcrumb": "Delete your account",
+      "title": "Delete your {storeName} account",
+      "intro": "You can delete your {storeName} account, and the personal details kept with it, at any time.",
+      "inAppTitle": "In the app",
+      "inAppSteps": "In the {storeName} app, sign in, open Account and choose Delete account. Enter your password to confirm.",
+      "onWebTitle": "On this website",
+      "onWebSteps": "Sign in, go to Account, then Security, and choose Delete my account. Enter your password to confirm.",
+      "onWebButton": "Go to Security",
+      "cannotSignInTitle": "If you cannot sign in",
+      "cannotSignInReset": "<reset>Reset your password</reset> first, then delete your account as above.",
+      "cannotSignInEmail": "Or write to <email></email> from the email address on your account, asking for it to be deleted.",
+      "cannotSignInContact": "Or <contact>contact the store</contact> from the email address on your account, asking for it to be deleted.",
+      "emailSubject": "Please delete my {storeName} account",
+      "whatGoesTitle": "What is deleted",
+      "whatGoes": "Your profile, saved addresses, sign-in details (password and two-step verification), cart, wishlist, reviews, notifications, registered devices, followed stores, pre-order waiting lists, unfinished checkouts and chats with the shopping assistant. Your name and contact details are removed from your support conversations, and your email address and connection details from your blog comments, which stay under the name you posted them with. You are signed out on every device. This happens at once and cannot be undone.",
+      "whatStaysTitle": "What the store keeps",
+      "whatStays": "Your orders, with the details on them, and your returns, quote requests and store credit stay with the store as its financial records, which it has to keep."
+    }
   },
   "customerProfile": {
     "loyaltyPoints": "Points",
@@ -364,6 +403,11 @@
     "marketingPreferences": "Marketing Preferences",
     "marketingOptIn": "Marketing Emails",
     "marketingOptInDesc": "Receive marketing communications and special offers",
+    "pushNotifications": "App Notifications",
+    "pushOrderUpdates": "Orders & Returns",
+    "pushOrderUpdatesDesc": "Your orders, payments, returns, quotes and store credit",
+    "pushMessages": "Messages",
+    "pushMessagesDesc": "Replies from the store in chat",
     "totalSpent": "Total Spent",
     "avgOrderValue": "Avg. Order Value",
     "memberSince": "Member Since"
@@ -594,6 +638,11 @@
     "invalidResetLinkDescription": "This password reset link is invalid or has expired.",
     "passwordResetSuccess": "Password reset successful",
     "passwordResetSuccessDescription": "Your password has been updated. You can now sign in.",
+    "setYourPassword": "Set your password",
+    "setYourPasswordDescription": "Choose a password for your account",
+    "setPassword": "Set password",
+    "passwordSetSuccess": "Password set",
+    "passwordSetSuccessDescription": "Your password is set. You can now sign in.",
     "requestNewLink": "Request a new link",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
@@ -620,8 +669,8 @@
     "createAccountDescription": "Enter your details to get started",
     "oauthCustomerOnly": "OAuth sign-in is only available for customer accounts.",
     "vendorRole": "Vendor",
-    "thisEmail": "this email",
     "oauthRoleConflict": "This email ({email}) is already registered as a {role} account. Please sign in using the {role} login method, or choose a different Google/Facebook account.",
+    "oauthRoleConflictNoEmail": "This email is already registered as a {role} account. Please sign in using the {role} login method, or choose a different Google/Facebook account.",
     "loginRequired": "Please log in to continue",
     "errors": {
       "invalidCredentials": "Wrong email or password.",
@@ -630,7 +679,14 @@
       "durationMinutes": "{count, plural, one {# minute} other {# minutes}}",
       "durationSeconds": "{count, plural, one {# second} other {# seconds}}",
       "tooManyRequests": "Too many attempts from this device. Wait a minute, then try again.",
-      "invalidCredentialsWithAttempts": "Wrong email or password. {count, plural, one {# attempt} other {# attempts}} left before this account is locked."
+      "invalidCredentialsWithAttempts": "Wrong email or password. {count, plural, one {# attempt} other {# attempts}} left before this account is locked.",
+      "oauthCancelled": "Sign-in was cancelled. You can try again at any time.",
+      "oauthSessionExpired": "Your sign-in session expired or could not be verified. Please try again.",
+      "oauthEmailMissing": "That account did not share an email address. Allow email access when asked, or sign in with your email and password.",
+      "oauthAccountExists": "An account with this email already exists. Sign in with your email and password instead.",
+      "oauthEmailNotVerified": "Please verify your email address before signing in.",
+      "oauthAccountInactive": "This account is inactive or has been banned. Contact support.",
+      "oauthFailed": "We could not sign you in with that account. Try again, or sign in with your email and password."
     }
   },
   "home": {
@@ -682,7 +738,35 @@
     "nextSlide": "Next slide",
     "pauseSlideshow": "Pause slideshow",
     "playSlideshow": "Play slideshow",
-    "goToSlide": "Go to slide"
+    "goToSlide": "Go to slide",
+    "productSourcePreview": {
+      "title": {
+        "category": "Category products",
+        "brand": "Brand products",
+        "collection": "Collection products",
+        "tabs": "Product tabs",
+        "hiddenTabs": "Hidden tabs"
+      },
+      "unpicked": {
+        "category": "Pick a category for this section. It shows the category's products and those of every category below it.",
+        "brand": "Pick a brand for this section.",
+        "collection": "Pick a collection for this section."
+      },
+      "unavailable": {
+        "category": "The picked category was deleted or is switched off. Pick another one.",
+        "brand": "The picked brand was deleted, archived, switched off or is not approved. Pick another one.",
+        "collection": "The picked collection was deleted, is a draft, or is not published to the online store. Pick another one."
+      },
+      "empty": {
+        "category": "Neither the picked category nor any category below it has products to show yet.",
+        "brand": "The picked brand has no products to show yet.",
+        "collection": "The picked collection has no products to show yet."
+      },
+      "hiddenSection": "Shoppers don't see this section until it has products.",
+      "hiddenTabs": "Shoppers don't see these tabs until they have products.",
+      "hiddenTab": "“{label}” tab: {reason}",
+      "untitledTab": "Untitled"
+    }
   },
   "features": {
     "wideSelection": "Wide Selection",
@@ -918,7 +1002,12 @@
     "orderPromptOne": "Share a quick review of {name} — it helps other shoppers.",
     "orderPromptMany": "{count} items from this order are waiting for your review.",
     "youRated": "You rated this",
-    "alreadyReviewed": "You have already reviewed this product. Thank you for sharing your experience!"
+    "alreadyReviewed": "You have already reviewed this product. Thank you for sharing your experience!",
+    "publishedImmediately": "Your review shows on the product page as soon as you post it.",
+    "publishedAfterModeration": "Your review shows once the store has approved it.",
+    "statusPublished": "Published",
+    "statusPending": "Waiting for the store's approval",
+    "statusRejected": "Not published by the store"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -975,7 +1064,25 @@
     "removed": "Coupon removed",
     "placeholder": "Enter coupon code",
     "apply": "Apply",
-    "freeShippingApplied": "Free shipping applied"
+    "freeShippingApplied": "Free shipping applied",
+    "upTo": "Up to {amount} off",
+    "selectedProductsOnly": "Selected products only",
+    "sellerOnly": "Only on products from {seller}",
+    "oncePerCustomer": "Once per customer",
+    "usesPerCustomer": "{count} uses per customer",
+    "refusedNotFound": "This code doesn't exist",
+    "refusedNotActive": "This code is not active",
+    "refusedNotStartedYet": "This code is not active yet",
+    "refusedNotStarted": "Starts {date}",
+    "refusedExpired": "This code has expired",
+    "refusedUsedUp": "This code has been fully claimed",
+    "refusedAlreadyUsed": "You've already used this code",
+    "refusedSpendMore": "Add {amount} more to use this code",
+    "refusedMinimum": "Your order is below this code's minimum",
+    "refusedNotForCart": "Not for the items in your cart",
+    "refusedQuoted": "Codes can't be used on a quoted price",
+    "refusedShippingFree": "Delivery is already free on this order",
+    "refusedNoSellerDelivery": "This code covers one seller's delivery, and there is none in this order"
   },
   "validation": {
     "required": "This field is required",
@@ -1168,7 +1275,19 @@
     "shipmentChanged": "Changed",
     "storeCredit": "Store credit",
     "useStoreCredit": "Use my store credit ({amount} available)",
-    "storeCreditCoversOrder": "Your store credit covers this order — nothing else to pay."
+    "storeCreditCoversOrder": "Your store credit covers this order — nothing else to pay.",
+    "staffNotice": {
+      "adminTitle": "You're signed in as an admin",
+      "vendorTitle": "You're signed in as a seller",
+      "staffTitle": "You're signed in as a team member",
+      "body": "Orders on the store are placed from a customer account.",
+      "createOrder": "Create order",
+      "goToDashboard": "Go to dashboard",
+      "signOut": "Sign out",
+      "hint": "To test checkout, sign out and use a different email."
+    },
+    "emailNotAllowed": "This email can't be used for checkout. Please use a different email.",
+    "storeNotReady": "This store can't take orders right now. Please try again later."
   },
   "orders": {
     "title": "My Orders",
@@ -1240,7 +1359,8 @@
       "processing": "Payment received. Your order will update shortly.",
       "reversed": "Your card was charged but the balance could not be applied to this order, so the payment was refunded. Please contact us.",
       "failed": "Payment failed",
-      "deadline": "Pay by {date}, or we will cancel the pre-order and refund what you have paid."
+      "deadline": "Pay by {date}, or we will cancel the pre-order and refund what you have paid.",
+      "autoCharge": "As you authorised, we will charge your saved card on or after {date} unless you pay first."
     },
     "payment": {
       "pending": "Payment pending",
@@ -1369,6 +1489,12 @@
         "accountNamePlaceholder": "Exactly as it appears on the account",
         "cashNote": "The store will arrange handing the refund to you in person."
       },
+      "blocked": {
+        "RETURN_WINDOW_CLOSED": "The return window for this order has closed.",
+        "FINAL_SALE": "These items were sold as final sale and cannot be returned.",
+        "NOT_RETURNABLE": "Nothing on this order can be returned right now.",
+        "RETURNS_THROUGH_STORE": "This store takes returns through its team. Contact the store to return an item."
+      },
       "shipping": {
         "nothingToSend": "You don't need to send anything back.",
         "sendTo": "Send it to",
@@ -1423,6 +1549,255 @@
     "aiStudio": "AI Studio"
   },
   "admin": {
+    "csvImport": {
+      "wrongType": "Choose a .csv file.",
+      "fileTooLarge": "This file is larger than {size} MB. Split it into smaller files and import them one at a time.",
+      "tooManyRows": "This file has {count} rows; one import takes up to {max}. Split it into smaller files.",
+      "emptyFile": "This file has no rows to import.",
+      "readFailed": "The file could not be read.",
+      "requestFailed": "The request failed. Try again.",
+      "dropTitle": "Drop a CSV file here, or click to choose one",
+      "dropHint": "Up to {rows} rows and {size} MB",
+      "removeFile": "Remove file",
+      "check": "Check file",
+      "checking": "Checking rows {done} of {total}…",
+      "previewTitle": "Ready to import",
+      "previewDescription": "{file} — nothing has been saved yet.",
+      "import": "Import",
+      "back": "Back",
+      "cancel": "Cancel",
+      "importing": "Importing rows {done} of {total}…",
+      "keepOpen": "Keep this tab open until the import ends. Closing it stops the import; rows already imported stay.",
+      "stop": "Stop",
+      "stopping": "Stopping after this batch…",
+      "doneTitle": "Import finished",
+      "stoppedTitle": "Import stopped",
+      "stoppedNote": "Run the same file again to finish. Rows already imported are matched and skipped.",
+      "failedNote": "The import stopped because a request failed: {error}",
+      "nothingToImport": "Nothing in this file would be created or updated.",
+      "problemsTitle": "Rows to check ({count})",
+      "downloadProblems": "Download as CSV",
+      "moreProblems": "{count} more in the CSV",
+      "rowLabel": "Row {row}",
+      "importAnother": "Import another file",
+      "done": "Done",
+      "counts": {
+        "toCreate": "To create",
+        "toUpdate": "To update",
+        "created": "Created",
+        "updated": "Updated",
+        "skipped": "Skipped",
+        "errors": "Errors"
+      },
+      "status": {
+        "create": "New",
+        "update": "Update",
+        "skip": "Skipped",
+        "error": "Error"
+      },
+      "csv": {
+        "row": "Row",
+        "key": "Matched by",
+        "result": "Result",
+        "message": "Message"
+      }
+    },
+    "customerImport": {
+      "title": "Import customers",
+      "description": "Add customers from a CSV file: your own, or a customer export from Shopify or WooCommerce.",
+      "sourceHint": "Start from the template, or upload a Shopify or WooCommerce customer export as it is.",
+      "downloadTemplate": "Download template",
+      "guide": {
+        "columnsTitle": "Columns",
+        "columns": {
+          "firstName": "The customer's first name.",
+          "lastName": "The customer's last name.",
+          "email": "Finds the customer. A row without an email needs a phone number.",
+          "phone": "Mobile number, with its country code or written the way the address's country writes it.",
+          "acceptsEmailMarketing": "yes or no. yes subscribes the email address to marketing.",
+          "acceptsSmsMarketing": "yes or no. yes subscribes the phone number to text marketing.",
+          "address1": "Street and house number.",
+          "address2": "Apartment, suite or floor.",
+          "city": "City.",
+          "provinceCode": "State or province code, for example CA.",
+          "countryCode": "Two-letter country code, for example US.",
+          "zip": "Postal code.",
+          "addressPhone": "Phone number for deliveries to this address.",
+          "tags": "Tags, separated by commas.",
+          "note": "A note only your team sees."
+        },
+        "otherPlatforms": "Shopify's customer export and WooCommerce's billing columns are read as they are. Total Spent, Total Orders and Tax Exempt are not imported: totals here count the orders placed in this store.",
+        "rulesTitle": "How rows are imported",
+        "rules": {
+          "match": "Customers are matched by email, or by phone when a row has no email. Customers already in your store are skipped unless Update existing customers is on.",
+          "duplicates": "When a file lists the same customer twice, the last row is used.",
+          "consent": "yes subscribes customers who have not answered yet. Anyone who unsubscribed, bounced or asked not to be emailed stays as they are.",
+          "address": "An address in a country your store does not sell to is left out; the customer is still imported.",
+          "rerun": "Importing the same file again is safe: nobody is created twice."
+        }
+      },
+      "options": {
+        "updateExisting": "Update existing customers",
+        "updateExistingHint": "Customers already in your store get the file's details. Empty cells keep what is saved.",
+        "updateExistingDenied": "Needs the Edit customers permission and access to every customer.",
+        "tag": "Tag",
+        "tagHint": "Added to every customer this import creates or updates.",
+        "tagInvalid": "Use one tag of up to {max} characters, without commas.",
+        "sendInvites": "Send account invites",
+        "sendInvitesHint": "Customers this import creates get an email with a link to set their password."
+      },
+      "result": {
+        "tagged": "Find these customers with the tag {tag}.",
+        "invitesQueued": "{count, plural, one {# account invite is} other {# account invites are}} on the way.",
+        "invitesNotSent": "No invites were sent because the import stopped. Filter the list by the tag {tag} and send them from there."
+      },
+      "messages": {
+        "file_no_key_column": "The file needs an Email or a Phone column. It starts with: {headers}.",
+        "file_columns_not_imported": "Not imported: {columns}.",
+        "file_columns_unknown": "Columns not recognised and left out: {columns}.",
+        "email_invalid": "{email} is not a valid email address.",
+        "phone_invalid_no_email": "The row has no email, and {phone} is not a valid phone number.",
+        "no_email_or_phone": "The row has no email and no phone number.",
+        "phone_invalid": "Phone {phone} is not a valid number and was left out.",
+        "address_phone_invalid": "Address phone {phone} is not a valid number and was left out.",
+        "address_country_unknown": "Country {country} was not recognised, so the address was left out.",
+        "address_country_not_allowed": "Your store does not sell to {country}, so the address was left out.",
+        "address_incomplete": "The address is missing a street, city, country or postal code, so it was left out.",
+        "tags_too_long": "{count, plural, one {# tag is longer than {max} characters and was} other {# tags are longer than {max} characters and were}} left out.",
+        "tags_too_many": "Only the first {max} tags were imported.",
+        "name_too_long": "The name was shortened to {max} characters.",
+        "consent_value_unclear": "\"{value}\" is not yes or no, so it was read as no.",
+        "sms_consent_no_phone": "Text marketing needs a valid phone number, so it was not turned on.",
+        "note_too_long": "The note was shortened to {max} characters.",
+        "consent_suppressed": "This address asked not to be emailed, so it was not subscribed.",
+        "consent_kept": "Email marketing stays {state}; the file does not change it.",
+        "sms_consent_kept": "Text marketing stays {state}; the file does not change it.",
+        "staff_account": "This email belongs to a team member, seller or admin account.",
+        "exists": "Already a customer.",
+        "phone_on_account": "This phone number belongs to an account. Add this customer with an email instead.",
+        "duplicate_in_file": "The same customer appears again in row {row}, and that row is used.",
+        "phone_not_saved": "The phone number was not saved: this customer has no account or address to keep it on.",
+        "write_failed": "This row could not be saved."
+      },
+      "consentStates": {
+        "unsubscribed": "unsubscribed",
+        "invalid": "invalid",
+        "redacted": "erased"
+      },
+      "export": {
+        "preparing": "Preparing the customer export…",
+        "done": "Customers exported",
+        "failed": "Customers could not be exported"
+      }
+    },
+    "vendorImport": {
+      "title": "Import vendors",
+      "description": "Bring stores and their owners over from another marketplace with a CSV file.",
+      "sourceHint": "Start from the template, or from a vendors export of {storeName}.",
+      "downloadTemplate": "Download template",
+      "guide": {
+        "columnsTitle": "Columns",
+        "required": "Required",
+        "columns": {
+          "storeName": "The store's name, as shoppers see it.",
+          "ownerEmail": "The owner's email. They sign in with it, and the invitation goes to it.",
+          "ownerName": "The owner's full name.",
+          "ownerPhone": "The owner's phone number.",
+          "slug": "The store's web address, e.g. green-leaf. Finds the store to update. Made from the store name when empty.",
+          "description": "About the store, up to 1000 characters.",
+          "logoUrl": "A public https:// link to the logo. The picture is copied into your media library.",
+          "bannerUrl": "A public https:// link to the banner. The picture is copied into your media library.",
+          "storePhone": "The store's own phone number.",
+          "street": "Street and number.",
+          "city": "City.",
+          "state": "State or province.",
+          "postalCode": "Postal code.",
+          "country": "Country name or two-letter code, e.g. BD.",
+          "plan": "A free plan's name or slug. Empty: your default plan.",
+          "commission": "The store's commission in percent, e.g. 12.5. Empty: its plan's rate or your default.",
+          "verified": "yes or no: show the Verified badge on the store.",
+          "notes": "Notes only your team sees."
+        },
+        "notImported": "Bank details, payout settings and verification documents are never imported. Vendors add them after signing in.",
+        "rulesTitle": "How rows are imported",
+        "rules": {
+          "match": "Stores are matched by slug, then by owner email. Stores already in your marketplace are skipped unless Update existing vendors is on.",
+          "owner": "An email that belongs to an admin, a team member or the owner of another store is refused. A customer with that email becomes the owner.",
+          "plan": "A paid plan needs the vendor's own payment, so those stores get your default plan instead.",
+          "rerun": "Importing the same file again is safe: no store is created twice."
+        }
+      },
+      "options": {
+        "updateExisting": "Update existing vendors",
+        "updateExistingHint": "Stores already in your marketplace get the file's details. Empty cells keep what is saved.",
+        "startAs": "Imported vendors start as",
+        "startAsApproved": "Approved",
+        "startAsPending": "Pending review",
+        "startAsApprovedHint": "Owners get an email to set their password and can sell right away.",
+        "startAsPendingHint": "Nothing is sent now. An owner without a password gets the invitation when you approve the store."
+      },
+      "result": {
+        "invitesQueued": "{count, plural, one {# owner is getting} other {# owners are getting}} an email to set their password."
+      },
+      "messages": {
+        "file_missing_columns": "The file needs these columns: {columns}.",
+        "file_columns_not_imported": "Not imported: {columns}.",
+        "file_columns_unknown": "Columns not recognised and left out: {columns}.",
+        "row_missing": "{column} is empty.",
+        "row_email_invalid": "{value} is not a valid email address.",
+        "row_too_long": "{column} is longer than {max} characters.",
+        "row_slug_invalid": "{value} cannot be a store slug. Use letters, numbers and dashes.",
+        "row_slug_reserved": "{value} is reserved for your own store.",
+        "row_image_invalid": "{column} is not a link.",
+        "row_image_not_https": "{column} must start with https://.",
+        "row_commission_invalid": "Commission {value} is not a percentage from 0 to 100.",
+        "row_verified_invalid": "Verified {value} is not yes or no.",
+        "row_country_not_available": "{country} is not one of your store's countries, so the address was saved without it.",
+        "row_slug_taken": "The slug {slug} belongs to another owner's store.",
+        "row_default_store": "This is your own store, which an import cannot change.",
+        "row_owner_team": "This email belongs to an admin or a team member.",
+        "row_owner_has_store": "This email already owns a store.",
+        "row_owner_banned": "This email belongs to a banned account.",
+        "row_owner_inactive": "This email belongs to a deactivated account.",
+        "row_plan_not_found": "No plan is called {plan}.",
+        "row_plan_ambiguous": "Several plans are called {plan}. Use its slug.",
+        "row_plan_archived": "{plan} is archived, so the default plan was used.",
+        "row_plan_paid": "{plan} is a paid plan, so the default plan was used. The vendor can switch after signing in.",
+        "row_plan_kept_paid": "The store is paying for its plan, so it was not moved to {plan}.",
+        "row_image_failed": "{column} could not be copied: {reason}.",
+        "row_duplicate_in_file": "An earlier row in the file is the same store.",
+        "row_failed": "The row could not be imported. {message}",
+        "run_default_plan_paid": "Your default plan, {plan}, is a paid plan, so new stores got no plan.",
+        "run_plans_off": "Vendor plans are switched off, so the Plan column was left out."
+      },
+      "imageReasons": {
+        "invalid_url": "it is not a valid link",
+        "not_https": "the link must start with https://",
+        "private_address": "the link points to a private network",
+        "unreachable": "the site could not be reached",
+        "too_many_redirects": "the link redirects too many times",
+        "http_error": "the site answered with an error",
+        "timeout": "the site did not answer in time",
+        "not_image": "the link is not an image",
+        "too_large": "the image is too large",
+        "unreadable": "it is not an image the store can use"
+      },
+      "export": {
+        "preparing": "Preparing the vendor export…",
+        "done": "Vendors exported",
+        "failed": "Vendors could not be exported"
+      },
+      "invites": {
+        "progress": "Sending owner invitations · {done} of {total}",
+        "progressFailed": "{count} couldn't be sent",
+        "finished": "{count, plural, one {# owner invitation sent} other {# owner invitations sent}}",
+        "finishedWithFailures": "{failed} of {total} owner invitations couldn't be sent.",
+        "retry": "Retry",
+        "dismiss": "Dismiss",
+        "emailNotSetUp": "Email isn't set up yet. Set it up in Settings → Email first.",
+        "sendFailed": "The email couldn't be sent. Check Settings → Email."
+      }
+    },
     "quotesPage": {
       "title": "Quotes",
       "searchPlaceholder": "Search customer, company, email or product",
@@ -1487,7 +1862,8 @@
         "expiredOn": "Expired {date}",
         "lost": "Marked lost",
         "withdrawnOn": "Withdrawn {date}",
-        "keptWithOrder": "Kept with its order"
+        "keptWithOrder": "Kept with its order",
+        "contactHidden": "Contact hidden by the store"
       },
       "empty": {
         "all": "No quote requests yet. They arrive when a shopper asks for a price on a product marked Price on request.",
@@ -1559,7 +1935,12 @@
         "history": "History",
         "internalNote": "Internal note",
         "internalNotePlaceholder": "Only staff see this note",
-        "saveNote": "Save note"
+        "saveNote": "Save note",
+        "contactHidden": "Hidden by the store",
+        "vendorNote": "Vendor note",
+        "vendorNotePlaceholder": "Your own note on this quote. The store can read it; the customer can't.",
+        "vendorNoteReadOnly": "Written by the vendor. Only the vendor can change it.",
+        "lockedByStore": "The store has taken over this quote, so its price is the store's to set. You can still read it and keep your own note."
       },
       "price": {
         "openUntil": "Open until {date}",
@@ -1619,7 +2000,13 @@
         "sendFailed": "Failed to send the price",
         "chooseVariantError": "Choose which variant the price is for",
         "priceError": "Enter a price above zero",
-        "quantityError": "Enter the quantity this price covers"
+        "quantityError": "Enter the quantity this price covers",
+        "guestNoteHidden": "{name} is a guest. The store emails them the price; they sign in with the address they asked with to buy it.",
+        "storeFinal": "The store can replace your price with its own, and the store's price is final."
+      },
+      "by": {
+        "admin": "Store",
+        "vendor": "Vendor"
       }
     },
     "returnsPage": {
@@ -1830,7 +2217,8 @@
         "archived": "Archived"
       },
       "filters": {
-        "orderStatus": "Order status"
+        "orderStatus": "Order status",
+        "date": "Date"
       },
       "bulk": {
         "cancelTitle": "Cancel orders",
@@ -2120,7 +2508,9 @@
       "refundStoreCreditAll": "All of it",
       "refundStoreCreditRest": "Whatever isn't given as credit goes back to the original payment.",
       "refundStoreCreditInvalid": "Enter how much to give as store credit, or leave it blank for all of it.",
-      "refundToOriginalCreditFirst": "The {amount} paid with store credit goes back as store credit first."
+      "refundToOriginalCreditFirst": "The {amount} paid with store credit goes back as store credit first.",
+      "walkInCustomer": "Walk-in customer",
+      "soldBy": "Sold by {name}"
     },
     "analyticsPage": {
       "subtitle": "Store performance & website traffic",
@@ -2199,6 +2589,13 @@
       "goodAfternoon": "Good afternoon, {name}.",
       "goodEvening": "Good evening, {name}.",
       "subtitle": "Here's what's happening with your store today.",
+      "subtitleFor": {
+        "yesterday": "Here's what happened with your store yesterday.",
+        "week": "Here's what's happening with your store over the last 7 days.",
+        "month": "Here's what's happening with your store this month.",
+        "all": "Here's how your store has done all time.",
+        "custom": "Here's what happened with your store from {from} to {to}."
+      },
       "orders": "orders",
       "cases": "cases",
       "refundsCount": "refunds",
@@ -2245,7 +2642,26 @@
         "refunds": "Refunds",
         "inStore": "In-store",
         "online": "Online",
-        "newThisMonth": "{count} new this month"
+        "newThisMonth": "{count} new this month",
+        "newInPeriod": "{count} new in period"
+      },
+      "period": {
+        "title": "Period",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "week": "Last 7 days",
+        "month": "This month",
+        "all": "All time",
+        "custom": "Custom range",
+        "days": "{count} days",
+        "pickTwo": "Pick a start and an end"
+      },
+      "granularity": {
+        "hour": "Hourly",
+        "day": "Daily",
+        "week": "Weekly",
+        "month": "Monthly",
+        "year": "Yearly"
       },
       "status": {
         "pending": "Pending",
@@ -2325,7 +2741,9 @@
       "toggle": "Toggle sidebar",
       "landmark": "Primary",
       "mobileTitle": "Menu",
-      "mobileDescription": "Links to every part of the dashboard."
+      "mobileDescription": "Links to every part of the dashboard.",
+      "activityLog": "Activity log",
+      "staffMembers": "Members"
     },
     "pos": "Point of Sale",
     "posLocations": "POS Locations",
@@ -2769,7 +3187,19 @@
         "hiddenPricingHelp": "Shoppers see “Price on request” and a quote button instead of a price, and this product cannot be added to a cart. Turn the switch below off to price it normally.",
         "switchedOff": "Price on request is switched off in Settings → Products. This product keeps it until you turn it off here."
       },
-      "finalSaleHelp": "Shoppers can't return it. A variant can be set on its own."
+      "finalSaleHelp": "Shoppers can't return it. A variant can be set on its own.",
+      "formOptions": {
+        "failedTitle": "Categories, brands and stock locations could not be loaded",
+        "failedBody": "Your changes are kept. You can save the product once they have loaded.",
+        "failedAfterLoadedBody": "The lists loaded earlier are still shown and may be out of date.",
+        "storeProfileMissing": "The store profile these lists belong to is missing. An admin creates it by saving Settings → General Settings; then click Retry. Your changes are kept.",
+        "storeProfileNoOwner": "The store profile these lists belong to can't be created: every admin account already owns a seller store, and a store has one owner. Add an admin account that owns no store, then click Retry. Your changes are kept.",
+        "storeProfileNeedsReview": "The store profile these lists belong to is missing, and an older one probably exists under an admin's own store. A developer can review it with pnpm db:migrate house-profile --dry-run, then click Retry. Your changes are kept.",
+        "retry": "Retry",
+        "loadingCategories": "Loading categories…",
+        "categoriesUnavailable": "Categories could not be loaded. Use Retry above.",
+        "saveBlocked": "The product can be saved once the categories, brands and stock locations have loaded."
+      }
     },
     "settings": {
       "title": "Settings",
@@ -2800,7 +3230,7 @@
         "storeCurrencyHint": "Every price, order and payout is in this currency. Changing it relabels prices; it does not convert them.",
         "countries": {
           "title": "Available countries",
-          "description": "Control the country lists used across checkout, vendor onboarding, addresses, shipping, and product forms.",
+          "description": "Control the country lists used across checkout, vendor onboarding, addresses and shipping. With only one country selected, delivery address fields show it and it can't be changed.",
           "all": "All countries",
           "allHint": "Show every supported country ({count}) in all country pickers.",
           "specific": "Specific countries",
@@ -2812,7 +3242,10 @@
           "required": "Select at least one country before saving.",
           "selected": "{count, plural, one {# country selected.} other {# countries selected.}}"
         },
-        "defaultBadge": "Default"
+        "setDefault": "Set default",
+        "defaultBadge": "Default",
+        "storeProfileMissingTitle": "Your store profile is missing",
+        "storeProfileMissingBody": "Products, inventory and the POS belong to it. Check the store name, language and currency below, then save to create it."
       },
       "appearance": {
         "title": "Branding",
@@ -2944,133 +3377,219 @@
         }
       },
       "email": {
-        "title": "Email Configuration (SMTP)",
-        "description": "Configure email sending via SMTP",
-        "enable": "Enable SMTP Email",
-        "host": "SMTP Host",
-        "port": "SMTP Port",
-        "username": "SMTP Username",
-        "password": "SMTP Password",
-        "fromEmail": "From Email",
-        "fromName": "From Name",
+        "title": "Email",
+        "description": "Order updates, password resets and store alerts go out through your own mail server.",
+        "descriptionOff": "Off: the store sends no email, not even order confirmations or password resets. Your server details are kept.",
+        "descriptionOffEnv": "Off here, but this server has its own mail login (SMTP_USER in .env), so email still goes out through that.",
+        "switchLabel": "Send email",
+        "stuck": {
+          "title": "Failed emails are not being retried",
+          "neverRan": "Retries run on a background job every 5 minutes, and that job has never run on this server. The oldest email has waited since {date}, and if the job starts they all go out then.",
+          "stopped": "Retries run on a background job every 5 minutes, and it last ran on {lastRun}. The oldest email has waited since {date}, and if the job starts again they all go out then.",
+          "show": "Show them",
+          "cancel": "Cancel them",
+          "cancelTitle": "{count, plural, one {Cancel # waiting email?} other {Cancel # waiting emails?}}",
+          "cancelDescription": "They will not be sent. The log keeps them as Cancelled.",
+          "cancelConfirm": "Cancel emails",
+          "keep": "Keep them",
+          "cancelled": "{count, plural, one {# email cancelled.} other {# emails cancelled.}}",
+          "cancelFailed": "Could not cancel the emails"
+        },
+        "server": {
+          "title": "Mail server",
+          "tested": "Tested {date}",
+          "testedNow": "Tested just now",
+          "untested": "Not tested since the last change.",
+          "notSetUp": "Not set up yet. Follow the guide below.",
+          "saveFirst": "Save your changes, then send a test.",
+          "failed": "The test failed: {error}",
+          "lastFailed": "The last email failed on {date}: {error}",
+          "host": "Server",
+          "port": "Port",
+          "portTls": "Port 465 is encrypted with TLS.",
+          "portStarttls": "Port 587 is encrypted with STARTTLS.",
+          "portOther": "Port {port} is encrypted only if the server supports it.",
+          "portEmpty": "Most providers use port 587.",
+          "username": "Username",
+          "password": "Password",
+          "passwordSaved": "Saved and hidden. Type a new one to replace it.",
+          "passwordReplace": "Replaces the saved password when you save.",
+          "passwordRemoved": "Removed when you save.",
+          "passwordGmail": "For Gmail, use an app password, not your account password.",
+          "remove": "Remove",
+          "locked": "Locked while sign-up verification is on, so new accounts keep getting their links. To change the server, <link>turn verification off</link> first."
+        },
         "test": {
-          "label": "Test Email",
-          "placeholder": "test@example.com",
-          "button": "Send Test Email",
-          "success": "Test email sent successfully!",
+          "button": "Send test email",
+          "label": "Send a test to",
+          "send": "Send",
+          "sending": "Sending…",
+          "sent": "Test email sent to {email}",
           "error": "Failed to send test email"
         },
-        "save": "Save Email Settings",
-        "passwordPlaceholder": "Enter password",
-        "fromNamePlaceholder": "Your Store Name",
-        "encryptionNote": "Encryption is automatic: port 465 uses implicit TLS and port 587 requires STARTTLS."
+        "sender": {
+          "title": "Sender",
+          "preview": "Inboxes show <strong>{sender}</strong>",
+          "fromName": "From name",
+          "fromNameHint": "Blank uses your store name.",
+          "fromEmail": "From email",
+          "fromEmailHint": "Blank uses the username.",
+          "fromEmailLocked": "Locked with the server.",
+          "gmailAlias": "Gmail sends from {user} unless {from} is added to that Gmail account as a “Send mail as” address."
+        },
+        "verification": {
+          "title": "Sign-up verification",
+          "description": "New accounts confirm their email address before they can sign in. Accounts made before you switch this on are not blocked.",
+          "customers": "Customers",
+          "vendors": "Vendors",
+          "vendorsHint": "Vendors you approve from now on.",
+          "needTest": "Send a successful test email first, so the links can reach people.",
+          "needSave": "Save your server changes and send a test first.",
+          "failingTitle": "New accounts can't sign in right now",
+          "failing": "Their links are not arriving, because emails are failing. Turn verification off, fix the server and send a test, then turn it back on."
+        },
+        "guide": {
+          "title": "{provider} setup guide",
+          "titleGeneric": "Mail server setup guide",
+          "provider": "Your provider",
+          "providers": {
+            "gmail": "Gmail",
+            "zoho": "Zoho Mail",
+            "hosting": "Hosting (cPanel)",
+            "brevo": "Brevo",
+            "sendgrid": "SendGrid",
+            "ses": "Amazon SES",
+            "other": "Other"
+          },
+          "docs": "Full walkthrough: docs/EMAIL_SETUP.md",
+          "gmail": {
+            "step1": "Turn on 2-Step Verification for the Google account you will send from.",
+            "step2": "Create an app password named {storeName} and copy the 16-letter password. Google shows it only once.",
+            "step3": "Enter the server and port above, your full Gmail address as the username, and the app password as the password.",
+            "step4": "To send as another address, like info@yourstore.com, add it in Gmail first under Settings → Accounts and Import → Send mail as.",
+            "step5": "Save, then send a test email.",
+            "caution": "A personal Gmail account sends up to 500 emails a day, Google Workspace up to 2,000. A busy store needs a sending service.",
+            "link": "Open App passwords"
+          },
+          "zoho": {
+            "step1": "Use smtppro.zoho.com for an address on your own domain, or smtp.zoho.com for one ending in @zoho.com.",
+            "step2": "Using two-factor sign-in? Create an app password under Security → App Passwords and use it as the password.",
+            "step3": "Enter the server and port 587 above, with your full Zoho address as the username.",
+            "step4": "Save, then send a test email.",
+            "caution": "An account in another region uses that region's server, like smtppro.zoho.in or smtppro.zoho.eu.",
+            "link": "Open Zoho accounts"
+          },
+          "hosting": {
+            "step1": "In cPanel, open Email Accounts and click Connect Devices next to the address you will send from.",
+            "step2": "Under Secure SSL/TLS Settings, copy the Outgoing Server and the SMTP Port.",
+            "step3": "Enter them above, with the full email address as the username and that mailbox's password.",
+            "step4": "Save, then send a test email.",
+            "caution": "A certificate error usually means a different server name. Use the one cPanel shows, even if it looks like server123.yourhost.com."
+          },
+          "brevo": {
+            "step1": "In Brevo, open SMTP & API, then the SMTP tab, and copy your SMTP login. It ends in @smtp-brevo.com.",
+            "step2": "Click Generate a new SMTP key and copy the key. Your Brevo password does not work here.",
+            "step3": "Add your From email as a sender in Brevo, or authenticate your domain.",
+            "step4": "Enter the server and port above, the SMTP login as the username and the key as the password.",
+            "step5": "Save, then send a test email.",
+            "caution": "Sending from your own domain? Add the SPF and DKIM records Brevo gives you, or your emails may land in spam.",
+            "link": "Open Brevo"
+          },
+          "sendgrid": {
+            "step1": "In SendGrid, open Settings → API Keys and create a key with Mail Send access. SendGrid shows it only once.",
+            "step2": "Verify your From email, or your whole domain, under Settings → Sender Authentication.",
+            "step3": "Enter the server and port above. The username is the word apikey, and the password is the key.",
+            "step4": "Save, then send a test email.",
+            "caution": "SendGrid refuses emails from a From address it has not verified.",
+            "link": "Open SendGrid"
+          },
+          "ses": {
+            "step1": "In the Amazon SES console, verify your domain or From email under Identities.",
+            "step2": "Open SMTP settings and copy the SMTP endpoint. Then click Create SMTP credentials and copy the username and password: they are shown only once.",
+            "step3": "Enter them above. Your AWS access keys do not work here.",
+            "step4": "Save, then send a test email.",
+            "caution": "A new account can only send to verified addresses. Request production access before your store goes live.",
+            "link": "Open Amazon SES"
+          },
+          "other": {
+            "step1": "Search your provider's help for “SMTP settings”, or ask them for the outgoing mail server.",
+            "step2": "Enter the server above with port 587, or 465. Avoid port 25: many networks block it.",
+            "step3": "The username is usually your full email address. If your provider offers app passwords, use one.",
+            "step4": "Save, then send a test email.",
+            "caution": "Outlook.com and Hotmail stopped accepting account passwords from other apps in 2024. Microsoft 365 still does, but Microsoft turns this off by default at the end of 2026, so a sending service is the safer choice."
+          },
+          "fix": {
+            "title": "If the test fails",
+            "intro": "Look for these words in the error under Mail server.",
+            "login": "The username or password is wrong. Gmail, and Zoho with two-factor sign-in, need an app password, not the account password.",
+            "timeout": "Check the server and the port. If your host blocks port 587, try 465.",
+            "sender": "This account may not send as your From email. Use the account's own address, or verify the other one with your provider.",
+            "certificate": "Use the exact server name your provider gives you, not an IP address."
+          }
+        }
       },
       "sms": {
         "title": "SMS (Twilio)",
-        "description": "Send order, return and payment updates as text messages through your Twilio account.",
-        "enable": "Enable SMS notifications",
-        "enableHint": "Twilio bills every message. Nothing is texted until you also pick events in Notification settings.",
+        "description": "Send order, return and payment updates as texts through your Twilio account. Twilio bills every text.",
+        "descriptionOff": "Off: no texts go out. Your Twilio details are kept for when you switch it back on.",
+        "offEnvReady": "Twilio is already set up in the server's environment (.env), so switching on is enough.",
+        "eventsCount": "{count, plural, one {# event sends a text.} other {# events send a text.}} <link>Change them in Notifications</link>",
+        "eventsNone": "No event sends a text yet, so nothing goes out. Pick them in <link>Notifications</link>.",
+        "eventsAfterSave": "Once Twilio is saved, choose which events send a text in <link>Notifications</link>.",
+        "accountTitle": "Twilio account",
+        "accountDescription": "Copy these from Account Info on your <link>Twilio Console</link>.",
+        "disconnect": "Disconnect",
         "accountSid": "Account SID",
+        "accountSidInvalid": "An Account SID is AC followed by 32 letters and digits.",
         "authToken": "Auth Token",
-        "messagingServiceSid": "Messaging Service SID",
-        "fromNumber": "From number or sender ID",
-        "defaultCountry": "Default country for phone numbers",
-        "includeLinks": "Include a link",
-        "testLabel": "Send a test message to",
-        "testButton": "Send test SMS",
-        "save": "Save SMS settings",
-        "authTokenPlaceholder": "Enter Auth Token",
-        "authTokenHint": "Also verifies Twilio's delivery receipts. Saved tokens are not shown again.",
-        "messagingServiceSidHint": "Recommended. Twilio picks the right sender for each destination and handles STOP replies.",
-        "fromNumberHint": "Used when no Messaging Service is set: a Twilio number, or an alphanumeric sender ID where your destinations allow one.",
-        "defaultCountryPlaceholder": "Use the shipping origin country",
-        "defaultCountryHint": "Reads profile numbers saved without a country code. An order's phone is always read against its shipping country.",
-        "includeLinksHint": "Adds the order or tracking page. A link often pushes a message into a second segment, billed as a second text.",
-        "consentNote": "Customers are texted at the phone on their order and can opt out under Account → Preferences or by replying STOP. Admins, staff and vendors are texted at the phone on their profile or store. Choose the events in <link>Notification settings</link>. Only text people who agreed to hear from you.",
-        "testSent": "Test SMS sent",
-        "testFailed": "Failed to send test SMS"
+        "authTokenHint": "Never shown again once saved.",
+        "authTokenPlaceholder": "Paste your Auth Token",
+        "sender": "Send from",
+        "senderService": "Messaging Service",
+        "senderNumber": "Number or name",
+        "senderServiceHint": "Recommended. Twilio picks the right number for each country and handles STOP replies.",
+        "senderNumberHint": "A Twilio number with its country code, or a name of up to 11 letters where the country allows one.",
+        "senderNumberPlaceholder": "+15551234567 or {senderId}",
+        "senderServiceInvalid": "A Messaging Service SID is MG followed by 32 letters and digits.",
+        "senderNumberInvalid": "Use a number with its country code, like +15551234567, or a name of up to 11 letters and digits.",
+        "senderNameNote": "People can't reply to a name, so they can't text STOP. They can still turn texts off under Account → Preferences.",
+        "senderEnvServiceWins": "A Messaging Service SID set in .env still sends in place of this number.",
+        "testLabel": "Send a test text",
+        "testHint": "Twilio bills it like any other text.",
+        "testSaveFirst": "Save first: the test uses your saved details.",
+        "testSetupFirst": "Add your Twilio details and save first.",
+        "testButton": "Send",
+        "testSent": "Twilio accepted the text to {to}. Its delivery shows in the log below.",
+        "testFailed": "The test text could not be sent.",
+        "messagesTitle": "Messages",
+        "defaultCountry": "Numbers without a country code",
+        "defaultCountryHint": "Profile numbers saved without one are read as this country. An order's phone always uses its shipping country.",
+        "defaultCountryOrigin": "{country} (shipping origin)",
+        "defaultCountryNone": "Pick a country",
+        "includeLinks": "Add a link to the order",
+        "includeLinksHint": "Opens the order or tracking page.",
+        "previewCaption": "A delivered-order text, as your customer gets it",
+        "previewCount": "{characters, plural, one {# character} other {# characters}} · {segments, plural, one {# text} other {billed as # texts}}",
+        "previewUnicode": "Your store name has letters outside the basic SMS alphabet, so each text holds 70 characters instead of 160."
       },
       "notifications": {
-        "title": "Notification Settings",
-        "description": "Choose which events create dashboard notifications, emails, push alerts and text messages.",
-        "events": {
-          "admin": {
-            "newOrders": {
-              "title": "New orders",
-              "description": "Notify admins when an order is placed."
-            },
-            "newCustomers": {
-              "title": "New customers",
-              "description": "Notify admins when a customer profile is created."
-            },
-            "newVendors": {
-              "title": "New vendor applications",
-              "description": "Notify admins when a vendor application is pending."
-            },
-            "returns": {
-              "title": "Return requests",
-              "description": "Notify admins when a return request needs review."
-            },
-            "payments": {
-              "title": "Payments",
-              "description": "Notify admins when payment activity is recorded."
-            },
-            "preorderAccessRequests": {
-              "title": "Pre-order access requests",
-              "description": "Notify admins when a vendor asks to sell pre-orders."
-            }
-          },
-          "vendor": {
-            "applicationStatus": {
-              "title": "Vendor application status",
-              "description": "Notify vendors when their account is approved or rejected."
-            },
-            "newOrders": {
-              "title": "Vendor new orders",
-              "description": "Notify vendors when they receive a new order."
-            },
-            "returns": {
-              "title": "Vendor return requests",
-              "description": "Notify vendors when a return request belongs to them."
-            },
-            "preorderAccess": {
-              "title": "Vendor pre-order access",
-              "description": "Notify vendors when their pre-order access is approved, declined or withdrawn."
-            }
-          },
-          "staff": {
-            "newOrders": {
-              "title": "Staff new orders",
-              "description": "Notify staff with order access when an order is placed."
-            },
-            "newCustomers": {
-              "title": "Staff new customers",
-              "description": "Notify staff with customer access when a customer profile is created."
-            },
-            "returns": {
-              "title": "Staff return requests",
-              "description": "Notify staff with order access when return requests need review."
-            },
-            "payments": {
-              "title": "Staff payments",
-              "description": "Notify POS and order staff when payment activity is recorded."
-            },
-            "lowStock": {
-              "title": "Staff low stock",
-              "description": "Notify inventory staff when products need replenishment attention."
-            }
-          },
-          "customer": {
-            "orderUpdates": {
-              "title": "Customer order updates",
-              "description": "Notify customers when order status changes."
-            },
-            "returnUpdates": {
-              "title": "Customer return updates",
-              "description": "Notify customers when return status changes."
-            }
-          }
+        "title": "Notifications",
+        "description": "Choose who hears about each event, and how.",
+        "audiencesLabel": "Who gets notified",
+        "audiences": {
+          "admin": "Admins",
+          "staff": "Staff",
+          "vendor": "Vendors",
+          "customer": "Customers"
         },
+        "who": {
+          "admin": "Every admin account gets these.",
+          "staff": "Active staff get only what their access lets them see.",
+          "vendor": "Each vendor's owner, about their own store only.",
+          "customer": "Shoppers, through their account, or the email and phone on a guest order."
+        },
+        "teamLink": "Team",
+        "noStaff": "No one is on your team yet, so nobody gets these.",
         "event": "Event",
         "channels": {
           "inApp": "In-app",
@@ -3078,41 +3597,139 @@
           "browserPush": "Push",
           "sms": "SMS"
         },
-        "smsSettingsLink": "SMS settings",
-        "smsOffWarning": "Some events are set to send a text, but SMS is switched off or not fully set up, so none will go out.",
-        "smsSetupHint": "To send text messages, set up Twilio first.",
-        "groups": {
-          "admin": {
-            "title": "Admin notifications",
-            "description": "Events that should alert the store admin team."
+        "channelNotSetUp": "Not set up yet.",
+        "tips": {
+          "inApp": {
+            "admin": "The bell in the admin dashboard.",
+            "staff": "The bell in the staff dashboard.",
+            "vendor": "The bell in the vendor dashboard.",
+            "customer": "The Notifications page in the shopper's account. Guests have none."
           },
-          "vendor": {
-            "title": "Vendor notifications",
-            "description": "Events sent to vendor accounts."
+          "email": "Sent from your mail server (Settings → Email).",
+          "browserPush": {
+            "team": "A pop-up in browsers where they turned notifications on from the bell.",
+            "customer": "Only reaches shoppers who use your mobile app. The web store has no push sign-up."
+          },
+          "sms": {
+            "team": "A text to the phone on their profile. Twilio bills every text.",
+            "vendor": "A text to the store's phone, or else the owner's. Twilio bills every text.",
+            "customer": "A text to the phone on the order. Twilio bills every text."
+          }
+        },
+        "events": {
+          "admin": {
+            "newOrders": {
+              "title": "New orders"
+            },
+            "newCustomers": {
+              "title": "New customers"
+            },
+            "newVendors": {
+              "title": "Vendor applications"
+            },
+            "returns": {
+              "title": "Return requests"
+            },
+            "payments": {
+              "title": "Payments received"
+            },
+            "preorderAccessRequests": {
+              "title": "Pre-order access requests"
+            },
+            "lowStock": {
+              "title": "Low stock",
+              "hint": "One of your own products drops to 10 or fewer"
+            }
           },
           "staff": {
-            "title": "Staff notifications",
-            "description": "Events sent to active staff based on their module permissions."
+            "newOrders": {
+              "title": "New orders",
+              "hint": "Staff who can see orders",
+              "nobody": "Nobody on the team can see orders, so nobody gets this."
+            },
+            "newCustomers": {
+              "title": "New customers",
+              "hint": "Staff who can see customers",
+              "nobody": "Nobody on the team can see customers, so nobody gets this."
+            },
+            "returns": {
+              "title": "Return requests",
+              "hint": "Staff who can see orders",
+              "nobody": "Nobody on the team can see orders, so nobody gets this."
+            },
+            "payments": {
+              "title": "Payments received",
+              "hint": "Staff with orders or POS access",
+              "nobody": "Nobody on the team can see orders or use the POS, so nobody gets this."
+            },
+            "lowStock": {
+              "title": "Low stock",
+              "hint": "Staff who can see inventory",
+              "nobody": "Nobody on the team can see inventory, so nobody gets this."
+            }
+          },
+          "vendor": {
+            "applicationStatus": {
+              "title": "Application updates",
+              "hint": "Received, approved, rejected, payment reminders"
+            },
+            "newOrders": {
+              "title": "New orders"
+            },
+            "returns": {
+              "title": "Return requests",
+              "hint": "Including refunds they owe"
+            },
+            "preorderAccess": {
+              "title": "Pre-order access",
+              "hint": "Approved, declined or withdrawn"
+            }
           },
           "customer": {
-            "title": "Customer notifications",
-            "description": "Events sent to customer accounts."
+            "orderUpdates": {
+              "title": "Order updates",
+              "hint": "Status changes, pre-order news, balance reminders, address requests",
+              "guestsMiss": "Guests now hear nothing, not even balance reminders or address requests."
+            },
+            "returnUpdates": {
+              "title": "Return updates",
+              "hint": "Every status, labels and exchanges",
+              "guestsMiss": "Guests now hear nothing about their returns."
+            }
           }
-        }
+        },
+        "notes": {
+          "paymentProblems": "Payment problems, like a chargeback or a failed refund, always reach admins in the app and by email.",
+          "orderConfirmation": "The order confirmation email, with its invoice, always goes out.",
+          "shopperOptOut": "Shoppers with an account can turn order emails and texts off in Account → Preferences.",
+          "smsHidden": "Want texts too? Once SMS is set up, an SMS column appears here. <link>SMS settings</link>"
+        },
+        "warnings": {
+          "email": "Email isn't set up, so nothing ticked for email goes out. <link>Set up Email</link>",
+          "sms": "{count, plural, one {# event is set to send a text} other {# events are set to send a text}}, but SMS isn't set up, so no texts go out. <link>Set up SMS</link>",
+          "push": "Push isn't set up on this server, so no pop-ups go out. Add the WEB_PUSH keys to .env (README → Web Push notifications)."
+        },
+        "moreOptions": "More options",
+        "restore": "Restore recommended",
+        "restoreHint": "Every audience. Nothing is saved until you save."
       },
       "security": {
         "title": "Security & Access Control",
         "description": "Configure multi-vendor mode, session security, and password policies",
         "multiVendor": {
           "label": "Multi-Vendor Mode",
-          "description": "Enable marketplace features: vendor registration, multiple stores, vendor dashboard",
-          "manageLink": "Manage vendor registration, plans & policy"
-        },
-        "emailVerification": {
-          "title": "Email Verification",
-          "required": "Require Email Verification",
-          "requiredDesc": "Users must verify email before accessing the store",
-          "vendorRequired": "Require for Vendors"
+          "description": "Let other sellers apply, run their own store and dashboard, and sell alongside you.",
+          "registrationLink": "Registration, plans & commission",
+          "vendorsLink": "All vendors",
+          "turnOff": {
+            "title": "Turn off Multi-Vendor Mode?",
+            "description": "Nothing is deleted. Vendor accounts, stores and products come back when you turn it on again. While it's off:",
+            "registration": "Nobody can apply to become a vendor.",
+            "dashboards": "Vendors can't open their dashboards, and their store pages leave the storefront.",
+            "sales": "Vendor products stay on sale, but those orders count as your store's sales, not the vendor's.",
+            "payouts": "Vendor payouts pause.",
+            "confirm": "Turn off"
+          }
         },
         "session": {
           "duration": "Session Duration (days)",
@@ -3153,30 +3770,25 @@
       },
       "orders": {
         "title": "Order Settings",
-        "description": "Configure order and commission settings",
-        "prefix": "Order Number Prefix",
-        "taxRate": "Tax Rate (%)",
-        "shippingCost": "Default Shipping Cost ($)",
-        "freeShippingThreshold": "Free Shipping Threshold ($)",
-        "freeShippingPlaceholder": "Set to 0 to disable",
-        "shippingHandledByZones": "Shipping zones are on, so these two values are not used. Rates come from Shipping & Delivery settings.",
-        "commissionRate": "Commission Rate (%)",
-        "minWithdrawal": "Min Withdrawal Amount ($)",
+        "description": "Order numbers, tax and returns.",
+        "prefix": "Order number prefix",
+        "taxRate": "Tax rate",
+        "shippingCost": "Standard shipping",
+        "freeShippingThreshold": "Free shipping from",
+        "shippingHandledByZones": "Rates come from your shipping zones.",
         "loyaltyHeading": "Loyalty points",
-        "loyaltySpendPerPoint": "Spend per loyalty point",
-        "loyaltySpendPerPointHint": "Customers earn 1 point for every this much they spend. Tiers start at {silver, number} points for Silver, {gold, number} for Gold and {platinum, number} for Platinum. A new rate counts from the next paid order; points already given keep the rate they were earned at.",
-        "returnsHeading": "Returns and refunds",
-        "returnsHint": "These start at the behaviour Storify had before they were settings, so nothing changes until you change it.",
+        "loyaltySpendPerPointHint": "Tiers start at {silver, number} points (Silver), {gold, number} (Gold) and {platinum, number} (Platinum). A new rate counts from the next paid order.",
+        "returnsHeading": "Returns",
         "selfServe": "Customers can request returns",
-        "selfServeHint": "Off, customers contact you and you open returns for them from the order. They still see and can cancel the returns they have.",
-        "returnWindowDays": "Return window (days)",
+        "selfServeHint": "Off: you open returns for customers from the order page.",
+        "returnWindowDays": "Return window",
         "returnWindowDaysHint": "How long after delivery a shopper may still ask to return an order. Shown on every product page.",
         "windowUnlimited": "No time limit",
         "windowStart": "Window starts",
         "windowStartParcel": "When each parcel is delivered",
         "windowStartLast": "When the order's last parcel is delivered",
         "windowStartHint": "Counting from the last parcel gives one window per order, and holds every seller's payout until the last parcel arrives.",
-        "payoutHoldMaxDays": "Longest payout hold (days)",
+        "payoutHoldMaxDays": "Longest payout hold",
         "payoutHoldMaxDaysHint": "With no time limit, a seller's sale is paid out this many days after delivery. A refund after that comes out of their next payout.",
         "windowOverrides": "Return windows by collection",
         "windowOverrideDays": "Days",
@@ -3184,16 +3796,16 @@
         "windowOverrideRemove": "Remove",
         "windowOverridesSearch": "Add a collection",
         "windowOverridesHint": "Products in these collections can be returned for this many days instead. A product can set its own too; where several apply, the shortest does.",
-        "shippingRefund": "Refund delivery on a return",
-        "shippingRefundNever": "Never — the shopper received the delivery",
+        "shippingRefund": "Refund the delivery charge",
+        "shippingRefundNever": "Never",
         "shippingRefundMerchantFault": "Only when the return is our fault",
         "shippingRefundAlways": "Always",
         "shippingRefundHint": "Our fault means damaged or defective, not as described, or the wrong item sent.",
-        "restockingFee": "Restocking fee (%)",
+        "restockingFee": "Restocking fee",
         "restockingFeeHint": "Kept out of the returned goods, never out of the tax.",
-        "returnShippingFee": "Return shipping fee ({currency})",
+        "returnShippingFee": "Return shipping fee",
         "returnShippingFeeHint": "Charged once per seller the shopper ships back to.",
-        "refundAdminFee": "Refund administration fee (%)",
+        "refundAdminFee": "Refund administration fee",
         "refundAdminFeeHint": "Share of your commission you keep when a sale is returned. The shopper is refunded in full either way; the cost moves to the vendor.",
         "refundAdminFeeCap": "Fee cap per return ({currency})",
         "refundAdminFeeCapHint": "Set to 0 for no cap.",
@@ -3202,11 +3814,29 @@
         "returnInstructions": "Return instructions",
         "returnInstructionsHint": "Sent to the shopper with the return address when a return is approved. Use {returnNumber} for the return number. Leave it empty to use the wording shown.",
         "finalSaleCollections": "Final sale collections",
-        "finalSaleCollectionsSearch": "Search collections",
         "finalSaleCollectionsNone": "No collections found",
         "finalSaleCollectionMissing": "Removed collection",
         "finalSaleCollectionUnnamed": "Collection",
-        "finalSaleCollectionsHint": "Products in these collections are final sale: shoppers can't return them. Orders already placed keep the rules they were sold under."
+        "finalSaleCollectionsHint": "Products in these collections are final sale: shoppers can't return them. Orders already placed keep the rules they were sold under.",
+        "ordersHeading": "Orders",
+        "prefixExample": "Orders read like <strong>{example}</strong>.",
+        "taxRateHint": "Added to orders at checkout and in POS.",
+        "shipping": "Shipping",
+        "shippingLink": "Shipping & Delivery",
+        "shippingCostHint": "What an order pays for delivery while shipping zones are off.",
+        "freeShippingHint": "0 turns free shipping off. For rates by country, <link>set up shipping zones</link>.",
+        "loyaltyUnit": "{currency} per point",
+        "returnsDescription": "When customers can send things back, and what they get back.",
+        "eligibilityHeading": "What can be returned",
+        "windowStartHintStore": "Counting from the last parcel gives one window for the whole order.",
+        "refundsHeading": "Refunds",
+        "returnShippingFeeHintStore": "Charged once per return.",
+        "vendorSalesHeading": "Vendor sales",
+        "vendorSalesDescription": "How returns and cash on delivery settle with vendors.",
+        "commissionSummaryLabel": "Commission and minimum payout",
+        "commissionSummary": "{rate}% commission, {amount} minimum payout.",
+        "vendorConfigLink": "Vendor configuration",
+        "refundAdminFeeUpTo": "% up to"
       },
       "seo": {
         "title": "SEO Settings",
@@ -3291,22 +3921,173 @@
           "bypassCount": "{count, plural, one {# IP can still access the storefront.} other {# IPs can still access the storefront.}}"
         }
       },
+      "mobileApp": {
+        "title": "Mobile App",
+        "description": "Connect your store's shopping app. The app reads the store through its own API, which stays off until you switch it on here.",
+        "apiTitle": "Mobile API",
+        "apiDesc": "Answer requests from your shopping app. While this is off, the app cannot reach the store.",
+        "scheme": "App link scheme",
+        "schemeHelp": "The scheme your app was built with, without \"://\" (for example, mystore). The app returns through it after signing in and paying.",
+        "iosTitle": "iOS",
+        "androidTitle": "Android",
+        "bundleId": "Bundle ID",
+        "bundleIdHelp": "The iOS app's bundle identifier, for example com.example.store.",
+        "teamId": "Apple Team ID",
+        "teamIdHelp": "The 10-character ID of the Apple developer team that publishes the app. With the bundle ID, it lets links to your store open in the iOS app.",
+        "packageName": "Package name",
+        "packageNameHelp": "The Android app's application ID, for example com.example.store.",
+        "fingerprints": "Signing certificate fingerprints (SHA-256)",
+        "fingerprintsHelp": "One per line, as Google Play Console shows them under App signing. With the package name, they let links to your store open in the Android app.",
+        "minVersion": "Minimum version",
+        "minVersionHelp": "Older versions can still browse, but must update before they can change anything, such as the cart or an order.",
+        "latestVersion": "Latest version",
+        "latestVersionHelp": "Older versions are offered the update.",
+        "appStoreUrl": "App Store link",
+        "playStoreUrl": "Google Play link",
+        "digitalTitle": "Sell digital products in the app",
+        "digitalDesc": "App stores require their own billing for digital goods. Leave this off unless your apps are allowed to sell them.",
+        "expoAccessToken": "Expo access token",
+        "expoAccessTokenPlaceholder": "Only if your Expo account requires one",
+        "expoAccessTokenHelp": "Needed when push security is turned on in your Expo account. Without one, push notifications are sent as usual.",
+        "save": "Save Mobile App Settings",
+        "bizTitle": "Business app",
+        "bizDescription": "The app you, your team and your sellers run the store from: orders, products and stock, the inbox, payouts and seller applications. It has its own API, off until you switch it on.",
+        "bizApiTitle": "Business app API",
+        "bizApiDesc": "Answer requests from your business app. While this is off, nobody can sign in to it.",
+        "bizScheme": "Business app link scheme",
+        "bizSchemeHelp": "The scheme the business app was built with, without \"://\" (for example, mystorebiz). It must be different from the shopping app's.",
+        "bizBundleIdHelp": "The business app's iOS bundle identifier, for example com.example.business.",
+        "bizPackageNameHelp": "The business app's Android application ID, for example com.example.business.",
+        "bizMinVersionHelp": "Older versions can still look, but must update before they can change anything, such as an order or a price."
+      },
       "shipping": {
         "title": "Shipping & Delivery",
-        "description": "Configure shipping zones, rates, and delivery estimates like Shopify.",
-        "enable": {
-          "label": "Enable shipping rates",
-          "help": "When enabled, checkout uses your shipping zones and rates. Otherwise it falls back to flat shipping in Order Settings."
+        "description": "Where you ship, what it costs, and how parcels get there.",
+        "units": {
+          "to": "to",
+          "days": "days"
         },
-        "weightUnit": {
-          "label": "Weight unit",
-          "help": "Unit used for product weights and weight-based shipping rates.",
-          "kg": "Kilograms (kg)",
-          "lb": "Pounds (lb)"
+        "enable": {
+          "label": "Use shipping zones at checkout"
+        },
+        "rates": {
+          "title": "Rates",
+          "cardTitle": "Shipping rates",
+          "cardDescription": "What checkout charges for shipping, by where the order is going.",
+          "cardDescriptionOff": "Off: every order pays the flat shipping cost in <link>Order Settings</link>.",
+          "add": "Add rate",
+          "empty": "No rates in this zone yet. Add a rate (e.g., Standard or Express).",
+          "off": "Off",
+          "edit": "Edit",
+          "editRate": "Edit {name}",
+          "columns": {
+            "rate": "Rate",
+            "condition": "Condition",
+            "delivery": "Delivery",
+            "price": "Price",
+            "actions": "Actions"
+          },
+          "condition": {
+            "any": "Any order",
+            "freeFrom": "Orders from {amount}",
+            "subtotalBetween": "Orders from {min} to {max}",
+            "subtotalFrom": "Orders from {min}",
+            "subtotalUpTo": "Orders up to {max}",
+            "weightBetween": "{min} to {max} {unit}",
+            "weightFrom": "From {min} {unit}",
+            "weightUpTo": "Up to {max} {unit}"
+          },
+          "price": {
+            "free": "Free",
+            "perWeight": "{price} + {perUnit}/{unit}"
+          },
+          "deliveryDays": "{days, plural, one {# day} other {# days}}",
+          "deliveryRange": "{min}–{max} days"
+        },
+        "zones": {
+          "add": "Add zone",
+          "empty": "No zones yet. Add a zone to start configuring shipping rates."
+        },
+        "zone": {
+          "name": "Zone name",
+          "namePlaceholder": "Domestic",
+          "nameHint": "For your own reference. A rate with no name shows this one at checkout.",
+          "edit": "Edit zone",
+          "dialogTitleNew": "Add zone",
+          "delete": "Delete zone",
+          "untitled": "Untitled zone",
+          "summaryRestOfWorld": "Every address no other zone covers",
+          "summaryNoCountries": "No countries yet",
+          "allRegions": "all regions",
+          "moreCount": "+{count} more",
+          "countries": "Countries",
+          "countriesPlaceholder": "Select countries",
+          "searchCountries": "Search countries...",
+          "noCountryMatches": "No countries found.",
+          "noCountriesWarning": "No countries selected. This zone will not match any address.",
+          "regions": "Regions (optional)",
+          "regionsPlaceholder": "All regions",
+          "regionsFreeTextPlaceholder": "CA, NY, TX",
+          "regionsHint": "Leave empty to cover the whole country.",
+          "searchRegions": "Search regions...",
+          "noRegionMatches": "No regions found.",
+          "conditionalRatesWarning": "Every rate in this zone has a condition. A cart that meets none of them gets no rate from this zone: it falls through to the fallback rate, or the customer is told shipping is unavailable. Add a flat rate to cover the rest.",
+          "isFallback": "Rest of the world",
+          "isFallbackHint": "Prices any address no other zone covers. Its countries and regions are ignored, and it replaces the fallback rate."
+        },
+        "rate": {
+          "dialogTitleNew": "Add rate",
+          "dialogTitleEdit": "Edit rate",
+          "name": "Rate name",
+          "namePlaceholder": "Standard",
+          "nameHint": "Customers see this name at checkout.",
+          "typeLabel": "How it's priced",
+          "type": {
+            "flat": "Flat price",
+            "freeOver": "Free from",
+            "subtotalRange": "Order value",
+            "weightRange": "Weight"
+          },
+          "typeHint": {
+            "flat": "One price for every order in this zone.",
+            "freeOver": "Free shipping once the order reaches an amount. Smaller orders don't see this rate.",
+            "subtotalRange": "A price for orders whose value is inside a range.",
+            "weightRange": "A price for orders whose weight is inside a range, plus an amount for each unit of weight."
+          },
+          "price": "Price",
+          "freeOver": "Free on orders from",
+          "orderValueRange": "Order value",
+          "maxSubtotal": "Highest order value",
+          "weightRangeLabel": "Order weight",
+          "maxWeight": "Highest order weight",
+          "noLimit": "No limit",
+          "perUnit": "per {unit}",
+          "pricePerWeightUnit": "Price per {unit}",
+          "deliveryTime": "Delivery time",
+          "maxDays": "Delivery time, longest",
+          "processingAdded": "Checkout adds your processing time ({time}) to this.",
+          "offer": "Offer this rate",
+          "offerHint": "Off keeps the rate here without showing it at checkout.",
+          "delete": "Delete rate"
+        },
+        "fallback": {
+          "everywhereElse": "Everywhere else",
+          "none": "No rate. Customers outside your zones are told shipping is unavailable.",
+          "covered": "Covered by the {zone} zone.",
+          "add": "Add a fallback rate",
+          "dialogTitle": "Fallback rate",
+          "dialogHint": "Charged when no zone has a rate for the address.",
+          "remove": "Remove fallback rate"
+        },
+        "dispatch": {
+          "title": "Dispatch",
+          "description": "Where parcels leave from, and how long you take to send them."
         },
         "origin": {
-          "title": "Shipping origin",
-          "description": "Used for operational reference and future carrier integrations.",
+          "title": "Ship-from address",
+          "description": "The sender's address on carrier labels. Its country decides which orders count as international.",
+          "empty": "Not set yet.",
+          "edit": "Edit address",
           "country": "Country",
           "state": "State / Province",
           "statePlaceholder": "CA",
@@ -3320,100 +4101,39 @@
           "address2Placeholder": "Suite 100 (optional)"
         },
         "delivery": {
-          "title": "Delivery estimates",
-          "description": "Set processing time that will be added to rate delivery times when displayed.",
-          "processingMin": "Processing days (min)",
-          "processingMax": "Processing days (max)",
-          "showEstimated": "Show estimates in checkout"
+          "processing": "Processing time",
+          "processingHint": "Added to each rate's delivery time at checkout.",
+          "processingMax": "Processing time, longest",
+          "showEstimated": "Show delivery estimates at checkout",
+          "showEstimatedHint": "Each rate says how long it takes to arrive."
         },
-        "zones": {
-          "title": "Shipping zones",
-          "description": "Create zones and define rates. Select countries from the list, then optionally narrow a zone to specific regions — leave regions empty to cover the whole country.",
-          "add": "Add zone",
-          "empty": "No zones yet. Add a zone to start configuring shipping rates."
-        },
-        "zone": {
-          "name": "Zone name",
-          "namePlaceholder": "Domestic",
-          "remove": "Remove",
-          "countries": "Countries",
-          "countriesPlaceholder": "Select countries",
-          "searchCountries": "Search countries...",
-          "noCountryMatches": "No countries found.",
-          "noCountriesWarning": "No countries selected. This zone will not match any address.",
-          "regions": "Regions (optional)",
-          "regionsPlaceholder": "All regions",
-          "regionsFreeTextPlaceholder": "CA, NY, TX",
-          "searchRegions": "Search regions...",
-          "noRegionMatches": "No regions found.",
-          "conditionalRatesWarning": "⚠️ Every rate in this zone is conditional. A cart that meets none of these conditions gets no rate from this zone — it falls through to the fallback rate, or the customer is told shipping is unavailable. Add a flat rate to cover the rest.",
-          "isFallback": "Rest of the world",
-          "isFallbackHint": "Prices any address no other zone covers. Its countries and regions are ignored, and it replaces the single fallback rate below."
-        },
-        "rates": {
-          "title": "Rates",
-          "add": "Add rate",
-          "empty": "No rates in this zone yet. Add a rate (e.g., Standard or Express)."
-        },
-        "rate": {
-          "name": "Rate name",
-          "namePlaceholder": "Standard",
-          "typeLabel": "Type",
-          "type": {
-            "flat": "Flat rate",
-            "freeOver": "Free over subtotal",
-            "subtotalRange": "Subtotal range",
-            "weightRange": "Weight range"
-          },
-          "typePlaceholder": "Select type",
-          "price": "Price",
-          "freeOver": "Free over",
-          "minSubtotal": "Min subtotal",
-          "maxSubtotal": "Max subtotal",
-          "minWeight": "Min weight",
-          "maxWeight": "Max weight",
-          "pricePerWeightUnit": "Price per",
-          "minDays": "Delivery days (min)",
-          "maxDays": "Delivery days (max)",
-          "active": "Active"
-        },
-        "fallback": {
-          "title": "Fallback rate",
-          "description": "If no zone matches the address, you can apply a default rate.",
-          "supersededByZone": "The \"{zone}\" zone covers the rest of the world, so this single rate is no longer used. Edit that zone to change what uncovered addresses are charged.",
-          "enable": "Enable fallback rate",
-          "name": "Name",
-          "price": "Price",
-          "minDays": "Min days",
-          "maxDays": "Max days"
-        },
-        "vendorShipping": {
-          "title": "Per-vendor shipping",
-          "description": "When enabled, each vendor's items in a multi-vendor cart are rated against that vendor's own shipping profile (falling back to this platform profile). Shipping is charged and allocated per vendor."
-        },
-        "customs": {
-          "title": "Customs & duties",
-          "description": "Handle import duties for cross-border orders. DDP collects an estimated duty at checkout; DDU/DAP leaves duties for the customer to pay on delivery.",
-          "dutyMode": "Duty handling",
-          "ddu": "DDU — customer pays on delivery",
-          "ddp": "DDP — collect duties at checkout",
-          "dutyRatePercent": "Estimated duty rate (%)",
-          "deMinimis": "De-minimis (duty-free under)"
+        "weightUnit": {
+          "label": "Weight unit",
+          "help": "For product weights and weight-based rates.",
+          "kg": "Kilograms (kg)",
+          "lb": "Pounds (lb)"
         },
         "carriers": {
-          "title": "Shipping carriers",
-          "description": "Connect a carrier account to buy real labels and track parcels automatically. Checkout keeps using your own shipping rates.",
-          "enable": "Enable carriers",
-          "mode": "Environment",
-          "modeTest": "Test",
-          "modeLive": "Live",
+          "title": "Carriers & labels",
+          "description": "Buy labels and track parcels through a carrier account. Checkout keeps using your own rates.",
+          "enable": "Use carrier accounts",
+          "accountsHeading": "Carrier accounts",
+          "manage": "Manage",
+          "connect": "Connect",
+          "off": "Off",
+          "rejected": "Credentials rejected",
+          "enableHint": "Off keeps the credentials saved without using this carrier.",
+          "mode": "Label type",
+          "modeTest": "Test labels",
+          "modeLive": "Real labels",
           "testConnection": "Test connection",
+          "trackingUpdates": "Tracking updates",
           "registerWebhook": "Generate webhook URL",
           "webhookUrl": "Webhook URL — paste this into the carrier dashboard",
           "pickupLocation": "Pickup location",
           "refreshPickupLocations": "Refresh pickup locations",
           "disconnect": "Disconnect",
-          "originNotSupported": "Shiprocket only dispatches from India. Set your shipping origin country to India to enable it.",
+          "originNotSupported": "Shiprocket only dispatches from India. Set your ship-from country to India to use it.",
           "authFailed": "This carrier is rejecting your credentials — nothing can ship on it.",
           "authFailedHint": "Update the credentials below, then press Test connection. The warning clears itself once the carrier accepts them.",
           "shippo": {
@@ -3425,7 +4145,8 @@
             "labelFormats": {
               "pdf4x6": "PDF 4×6 (thermal)",
               "pdf": "PDF (A4 / Letter)"
-            }
+            },
+            "webhookHint": "Paste the webhook URL into Shippo so parcels update by themselves."
           },
           "shiprocket": {
             "description": "Indian courier aggregator — Delhivery, Bluedart, Ekart and more.",
@@ -3449,35 +4170,54 @@
           "pickupLocationsFailed": "Failed to load pickup locations"
         },
         "packages": {
-          "title": "Saved packages",
+          "title": "Packages",
           "description": "Boxes a carrier quote can be priced against. The default is used whenever an order's items have no dimensions of their own.",
           "add": "Add package",
           "newName": "New box",
           "empty": "No packages yet. Carrier rates need at least one box.",
+          "edit": "Edit",
+          "editNamed": "Edit {name}",
+          "dialogTitleNew": "Add package",
+          "dialogTitleEdit": "Edit package",
+          "defaultBadge": "Default",
+          "off": "Off",
+          "dimensions": "{length} × {width} × {height} {unit}",
+          "emptyWeightShort": "weighs {weight} {unit} empty",
+          "maxWeightShort": "holds up to {weight} {unit}",
           "name": "Name",
-          "active": "Active",
+          "size": "Size (L × W × H)",
           "length": "Length",
           "width": "Width",
           "height": "Height",
-          "unit": "Unit",
+          "unit": "Size unit",
           "emptyWeight": "Empty weight",
+          "weightUnit": "Weight unit",
           "maxWeight": "Max weight",
+          "maxWeightHint": "Contents heavier than this go in a bigger box.",
           "noLimit": "No limit",
           "default": "Default box",
-          "remove": "Remove package"
+          "defaultHint": "Used when an order's items have no size of their own, or fit no box.",
+          "active": "Use this box",
+          "activeHint": "Off keeps the box here without packing orders in it.",
+          "remove": "Delete package"
         },
         "automation": {
           "title": "Automatic shipping",
-          "description": "Create a shipment as soon as an order is paid and moved to processing. You can always send an order to a courier by hand instead.",
-          "enable": "Enable automatic shipping",
-          "requiresCarrier": "Connect a carrier first — automation has nothing to buy a label from.",
-          "includeCod": "Include cash-on-delivery orders",
-          "includeCodHint": "A COD order is never marked paid, so it only ships automatically when this is on.",
-          "minOrderValue": "Minimum order value",
-          "maxOrderValue": "Maximum order value",
-          "noLimit": "No limit",
-          "maxLabelCost": "Abort above label cost",
-          "maxLabelCostHint": "In your carrier account's currency, not the store's.",
+          "enable": "Ship paid orders automatically",
+          "description": "Creates the shipment when an order is paid and moves to processing. You can still send any order to a courier by hand.",
+          "customize": "Customize",
+          "dialogHint": "What happens when a paid order moves to processing.",
+          "summary": {
+            "cheapest": "Buys the cheapest label.",
+            "fastest": "Buys the fastest label.",
+            "fixed": "Buys the {service} service.",
+            "fixedUnset": "Buys one service, which is not chosen yet.",
+            "draft": "Prepares a draft shipment and leaves the purchase to you.",
+            "marksShipped": "Then marks the order shipped.",
+            "codIncluded": "Includes cash-on-delivery orders.",
+            "codExcluded": "Cash-on-delivery orders are left to you.",
+            "limited": "Your limits leave some orders out."
+          },
           "rateChoice": "Which rate to buy",
           "rateChoiceCheapest": "Cheapest",
           "rateChoiceFastest": "Fastest",
@@ -3488,23 +4228,53 @@
           "buyLabelHint": "Off creates a rate-shopped draft and stops, leaving the purchase to a human.",
           "markShipped": "Mark the order shipped once the label is bought",
           "markShippedHint": "Sends the customer their tracking number.",
+          "includeCod": "Include cash-on-delivery orders",
+          "includeCodHint": "A COD order is never marked paid, so it only ships automatically when this is on.",
+          "limitsHeading": "Limits",
+          "orderValue": "Order value",
+          "maxOrderValue": "Highest order value",
+          "noLimit": "No limit",
+          "maxLabelCost": "Abort above label cost",
+          "maxLabelCostHint": "In your carrier account's currency, not the store's.",
           "restrictCountries": "Only automate these destinations",
           "restrictCountriesHint": "Leave empty to automate every destination."
         },
+        "courierLinks": {
+          "title": "Tracking links",
+          "heading": "Tracking numbers you enter by hand",
+          "builtIn": "Already linked to their tracking page: {couriers}. Add any other courier you use.",
+          "add": "Add courier",
+          "carrier": "Courier name",
+          "urlTemplate": "Tracking URL",
+          "description": "Use {tracking} where the tracking number goes; a link with no placeholder gets it appended.",
+          "remove": "Remove courier link"
+        },
+        "vendors": {
+          "title": "Vendors",
+          "description": "How shipping works when an order holds several vendors' items."
+        },
+        "vendorShipping": {
+          "title": "Per-vendor shipping",
+          "description": "Each vendor's items are rated on that vendor's own shipping profile, or on this one when they have none. Shipping is charged per vendor."
+        },
         "codCollectedBy": {
           "title": "Who collects cash on delivery",
-          "description": "If the vendor delivers with their own fleet they take the cash and owe you commission. If your courier delivers, you take the cash and owe the vendor their earnings — and only an admin can mark those orders paid. Applies to new orders; existing orders keep the answer they were placed under.",
+          "description": "If vendors deliver themselves, they take the cash and owe you commission. If your courier delivers, you take the cash and owe vendors their earnings, and only an admin can mark those orders paid. Applies to new orders.",
           "vendor": "The vendor",
           "platform": "The store"
         },
-        "courierLinks": {
-          "add": "Add courier",
-          "builtIn": "Already linked without any setup:",
-          "carrier": "Courier name",
-          "description": "For parcels you enter by hand. Use {tracking} where the tracking number goes; a link with no placeholder gets it appended.",
-          "remove": "Remove courier link",
-          "title": "Courier tracking links",
-          "urlTemplate": "Tracking URL"
+        "customs": {
+          "title": "Customs & duties",
+          "description": "Import duty on orders that leave the country you ship from.",
+          "dutyMode": "Duty handling",
+          "dutyModeHintDdu": "The customer pays any duty to the carrier on delivery.",
+          "dutyModeHintDdp": "An estimated duty is added to the order at checkout.",
+          "ddu": "DDU — customer pays on delivery",
+          "ddp": "DDP — collect duties at checkout",
+          "dutyRatePercent": "Estimated duty rate",
+          "dutyRateHint": "A share of the order's subtotal.",
+          "deMinimis": "Duty-free up to",
+          "deMinimisHint": "Orders at or under this value pay no duty."
         },
         "addressHold": {
           "title": "Undeliverable addresses",
@@ -3515,13 +4285,13 @@
           "checkAfterOrderHint": "Put an order on hold as soon as its address fails the check, instead of waiting for a courier to refuse the label.",
           "autoRequest": "Ask the customer automatically",
           "autoRequestHint": "Email the customer a link to correct the address the moment an order goes on hold. Off leaves it to staff.",
-          "reminderDays": "Remind after (days)",
+          "reminderDays": "Reminders",
           "reminderDaysHint": "Days after the first request, separated by commas. Leave empty for no reminders.",
-          "deadlineDays": "Deadline (days)",
+          "deadlineDays": "Deadline",
           "deadlineDaysHint": "How long the customer has to answer, from the first request.",
           "onDeadline": "When the deadline passes",
-          "onDeadlineNotify": "Tell the store and keep the order on hold",
-          "onDeadlineCancel": "Cancel the order and refund it in full",
+          "onDeadlineNotify": "Tell the store, keep it on hold",
+          "onDeadlineCancel": "Cancel and refund in full",
           "keepReturnShipping": "Keep return shipping when a parcel comes back",
           "keepReturnShippingHint": "When a parcel is returned to sender for a bad address, the refund offered deducts the label cost. Orders on hold never shipped, so they are always refunded in full."
         }
@@ -3586,71 +4356,59 @@
         "verifyFailed": "Verification failed"
       },
       "pos": {
-        "title": "Point of Sale (POS) Access",
-        "description": "Configure which roles can access the POS system",
-        "enable": "Enable POS System",
-        "enableDesc": "Allow in-store sales through the Point of Sale module",
-        "access": "POS Access by Role",
-        "admin": "Administrators",
-        "adminDesc": "Allow admins to make sales via POS",
+        "title": "Point of Sale",
+        "description": "Sell in person from a register, with the same products and stock as your online store.",
+        "descriptionOff": "Off: nobody can open the register. Your settings are kept for when you switch it back on.",
+        "access": "Who can sell",
+        "accessNone": "Nobody can open the register now. Turn on at least one.",
+        "admin": "Admins",
+        "adminDesc": "Sell the store's own products.",
         "vendor": "Vendors",
-        "vendorDesc": "Allow vendors to make sales via POS for their products",
+        "vendorDesc": "Each vendor sells their own products from their dashboard.",
+        "vendorPackOff": "Vendors have no Point of Sale permission, so this does nothing yet. Turn it on in <link>Multi-Vendor Mode</link>.",
         "seller": "Staff",
-        "sellerDesc": "Allow staff members to make sales via POS",
-        "general": "General",
-        "defaultLocation": "Default POS Location ID",
-        "customize": "Customize",
-        "printedReceipts": "Printed receipts",
-        "checkout": "Checkout",
-        "offlinePayments": "Offline payments",
-        "orders": "Orders",
-        "orderNumberPrefix": "Order number prefix",
-        "orderNumberPrefixHint": "New POS orders use this prefix with a six-digit number, for example POS000017.",
-        "save": "Save POS Settings",
-        "enabled": "Enabled",
-        "disabled": "Disabled",
-        "accessDesc": "Control which user roles can access the POS terminal",
-        "generalDesc": "Configure default language and location for POS",
-        "selectLocation": "Select a location",
-        "noLocation": "No default location",
-        "defaultBadge": "Default",
-        "locationIdPlaceholder": "Enter location ID",
-        "defaultLocationHint": "The location used by default for new POS orders",
-        "checkoutDesc": "Configure payment methods and checkout behavior",
-        "paymentMethods": "Accepted Payment Methods",
+        "sellerDesc": "Only staff who have the POS permission, set in <link>Team</link>.",
+        "checkout": "Payments",
+        "checkoutDesc": "What a cashier can take at the counter.",
         "paymentCash": "Cash",
-        "paymentCashDesc": "Accept cash payments",
-        "paymentCard": "Card (Stripe)",
-        "paymentCardDesc": "Accept credit/debit card payments via Stripe",
+        "paymentCashDesc": "Works out the change.",
+        "paymentCard": "Card",
+        "paymentCardDesc": "On a card reader, or typed in through Stripe.",
+        "paymentCardNoStripe": "On a card reader. To type card details in as well, set up Stripe in <link>Payment Settings</link>.",
+        "paymentBank": "Bank transfer",
+        "paymentBankDesc": "Recorded with an optional reference.",
         "paymentManual": "Manual",
-        "paymentManualDesc": "Custom payment methods",
-        "paymentBank": "Bank Transfer",
-        "paymentBankDesc": "Accept bank transfer with reference",
-        "offlinePaymentsDesc": "Process payments when the device is offline",
-        "customizeDesc": "Customize the POS terminal appearance and behavior",
-        "printedReceiptsDesc": "Print receipts after each transaction",
-        "receiptPrinter": "Receipt Printer",
+        "paymentManualDesc": "Any other way of paying.",
+        "paymentLast": "One way to pay has to stay on.",
+        "register": "Register",
+        "defaultLocation": "Default counter",
+        "defaultLocationHint": "The counter a register sells from until its cashier picks another. Lists your <link>locations</link> that have a till.",
+        "locationGone": "{name} can no longer be used as a counter, so registers ignore it. Pick another.",
+        "locationMissing": "The saved counter no longer exists, so registers ignore it. Pick another.",
+        "locationsEmpty": "None of your <link>locations</link> has a till yet, so registers sell from your total stock.",
+        "locationsFailed": "Your locations could not be loaded. Reload the page to change the counter.",
+        "selectLocation": "Select a counter",
+        "noLocation": "No default counter",
+        "defaultBadge": "Default",
+        "orderNumberPrefix": "Order number prefix",
+        "orderNumberPrefixExample": "Sales are numbered like <strong>{example}</strong>.",
+        "printedReceipts": "Print a receipt after every sale",
+        "printedReceiptsDesc": "Opens the print dialog as soon as a sale is paid.",
+        "receiptPrinter": "Receipt printer",
+        "receiptPrinterHint": "A note for your team. The printer itself is chosen in the browser's print dialog.",
         "receiptPrinterPlaceholder": "e.g. Star TSP143",
-        "ordersDesc": "Configure return policies for POS orders",
-        "sound": "Sound Effects",
-        "soundDesc": "Configure audio feedback for POS terminal interactions",
-        "soundEnable": "Enable Sound Effects",
-        "soundEnableDesc": "Play audio cues during POS operations",
+        "sound": "Sounds",
+        "soundDesc": "Played on the register as a cashier works.",
         "soundVolume": "Volume",
-        "soundAddToCart": "Add to Cart",
-        "soundAddToCartDesc": "Beep when a product is added to cart",
-        "soundPayment": "Payment Accepted",
-        "soundPaymentDesc": "Sound when a payment is processed",
-        "soundOrderComplete": "Order Complete",
-        "soundOrderCompleteDesc": "Chime when an order is completed",
-        "soundError": "Error Alert",
-        "soundErrorDesc": "Alert sound for errors and stock warnings"
+        "soundAddToCart": "Item added",
+        "soundPayment": "Payment accepted",
+        "soundOrderComplete": "Sale complete",
+        "soundError": "Error or stock warning",
+        "soundPlay": "Play the sound: {sound}"
       },
       "vendorPermissions": {
         "title": "Marketplace policy",
-        "description": "One switch per capability, platform-wide. These are not defaults for new vendors — each one applies immediately to every existing store.",
-        "warning": "Enable Multi-Vendor Mode to configure marketplace policy.",
-        "liveWarning": "Switching one off removes that capability from every vendor on this marketplace at once, not just new ones. A vendor who hits it sees a page naming this setting as the reason.",
+        "description": "What vendors can use. Each switch applies to every vendor at once, not only new ones.",
         "packCatalog": "Products and brands",
         "packOrders": "Order list, fulfilment, returns",
         "packStorefront": "Store page, branding, shipping settings",
@@ -3661,7 +4419,14 @@
         "packPos": "In-person selling",
         "packPayouts": "Balance and self-serve withdrawal requests",
         "packBoosts": "Buy sponsored placements",
-        "packAiStudio": "AI authoring for listings and media"
+        "packAiStudio": "AI authoring for listings and media",
+        "groups": {
+          "selling": "Selling",
+          "store": "Store & team",
+          "money": "Money",
+          "insights": "Insights & AI"
+        },
+        "turningOff": "When you save, every vendor loses {pack} and sees a page naming this setting."
       },
       "vendorConfig": {
         "title": "Vendor Configuration",
@@ -3707,6 +4472,44 @@
         "paymentMethods": {
           "title": "Subscription payment methods",
           "description": "Which gateways vendors may pay plan subscriptions through. Stripe renews automatically; other gateways bill one period at a time with renewal reminders. Credentials are configured in Payment Settings."
+        },
+        "quotes": {
+          "title": "Quotes",
+          "showContact": {
+            "label": "Vendors see the customer's email and phone",
+            "description": "On requests for a price on a vendor's product. Turned off, vendors see the customer's name and message but not how to reach them. They can still send a price, which the store delivers."
+          }
+        },
+        "abandonedCheckouts": {
+          "title": "Abandoned checkouts",
+          "show": {
+            "label": "Vendors see abandoned checkouts with their products",
+            "description": "Adds Abandoned checkouts under Orders in the vendor dashboard. A vendor sees only its own products in each checkout, and never who the customer was. The store keeps the recovery emails."
+          }
+        },
+        "abandonedOffers": {
+          "title": "Offers on abandoned checkouts",
+          "enabled": {
+            "label": "Vendors can send offers",
+            "description": "A vendor can send its own discount to a shopper who left its products in a checkout. The store sends the email, the vendor never sees who the shopper is, and the discount comes off the vendor's earnings."
+          },
+          "automatic": {
+            "label": "Vendors can set an automatic offer",
+            "description": "A vendor's standing offer goes out with the store's second recovery email. It needs automatic recovery emails turned on in Checkout settings."
+          },
+          "maxPercent": {
+            "label": "Largest offer",
+            "description": "The most an offer may take off the vendor's items."
+          },
+          "maxPerVendorPerDay": {
+            "label": "Offers per vendor per day",
+            "description": "How many offers one vendor may send in 24 hours."
+          },
+          "maxValidDays": {
+            "label": "Longest an offer is valid",
+            "description": "At most 14 days, when the checkout's recovery link stops working.",
+            "unit": "days"
+          }
         }
       },
       "storage": {
@@ -3913,6 +4716,135 @@
         "plausibleBaseUrlPlaceholder": "https://plausible.yourdomain.com",
         "save": "Save Analytics Settings"
       },
+      "metaCatalog": {
+        "title": "Meta catalog",
+        "description": "Facebook and Instagram read your products from a private feed URL, for shops and catalog ads.",
+        "descriptionOff": "Turn this on to share your products with Facebook and Instagram, for shops and catalog ads.",
+        "loadFailed": "Could not load the feed settings.",
+        "retry": "Try again",
+        "feedUrl": "Feed URL",
+        "feedUrlHint": "Paste this into Meta Commerce Manager. Anyone with this URL can read your catalog, so keep it private.",
+        "copy": "Copy feed URL",
+        "copyFailed": "Could not copy. Select the URL and copy it by hand.",
+        "rotate": "Generate new URL",
+        "status": {
+          "fetched": "Last fetched {when} · {count, plural, one {# item} other {# items}}",
+          "notFetched": "Meta has not fetched this URL yet.",
+          "skipped": "Left out: {reasons}",
+          "preorder": "{count} on pre-order",
+          "noImage": "{count} without a usable image",
+          "noPrice": "{count} without a price"
+        },
+        "toast": {
+          "on": "The Meta catalog feed is on",
+          "off": "The Meta catalog feed is off",
+          "rotated": "New feed URL created. Paste it into Commerce Manager.",
+          "failed": "Could not save. Please try again.",
+          "liveOn": "Live sync is on",
+          "liveOff": "Live sync is off. Items already in Meta stay there.",
+          "sourceFeed": "Meta now reads the feed URL",
+          "sourceLive": "Live sync is now the catalog's source"
+        },
+        "rotateConfirm": {
+          "title": "Generate a new feed URL?",
+          "description": "The current URL stops working at once. Until you paste the new one into Commerce Manager, Meta's scheduled fetch fails.",
+          "confirm": "Generate new URL",
+          "cancel": "Cancel"
+        },
+        "guide": {
+          "title": "Commerce Manager setup guide",
+          "step1": "Open Meta Commerce Manager and pick your catalog, or create an e-commerce catalog.",
+          "step2": "Go to Catalog → Data sources → Add items, choose Data feed, then Next.",
+          "step3": "Choose Scheduled feed and paste the feed URL above.",
+          "step4": "Set it to repeat Hourly, choose {currency} as the currency, then Upload.",
+          "step5": "In Events Manager, connect the catalog to the Meta Pixel you entered in Settings → Analytics, so ads can match views and purchases to items.",
+          "step6": "After the first fetch, Catalog → Issues lists any item Meta rejected.",
+          "caution": "After generating a new URL, change the URL of the existing data source. A second data source would list every product twice.",
+          "link": "Open Commerce Manager",
+          "docs": "Full walkthrough: docs/META_CATALOG.md"
+        },
+        "descriptionLive": "Facebook and Instagram get your product changes within minutes through Meta's Catalog API.",
+        "source": {
+          "title": "How Meta gets your products",
+          "feed": "Feed URL",
+          "feedHint": "Meta downloads a file of your products every hour.",
+          "live": "Live sync",
+          "liveHint": "Changes reach Meta within minutes through the Catalog API."
+        },
+        "live": {
+          "catalogId": "Catalog ID",
+          "catalogIdHint": "The number under the catalog's name in Commerce Manager.",
+          "token": "System User access token",
+          "tokenHint": "Stored encrypted. Leave blank to keep the saved token.",
+          "tokenSaved": "Saved (leave blank to keep)",
+          "tokenRemoving": "The saved token will be removed when you save.",
+          "save": "Save",
+          "test": "Test connection",
+          "connected": "Connected to “{name}”",
+          "problem": {
+            "token": "Meta did not accept the access token. It may have expired or been revoked.",
+            "permission": "This token cannot manage catalogs. Assign the catalog to the System User with Manage permission, and generate the token with catalog_management.",
+            "catalog": "This token cannot see that catalog. Check the catalog ID, and that the catalog is assigned to the System User.",
+            "key": "The saved token cannot be read on this server. Paste it again and save.",
+            "config": "META_GRAPH_API_VERSION is not set on the server.",
+            "throttle": "Meta is busy right now. Try again in a minute.",
+            "other": "Meta could not be reached: {message}"
+          },
+          "paused": {
+            "title": "Live sync is paused",
+            "kept": "Changes are kept and sent once the connection works again.",
+            "meta": "Meta said: {reason}"
+          },
+          "setup": {
+            "version": "Live sync needs META_GRAPH_API_VERSION on the server",
+            "versionHint": "Set it to the Graph API version your Meta app uses, for example v23.0, and restart the store.",
+            "key": "Saving a token needs META_CATALOG_ENCRYPTION_KEY on the server",
+            "keyHint": "Set it to at least 32 random characters and restart the store. MESSAGING_ENCRYPTION_KEY is used when it is not set."
+          },
+          "status": {
+            "lastSync": "Last sync {when}",
+            "never": "Nothing sent yet",
+            "waiting": "{count, plural, one {# change waiting} other {# changes waiting}}",
+            "checking": "checking every product",
+            "throttled": "Meta asked us to slow down. Sending resumes {when}.",
+            "runError": "Live sync could not run: {message}"
+          },
+          "skipped": {
+            "line": "Left out at the last check: {reasons}",
+            "preorder": "{count} on pre-order",
+            "noImage": "{count} without a usable image",
+            "noPrice": "{count} without a price"
+          },
+          "syncNow": "Sync everything now",
+          "toast": {
+            "syncStarted": "Sending your whole catalog to Meta again.",
+            "saved": "Saved",
+            "failed": "Could not save. Please try again."
+          },
+          "rejected": {
+            "title": "{count, plural, one {# item was} other {# items were}} rejected by Meta",
+            "titleFailing": "Some products could not be sent",
+            "edit": "Edit",
+            "noReason": "Meta did not say why here. Commerce Manager → Catalog → Issues has the reason.",
+            "failing": "Could not be sent: {message}",
+            "loadFailed": "Could not load the rejected items.",
+            "retry": "Try again"
+          },
+          "guide": {
+            "title": "Live sync setup guide",
+            "step1": "In Meta Business Manager, open Business settings → Users → System users, and add a system user with the Admin role.",
+            "step2": "Click Assign assets, choose Catalogs, pick your catalog and turn on Manage catalog.",
+            "step3": "Click Generate new token, choose your app, set it to never expire and tick this permission. Copy the token:",
+            "step4": "In Commerce Manager, open the catalog and copy its ID, the number under its name.",
+            "step5": "Paste both above and click Save. The first sync sends every product; after that only what changed is sent, within about three minutes.",
+            "step6": "If this catalog has a scheduled feed data source, delete it in Catalog → Data sources, so only one source writes the items.",
+            "caution": "Treat the token like a password. If it is revoked or expires, live sync pauses and admins are notified.",
+            "off": "Turning live sync off leaves the items already in Meta as they are. Remove them in Commerce Manager if you no longer want them.",
+            "link": "Open Business settings",
+            "docs": "Full walkthrough: docs/META_CATALOG.md"
+          }
+        }
+      },
       "loadError": "Failed to load settings",
       "toasts": {
         "saved": "Settings saved",
@@ -3925,7 +4857,10 @@
         "connected": "Connected",
         "connectionFailed": "Connection failed",
         "saveEmailFirst": "Save the email settings before sending a test email",
-        "savePaymentBeforeTest": "Save payment settings before testing the connection"
+        "savePaymentBeforeTest": "Save payment settings before testing the connection",
+        "defaultVendorSyncFailed": "Settings were saved, but the store profile could not be created or updated, so products, inventory and the POS may not work yet. Save again; if this keeps happening, check the server log.",
+        "defaultVendorNoOwner": "Settings were saved, but the store profile could not be created: every admin account already owns a seller store, and a store has one owner. Add an admin account that owns no store, then save again.",
+        "defaultVendorNeedsReview": "Settings were saved, but a new store profile was not created: an older one probably exists under an admin's own store. A developer can review it with pnpm db:migrate house-profile --dry-run."
       },
       "conflict": {
         "title": "Settings changed elsewhere",
@@ -3951,7 +4886,7 @@
         "digitalDesc": "Downloads such as ebooks and licence keys, or services with nothing to ship.",
         "sellingHeading": "Selling options",
         "preorders": "Pre-orders",
-        "preordersDesc": "Take orders before stock arrives, with a release date and an optional deposit. Vendor approval and limits are under Multi-Vendor Management.",
+        "preordersDesc": "Take orders before stock arrives, with a release date and an optional deposit. Vendor approval and limits are under Multi-Vendor Mode.",
         "priceOnRequest": "Price on request",
         "priceOnRequestDesc": "Hide a product's price and show a “Request a quote” button instead.",
         "existingNote": "Turning a feature off never changes a live product: a running pre-order keeps selling, a quote-only product keeps its quote button, and a digital product stays digital."
@@ -3962,33 +4897,65 @@
       },
       "boosting": {
         "title": "Product Boosting",
-        "description": "Let vendors pay to promote their products in sponsored placements across the storefront.",
-        "enable": "Enable boosting",
-        "enableDescription": "Master switch. When off, nothing is shown on the storefront and vendors cannot purchase boosts.",
-        "paymentMethods": "Payment methods",
-        "paymentMethodsDescription": "Which gateways vendors may pay boosts through. Credentials are configured in Payment Settings.",
-        "gatewayDisabledHint": "Enable this gateway in Payment Settings first",
-        "placements": "Placements",
-        "placementsDescription": "Where sponsored products appear on the storefront.",
-        "placementHome": "Home page section",
-        "placementListing": "Shop & category listings",
-        "placementProductPage": "Product page carousel",
-        "listingSlots": "Ladder depth on listing pages",
-        "listingSlotsDescription": "How many of the top ladder positions render on shop and category pages (1–12). Positions below this depth simply do not appear there.",
-        "hideOutOfStock": "Hide out-of-stock products",
-        "hideOutOfStockDescription": "A booked product that sells out is dropped from its slot, and the vendor is credited in proportion for that day.",
-        "managePositions": "Manage the position ladder & pricing",
-        "productPageSlots": "Ladder depth on product pages",
-        "productPageSlotsDescription": "How many of the top ladder positions render in the product-page rail (1–12).",
-        "ladderDepth": "Positions deeper than the largest of these depths render nowhere and cannot be sold.",
-        "booking": "Booking rules",
-        "bookingDescription": "How far ahead vendors may book, how long a booking may run, and how long an unpaid checkout holds its days.",
-        "bookingHorizonDays": "Booking horizon (days)",
-        "bookingHorizonDaysDescription": "How far into the future the calendar opens (7–365).",
-        "maxBookingDays": "Longest single booking (days)",
-        "maxBookingDaysDescription": "Stops one vendor holding a position for a whole season in one transaction (1–365).",
-        "holdMinutes": "Checkout hold (minutes)",
-        "holdMinutesDescription": "How long an unpaid checkout keeps its days off the market (35–120). Below 35 Stripe rejects the checkout session."
+        "description": "Vendors pay to show their products in sponsored slots on the storefront.",
+        "descriptionOff": "Off: no sponsored products show, and vendors can't book. Turn it on to set up the position ladder and sell boosts.",
+        "needsVendors": "Boosts are sold to vendors, so this needs Multi-Vendor Mode. It is off for this store.",
+        "openMultiVendor": "Open Multi-Vendor Mode",
+        "links": {
+          "ladder": "Position ladder & pricing",
+          "campaigns": "Boost campaigns"
+        },
+        "ladder": {
+          "count": "{count, plural, one {# position} other {# positions}}",
+          "onePrice": "{count, plural, one {# position} other {# positions}}, {price} a day",
+          "range": "{count, plural, one {# position} other {# positions}}, {min} to {max} a day",
+          "empty": "The ladder has no positions yet, so vendors have nothing to book."
+        },
+        "surfaces": {
+          "title": "Where sponsored products show",
+          "description": "Each page shows the top positions of the ladder.",
+          "home": "Home page",
+          "homeHint": "The Sponsored section. Its size is set in the <link>page builder</link>.",
+          "homeMissing": "Your home page has no Sponsored section now, so nothing shows there. Add it in the <link>page builder</link>.",
+          "listing": "Shop and category pages",
+          "listingHint": "The first cards on page 1. Search and filtered pages stay as they are.",
+          "productPage": "Product pages",
+          "productPageHint": "The Sponsored carousel on each product page.",
+          "productPageMissing": "Your product page has no Sponsored section now, so nothing shows there. Add it in the <link>page builder</link>.",
+          "top": "Top <input></input> positions",
+          "topFixed": "Top {count} positions",
+          "topLabel": "Positions shown: {page}",
+          "unseenOne": "Position {position} ({name}) would show on no page.",
+          "unseenMany": "Positions {positions} would show on no page.",
+          "unseenAll": "No page shows sponsored products now.",
+          "hideOutOfStock": "Skip out-of-stock products",
+          "hideOutOfStockHint": "The slot shows a regular product instead, and the vendor is credited for that part of the day."
+        },
+        "rules": {
+          "title": "Booking rules",
+          "window": "Booking window",
+          "windowHint": "How far ahead the booking calendar opens.",
+          "longest": "Longest booking",
+          "longestHint": "Keeps one vendor from holding a position for a whole season.",
+          "longestOverWindow": "Longer than the booking window, so the window is the real limit.",
+          "hold": "Unpaid checkout hold",
+          "holdHint": "An unpaid checkout keeps its days this long, then they go back on sale. Stripe needs at least {minutes} minutes.",
+          "days": "days",
+          "minutes": "minutes"
+        },
+        "payments": {
+          "title": "Payment methods",
+          "description": "What vendors can pay for a boost with. A gateway also has to be on in <link>Payment Settings</link>."
+        },
+        "turnOff": {
+          "title": "Turn off Product Boosting?",
+          "description": "Sponsored products stop showing on every page and vendors can't book. The ladder, its prices and these settings are kept.",
+          "bookings": "Bookings running: {running}. Starting later: {upcoming}.",
+          "bookingsUnknown": "Some bookings may be running or about to start.",
+          "notCredited": "They stop showing, and those days are not credited back to the vendors. Pause or refund them first.",
+          "confirm": "Turn off",
+          "cancel": "Keep it on"
+        }
       },
       "groups": {
         "store": "Store",
@@ -4013,7 +4980,13 @@
         "savedKeysHint": "Saved keys are not shown again for security.",
         "savedSecretsHint": "Saved secrets are not shown again for security.",
         "savedPasswordsHint": "Saved passwords are not shown again for security.",
-        "enableProvider": "Enable {name}"
+        "enableProvider": "Enable {name}",
+        "platformPayments": {
+          "allow": "Let vendors pay with {name}",
+          "offInPayments": "Off in Payment Settings: {gateways}.",
+          "noneOn": "No gateway is on in Payment Settings yet.",
+          "noneAllowed": "With every method off, vendors have no way to pay."
+        }
       },
       "demoMode": "Demo mode",
       "brandAssets": {
@@ -4053,7 +5026,7 @@
         }
       },
       "preorder": {
-        "title": "Pre-orders",
+        "title": "Vendor pre-orders",
         "description": "What a vendor may promise when they sell something before it exists — and who is allowed to.",
         "storeOff": "Pre-orders are switched off for the whole store. Turn them on in <link>Settings → Products</link> to set what vendors may promise.",
         "requireApproval": {
@@ -4075,6 +5048,11 @@
           "unit": "days past the release date",
           "hint": "The order is cancelled, the quota freed, and the deposit refunded in full."
         },
+        "chargeNotice": {
+          "label": "Notice before charging a saved card",
+          "unit": "hours",
+          "hint": "The customer is emailed the balance and when their card will be charged. The card is charged on or after this many hours after that email is delivered — never sooner. They can always pay sooner themselves."
+        },
         "autoRelease": {
           "title": "Ask for the balance automatically",
           "description": "On the release date, ask each pre-order for its remaining balance and release the ones already paid for. Leave this off if your dates slip — asking for money says the goods are ready.",
@@ -4082,41 +5060,50 @@
           "hint": "A pre-order that is already paid in full is only released once its stock is actually recorded — the calendar alone never ships anything."
         },
         "reserve": {
-          "label": "Hold back from pre-order payouts",
+          "label": "Payout reserve",
           "percentUnit": "% for",
           "daysUnit": "days",
-          "hint": "A card dispute is counted from the expected delivery date, so a pre-order can be charged back long after the vendor was paid. Zero switches the reserve off."
+          "hint": "Covers card disputes that arrive after the vendor is paid. 0 turns it off."
         },
         "access": {
-          "title": "Vendor access",
           "waiting": "{count} waiting",
           "reviewOff": "Review is off, so every vendor can already open pre-orders. Approving here changes nothing until you turn review on above, and the vendor is not notified of it.",
           "empty": "No vendor has asked for pre-order access yet.",
-          "revokeNote": "Revoking stops the next pre-order. Listings already selling keep their promises — shoppers have paid deposits against them."
-        }
+          "revokeNote": "Revoking stops the next pre-order. Listings already selling keep their promises — shoppers have paid deposits against them.",
+          "approvedToggle": "{count, plural, one {# approved vendor} other {# approved vendors}}"
+        },
+        "movedNote": "Balance requests and expiry apply to every pre-order, yours too, so they live in <link>Settings → Products</link>."
       },
       "deliveryLogs": {
+        "title": "Delivery log",
         "email": {
-          "title": "Email delivery logs",
-          "description": "Sent payloads are removed immediately; only delivery metadata is retained. Save email settings after changing retention.",
+          "retentionNote": "Sent emails stay here for {count, plural, one {# day} other {# days}}, without their content. Failed ones stay for 90 days.",
+          "keepFor": "Keep sent emails for",
+          "clearSent": "Clear sent emails…",
+          "clearTitle": "Clear sent emails?",
+          "clearDescription": "{count, plural, one {This permanently deletes the # sent email in the log.} other {This permanently deletes all # sent emails in the log.}} Failed and waiting emails stay.",
+          "clearConfirm": "Delete sent emails",
+          "deleteTitle": "{count, plural, one {Delete this email from the log?} other {Delete # emails from the log?}}",
+          "deleteDescription": "{count, plural, one {It is only removed from the log. Nothing is unsent.} other {They are only removed from the log. Nothing is unsent.}}",
           "summaryLabel": "Subject",
-          "searchPlaceholder": "Recipient, subject, or category",
-          "clearTitle": "Clear sent email logs?",
-          "deleteTitle": "Delete selected email logs?",
-          "clearDescription": "{count, plural, one {This permanently deletes # sent email log. This action cannot be undone.} other {This permanently deletes all # sent email logs. This action cannot be undone.}}",
-          "deleteDescription": "{count, plural, one {This permanently deletes # selected finished log. Queued or sending emails are never deleted.} other {This permanently deletes # selected finished logs. Queued or sending emails are never deleted.}}",
-          "queuedForRetry": "{count, plural, one {# failed email queued for retry.} other {# failed emails queued for retry.}}"
+          "searchPlaceholder": "Search by recipient or subject",
+          "queuedForRetry": "{count, plural, one {# failed email queued for retry.} other {# failed emails queued for retry.}}",
+          "emptyTitle": "No emails yet"
         },
         "sms": {
-          "title": "SMS delivery logs",
-          "description": "Each text is kept with the carrier's verdict until the retention period ends. Save SMS settings after changing retention.",
+          "retentionNote": "Sent texts stay here for {count, plural, one {# day} other {# days}}, failed ones for 90 days.",
+          "keepFor": "Keep sent texts for",
+          "clearSent": "Clear sent texts…",
+          "clearTitle": "Clear sent texts?",
+          "clearDescription": "{count, plural, one {This permanently deletes the # sent text in the log.} other {This permanently deletes all # sent texts in the log.}} Failed and waiting texts stay.",
+          "clearConfirm": "Delete sent texts",
+          "deleteTitle": "{count, plural, one {Delete this text from the log?} other {Delete # texts from the log?}}",
+          "deleteDescription": "{count, plural, one {It is only removed from the log. Nothing is unsent.} other {They are only removed from the log. Nothing is unsent.}}",
           "summaryLabel": "Message",
-          "searchPlaceholder": "Phone number, message, or category",
-          "clearTitle": "Clear sent text logs?",
-          "deleteTitle": "Delete selected text logs?",
-          "clearDescription": "{count, plural, one {This permanently deletes # sent text log. This action cannot be undone.} other {This permanently deletes all # sent text logs. This action cannot be undone.}}",
-          "deleteDescription": "{count, plural, one {This permanently deletes # selected finished log. Queued or sending texts are never deleted.} other {This permanently deletes # selected finished logs. Queued or sending texts are never deleted.}}",
-          "queuedForRetry": "{count, plural, one {# failed text queued for retry.} other {# failed texts queued for retry.}}"
+          "searchPlaceholder": "Search by number or text",
+          "queuedForRetry": "{count, plural, one {# failed text queued for retry.} other {# failed texts queued for retry.}}",
+          "emptyTitle": "No texts yet",
+          "noReceipts": "Texts stay at Sent here: Twilio reports deliveries only to a public https address, and this store runs at {origin}."
         },
         "status": {
           "sent": "Sent",
@@ -4125,18 +5112,18 @@
           "failed": "Failed",
           "queued": "Queued",
           "retrying": "Retrying",
-          "sending": "Sending"
+          "sending": "Sending",
+          "cancelled": "Cancelled"
         },
-        "keepSentLogs": "Keep sent logs",
-        "retentionDays": "{count, plural, one {# day} other {# days}}",
-        "refresh": "Refresh",
-        "stats": {
-          "total": "Total",
+        "tabs": {
+          "all": "All",
           "sent": "Sent",
           "failed": "Failed",
-          "pending": "Pending"
+          "waiting": "Waiting"
         },
-        "allStatuses": "All statuses",
+        "tabsLabel": "Show by status",
+        "searchLabel": "Search the log",
+        "rangeLabel": "Date range",
         "range": {
           "today": "Today",
           "last7": "Last 7 days",
@@ -4144,30 +5131,41 @@
           "last90": "Last 90 days",
           "all": "All time"
         },
-        "deleteSelected": "Delete selected",
-        "retrySelectedFailed": "Retry selected failed",
-        "retryAllFailed": "Retry all failed",
-        "clearSent": "Clear sent logs",
-        "deleteLogs": "Delete logs",
-        "selectPage": "Select finished logs on this page",
-        "selectRow": "Select {name}",
+        "refresh": "Refresh",
+        "options": "Log options",
+        "retentionDays": "{count, plural, one {# day} other {# days}}",
         "columns": {
-          "created": "Created",
-          "recipient": "Recipient",
+          "date": "Date",
+          "to": "To",
           "status": "Status",
-          "tries": "Tries",
-          "action": "Action"
+          "actions": "Actions"
         },
-        "empty": "No matching deliveries.",
-        "segments": "{count, plural, one {# segment} other {# segments}}",
+        "selectPage": "Select the finished rows on this page",
+        "selectRow": "Select {name}",
+        "rowActions": "Actions for {name}",
+        "selected": "{count} selected",
+        "retry": "Retry",
         "retryNow": "Retry now",
+        "retryAll": "Retry all {count}",
+        "delete": "Delete",
+        "clearSelection": "Clear",
+        "emptyHint": "They show here as they go out.",
+        "noMatch": "Nothing matches.",
+        "showAll": "Show all",
+        "tryOf": "Try {attempt} of {max}",
+        "tryOfError": "Try {attempt} of {max} · {error}",
+        "billedAs": "{count, plural, one {Billed as # text} other {Billed as # texts}}",
         "retryFailed": "Retry failed",
         "retrySent": "Sent successfully",
         "actionFailed": "Action failed",
         "updated": "Delivery logs updated",
         "deleted": "{count, plural, one {# log deleted.} other {# logs deleted.}}"
       },
-      "demoModeMessage": "Demo mode is enabled. Settings changes are disabled on this demo site."
+      "demoModeMessage": "Demo mode is enabled. Settings changes are disabled on this demo site.",
+      "saveBar": {
+        "unsaved": "Unsaved changes",
+        "discard": "Discard"
+      }
     },
     "addToCart": "Add to Cart",
     "initiateCheckout": "Initiate Checkout",
@@ -4365,7 +5363,7 @@
           "status": "active, draft or archived. New products are draft unless the file says otherwise.",
           "brand": "An existing brand's name.",
           "tags": "Separated by |, e.g. summer|cotton.",
-          "images": "Public image links (https://…) separated by |. The first one is the main image. Up to 10.",
+          "images": "Public image links (https://…) separated by |. The first one is the main image. Up to {max}.",
           "onlineStore": "true or false: show the product in the online store. Default true.",
           "pointOfSale": "true or false: sell it at the point of sale. Default false.",
           "featured": "true or false: feature the product on the storefront.",
@@ -4378,7 +5376,10 @@
           "countryOfOrigin": "Country name or two-letter code, e.g. BD.",
           "hsCode": "Customs tariff code.",
           "barcode": "EAN-13, UPC-A, GTIN-14 or Code 128. Generated when empty.",
-          "vendorId": "The vendor a product belongs to, as in a vendor's export. Default: your own store."
+          "vendorId": "The vendor a product belongs to, as in a vendor's export. Default: your own store.",
+          "vendorSlug": "The vendor's store slug, e.g. green-leaf. Names the vendor when vendorId is empty.",
+          "vendorEmail": "The email the vendor's owner signs in with. Names the vendor when vendorId is empty.",
+          "vendor": "The vendor's store name. Refused when two stores share it; use vendorSlug or vendorEmail then."
         },
         "cancel": "Cancel",
         "submit": "Import products",
@@ -4972,7 +5973,20 @@
       "unsubscribed": "Unsubscribed",
       "not_subscribed": "Not subscribed",
       "invalid": "Invalid address",
-      "redacted": "Redacted"
+      "redacted": "Redacted",
+      "not_needed": "Not needed",
+      "who_pays_for_this_discount": "Who pays for this discount",
+      "the_store": "The store",
+      "the_sellers_who_deliver_the_parcels": "The sellers who deliver the parcels",
+      "the_sellers_whose_items_it_discounts": "The sellers whose items it discounts",
+      "when_the_store_pays_sellers_still_earn_the_delivery_charge_their_parcel_was_rated_at_applies_to_orders_placed_from_now_on": "When the store pays, sellers still earn the delivery charge their parcel was rated at. Applies to orders placed from now on.",
+      "when_the_store_pays_sellers_are_paid_as_if_their_items_sold_at_full_price_applies_to_orders_placed_from_now_on": "When the store pays, sellers are paid as if their items sold at full price. Applies to orders placed from now on.",
+      "show_to_shoppers": "Show to shoppers",
+      "list_this_code_in_the_shopping_app_s_coupon_sheet_off_it_works_only_when_typed": "List this code in the shopping app's coupon sheet. Off: it works only when typed.",
+      "team_members_exported": "Team members exported",
+      "team_members_could_not_be_exported": "Team members could not be exported",
+      "vendors_exported": "Vendors exported",
+      "vendors_could_not_be_exported": "Vendors could not be exported"
     },
     "customersPage": {
       "stats": {
@@ -5071,6 +6085,53 @@
       "updateSuccess": "{count} customers updated",
       "updateError": "Failed to update {count} customers"
     },
+    "vendorsDataTable": {
+      "thisVendor": "this vendor",
+      "deleteSingleDescription": "Are you sure you want to delete {name}? This action cannot be undone."
+    },
+    "customerAccountEmail": {
+      "sendReset": "Send password reset",
+      "sendInvite": "Send account invite",
+      "confirmResetTitle": "Send a password reset link?",
+      "confirmResetDescription": "{email} will get a link to choose a new password. It works for 1 hour.",
+      "confirmInviteTitle": "Send an account invite?",
+      "confirmInviteDescription": "{email} will get a link to set a password for their account. It works for 7 days.",
+      "send": "Send",
+      "cancel": "Cancel",
+      "resetSent": "Password reset link sent to {email}",
+      "inviteSent": "Account invite sent to {email}",
+      "emailNotSetUp": "Email isn't set up yet. Set it up in Settings → Email first.",
+      "sendFailed": "The email couldn't be sent. Check Settings → Email.",
+      "reason": {
+        "nonCustomer": "This account belongs to a seller or a team member.",
+        "banned": "This customer is banned.",
+        "inactive": "This customer's account is inactive.",
+        "noEmail": "This customer has no email address.",
+        "recent": "An account email went to this customer less than 15 minutes ago.",
+        "duplicate": "This customer was listed twice."
+      },
+      "bulkAction": "Send account email",
+      "sendToAllMatching": "Send to all {count} matching",
+      "confirmBulkTitle": "Send account emails?",
+      "confirmBulkDescription": "{count, plural, one {# customer gets} other {# customers get}} an email: a password reset link if they have a password, or an invite to set one if they don't.",
+      "skippedSummary": "{count, plural, one {# is} other {# are}} left out: {reasons}.",
+      "skippedReason": {
+        "nonCustomer": "{count, plural, one {# team or seller account} other {# team or seller accounts}}",
+        "banned": "{count} banned",
+        "inactive": "{count} inactive",
+        "noEmail": "{count} without an email",
+        "recent": "{count} emailed in the last 15 minutes",
+        "duplicate": "{count} listed twice"
+      },
+      "nobodyToSend": "None of these customers can be sent an account email.",
+      "queued": "{count, plural, one {Sending # account email} other {Sending # account emails}}",
+      "progress": "Sending account emails · {done} of {total}",
+      "progressFailed": "{count} couldn't be sent",
+      "finished": "{count, plural, one {# account email sent} other {# account emails sent}}",
+      "finishedWithFailures": "{failed} of {total} account emails couldn't be sent.",
+      "retry": "Retry",
+      "dismiss": "Dismiss"
+    },
     "staffDataTable": {
       "removeSingleDescription": "Are you sure you want to remove {name} from the team? They will be reverted to a customer account.",
       "removeBulkDescription": "Remove {count} selected team members? They will be reverted to customer accounts.",
@@ -5084,7 +6145,8 @@
       "deleteBulkError": "Failed to delete {count} discounts",
       "updateStatusDescription": "Set {count} discounts to \"{status}\"?",
       "updateSuccess": "{count} discounts updated",
-      "updateError": "Failed to update {count} discounts"
+      "updateError": "Failed to update {count} discounts",
+      "deleteSingleDescription": "Are you sure you want to delete \"{code}\"? This action cannot be undone."
     },
     "inboxPage": {
       "title": "Inbox",
@@ -5500,7 +6562,9 @@
           "auto": "Automatic",
           "top": "At the top of the page",
           "scrollUp": "When scrolling up"
-        }
+        },
+        "placeholderLanguage": "Placeholder language",
+        "placeholderDefault": "Use the storefront translation when this field is empty. Custom text is saved for the selected language."
       },
       "links": {
         "megaMenu": "Mega menu",
@@ -7723,6 +8787,14 @@
             "classic": "Classic",
             "electronics": "Electronics"
           }
+        },
+        "review-highlights": {
+          "name": "Review highlights",
+          "description": "Your store’s best verified reviews, picked from what buyers wrote"
+        },
+        "store-slider": {
+          "name": "Slider",
+          "description": "One of your store’s sliders, full width or in the page column"
         }
       },
       "fields": {
@@ -7735,6 +8807,7 @@
         "desktopColumns": "Desktop columns",
         "productIds": "Products",
         "categoryIds": "Categories",
+        "reviewIds": "Reviews",
         "image": "Image",
         "alt": "Alt text",
         "link": "Link",
@@ -7785,6 +8858,7 @@
         "align": "Alignment",
         "size": "Size",
         "rows": "Rows",
+        "endless": "Endless scroll",
         "showExpiry": "Show end date",
         "offer": "Offer",
         "condition": "Condition",
@@ -7835,7 +8909,24 @@
         "showDescription": "Description",
         "showProductCount": "Product count",
         "showSubcategories": "Sub-categories",
-        "sort": "Sort menu"
+        "sort": "Sort menu",
+        "vendorIds": "Stores",
+        "viewAllLabel": "“View all” label",
+        "viewAllLink": "“View all” link",
+        "cardStyle": "Card style",
+        "buttonStyle": "Button style",
+        "buttonColor": "Button color",
+        "showTagline": "Show tagline",
+        "showRating": "Show rating",
+        "showSold": "Show units sold",
+        "showFollow": "Show follow button",
+        "showButton": "Show shop button",
+        "hideEmptyStores": "Hide stores without products",
+        "reviewOrder": "Order",
+        "frameHeight": "Height",
+        "showProduct": "Show the product",
+        "categoryId": "Category",
+        "brandId": "Brand"
       },
       "options": {
         "looks": "All Looks",
@@ -7913,7 +9004,23 @@
         "landscape": "Landscape (4:3)",
         "show": "Show",
         "pages": "Numbered pages",
-        "infinite": "Load on scroll"
+        "infinite": "Load on scroll",
+        "topRated": "Top rated",
+        "bestSelling": "Best selling",
+        "newest": "Newest",
+        "carousel": "Carousel",
+        "cardGrid": "Grid",
+        "bordered": "Bordered",
+        "shadow": "Shadow",
+        "flat": "Flat",
+        "solid": "Solid",
+        "outline": "Outline",
+        "bestRated": "Best rated",
+        "compact": "Compact",
+        "standard": "Standard",
+        "category": "Category",
+        "brand": "Brand",
+        "collection": "Collection"
       },
       "blocks": {
         "look": "Look",
@@ -8101,6 +9208,7 @@
         "width": "Width",
         "brandList": "Brand List",
         "noBrands": "No brands yet — add brands under Products → Brands first.",
+        "noVendorBrands": "No brands yet — set a brand on your products and it appears here.",
         "unknownBrand": "Brand no longer available",
         "removeBrand": "Remove brand"
       },
@@ -8184,7 +9292,32 @@
         "imageHint": "A static picture, linked to the collection.",
         "cards": "Cards",
         "missingSlider": "Missing",
-        "choose": "Choose…"
+        "choose": "Choose…",
+        "products": "Products",
+        "automatic": "Automatic",
+        "chosen": "{count} of {total} chosen",
+        "unavailable": "{count} not available",
+        "choosePicks": "Choose products",
+        "clearPicks": "Back to automatic",
+        "picksTitle": "Products from {collection}",
+        "picksSearch": "Search in this collection…",
+        "picksLoading": "Loading products…",
+        "picksFailed": "Could not load this collection's products.",
+        "picksEmpty": "This collection has no products on the online store yet.",
+        "picksNoMatch": "No products in this collection match.",
+        "picksAdd": "Add a product…",
+        "picksFull": "All {count} cards are chosen. Remove one to add another.",
+        "picksSearchAll": "Search all {count} products…",
+        "picksSearching": "Searching…",
+        "picksAllChosen": "Every product in this collection is already chosen.",
+        "picksSelected": "Selected",
+        "picksClear": "Clear all",
+        "picksAuto": "Auto",
+        "pickUnavailable": "Not available in this collection",
+        "picksReorder": "Drag to reorder",
+        "picksMoveUp": "Move up",
+        "picksMoveDown": "Move down",
+        "picksRemove": "Remove"
       },
       "fieldHints": {
         "gap": {
@@ -8197,13 +9330,23 @@
           "imageFit": "Follow product page: the fit and padding the product page's gallery uses."
         },
         "product-grid": {
-          "productIds": "Drag to set the shelf order."
+          "productIds": "Drag to set the shelf order.",
+          "categoryId": "Products from this category and every category below it, newest first.",
+          "brandId": "This brand's products, newest first.",
+          "collectionId": "The collection's products, in the collection's own order."
         },
         "product-browser": {
-          "productIds": "Drag to set the order they appear in."
+          "endless": "Keep loading products as shoppers scroll. Off, the grid stops after its rows, with a View all link.",
+          "productIds": "Drag to set the order they appear in.",
+          "categoryId": "Products from this category and every category below it, newest first.",
+          "brandId": "This brand's products, newest first.",
+          "collectionId": "The collection's products, in the collection's own order."
         },
         "product-group": {
-          "productIds": "Drag to set the order the products appear in."
+          "productIds": "Drag to set the order the products appear in.",
+          "categoryId": "Products from this category and every category below it, newest first.",
+          "brandId": "This brand's products, newest first.",
+          "collectionId": "The collection's products, in the collection's own order."
         },
         "coupon-banner": {
           "offer": "Leave empty to show what the discount is worth.",
@@ -8252,6 +9395,11 @@
           "sort": "The sort menu above the products.",
           "featuredProducts": "A short list of the category's featured products under the filters.",
           "pagination": "Numbered pages, or more products as the shopper scrolls."
+        },
+        "vendor-list": {
+          "vendorIds": "Drag to set the order. Only approved stores appear on the storefront.",
+          "ctaLabel": "Leave empty for “Go to Shop”.",
+          "viewAllLabel": "Leave empty to hide the link."
         }
       },
       "sectionUnavailable": "Not available",
@@ -8416,6 +9564,25 @@
           "category": "Its category page"
         },
         "rowAlign": "Row alignment"
+      },
+      "vendorPicker": {
+        "search": "Search approved stores…",
+        "empty": "No stores picked yet. Add them from the list below.",
+        "noResults": "No more approved stores",
+        "unavailable": "Store unavailable (not approved)",
+        "remove": "Remove store",
+        "reorder": "Drag to reorder",
+        "limitReached": "Limit reached. Remove a store to add another."
+      },
+      "reviewPicker": {
+        "search": "Search your reviews…",
+        "empty": "No reviews picked yet. Add them from the list below.",
+        "noResults": "No more approved reviews with a comment",
+        "unavailable": "Review unavailable (no longer approved)",
+        "remove": "Remove review",
+        "reorder": "Drag to reorder",
+        "limitReached": "Limit reached. Remove a review to add another.",
+        "verified": "Verified purchase"
       }
     },
     "themeSettings": {
@@ -8615,6 +9782,21 @@
       "sidebarIntegrate": "Integrate",
       "sidebarApparent": "Apparent"
     },
+    "vendorLandingPage": {
+      "title": "Landing page",
+      "description": "The Home tab this store designed in its Vendor CMS. It goes live when the vendor publishes it; you can take it down, but not edit it.",
+      "loadFailed": "The landing page status could not be loaded.",
+      "live": "Published",
+      "sections": "{count, plural, one {# section} other {# sections}}",
+      "takenDown": "Unpublished by an admin",
+      "none": "Not published",
+      "view": "View store page",
+      "unpublish": "Unpublish",
+      "unpublished": "Landing page unpublished. The store opens on its products again.",
+      "confirmTitle": "Unpublish this landing page?",
+      "confirmDescription": "Shoppers stop seeing it right away. The vendor keeps their draft and sees your reason in their editor.",
+      "reasonPlaceholder": "Reason for the vendor (optional)"
+    },
     "preorderAccess": {
       "vendorFallback": "Vendor",
       "thisVendor": "this vendor",
@@ -8652,6 +9834,323 @@
         "reviewOff": "Review is off, so this vendor can already open pre-orders. What you set here applies once review is turned on, and the vendor is not notified of it.",
         "limits": "Once approved, release dates can be up to {days, plural, one {# day} other {# days}} out and deposits up to {percent}% of the price. Withdrawing access never pulls listings that are already selling."
       }
+    },
+    "activityLogPage": {
+      "title": "Activity log",
+      "searchPlaceholder": "Search by actor email",
+      "all": "All",
+      "system": "System",
+      "unknownActor": "Unknown",
+      "failed": "Failed",
+      "viewDetails": "View details",
+      "columns": {
+        "time": "Time",
+        "actor": "Actor",
+        "action": "Action",
+        "resource": "Record",
+        "summary": "What happened",
+        "ip": "IP address",
+        "outcome": "Outcome"
+      },
+      "filters": {
+        "date": "Date",
+        "role": "Role",
+        "vendor": "Vendor",
+        "action": "Action",
+        "resource": "Record type",
+        "outcome": "Outcome",
+        "teamMember": "Team member"
+      },
+      "dates": {
+        "last30": "Last 30 days",
+        "allTime": "All time"
+      },
+      "outcomes": {
+        "success": "Succeeded",
+        "failed": "Failed"
+      },
+      "roles": {
+        "admin": "Admin",
+        "staff": "Staff",
+        "seller": "Seller (legacy staff)",
+        "vendor": "Vendor",
+        "customer": "Customer",
+        "system": "System"
+      },
+      "actions": {
+        "CREATE": "Created",
+        "UPDATE": "Updated",
+        "DELETE": "Deleted",
+        "LOGIN": "Signed in",
+        "LOGOUT": "Signed out",
+        "LOGIN_FAILED": "Sign-in failed",
+        "PASSWORD_CHANGE": "Password changed",
+        "PASSWORD_RESET": "Password reset",
+        "TWO_FACTOR_CHANGE": "Two-factor changed",
+        "SETTINGS_CHANGE": "Settings changed",
+        "STATUS_CHANGE": "Status changed",
+        "STATUS_OVERRIDE": "Status override",
+        "ROLE_CHANGE": "Role changed",
+        "PERMISSION_CHANGE": "Permissions changed",
+        "APPROVAL": "Approved",
+        "REJECTION": "Rejected",
+        "SUSPENSION": "Suspended",
+        "PAYMENT": "Payment",
+        "REFUND": "Refund",
+        "EXPORT": "Export",
+        "BULK_ACTION": "Bulk action",
+        "INVITE_SENT": "Invite sent"
+      },
+      "resources": {
+        "user": "User",
+        "vendor": "Vendor",
+        "product": "Product",
+        "order": "Order",
+        "coupon": "Coupon",
+        "category": "Category",
+        "settings": "Settings",
+        "session": "Session",
+        "payment": "Payment",
+        "refund": "Refund",
+        "inventory": "Inventory",
+        "location": "Location",
+        "transfer": "Transfer",
+        "collection": "Collection",
+        "review": "Review",
+        "vendorPlan": "Vendor plan",
+        "vendorOnboardingTemplate": "Vendor onboarding template",
+        "boostPosition": "Boost position",
+        "boostCampaign": "Boost campaign",
+        "vendorSubscription": "Vendor subscription",
+        "expense": "Expense",
+        "fiscalPeriod": "Fiscal period",
+        "storePage": "Store page",
+        "media": "Media file",
+        "ledgerAdjustment": "Ledger adjustment",
+        "payout": "Payout",
+        "storeCredit": "Store credit",
+        "messagingChannel": "Chat channel",
+        "commissionInvoice": "Commission invoice",
+        "quote": "Quote",
+        "brand": "Brand",
+        "globalVariant": "Global variant",
+        "slider": "Slider",
+        "menu": "Menu",
+        "blogPost": "Blog post",
+        "blogCategory": "Blog category"
+      },
+      "empty": {
+        "noActivityTitle": "No activity yet",
+        "noActivityDescription": "Changes made in the dashboard are recorded here as they happen.",
+        "noMatchTitle": "Nothing matches these filters",
+        "noMatchDescription": "Try a wider date range, or clear a filter.",
+        "clearFilters": "Clear filters"
+      },
+      "sheet": {
+        "title": "Activity details",
+        "description": "What happened, who did it, and what changed.",
+        "loading": "Loading activity details",
+        "loadFailed": "Could not load this entry.",
+        "retry": "Try again",
+        "when": "When",
+        "actor": "Who",
+        "action": "Action",
+        "resource": "Record",
+        "store": "Store",
+        "outcome": "Outcome",
+        "errorMessage": "Error",
+        "changes": "Changes",
+        "field": "Field",
+        "before": "Before",
+        "after": "After",
+        "empty": "empty",
+        "added": "Added",
+        "removed": "Removed",
+        "reordered": "Same items, new order",
+        "noChanges": "No field changes were recorded for this entry.",
+        "fieldsChanged": "Fields changed: {fields}",
+        "request": "Request",
+        "ip": "IP address",
+        "device": "Device",
+        "method": "Method",
+        "path": "Path",
+        "requestId": "Request ID",
+        "rawData": "Raw data",
+        "showRaw": "Show raw data",
+        "hideRaw": "Hide raw data",
+        "openRecord": "Open record"
+      },
+      "recordTabs": {
+        "title": "Activity log",
+        "loadFailed": "Failed to load activity",
+        "retry": "Try again",
+        "filterTitle": "Filter",
+        "filterDescription": "Counted from the 50 most recent entries",
+        "allActivity": "All activity",
+        "nothingRecorded": "Nothing recorded yet",
+        "noEntriesForFilter": "No entries for that filter",
+        "clearFilter": "Clear filter",
+        "by": "by {actor}",
+        "changed": "Changed: {fields}",
+        "viewAll": "View in the activity log",
+        "staff": {
+          "toggleLabel": "Show activity for this staff member",
+          "all": {
+            "label": "All",
+            "description": "Everything this staff member did, and everything done to their account, newest first",
+            "empty": "Nothing has been recorded for this staff member yet"
+          },
+          "by": {
+            "label": "By this member",
+            "description": "Actions this team member took, newest first",
+            "empty": "This staff member has not taken a recorded action yet"
+          },
+          "on": {
+            "label": "On this account",
+            "description": "Changes made to this staff account and sign-ins that failed on it, newest first",
+            "empty": "Nothing has been recorded on this staff account yet"
+          }
+        },
+        "vendor": {
+          "toggleLabel": "Show activity for this vendor",
+          "changesTo": "Changes to this vendor",
+          "actionsBy": "Actions by this vendor's team",
+          "changesDescription": "Admin actions recorded against this vendor, newest first",
+          "actionsDescription": "Actions this vendor and its staff took in the store, newest first",
+          "emptyChanges": "No recorded changes to this vendor yet",
+          "emptyActions": "This vendor's team has not taken a recorded action yet"
+        }
+      }
+    },
+    "catalogPicker": {
+      "searching": "Searching…",
+      "none": "None",
+      "category": {
+        "placeholder": "Select a category…",
+        "search": "Search categories…",
+        "empty": "No categories found",
+        "hidden": "This category is switched off, so the storefront does not show it.",
+        "missing": "Deleted category",
+        "missingIssue": "This category no longer exists. Pick another one."
+      },
+      "brand": {
+        "placeholder": "Select a brand…",
+        "search": "Search brands…",
+        "empty": "No brands found",
+        "archived": "This brand is archived, so the storefront does not show it.",
+        "unapproved": "This brand is not approved, so the storefront does not show it.",
+        "inactive": "This brand is switched off, so the storefront does not show it.",
+        "missing": "Deleted brand",
+        "missingIssue": "This brand no longer exists. Pick another one."
+      },
+      "collection": {
+        "search": "Search collections…",
+        "empty": "No collections found",
+        "draft": "This collection is a draft, so the storefront does not show it.",
+        "unpublished": "This collection is not published to the online store, so the storefront does not show it.",
+        "missing": "Deleted collection",
+        "missingIssue": "This collection no longer exists. Pick another one."
+      }
+    },
+    "collectionConditions": {
+      "title": "Collection Conditions",
+      "matchLabel": "Products must match:",
+      "matchAll": "All conditions",
+      "matchAny": "Any condition",
+      "empty": "No conditions added. Add a condition to automatically include products.",
+      "fieldLabel": "Field",
+      "operatorLabel": "Condition",
+      "valueLabel": "Value",
+      "add": "Add condition",
+      "remove": "Remove condition",
+      "loadingVendors": "Loading vendors…",
+      "selectVendor": "Select vendor",
+      "enterNumber": "Enter number",
+      "enterValue": "Enter value",
+      "categoryBranchHint": "A category takes in every category below it.",
+      "legacyOperator": "{operator} (older rule)",
+      "legacyCategoryText": "This older rule compares category names as text. Choose “is” or “is not” and pick a category; the rule then also covers every category below it.",
+      "legacyCategorySet": "This older rule matches every product. Choose “is” or “is not” and pick a category.",
+      "legacyCategoryNotSet": "This older rule matches no products. Choose “is” or “is not” and pick a category.",
+      "categoryTextMatched": "Saved as the text “{value}”, which matches this category. Pick it again to store the category itself.",
+      "categoryTextUnmatched": "No category matches “{value}”, so this rule matches no products. Pick a category.",
+      "brandText": "Saved as the text “{value}”. Pick the brand from the list.",
+      "fields": {
+        "title": "Product title",
+        "productType": "Product type",
+        "vendor": "Vendor",
+        "brand": "Brand",
+        "tag": "Product tag",
+        "price": "Price",
+        "comparePrice": "Compare at price",
+        "weight": "Weight",
+        "stock": "Stock quantity",
+        "category": "Category"
+      },
+      "operators": {
+        "equals": "is equal to",
+        "not_equals": "is not equal to",
+        "contains": "contains",
+        "not_contains": "does not contain",
+        "starts_with": "starts with",
+        "ends_with": "ends with",
+        "greater_than": "is greater than",
+        "less_than": "is less than",
+        "is_set": "is set",
+        "is_not_set": "is not set",
+        "is": "is",
+        "isNot": "is not"
+      }
+    },
+    "storeProfile": {
+      "title": "Your store profile isn't set up",
+      "missing": "It couldn't be created just now. Saving Settings → General Settings creates it.",
+      "noOwner": "It can't be created because every admin account already owns a seller store, and a store has one owner. Add an admin account that owns no store.",
+      "needsReview": "An older store profile probably exists under an admin's own store, so a new one wasn't created. A developer can review it with pnpm db:migrate house-profile --dry-run.",
+      "pickerNote": "Locations appear here once the store profile is set up. Settings → General Settings says what's missing."
+    },
+    "vendorAccountEmail": {
+      "sendReset": "Send password reset",
+      "sendInvite": "Send account invite",
+      "confirmResetTitle": "Send a password reset link?",
+      "confirmResetDescription": "{email} will get a link to choose a new password. It works for 1 hour.",
+      "confirmInviteTitle": "Send an account invite?",
+      "confirmInviteDescription": "{email} will get a link to set a password for their account. It works for 7 days.",
+      "send": "Send",
+      "cancel": "Cancel",
+      "resetSent": "Password reset link sent to {email}",
+      "inviteSent": "Account invite sent to {email}",
+      "emailNotSetUp": "Email isn't set up yet. Set it up in Settings → Email first.",
+      "sendFailed": "The email couldn't be sent. Check Settings → Email.",
+      "reason": {
+        "nonCustomer": "This account belongs to a seller or a team member.",
+        "banned": "This vendor is banned.",
+        "inactive": "This vendor account is inactive or the store is not approved.",
+        "noEmail": "This vendor has no email address.",
+        "recent": "An account email went to this vendor less than 15 minutes ago.",
+        "duplicate": "This vendor was listed twice."
+      },
+      "bulkAction": "Send password reset",
+      "sendToAllMatching": "Send to all {count} matching",
+      "confirmBulkTitle": "Send account emails?",
+      "confirmBulkDescription": "{count, plural, one {# vendor gets} other {# vendors get}} an email: a password reset link if they have a password, or an invite to set one if they don't.",
+      "skippedSummary": "{count, plural, one {# is} other {# are}} left out: {reasons}.",
+      "skippedReason": {
+        "nonCustomer": "{count, plural, one {# team or seller account} other {# team or seller accounts}}",
+        "banned": "{count} banned",
+        "inactive": "{count} inactive",
+        "noEmail": "{count} without an email",
+        "recent": "{count} emailed in the last 15 minutes",
+        "duplicate": "{count} listed twice"
+      },
+      "nobodyToSend": "None of these vendors can be sent an account email.",
+      "queued": "{count, plural, one {Sending # account email} other {Sending # account emails}}",
+      "progress": "Sending account emails · {done} of {total}",
+      "progressFailed": "{count} couldn't be sent",
+      "finished": "{count, plural, one {# account email sent} other {# account emails sent}}",
+      "finishedWithFailures": "{failed} of {total} account emails couldn't be sent.",
+      "retry": "Retry",
+      "dismiss": "Dismiss"
     }
   },
   "vendor": {
@@ -8838,7 +10337,9 @@
       "reapply": "Update and apply again",
       "applicationSuspended": "Account Suspended",
       "applicationSuspendedDesc": "Your vendor account has been suspended. Please contact support.",
-      "optional": "Optional"
+      "optional": "Optional",
+      "teamAccountTitle": "This account belongs to the store team",
+      "teamAccountDesc": "Admin and staff accounts cannot apply as a vendor. To open a store, sign out and apply with a customer account."
     },
     "viewStore": "View Store",
     "viewOrders": "Orders",
@@ -8929,6 +10430,9 @@
       "bulkUpdatedSome": "Updated {success} of {total} orders",
       "bulkUpdatedNone": "No selected orders could be updated",
       "bulkUpdateFailed": "Failed to update selected orders",
+      "exportSuccess": "Orders exported",
+      "exportTruncated": "Exported the first {count} orders. Narrow the filters to export the rest.",
+      "exportFailed": "Orders could not be exported",
       "columns": {
         "order": "Order",
         "customer": "Customer",
@@ -9078,7 +10582,7 @@
       "subtitle": "Browse products from this vendor storefront.",
       "noProducts": "No products found for this vendor.",
       "notFound": "Vendor storefront not found.",
-      "productCountInStore": "{count} products in this store",
+      "productCountInStore": "{count, plural, one {# product in this store} other {# products in this store}}",
       "sold": "{count} sold",
       "shipsIn": "Ships in {min}–{max} days",
       "shipsInSameDay": "Ships same day",
@@ -9096,7 +10600,7 @@
       "addressCopied": "Address copied",
       "getDirections": "Directions",
       "similarProducts": "Similar products from other stores",
-      "reviewCount": "({count} reviews)",
+      "reviewCount": "{count, plural, one {(# review)} other {(# reviews)}}",
       "tabAbout": "About",
       "tabShipping": "Shipping & returns",
       "aboutStore": "About {store}",
@@ -9109,7 +10613,7 @@
       "pickupUnavailable": "Local pickup is not offered by this store.",
       "shipsFrom": "Ships from",
       "noLocation": "This store keeps its location private.",
-      "basedOnReviews": "Based on {count} reviews",
+      "basedOnReviews": "{count, plural, one {Based on # review} other {Based on # reviews}}",
       "verifiedPurchase": "Verified purchase",
       "storeReplied": "Response from the store",
       "noReviews": "No reviews yet",
@@ -9118,7 +10622,85 @@
       "following": "Following",
       "followed": "Following this store",
       "unfollowed": "Unfollowed this store",
-      "followLogin": "Sign in to follow stores"
+      "followLogin": "Sign in to follow stores",
+      "tabHome": "Home",
+      "searchStore": "Search this store",
+      "clearSearch": "Clear search",
+      "brandFilter": "Brand: {brand}",
+      "clearBrand": "Clear brand filter",
+      "viewAllProducts": "{count, plural, one {View # product} other {View all # products}}"
+    },
+    "landingPage": {
+      "title": "Landing page",
+      "published": "Landing page published",
+      "unpublishedNote": "Your landing page is not live yet. Shoppers see your store as it is today until you publish.",
+      "publishTitle": "Publish your landing page?",
+      "publishDescription": "Shoppers see it as your store's Home tab right away.",
+      "readOnly": "You can look around, but your store’s access does not include changing your online store. Contact the marketplace team to have it turned on.",
+      "takenDown": "The marketplace team unpublished your landing page. Review it, then publish again when it is ready.",
+      "viewStore": "View store",
+      "settings": {
+        "open": "Page settings",
+        "title": "Page settings",
+        "description": "These apply to your store page as soon as you save. They are not part of the draft.",
+        "accent": "Accent colour",
+        "accentHint": "Buttons and links on your store page. Leave empty to use the marketplace colour.",
+        "accentInvalid": "Enter a colour like #2065d1.",
+        "accentSample": "Sample button",
+        "useTheme": "Use marketplace colour",
+        "similar": "Show similar products from other stores",
+        "similarHint": "A row under your product list that suggests comparable items from other sellers.",
+        "saved": "Page settings saved",
+        "subtitle": "How your store page opens, looks and shows up in search.",
+        "storeGroup": "Store page",
+        "navigationGroup": "Tabs",
+        "navigationHint": "Which tab your store opens on, and which tabs shoppers see.",
+        "appearanceGroup": "Appearance",
+        "appearanceHint": "The top of your store page and the colour of its buttons and links.",
+        "productsGroup": "Products tab",
+        "productsHint": "How your product list is ordered and what shows under it.",
+        "marketplaceColour": "Marketplace colour",
+        "accentColourFallback": "Accent colour",
+        "preview": "Preview",
+        "optional": "Optional",
+        "statusOff": "Off",
+        "statusScheduled": "Scheduled",
+        "statusLive": "Live",
+        "statusEnded": "Ended",
+        "announcementEmpty": "Write a message below to see your announcement here.",
+        "scheduleGroup": "Schedule",
+        "scheduleHint": "Optional. Without dates the announcement shows until you clear its text.",
+        "defaultTab": "Opens on",
+        "defaultTabHint": "The tab your store link opens on. Home shows only once your landing page is published.",
+        "showAbout": "Show the About tab",
+        "showShipping": "Show the Shipping & returns tab",
+        "tabsHint": "Products and Reviews always show.",
+        "bannerSize": "Banner size",
+        "bannerCompact": "Compact",
+        "bannerStandard": "Standard",
+        "bannerTall": "Tall",
+        "changeBanner": "Change the banner or logo in Settings",
+        "defaultSort": "Product order",
+        "defaultSortHint": "How your Products tab is ordered until a shopper picks another order.",
+        "announcementGroup": "Announcement",
+        "announcementHint": "A short notice at the top of your Home tab, like a sale. Leave the text empty to show none.",
+        "announcementText": "Text",
+        "announcementPlaceholder": "Eid sale — 20% off everything this week",
+        "announcementLink": "Link",
+        "announcementLinkInvalid": "Links must point to a page on this store, starting with /",
+        "announcementColor": "Background",
+        "useAccent": "Use the accent colour",
+        "announcementStart": "Starts",
+        "announcementEnd": "Ends",
+        "announcementDatesInvalid": "The end must come after the start.",
+        "seoGroup": "Search & sharing",
+        "seoHint": "What Google and shared links show for your store. Leave a field empty to use your store name, description and banner.",
+        "seoTitle": "Title",
+        "seoDescription": "Description",
+        "seoImage": "Share image",
+        "seoImageUpload": "Drag and drop an image, or click to browse",
+        "seoImageSize": "Recommended size: 1200 x 630 px"
+      }
     },
     "featureLocked": {
       "staff": {
@@ -9218,7 +10800,21 @@
     "statements": "Statements",
     "owedToPlatform": "Owed to platform",
     "planBilling": "Plan & billing",
-    "shippingSettingsDesc": "Configure how your own products are shipped. These rates apply to your items in customer carts."
+    "shippingSettingsDesc": "Configure how your own products are shipped. These rates apply to your items in customer carts.",
+    "onlineStore": {
+      "slidersSubtitle": "Your store’s slide groups. Build them here, publish them, then add a Slider section to your landing page and pick one."
+    },
+    "activityLog": {
+      "title": "Activity log",
+      "tabs": {
+        "mine": "My activity",
+        "staff": "Staff activity"
+      },
+      "teamMember": "Team member",
+      "memberFallback": "Team member",
+      "emptyMineDescription": "What you change in your store is recorded here.",
+      "emptyStaffDescription": "What your team changes in your store is recorded here."
+    }
   },
   "footer": {
     "aboutUs": "About Us",
@@ -9921,6 +11517,17 @@
     "radiusAffectsPickupOnly": "Sets how far collection and distances are measured. All products stay listed."
   },
   "chat": {
+    "shareProduct": "Share a product",
+    "searchProducts": "Search products by name or SKU",
+    "noProductsFound": "No products found",
+    "productsUnavailable": "Products could not be loaded",
+    "shareProductNamed": "Share {name}",
+    "removeProduct": "Remove {name}",
+    "productNotAvailable": "This product can't be shared in this conversation.",
+    "attachmentNotAccepted": "This conversation doesn't take this kind of file.",
+    "attachmentTooLargeFor": "This file is larger than {size}, the most this conversation takes.",
+    "conversationClosedNotice": "This conversation is closed, so no more messages can be sent.",
+    "unreadCount": "{count} unread",
     "channels": "Channels",
     "liveChatSettings": {
       "title": "Platform live chat",
@@ -9977,9 +11584,9 @@
     },
     "signup": {
       "whatsappTitle": "Recommended: Meta Embedded Signup",
-      "whatsappHint": "Let Meta securely select and authorize the WhatsApp Business Account and phone number. No access token is pasted into Storify.",
+      "whatsappHint": "Let Meta securely select and authorize the WhatsApp Business Account and phone number. No access token is pasted into {storeName}.",
       "instagramTitle": "Recommended: continue with Facebook",
-      "instagramHint": "Meta authorizes the Facebook Page linked to your Instagram professional account and Storify subscribes it to messaging webhooks. No access token is pasted into Storify.",
+      "instagramHint": "Meta authorizes the Facebook Page linked to your Instagram professional account and {storeName} subscribes it to messaging webhooks. No access token is pasted into {storeName}.",
       "continue": "Continue with Facebook",
       "sdkFailed": "Unable to load Facebook SDK",
       "sdkInitFailed": "Facebook SDK did not initialize",
@@ -10049,7 +11656,6 @@
     },
     "attachFile": "Attach file",
     "selectConversation": "Select a conversation.",
-    "attachmentTooLarge": "Chat attachments cannot exceed 16MB",
     "whatsappTemplate": "WhatsApp template",
     "closeComposer": "Close template composer",
     "signIn": "Sign in",
@@ -10142,7 +11748,7 @@
         "telegram": {
           "botfather": "Open @BotFather in Telegram and send /newbot.",
           "token": "Copy the token it replies with and enter it in the Bot token field.",
-          "connect": "Connect. Storify registers the webhook itself, so there is nothing to paste into a dashboard.",
+          "connect": "Connect. {storeName} registers the webhook itself, so there is nothing to paste into a dashboard.",
           "share": "Share the bot's t.me link so customers can start a conversation.",
           "caution": "Telegram needs no app review and has no reply window — a bot may answer any chat that has started it, at any time."
         }
@@ -10204,7 +11810,12 @@
     "noFiles": "No files shared yet",
     "noLinks": "No links shared yet",
     "subject": "Subject",
-    "viewProduct": "View product"
+    "viewProduct": "View product",
+    "messageProduct": {
+      "open": "Open {name}",
+      "priceOnRequest": "Price on request"
+    },
+    "internalNote": "Internal note · only your team sees this"
   },
   "boosts": {
     "title": "Boosts",
@@ -10581,6 +12192,7 @@
       "entryCount": "{count, plural, one {# entry} other {# entries}}",
       "unpaidTotal": "{amount} of it recorded but not yet paid",
       "stockTotal": "{amount} of it is stock bought — held as inventory, not counted as a cost",
+      "export": "Export",
       "closedPeriodNote": "Everything up to {closed} is closed. This will be booked on {booked}, so the closed period keeps its figures.",
       "amountWholeUnits": "{currency} has no decimals — enter a whole amount",
       "amountDecimals": "Use at most {count} decimal places",
@@ -10649,7 +12261,8 @@
       "promotions": "Store-funded discounts and credit",
       "chargeback_losses": "Chargeback losses",
       "operating_expense": "Operating expenses",
-      "store_credit_payable": "Store credit held by shoppers"
+      "store_credit_payable": "Store credit held by shoppers",
+      "unapplied_payment_payable": "Unapplied payments payable"
     },
     "overview": {
       "title": "Finance",
@@ -10765,7 +12378,7 @@
       "statements": "Statements",
       "statementsSubtitle": "Every sale, refund and payout that moved your balance.",
       "seeAll": "See the full statement",
-      "download": "Download",
+      "export": "Export",
       "truncated": "Showing the first {shown} of {total} entries. Choose a shorter period to see the rest — the balances above cover the whole period either way.",
       "owedTitle": "Owed to the marketplace",
       "owedSubtitle": "Commission on orders you collected yourself. The money is already yours; this is what you owe on it.",
@@ -10843,6 +12456,35 @@
       "reserveUndated": "Released with a later payout",
       "owedBack": "Owed back to the store",
       "owedBackHint": "Paid to you on orders refunded since; it comes off your next payout"
+    },
+    "reliability": {
+      "breakdown": "Payout breakdown",
+      "eligibleEarnings": "Eligible earnings",
+      "recoveryDeducted": "Refund recovery deducted",
+      "recoveryReturned": "Refund recovery returned",
+      "reserveHeld": "New reserve held",
+      "reserveReleased": "Matured reserve released",
+      "reserveCreditDeducted": "Previously released reserve recovered",
+      "reserveCreditReturned": "Reserve recovery returned",
+      "commissionOffset": "Commission deducted",
+      "commissionCredit": "Commission credit paid",
+      "netAmount": "Estimated net payout",
+      "currency": "Currency",
+      "utcDays": "Calendar dates include the entire final day, in UTC.",
+      "pending": "Saved. Bookkeeping is pending; check its operation status.",
+      "checkStatus": "Check status",
+      "completed": "Bookkeeping completed",
+      "readError": "Could not load this information. Please retry.",
+      "notFound": "Payout not found",
+      "legacy": "Legacy payout: current order values are estimates, not a frozen historical calculation.",
+      "paidAt": "Paid",
+      "returnedAt": "Returned",
+      "noPayable": "No payable amount",
+      "belowMinimum": "Below minimum withdrawal",
+      "tooManyOrders": "Narrow the period: at most 500 orders per payout",
+      "collectionScope": "Customer money collected, including vendor collections",
+      "estimatedCollections": "Includes {count} estimated historical receipts",
+      "asOf": "Estimate as of {date}"
     }
   },
   "install": {
@@ -10907,7 +12549,22 @@
     "failed": "Installation failed — please try again",
     "doneTitle": "Your store is ready",
     "doneSubtitle": "Sign in with the admin account you just created.",
-    "goToLogin": "Go to sign in"
+    "goToLogin": "Go to sign in",
+    "incompleteTitle": "Your store is installed, but setup is not finished",
+    "incompleteSubtitle": "Your admin account works, but the store profile your products belong to could not be created. Finish it from the admin:",
+    "incompleteStepSignIn": "Sign in with the admin account you just created.",
+    "incompleteStepGeneral": "Open Settings → General Settings.",
+    "incompleteStepSave": "Check the store name, language and currency, then click Save.",
+    "incompleteNote": "Saving creates the missing store profile. The installer cannot be run again now that your account exists.",
+    "settingsRefreshFailed": "Your store is installed, but this page could not load its new name and currency. Signing in loads them.",
+    "settingsRefreshRetry": "Try again",
+    "warnings": {
+      "sampleCatalogEmpty": "No sample catalog ships with this template — you can import one from Products after signing in.",
+      "sampleCatalogFailed": "The sample catalog could not be imported — you can import one from Products after signing in.",
+      "sampleCatalogSkipped": "The sample catalog was not imported. Once setup is finished, you can import one from Products.",
+      "templateFailed": "The template could not be applied — pick it under Online Store → Themes after signing in.",
+      "templateSkipped": "The template was not applied. Once setup is finished, pick it under Online Store → Themes."
+    }
   },
   "compare": {
     "title": "Compare Products",

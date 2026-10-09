@@ -343,3 +343,4 @@ export async function findSliderPlacements(handle: string): Promise<SliderPlacem
     pageWidth: str(themeLayout.pageWidth) || "1280",
   });
 }
+

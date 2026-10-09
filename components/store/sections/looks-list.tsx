@@ -6,17 +6,8 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
+import { lookShape, type LooksShape } from "@/lib/storefront/sections/looks-shapes";
 import type { StorefrontLook } from "@/lib/storefront/storefront-looks";
-
-export type LooksShape = "portrait" | "square" | "tall" | "landscape";
-
-/** CSS `aspect-ratio` per shape. */
-const SHAPE_RATIOS: Record<LooksShape, string> = {
-  portrait: "4 / 5",
-  square: "1 / 1",
-  tall: "2 / 3",
-  landscape: "4 / 3",
-};
 
 /**
  * "More Looks to Love": a swipeable row of Looks — the campaign image with
@@ -130,12 +121,12 @@ export function LooksList({
           {looks.map((look) => (
             <Link
               key={look.id}
-              href={`/collections/${look.slug}`}
+              href={look.href ?? `/collections/${look.slug}`}
               className="group flex shrink-0 snap-start basis-[72%] flex-col gap-3 sm:basis-[46%] md:basis-[31%] lg:[flex-basis:var(--lk-basis)]"
             >
               <span
                 className="relative block overflow-hidden rounded-[var(--lk-radius)] bg-muted"
-                style={{ aspectRatio: SHAPE_RATIOS[layout.shape] ?? SHAPE_RATIOS.portrait }}
+                style={{ aspectRatio: lookShape(layout.shape).join(" / ") }}
               >
                 <AppImage
                   src={look.image}

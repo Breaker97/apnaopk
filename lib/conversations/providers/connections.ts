@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import type { AuditContext } from "@/lib/audit";
 import { AuthorizationError, ValidationError } from "@/lib/api/errors";
 import {
   CHANNEL_CONNECTION_STATUSES,
@@ -33,6 +34,13 @@ import {
   supportsHumanAgentWindow,
 } from "@/lib/conversations/channels";
 import { notifyChannelConnectionFailure } from "@/lib/conversations/providers/connection-health";
+import {
+  CHANNEL_AUDIT_FIELDS,
+  auditChannelConnected,
+  auditChannelDisconnected,
+  auditChannelSettings,
+  type ChannelAuditSource,
+} from "@/lib/conversations/providers/connection-audit";
 
 function owner(viewer: ConversationViewer) {
   if (viewer.kind === "admin") {
@@ -90,6 +98,17 @@ function serializeChannelConnection(connection: IChannelConnection) {
   };
 }
 
+/**
+ * The connection a connect is about to revive, read first so the audit row can
+ * say "reconnected" and show what changed. Only the audit fields are selected:
+ * the stored credential is never loaded for this.
+ */
+function findRevivableChannel(ownerKey: string, provider: MessageProvider) {
+  return ChannelConnection.findOne({ ownerKey, provider })
+    .select(CHANNEL_AUDIT_FIELDS.join(" "))
+    .lean<ChannelAuditSource | null>();
+}
+
 export async function listChannelConnections(viewer: ConversationViewer) {
   const target = owner(viewer);
   const connections = await ChannelConnection.find({
@@ -121,6 +140,8 @@ export async function connectMetaChannel(params: {
   messengerHumanAgentEnabled?: boolean;
   tokenExpiresAt?: string;
   scopes?: string[];
+  /** The route's request and actor, so the Activity Log row carries them. */
+  auditContext?: AuditContext;
 }) {
   const accessToken = params.accessToken.trim();
   if (accessToken.length < 20) {
@@ -152,6 +173,7 @@ export async function connectMetaChannel(params: {
     throw new ValidationError("Token expiry is invalid");
   }
 
+  const previous = await findRevivableChannel(target.ownerKey, params.provider);
   const connection = await ChannelConnection.findOneAndUpdate(
     { ownerKey: target.ownerKey, provider: params.provider },
     {
@@ -224,6 +246,12 @@ export async function connectMetaChannel(params: {
     },
     { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
+  await auditChannelConnected({
+    viewer: params.viewer,
+    auditContext: params.auditContext,
+    previous,
+    current: connection,
+  });
   return serializeChannelConnection(connection);
 }
 
@@ -241,6 +269,8 @@ export async function connectTelegramChannel(params: {
   webhookUrl: string;
   publicTelegramUsername?: string;
   displayName?: string;
+  /** The route's request and actor, so the Activity Log row carries them. */
+  auditContext?: AuditContext;
 }) {
   const botToken = params.botToken.trim();
   // BotFather tokens look like <bot id>:<35-char secret>.
@@ -278,6 +308,7 @@ export async function connectTelegramChannel(params: {
     );
   }
 
+  const previous = await findRevivableChannel(target.ownerKey, "telegram");
   const connection = await ChannelConnection.findOneAndUpdate(
     { ownerKey: target.ownerKey, provider: "telegram" },
     {
@@ -333,8 +364,25 @@ export async function connectTelegramChannel(params: {
         },
       },
     );
+    // The row, with this bot's token on it, was written before Telegram said
+    // no, and the webhook secret of whatever was connected here is now stale.
+    // That is a change, so it is logged, with fixed text: the provider's own
+    // message belongs to `lastError`, where only the operator reads it.
+    await auditChannelConnected({
+      viewer: params.viewer,
+      auditContext: params.auditContext,
+      previous,
+      current: connection!,
+      failure: "Telegram rejected the webhook registration",
+    });
     throw error;
   }
+  await auditChannelConnected({
+    viewer: params.viewer,
+    auditContext: params.auditContext,
+    previous,
+    current: connection!,
+  });
   return serializeChannelConnection(connection!);
 }
 
@@ -358,6 +406,8 @@ export async function connectTelegramChannel(params: {
 export async function disconnectChannel(params: {
   viewer: ConversationViewer;
   connectionId: string;
+  /** The route's request and actor, so the Activity Log row carries them. */
+  auditContext?: AuditContext;
 }) {
   if (!Types.ObjectId.isValid(params.connectionId)) {
     throw new ValidationError("Channel connection is invalid");
@@ -368,6 +418,8 @@ export async function disconnectChannel(params: {
     ownerKey: target.ownerKey,
   });
   if (!connection) throw new AuthorizationError("Channel connection not found");
+  const wasConnected =
+    connection.status !== CHANNEL_CONNECTION_STATUSES.REVOKED;
 
   if (connection.provider === "telegram" && connection.accessTokenEncrypted) {
     // Best effort, and BEFORE the token is dropped: without this the bot keeps
@@ -401,6 +453,14 @@ export async function disconnectChannel(params: {
       },
     },
   );
+  // Disconnecting a tombstone again changes nothing, so it is not an event.
+  if (wasConnected) {
+    await auditChannelDisconnected({
+      viewer: params.viewer,
+      auditContext: params.auditContext,
+      channel: connection,
+    });
+  }
 }
 
 /**
@@ -415,6 +475,8 @@ export async function updateChannelSettings(params: {
   viewer: ConversationViewer;
   connectionId: string;
   messengerHumanAgentEnabled: boolean;
+  /** The route's request and actor, so the Activity Log row carries them. */
+  auditContext?: AuditContext;
 }) {
   if (!Types.ObjectId.isValid(params.connectionId)) {
     throw new ValidationError("Channel connection is invalid");
@@ -431,8 +493,18 @@ export async function updateChannelSettings(params: {
       `${providerLabel(connection.provider)} has no Human Agent window`,
     );
   }
+  const wasEnabled = Boolean(connection.messengerHumanAgentEnabled);
   connection.messengerHumanAgentEnabled = params.messengerHumanAgentEnabled;
   await connection.save();
+  // Saving the value it already has changes nothing, so it is not an event.
+  if (wasEnabled !== params.messengerHumanAgentEnabled) {
+    await auditChannelSettings({
+      viewer: params.viewer,
+      auditContext: params.auditContext,
+      channel: connection,
+      humanAgent: { from: wasEnabled, to: params.messengerHumanAgentEnabled },
+    });
+  }
   return serializeChannelConnection(connection);
 }
 

@@ -27,6 +27,7 @@ import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { PreferencesDrawer } from "@/components/layout/preferences-drawer";
+import { NotificationDrawer } from "@/components/admin/notification-drawer";
 import { cn } from "@/lib/utils";
 
 interface StaffHeaderProps {
@@ -172,6 +173,10 @@ export function StaffHeader({ user, locale, posEnabled }: StaffHeaderProps) {
             </Button>
           }
         />
+
+        {/* The bell, as admins and vendors have: staff alerts were written to
+            it but there was nowhere to read them, nor to turn on push. */}
+        <NotificationDrawer locale={locale} />
 
         {/* The viewer's own preferences; nothing in it is store-wide. */}
         <PreferencesDrawer locale={locale} />

@@ -8,6 +8,8 @@ import { ReturnExchangeItemsSchema } from "@/lib/validations";
 import { Order, ReturnRequest } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { loadReturnForRoute } from "@/lib/returns/return-route-access";
+import { auditReturnExchangeItems } from "@/lib/returns/audit-return";
+import { createAuditContext } from "@/lib/audit";
 import { quantizeToCurrency } from "@/lib/intl/money";
 import { exchangeOverview, hasActiveExchange } from "@/lib/returns/exchange";
 import { resolveExchangeItems } from "@/lib/returns/return-exchange";
@@ -139,6 +141,16 @@ export const PUT = withApi<{ id: string }>(
         "This return was exchanged while you were working on it. Reload it and try again.",
       );
     }
+    // Against the order, so it reads in that order's Timeline. Saving the same
+    // choice again changes nothing and leaves no row.
+    await auditReturnExchangeItems(createAuditContext(request, session), updated, {
+      before: {
+        items: returnRequest.exchangeItems,
+        delivery: returnRequest.exchangeDelivery,
+      },
+      after: { items: updated.exchangeItems, delivery: updated.exchangeDelivery },
+      currency,
+    });
     return successResponse(
       await describe(updated as ReturnDoc),
       items.length > 0 ? "Exchange items saved" : "Exchange items removed",

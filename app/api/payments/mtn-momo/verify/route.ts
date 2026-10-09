@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server";
-import { Order } from "@/models";
 import { getSettings } from "@/models/settings.model";
-import {
-  getMtnMomoCredentials,
-  getMtnMomoFailureReason,
-  getMtnMomoRequestToPayStatus,
-  getMtnMomoTransactionState,
-  MtnMomoApiError,
-} from "@/lib/payments/mtn-momo";
-import { finalizeMtnMomoOrder } from "@/lib/payments/mtn-momo-orders";
-import { resolveMtnMomoCredentials } from "@/lib/settings/credentials";
+import { verifyMtnMomoOrderPayment } from "@/lib/payments/mtn-momo-verify";
 import { isPlatformPaymentReference } from "@/models/platformPayment.model";
 import {
   findPlatformPaymentByReference,
@@ -82,79 +73,13 @@ export const POST = withApi(
       });
     }
 
-    const orderQuery: Record<string, unknown> = {
-      paymentMethod: "mtn_momo",
-      mtnMomoReferenceId: referenceId,
-    };
-    if (session?.user?.id) orderQuery.customerId = session.user.id;
-
-    const order = await Order.findOne(orderQuery).select("_id orderNumber");
-    if (!order) {
-      throw new ValidationError("Order not found for MTN MoMo transaction");
-    }
-
-    const settings = await getSettings();
-    const resolved = resolveMtnMomoCredentials(settings.payment?.mtn_momo);
-    const creds = getMtnMomoCredentials(resolved);
-
-    let transaction;
-    try {
-      transaction = await getMtnMomoRequestToPayStatus({
-        creds,
-        referenceId,
-      });
-    } catch (err) {
-      // The status endpoint can briefly 404 right after the 202 while the
-      // platform registers the request. On a polling path that is "not
-      // finished yet", never "failed" — the next poll answers.
-      if (err instanceof MtnMomoApiError && err.httpStatus === 404) {
-        return NextResponse.json({
-          success: true,
-          data: {
-            status: "pending",
-            orderId: String(order._id),
-            orderNumber: order.orderNumber,
-          },
-        });
-      }
-      throw err;
-    }
-
-    const state = getMtnMomoTransactionState(transaction);
-    if (state !== "completed") {
-      return NextResponse.json({
-        success: true,
-        data: {
-          status: state,
-          orderId: String(order._id),
-          orderNumber: order.orderNumber,
-          // The bare code (APPROVAL_REJECTED, EXPIRED, NOT_ENOUGH_FUNDS…) so
-          // the client can say why instead of a generic "failed".
-          ...(state === "failed"
-            ? { reason: getMtnMomoFailureReason(transaction) }
-            : {}),
-        },
-      });
-    }
-
-    const result = await finalizeMtnMomoOrder({
+    // See lib/payments/mtn-momo-verify.ts.
+    const data = await verifyMtnMomoOrderPayment({
       referenceId,
-      transaction,
-      mode: creds.mode,
-      settings,
-      sessionUserId: session?.user?.id,
+      customerId: session?.user?.id,
       cartSessionId,
       customerEmail: session?.user?.email,
     });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        status: "completed",
-        orderId: result.orderId,
-        orderNumber: result.orderNumber,
-        alreadyPaid: result.alreadyPaid,
-      },
-    });
+    return NextResponse.json({ success: true, data });
   },
 );

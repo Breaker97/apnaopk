@@ -1,3 +1,4 @@
+import { quotePayout } from "@/lib/finance/payout-service";
 import { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Order, Payout, Vendor, VendorSubscriptionPayment } from "@/models";
@@ -313,8 +314,10 @@ export const GET = withApi<{ id: string }>(
       ([key]) => !String(bank[key] ?? "").trim(),
     ).map(([, label]) => label);
 
+    const quote = await quotePayout({ vendorId: id, currency });
     return successResponse({
       currency,
+      quote: { currency, netAmount: quote.netAmount, breakdown: quote.breakdown, eligible: quote.eligible, calculatedAt: quote.calculatedAt, availableCurrencies: quote.availableCurrencies },
       // Balances this vendor holds in a currency the screen above cannot show.
       otherCurrencies,
       minWithdrawalAmount: resolveMinWithdrawal(settings, currency),
@@ -323,7 +326,8 @@ export const GET = withApi<{ id: string }>(
       overpaid: roundMoney(overpaid),
       owed: {
         // Net of the vendor's commission — this is what they get paid.
-        amount: roundMoney(owed.netAmount),
+        amount: quote.netAmount,
+        eligibleEarnings: quote.eligibleEarnings,
         grossSales: roundMoney(owed.grossSales),
         commissionAmount: roundMoney(owed.commissionAmount),
         orderCount: owed.orderIds.length,

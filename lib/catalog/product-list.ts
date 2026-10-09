@@ -7,6 +7,7 @@ import {
   mergeScopeFilter,
   type StaffAccessScope,
 } from "@/lib/access/staff-scope";
+import { lowStockProductMatch } from "@/lib/inventory/low-stock";
 
 /**
  * Admin/staff product list query.
@@ -27,12 +28,18 @@ interface AdminProductListParams {
   onSale?: boolean;
   /** Only products a sponsored placement could render. */
   boostable?: boolean;
+  /** Only products low on stock (lib/inventory/low-stock.ts): the business app's list. */
+  lowStock?: boolean;
+  /** Further conditions every product must meet: the business app's category, brand and collection filters. */
+  narrowing?: Record<string, unknown>[];
   sortOrder?: "asc" | "desc";
 }
 
 interface AdminProductListContext {
   staffScope?: StaffAccessScope | null;
   isMultiVendor: boolean;
+  /** False skips the vendor filter's options, for a caller that shows no such filter. */
+  vendorOptions?: boolean;
 }
 
 interface VendorFilterOption {
@@ -56,7 +63,7 @@ async function buildProductListFilter(
   params: AdminProductListParams,
   { staffScope, isMultiVendor }: AdminProductListContext,
 ) {
-  const { search, status, vendor, source, onSale, boostable } = params;
+  const { search, status, vendor, source, onSale, boostable, lowStock, narrowing } = params;
   const query: Record<string, unknown> = {};
 
 
@@ -103,6 +110,12 @@ async function buildProductListFilter(
   }
 
   if (status && status !== "all") query.status = status;
+  if (lowStock) {
+    query.$and = [...((query.$and as Record<string, unknown>[]) || []), lowStockProductMatch()];
+  }
+  if (narrowing?.length) {
+    query.$and = [...((query.$and as Record<string, unknown>[]) || []), ...narrowing];
+  }
   // The same test `assertProductIsBoostable` applies on the way in, so what a
   // boost booking form offers is exactly what it is allowed to book. Last, and
   // deliberately: the storefront pool is narrower than any status a caller can
@@ -228,12 +241,12 @@ export async function fetchAdminProductList(
     Object.keys(query).length === 0
       ? Product.estimatedDocumentCount()
       : Product.countDocuments(query),
-    context.isMultiVendor
+    context.isMultiVendor && context.vendorOptions !== false
       ? Product.distinct("vendorId", query)
       : Promise.resolve([]),
   ]);
 
-  const vendors = context.isMultiVendor
+  const vendors = context.isMultiVendor && context.vendorOptions !== false
     ? await Vendor.find({ _id: { $in: vendorIds } })
         .select("storeName slug")
         .sort({ storeName: 1 })

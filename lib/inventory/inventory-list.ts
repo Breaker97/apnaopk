@@ -13,6 +13,7 @@ import { parsePageLimit } from "@/lib/api/list-query";
 import { escapeRegExp } from "@/lib/strings";
 import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
 import { attachStockBreakdown } from "@/lib/inventory/stock-breakdown";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory/low-stock";
 
 /**
  * Inventory list query.
@@ -273,7 +274,7 @@ export async function fetchInventoryList(
   // materialised by the pipeline before this stage.
   const rowMatch: Record<string, unknown> = {};
   if (stockLevel === "in") rowMatch.available = { $gt: 0 };
-  else if (stockLevel === "low") rowMatch.available = { $gt: 0, $lte: 10 };
+  else if (stockLevel === "low") rowMatch.available = { $gt: 0, $lte: LOW_STOCK_THRESHOLD };
   else if (stockLevel === "out") rowMatch.available = { $lte: 0 };
   if (barcodeStatus === "withBarcode") rowMatch.hasBarcode = true;
   else if (barcodeStatus === "withoutBarcode") rowMatch.hasBarcode = false;

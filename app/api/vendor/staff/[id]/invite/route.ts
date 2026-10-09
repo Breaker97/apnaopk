@@ -24,18 +24,20 @@ import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { defaultLocale, isValidLocale } from "@/config/i18n.config";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { staffInviteEmailHtml } from "@/lib/email/staff-invite-email";
+import { createAuditContext } from "@/lib/audit";
+import { auditStaffInvited } from "@/lib/access/audit-staff";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
 type PasswordResetModelWithCreateToken = {
-  createToken: (userId: unknown) => Promise<{ token: string }>;
+  createToken: (userId: unknown, purpose: "invite") => Promise<{ token: string }>;
 };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { vendor } = await requireVendorStaffPermission(request);
+    const { session, vendor } = await requireVendorStaffPermission(request);
 
     const { id } = await params;
     if (!Types.ObjectId.isValid(id)) {
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const passwordResetModel =
       PasswordReset as unknown as PasswordResetModelWithCreateToken;
-    const { token } = await passwordResetModel.createToken(user._id);
+    const { token } = await passwordResetModel.createToken(user._id, "invite");
 
     const localeParam = request.nextUrl.searchParams.get("locale");
     const inviteLocale =
@@ -92,6 +94,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         "Failed to send invite email. Please check your SMTP settings.",
       );
     }
+
+    await auditStaffInvited(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      { userId: id, email: user.email },
+      "staff",
+    );
 
     return successResponse({
       message: `Invite email sent to ${user.email}`,

@@ -1,4 +1,5 @@
 import { isRecord } from "@/lib/utils";
+import { foldForSlug } from "@/lib/strings";
 export const CONTENT_PAGE_KEYS = [
   "terms",
   "privacy",
@@ -567,8 +568,7 @@ export const RESERVED_CONTENT_PAGE_HANDLES = new Set([
 ]);
 
 export function slugifyContentPageHandle(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .trim()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")

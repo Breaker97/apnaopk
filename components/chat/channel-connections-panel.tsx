@@ -12,11 +12,11 @@ import {
   Unplug,
 } from "lucide-react";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  SetupGuide,
+  SetupGuideCaution,
+  SetupGuideSection,
+  SetupGuideSteps,
+} from "@/components/admin/setup-guide";
 import {
   InstagramGlyph,
   MessengerGlyph,
@@ -46,6 +46,7 @@ import { InstagramConnectButton } from "@/components/chat/instagram-connect-butt
 import { channelLabel } from "@/lib/conversations/channels";
 import type { MessageProvider } from "@/models/channel-connection.model";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useAppSettings } from "@/providers/app-settings-provider";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
 interface ChannelConnectionDTO {
@@ -292,7 +293,7 @@ const CHANNEL_SETUP: Record<
       {
         key: "setup.telegram.connect",
         fallback:
-          "Connect. Storify registers the webhook itself, so there is nothing to paste into a dashboard.",
+          "Connect. {storeName} registers the webhook itself, so there is nothing to paste into a dashboard.",
       },
       {
         key: "setup.telegram.share",
@@ -1126,6 +1127,7 @@ function ChannelSetupGuide({
   connected: boolean;
 }) {
   const t = useTranslations("chat");
+  const { storeName } = useAppSettings();
   // Values must reach `t()` itself — the ICU formatter throws on a placeholder
   // it was given no value for, so the two-argument `tr` used elsewhere in this
   // file cannot render the title.
@@ -1146,60 +1148,39 @@ function ChannelSetupGuide({
   const item = `setup-${channel}`;
 
   return (
-    <Accordion
-      type="single"
-      collapsible
-      // Keyed on the channel so switching tabs re-evaluates the default rather
-      // than carrying the previous channel's open state across.
+    // Keyed on the channel so switching tabs re-evaluates the default rather
+    // than carrying the previous channel's open state across.
+    <SetupGuide
       key={`${channel}-${connected}`}
-      defaultValue={connected ? undefined : item}
-      className="rounded-md border bg-muted/20 px-4"
+      defaultOpen={connected ? [] : [item]}
     >
-      <AccordionItem value={item}>
-        <AccordionTrigger className="hover:no-underline">
-          <span className="flex items-center gap-2">
-            <BookOpen className="size-4 text-muted-foreground" />
-            {tr("channelConnections.setup.title", "{provider} setup guide", {
-              provider: label,
-            })}
-          </span>
-        </AccordionTrigger>
-        <AccordionContent className="space-y-3">
-          <ol className="space-y-3">
-            {setup.steps.map((step, index) => (
-              <li key={step.key} className="flex gap-3">
-                <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-medium tabular-nums ring-1 ring-border">
-                  {index + 1}
-                </span>
-                <div className="min-w-0 space-y-1.5 text-xs leading-relaxed text-muted-foreground">
-                  <p>{tr(`channelConnections.${step.key}`, step.fallback)}</p>
-                  {step.code ? (
-                    <code className="block overflow-x-auto rounded-md bg-background px-2 py-1 font-mono text-[11px] whitespace-pre text-foreground ring-1 ring-border">
-                      {step.code}
-                    </code>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-          {setup.caution ? (
-            <p className="flex items-start gap-2 rounded-md bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="mt-px size-3.5 shrink-0" />
-              {tr(
-                `channelConnections.${setup.caution.key}`,
-                setup.caution.fallback,
-              )}
-            </p>
-          ) : null}
-          <p className="text-xs text-muted-foreground">
-            {tr(
-              "channelConnections.setup.docs",
-              "Full walkthrough: docs/OMNICHANNEL_MESSAGING.md",
-            )}
-          </p>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+      <SetupGuideSection
+        value={item}
+        icon={BookOpen}
+        title={tr("channelConnections.setup.title", "{provider} setup guide", {
+          provider: label,
+        })}
+      >
+        <SetupGuideSteps
+          steps={setup.steps.map((step) => ({
+            key: step.key,
+            text: tr(`channelConnections.${step.key}`, step.fallback, { storeName }),
+            code: step.code,
+          }))}
+        />
+        {setup.caution ? (
+          <SetupGuideCaution>
+            {tr(`channelConnections.${setup.caution.key}`, setup.caution.fallback)}
+          </SetupGuideCaution>
+        ) : null}
+        <p className="text-xs text-muted-foreground">
+          {tr(
+            "channelConnections.setup.docs",
+            "Full walkthrough: docs/OMNICHANNEL_MESSAGING.md",
+          )}
+        </p>
+      </SetupGuideSection>
+    </SetupGuide>
   );
 }
 

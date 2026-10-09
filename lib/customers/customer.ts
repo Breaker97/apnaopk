@@ -15,6 +15,7 @@ import {
   LOYALTY_TIER_SWITCH,
   computePointsFromOrder,
   computeRefundPointDelta,
+  isLoyaltyEnabled,
   normalizeSpendPerPoint,
   orderSpendPerPoint,
 } from "@/lib/customers/loyalty";
@@ -31,7 +32,10 @@ export {
   computeRefundPointDelta,
 } from "@/lib/customers/loyalty";
 import { roundMoney } from "@/lib/intl/money";
-import { isCustomerAccount } from "@/lib/access/customer-account";
+import {
+  NON_CUSTOMER_ACCOUNT_FILTER,
+  isCustomerAccount,
+} from "@/lib/access/customer-account";
 import {
   setMarketingConsent,
   type MarketingConsentResult,
@@ -163,7 +167,7 @@ async function applyLoyaltyProfileDelta(
       },
       { $set: { loyaltyTier: LOYALTY_TIER_SWITCH } },
     ],
-    { session: session ?? undefined },
+    { updatePipeline: true, session: session ?? undefined },
   );
 }
 
@@ -207,7 +211,7 @@ async function applyGuestLoyaltyProfileDelta(
       },
       { $set: { loyaltyTier: LOYALTY_TIER_SWITCH } },
     ],
-    { session: session ?? undefined },
+    { updatePipeline: true, session: session ?? undefined },
   );
 }
 
@@ -247,6 +251,10 @@ async function applyOrderLoyaltyDelta(
  * points so a later change of rate never re-prices them.
  */
 export async function awardOrderLoyaltyPoints(orderId: string): Promise<number> {
+  // Paused while loyalty is hidden (see `isLoyaltyEnabled`). The order is left
+  // without a `loyalty` record, so a refund has nothing to take back and the
+  // backfill can still award it if the store later wants the gap filled.
+  if (!isLoyaltyEnabled()) return 0;
   const spendPerPoint = normalizeSpendPerPoint(
     (await getSettingsLean())?.orders?.loyaltySpendPerPoint,
   );
@@ -680,6 +688,22 @@ export async function findAccountForGuestCheckout(
     .select("_id role roles")
     .lean<{ _id: Types.ObjectId; role?: string; roles?: string[] } | null>();
   return account && isCustomerAccount(account) ? { _id: account._id } : null;
+}
+
+/**
+ * Whether this email is the login of an admin, team member or seller — an
+ * account that may not buy from the storefront, so a guest may not check out
+ * under its email either. Matched by email alone: a phone number is typed,
+ * never confirmed, and one household often shares it.
+ */
+export async function isStaffAccountEmail(email: unknown): Promise<boolean> {
+  const guestEmail = normalizeGuestEmail(email);
+  if (!guestEmail) return false;
+  const account = await User.exists({
+    email: guestEmail,
+    ...NON_CUSTOMER_ACCOUNT_FILTER,
+  });
+  return Boolean(account);
 }
 
 /**

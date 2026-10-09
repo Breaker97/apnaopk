@@ -41,6 +41,12 @@ export const STATEMENT_CSV_HEADERS = [
   "Balance",
   "Amount",
   "Currency",
+  "Held movement",
+  "Owed movement",
+  "Period from",
+  "Period to",
+  "Complete",
+  "Source entry",
 ] as const;
 
 /**
@@ -61,13 +67,17 @@ export function statementCsvRows(
     opening: number;
     closing: number;
     owed: number;
+    openingOwed?: number;
     /** Entries in the period, which `lines` may not list all of. */
     lineCount?: number;
     lines: Array<{
+      id?: string;
       date: string;
       kind: string;
       reference: string;
       affects: "held" | "owed";
+      heldMovement?: number;
+      owedMovement?: number;
       amount: number;
       currency: string;
     }>;
@@ -88,16 +98,12 @@ export function statementCsvRows(
       statement.opening,
       statement.currency,
     ]);
+    if (statement.openingOwed !== undefined) rows.push([day(period.from), "opening", "Debt brought forward", "owed", statement.openingOwed, statement.currency]);
     const listed = statement.lines.slice(0, maxLines);
     for (const line of listed) {
-      rows.push([
-        day(line.date),
-        line.kind,
-        line.reference,
-        line.affects,
-        line.amount,
-        line.currency,
-      ]);
+      const held = line.heldMovement ?? (line.affects === "held" ? line.amount : 0);
+      const owed = line.owedMovement ?? (line.affects === "owed" ? line.amount : 0);
+      rows.push([day(line.date), line.kind, line.reference, line.affects, line.amount, line.currency, held, owed, period.from.toISOString(), period.to.toISOString(), (statement.lineCount ?? listed.length) <= listed.length, line.id]);
     }
     // Say so when the list stops short. The opening and closing balances are
     // aggregated over the whole period, so they are right either way — which is
@@ -132,7 +138,8 @@ export function statementCsvRows(
     ]);
   }
 
-  return rows;
+  const complete = !rows.some((row) => row[1] === "note");
+  return rows.map((row) => row.length > 6 ? [...row.slice(0, 10), complete, row[11]] : [...row, 0, 0, period.from.toISOString(), period.to.toISOString(), complete, ""]);
 }
 
 export function csvResponse(filename: string, body: string): Response {

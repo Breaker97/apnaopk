@@ -149,6 +149,9 @@ export function VendorConfigSettingsTab(props: {
   const anyDirty = props.isDirty || props.commissionDirty;
   const t = useTranslations();
   const cfg = props.settings.vendorConfig;
+  // Absent on a store saved before offers existed: read as off, with the
+  // model's default limits.
+  const offerConfig = cfg.abandonedOffers ?? {};
   const commission = props.settings.orders.commission;
   const disabled = Boolean(props.disabled);
   const plansOn = Boolean(cfg.plansEnabled);
@@ -244,6 +247,145 @@ export function VendorConfigSettingsTab(props: {
             </CardContent>
           </Card>
         ) : null}
+
+        {/* Quotes — what a vendor sees of the shopper asking for a price on
+            one of its products. The vendor can price the quote either way:
+            the store sends the price to the shopper. */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.quotes.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.quotes.showContact.label")}
+              description={t(
+                "admin.settings.vendorConfig.quotes.showContact.description",
+              )}
+              checked={cfg.showQuoteContactToVendors !== false}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.showQuoteContactToVendors", v)
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Abandoned checkouts — whether a vendor sees the baskets that held
+            its products. A vendor only ever sees its own lines and never who
+            the shopper was; the store keeps the contact and the recovery
+            emails either way. */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.abandonedCheckouts.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.abandonedCheckouts.show.label")}
+              description={t(
+                "admin.settings.vendorConfig.abandonedCheckouts.show.description",
+              )}
+              checked={cfg.showAbandonedCheckoutsToVendors !== false}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.showAbandonedCheckoutsToVendors", v)
+              }
+            />
+          </CardContent>
+        </Card>
+
+        {/* Offers on abandoned checkouts — whether a vendor may send its own
+            discount to a shopper who left its goods behind, and the store's
+            limits on it. The store sends every offer; the vendor pays for it
+            and never learns who the shopper is. */}
+        <Card>
+          <CardContent className="space-y-4">
+            <p className="text-sm font-semibold">
+              {t("admin.settings.vendorConfig.abandonedOffers.title")}
+            </p>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.abandonedOffers.enabled.label")}
+              description={t(
+                "admin.settings.vendorConfig.abandonedOffers.enabled.description",
+              )}
+              checked={offerConfig.enabled === true}
+              disabled={disabled}
+              onChange={(v) =>
+                props.updateField("vendorConfig.abandonedOffers.enabled", v)
+              }
+            />
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.abandonedOffers.automatic.label")}
+              description={t(
+                "admin.settings.vendorConfig.abandonedOffers.automatic.description",
+              )}
+              checked={offerConfig.automatic !== false}
+              disabled={disabled || offerConfig.enabled !== true}
+              onChange={(v) =>
+                props.updateField("vendorConfig.abandonedOffers.automatic", v)
+              }
+            />
+            {(
+              [
+                {
+                  key: "maxPercent",
+                  fallback: 30,
+                  min: 1,
+                  max: 90,
+                  unit: "%",
+                  name: t("admin.settings.vendorConfig.abandonedOffers.maxPercent.label"),
+                  help: t("admin.settings.vendorConfig.abandonedOffers.maxPercent.description"),
+                },
+                {
+                  key: "maxPerVendorPerDay",
+                  fallback: 20,
+                  min: 1,
+                  max: 1000,
+                  unit: null,
+                  name: t("admin.settings.vendorConfig.abandonedOffers.maxPerVendorPerDay.label"),
+                  help: t(
+                    "admin.settings.vendorConfig.abandonedOffers.maxPerVendorPerDay.description",
+                  ),
+                },
+                {
+                  key: "maxValidDays",
+                  fallback: 14,
+                  min: 1,
+                  max: 14,
+                  unit: t("admin.settings.vendorConfig.abandonedOffers.maxValidDays.unit"),
+                  name: t("admin.settings.vendorConfig.abandonedOffers.maxValidDays.label"),
+                  help: t("admin.settings.vendorConfig.abandonedOffers.maxValidDays.description"),
+                },
+              ] as const
+            ).map(({ key, fallback, min, max, unit, name, help }) => (
+              <div key={key} className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{name}</p>
+                  <p className="text-sm text-muted-foreground">{help}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <NumberInput
+                    min={min}
+                    max={max}
+                    className="h-9 w-24"
+                    value={Number(offerConfig[key] ?? fallback)}
+                    disabled={disabled || offerConfig.enabled !== true}
+                    whenEmpty={fallback}
+                    normalize={(value) => Math.round(value)}
+                    onValueChange={(next) =>
+                      props.updateField(
+                        `vendorConfig.abandonedOffers.${key}`,
+                        next ?? fallback,
+                      )
+                    }
+                  />
+                  {unit ? (
+                    <span className="text-sm text-muted-foreground">{unit}</span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Required documents & fields — now owned by the Onboarding Flow
             builder (single source), so this only points there. */}

@@ -17,7 +17,6 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/providers/currency-provider";
 import {
   DashboardStatsGrid,
@@ -25,6 +24,7 @@ import {
   type DashboardStatCardItem,
 } from "@/components/admin/dashboard-stat-card";
 import { DashboardOrdersChart } from "@/components/admin/dashboard-orders-chart";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
 import {
   OrdersChartSkeleton,
   RecentOrdersSkeleton,
@@ -32,22 +32,44 @@ import {
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import { VendorFulfillmentBadge } from "@/components/vendor/vendor-fulfillment-badge";
 import { truncateByWords } from "@/lib/utils";
-import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import type {
   VendorDashboardData,
   VendorRecentOrder,
 } from "@/lib/vendors/vendor-dashboard-types";
+
+/** The page's resolved period (`resolveDashboardPeriod`), as the picker takes it. */
+interface VendorDashboardPeriod {
+  /** A named period, or "custom" when dates were picked. */
+  key: string;
+  /** "YYYY-MM-DD" bounds, empty for "All time". */
+  from: string;
+  to: string;
+}
+
+/** What `GET /api/vendor/analytics` reads the period from. */
+function periodQuery({ key, from, to }: VendorDashboardPeriod) {
+  return (
+    key === "custom"
+      ? new URLSearchParams({ from, to })
+      : new URLSearchParams({ period: key })
+  ).toString();
+}
 
 /**
  * The vendor's dashboard. Every figure comes from `GET /api/vendor/analytics`,
  * which reads the same module (`lib/vendors/vendor-order-metrics.ts`) as the
  * vendor orders page, so the cards, the chart and the recent orders agree with
  * the order list rather than each computing their own version of it.
+ *
+ * The period picker is the admin dashboard's, and holds the period in the URL
+ * the same way; the cards and the chart follow it, the recent orders do not.
  */
 export function VendorDashboardContent({
   setupMode = false,
+  period,
 }: {
   setupMode?: boolean;
+  period: VendorDashboardPeriod;
 }) {
   const t = useTranslations();
   const intlLocale = useLocale();
@@ -55,32 +77,38 @@ export function VendorDashboardContent({
   const locale = (params.locale as string) || intlLocale || "en";
   const { formatPrice } = useCurrency();
 
-  const [data, setData] = useState<VendorDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useApplyOnChange([setupMode], () => {
-    if (setupMode) setIsLoading(false);
-  });
+  const query = periodQuery(period);
+  // The last response and the period it answered, so a period change can tell
+  // "still loading the new one" from "loaded" without a loading flag to reset.
+  const [loaded, setLoaded] = useState<{
+    query: string;
+    data: VendorDashboardData | null;
+  } | null>(null);
 
   useEffect(() => {
     if (setupMode) return;
+    let cancelled = false;
     async function fetchAnalytics() {
+      let data: VendorDashboardData | null = null;
       try {
-        const res = await fetch("/api/vendor/analytics");
+        const res = await fetch(`/api/vendor/analytics?${query}`);
         if (res.ok) {
           const json = await res.json();
           if (json.success) {
-            setData(json.data);
+            data = json.data;
           }
         }
       } catch (error) {
         console.error("Failed to fetch analytics:", error);
-      } finally {
-        setIsLoading(false);
       }
+      // A slower answer to a period the vendor has already moved off.
+      if (!cancelled) setLoaded({ query, data });
     }
     fetchAnalytics();
-  }, [setupMode]);
+    return () => {
+      cancelled = true;
+    };
+  }, [setupMode, query]);
 
   if (setupMode) {
     const setupActions = [
@@ -149,60 +177,58 @@ export function VendorDashboardContent({
     );
   }
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  // The answer to THIS period, if it has come. Until then the cards and the
+  // chart show their skeletons; the header stays mounted so the open picker
+  // does not vanish under the click that changed it.
+  const current = loaded?.query === query ? loaded : null;
+  const data = current?.data ?? null;
+  // Not period-driven, so the last answer keeps them on screen meanwhile.
+  const recentOrders = (current ?? loaded)?.data?.recentOrders;
 
-  if (!data) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        {t("vendor.unableToLoadData")}
-      </div>
-    );
-  }
-
-  const { stats } = data;
-  const dashboardStats: DashboardStatCardItem[] = [
-    {
-      id: "vendor-total-revenue",
-      label: t("vendor.totalRevenue"),
-      value: formatPrice(stats.totalRevenue),
-      icon: <DollarSign className="w-5 h-5" />,
-      // Revenue is money collected. What unpaid orders are still worth sits
-      // beside it, so an order awaiting cash on delivery is not just missing.
-      subLabel:
-        stats.awaitingPayment > 0
-          ? t("vendor.awaitingPayment", {
-              amount: formatPrice(stats.awaitingPayment),
-            })
-          : undefined,
-    },
-    {
-      id: "vendor-net-earnings",
-      label: t("vendor.netEarnings"),
-      value: formatPrice(stats.netEarnings),
-      icon: <TrendingUp className="w-5 h-5" />,
-    },
-    {
-      id: "vendor-total-orders",
-      label: t("vendor.totalOrders"),
-      value: stats.totalOrders.toLocaleString(locale),
-      icon: <ShoppingCart className="w-5 h-5" />,
-      // The orders page's "Open Orders" figure.
-      subLabel:
-        stats.openOrders > 0
-          ? t("vendor.openOrdersCount", {
-              count: stats.openOrders.toLocaleString(locale),
-            })
-          : undefined,
-    },
-    {
-      id: "vendor-active-products",
-      label: t("vendor.activeProducts"),
-      value: stats.activeProducts.toLocaleString(locale),
-      icon: <Package className="w-5 h-5" />,
-    },
-  ];
+  const stats = data?.stats;
+  const dashboardStats: DashboardStatCardItem[] = stats
+    ? [
+        {
+          id: "vendor-total-revenue",
+          label: t("vendor.totalRevenue"),
+          value: formatPrice(stats.totalRevenue),
+          icon: <DollarSign className="w-5 h-5" />,
+          // Revenue is money collected. What unpaid orders are still worth sits
+          // beside it, so an order awaiting cash on delivery is not just missing.
+          subLabel:
+            stats.awaitingPayment > 0
+              ? t("vendor.awaitingPayment", {
+                  amount: formatPrice(stats.awaitingPayment),
+                })
+              : undefined,
+        },
+        {
+          id: "vendor-net-earnings",
+          label: t("vendor.netEarnings"),
+          value: formatPrice(stats.netEarnings),
+          icon: <TrendingUp className="w-5 h-5" />,
+        },
+        {
+          id: "vendor-total-orders",
+          label: t("vendor.totalOrders"),
+          value: stats.totalOrders.toLocaleString(locale),
+          icon: <ShoppingCart className="w-5 h-5" />,
+          // The orders page's "Open Orders" figure.
+          subLabel:
+            stats.openOrders > 0
+              ? t("vendor.openOrdersCount", {
+                  count: stats.openOrders.toLocaleString(locale),
+                })
+              : undefined,
+        },
+        {
+          id: "vendor-active-products",
+          label: t("vendor.activeProducts"),
+          value: stats.activeProducts.toLocaleString(locale),
+          icon: <Package className="w-5 h-5" />,
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -216,7 +242,12 @@ export function VendorDashboardContent({
             {t("vendor.dashboardSubtitle")}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <DashboardPeriodPicker
+            period={period.key}
+            from={period.from}
+            to={period.to}
+          />
           <Button asChild variant="outline">
             <Link href="/vendor/orders">
               <ShoppingCart className="mr-2 h-4 w-4" />
@@ -232,40 +263,77 @@ export function VendorDashboardContent({
         </div>
       </div>
 
-      <DashboardStatsGrid stats={dashboardStats} cardClassName="px-4 py-4" />
-
-      <DashboardOrdersChart data={data.chart} area="vendor" />
-
-      <section className="rounded-sm border bg-card p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="text-lg font-semibold tracking-tight text-foreground">
-            {t("vendor.recentOrders")}
-          </h3>
-          <Link
-            href="/vendor/orders"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            {t("admin.dashboardPage.viewAllOrders")}
-          </Link>
+      {current && !data ? (
+        <div className="text-center py-12 text-muted-foreground">
+          {t("vendor.unableToLoadData")}
         </div>
-
-        <div className="mt-4 space-y-3">
-          {data.recentOrders.length === 0 ? (
-            <div className="rounded-xl border border-border px-4 py-10 text-center text-muted-foreground">
-              {t("admin.dashboardPage.noRecentOrders")}
-            </div>
-          ) : (
-            data.recentOrders.map((order) => (
-              <VendorRecentOrderCard
-                key={order._id}
-                order={order}
-                formatPrice={formatPrice}
+      ) : (
+        <>
+          {data ? (
+            <>
+              <DashboardStatsGrid
+                stats={dashboardStats}
+                cardClassName="px-4 py-4"
               />
-            ))
+              <DashboardOrdersChart series={data.chart} area="vendor" />
+            </>
+          ) : (
+            <>
+              <DashboardStatsGridSkeleton items={4} cardClassName="px-4 py-4" />
+              <OrdersChartSkeleton />
+            </>
           )}
-        </div>
-      </section>
+
+          {recentOrders ? (
+            <VendorRecentOrders orders={recentOrders} formatPrice={formatPrice} />
+          ) : (
+            <RecentOrdersSkeleton />
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+function VendorRecentOrders({
+  orders,
+  formatPrice,
+}: {
+  orders: VendorRecentOrder[];
+  formatPrice: (amount: number) => string;
+}) {
+  const t = useTranslations();
+
+  return (
+    <section className="rounded-sm border bg-card p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-lg font-semibold tracking-tight text-foreground">
+          {t("vendor.recentOrders")}
+        </h3>
+        <Link
+          href="/vendor/orders"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          {t("admin.dashboardPage.viewAllOrders")}
+        </Link>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {orders.length === 0 ? (
+          <div className="rounded-xl border border-border px-4 py-10 text-center text-muted-foreground">
+            {t("admin.dashboardPage.noRecentOrders")}
+          </div>
+        ) : (
+          orders.map((order) => (
+            <VendorRecentOrderCard
+              key={order._id}
+              order={order}
+              formatPrice={formatPrice}
+            />
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -284,7 +352,9 @@ export function VendorRecentOrderCard({
   const t = useTranslations();
   const paymentMeta = getPaymentMethodMeta(t, order.paymentMethod);
   const productName = order.primaryItemName;
-  const customerName = order.customerName || t("vendor.ordersTable.guest");
+  const customerName = order.walkIn
+    ? t("admin.orderDetails.walkInCustomer")
+    : order.customerName || t("vendor.ordersTable.guest");
   const amountLabel = t("vendor.ordersTable.columns.netSales");
   const fallbackName = t("admin.dashboardPage.orderLabel", {
     orderNumber: order.orderNumber,
@@ -438,25 +508,5 @@ export function VendorRecentOrderCard({
         </p>
       </div>
     </Link>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-      </div>
-      <DashboardStatsGridSkeleton items={4} cardClassName="px-4 py-4" />
-      <OrdersChartSkeleton />
-      <RecentOrdersSkeleton />
-    </div>
   );
 }

@@ -1,7 +1,5 @@
-import {
-  CollectionRows,
-  type CollectionRowEntry,
-} from "@/components/store/sections/collection-rows";
+import { CollectionRows } from "@/components/store/sections/collection-rows";
+import type { CollectionRowEntry } from "@/lib/storefront/section-data/collection-shelf";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
 import {
   COLLECTION_ROW_CORNERS,
@@ -20,6 +18,11 @@ function readRow(settings: Record<string, unknown>): CollectionRowEntry {
       typeof settings.limit === "number" && Number.isFinite(settings.limit)
         ? settings.limit
         : 4,
+    products: Array.isArray(settings.products)
+      ? settings.products.filter(
+          (id): id is string => typeof id === "string" && id.length > 0,
+        )
+      : [],
     kind: settings.kind === "slider" ? "slider" : "image",
     image: str(settings.image),
     slider: str(settings.slider),
@@ -157,6 +160,12 @@ export const featuredCollection: SectionDefinition = {
         { key: "collection", type: "collection" },
         // Cards beside the panel — the row's shelf size.
         { key: "limit", type: "number", default: 4, min: 3, max: 6 },
+        // Products of THAT collection placed by hand, in slot order; empty
+        // leaves every slot to the collection's own order. As many as the
+        // widest shelf holds. The dedicated editor offers only the picked
+        // collection's products, and the row re-checks each one against it
+        // at render, so a product that left the collection just drops out.
+        { key: "products", type: "productList", max: 6 },
         // The feature slot: a static image OR a saved slider, like a hero
         // grid cell. The dedicated editor drives these three as one control.
         {
@@ -185,8 +194,11 @@ export const featuredCollection: SectionDefinition = {
       spacing={readCollectionRowsSpacing(settings)}
       emptyState={sectionEmptyState(ctx, {
         title: "Featured Collection",
-        hint: "Add a collection block and pick a collection for each row — one that is active and published to the online store.",
+        hint: ctx.vendor
+          ? "Add a collection block and pick a collection for each row — one your products are in. Each row shows your products from it."
+          : "Add a collection block and pick a collection for each row — one that is active and published to the online store.",
       })}
+      vendor={ctx.vendor}
     />
   ),
   Skeleton: () => (

@@ -2,11 +2,15 @@ import "server-only";
 
 import { Order, Vendor } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
+import { NotFoundError } from "@/lib/api/errors";
 import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-} from "@/lib/api/errors";
+  ORDER_ACTION_REASONS,
+  OrderActionRefusedError,
+  paymentGuard,
+  saveConsignmentChange,
+  type OrderDocumentLike,
+  type PaymentAsRead,
+} from "@/lib/orders/order-actions";
 import type { AuditContext } from "@/lib/audit";
 import { auditOrderCancelled, auditOrderStatus } from "@/lib/orders/audit-order";
 import { restoreSubOrderInventory } from "@/lib/orders/order-inventory";
@@ -60,6 +64,8 @@ export async function cancelConsignment(params: {
   auditContext: AuditContext;
   /** Limits which orders this actor may reach (scoped staff). */
   scopeFilter?: Record<string, unknown>;
+  /** The save also requires the payment status read (the business app's cancel, D-B2). */
+  paymentAsRead?: PaymentAsRead;
 }): Promise<ConsignmentCancellation> {
   const order = await Order.findOne({ ...(params.scopeFilter || {}), _id: params.orderId });
   if (!order) throw new NotFoundError("Order");
@@ -68,7 +74,9 @@ export async function cancelConsignment(params: {
   // a whole order is: the refund this cancellation raises cannot be sent back
   // automatically by these providers. See `lib/orders/pending-payment-lock.ts`.
   const pendingPaymentLock = getPendingPaymentLock(order);
-  if (pendingPaymentLock) throw new ValidationError(pendingPaymentLock);
+  if (pendingPaymentLock) {
+    throw new OrderActionRefusedError(ORDER_ACTION_REASONS.paymentInFlight, pendingPaymentLock);
+  }
 
   const index = order.subOrders.findIndex(
     (sub: { _id?: unknown }) => String(sub._id) === params.subOrderId,
@@ -82,17 +90,22 @@ export async function cancelConsignment(params: {
   const currentStatus = String(subOrder.status || ORDER_STATUS.PENDING);
 
   if (currentStatus === ORDER_STATUS.CANCELLED) {
-    throw new ValidationError("This consignment is already cancelled");
+    throw new OrderActionRefusedError(
+      ORDER_ACTION_REASONS.transitionNotAllowed,
+      "This consignment is already cancelled",
+    );
   }
   if (order.subOrders.length < 2 || liveCount < 2) {
-    throw new ValidationError(
+    throw new OrderActionRefusedError(
+      ORDER_ACTION_REASONS.transitionNotAllowed,
       "This is the only consignment left on the order. Cancel the order instead.",
     );
   }
 
   const dispatched = DISPATCHED_ORDER_STATUSES.includes(currentStatus);
   if (!params.override && !getOrderStatusActionByTarget(currentStatus, ORDER_STATUS.CANCELLED)) {
-    throw new ValidationError(
+    throw new OrderActionRefusedError(
+      ORDER_ACTION_REASONS.transitionNotAllowed,
       `This consignment is ${currentStatus}, so it cannot be cancelled. An admin can override this.`,
     );
   }
@@ -115,24 +128,14 @@ export async function cancelConsignment(params: {
     order.status = derived;
   }
 
-  // Written only over the order as it was read — the same guard the seller's
-  // screen uses — so a consignment that moved in the meantime is not
-  // cancelled on the strength of a stale page.
-  const readStatuses: Record<string, unknown> = { status: previousOrderStatus };
-  (before.subOrders || []).forEach((sub, subIndex) => {
-    readStatuses[`subOrders.${subIndex}.status`] = sub.status;
-  });
-  (order as unknown as { $where?: Record<string, unknown> }).$where = readStatuses;
-  try {
-    await order.save();
-  } catch (error) {
-    if ((error as { name?: string })?.name === "DocumentNotFoundError") {
-      throw new ConflictError(
-        "This order changed while you were updating it. Refresh the page and try again.",
-      );
-    }
-    throw error;
-  }
+  // Written only over the order as it was read — the seller's own save, with
+  // its guard — so a consignment that moved in the meantime is not cancelled
+  // on the strength of a stale page (409, "refresh and try again").
+  await saveConsignmentChange(
+    order as unknown as OrderDocumentLike,
+    before,
+    paymentGuard(params.paymentAsRead, index),
+  );
 
   const orderId = String(order._id);
   const vendorId = String(subOrder.vendorId);
@@ -153,6 +156,14 @@ export async function cancelConsignment(params: {
   await voidLabelsForCancellation({ orderId, subOrderId: subOrder._id }).catch((error) =>
     console.error("Failed to void the labels of a cancelled consignment:", error),
   );
+
+  // A pre-order's balance request covered a scope that just changed.
+  if (order.hasPreorder) {
+    const { afterPreorderScopeChange } = await import("@/lib/orders/preorder-collection");
+    await afterPreorderScopeChange(orderId).catch((error) =>
+      console.error("Failed to reconcile a pre-order after a consignment cancel:", error),
+    );
+  }
 
   if (order.status === ORDER_STATUS.CANCELLED && previousOrderStatus !== ORDER_STATUS.CANCELLED) {
     await reverseCouponUsageForOrder(orderId).catch((error) =>

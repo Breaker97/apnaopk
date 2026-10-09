@@ -106,6 +106,7 @@ import {
 } from "@/lib/orders/audit-order";
 import { withApi } from "@/lib/api/handler";
 import { returnShippingUpdates } from "@/lib/returns/return-destination";
+import { markWalkInReturns } from "@/lib/returns/return-walk-in";
 
 function getTimestampUpdate(status?: string) {
   const now = new Date();
@@ -158,9 +159,11 @@ export const GET = withApi<{ id: string }>(
       return notFoundResponse("Return request");
     }
 
-    return successResponse(
+    // A return on a walk-in POS sale names no customer — see markWalkInReturns.
+    const [shown] = await markWalkInReturns([
       access.staffPermissions ? withMaskedRefundAccount(returnRequest) : returnRequest,
-    );
+    ]);
+    return successResponse(shown);
   },
 );
 
@@ -1870,7 +1873,11 @@ export const PUT = withApi<{ id: string }>(
       };
     }
 
-    const responseBody = { ...returnRequest, ...responseExtras };
+    // The returns table swaps its row for this answer, so it carries the same
+    // walk-in label the list does.
+    const [responseBody] = await markWalkInReturns([
+      { ...returnRequest, ...responseExtras },
+    ]);
     return successResponse(
       access.staffPermissions ? withMaskedRefundAccount(responseBody) : responseBody,
     );

@@ -1,5 +1,6 @@
 import { type Locale } from "@/config/i18n.config";
 import Link from "@/components/language/link";
+import { VendorSignupGate } from "@/components/store/vendor-signup-gate";
 import {
   ArrowRight,
   BadgeCheck,
@@ -26,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollRail } from "@/components/store/scroll-rail";
 import { SERVICE_BENEFIT_ICON_COMPONENTS } from "@/components/store/sections/service-benefits";
-import type { TestimonialEntry } from "@/components/store/sections/testimonials";
+import type { TestimonialEntry } from "@/lib/storefront/section-data/content";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import {
   ContactRow,
@@ -143,6 +144,19 @@ export function AboutPageView({
   const secondaryLabel = isMultiVendorEnabled
     ? fill(page.secondaryCtaLabel)
     : contactCtaLabel;
+  const secondaryCta = secondaryLabel ? (
+    <Button asChild size="lg" variant="outline">
+      <Link href={secondaryHref}>{secondaryLabel}</Link>
+    </Button>
+  ) : null;
+  const closingSecondaryCta = secondaryLabel ? (
+    <Link
+      href={secondaryHref}
+      className="text-sm font-medium underline underline-offset-4 hover:opacity-90"
+    >
+      {isMultiVendorEnabled ? fill(page.ctaSecondaryLabel) : contactCtaLabel}
+    </Link>
+  ) : null;
 
   return (
     <main className="bg-background">
@@ -183,11 +197,12 @@ export function AboutPageView({
                   </Link>
                 </Button>
               ) : null}
-              {secondaryLabel ? (
-                <Button asChild size="lg" variant="outline">
-                  <Link href={secondaryHref}>{secondaryLabel}</Link>
-                </Button>
-              ) : null}
+              {/* On a marketplace it invites the visitor to apply as a vendor. */}
+              {isMultiVendorEnabled ? (
+                <VendorSignupGate>{secondaryCta}</VendorSignupGate>
+              ) : (
+                secondaryCta
+              )}
             </div>
           </div>
 
@@ -292,16 +307,18 @@ export function AboutPageView({
                   fill={fill}
                   footer={
                     page.sellerCtaLabel ? (
-                      <Link
-                        href="/become-vendor"
-                        className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-                      >
-                        {fill(page.sellerCtaLabel)}
-                        <ArrowRight
-                          className="h-3.5 w-3.5 rtl:rotate-180"
-                          aria-hidden
-                        />
-                      </Link>
+                      <VendorSignupGate>
+                        <Link
+                          href="/become-vendor"
+                          className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                        >
+                          {fill(page.sellerCtaLabel)}
+                          <ArrowRight
+                            className="h-3.5 w-3.5 rtl:rotate-180"
+                            aria-hidden
+                          />
+                        </Link>
+                      </VendorSignupGate>
                     ) : null
                   }
                 />
@@ -621,14 +638,11 @@ export function AboutPageView({
                 </Link>
               </Button>
             ) : null}
-            {secondaryLabel ? (
-              <Link
-                href={secondaryHref}
-                className="text-sm font-medium underline underline-offset-4 hover:opacity-90"
-              >
-                {isMultiVendorEnabled ? fill(page.ctaSecondaryLabel) : contactCtaLabel}
-              </Link>
-            ) : null}
+            {isMultiVendorEnabled ? (
+              <VendorSignupGate>{closingSecondaryCta}</VendorSignupGate>
+            ) : (
+              closingSecondaryCta
+            )}
           </div>
         </div>
       </section>

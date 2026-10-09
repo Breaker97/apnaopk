@@ -52,6 +52,7 @@ import type {
   SectionInstance,
 } from "@/lib/storefront/sections/types";
 import { SectionImageField } from "./section-image-field";
+import { useStoreBuilderScope } from "./builder-scope";
 import {
   SliderSetupDialog,
   type SliderSetupKind,
@@ -111,6 +112,8 @@ export function HeroSliderStudio({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  // The store's sliders by default; a vendor's builder offers its own.
+  const builderScope = useStoreBuilderScope();
 
   // A draft may still carry the v1 shape (the server sanitizes but does not
   // migrate what it hands the editor) — derive the view through the same
@@ -192,7 +195,7 @@ export function HeroSliderStudio({
 
   const loadSliders = () => {
     apiClient
-      .get<SliderDocument[]>("/api/admin/sliders")
+      .get<SliderDocument[]>(builderScope.slidersEndpoint)
       .then((list) => {
         if (!Array.isArray(list)) return setSliders([]);
         // Read through the one normalizer: the PUBLISHED content, a
@@ -234,7 +237,7 @@ export function HeroSliderStudio({
     [sliders],
   );
 
-  const slidersHref = "/admin/online-store/sliders";
+  const slidersHref = builderScope.manageSlidersHref;
   const manageLabel = tSafe(
     "admin.storeBuilder.sliderBlock.createEdit",
     "Create / Edit Sliders",

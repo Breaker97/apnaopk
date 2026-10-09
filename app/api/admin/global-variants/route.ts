@@ -8,6 +8,11 @@ import {
   normalizeGlobalVariantInput,
 } from "@/lib/catalog/global-variants";
 import { assertUnscopedStaff } from "@/lib/access/staff-authz";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditCatalogCreate,
+  GLOBAL_VARIANT_AUDIT,
+} from "@/lib/catalog/catalog-audit";
 
 /**
  * GET /api/admin/global-variants
@@ -40,7 +45,7 @@ export const POST = withApi(
       STAFF_PERMISSIONS.EDIT_PRODUCTS,
     ],
   },
-  async ({ request, staff }) => {
+  async ({ request, staff, session }) => {
     assertUnscopedStaff(staff?.scope, GLOBAL_VARIANTS_PLATFORM_ONLY);
 
     const body = await request.json();
@@ -58,6 +63,11 @@ export const POST = withApi(
     const position = (last?.position ?? -1) + 1;
 
     const variant = await GlobalVariant.create({ ...input, position });
+    await auditCatalogCreate(
+      createAuditContext(request, session),
+      GLOBAL_VARIANT_AUDIT,
+      variant,
+    );
     return createdResponse(variant);
   }
 );

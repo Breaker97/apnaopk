@@ -652,10 +652,9 @@ function storeFundedShippingShares(
   );
 }
 
-/** Payment states that mean this consignment's money has NOT arrived. */
-const UNCOLLECTED_PAYMENT_STATUSES = new Set(["pending", "partially_paid"]);
-
-/** Spelled out rather than imported, as the set above is. */
+/** Spelled out rather than imported, as the ledger's other literals are. */
+const PENDING_STATUS = "pending";
+const PARTIALLY_PAID_STATUS = "partially_paid";
 const CANCELLED_STATUS = "cancelled";
 
 /**
@@ -669,7 +668,15 @@ const CANCELLED_STATUS = "cancelled";
  *
  * The deposit case is the exception that has to be named: there the ORDER is
  * part-paid, money arrived for every consignment, and the balance is a
- * receivable rather than an uncollected parcel.
+ * receivable rather than an uncollected parcel. It is told from the cash case
+ * by the deposit terms on the order, and it holds whichever way the
+ * consignment reads part-paid — inheriting the order's status because it has
+ * none of its own, as the capture writes it, or carrying the order's status
+ * itself, as the sub-order payment backfill (`db:migrate suborder-payment`)
+ * stamps it. Judged by its own `partially_paid` alone, a backfilled deposit
+ * consignment read as a parcel nobody had paid for: its sale dropped out of
+ * the books on a rebuild, its refund posted nothing, and the share of the
+ * deposit a seller's cancellation owed the shopper came to zero.
  *
  * An order with no payment state at all — every order written before this, and
  * every order the backfill replays — reads as collected, which is exactly what
@@ -680,11 +687,12 @@ export function isConsignmentCollected(
   sub: PostingSubOrder,
 ): boolean {
   const own = String(sub.paymentStatus || "").trim().toLowerCase();
-  if (own) return !UNCOLLECTED_PAYMENT_STATUSES.has(own);
-
-  const orderStatus = String(order.paymentStatus || "").trim().toLowerCase();
-  if (orderStatus !== "partially_paid") return true;
-  return money(order.preorderOutstandingAmount) > 0;
+  const status = own || String(order.paymentStatus || "").trim().toLowerCase();
+  if (status === PARTIALLY_PAID_STATUS) {
+    return money(order.preorderOutstandingAmount) > 0;
+  }
+  if (own) return own !== PENDING_STATUS;
+  return true;
 }
 
 /**
@@ -2879,6 +2887,7 @@ export function platformPaymentPostings(payment: {
   paidAt?: Date | null;
   /** Which rail carried it — see `platformPaymentCashAccount`. */
   provider?: string | null;
+  benefitGrantedAt?: Date | null;
 }): LedgerPosting[] {
   const currency = String(payment.currency || "").toUpperCase();
   const amount = money(payment.amount);
@@ -2896,7 +2905,7 @@ export function platformPaymentPostings(payment: {
         ? LEDGER_ACCOUNT.SUBSCRIPTION_INCOME
         : LEDGER_ACCOUNT.BOOST_INCOME;
 
-  return [
+  const entries: LedgerPosting[] = [
     {
       date: payment.paidAt || new Date(),
       // Always the marketplace book: a single-vendor store has no vendors to
@@ -2915,6 +2924,11 @@ export function platformPaymentPostings(payment: {
       key: postingKey(LEDGER_SOURCE_KIND.PLATFORM_PAYMENT, payment._id, "paid"),
     },
   ];
+  if (payment.benefitGrantedAt !== undefined) {
+    entries[0]!.credit = LEDGER_ACCOUNT.UNAPPLIED_PAYMENT_PAYABLE;
+    if (payment.benefitGrantedAt) entries.push({ ...entries[0]!, date: payment.benefitGrantedAt, debit: LEDGER_ACCOUNT.UNAPPLIED_PAYMENT_PAYABLE, credit, key: `platform_payment:${payment._id}:application` });
+  }
+  return entries;
 }
 
 /**
@@ -3049,6 +3063,8 @@ export function subscriptionInvoicePostings(payment: {
   currency?: string | null;
   paidAt?: Date | null;
   providerCreatedAt?: Date | null;
+  refundedAt?: Date | null;
+  providerStateUpdatedAt?: Date | null;
 }): LedgerPosting[] {
   const currency = String(payment.currency || "").toUpperCase();
   const paid = money(payment.amountPaid);
@@ -3083,9 +3099,10 @@ export function subscriptionInvoicePostings(payment: {
   ];
 
   const refunded = money(payment.amountRefunded);
-  if (status === "refunded" && refunded > 0) {
+  if (refunded > 0) {
     entries.push({
       ...entries[0]!,
+      date: payment.refundedAt || payment.providerStateUpdatedAt || new Date(),
       debit: LEDGER_ACCOUNT.SUBSCRIPTION_INCOME,
       credit: LEDGER_ACCOUNT.CASH_GATEWAY,
       amount: quantizeToCurrency(refunded, currency),
@@ -3093,6 +3110,7 @@ export function subscriptionInvoicePostings(payment: {
         LEDGER_SOURCE_KIND.PLATFORM_PAYMENT,
         payment._id,
         "subscription-refund",
+        String(refunded),
       ),
       note: "Subscription invoice refunded",
     });

@@ -27,12 +27,12 @@ import {
 } from "@/components/ui/popover";
 import { getProductPriceRange } from "@/lib/products/price-display";
 import {
-  clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
   CARD_BROWSER_GRID_GAP,
 } from "./product-grid-columns";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { NumberInput } from "@/components/ui/number-input";
+import { clampDesktopColumns } from "@/lib/storefront/sections/shelf-columns";
 
 type FeaturedCategory = {
   name: string;
@@ -48,7 +48,19 @@ interface HomeProductsSectionInfiniteProps {
   initialProducts: ModernProduct[];
   initialHasNext: boolean;
   pageSize: number;
+  /**
+   * Where the grid stops (its rows × columns), with a link to the rest in
+   * the catalogue. Absent: it loads on for as long as the shopper scrolls.
+   */
+  maxProducts?: number;
   desktopColumns?: number;
+  /**
+   * A vendor's landing page: the store's slug, so every page and filter the
+   * shopper loads stays on that store's products.
+   */
+  vendor?: string;
+  /** Where the phone menu's "All Categories" goes; the catalogue by default. */
+  allCategoriesHref?: string;
 }
 
 const sortOptions: Array<{ label: string; value: SortValue }> = [
@@ -77,6 +89,15 @@ const SORT_PARAMS: Record<SortValue, { sortBy: string; sortOrder?: string }> = {
   price_desc: { sortBy: "price", sortOrder: "desc" },
 };
 
+/** The same order in the catalogue's own words (components/products/products-sort.tsx). */
+const CATALOGUE_SORT: Record<SortValue, string> = {
+  newest: "createdAt",
+  popular: "popular",
+  rating: "rating",
+  price_asc: "price-asc",
+  price_desc: "price-desc",
+};
+
 type ApiResponse = {
   data?: {
     data?: ModernProduct[];
@@ -91,7 +112,10 @@ export function HomeProductsSectionInfinite({
   initialProducts,
   initialHasNext,
   pageSize,
+  maxProducts,
   desktopColumns = 4,
+  vendor,
+  allCategoriesHref = "/categories",
 }: HomeProductsSectionInfiniteProps) {
   const t = useTranslations();
   const safeDesktopColumns = clampDesktopColumns(desktopColumns);
@@ -149,6 +173,16 @@ export function HomeProductsSectionInfinite({
 
   const hasPriceFilter =
     priceRange[0] > minPriceBound || priceRange[1] < maxPriceBound;
+
+  // A grid with rows stops at them: pages load as the shopper scrolls until
+  // it is full, the last one trimmed to whole rows, and "View all" takes them
+  // to the rest. Without rows it loads for as long as they scroll.
+  const isFull = maxProducts !== undefined && products.length >= maxProducts;
+  const canLoadMore = hasNext && !isFull;
+  const shownProducts = isFull ? products.slice(0, maxProducts) : products;
+  const hasMoreThanShown =
+    maxProducts !== undefined &&
+    (products.length > maxProducts || (isFull && hasNext));
 
   // Server refreshes (StorefrontRefresh after a back/forward nav or tab
   // refocus) hand down a new initialProducts. When no client-side filters are
@@ -222,6 +256,7 @@ export function HomeProductsSectionInfinite({
         params.set("minPrice", String(priceRange[0]));
       if (priceRange[1] < maxPriceBound)
         params.set("maxPrice", String(priceRange[1]));
+      if (vendor) params.set("vendor", vendor);
 
       return params.toString();
     },
@@ -232,11 +267,12 @@ export function HomeProductsSectionInfinite({
       pageSize,
       priceRange,
       sortBy,
+      vendor,
     ],
   );
 
   const loadMore = useCallback(async () => {
-    if (isLoadingMore || isRefetching || !hasNext) return;
+    if (isLoadingMore || isRefetching || !canLoadMore) return;
 
     setIsLoadingMore(true);
     setHasLoadError(false);
@@ -266,7 +302,7 @@ export function HomeProductsSectionInfinite({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [buildQuery, hasNext, isLoadingMore, isRefetching, page]);
+  }, [buildQuery, canLoadMore, isLoadingMore, isRefetching, page]);
 
   // Refetch page 1 whenever a filter changes (debounced for the price slider).
   useEffect(() => {
@@ -305,7 +341,7 @@ export function HomeProductsSectionInfinite({
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNext) return;
+    if (!sentinel || !canLoadMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -318,7 +354,21 @@ export function HomeProductsSectionInfinite({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNext, loadMore]);
+  }, [canLoadMore, loadMore]);
+
+  // The catalogue, on the chip, price and order the shopper has chosen here —
+  // on a vendor's landing page, that store's own Products tab.
+  const catalogueHref = (() => {
+    const params = new URLSearchParams();
+    if (vendor) params.set("tab", "products");
+    if (activeCategorySlug) params.set("category", activeCategorySlug);
+    if (priceRange[0] > minPriceBound) params.set("minPrice", String(priceRange[0]));
+    if (priceRange[1] < maxPriceBound) params.set("maxPrice", String(priceRange[1]));
+    params.set("sortBy", CATALOGUE_SORT[sortBy]);
+    return vendor
+      ? `/vendors/${encodeURIComponent(vendor)}?${params.toString()}`
+      : `/products?${params.toString()}`;
+  })();
 
   const clearAllFilters = () => {
     setActiveCategorySlug("");
@@ -388,7 +438,7 @@ export function HomeProductsSectionInfinite({
                   <>
                     <Separator className="my-1.5" />
                     <Link
-                      href="/categories"
+                      href={allCategoriesHref}
                       onClick={() => setIsCategoryMenuOpen(false)}
                       className="block rounded-lg px-3 py-2 text-sm font-semibold text-primary"
                     >
@@ -588,7 +638,7 @@ export function HomeProductsSectionInfinite({
             isRefetching && "pointer-events-none opacity-50",
           )}
         >
-          {products.map((product) => (
+          {shownProducts.map((product) => (
             <ModernProductCard
               key={product._id}
               product={product}
@@ -606,7 +656,7 @@ export function HomeProductsSectionInfinite({
           </p>
         )}
 
-        {hasNext && (
+        {canLoadMore && (
           <div
             ref={sentinelRef}
             className="mt-10 flex items-center justify-center"
@@ -614,6 +664,16 @@ export function HomeProductsSectionInfinite({
             {(isLoadingMore || isRefetching) && (
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             )}
+          </div>
+        )}
+
+        {hasMoreThanShown && !isRefetching && (
+          <div className="mt-8 flex justify-center">
+            <Button asChild variant="outline">
+              <Link href={catalogueHref}>
+                {t.has("common.viewAll") ? t("common.viewAll") : "View all"}
+              </Link>
+            </Button>
           </div>
         )}
 

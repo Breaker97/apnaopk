@@ -13,6 +13,7 @@ import {
   updateChannelSettings,
   verifyConnectedChannel,
 } from "@/lib/conversations/providers/connections";
+import { channelAuditContext } from "@/lib/conversations/providers/connection-audit";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
 
 const ConnectSchema = z.discriminatedUnion("provider", [
@@ -103,6 +104,7 @@ export const POST = withApi({ auth: "user" }, async ({ request, session }) => {
   const viewer = requireConversationViewer(
     await resolveConversationViewer({ session }),
   );
+  const auditContext = channelAuditContext(request, session, viewer);
   const connection =
     body.provider === "telegram"
       ? await connectTelegramChannel({
@@ -113,8 +115,9 @@ export const POST = withApi({ auth: "user" }, async ({ request, session }) => {
           // Telegram pushes to whatever absolute URL we register, so it is
           // derived from the request rather than configured separately.
           webhookUrl: `${request.nextUrl.origin}/api/webhooks/telegram`,
+          auditContext,
         })
-      : await connectMetaChannel({ viewer, ...body });
+      : await connectMetaChannel({ viewer, ...body, auditContext });
   if (viewer.kind === "admin") revalidateProductContent();
   return successResponse({ connection });
 });
@@ -142,6 +145,7 @@ export const PATCH = withApi({ auth: "user" }, async ({ request, session }) => {
             viewer,
             connectionId: body.connectionId,
             messengerHumanAgentEnabled: body.messengerHumanAgentEnabled,
+            auditContext: channelAuditContext(request, session, viewer),
           }),
   });
 });
@@ -159,7 +163,11 @@ export const DELETE = withApi({ auth: "user", demo: "allow" }, async ({ request,
   const viewer = requireConversationViewer(
     await resolveConversationViewer({ session }),
   );
-  await disconnectChannel({ viewer, connectionId: body.connectionId });
+  await disconnectChannel({
+    viewer,
+    connectionId: body.connectionId,
+    auditContext: channelAuditContext(request, session, viewer),
+  });
   if (viewer.kind === "admin") revalidateProductContent();
   return successResponse({ disconnected: true });
 });

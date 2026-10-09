@@ -112,6 +112,8 @@ export interface ReturnRequestRefundEstimate {
 }
 
 interface ReturnUnsellableDisposition {
+  bizOperationId?: string;
+  locationId?: string;
   _id: mongoose.Types.ObjectId;
   /** Position of the line in `items`, which never reorders once counted. */
   itemIndex: number;
@@ -123,12 +125,12 @@ interface ReturnUnsellableDisposition {
   by?: mongoose.Types.ObjectId;
 }
 
-interface IReturnRequest {
+export interface IReturnRequest {
   _id: mongoose.Types.ObjectId;
   returnNumber: string;
   orderId: mongoose.Types.ObjectId;
   orderNumber: string;
-  customerId: mongoose.Types.ObjectId;
+  customerId?: mongoose.Types.ObjectId;
   ownerType: "admin" | "vendor";
   ownerVendorId?: mongoose.Types.ObjectId;
   vendorIds: mongoose.Types.ObjectId[];
@@ -177,7 +179,7 @@ interface IReturnRequest {
    * returns, which re-price under the settings of the day as they always did.
    */
   policyApplied?: {
-    shippingRefund?: string;
+    shippingRefund?: "never" | "merchant_fault" | "always";
     restockingFeePercent?: number;
     returnShippingFee?: number;
   };
@@ -354,6 +356,11 @@ interface IReturnRequest {
   closedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  bizCreateOperationId?: string;
+  bizCreateGroup?: string;
+  evidenceIds?: string[];
+  bizOperationReceipts?: Array<{ operationId: string; kind: string; at: Date }>;
+  bizTimeline?: Array<{ operationId: string; at: Date; kind: string; message: string; by: string }>;
 }
 
 const ReturnRequestItemSchema = new Schema<ReturnRequestItem>(
@@ -429,9 +436,14 @@ const ReturnExchangeSchema = new Schema<ReturnExchange>(
 const ReturnRequestSchema = new Schema<IReturnRequest>(
   {
     returnNumber: { type: String, required: true, unique: true, index: true },
+    bizCreateOperationId: String,
+    bizCreateGroup: String,
+    evidenceIds: { type: [String], default: undefined },
+    bizOperationReceipts: { type: [new Schema({ operationId: String, kind: String, at: Date }, { _id: false })], default: undefined },
+    bizTimeline: { type: [new Schema({ operationId: String, at: Date, kind: String, message: String, by: String }, { _id: false })], default: undefined },
     orderId: { type: Schema.Types.ObjectId, ref: "Order", required: true },
     orderNumber: { type: String, required: true, trim: true, index: true },
-    customerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    customerId: { type: Schema.Types.ObjectId, ref: "User" },
     ownerType: {
       type: String,
       enum: ["admin", "vendor"],
@@ -609,6 +621,8 @@ const ReturnRequestSchema = new Schema<IReturnRequest>(
       type: [
         new Schema(
           {
+            bizOperationId: { type: String },
+            locationId: { type: String },
             itemIndex: { type: Number, required: true, min: 0 },
             productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
             variantId: { type: Schema.Types.ObjectId },
@@ -645,6 +659,10 @@ const ReturnRequestSchema = new Schema<IReturnRequest>(
 );
 
 ReturnRequestSchema.index({ customerId: 1, createdAt: -1 });
+ReturnRequestSchema.index({ bizCreateOperationId: 1, bizCreateGroup: 1 }, {
+  unique: true,
+  partialFilterExpression: { bizCreateOperationId: { $gt: "" }, bizCreateGroup: { $gt: "" } },
+});
 ReturnRequestSchema.index({ orderId: 1, status: 1 });
 ReturnRequestSchema.index({ vendorIds: 1, createdAt: -1 });
 ReturnRequestSchema.index({ ownerType: 1, ownerVendorId: 1, createdAt: -1 });

@@ -1,4 +1,5 @@
 import { mongoose } from "@/lib/db";
+import { htmlToPlainText } from "@/lib/strings";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import { generateBarcode, generateSku } from "@/lib/products/codes";
 import {
@@ -385,6 +386,18 @@ const ProductSchema = new Schema<IProduct>(
       min: [0, "Stock cannot be negative"],
       default: 0,
     },
+    stockAdjustmentReceipts: {
+      type: [new Schema({
+        key: { type: String, required: true },
+        hash: { type: String, required: true },
+        appliedAt: { type: Date, required: true },
+          // Domain effects have no response-cache expiry: an old lost reply
+          // must never permit the same sale/return to move stock again.
+          durable: { type: Boolean, default: false },
+      }, { _id: false })],
+      default: undefined,
+      select: false,
+    },
     inventory: { type: ProductStockPolicySchema, default: undefined },
     locationInventory: {
       type: [
@@ -469,6 +482,67 @@ const ProductSchema = new Schema<IProduct>(
       default: [],
     },
     preorder: { type: PreorderSettingsSchema, default: undefined },
+    /**
+     * Bumped, in the same write, whenever a save changes a pre-order release
+     * date on the product or any variant. Order lines record the revision
+     * they were reconciled against, so a line behind it is provably waiting
+     * on a date propagation — see `lib/orders/preorder-terms-sync.ts`.
+     * Absent reads as 0. Never set by a form.
+     */
+    preorderTermsRevision: { type: Number, min: 0 },
+    /**
+     * The durable job that carries a changed release date to the orders
+     * already waiting on the old one. Written in the same update as the date
+     * itself, so a save cannot succeed with its propagation living only in
+     * process memory; a worker drains it in batches, under a lease, and
+     * marks it done only once every applicable order has been reconciled.
+     * Never set by a form; worker writes leave `updatedAt` alone.
+     */
+    preorderDateSync: {
+      type: new Schema(
+        {
+          state: {
+            type: String,
+            enum: ["pending", "running", "idle"],
+            required: true,
+          },
+          requestedAt: { type: Date },
+          /** The last revision every applicable order was reconciled to. */
+          appliedRevision: { type: Number, min: 0 },
+          /** The revision the current scan is applying. */
+          runRevision: { type: Number, min: 0 },
+          /** The last order `_id` the current scan finished. */
+          cursor: { type: Schema.Types.ObjectId },
+          leaseOwner: { type: String, trim: true },
+          leaseUntil: { type: Date },
+          /** Bumped on every claim; a worker that lost its lease stops. */
+          fence: { type: Number, min: 0 },
+          processed: { type: Number, min: 0 },
+          moved: { type: Number, min: 0 },
+          failures: {
+            type: [
+              new Schema(
+                {
+                  orderId: { type: Schema.Types.ObjectId, required: true },
+                  error: { type: String, trim: true, maxlength: 300 },
+                  attempts: { type: Number, min: 0 },
+                  at: { type: Date },
+                },
+                { _id: false },
+              ),
+            ],
+            default: undefined,
+          },
+          nextAttemptAt: { type: Date },
+          lastProgressAt: { type: Date },
+          startedAt: { type: Date },
+          completedAt: { type: Date },
+          lastError: { type: String, trim: true, maxlength: 500 },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     options: {
       type: [ProductOptionSchema],
       default: [],
@@ -602,6 +676,11 @@ ProductSchema.index({ status: 1, vendorId: 1, price: 1 }); // price, both direct
 ProductSchema.index({ status: 1, vendorId: 1, rating: -1, reviewCount: -1 }); // best rating
 ProductSchema.index({ "preorder.enabled": 1, "preorder.releaseDate": 1 });
 ProductSchema.index({ "variants.preorder.enabled": 1, "variants.preorder.releaseDate": 1 });
+// Date-propagation jobs still to run, oldest request first.
+ProductSchema.index(
+  { "preorderDateSync.state": 1, "preorderDateSync.requestedAt": 1, _id: 1 },
+  { partialFilterExpression: { "preorderDateSync.state": { $exists: true } } },
+);
 // "Which products can be collected from these branches" — the collection
 // facet's `$elemMatch`. Both levels, because a variant product keeps its counts
 // one level down and the facet has to reach either.
@@ -689,16 +768,6 @@ ProductSchema.virtual("inStock").get(function () {
 });
 
 /**
- * Strip HTML tags from a string for plain text SEO meta description
- */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/**
  * Truncate text to a maximum length, adding ellipsis if needed
  */
 function truncateText(text: string, maxLength: number): string {
@@ -769,7 +838,7 @@ ProductSchema.pre("validate", function () {
   if (!doc.seo.metaDescription) {
     const descSource = doc.shortDescription || doc.description || "";
     if (descSource) {
-      const plainText = stripHtml(descSource);
+      const plainText = htmlToPlainText(descSource);
       doc.seo.metaDescription = truncateText(plainText, 160);
     }
   }
@@ -1121,6 +1190,9 @@ export function buildProductAggregateUpdate(doc: ProductAggregateSource): {
   return { set, unset };
 }
 
+/** Reads per sync before the stock roll-up is left to the next one. */
+const AGGREGATE_SYNC_ATTEMPTS = 5;
+
 /**
  * Recompute the fields the pre-validate hook derives, for a product that was
  * just written with findOneAndUpdate/$set.
@@ -1136,13 +1208,49 @@ export function buildProductAggregateUpdate(doc: ProductAggregateSource): {
  * single-variant product has ranges too.
  */
 export async function syncProductAggregates(productId: string): Promise<void> {
-  const doc = await Product.findById(productId)
-    .select(
-      `price comparePrice locationInventory shipping.isPhysicalProduct inventory ${PRODUCT_SEARCH_SOURCE_SELECT}`,
-    )
-    .lean();
-  if (!doc) return;
+  for (let attempt = 1; attempt <= AGGREGATE_SYNC_ATTEMPTS; attempt++) {
+    const doc = await Product.findById(productId)
+      .select(
+        `price comparePrice stock updatedAt locationInventory shipping.isPhysicalProduct inventory ${PRODUCT_SEARCH_SOURCE_SELECT}`,
+      )
+      .lean<Record<string, unknown> | null>();
+    if (!doc) return;
 
+    const update = aggregateWrite(doc, { stock: true });
+    if (!update) return;
+
+    // Pinned to the copy just read. The stock figures are rewritten from it,
+    // so an unpinned write undid any sale or transfer that landed in between:
+    // the sold units came back. A movement changes `updatedAt` (and `stock`),
+    // so the write misses and the next pass derives from the moved figures.
+    const pin: Record<string, unknown> = { _id: productId };
+    if (doc.updatedAt instanceof Date) pin.updatedAt = doc.updatedAt;
+    if (typeof doc.stock === "number") pin.stock = doc.stock;
+    const result = await Product.updateOne(pin, update);
+    if (result.matchedCount !== 0) return;
+
+    if (attempt === AGGREGATE_SYNC_ATTEMPTS) {
+      // Stock never held still: the prices and the search block are written
+      // anyway (no stock movement touches them, and a stale price range is
+      // what the storefront prints), the stock roll-up waits for the next save.
+      const priced = aggregateWrite(doc, { stock: false });
+      if (priced) await Product.updateOne({ _id: productId }, priced);
+      console.warn(
+        `[products] ${productId}: stock kept moving; its roll-up waits for the next save`,
+      );
+    }
+  }
+}
+
+/**
+ * The `$set`/`$unset` that brings a read product's derived fields in line, or
+ * `null` when there is nothing to write. `stock: false` leaves out every count
+ * a stock movement can change, for a write that cannot be pinned.
+ */
+function aggregateWrite(
+  doc: Record<string, unknown>,
+  { stock }: { stock: boolean },
+): Record<string, unknown> | null {
   const { set, unset } = buildProductAggregateUpdate(
     doc as unknown as ProductAggregateSource,
   );
@@ -1151,10 +1259,20 @@ export async function syncProductAggregates(productId: string): Promise<void> {
   // name the moment the save returns.
   set.search = buildProductSearchIndex(doc as unknown as ProductSearchSource);
 
+  if (!stock) {
+    for (const key of Object.keys(set)) {
+      if (
+        key === "stock" ||
+        key === "locationInventory" ||
+        key.startsWith("variants.")
+      ) {
+        delete set[key];
+      }
+    }
+  }
+
   const update: Record<string, unknown> = {};
   if (Object.keys(set).length > 0) update.$set = set;
   if (Object.keys(unset).length > 0) update.$unset = unset;
-  if (Object.keys(update).length === 0) return;
-
-  await Product.updateOne({ _id: productId }, update);
+  return Object.keys(update).length > 0 ? update : null;
 }

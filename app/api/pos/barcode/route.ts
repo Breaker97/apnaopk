@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { Product } from "@/models";
 import { AuthorizationError, ValidationError } from "@/lib/api/errors";
 import { canAccessPOS } from "@/lib/access/rbac";
 import { PRODUCT_STATUS, USER_ROLES } from "@/config/app.config";
@@ -13,6 +12,7 @@ import {
   type POSBarcodeMatch,
   type POSLookupProduct,
 } from "@/lib/pos/barcode-lookup";
+import { findBarcodeCandidates } from "@/lib/pos/barcode-candidates";
 import { applyPOSLocationStock } from "@/lib/pos/product-stock";
 import { resolvePOSLocationId } from "@/lib/pos/resolve-location";
 
@@ -91,42 +91,11 @@ export const GET = withApi(
       query["publishing.pointOfSale"] = true;
     }
 
-    // Two-step lookup: the normalized fields are indexed, the raw fields are
-    // not. A single $or containing the raw branches forced a collection scan
-    // on EVERY scan; querying normalized-first keeps the hot path fully
-    // indexed, and the raw fallback (for legacy docs whose normalized fields
-    // were never backfilled) only runs when the indexed query found nothing.
-    const selectFields =
-      "name price comparePrice images media sku skuNormalized barcode barcodeNormalized stock locationInventory variants category vendorId productSource options";
-
-    let rawProducts = await Product.find({
-      ...query,
-      $or: [
-        { barcodeNormalized: normalizedCode },
-        { skuNormalized: normalizedCode },
-        { "variants.barcodeNormalized": normalizedCode },
-        { "variants.skuNormalized": normalizedCode },
-      ],
-    })
-      .select(selectFields)
-      .limit(25)
-      .lean<POSBarcodeProduct[]>();
-
-    if (rawProducts.length === 0) {
-      const rawCandidates = [code, code.toUpperCase(), rawCode].filter(Boolean);
-      rawProducts = await Product.find({
-        ...query,
-        $or: [
-          { barcode: { $in: rawCandidates } },
-          { sku: { $in: rawCandidates } },
-          { "variants.barcode": { $in: rawCandidates } },
-          { "variants.sku": { $in: rawCandidates } },
-        ],
-      })
-        .select(selectFields)
-        .limit(25)
-        .lean<POSBarcodeProduct[]>();
-    }
+    const rawProducts = await findBarcodeCandidates<POSBarcodeProduct>(rawCode, {
+      filter: query,
+      select:
+        "name price comparePrice images media sku skuNormalized barcode barcodeNormalized stock locationInventory variants category vendorId productSource options",
+    });
 
     const products = rawProducts.map((product) =>
       applyPOSLocationStock(product, locationId),

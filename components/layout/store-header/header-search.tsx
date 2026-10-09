@@ -521,9 +521,7 @@ export function HeaderSearchBar({
   // scope, not a keystroke, re-renders it.
   const scopePicker = useMemo(() => {
     if (!showScope) return null;
-    const allCategoriesLabel = t.has("common.allCategories")
-      ? t("common.allCategories")
-      : "All categories";
+    const allCategoriesLabel = t("common.allCategories");
     const searchCategoryLabel =
       categories.find((node) => node.slug === searchCategory)?.name ??
       allCategoriesLabel;
@@ -592,7 +590,7 @@ export function HeaderSearchBar({
       >
         <input
           type="search"
-          placeholder={item.placeholder || placeholder}
+          placeholder={placeholder}
           value={search.query}
           onChange={(e) => search.changeQuery(e.target.value)}
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[color:var(--header-search-placeholder)] placeholder:opacity-80"

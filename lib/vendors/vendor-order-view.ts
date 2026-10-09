@@ -1,4 +1,5 @@
 import { resolveVendorPaymentDisplayStatus } from "@/lib/orders/order-payment-status";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 
 /**
  * The part of an order a vendor is allowed to see — built from an allow-list,
@@ -33,6 +34,8 @@ type VendorViewOrder = {
   paymentStatus?: string;
   shippingAddress?: unknown;
   customerId?: unknown;
+  channel?: string;
+  staffId?: unknown;
   digitalOnly?: boolean;
   hasPreorder?: boolean;
   preorderStatus?: string;
@@ -50,7 +53,9 @@ function toPlain<T>(value: T): T {
  * The vendor-facing copy of `order`, narrowed to `vendorId`'s consignment.
  *
  * `customerId` passes through as given, so a caller that populated it with the
- * customer's name and email shows those and one that did not shows an id.
+ * customer's name and email shows those and one that did not shows an id. Not
+ * on a walk-in POS sale, which is filed under its cashier: that goes out with
+ * no customer and `posWalkIn` set (lib/orders/pos-walk-in.ts).
  */
 export function toVendorOrderView<TOrder>(
   order: TOrder,
@@ -61,6 +66,7 @@ export function toVendorOrderView<TOrder>(
   const subOrders = (plain.subOrders || []).filter(
     (sub) => String(sub?.vendorId ?? "") === vendorKey,
   );
+  const posWalkIn = isPosWalkIn(plain);
 
   return {
     _id: plain._id,
@@ -73,7 +79,8 @@ export function toVendorOrderView<TOrder>(
     // This vendor's own payment state, not the order's — see the resolver.
     paymentStatus: resolveVendorPaymentDisplayStatus(plain, subOrders[0]),
     shippingAddress: plain.shippingAddress,
-    customerId: plain.customerId,
+    customerId: posWalkIn ? undefined : plain.customerId,
+    ...(posWalkIn ? { posWalkIn: true as const } : {}),
     digitalOnly: plain.digitalOnly,
     hasPreorder: plain.hasPreorder,
     preorderStatus: plain.preorderStatus,

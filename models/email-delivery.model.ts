@@ -8,7 +8,12 @@ export type EmailDeliveryStatus =
   | "sending"
   | "retrying"
   | "sent"
-  | "failed";
+  | "failed"
+  /**
+   * An admin stopped it before it went out (Settings → Email, "Cancel them"
+   * on emails the retry job never reached). Never sent, never retried.
+   */
+  | "cancelled";
 
 interface IEmailDelivery {
   _id: mongoose.Types.ObjectId;
@@ -42,6 +47,13 @@ interface IEmailDelivery {
   lastAttemptAt?: Date;
   sentAt?: Date;
   lastError?: string;
+  /**
+   * The mail server refused the recipient for good (see `isHardBounce`). Kept
+   * apart from `failed`, which also covers a store whose SMTP login lapsed:
+   * only this one says the ADDRESS is dead — what a pre-order's advance notice
+   * needs to know before any card is charged.
+   */
+  hardBounce?: boolean;
   providerMessageId?: string;
   expiresAt?: Date;
   createdAt: Date;
@@ -62,7 +74,7 @@ const EmailDeliverySchema = new Schema<IEmailDelivery>(
     dedupeKey: String,
     status: {
       type: String,
-      enum: ["queued", "sending", "retrying", "sent", "failed"],
+      enum: ["queued", "sending", "retrying", "sent", "failed", "cancelled"],
       default: "queued",
     },
     attempts: { type: Number, default: 0 },
@@ -71,6 +83,7 @@ const EmailDeliverySchema = new Schema<IEmailDelivery>(
     lastAttemptAt: Date,
     sentAt: Date,
     lastError: { type: String, maxlength: 1000 },
+    hardBounce: Boolean,
     providerMessageId: String,
     expiresAt: Date,
   },

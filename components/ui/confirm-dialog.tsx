@@ -120,10 +120,12 @@ export function ConfirmDialog({
   return (
     <AlertDialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialogPrimitive.Portal>
-        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        {/* Above the Sheet (z-80 overlay, z-90 content): a confirm opened from a
+            drawer must sit on top of it, or its buttons cannot be clicked. */}
+        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <AlertDialogPrimitive.Content
           className={cn(
-            "fixed top-[50%] left-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%]",
+            "fixed top-[50%] left-[50%] z-[100] w-full max-w-md translate-x-[-50%] translate-y-[-50%]",
             "rounded-xl border border-t-[3px] bg-background shadow-2xl",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -160,7 +162,7 @@ export function ConfirmDialog({
                 {description}
               </AlertDialogPrimitive.Description>
               {children ? (
-                <div className="mt-4 w-full text-left">{children}</div>
+                <div className="mt-4 w-full text-start">{children}</div>
               ) : null}
             </div>
           </div>

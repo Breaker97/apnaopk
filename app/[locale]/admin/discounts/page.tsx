@@ -9,6 +9,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { connectDB } from "@/lib/db";
 import { Coupon } from "@/models";
+import { MERCHANT_COUPON_FILTER } from "@/models/coupon.model";
 import {
   AdminStatsStrip,
   type AdminStatsStripItem,
@@ -94,6 +95,8 @@ async function getCouponStats(): Promise<CouponStats> {
   const inSevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const [stats] = await Coupon.aggregate([
+    // The store's one-off offer codes are not discounts anyone set up.
+    { $match: { ...MERCHANT_COUPON_FILTER } },
     {
       $facet: {
         totalCoupons: [{ $count: "count" }],

@@ -35,8 +35,20 @@ export interface ProductPickerItem {
   name: string;
   title?: string;
   slug: string;
+  /** Only where the endpoint sends it — a picker that matches on it. */
+  sku?: string;
   price: number;
   images?: string[];
   status: string;
 }
 
+/**
+ * GET /api/admin/collections/[id]/products — the products a collection puts on
+ * the online store, in its own order, plus which of the `picked` ids asked
+ * about it still offers.
+ */
+export interface CollectionProductsResult {
+  products: ProductPickerItem[];
+  total: number;
+  picked: ProductPickerItem[];
+}

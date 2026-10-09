@@ -136,6 +136,7 @@ import { SlideWarningsStrip, type SlideWarningLabels } from "./slide-warnings";
 import { SliderHistoryDialog } from "./slider-history-dialog";
 import { MediaPickerDialog } from "./media-picker-dialog";
 import { removeArtworkBackground } from "./remove-background";
+import { useStoreBuilderScope } from "@/components/admin/store-pages/builder-scope";
 
 /**
  * The expanded slider card: name row, element/animation toolbar, editable
@@ -253,6 +254,9 @@ export function SliderEditor({
 }) {
   const isBanner = mode === "banner";
   const [activeIndex, setActiveIndex] = useState(0);
+  // The admin's routes by default; a vendor's sliders read their own
+  // products and go without the admin-only extras (AI copy, placements).
+  const scope = useStoreBuilderScope();
   /**
    * THE BOARD: the frame being designed on, in storefront pixels. The band
    * is read off it (`shapeForFrame`) and never picked beside it, so the
@@ -273,7 +277,11 @@ export function SliderEditor({
    * offered fixed artboards; with it, the board can open on the merchant's
    * own cell and the three viewport widths stop being a guess.
    */
-  const [placements, setPlacements] = useState<SliderPlacement[] | null>(null);
+  // Without a placement scan (a vendor's sliders) the picker starts on the
+  // band frames, as it does for a slider placed nowhere.
+  const [placements, setPlacements] = useState<SliderPlacement[] | null>(() =>
+    scope.sliders.placements ? null : [],
+  );
   /** The frame row is a reference, not the work — it starts folded. */
   const [framesOpen, setFramesOpen] = useState(false);
   /** Set once the merchant picks a frame, so the scan never overrides them. */
@@ -356,8 +364,9 @@ export function SliderEditor({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
+  // The scope's own AI route: the admin's, or a vendor's (gated by its plan).
   const aiAuthoring = useAiAuthoring({
-    contentEndpoint: "/api/admin/ai-authoring/content",
+    contentEndpoint: `/api/${scope.aiScope ?? "admin"}/ai-authoring/content`,
   });
 
   const slides = slider.slides;
@@ -374,7 +383,7 @@ export function SliderEditor({
     if (!id || products[id]) return;
     let cancelled = false;
     apiClient
-      .get<ProductInfo>(`/api/admin/products/${id}`)
+      .get<ProductInfo>(`${scope.productsEndpoint}/${id}`)
       .then((product) => {
         if (!cancelled && product?._id) {
           setProducts((current) => ({ ...current, [id]: product }));
@@ -384,7 +393,7 @@ export function SliderEditor({
     return () => {
       cancelled = true;
     };
-  }, [active?.productId, products]);
+  }, [active?.productId, products, scope.productsEndpoint]);
 
   const updateSlides = (nextSlides: SliderSlide[]) =>
     history.change({ ...slider, slides: nextSlides });
@@ -786,8 +795,9 @@ export function SliderEditor({
   );
 
   const handle = slider.handle;
+  const scansPlacements = scope.sliders.placements;
   useEffect(() => {
-    if (!handle) return;
+    if (!handle || !scansPlacements) return;
     let live = true;
     fetch(`/api/admin/sliders/${encodeURIComponent(handle)}/placements`)
       .then((response) => (response.ok ? response.json() : null))
@@ -817,7 +827,7 @@ export function SliderEditor({
     return () => {
       live = false;
     };
-  }, [handle]);
+  }, [handle, scansPlacements]);
 
   /**
    * The frames to offer, grouped by where they are. A placed slider shows
@@ -1004,7 +1014,10 @@ export function SliderEditor({
     return first ?? null;
   };
 
-  const renderAiAction = (element: SlideTextElement) => (
+  // The copy generator runs on the scope's AI route; a builder without one
+  // offers none, and the menu hides itself where AI is not available.
+  const renderAiAction = (element: SlideTextElement) =>
+    scope.aiScope === null ? null : (
     <AiGenerateMenu
       label={tSafe("admin.sliders.generate", "Generate")}
       placeholder={tSafe(

@@ -16,6 +16,8 @@ import {
   storeCreditSummary,
 } from "@/lib/store-credit/store-credit";
 import { notifyStoreCreditIssued } from "@/lib/store-credit/store-credit-notify";
+import { createAuditContext } from "@/lib/audit";
+import { auditStoreCreditIssued } from "@/lib/finance/audit-money";
 
 /** The shopper behind a customer profile — store credit is theirs. */
 async function customerUserId(profileId: string): Promise<string | null> {
@@ -93,6 +95,7 @@ export const POST = withApi<{ id: string }>(
       throw new ValidationError("Choose an expiry date in the future");
     }
 
+    const startedAt = Date.now();
     const lot = await issueStoreCredit({
       customerId: userId,
       currency,
@@ -103,6 +106,11 @@ export const POST = withApi<{ id: string }>(
       createdBy: session.user.id,
       idempotencyKey: `goodwill:${userId}:${body.requestId}`,
     });
+    // A double click sends the same `requestId` and gets back the lot the first
+    // click made, so only a lot made during this request earns a row.
+    if (!lot.createdAt || new Date(lot.createdAt).getTime() >= startedAt) {
+      await auditStoreCreditIssued(createAuditContext(request, session), lot);
+    }
     // A cost of the store's own promotion, owed to the shopper until spent.
     const { postStoreCreditEventSafely } = await import("@/lib/finance/post-events");
     postStoreCreditEventSafely(lot);

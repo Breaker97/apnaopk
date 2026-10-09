@@ -59,6 +59,14 @@ export async function getPayPalAccessToken(creds: PayPalCredentials) {
   return json.access_token;
 }
 
+/** Provider refund identity is the only lookup; this does not send money. */
+export async function fetchPayPalRefund(params: { creds: PayPalCredentials; refundId: string }): Promise<{ id: string; status?: string; amount?: { value?: string; currency_code?: string }; capture_id?: string; links?: Array<{ rel?: string; href?: string }> }> {
+  const token = await getPayPalAccessToken(params.creds);
+  const response = await fetch(`${getBaseUrl(params.creds.mode)}/v2/payments/refunds/${encodeURIComponent(params.refundId)}`, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new GatewayApiError(`PayPal read refund failed: ${await readErrorMessage(response)}`, response.status);
+  return response.json();
+}
+
 /**
  * The currencies PayPal takes in whole units only. Its currency table marks
  * them "zero-digit — no decimal places or fractions", and it refuses an amount
@@ -161,6 +169,11 @@ export async function refundPayPalCapture(params: {
   amount?: number;
   currency?: string;
   reason?: string;
+  /**
+   * PayPal's idempotency header: a repeat with the same id returns the
+   * refund already made instead of raising another.
+   */
+  requestId?: string;
 }) {
   // Built before PayPal is asked for a token, so an amount it cannot take is
   // refused without a call.
@@ -190,6 +203,9 @@ export async function refundPayPalCapture(params: {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...(params.requestId
+          ? { "PayPal-Request-Id": params.requestId.slice(0, 108) }
+          : {}),
       },
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     },

@@ -9,7 +9,7 @@ import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { resolveAddressHoldSettings } from "@/lib/orders/address-hold-policy";
 import { validateBody } from "@/lib/api/validate";
-import { createAuditContext } from "@/lib/audit";
+import { audit, createAuditContext } from "@/lib/audit";
 import { auditOrderShipment } from "@/lib/orders/audit-order";
 import { generateShippingLabelPdf } from "@/lib/shipping/shipping-label-pdf";
 import { shipmentItemsForOrder } from "@/lib/shipping/shipments";
@@ -257,6 +257,44 @@ export function createVoidHandler(resolveScope: ScopeResolver) {
 
     try {
       const result = await voidShipmentLabel({ shipmentId: params.shipmentId });
+
+      // Once, here, for the admin, staff and vendor routes alike. A refused
+      // void (already voided, delivered, no carrier label) threw above and
+      // leaves no row. The refund is part of the sentence because a voided
+      // label is money the carrier may or may not hand back.
+      const { shipment } = result;
+      const carrier = shipment.rate?.carrierName || shipment.carrier;
+      const parts = [carrier, shipment.trackingNumber].filter(Boolean);
+      await audit(
+        createAuditContext(request, session, { vendorId: scope.vendorId }),
+        {
+          action: "UPDATE",
+          resource: "order",
+          resourceId: String(scope.order._id),
+          resourceName: scope.order.orderNumber
+            ? `Order #${scope.order.orderNumber}`
+            : undefined,
+          changes: {
+            summary: `Shipping label voided${
+              parts.length ? ` — ${parts.join(" · ")}` : ""
+            } (${
+              result.refunded
+                ? "the carrier confirmed the refund"
+                : result.refundPending
+                  ? "the carrier is still deciding the refund"
+                  : "the carrier does not refund this shipment"
+            })`,
+          },
+          metadata: {
+            shipmentId: params.shipmentId,
+            carrier,
+            trackingNumber: shipment.trackingNumber,
+            refunded: result.refunded,
+            refundPending: result.refundPending,
+          },
+        },
+      );
+
       return successResponse(
         {
           shipment: result.shipment,

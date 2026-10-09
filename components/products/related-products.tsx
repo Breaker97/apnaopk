@@ -1,9 +1,7 @@
 import { type Locale } from "@/config/i18n.config";
 import { type ModernProduct } from "./modern-product-card";
 import { RelatedProductsCarouselLazy as RelatedProductsCarousel } from "./related-products-carousel-lazy";
-import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
-
-const RELATED_PRODUCTS_LIMIT = 12;
+import { getRelatedProductCards } from "@/lib/products/related-products";
 
 interface RelatedProductsProps {
   productId: string;
@@ -14,22 +12,6 @@ interface RelatedProductsProps {
   appearance?: "classic" | "electronics";
 }
 
-async function fetchRelatedProducts(productId: string, categoryId: string) {
-  if (!categoryId) {
-    return [];
-  }
-
-  const products = await getStorefrontProductCards({
-    categoryIds: [categoryId],
-    excludeIds: [productId],
-    limit: RELATED_PRODUCTS_LIMIT,
-    sortBy: "createdAt",
-    sortOrder: "desc",
-  });
-
-  return products.slice(0, RELATED_PRODUCTS_LIMIT) as ModernProduct[];
-}
-
 export async function RelatedProducts({
   productId,
   categoryId,
@@ -37,7 +19,7 @@ export async function RelatedProducts({
   title,
   appearance = "classic",
 }: RelatedProductsProps) {
-  const products = await fetchRelatedProducts(productId, categoryId);
+  const products = (await getRelatedProductCards(productId, categoryId)) as ModernProduct[];
 
   if (products.length === 0) {
     return null;

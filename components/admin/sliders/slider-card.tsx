@@ -21,6 +21,7 @@ import {
 import type { StoreSurface } from "@/lib/storefront/themes/surface";
 import type { SliderStats } from "@/app/api/admin/sliders/[id]/stats/route";
 import { SliderEditor } from "./slider-editor";
+import { useStoreBuilderScope } from "@/components/admin/store-pages/builder-scope";
 
 /**
  * One slider on the Sliders page. Collapsed, it renders the REAL storefront
@@ -76,6 +77,8 @@ export function SliderCard({
     [slider],
   );
   const hasDraft = Boolean(slider.draft);
+  // The PNG route serves the store's own sliders only.
+  const { sliders: sliderFeatures } = useStoreBuilderScope();
 
   return (
     <div
@@ -126,6 +129,7 @@ export function SliderCard({
             <div className="flex shrink-0 items-center gap-1.5">
               {/* The published slide as a still picture, for an email or a
                   social card — the link a mail template embeds. */}
+              {sliderFeatures.imageLinks ? (
               <Button
                 type="button"
                 variant="outline"
@@ -143,6 +147,7 @@ export function SliderCard({
                 <ImageIcon className="h-3.5 w-3.5" />
                 {tSafe("admin.sliders.imageLink", "Image link")}
               </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
@@ -198,6 +203,7 @@ export function SliderPreview({
   /** The active theme, compiled: the preview then wears the storefront's fonts and button styling. */
   storeSurface?: StoreSurface;
 }) {
+  const { productsEndpoint } = useStoreBuilderScope();
   const [products, setProducts] = useState<Map<string, SlideProductInfo>>(
     new Map(),
   );
@@ -221,7 +227,7 @@ export function SliderPreview({
       ids.map((id) =>
         apiClient
           .get<{ _id: string; slug?: string; price?: number }>(
-            `/api/admin/products/${id}`,
+            `${productsEndpoint}/${id}`,
           )
           .catch(() => null),
       ),
@@ -237,7 +243,7 @@ export function SliderPreview({
     return () => {
       cancelled = true;
     };
-  }, [productKey]);
+  }, [productKey, productsEndpoint]);
 
   const slider_ = (
     <SavedSlider

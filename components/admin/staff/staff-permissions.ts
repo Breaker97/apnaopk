@@ -47,6 +47,8 @@ export const PERMISSION_LABELS: Record<string, string> = {
   view_inbox: "View Inbox",
   reply_inbox: "Reply in Inbox",
   manage_inbox: "Manage Inbox",
+  view_abandoned_checkouts: "View Abandoned Checkouts",
+  manage_abandoned_checkouts: "Send Recovery Emails",
 };
 
 type PermissionAction = "create" | "edit" | "delete";
@@ -144,6 +146,15 @@ export const PERMISSION_RESOURCES: PermissionResource[] = [
     create: STAFF_PERMISSIONS.REPLY_INBOX,
     edit: STAFF_PERMISSIONS.MANAGE_INBOX,
   },
+  {
+    // Shoppers who left before paying, with their contact details — a grant
+    // of its own rather than a part of Orders. Platform staff only.
+    key: "abandoned_checkouts",
+    label: "Abandoned checkouts",
+    hint: "Edit = send recovery emails",
+    view: STAFF_PERMISSIONS.VIEW_ABANDONED_CHECKOUTS,
+    edit: STAFF_PERMISSIONS.MANAGE_ABANDONED_CHECKOUTS,
+  },
 ];
 
 /**
@@ -166,6 +177,16 @@ const VENDOR_PERMISSION_RESOURCES: PermissionResource[] = PERMISSION_RESOURCES.m
     edit: vendorGrantable(resource.edit),
     delete: vendorGrantable(resource.delete),
   }),
+  // A row with nothing a vendor may grant (Abandoned checkouts) is left out
+  // rather than shown as a line of empty boxes.
+).filter((resource) =>
+  Boolean(
+    resource.view ||
+      resource.legacyManage ||
+      resource.create ||
+      resource.edit ||
+      resource.delete,
+  ),
 );
 
 function vendorGrantable(

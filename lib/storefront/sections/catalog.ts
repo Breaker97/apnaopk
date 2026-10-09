@@ -183,6 +183,15 @@ const SECTION_COPY: Record<string, { name: string; description: string }> = {
     name: "Top tags",
     description: "Trending link chips under the header",
   },
+  // Vendor landing pages only (`vendorOnly`).
+  "review-highlights": {
+    name: "Review highlights",
+    description: "Your store's best verified reviews, picked from what buyers wrote",
+  },
+  "store-slider": {
+    name: "Slider",
+    description: "One of your store's sliders, full width or in the page column",
+  },
 };
 
 /**
@@ -192,12 +201,17 @@ const SECTION_COPY: Record<string, { name: string; description: string }> = {
  * STARTER, so a section inserted from the picker arrives wearing the
  * template's design instead of the first (legacy) variant. Only the starter
  * changes — stored documents and the variant field's own default do not.
+ *
+ * `vendorOnly` sections are listed only for a vendor's landing page.
  */
 export function getSectionCatalog(
   ctx: SectionAvailabilityContext,
   preferredVariants?: Record<string, string>,
+  options: { vendorPage?: boolean } = {},
 ): SectionCatalogEntry[] {
-  return [...SECTION_REGISTRY.values()].map((def) => {
+  return [...SECTION_REGISTRY.values()]
+    .filter((def) => !def.vendorOnly || options.vendorPage === true)
+    .map((def) => {
     const copy = SECTION_COPY[def.type] ?? {
       name: def.type,
       description: "",

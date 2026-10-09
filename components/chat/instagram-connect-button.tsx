@@ -11,6 +11,7 @@ import {
   type EmbeddedSignupConfig,
 } from "@/components/chat/whatsapp-embedded-signup-button";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 interface InstagramConnectButtonProps {
   disabled?: boolean;
@@ -31,6 +32,7 @@ export function InstagramConnectButton({
 }: InstagramConnectButtonProps) {
   const t = useTranslations("chat");
   const tr = useFallbackTranslator(t);
+  const { storeName } = useAppSettings();
 
   const [config, setConfig] = useState<EmbeddedSignupConfig>();
   const [working, setWorking] = useState(false);
@@ -105,7 +107,8 @@ export function InstagramConnectButton({
       <p className="mt-1 text-xs text-muted-foreground">
         {tr(
           "signup.instagramHint",
-          "Meta authorizes the Facebook Page linked to your Instagram professional account and Storify subscribes it to messaging webhooks. No access token is pasted into Storify.",
+          "Meta authorizes the Facebook Page linked to your Instagram professional account and {storeName} subscribes it to messaging webhooks. No access token is pasted into {storeName}.",
+          { storeName },
         )}
       </p>
       <Button

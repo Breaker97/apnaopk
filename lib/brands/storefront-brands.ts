@@ -4,6 +4,7 @@ import { STOREFRONT_BRAND_FILTER } from "@/lib/catalog/brands";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/db";
 import { getStorefrontProductConstraint } from "@/lib/catalog/product-visibility";
+import { PRODUCT_CARD_SELECT } from "@/lib/products/storefront-product-cards";
 import { Brand, Product } from "@/models";
 
 type StorefrontBrandListQuery = {
@@ -22,9 +23,6 @@ type StorefrontBrandDetailQuery = StorefrontBrandListQuery & {
   slug: string;
   sort?: string;
 };
-
-const PRODUCT_FIELDS =
-  "_id name title slug price comparePrice priceRange compareAtPriceRange priceOnRequest quoteButtonLabel images media rating reviewCount stock preorder featured status options variants createdAt vendorId";
 
 function normalizePositiveInteger(value: number | undefined, fallback: number) {
   return Number.isFinite(value) && (value || 0) > 0 ? Math.floor(value!) : fallback;
@@ -146,7 +144,9 @@ export const getStorefrontBrandDetail = unstable_cache(
     const skip = (page - 1) * limit;
     const [products, total] = await Promise.all([
       Product.find(productQuery)
-        .select(PRODUCT_FIELDS)
+        // The grid's own card fields, so the brand page's cards apply the
+        // stock policy (a digital or untracked product is never "sold out").
+        .select(PRODUCT_CARD_SELECT)
         .populate("vendorId", "storeName slug")
         .sort(buildBrandProductSort(query.sort))
         .skip(skip)

@@ -43,6 +43,7 @@ import {
   CONVERSATION_MESSAGE_STATUSES,
   type IConversationMessage,
   type IConversationAttachment,
+  type IConversationMessageProduct,
 } from "@/models/conversation-message.model";
 import {
   CONVERSATION_PARTICIPANT_SIDES,
@@ -67,6 +68,16 @@ import {
   isExternalChannel,
   supportsTemplates,
 } from "@/lib/conversations/channels";
+import { escapeRegExp } from "@/lib/strings";
+import { appBaseUrl } from "@/lib/app-url";
+import { getStoreCurrency } from "@/lib/intl/server-currency";
+import { getPrimaryProductMedia } from "@/lib/products/card-media";
+import {
+  getProductCompareAtPrice,
+  getProductPriceRange,
+  type ProductPriceSummary,
+} from "@/lib/products/price-display";
+import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import { resolveVendorMessaging } from "@/lib/notifications/vendor-messaging";
 import {
   processQueuedMessageNow,
@@ -155,6 +166,26 @@ function normalizeConversationAttachments(
   });
 }
 
+/**
+ * The refusals a mobile client acts on rather than only shows carry a
+ * `details.reason`, which the mobile API hands on as its own reason
+ * (contracts/mobile/shop/v1/chat.ts, `CHAT_REASONS`; the business app's
+ * contracts/mobile/biz/v1/inbox.ts, `INBOX_REASONS`).
+ */
+function liveChatUnavailable(message: string) {
+  return new ConflictError(message, { reason: "CHAT_UNAVAILABLE" });
+}
+
+function conversationClosed() {
+  return new ConflictError("This conversation is closed", {
+    reason: "CONVERSATION_CLOSED",
+  });
+}
+
+function replyWindowClosed(message: string) {
+  return new ConflictError(message, { reason: "REPLY_WINDOW_CLOSED" });
+}
+
 function preview(value: string, maxLength = 240) {
   const clean = value.replace(/\s+/g, " ").trim();
   return clean.length <= maxLength
@@ -198,6 +229,21 @@ export function getConversationAccessQuery(
     return { customerUserId: objectId(viewer.userId, "Customer") };
   }
   return { guestKeyHash: viewer.guestKeyHash };
+}
+
+/**
+ * The messages of a thread this viewer may read: the store's people read
+ * every one; a customer or a guest never reads the team's internal notes.
+ * Every read of messages on a customer's behalf (a page of the thread, the
+ * live feed and its version, a resent message found by its client id) is
+ * narrowed by it, so a note never reaches a customer however it is asked for.
+ */
+export function messageVisibilityQuery(
+  viewer: ConversationViewer,
+): ConversationQuery {
+  return isStoreViewer(viewer)
+    ? {}
+    : { direction: { $ne: CONVERSATION_MESSAGE_DIRECTIONS.INTERNAL } };
 }
 
 function serializeProductContext(
@@ -250,9 +296,13 @@ export function serializeConversation(
       phone: doc.contact.phone,
       image: doc.contact.image,
     },
+    customerUserId: storeViewer ? id(doc.customerUserId) || undefined : undefined,
     subject: doc.subject,
-    status: doc.status,
-    assignedTo: doc.assignedToUserId
+    // What the store keeps to itself stays with it: a customer sees a thread
+    // marked as spam as closed, and never who in the team it is assigned to
+    // or what the team has left unread.
+    status: storeViewer || doc.status !== "spam" ? doc.status : "closed",
+    assignedTo: storeViewer && doc.assignedToUserId
       ? {
           userId: id(doc.assignedToUserId),
           name:
@@ -284,9 +334,26 @@ export function serializeConversation(
       : undefined,
     unreadCount: storeViewer ? doc.unreadForStore : doc.unreadForCustomer,
     unreadForCustomer: doc.unreadForCustomer,
-    unreadForStore: doc.unreadForStore,
+    unreadForStore: storeViewer ? doc.unreadForStore : 0,
     createdAt: date(doc.createdAt),
     updatedAt: date(doc.updatedAt),
+  };
+}
+
+function serializeMessageProduct(
+  product: IConversationMessageProduct,
+): NonNullable<ConversationMessageDTO["product"]> {
+  return {
+    productId: id(product.productId),
+    name: product.name,
+    slug: product.slug,
+    ...(product.imageUrl ? { imageUrl: product.imageUrl } : {}),
+    ...(product.variantName ? { variantName: product.variantName } : {}),
+    ...(typeof product.price === "number" ? { price: product.price } : {}),
+    ...(typeof product.compareAtPrice === "number"
+      ? { compareAtPrice: product.compareAtPrice }
+      : {}),
+    ...(product.currency ? { currency: product.currency } : {}),
   };
 }
 
@@ -316,7 +383,10 @@ export function serializeConversationMessage(
       mimeType: attachment.mimeType,
       size: attachment.size,
     })),
+    ...(doc.product ? { product: serializeMessageProduct(doc.product) } : {}),
+    bodyIsFallback: doc.bodyIsFallback === true,
     deliveryStatus: doc.deliveryStatus,
+    clientMessageId: doc.clientMessageId || undefined,
     messageKind:
       (
         doc.providerMetadata as
@@ -392,12 +462,12 @@ async function resolveTarget(params: {
       vendor &&
       !resolveVendorMessaging(vendor.messaging).liveChatEnabled
     ) {
-      throw new ConflictError("This vendor is not accepting live-chat messages");
+      throw liveChatUnavailable("This vendor is not accepting live-chat messages");
     }
     if (enforceAvailability && !vendor) {
       const platformMessaging = await getPlatformMessagingConfiguration();
       if (!platformMessaging.liveChatEnabled) {
-        throw new ConflictError("The store is not accepting live-chat messages");
+        throw liveChatUnavailable("The store is not accepting live-chat messages");
       }
     }
     const image =
@@ -440,7 +510,7 @@ async function resolveTarget(params: {
       enforceAvailability &&
       !resolveVendorMessaging(vendor.messaging).liveChatEnabled
     ) {
-      throw new ConflictError("This vendor is not accepting live-chat messages");
+      throw liveChatUnavailable("This vendor is not accepting live-chat messages");
     }
     return {
       ownerType: CONVERSATION_OWNER_TYPES.VENDOR,
@@ -452,7 +522,7 @@ async function resolveTarget(params: {
   if (enforceAvailability) {
     const platformMessaging = await getPlatformMessagingConfiguration();
     if (!platformMessaging.liveChatEnabled) {
-      throw new ConflictError("The store is not accepting live-chat messages");
+      throw liveChatUnavailable("The store is not accepting live-chat messages");
     }
   }
   return { ownerType: CONVERSATION_OWNER_TYPES.PLATFORM };
@@ -489,6 +559,247 @@ export async function previewConversationTarget(params: {
     }
     throw error;
   }
+}
+
+/**
+ * A shopper's chat from a storefront screen before its first message, as the
+ * shopper app's draft screen needs it (GET /chat/draft): who it reaches, the
+ * product it carries, whether live chat takes it, and the open thread
+ * `startLiveConversation` would add the message to.
+ *
+ * Unlike `previewConversationTarget`, a product that is gone or a variant of
+ * another product is an error here, while live chat being switched off is an
+ * answer: the shopper may still have an open thread to reply in.
+ */
+export async function previewLiveConversation(params: {
+  viewer: Extract<ConversationViewer, { kind: "customer" | "guest" }>;
+  productId?: string;
+  vendorId?: string;
+  variantId?: string;
+}) {
+  const context = {
+    productId: params.productId,
+    vendorId: params.vendorId,
+    variantId: params.variantId,
+  };
+  let available = true;
+  let target: ConversationTarget;
+  try {
+    target = await resolveTarget(context);
+  } catch (error) {
+    if (
+      !(error instanceof ConflictError) ||
+      error.details?.reason !== "CHAT_UNAVAILABLE"
+    ) {
+      throw error;
+    }
+    available = false;
+    target = await resolveTarget({
+      ...context,
+      enforceLiveChatAvailability: false,
+    });
+  }
+  const conversation = await Conversation.findOne({
+    activeKey: activeKey({ viewer: params.viewer, target }),
+    status: { $in: ACTIVE_STATUSES },
+  }).populate(CONVERSATION_HEADER_POPULATE);
+  return {
+    available,
+    ownerVendorId: id(target.ownerVendorId) || undefined,
+    ownerName: target.ownerName,
+    productContext: target.productContext
+      ? serializeProductContext(target.productContext)
+      : undefined,
+    conversation: conversation
+      ? serializeConversation(conversation, params.viewer)
+      : undefined,
+  };
+}
+
+function productNotAvailable() {
+  return new ConflictError("This product is not available to share", {
+    reason: "PRODUCT_NOT_AVAILABLE",
+  });
+}
+
+type SharedProductVariant = {
+  _id: Types.ObjectId;
+  name?: string;
+  image?: string;
+  price?: number;
+  comparePrice?: number;
+};
+
+type SharedProductRow = Omit<ProductPriceSummary, "variants"> & {
+  _id: Types.ObjectId;
+  name?: string;
+  title?: string;
+  slug: string;
+  images?: string[];
+  media?: Parameters<typeof getPrimaryProductMedia>[0]["media"];
+  vendorId?: Types.ObjectId;
+  priceOnRequest?: boolean;
+  variants?: SharedProductVariant[];
+};
+
+/**
+ * A product shared in a message, as it is now: one a customer can see in the
+ * storefront and, in a seller's conversation, one of that seller's own (a
+ * seller's thread never advertises another seller). Its price is the one the
+ * store's product lists show (`getProductPriceRange`; the chosen variant's
+ * own), none for a price-on-request product, in the store's currency.
+ */
+async function snapshotMessageProduct(params: {
+  productId: string;
+  variantId?: string;
+  conversation: Pick<IConversation, "ownerVendorId">;
+}): Promise<IConversationMessageProduct> {
+  if (!Types.ObjectId.isValid(params.productId)) throw productNotAvailable();
+  const product = await Product.findOne({
+    _id: new Types.ObjectId(params.productId),
+    status: PRODUCT_STATUS.ACTIVE,
+    ...(await getStorefrontProductConstraint()),
+  })
+    .select(SHARED_PRODUCT_FIELDS)
+    .lean<SharedProductRow | null>();
+  if (!product) throw productNotAvailable();
+  const ownerVendorId = id(params.conversation.ownerVendorId);
+  if (ownerVendorId && id(product.vendorId) !== ownerVendorId) {
+    throw productNotAvailable();
+  }
+  const variant = params.variantId
+    ? product.variants?.find((item) => id(item._id) === params.variantId)
+    : undefined;
+  if (params.variantId && !variant) throw productNotAvailable();
+  return messageProductOf(product, variant, (await getStoreCurrency()).code);
+}
+
+/** What `snapshotMessageProduct` and `searchShareableProducts` read of a product. */
+const SHARED_PRODUCT_FIELDS =
+  "_id name title slug images media vendorId priceOnRequest price comparePrice priceRange compareAtPriceRange variants._id variants.name variants.image variants.price variants.comparePrice";
+
+/** A product (and the variant chosen, if any) as a message carries it. */
+function messageProductOf(
+  product: SharedProductRow,
+  variant: SharedProductVariant | undefined,
+  currency: string,
+): IConversationMessageProduct {
+  const name = (product.name || product.title || "Product").trim().slice(0, 500);
+  const media = getPrimaryProductMedia({
+    name,
+    images: product.images ?? [],
+    media: product.media,
+  });
+  const imageUrl =
+    variant?.image ||
+    (media ? (media.type === "image" ? media.url : media.thumbnailUrl) : undefined);
+  let price: number | undefined;
+  let compareAtPrice: number | undefined;
+  if (!isQuoteOnlyProduct(product)) {
+    price = variant ? variant.price : getProductPriceRange(product).min;
+    const compare = variant
+      ? variant.comparePrice
+      : getProductCompareAtPrice(product);
+    if (
+      typeof price === "number" &&
+      typeof compare === "number" &&
+      compare > price
+    ) {
+      compareAtPrice = compare;
+    }
+  }
+  const hasPrice = typeof price === "number" && Number.isFinite(price);
+  return {
+    productId: product._id,
+    name,
+    slug: product.slug,
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(variant?.name?.trim()
+      ? { variantName: variant.name.trim().slice(0, 160) }
+      : {}),
+    ...(hasPrice
+      ? {
+          price,
+          ...(compareAtPrice !== undefined ? { compareAtPrice } : {}),
+          currency,
+        }
+      : {}),
+  };
+}
+
+/** How many products a search for one to share answers at most. */
+const SHAREABLE_PRODUCT_LIMIT = 20;
+
+/**
+ * The products a viewer may share in a conversation, newest first, found by
+ * name or SKU: the ones `appendConversationMessage` would take (a product the
+ * storefront shows and, in a seller's conversation, one of that seller's), as
+ * the message would carry them. A store operator needs the permission to
+ * reply; the conversation must take replies.
+ */
+export async function searchShareableProducts(params: {
+  conversationId: string;
+  viewer: ConversationViewer;
+  query?: string;
+  limit?: number;
+}): Promise<NonNullable<ConversationMessageDTO["product"]>[]> {
+  const conversation = await assertConversationAccess(
+    params.conversationId,
+    params.viewer,
+  );
+  if (
+    conversation.status === CONVERSATION_STATUSES.CLOSED ||
+    conversation.status === CONVERSATION_STATUSES.SPAM
+  ) {
+    throw conversationClosed();
+  }
+  if (params.viewer.kind === "vendor" || params.viewer.kind === "staff") {
+    assertStoreConversationPermission(params.viewer, "reply");
+  }
+  const query = params.query?.trim().slice(0, 100);
+  const pattern = query ? new RegExp(escapeRegExp(query), "i") : undefined;
+  const ownerVendorId = id(conversation.ownerVendorId);
+  const limit = Math.min(
+    Math.max(params.limit || SHAREABLE_PRODUCT_LIMIT, 1),
+    SHAREABLE_PRODUCT_LIMIT,
+  );
+  const products = await Product.find({
+    $and: [
+      { status: PRODUCT_STATUS.ACTIVE },
+      await getStorefrontProductConstraint(),
+      ...(ownerVendorId ? [{ vendorId: new Types.ObjectId(ownerVendorId) }] : []),
+      ...(pattern
+        ? [{ $or: [{ name: pattern }, { title: pattern }, { sku: pattern }] }]
+        : []),
+    ],
+  })
+    .sort({ updatedAt: -1, _id: -1 })
+    .limit(limit)
+    .select(SHARED_PRODUCT_FIELDS)
+    .lean<SharedProductRow[]>();
+  const currency = (await getStoreCurrency()).code;
+  return products.map((product) =>
+    serializeMessageProduct(messageProductOf(product, undefined, currency)),
+  );
+}
+
+/**
+ * What a product message says when nothing was written with it: the
+ * product's name and its storefront page, so every reader that does not draw
+ * the product's card (the website's widget, an older app, WhatsApp and the
+ * other external channels, which send the body) still has text to show.
+ */
+function productMessageText(
+  product: IConversationMessageProduct,
+  variantId?: string,
+) {
+  const link = `${appBaseUrl()}/products/${encodeURIComponent(product.slug)}${
+    variantId ? `?variant=${encodeURIComponent(variantId)}` : ""
+  }`;
+  const name = product.variantName
+    ? `${product.name} (${product.variantName})`
+    : product.name;
+  return `${name.slice(0, 3000)}\n${link}`.slice(0, 4000);
 }
 
 async function ensureContact(params: {
@@ -716,12 +1027,29 @@ export function parseConversationCursor(value?: string) {
   return { lastMessageAt, _id: new Types.ObjectId(cursorId) };
 }
 
-export async function listConversations(params: {
+interface ConversationListFilter {
   viewer: ConversationViewer;
-  limit?: number;
   status?: string;
   before?: string;
-}) {
+  /** Only threads with a message nobody on the viewer's side has read. */
+  unreadOnly?: boolean;
+  /** Part of the contact's name, email or phone, or of the subject. */
+  search?: string;
+  /**
+   * One customer's threads, as the business app's customer service names them
+   * (lib/customers/business-customers.ts, `customerListFilter`).
+   */
+  customer?: Record<string, unknown>;
+  /** Only the threads assigned to the viewer (`me`), or to nobody (`none`). */
+  assignee?: "me" | "none";
+}
+
+/**
+ * What a page of the inbox list matches: the viewer's access, the filters,
+ * and the keyset cursor. `unreadOnly`, `search`, `customer` and `assignee` are
+ * the business app's; the website filters in the browser and never passes them.
+ */
+function conversationListQuery(params: ConversationListFilter): ConversationQuery {
   const access: ConversationQuery = getConversationAccessQuery(params.viewer);
   const query: ConversationQuery = { ...access };
   if (
@@ -732,6 +1060,31 @@ export async function listConversations(params: {
   ) {
     query.status = params.status;
   }
+  if (params.unreadOnly) {
+    query[isStoreViewer(params.viewer) ? "unreadForStore" : "unreadForCustomer"] = { $gt: 0 };
+  }
+  const term = params.search?.trim();
+  if (term) {
+    const pattern = new RegExp(escapeRegExp(term), "i");
+    query.$and = [
+      {
+        $or: [
+          { "contact.name": pattern },
+          { "contact.email": pattern },
+          { "contact.phone": pattern },
+          { subject: pattern },
+        ],
+      },
+    ];
+  }
+  if (params.customer) {
+    query.$and = [...((query.$and as ConversationQuery[] | undefined) ?? []), params.customer];
+  }
+  // Assignment is the store's side of a thread; a customer's list has none.
+  if (params.assignee && isStoreViewer(params.viewer)) {
+    query.assignedToUserId =
+      params.assignee === "me" ? objectId(params.viewer.userId, "User") : null;
+  }
   const cursor = parseConversationCursor(params.before);
   if (cursor) {
     query.$or = [
@@ -739,7 +1092,11 @@ export async function listConversations(params: {
       { lastMessageAt: cursor.lastMessageAt, _id: { $lt: cursor._id } },
     ];
   }
+  return query;
+}
 
+export async function listConversations(params: ConversationListFilter & { limit?: number }) {
+  const query = conversationListQuery(params);
   const limit = Math.min(Math.max(params.limit || 50, 1), 100);
   const rows = await Conversation.find(query)
     .populate("assignedToUserId", "name image")
@@ -759,6 +1116,35 @@ export async function listConversations(params: {
       hasMore && last
         ? `${new Date(last.lastMessageAt).toISOString()}_${id(last._id)}`
         : undefined,
+  };
+}
+
+/**
+ * Cheap "has this page of the inbox list moved" signature, for the business
+ * app's `GET /conversations` (`listConversations` with the same filters, two
+ * populates cheaper): the page's conversation ids, in order, with the newest
+ * `updatedAt` among them. Every change a row shows (a message either way, a
+ * read, a status, an assignment) is a write to its conversation, so a row
+ * entering, leaving, reordering or changing moves one of the two. What it does
+ * not see is documented on `getConversationFeedVersion`: an edit to a
+ * populated name catches up with the thread's next message.
+ */
+export async function getConversationListVersion(
+  params: ConversationListFilter & { limit?: number },
+) {
+  const query = conversationListQuery(params);
+  const limit = Math.min(Math.max(params.limit || 50, 1), 100);
+  const rows = await Conversation.find(query)
+    .sort({ lastMessageAt: -1, _id: -1 })
+    .limit(limit + 1)
+    .select({ _id: 1, updatedAt: 1 })
+    .lean();
+  return {
+    conversations: rows.map((row) => id(row._id)).join(","),
+    newestUpdatedAt: rows.reduce(
+      (newest, row) => Math.max(newest, new Date(row.updatedAt).getTime() || 0),
+      0,
+    ),
   };
 }
 
@@ -844,12 +1230,18 @@ export async function getConversationFeedVersion(params: {
     };
   }
 
+  // A customer's feed does not move for a note the team wrote: what it
+  // carries would not change, and a new version would tell them one exists.
+  const messages = {
+    conversationId: { $in: conversationIds },
+    ...messageVisibilityQuery(params.viewer),
+  };
   const [newestMessage, newestUpdatedMessage] = await Promise.all([
-    ConversationMessage.findOne({ conversationId: { $in: conversationIds } })
+    ConversationMessage.findOne(messages)
       .sort({ _id: -1 })
       .select({ _id: 1 })
       .lean(),
-    ConversationMessage.findOne({ conversationId: { $in: conversationIds } })
+    ConversationMessage.findOne(messages)
       .sort({ updatedAt: -1 })
       .select({ updatedAt: 1 })
       .lean(),
@@ -909,7 +1301,11 @@ export async function listConversationMessages(params: {
     params.conversationId,
     params.viewer,
   );
-  const query: ConversationQuery = { conversationId: conversation._id };
+  const query: ConversationQuery = {
+    conversationId: conversation._id,
+    // A customer's page never holds the team's notes.
+    ...messageVisibilityQuery(params.viewer),
+  };
   if (params.before) {
     query._id = { $lt: objectId(params.before, "Message cursor") };
   }
@@ -1087,6 +1483,14 @@ export async function appendConversationMessage(params: {
   viewer: ConversationViewer;
   message?: string;
   attachments?: IConversationAttachment[];
+  /**
+   * A product to share (a card in the apps): snapshotted as it is now, and
+   * named with its link in the body when no text comes with it. Refused with
+   * `PRODUCT_NOT_AVAILABLE` unless a customer could open it, and, in a
+   * seller's conversation, unless it is that seller's.
+   */
+  productId?: string;
+  variantId?: string;
   clientMessageId?: string;
 }) {
   const conversation = await assertConversationAccess(
@@ -1097,23 +1501,29 @@ export async function appendConversationMessage(params: {
     conversation.status === CONVERSATION_STATUSES.CLOSED ||
     conversation.status === CONVERSATION_STATUSES.SPAM
   ) {
-    throw new ConflictError("This conversation is closed");
+    throw conversationClosed();
   }
   if (params.viewer.kind === "vendor" || params.viewer.kind === "staff") {
     assertStoreConversationPermission(params.viewer, "reply");
   }
 
   const attachments = normalizeConversationAttachments(params.attachments);
-  const body = params.message?.trim()
+  const text = params.message?.trim()
     ? normalizeConversationText(params.message)
-    : attachments.length
+    : attachments.length || params.productId
       ? ""
       : normalizeConversationText("");
-  if (params.clientMessageId) {
-    const duplicate = await ConversationMessage.findOne({
-      conversationId: conversation._id,
-      clientMessageId: params.clientMessageId,
-    });
+  // A message already stored under this client id is this one, sent again;
+  // a note is never anybody's reply, whoever reuses its id.
+  const sameMessage = params.clientMessageId
+    ? {
+        conversationId: conversation._id,
+        clientMessageId: params.clientMessageId,
+        direction: { $ne: CONVERSATION_MESSAGE_DIRECTIONS.INTERNAL },
+      }
+    : undefined;
+  if (sameMessage) {
+    const duplicate = await ConversationMessage.findOne(sameMessage);
     if (duplicate) {
       return {
         conversation: serializeConversation(conversation, params.viewer),
@@ -1121,6 +1531,19 @@ export async function appendConversationMessage(params: {
       };
     }
   }
+
+  const product = params.productId
+    ? await snapshotMessageProduct({
+        productId: params.productId,
+        variantId: params.variantId,
+        conversation,
+      })
+    : undefined;
+  const bodyIsFallback = Boolean(product && !text);
+  const body =
+    product && bodyIsFallback
+      ? productMessageText(product, params.variantId)
+      : text;
 
   const storeViewer = isStoreViewer(params.viewer);
   const capability = channelCapability(conversation.channel);
@@ -1156,7 +1579,7 @@ export async function appendConversationMessage(params: {
         messengerHumanAgent = Boolean(humanAgentConnection);
       }
       if (!messengerHumanAgent) {
-        throw new ConflictError(
+        throw replyWindowClosed(
           capability.templates
             ? `The ${capability.replyWindowHours}-hour reply window has expired; use an approved provider template`
             : `The ${capability.label} reply window has expired`,
@@ -1214,6 +1637,8 @@ export async function appendConversationMessage(params: {
           : params.viewer.name,
       body,
       attachments,
+      ...(product ? { product } : {}),
+      ...(bodyIsFallback ? { bodyIsFallback: true } : {}),
       clientMessageId: params.clientMessageId,
       providerMetadata: externalOutbound
         ? {
@@ -1229,15 +1654,12 @@ export async function appendConversationMessage(params: {
     });
   } catch (error) {
     if (
-      params.clientMessageId &&
+      sameMessage &&
       typeof error === "object" &&
       error !== null &&
       (error as { code?: number }).code === 11000
     ) {
-      const duplicate = await ConversationMessage.findOne({
-        conversationId: conversation._id,
-        clientMessageId: params.clientMessageId,
-      });
+      const duplicate = await ConversationMessage.findOne(sameMessage);
       if (!duplicate) throw error;
       return {
         conversation: serializeConversation(conversation, params.viewer),
@@ -1343,6 +1765,87 @@ export async function appendConversationMessage(params: {
     conversation: serializeConversation(updatedConversation, params.viewer),
     message: serializeConversationMessage(responseMessage),
   };
+}
+
+/**
+ * An internal note: words the team keeps on a thread for itself, stored in
+ * it as a message of direction `internal`.
+ *
+ * A note is nobody's reply. It is never queued for a channel and nobody is
+ * notified of it; it leaves the thread's header alone (its last message and
+ * preview, which the customer's list shows, both unread counters, the status
+ * and the reply window), so the customer cannot tell one was written. Every
+ * read on a customer's behalf leaves notes out (`messageVisibilityQuery`).
+ * The store's people with the right to reply may write one, whatever the
+ * thread's status or its channel's window.
+ *
+ * Written at most once per `clientMessageId`: a retry answers the note
+ * already stored, and an id another message already holds is refused.
+ */
+export async function addConversationNote(params: {
+  conversationId: string;
+  viewer: ConversationViewer;
+  body: string;
+  clientMessageId?: string;
+}) {
+  if (!isStoreViewer(params.viewer)) {
+    throw new AuthorizationError("Only store users can write internal notes");
+  }
+  if (params.viewer.kind !== "admin") {
+    assertStoreConversationPermission(params.viewer, "reply");
+  }
+  const viewer = params.viewer;
+  const conversation = await assertConversationAccess(params.conversationId, viewer);
+  const body = normalizeConversationText(params.body);
+  const sameNote = params.clientMessageId
+    ? {
+        conversationId: conversation._id,
+        clientMessageId: params.clientMessageId,
+        direction: CONVERSATION_MESSAGE_DIRECTIONS.INTERNAL,
+      }
+    : undefined;
+  const answer = (note: IConversationMessage | Record<string, unknown>) => ({
+    conversation: serializeConversation(conversation, viewer),
+    message: serializeConversationMessage(note),
+  });
+  if (sameNote) {
+    const duplicate = await ConversationMessage.findOne(sameNote);
+    if (duplicate) return answer(duplicate);
+  }
+
+  try {
+    const note = await ConversationMessage.create({
+      conversationId: conversation._id,
+      channel: conversation.channel,
+      direction: CONVERSATION_MESSAGE_DIRECTIONS.INTERNAL,
+      senderType:
+        viewer.kind === "admin"
+          ? CONVERSATION_MESSAGE_SENDER_TYPES.ADMIN
+          : viewer.kind === "vendor"
+            ? CONVERSATION_MESSAGE_SENDER_TYPES.VENDOR
+            : CONVERSATION_MESSAGE_SENDER_TYPES.STAFF,
+      senderUserId: objectId(viewer.userId, "User"),
+      senderName: viewer.name,
+      body,
+      attachments: [],
+      clientMessageId: params.clientMessageId,
+      deliveryStatus: CONVERSATION_MESSAGE_STATUSES.SENT,
+    });
+    return answer(note);
+  } catch (error) {
+    if (
+      sameNote &&
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: number }).code === 11000
+    ) {
+      // Two requests with one id raced: the first stored it. An id a reply
+      // already holds is no note's, and stays refused.
+      const duplicate = await ConversationMessage.findOne(sameNote);
+      if (duplicate) return answer(duplicate);
+    }
+    throw error;
+  }
 }
 
 export async function listConversationWhatsAppTemplates(params: {
@@ -1535,6 +2038,23 @@ export async function sendConversationWhatsAppTemplate(params: {
   };
 }
 
+/**
+ * The read indicator a provider accepts when an agent opens a thread:
+ * WhatsApp marks one message read; Messenger and Instagram mark the thread
+ * seen on Meta's Messenger Platform. Any other channel gets none — Telegram
+ * has no such call, and the seen call is a Graph request, so sending it for a
+ * Telegram thread put the BotFather token on graph.facebook.com (the same
+ * leak `messengerPlatformProfile` closes for the profile lookup).
+ */
+export function readReceiptFor(
+  channel: string,
+): "whatsapp" | "messenger_platform" | null {
+  if (channel === CONVERSATION_CHANNELS.WHATSAPP) return "whatsapp";
+  return channelCapability(channel).messengerPlatformProfile
+    ? "messenger_platform"
+    : null;
+}
+
 export async function markConversationRead(params: {
   conversationId: string;
   viewer: ConversationViewer;
@@ -1553,8 +2073,10 @@ export async function markConversationRead(params: {
 
   // Tell the provider the agent has seen the thread, so the customer gets the
   // read indicator they expect in their own app.
+  const receipt = readReceiptFor(conversation.channel);
   if (
     storeViewer &&
+    receipt &&
     isExternalChannel(conversation.channel) &&
     conversation.channelConnectionId
   ) {
@@ -1574,7 +2096,7 @@ export async function markConversationRead(params: {
     ]);
     if (connection && latestInbound?.providerMessageId) {
       afterResponse(async () => {
-        if (provider === CONVERSATION_CHANNELS.WHATSAPP) {
+        if (receipt === "whatsapp") {
           // WhatsApp marks one specific message as read.
           await markWhatsAppMessageRead({
             connection,

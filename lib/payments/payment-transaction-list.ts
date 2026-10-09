@@ -1,5 +1,6 @@
 import { PaymentTransaction } from "@/models";
 import { connectDB } from "@/lib/db";
+import { resolveDateFilter } from "@/lib/date-filter";
 import {
   countForQuery,
   listResult,
@@ -28,6 +29,11 @@ interface PaymentTransactionListParams {
   provider?: string;
   /** `pending` narrows to refunds someone still has to send by hand. */
   settlement?: string;
+  /**
+   * The list's date filter: a named period (`today`, `week`, ...) or a picked
+   * `2026-10-01_2026-10-03` pair, the same value the Orders list takes.
+   */
+  date?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -38,8 +44,13 @@ function buildPaymentTransactionFilter({
   type,
   provider,
   settlement,
+  date,
 }: Omit<PaymentTransactionListParams, "page" | "limit" | "sortBy" | "sortOrder">) {
   const query: Record<string, unknown> = {};
+
+  // Dated on `createdAt`, the date the table prints for the row.
+  const range = resolveDateFilter(date);
+  if (range) query.createdAt = { $gte: range.from, $lte: range.to };
 
   const normalize = (value?: string) => (value || "all").trim().toLowerCase();
   if (normalize(status) !== "all") query.status = normalize(status);

@@ -45,7 +45,9 @@ if (
     // Same reason as the carriers entry above: a cached schema without this
     // path would silently drop every override write, which is now the only
     // place a vendor's access deviation is stored.
-    !existingVendorModel.schema.path("permissionOverrides"))
+    !existingVendorModel.schema.path("permissionOverrides") ||
+    // ...and the vendor's automatic abandoned-checkout offer would never save.
+    !existingVendorModel.schema.path("abandonedOffer"))
 ) {
   delete models.Vendor;
 }
@@ -263,6 +265,21 @@ const VendorNotificationPreferencesSchema = new Schema(
     orderUpdates: { type: Boolean, default: true },
     lowStock: { type: Boolean, default: true },
     marketing: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
+/**
+ * The vendor's standing offer to shoppers who leave its goods in a checkout:
+ * the store's recovery email carries it, as a single-use code at the vendor's
+ * cost. See `lib/orders/abandoned-offers.ts`.
+ */
+const VendorAbandonedOfferSchema = new Schema(
+  {
+    enabled: { type: Boolean, default: false },
+    type: { type: String, enum: ["percentage", "fixed"], default: "percentage" },
+    value: { type: Number, min: 0, default: 10 },
+    validDays: { type: Number, min: 1, default: 3 },
   },
   { _id: false },
 );
@@ -723,6 +740,10 @@ const VendorSchema = new Schema<IVendor>(
     notificationPreferences: {
       type: VendorNotificationPreferencesSchema,
       default: () => ({}),
+    },
+    abandonedOffer: {
+      type: VendorAbandonedOfferSchema,
+      default: undefined,
     },
     payoutSettings: {
       type: VendorPayoutSettingsSchema,

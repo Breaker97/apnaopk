@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
+import { countdownDeadline } from "@/lib/storefront/section-data/countdown-offer";
 import { CountdownOfferViewLazy as CountdownOfferView } from "./countdown-offer-view-lazy";
 import {
   isExternalSectionHref,
@@ -35,7 +36,7 @@ export async function CountdownOffer({
 }: CountdownOfferProps) {
   // Live storefronts stay silent without a deadline; the admin preview
   // shows which field is missing.
-  if (!endsAt || Number.isNaN(Date.parse(endsAt))) return emptyState;
+  if (countdownDeadline(endsAt) === null) return emptyState;
 
   const t = await getTranslations({ locale, namespace: "home" });
 

@@ -14,7 +14,8 @@ import {
   DashboardStatsGrid,
   type DashboardStatCardItem,
 } from "@/components/admin/dashboard-stat-card";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
+import { dashboardPickerBounds } from "@/lib/finance/dashboard-finance-period";
 import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
 import { VendorBalanceCard } from "@/components/vendor/finance/vendor-balance-card";
 import { formatCurrency } from "@/lib/intl/money";
@@ -51,12 +52,15 @@ export default async function VendorFinancePage({
   const { period, statements, vendor, storeCurrency } = await loadVendorFinance({
     locale,
     searchParams: search,
+    // The dashboard's period and picker, opening on the month like Expenses.
+    periods: "dashboard",
   });
+  const pickerBounds = dashboardPickerBounds(period);
   // What the one "held for you" figure is actually made of, read from the
   // functions payout creation uses.
   const balance = await loadVendorBalance({
     vendorId: String(vendor._id),
-    currency: storeCurrency,
+    currency: typeof search.currency === "string" && /^[A-Za-z]{3}$/.test(search.currency) ? search.currency.toUpperCase() : storeCurrency,
   });
 
   const t = await getTranslations({ locale });
@@ -82,21 +86,25 @@ export default async function VendorFinancePage({
             )}
           </p>
         </div>
-        <FinancePeriodPicker
+        <DashboardPeriodPicker
           period={period.key}
-          from={period.from.toISOString()}
-          to={period.to.toISOString()}
-          book="all"
-          showBookFilter={false}
+          from={pickerBounds.from}
+          to={pickerBounds.to}
+          defaultPeriod="month"
         />
       </div>
 
+      {balance.availableCurrencies && balance.availableCurrencies.length > 1 && <nav className="flex gap-3" aria-label={t("finance.reliability.currency")}>
+        {balance.availableCurrencies.map((currency) => <Link key={currency} href={`/${locale}/vendor/finance?${new URLSearchParams({ ...Object.fromEntries(Object.entries(search).filter((entry): entry is [string, string] => typeof entry[1] === "string")), currency })}`} className={currency === balance.currency ? "font-semibold underline" : "text-muted-foreground"}>{currency}</Link>)}
+      </nav>}
       <VendorBalanceCard
         balance={balance}
         locale={locale}
         labels={{
           title: rawLabel("finance.balance.title", "What you are owed"),
           ready: rawLabel("finance.balance.ready", "Ready for the next payout"),
+          asOf: balance.calculatedAt ? t("finance.reliability.asOf", { date: balance.calculatedAt.toLocaleString(locale) }) : undefined,
+          tooManyOrders: t("finance.reliability.tooManyOrders"),
           readyHint: rawLabel(
             "finance.balance.readyHint",
             "From {count} delivered orders, past the return window",

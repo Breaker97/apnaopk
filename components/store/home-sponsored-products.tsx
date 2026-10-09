@@ -1,21 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
 import { HomeNewArrivalsCarouselLazy as HomeNewArrivalsCarousel } from "@/components/store/home-new-arrivals-carousel-lazy";
-import {
-  buildSponsoredLane,
-  getSponsoredLadderPool,
-  getSponsoredPlacementDepths,
-  getStorefrontBoostingSettings,
-  laneHasSponsored,
-  resolveLadderAt,
-} from "@/lib/boosts/sponsored-products";
-import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
+import { getHomeSponsoredRail } from "@/lib/boosts/sponsored-placement";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
 import type { SectionRenderContext } from "@/lib/storefront/sections/types";
-import {
-  SPONSORED_PRODUCTS_LIMIT_MAX,
-  SPONSORED_PRODUCTS_LIMIT_MIN,
-} from "@/lib/site-config/home-page-config";
 
 /**
  * Home rail — a MIXED shelf under strict-index rendering: the product holding
@@ -49,15 +37,14 @@ export async function HomeSponsoredProducts({
   ctx?: Pick<SectionRenderContext, "preview">;
 }) {
   const preview = Boolean(ctx?.preview);
-  const boosting = await getStorefrontBoostingSettings();
-  const live = boosting.enabled && boosting.placements.home;
-  if (!live && !preview) return null;
+  const rail = await getHomeSponsoredRail({ limit });
+  if (!rail.live && !preview) return null;
 
   const t = await getTranslations({ locale });
   const tf = (key: string, fallback: string) =>
     t.has(key) ? t(key) : fallback;
 
-  if (!live) {
+  if (!rail.live) {
     return sectionEmptyState(
       { preview },
       {
@@ -70,34 +57,7 @@ export async function HomeSponsoredProducts({
     );
   }
 
-  const depths = await getSponsoredPlacementDepths();
-  const depth = Math.min(
-    SPONSORED_PRODUCTS_LIMIT_MAX,
-    Math.max(
-      SPONSORED_PRODUCTS_LIMIT_MIN,
-      Math.floor(limit) || depths.home || 8,
-    ),
-  );
-
-  const [pool, fillers] = await Promise.all([
-    getSponsoredLadderPool({ hideOutOfStock: boosting.hideOutOfStock }),
-    // A constant limit, not depth + ladder.length: getStorefrontProductCards is
-    // cached on its serialized argument, and a ladder-dependent limit would mint
-    // a fresh cache entry every time a booking starts or ends.
-    getStorefrontProductCards({
-      limit: SPONSORED_PRODUCTS_LIMIT_MAX * 2,
-      hideOutOfStock: boosting.hideOutOfStock,
-    }),
-  ]);
-
-  const lane = buildSponsoredLane(resolveLadderAt(pool), fillers, depth);
-
-  // Nothing sold WITHIN THIS RAIL'S OWN DEPTH renders nothing. A booking at
-  // position 9 with a home depth of 4 reaches this rail not at all, and printing
-  // "includes paid placements" over four organic cards would be an affirmatively
-  // false disclosure. An install with boosting configured but unsold shows no
-  // trace of the feature, exactly as before.
-  const sold = laneHasSponsored(lane);
+  const { lane, sold } = rail;
   if (!sold && !preview) return null;
 
   // Preview with nothing booked: the shelf renders with regular products so

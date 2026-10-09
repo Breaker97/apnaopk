@@ -2,64 +2,57 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { withCronRun } from "@/lib/cron/health";
 import {
-  autoReleaseDuePreorders,
   countOverdueReleases,
   expireUnpaidPreorders,
-  retryPreorderBalanceCharges,
+  preorderWorkflowCounts,
+  preparePreorderCollections,
   sendPreorderBalanceReminders,
 } from "@/lib/orders/preorder-cron";
+import { runPreorderFrequentPasses } from "@/lib/orders/preorder-jobs";
 
 /**
- * The daily pre-order sweep: remind, expire, report.
+ * The daily pre-order sweep.
  *
- * Pre-orders were the one part of the order lifecycle with no clock at all —
- * every transition waited on a person, so a shopper who stopped replying held
- * their quota for ever and `expired` was a state nothing could write. See
- * `lib/orders/preorder-cron.ts` for what each pass does and why its
- * idempotency is per order rather than per run.
+ * In the order section 11 of docs/PREORDER_RELIABILITY_SPEC.md sets out —
+ * which reduces races but is not what prevents them; every pass re-checks its
+ * own guards:
  *
- * Reminders run before expiries on purpose: an order reaching its grace cutoff
- * in the same run has already had both nudges, so nobody is expired without
- * having been asked. The saved-card retries run before both, so a balance the
- * store can collect itself is never chased — or cancelled — as if it could not
- * be.
- *
- * The auto-release pass runs last and is off unless the store switched it on;
- * see `autoReleaseDuePreorders` for why it sits at the end.
+ *  1–2. the frequent passes first (lifecycle operations, date propagation,
+ *       notices, matured charges, paid-release recovery), so the day starts
+ *       from a settled state even where the frequent job is not scheduled;
+ *  3.   prepare what is due — the automatic release (if switched on), orders
+ *       whose consignments all became ready, and legacy requests adopted into
+ *       a request with an advance notice. Nothing here charges a card;
+ *  4.   reminders on requests the shopper has been told about, then expiry of
+ *       the ones whose deadline passed — durable cancellations, refunded in
+ *       full by the operation worker;
+ *  5.   waitlist invitations and the overdue count.
  *
  * Guarded by CRON_SECRET, like every other cron here.
  */
 export const GET = withCronRun("preorders", async () => {
   await connectDB();
 
-  // Before the reminders, and well before the expiries: a shopper who left a
-  // card and authorised it should have the balance simply taken, not be asked
-  // for money the store can already collect — and certainly not be reminded
-  // about it in the same run that would have charged it.
-  const charges = await retryPreorderBalanceCharges();
+  const frequent = await runPreorderFrequentPasses({ budgetMs: 25_000 });
+  const preparation = await preparePreorderCollections();
   const reminders = await sendPreorderBalanceReminders();
   const expiries = await expireUnpaidPreorders();
-  // Last on purpose. A reservation this pass moves to `payment_due` becomes
-  // eligible for the reminder and expiry passes the moment it does, and both
-  // would fire on it in this same run — a shopper asked for money and reminded
-  // about it in the same minute. A run later they read as what they are.
-  const autoReleases = await autoReleaseDuePreorders();
-  // Invitations for spots still open. A place an invited shopper never took,
-  // or a limit an admin raised, frees nothing again — without this pass the
-  // next shopper on the list would never hear of it.
+  // Invitations for spots still open.
   const { sweepPreorderWaitlists } = await import("@/lib/orders/preorder-waitlist");
   const waitlists = await sweepPreorderWaitlists();
   const overdueReleases = await countOverdueReleases();
+  const workflow = await preorderWorkflowCounts();
 
   return NextResponse.json({
     success: true,
-    charges,
+    frequent,
+    preparation,
     reminders,
-    autoReleases,
-    waitlists,
     expiries,
+    waitlists,
     // Nothing is done about these — a new release date is the vendor's to give.
-    // Reported so a store that is quietly slipping is visible in the cron log.
     overdueReleases,
+    // Durable state, not attempts: what is waiting on whom right now.
+    workflow,
   });
 });

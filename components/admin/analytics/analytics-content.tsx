@@ -2,9 +2,19 @@
 
 import Link from "@/components/language/link";
 import { useParams } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { apiClient } from "@/lib/api/client";
+import {
+  DEFAULT_ANALYTICS_PERIOD,
+  trafficQueryFor,
+  trafficQueryParams,
+  trafficSeriesUnit,
+  type SeriesUnit,
+  type TrafficBreakdownRow as BreakdownRow,
+  type TrafficOverview,
+  type TrafficSelection,
+} from "@/lib/analytics/traffic-overview";
 import {
   AreaChart,
   Area,
@@ -35,12 +45,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DateRangePicker,
-  rangeLengthDays,
-  startOfDay,
-  type AppliedDateRange,
-} from "@/components/ui/date-range-picker";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
@@ -48,45 +52,11 @@ import {
   DashboardStatsGridSkeleton,
   type DashboardStatCardItem,
 } from "@/components/admin/dashboard-stat-card";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface PlausibleAggResult {
-  visitors: { value: number };
-  pageviews: { value: number };
-  bounce_rate: { value: number };
-  visit_duration: { value: number };
-  visits: { value: number };
-}
-
-interface TimeseriesPoint {
-  date: string;
-  visitors: number;
-  pageviews: number;
-}
-
-interface BreakdownRow {
-  page?: string;
-  source?: string;
-  country?: string;
-  browser?: string;
-  os?: string;
-  device?: string;
-  visitors: number;
-  pageviews?: number;
-}
-
-type Period = "day" | "7d" | "30d" | "month" | "6mo" | "12mo" | "custom";
 type DeviceTab = "browser" | "os" | "size";
-
-const PERIOD_OPTIONS: { value: Exclude<Period, "custom"> }[] = [
-  { value: "day" },
-  { value: "7d" },
-  { value: "30d" },
-  { value: "month" },
-  { value: "6mo" },
-  { value: "12mo" },
-];
 
 const VISITORS_CHART_COLOR = "var(--chart-1)";
 
@@ -150,86 +120,21 @@ function parseAnalyticsDate(value: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function formatChartDate(
-  date: Date,
-  locale: string,
-  includeYear = true,
-): string {
+function formatChartDate(date: Date, locale: string): string {
   const day = date.getDate();
   const month = new Intl.DateTimeFormat(locale, { month: "short" }).format(
     date,
   );
-  return includeYear
-    ? `${day} ${month}, ${date.getFullYear()}`
-    : `${day} ${month}`;
-}
-
-function getFallbackDateRange(
-  period: Exclude<Period, "custom">,
-): AppliedDateRange {
-  const to = startOfDay(new Date());
-  const from = new Date(to);
-
-  if (period === "day") {
-    return { from, to };
-  }
-
-  if (period === "7d") {
-    from.setDate(to.getDate() - 6);
-    return { from, to };
-  }
-
-  if (period === "30d") {
-    from.setDate(to.getDate() - 29);
-    return { from, to };
-  }
-
-  if (period === "month") {
-    from.setDate(1);
-    return { from, to };
-  }
-
-  from.setDate(1);
-  from.setMonth(to.getMonth() - (period === "6mo" ? 5 : 11));
-  return { from, to };
-}
-
-function formatDateParam(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-/** Analytics collapses a single-day range to one date, unlike the shared default. */
-function formatAnalyticsRangeLabel(
-  range: AppliedDateRange,
-  locale: string,
-): string {
-  const { from, to } = range;
-
-  if (from.toDateString() === to.toDateString()) {
-    return formatChartDate(from, locale);
-  }
-
-  return `${formatChartDate(from, locale)} - ${formatChartDate(to, locale)}`;
-}
-
-function getChartTickPeriod(period: Period, range: AppliedDateRange): Period {
-  if (period !== "custom") return period;
-  const days = rangeLengthDays(range);
-  if (days <= 1) return "day";
-  if (days > 120) return "6mo";
-  return "30d";
+  return `${day} ${month}`;
 }
 
 function formatChartTick(
   value: string,
-  period: Period,
+  unit: SeriesUnit,
   locale: string,
   t: ReturnType<typeof useTranslations>,
 ): string {
-  if (period === "day") {
+  if (unit === "hour") {
     const hour = parseInt(value.slice(11, 13), 10);
     if (Number.isNaN(hour)) return value;
 
@@ -244,51 +149,15 @@ function formatChartTick(
   const date = parseAnalyticsDate(value);
   if (!date) return value;
 
-  if (period === "6mo" || period === "12mo") {
-    return new Intl.DateTimeFormat(locale, { month: "short" }).format(date);
+  if (unit === "month") {
+    return new Intl.DateTimeFormat(locale, {
+      month: "short",
+      year: "2-digit",
+      timeZone: "UTC",
+    }).format(date);
   }
 
-  return formatChartDate(date, locale, false);
-}
-
-function getPeriodLabel(
-  value: Period,
-  t: ReturnType<typeof useTranslations>,
-): string {
-  if (value === "custom") {
-    return t("admin.analyticsPage.periods.custom");
-  }
-
-  if (value === "day") {
-    return t("admin.analyticsPage.periods.day");
-  }
-
-  if (value === "7d") {
-    return t("admin.analyticsPage.periods.7d");
-  }
-
-  if (value === "30d") {
-    return t("admin.analyticsPage.periods.30d");
-  }
-
-  if (value === "month") {
-    return t("admin.analyticsPage.periods.month");
-  }
-
-  if (value === "6mo") {
-    return t("admin.analyticsPage.periods.6mo");
-  }
-
-  return t("admin.analyticsPage.periods.12mo");
-}
-
-function tFallback(
-  t: ReturnType<typeof useTranslations>,
-  key: string,
-  defaultMessage: string,
-): string {
-  const label = t(key, { defaultMessage });
-  return label === key ? defaultMessage : label;
+  return formatChartDate(date, locale);
 }
 
 function countryFlag(code: string): string {
@@ -422,7 +291,7 @@ function ChartTooltip({
   active,
   payload,
   label,
-  period,
+  unit,
   locale,
   t,
 }: {
@@ -430,7 +299,7 @@ function ChartTooltip({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload?: any[];
   label?: string;
-  period: Period;
+  unit: SeriesUnit;
   locale: string;
   t: ReturnType<typeof useTranslations>;
 }) {
@@ -438,7 +307,7 @@ function ChartTooltip({
 
   let formattedLabel = label || "";
   if (typeof label === "string") {
-    if (period === "day") {
+    if (unit === "hour") {
       const hour = parseInt(label.slice(11, 13), 10);
       const suffix =
         hour >= 12
@@ -446,6 +315,12 @@ function ChartTooltip({
           : t("admin.analyticsPage.time.am");
       const h = hour % 12 || 12;
       formattedLabel = `${h}:00 ${suffix}`;
+    } else if (unit === "month") {
+      formattedLabel = new Date(label).toLocaleDateString(locale, {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
     } else {
       formattedLabel = new Date(label).toLocaleDateString(locale, {
         weekday: "short",
@@ -492,7 +367,6 @@ function AnalyticsSkeleton() {
               <div className="h-5 w-36 rounded bg-muted animate-pulse" />
               <div className="h-3.5 w-48 rounded bg-muted animate-pulse" />
             </div>
-            <div className="h-8 w-16 rounded-lg bg-muted animate-pulse" />
           </div>
           <div className="flex items-center gap-4 mt-1">
             <div className="flex items-center gap-1.5">
@@ -554,120 +428,85 @@ function AnalyticsSkeleton() {
 
 export function AdminAnalyticsContent({
   area = "admin",
+  selection,
+  initialOverview,
 }: {
   area?: "admin" | "staff";
+  /** The period in the URL, which the page's picker shows and the data follows. */
+  selection: TrafficSelection;
+  /** The selected period's overview, already loading on the server. */
+  initialOverview?: Promise<TrafficOverview>;
 }) {
   const t = useTranslations();
   const localeFromIntl = useLocale();
   const params = useParams<{ locale: string }>();
   const locale = params.locale || localeFromIntl || "en";
 
-  const [period, setPeriod] = useState<Period>("30d");
-  const [dateRange, setDateRange] = useState<AppliedDateRange>(() =>
-    getFallbackDateRange("30d"),
-  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [deviceTab, setDeviceTab] = useState<DeviceTab>("browser");
 
   const [realtimeVisitors, setRealtimeVisitors] = useState<number | null>(null);
-  const [aggregate, setAggregate] = useState<PlausibleAggResult | null>(null);
-  const [timeseries, setTimeseries] = useState<TimeseriesPoint[]>([]);
-  const [topPages, setTopPages] = useState<BreakdownRow[]>([]);
-  const [topSources, setTopSources] = useState<BreakdownRow[]>([]);
-  const [countries, setCountries] = useState<BreakdownRow[]>([]);
-  const [browsers, setBrowsers] = useState<BreakdownRow[]>([]);
-  const [osData, setOsData] = useState<BreakdownRow[]>([]);
-  const [devicesData, setDevicesData] = useState<BreakdownRow[]>([]);
+  const [overview, setOverview] = useState<Extract<
+    TrafficOverview,
+    { configured: true }
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The server's head start serves the first load only; a refresh asks the API.
+  const pendingInitialOverview = useRef(initialOverview);
+  // Each load's number: a slower answer for a load the user has since
+  // superseded must not overwrite the one they are looking at.
+  const latestLoad = useRef(0);
+  // Strings, not the selection, so a re-render with the same period is no change.
+  const { from, to } = selection;
+
+  const aggregate = overview?.aggregate ?? null;
+  const timeseries = overview?.timeseries ?? [];
+  const topPages = overview?.pages ?? [];
+  const topSources = overview?.sources ?? [];
+  const countries = overview?.countries ?? [];
+  const browsers = overview?.browsers ?? [];
+  const osData = overview?.os ?? [];
+  const devicesData = overview?.devices ?? [];
 
   const fetchAll = useCallback(
     async (isRefresh = false) => {
+      const load = ++latestLoad.current;
+      const initial = pendingInitialOverview.current;
+      pendingInitialOverview.current = undefined;
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
 
       try {
-        const analyticsParams = new URLSearchParams({ period });
-        if (period === "custom") {
-          analyticsParams.set("from", formatDateParam(dateRange.from));
-          analyticsParams.set("to", formatDateParam(dateRange.to));
+        let result: TrafficOverview;
+        if (initial && !isRefresh) {
+          result = await initial;
+        } else {
+          const query = trafficQueryParams(trafficQueryFor({ from, to }));
+          result = await apiClient.get<TrafficOverview>(
+            `/api/admin/analytics/plausible?${query}`,
+          );
         }
-        const analyticsQuery = analyticsParams.toString();
-        type PlausiblePayload = {
-          configured?: boolean;
-          // Same untyped contract the raw res.json() call had before.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data?: { results?: any; visitors?: number };
-        };
-        const [
-          aggData,
-          tsData,
-          pagesData,
-          sourcesData,
-          countriesData,
-          browsersData,
-          osData_,
-          devicesData_,
-          rtData,
-        ] = await Promise.all([
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=aggregate&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=timeseries&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=pages&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=sources&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=countries&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=browsers&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=os&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=devices&${analyticsQuery}`,
-          ),
-          apiClient.get<PlausiblePayload>(
-            `/api/admin/analytics/plausible?metric=realtime`,
-          ),
-        ]);
+        if (load !== latestLoad.current) return;
 
-        const isConfigured = aggData?.configured !== false;
-        setConfigured(isConfigured);
-
-        if (isConfigured) {
-          if (aggData?.data?.results) setAggregate(aggData.data.results);
-          if (tsData?.data?.results) setTimeseries(tsData.data.results);
-          if (pagesData?.data?.results) setTopPages(pagesData.data.results);
-          if (sourcesData?.data?.results)
-            setTopSources(sourcesData.data.results);
-          if (countriesData?.data?.results)
-            setCountries(countriesData.data.results);
-          if (browsersData?.data?.results)
-            setBrowsers(browsersData.data.results);
-          if (osData_?.data?.results) setOsData(osData_.data.results);
-          if (devicesData_?.data?.results)
-            setDevicesData(devicesData_.data.results);
-          if (typeof rtData?.data?.visitors === "number")
-            setRealtimeVisitors(rtData.data.visitors);
+        setConfigured(result.configured);
+        if (result.configured) {
+          setOverview(result);
+          setRealtimeVisitors(result.realtimeVisitors);
+          if (result.unavailable) setError("loadFailed");
         }
       } catch {
-        setError("loadFailed");
+        if (load === latestLoad.current) setError("loadFailed");
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (load === latestLoad.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [dateRange, period],
+    [from, to],
   );
 
   useEffect(() => {
@@ -683,11 +522,10 @@ export function AdminAnalyticsContent({
     if (!configured) return;
     const id = setInterval(async () => {
       try {
-        const d = await apiClient.get<{
-          data?: { visitors?: number };
-        }>("/api/admin/analytics/plausible?metric=realtime");
-        if (typeof d?.data?.visitors === "number")
-          setRealtimeVisitors(d.data.visitors);
+        const { visitors } = await apiClient.get<{ visitors: number | null }>(
+          "/api/admin/analytics/plausible?metric=realtime",
+        );
+        if (typeof visitors === "number") setRealtimeVisitors(visitors);
       } catch {}
     }, 30_000);
     return () => clearInterval(id);
@@ -699,14 +537,6 @@ export function AdminAnalyticsContent({
       : deviceTab === "os"
         ? osData
         : devicesData;
-  const handlePeriodChange = (nextPeriod: Exclude<Period, "custom">) => {
-    setPeriod(nextPeriod);
-    setDateRange(getFallbackDateRange(nextPeriod));
-  };
-  const handleDateRangeApply = (range: AppliedDateRange) => {
-    setPeriod("custom");
-    setDateRange(range);
-  };
   const trafficStats: DashboardStatCardItem[] = [
     {
       id: "online-now",
@@ -756,7 +586,7 @@ export function AdminAnalyticsContent({
   );
   const chartYAxisMax = getNiceChartMax(chartMaxValue);
   const chartYAxisTicks = getChartTicks(chartYAxisMax);
-  const chartTickPeriod = getChartTickPeriod(period, dateRange);
+  const seriesUnit = trafficSeriesUnit(timeseries);
   const visitorsLabel = t("admin.analyticsPage.visitors");
   const pageviewsLabel = t("admin.analyticsPage.pageviews");
 
@@ -784,28 +614,18 @@ export function AdminAnalyticsContent({
               </span>
             </div>
           )}
-          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
-            {PERIOD_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => handlePeriodChange(opt.value)}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  period === opt.value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {getPeriodLabel(opt.value, t)}
-              </button>
-            ))}
-          </div>
+          <DashboardPeriodPicker
+            period={selection.key}
+            from={selection.from}
+            to={selection.to}
+            defaultPeriod={DEFAULT_ANALYTICS_PERIOD}
+          />
           <Button
             variant="outline"
             size="icon"
             onClick={() => fetchAll(true)}
             disabled={refreshing}
-            className="h-8 w-8"
+            className="h-9 w-9"
           >
             <RefreshCcw
               className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
@@ -843,36 +663,21 @@ export function AdminAnalyticsContent({
             className="overflow-hidden !rounded-sm border-[#dfe5ee] bg-card py-0 shadow-sm dark:border-border"
           >
             <CardContent className="p-5 sm:p-5">
-              <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-medium text-[#344054] dark:text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="size-2.5 rounded-[2px]"
-                      style={{ backgroundColor: VISITORS_CHART_COLOR }}
-                    />
-                    <span>{visitorsLabel}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="size-2.5 rounded-[2px]"
-                      style={{ backgroundColor: "#ff5b00" }}
-                    />
-                    <span>{pageviewsLabel}</span>
-                  </div>
+              <div className="mb-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-medium text-[#344054] dark:text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="size-2.5 rounded-[2px]"
+                    style={{ backgroundColor: VISITORS_CHART_COLOR }}
+                  />
+                  <span>{visitorsLabel}</span>
                 </div>
-
-                <DateRangePicker
-                  value={dateRange}
-                  onApply={handleDateRangeApply}
-                  locale={locale}
-                  cancelLabel={tFallback(t, "common.cancel", "Cancel")}
-                  applyLabel={tFallback(t, "common.apply", "Apply")}
-                  align="start"
-                  formatLabel={formatAnalyticsRangeLabel}
-                  triggerClassName="h-9 justify-start gap-1.5 rounded-sm border-[#dfe5ee] bg-card px-3 text-[#172033] shadow-xs hover:bg-card hover:text-[#172033] sm:w-55 dark:border-border dark:text-foreground dark:hover:bg-card dark:hover:text-foreground"
-                  contentClassName="!rounded-sm border-[#dfe5ee] bg-card shadow-[0_14px_32px_rgba(16,24,40,0.14)] dark:border-border"
-                  iconClassName="size-3.5 text-[#172033] dark:text-muted-foreground"
-                />
+                <div className="flex items-center gap-2">
+                  <span
+                    className="size-2.5 rounded-[2px]"
+                    style={{ backgroundColor: "#ff5b00" }}
+                  />
+                  <span>{pageviewsLabel}</span>
+                </div>
               </div>
 
               {loading ? (
@@ -946,7 +751,7 @@ export function AdminAnalyticsContent({
                         tickLine={false}
                         tickMargin={14}
                         tickFormatter={(value: string) =>
-                          formatChartTick(value, chartTickPeriod, locale, t)
+                          formatChartTick(value, seriesUnit, locale, t)
                         }
                       />
                       <YAxis
@@ -968,7 +773,7 @@ export function AdminAnalyticsContent({
                       <Tooltip
                         content={
                           <ChartTooltip
-                            period={chartTickPeriod}
+                            unit={seriesUnit}
                             locale={locale}
                             t={t}
                           />

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Barcode, Download, Upload, ChevronsUpDown } from "lucide-react";
+import { Barcode, Download } from "lucide-react";
 import { NumberInput } from "@/components/ui/number-input";
 import { toast } from "@/components/ui/toast-notification";
 import {
@@ -490,25 +490,14 @@ export function InventoryDataTable({
             disabled: selectedItems.length === 0,
           },
         ],
+        // Export only: stock is counted in the stores and moved by orders and
+        // transfers, so there is no import to hang a menu on.
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: t("admin.inventory.export"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: t("admin.inventory.export"),
-              icon: <Download className="h-4 w-4" />,
-              onClick: exportInventory,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.inventory.import"),
-              icon: <Upload className="h-4 w-4" />,
-              disabled: true,
-            },
-          ],
+          onClick: exportInventory,
         },
       }),
     [

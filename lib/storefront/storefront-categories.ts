@@ -90,9 +90,9 @@ function mapCategory(category: {
 }
 
 /**
- * Products sit on the leaves, so a parent's own count is close to meaningless
- * to a shopper: the link opens a grid that rolls the branch up, and the number
- * beside it has to say the same thing or the page contradicts itself.
+ * A parent's own count leaves out everything filed under its sub-categories:
+ * the link opens a grid that rolls the branch up, and the number beside it has
+ * to say the same thing or the page contradicts itself.
  */
 async function buildRolledUpCounts() {
   const rows = await Category.find({})

@@ -18,6 +18,14 @@ export function isCustomerAccount(
   return roles.length > 0 && roles.every((role) => role === USER_ROLES.CUSTOMER);
 }
 
+/**
+ * The error codes a storefront checkout answers with when the buyer is not a
+ * shopper: a signed-in admin, team member or seller (403), and a guest typing
+ * one of their emails (400). Here so the checkout page can match them.
+ */
+export const STAFF_ACCOUNT_CHECKOUT = "STAFF_ACCOUNT_CHECKOUT";
+export const CHECKOUT_EMAIL_NOT_ALLOWED = "CHECKOUT_EMAIL_NOT_ALLOWED";
+
 const NON_CUSTOMER_ROLES = Object.values(USER_ROLES).filter(
   (role) => role !== USER_ROLES.CUSTOMER,
 );

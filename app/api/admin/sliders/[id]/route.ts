@@ -13,6 +13,12 @@ import {
 import { sliderContentFromInput } from "@/lib/sliders/document-ops";
 import { revalidateSliderContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  SLIDER_CONTENT,
+  auditContentDeleted,
+  auditContentUpdated,
+} from "@/lib/site-config/audit-content";
 import { pickSubmittedKeys } from "@/lib/api/validate";
 import { slugify } from "@/lib/strings";
 
@@ -51,10 +57,14 @@ export const GET = withApi<{ id: string }>(
  */
 export const PUT = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const lookup = getSliderLookup(params.id);
+    // Everything the audit row compares the save against, besides what the
+    // write itself needs.
     const current = await Slider.findOne(lookup)
-      .select("_id version slides")
+      .select(
+        "_id version slides name handle isActive transition autoplaySeconds controls draft",
+      )
       .lean();
     if (!current) throw new NotFoundError("Slider");
 
@@ -111,6 +121,16 @@ export const PUT = withApi<{ id: string }>(
       { returnDocument: "after" },
     ).lean();
     if (!slider) throw new NotFoundError("Slider");
+    await auditContentUpdated(
+      createAuditContext(request, session),
+      SLIDER_CONTENT,
+      { id: String(slider._id), name: slider.name },
+      current,
+      // Any save migrates a document stored before version 2, so its slides
+      // differ afterwards without anyone having edited them. Only a save that
+      // sent slides did.
+      Array.isArray(data.slides) ? slider : { ...slider, slides: current.slides },
+    );
     // A draft never reaches the shop; only live content invalidates it.
     if (set.slides || set.transition || set.autoplaySeconds || set.controls || set.isActive !== undefined) {
       revalidateSliderContent();
@@ -121,12 +141,18 @@ export const PUT = withApi<{ id: string }>(
 
 export const DELETE = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params, session }) => {
     const slider = await Slider.findOne(getSliderLookup(params.id))
-      .select("_id")
+      .select("_id name handle")
       .lean();
     if (!slider) throw new NotFoundError("Slider");
     await Slider.findByIdAndDelete(slider._id);
+    await auditContentDeleted(
+      createAuditContext(request, session),
+      SLIDER_CONTENT,
+      { id: String(slider._id), name: slider.name },
+      { name: slider.name, handle: slider.handle },
+    );
     revalidateSliderContent();
     return successResponse({ deleted: true });
   },

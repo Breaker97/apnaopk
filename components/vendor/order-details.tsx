@@ -17,6 +17,7 @@ import {
   Truck,
   Undo2,
   User,
+  UserCheck,
   XCircle,
 } from "lucide-react";
 import { useCurrency } from "@/providers/currency-provider";
@@ -145,6 +146,13 @@ interface VendorOrder {
     name?: string;
     email?: string;
   };
+  /**
+   * A counter sale with no customer chosen (lib/orders/pos-walk-in.ts). The
+   * API then sends no customer: what it holds is the cashier.
+   */
+  posWalkIn?: boolean;
+  /** Who rang a POS sale up; absent for online orders. */
+  soldByName?: string;
   /** Shipping paused on an undeliverable address; see address-hold-policy. */
   addressHold?: AddressHold;
   /** The shopper's note and checkout-field answers — they may be instructions for this shipment. */
@@ -1036,10 +1044,24 @@ export function VendorOrderDetails({
               <div className="flex items-start gap-2">
                 <User className="mt-0.5 h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">{order.customerId?.name || "Guest"}</p>
-                  <p className="text-muted-foreground">{order.customerId?.email || "No email"}</p>
+                  {order.posWalkIn ? (
+                    <p className="font-medium">
+                      {t("admin.orderDetails.walkInCustomer")}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="font-medium">{order.customerId?.name || "Guest"}</p>
+                      <p className="text-muted-foreground">{order.customerId?.email || "No email"}</p>
+                    </>
+                  )}
                 </div>
               </div>
+              {order.soldByName ? (
+                <div className="flex items-start gap-2">
+                  <UserCheck className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                  <p>{t("admin.orderDetails.soldBy", { name: order.soldByName })}</p>
+                </div>
+              ) : null}
 
               <Separator />
 

@@ -13,7 +13,11 @@
  */
 
 interface DemoAccount {
-  /** User document `name`. The vendor's *store* name comes from the catalog. */
+  /**
+   * User document `name`. Brand-free: emails greet the recipient by it, so a
+   * seeded store renamed in Settings would still say "Hi Storify Admin".
+   * The vendor's *store* name comes from the catalog.
+   */
   name: string;
   email: string;
   password: string;
@@ -24,25 +28,25 @@ type DemoRole = "admin" | "vendor" | "staff" | "customer";
 
 export const DEMO_ACCOUNTS = {
   admin: {
-    name: "Storify Admin",
+    name: "Store Admin",
     email: "admin@storify.com",
     password: "Admin@123",
     phone: "+1 555-0100",
   },
   vendor: {
-    name: "Storify Vendor",
+    name: "Store Vendor",
     email: "vendor@storify.com",
     password: "Vendor@123",
     phone: "+1 555-0200",
   },
   staff: {
-    name: "Storify Staff",
+    name: "Store Staff",
     email: "staff@storify.com",
     password: "Staff@123",
     phone: "+1 555-0300",
   },
   customer: {
-    name: "Storify Customer",
+    name: "Store Customer",
     email: "customer@storify.com",
     password: "Customer@123",
     phone: "+1 555-0400",

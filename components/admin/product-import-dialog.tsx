@@ -28,6 +28,7 @@ import {
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
 } from "@/lib/products/import-limits";
+import { MAX_PRODUCT_MEDIA } from "@/lib/products/media-limits";
 import { cn } from "@/lib/utils";
 
 type ProductImportResult = {
@@ -93,6 +94,9 @@ const COLUMN_GUIDE: Array<{
   { column: "hsCode" },
   { column: "barcode" },
   { column: "vendorId", adminOnly: true },
+  { column: "vendorSlug", adminOnly: true },
+  { column: "vendorEmail", adminOnly: true },
+  { column: "vendor", adminOnly: true },
 ];
 
 /** Errors listed in the dialog; the downloadable list carries all of them. */
@@ -478,7 +482,9 @@ export function ProductImportDialog({
                         </span>
                       )}
                     </dt>
-                    <dd className="text-muted-foreground">{t(`columns.${entry.column}`)}</dd>
+                    <dd className="text-muted-foreground">
+                      {t(`columns.${entry.column}`, { max: MAX_PRODUCT_MEDIA })}
+                    </dd>
                   </div>
                 ))}
               </dl>

@@ -16,6 +16,8 @@ import { isStaffRole } from "@/lib/access/staff-role";
 import { STAFF_MANAGED_BY } from "@/lib/access/staff-ownership";
 import { requireVendorStaffPermission } from "@/lib/access/vendor-staff-guard";
 import { sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
+import { auditStaffCreated } from "@/lib/access/audit-staff";
+import { createAuditContext } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -142,6 +144,20 @@ export async function POST(request: NextRequest) {
       notes: notes?.trim() || undefined,
       isActive: typeof isActive === "boolean" ? isActive : true,
     });
+
+    // The member as stored, not as asked for: the audit row must show the
+    // defaults the account and its profile actually received.
+    await auditStaffCreated(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      { userId, name: newUser.name, email: newUser.email },
+      {
+        status: newUser.status ?? "active",
+        isActive: staffProfile.isActive,
+        permissions: staffProfile.permissions,
+        department: staffProfile.department,
+        vendorIds: [String(vendor._id)],
+      },
+    );
 
     const user = await User.findById(userId)
       .select("name email image phone status createdAt")

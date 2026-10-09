@@ -1,18 +1,43 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
-  AlertTriangle,
-  Clock3,
-  ListChecks,
-  MailCheck,
+  Circle,
+  EllipsisVertical,
+  Info,
+  Mail,
+  MessageSquareText,
   RefreshCw,
   RotateCcw,
   Search,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DataTablePagination,
+  type DataTablePaginationType,
+} from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -21,14 +46,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DataTablePagination,
-  type DataTablePaginationType,
-} from "@/components/ui/data-table";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast-notification";
-import { useLocale, useTranslations } from "next-intl";
-import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { WarningBanner } from "@/components/ui/warning-banner";
+import {
+  UnderlineTabsList,
+  UnderlineTabsTrigger,
+} from "@/components/admin/underline-tabs";
+import { useDebounce } from "@/hooks/use-debounce";
+import type {
+  DeliveryLogCounts,
+  DeliveryLogGroup,
+} from "@/lib/notifications/delivery-log-groups";
+import { cn } from "@/lib/utils";
 
 type DeliveryStatus =
   | "queued"
@@ -37,7 +68,9 @@ type DeliveryStatus =
   | "sent"
   | "delivered"
   | "undelivered"
-  | "failed";
+  | "failed"
+  /** Email only: called off by an admin before it went. */
+  | "cancelled";
 
 type Delivery = {
   _id: string;
@@ -56,95 +89,115 @@ type Delivery = {
   createdAt: string;
 };
 
-type LogResponse = {
-  success?: boolean;
-  data?: {
-    deliveries: Delivery[];
-    pagination: { page: number; limit: number; total: number; totalPages: number };
-    stats: { total: number; sent: number; failed: number; pending: number };
-    retentionDays: number;
-  };
+type LogData = {
+  deliveries: Delivery[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  /** Rows per tab, over the date range and search. */
+  stats: DeliveryLogCounts;
+  /** Every sent row, whatever the filters: what "Clear sent" deletes. */
+  clearable: number;
+  retentionDays: number;
+  /** SMS only: whether Twilio can report deliveries back to this store. */
+  receipts?: { enabled: boolean; origin: string };
 };
 
-const EMPTY_STATS = { total: 0, sent: 0, failed: 0, pending: 0 };
-type DeleteIntent = "selected" | "sent" | null;
+export type DeliveryLogTab = "all" | DeliveryLogGroup;
+type Tab = DeliveryLogTab;
+type Range = "all" | "today" | "7d" | "30d" | "90d";
+export type LogRetentionDays = 7 | 30 | 90;
+
+const RETENTION_OPTIONS: readonly LogRetentionDays[] = [7, 30, 90];
+const EMPTY_COUNTS: DeliveryLogCounts = { total: 0, sent: 0, failed: 0, waiting: 0 };
 
 /**
- * The email and SMS outboxes share one log screen; what differs is the
- * endpoint, the words (`admin.settings.deliveryLogs.<kind>`), and the
- * statuses — a text also learns from the carrier whether it was delivered.
+ * The email and SMS outboxes share one log; what differs is the endpoint, the
+ * words (`admin.settings.deliveryLogs.<kind>`), and the statuses: a text also
+ * learns from the carrier whether it was delivered.
  */
 const KINDS = {
-  email: {
-    endpoint: "/api/admin/email-deliveries",
-    statuses: ["sent", "failed", "queued", "retrying", "sending"],
-  },
-  sms: {
-    endpoint: "/api/admin/sms-deliveries",
-    statuses: [
-      "delivered",
-      "sent",
-      "undelivered",
-      "failed",
-      "queued",
-      "retrying",
-      "sending",
-    ],
-  },
-} as const satisfies Record<
-  string,
-  {
-    endpoint: string;
-    statuses: readonly DeliveryStatus[];
-  }
->;
+  email: { endpoint: "/api/admin/email-deliveries", icon: Mail },
+  sms: { endpoint: "/api/admin/sms-deliveries", icon: MessageSquareText },
+} as const;
 
-function statusClass(status: DeliveryStatus) {
-  if (status === "sent" || status === "delivered") {
-    return "bg-emerald-100 text-emerald-800";
-  }
-  if (status === "failed" || status === "undelivered") {
-    return "bg-red-100 text-red-800";
-  }
-  return "bg-amber-100 text-amber-800";
-}
+/** Orders-style badges: sent is neutral, green only for a confirmed delivery. */
+const BADGE_CLASS: Record<DeliveryStatus, string> = {
+  delivered:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
+  sent: "bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-200",
+  failed: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
+  undelivered: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
+  queued: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  sending: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  retrying: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  cancelled: "bg-muted text-muted-foreground",
+};
 
-function isTerminal(status: DeliveryStatus) {
+const TAB_CLASS = "gap-1 px-2 @md:gap-2 @md:px-4";
+
+/** Nothing more happens to it on its own, so it can be deleted. */
+function isFinished(status: DeliveryStatus) {
   return status !== "queued" && status !== "sending" && status !== "retrying";
 }
 
-function isRetryable(status: DeliveryStatus) {
-  return status === "failed" || status === "retrying" || status === "undelivered";
+function isFailed(status: DeliveryStatus) {
+  return status === "failed" || status === "undelivered";
 }
 
+function isRetryable(status: DeliveryStatus) {
+  return isFailed(status) || status === "retrying";
+}
+
+/**
+ * Settings → Email and Settings → SMS: what went out, what the provider (and
+ * for a text, the carrier) said, and what to do about what did not.
+ *
+ * The tabs carry the counts and the table follows them, both over the same
+ * date range and search: four stat boxes used to count the whole outbox above
+ * a table of the last 30 days. Actions show only once rows are picked, and
+ * how long sent rows are kept is a menu choice that saves at once rather than
+ * an edit for the page's save bar.
+ */
 export function DeliveryLogs(props: {
   kind: keyof typeof KINDS;
-  retentionDays: 7 | 30 | 90;
-  onRetentionDaysChange: (days: 7 | 30 | 90) => void;
+  retentionDays: LogRetentionDays;
+  /** Saves the choice at once: it is not part of the page's form. */
+  onRetentionDaysChange: (days: LogRetentionDays) => void | Promise<unknown>;
+  /** Render nothing while the log is empty, for a page that is switched off. */
+  hideWhenEmpty?: boolean;
+  /** Changing it loads the log again, after the page itself added a row. */
+  refreshKey?: number;
+  /** The tab it opens on; read once, so remount (a new key) to apply another. */
+  initialTab?: Tab;
 }) {
-  const config = KINDS[props.kind];
-  const t = useTranslations();
-  const tSafe = useFallbackTranslator(t);
-  const tLogs = useTranslations("admin.settings.deliveryLogs");
+  const { kind, hideWhenEmpty, refreshKey } = props;
+  const config = KINDS[kind];
+  const t = useTranslations("admin.settings.deliveryLogs");
+  const tSettings = useTranslations("admin.settings");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
-  const kindText = (key: string, values?: Record<string, number>) =>
-    tLogs(`${props.kind}.${key}`, values);
-  const statusLabel = (value: DeliveryStatus) => tLogs(`status.${value}`);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const kindText = (key: string, values?: Record<string, string | number>) =>
+    t(`${kind}.${key}`, values);
+
+  const [data, setData] = useState<LogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [retryingId, setRetryingId] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [savingRetention, setSavingRetention] = useState(false);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [range, setRange] = useState("30d");
+  const search = useDebounce(searchInput.trim(), 300);
+  const [appliedSearch, setAppliedSearch] = useState(search);
+  const [tab, setTab] = useState<Tab>(props.initialTab ?? "all");
+  const [range, setRange] = useState<Range>("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState(EMPTY_STATS);
-  const [deleteIntent, setDeleteIntent] = useState<DeleteIntent>(null);
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  // A new search starts at its first page.
+  if (appliedSearch !== search) {
+    setAppliedSearch(search);
+    setPage(1);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -154,45 +207,53 @@ export function DeliveryLogs(props: {
         limit: String(limit),
         range,
       });
-      if (status !== "all") params.set("status", status);
+      if (tab !== "all") params.set("group", tab);
       if (search) params.set("search", search);
       const response = await fetch(`${config.endpoint}?${params}`, {
         cache: "no-store",
       });
-      const payload = (await response.json()) as LogResponse;
+      const payload = (await response.json()) as { success?: boolean; data?: LogData };
       if (!response.ok || !payload.success || !payload.data) throw new Error();
-      setDeliveries(payload.data.deliveries);
-      setTotal(payload.data.pagination.total);
-      setTotalPages(payload.data.pagination.totalPages);
-      setStats(payload.data.stats);
+      setData(payload.data);
       setSelected(new Set());
     } catch {
-      toast.error(
-        tSafe(
-          "admin.settings.toasts.deliveryLogsLoadFailed",
-          "Failed to load the delivery logs",
-        ),
-      );
+      toast.error(tSettings("toasts.deliveryLogsLoadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [config.endpoint, limit, page, range, search, status, tSafe]);
+  }, [config.endpoint, limit, page, range, search, tab, tSettings]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [load, refreshKey]);
 
-  const terminalRows = useMemo(
-    () => deliveries.filter((delivery) => isTerminal(delivery.status)),
-    [deliveries],
-  );
-  const allTerminalSelected =
-    terminalRows.length > 0 && terminalRows.every((row) => selected.has(row._id));
+  const formatDate = useMemo(() => {
+    const format = new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    return (value: string) => format.format(new Date(value));
+  }, [locale]);
+
+  const counts = data?.stats ?? EMPTY_COUNTS;
+  const deliveries = data?.deliveries ?? [];
+  const filtered = Boolean(search) || range !== "all";
+  // Nothing was ever logged (or all of it was cleared): the counts cover the
+  // whole log when no range or search narrows them.
+  const empty = data !== null && counts.total === 0 && !filtered;
+
+  const selectable = deliveries.filter((delivery) => isFinished(delivery.status));
+  const allChecked =
+    selectable.length > 0 && selectable.every((delivery) => selected.has(delivery._id));
+  const picked = deliveries.filter((delivery) => selected.has(delivery._id));
+  const pickedFailed = picked.filter((delivery) => isFailed(delivery.status));
 
   const toggleAll = (checked: boolean) => {
     setSelected(
-      checked ? new Set(terminalRows.map((delivery) => delivery._id)) : new Set(),
+      checked ? new Set(selectable.map((delivery) => delivery._id)) : new Set(),
     );
   };
 
@@ -205,23 +266,24 @@ export function DeliveryLogs(props: {
     });
   };
 
-  const retry = async (id: string) => {
-    setRetryingId(id);
+  const retryOne = async (id: string) => {
+    setBusy(true);
     try {
       const response = await fetch(`${config.endpoint}/${id}/retry`, {
         method: "POST",
       });
       const payload = (await response.json()) as { message?: string };
-      if (!response.ok) throw new Error(payload.message || tLogs("retryFailed"));
-      toast.success(tLogs("retrySent"));
+      if (!response.ok) throw new Error(payload.message || t("retryFailed"));
+      toast.success(t("retrySent"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : tLogs("retryFailed"));
+      toast.error(error instanceof Error && error.message ? error.message : t("retryFailed"));
     } finally {
-      setRetryingId(null);
+      setBusy(false);
       await load();
     }
   };
 
+  /** A bulk retry or delete; true once the server took it. */
   const bulkRequest = async (
     method: "POST" | "DELETE",
     body: Record<string, unknown>,
@@ -237,185 +299,524 @@ export function DeliveryLogs(props: {
         message?: string;
         data?: { queued?: number; deleted?: number };
       };
-      if (!response.ok) throw new Error(payload.message || tLogs("actionFailed"));
+      if (!response.ok) throw new Error(payload.message || t("actionFailed"));
       toast.success(
         typeof payload.data?.deleted === "number"
-          ? tLogs("deleted", { count: payload.data.deleted })
+          ? t("deleted", { count: payload.data.deleted })
           : typeof payload.data?.queued === "number"
             ? kindText("queuedForRetry", { count: payload.data.queued })
-            : tLogs("updated"),
+            : t("updated"),
       );
       if (method === "DELETE" && page > 1) setPage(1);
       else await load();
+      return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : tLogs("actionFailed"));
+      toast.error(error instanceof Error && error.message ? error.message : t("actionFailed"));
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
-  const selectedIds = Array.from(selected);
-  const selectedFailedIds = deliveries
-    .filter(
-      (delivery) =>
-        selected.has(delivery._id) &&
-        (delivery.status === "failed" || delivery.status === "undelivered"),
-    )
-    .map((delivery) => delivery._id);
-
-  const submitSearch = (event: FormEvent) => {
-    event.preventDefault();
-    setPage(1);
-    setSearch(searchInput.trim());
+  const changeRetention = async (value: string) => {
+    const days = Number(value) as LogRetentionDays;
+    if (days === props.retentionDays || !RETENTION_OPTIONS.includes(days)) return;
+    setSavingRetention(true);
+    try {
+      await props.onRetentionDaysChange(days);
+    } finally {
+      setSavingRetention(false);
+    }
   };
 
-  const pagination = useMemo<DataTablePaginationType>(
-    () => ({ page, pageSize: limit, total, totalPages }),
-    [limit, page, total, totalPages],
-  );
+  const resetView = () => {
+    setTab("all");
+    setRange("all");
+    setSearchInput("");
+    setPage(1);
+  };
 
-  const confirmDeletion = async () => {
-    if (deleteIntent === "selected") {
-      await bulkRequest("DELETE", { ids: selectedIds });
-    } else if (deleteIntent === "sent") {
-      await bulkRequest("DELETE", { scope: "sent" });
+  if (hideWhenEmpty && (data === null || empty)) return null;
+
+  const pagination: DataTablePaginationType = {
+    page,
+    pageSize: limit,
+    total: data?.pagination.total ?? 0,
+    totalPages: data?.pagination.totalPages ?? 1,
+  };
+  const receiptsOff = kind === "sms" && data?.receipts?.enabled === false;
+  const EmptyIcon = config.icon;
+
+  const noteFor = (delivery: Delivery) => {
+    if (isFailed(delivery.status) && delivery.lastError) {
+      return { text: delivery.lastError, className: "text-destructive" };
     }
-    setDeleteIntent(null);
+    if (delivery.status === "retrying") {
+      const values = { attempt: delivery.attempts, max: delivery.maxAttempts };
+      return {
+        text: delivery.lastError
+          ? t("tryOfError", { ...values, error: delivery.lastError })
+          : t("tryOf", values),
+        className: "text-amber-700 dark:text-amber-400",
+      };
+    }
+    if ((delivery.segments ?? 0) > 1) {
+      return {
+        text: t("billedAs", { count: delivery.segments ?? 0 }),
+        className: "text-muted-foreground",
+      };
+    }
+    return null;
+  };
+
+  const badge = (status: DeliveryStatus) => {
+    const label = t(`status.${status}`);
+    return (
+      <span
+        title={label}
+        className={cn(
+          "inline-flex max-w-full items-center gap-1.5 rounded-sm px-2 py-1 text-[12px] leading-4 font-medium",
+          BADGE_CLASS[status],
+        )}
+      >
+        <Circle aria-hidden className="size-2 shrink-0 fill-current stroke-0" />
+        <span className="truncate">{label}</span>
+      </span>
+    );
   };
 
   return (
-    <div className="min-w-0 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-medium">{kindText("title")}</p>
-          <p className="text-sm text-muted-foreground">{kindText("description")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            {tLogs("keepSentLogs")}
-            <Select
-              value={String(props.retentionDays)}
-              onValueChange={(value) =>
-                props.onRetentionDaysChange(Number(value) as 7 | 30 | 90)
-              }
-            >
-              <SelectTrigger className="w-[110px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[7, 30, 90].map((days) => (
-                  <SelectItem key={days} value={String(days)}>
-                    {tLogs("retentionDays", { count: days })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-          <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            {tLogs("refresh")}
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>
+          {kindText("retentionNote", { count: props.retentionDays })}
+        </CardDescription>
+        <CardAction className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={t("refresh")}
+            disabled={loading}
+            onClick={() => void load()}
+          >
+            <RefreshCw className={cn(loading && data !== null && "animate-spin")} />
           </Button>
-        </div>
-      </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" size="icon" aria-label={t("options")}>
+                <EllipsisVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuLabel className="text-muted-foreground text-xs font-semibold">
+                {kindText("keepFor")}
+              </DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={String(props.retentionDays)}
+                onValueChange={(value) => void changeRetention(value)}
+              >
+                {RETENTION_OPTIONS.map((days) => (
+                  <DropdownMenuRadioItem
+                    key={days}
+                    value={String(days)}
+                    disabled={savingRetention}
+                  >
+                    {t("retentionDays", { count: days })}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={busy || !data?.clearable}
+                onSelect={() => setConfirmClear(true)}
+              >
+                <Trash2 />
+                {kindText("clearSent")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardAction>
+      </CardHeader>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {[
-          { label: tLogs("stats.total"), value: stats.total, icon: ListChecks },
-          { label: tLogs("stats.sent"), value: stats.sent, icon: MailCheck },
-          { label: tLogs("stats.failed"), value: stats.failed, icon: AlertTriangle },
-          { label: tLogs("stats.pending"), value: stats.pending, icon: Clock3 },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center gap-3 rounded-md border p-3">
-            <item.icon className="h-4 w-4 text-muted-foreground" />
-            <div><p className="text-xs text-muted-foreground">{item.label}</p><p className="font-semibold">{item.value}</p></div>
+      <CardContent className="@container space-y-4">
+        {receiptsOff && data?.receipts ? (
+          <WarningBanner icon={Info}>
+            {t("sms.noReceipts", { origin: data.receipts.origin })}
+          </WarningBanner>
+        ) : null}
+
+        {data === null ? (
+          <div className="space-y-3" aria-busy="true">
+            <Skeleton className="h-10 w-72 max-w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-40 w-full" />
           </div>
-        ))}
-      </div>
+        ) : empty ? (
+          <div className="flex flex-col items-center gap-1 rounded-lg border border-dashed px-4 py-10 text-center">
+            <span
+              aria-hidden
+              className="bg-muted text-muted-foreground mb-2 flex size-10 items-center justify-center rounded-xl"
+            >
+              <EmptyIcon className="size-[18px]" />
+            </span>
+            <p className="text-sm font-medium">{kindText("emptyTitle")}</p>
+            <p className="text-muted-foreground text-sm">{t("emptyHint")}</p>
+          </div>
+        ) : (
+          <Tabs
+            value={tab}
+            onValueChange={(value) => {
+              setTab(value as Tab);
+              setPage(1);
+            }}
+          >
+            {/* Four tabs fit a phone only with less room around each. */}
+            <UnderlineTabsList aria-label={t("tabsLabel")} className="gap-0 @md:gap-1">
+              <UnderlineTabsTrigger value="all" className={TAB_CLASS}>
+                {t("tabs.all")}
+              </UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="sent" count={counts.sent} className={TAB_CLASS}>
+                {t("tabs.sent")}
+              </UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="failed" count={counts.failed} className={TAB_CLASS}>
+                {t("tabs.failed")}
+              </UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="waiting" count={counts.waiting} className={TAB_CLASS}>
+                {t("tabs.waiting")}
+              </UnderlineTabsTrigger>
+            </UnderlineTabsList>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <form onSubmit={submitSearch} className="flex min-w-[220px] flex-1 gap-2">
-          <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={kindText("searchPlaceholder")} className="min-w-0" />
-          <Button type="submit" variant="outline" size="icon" aria-label={t("common.search")}><Search className="h-4 w-4" /></Button>
-        </form>
-        <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
-          <SelectTrigger className="w-[145px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{tLogs("allStatuses")}</SelectItem>
-            {config.statuses.map((value) => (
-              <SelectItem key={value} value={value}>
-                {statusLabel(value)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={range} onValueChange={(value) => { setRange(value); setPage(1); }}>
-          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">{tLogs("range.today")}</SelectItem>
-            <SelectItem value="7d">{tLogs("range.last7")}</SelectItem>
-            <SelectItem value="30d">{tLogs("range.last30")}</SelectItem>
-            <SelectItem value="90d">{tLogs("range.last90")}</SelectItem>
-            <SelectItem value="all">{tLogs("range.all")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            <TabsContent value={tab} className="mt-4 space-y-4">
+              {picked.length > 0 ? (
+                <div className="bg-primary/10 flex min-h-9 flex-wrap items-center gap-2 rounded-xl py-1 ps-3.5 pe-1">
+                  <span className="text-primary min-w-0 flex-1 text-sm font-medium">
+                    {t("selected", { count: picked.length })}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="bg-background"
+                    disabled={busy || pickedFailed.length === 0}
+                    onClick={() =>
+                      void bulkRequest("POST", {
+                        action: "retry_failed",
+                        ids: pickedFailed.map((delivery) => delivery._id),
+                      })
+                    }
+                  >
+                    <RotateCcw />
+                    {t("retry")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="bg-background text-destructive hover:text-destructive"
+                    disabled={busy}
+                    onClick={() => setDeleteIds(picked.map((delivery) => delivery._id))}
+                  >
+                    <Trash2 />
+                    {t("delete")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-primary hover:text-primary"
+                    onClick={() => setSelected(new Set())}
+                  >
+                    {t("clearSelection")}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 @lg:flex-row @lg:items-center">
+                  <div className="relative min-w-0 flex-1">
+                    <Search
+                      aria-hidden
+                      className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
+                    />
+                    <Input
+                      type="search"
+                      value={searchInput}
+                      onChange={(event) => setSearchInput(event.target.value)}
+                      placeholder={kindText("searchPlaceholder")}
+                      aria-label={t("searchLabel")}
+                      className="ps-9"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={range}
+                      onValueChange={(value) => {
+                        setRange(value as Range);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={t("rangeLabel")}
+                        className="min-w-0 flex-1 @lg:w-40 @lg:flex-none"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t("range.all")}</SelectItem>
+                        <SelectItem value="today">{t("range.today")}</SelectItem>
+                        <SelectItem value="7d">{t("range.last7")}</SelectItem>
+                        <SelectItem value="30d">{t("range.last30")}</SelectItem>
+                        <SelectItem value="90d">{t("range.last90")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {/* What the Failed tab shows, every page of it. */}
+                    {tab === "failed" && counts.failed > 0 ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() =>
+                          void bulkRequest("POST", {
+                            action: "retry_failed",
+                            range,
+                            ...(search ? { search } : {}),
+                          })
+                        }
+                      >
+                        <RotateCcw />
+                        {t("retryAll", { count: counts.failed })}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="sm" disabled={busy || selectedIds.length === 0} onClick={() => setDeleteIntent("selected")}><Trash2 className="mr-2 h-4 w-4" />{tLogs("deleteSelected")}</Button>
-        <Button type="button" variant="outline" size="sm" disabled={busy || selectedFailedIds.length === 0} onClick={() => void bulkRequest("POST", { action: "retry_failed", ids: selectedFailedIds })}><RotateCcw className="mr-2 h-4 w-4" />{tLogs("retrySelectedFailed")}</Button>
-        <Button type="button" variant="outline" size="sm" disabled={busy || stats.failed === 0} onClick={() => void bulkRequest("POST", { action: "retry_failed" })}>{tLogs("retryAllFailed")}</Button>
-        <Button type="button" variant="destructive" size="sm" disabled={busy || stats.sent === 0} onClick={() => setDeleteIntent("sent")}>{tLogs("clearSent")}</Button>
-      </div>
+              <div
+                className={cn(
+                  "overflow-hidden rounded-lg border transition-opacity",
+                  loading && "opacity-60",
+                )}
+              >
+                <table className="w-full table-fixed text-xs">
+                  <colgroup>
+                    <col className="w-9 @2xl:w-11" />
+                    <col className="hidden w-32 @3xl:table-column" />
+                    <col className="hidden w-36 @2xl:table-column" />
+                    <col />
+                    <col className="hidden w-36 @2xl:table-column" />
+                    <col className="w-10 @2xl:w-12" />
+                  </colgroup>
+                  <thead className="bg-muted/50 text-muted-foreground">
+                    <tr className="h-10">
+                      <th scope="col" className="px-2.5 text-center @2xl:px-3">
+                        <Checkbox
+                          checked={allChecked}
+                          disabled={selectable.length === 0 || busy}
+                          onCheckedChange={(value) => toggleAll(value === true)}
+                          aria-label={t("selectPage")}
+                        />
+                      </th>
+                      <th
+                        scope="col"
+                        className="hidden px-2.5 text-start font-semibold @3xl:table-cell"
+                      >
+                        {t("columns.date")}
+                      </th>
+                      <th
+                        scope="col"
+                        className="hidden px-2.5 text-start font-semibold @2xl:table-cell"
+                      >
+                        {t("columns.to")}
+                      </th>
+                      <th scope="col" className="px-2.5 text-start font-semibold">
+                        {kindText("summaryLabel")}
+                      </th>
+                      <th
+                        scope="col"
+                        className="hidden px-2.5 text-start font-semibold @2xl:table-cell"
+                      >
+                        {t("columns.status")}
+                      </th>
+                      <th scope="col">
+                        <span className="sr-only">{t("columns.actions")}</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deliveries.length === 0 ? (
+                      <tr className="border-t">
+                        <td colSpan={6} className="px-4 py-8 text-center">
+                          <p className="text-muted-foreground text-sm">{t("noMatch")}</p>
+                          {filtered || tab !== "all" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-3"
+                              onClick={resetView}
+                            >
+                              {t("showAll")}
+                            </Button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ) : (
+                      deliveries.map((delivery) => {
+                        const summary = delivery.subject ?? delivery.body ?? "";
+                        const name = summary || delivery.to;
+                        const note = noteFor(delivery);
+                        const date = formatDate(delivery.createdAt);
+                        const checked = selected.has(delivery._id);
+                        const finished = isFinished(delivery.status);
+                        const retryable = isRetryable(delivery.status);
+                        return (
+                          <tr
+                            key={delivery._id}
+                            className={cn("border-t", checked && "bg-primary/5")}
+                          >
+                            <td className="px-2.5 py-3 text-center align-top @2xl:px-3 @2xl:align-middle">
+                              <Checkbox
+                                checked={checked}
+                                disabled={!finished || busy}
+                                onCheckedChange={(value) =>
+                                  toggleOne(delivery._id, value === true)
+                                }
+                                aria-label={t("selectRow", { name })}
+                              />
+                            </td>
+                            <td className="text-muted-foreground hidden px-2.5 py-3 whitespace-nowrap @3xl:table-cell">
+                              {date}
+                            </td>
+                            <td className="hidden px-2.5 py-3 @2xl:table-cell">
+                              <div className="truncate tabular-nums" title={delivery.to}>
+                                {delivery.to}
+                              </div>
+                            </td>
+                            <td className="min-w-0 px-2.5 py-2.5">
+                              {/* Narrow: who first, whole (a number's last digits
+                                  are what tell it apart); how it went and when, last. */}
+                              <div
+                                className="mb-1 truncate font-medium tabular-nums @2xl:hidden"
+                                title={delivery.to}
+                              >
+                                {delivery.to}
+                              </div>
+                              <div
+                                className={cn("truncate", kind === "email" && "font-medium")}
+                                title={summary}
+                              >
+                                {summary}
+                              </div>
+                              {note ? (
+                                <div
+                                  className={cn("mt-0.5 line-clamp-2", note.className)}
+                                  title={note.text}
+                                >
+                                  {note.text}
+                                </div>
+                              ) : null}
+                              <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 @3xl:hidden">
+                                <span className="@2xl:hidden">{badge(delivery.status)}</span>
+                                <span>{date}</span>
+                              </div>
+                            </td>
+                            <td className="hidden px-2.5 py-3 @2xl:table-cell">
+                              {badge(delivery.status)}
+                            </td>
+                            <td className="px-1 py-2 text-center align-top @2xl:align-middle">
+                              {finished || retryable ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-muted-foreground"
+                                      aria-label={t("rowActions", { name })}
+                                      disabled={busy}
+                                    >
+                                      <EllipsisVertical />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {retryable ? (
+                                      <DropdownMenuItem
+                                        onSelect={() => void retryOne(delivery._id)}
+                                      >
+                                        <RotateCcw />
+                                        {t("retryNow")}
+                                      </DropdownMenuItem>
+                                    ) : null}
+                                    {finished ? (
+                                      <DropdownMenuItem
+                                        variant="destructive"
+                                        onSelect={() => setDeleteIds([delivery._id])}
+                                      >
+                                        <Trash2 />
+                                        {t("delete")}
+                                      </DropdownMenuItem>
+                                    ) : null}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-      <div className="min-w-0 overflow-hidden rounded-md border">
-        <table className="w-full table-fixed text-sm">
-          <colgroup><col className="w-[7%]" /><col className="hidden w-[20%] xl:table-column" /><col className="w-[27%]" /><col className="w-[35%]" /><col className="w-[17%]" /><col className="hidden w-[9%] lg:table-column" /><col className="w-[14%]" /></colgroup>
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="p-2 text-center"><Checkbox checked={allTerminalSelected} onCheckedChange={(value) => toggleAll(value === true)} aria-label={tLogs("selectPage")} /></th>
-              <th className="hidden p-2 font-medium xl:table-cell">{tLogs("columns.created")}</th><th className="p-2 font-medium">{tLogs("columns.recipient")}</th><th className="p-2 font-medium">{kindText("summaryLabel")}</th><th className="p-2 font-medium">{tLogs("columns.status")}</th><th className="hidden p-2 text-center font-medium lg:table-cell">{tLogs("columns.tries")}</th><th className="p-2 text-center font-medium">{tLogs("columns.action")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && deliveries.length === 0 && <tr><td className="p-5 text-center text-muted-foreground" colSpan={7}>{tLogs("empty")}</td></tr>}
-            {deliveries.map((delivery) => (
-              <tr key={delivery._id} className="border-t align-middle">
-                <td className="p-2 text-center"><Checkbox checked={selected.has(delivery._id)} disabled={!isTerminal(delivery.status)} onCheckedChange={(value) => toggleOne(delivery._id, value === true)} aria-label={tLogs("selectRow", { name: delivery.subject ?? delivery.to })} /></td>
-                <td className="hidden p-2 text-xs xl:table-cell">{new Date(delivery.createdAt).toLocaleString(locale)}</td>
-                <td className="min-w-0 p-2"><div className="truncate" title={delivery.to}>{delivery.to}</div></td>
-                <td className="min-w-0 p-2"><div className="truncate" title={delivery.subject ?? delivery.body}>{delivery.subject ?? delivery.body}</div>{delivery.segments && delivery.segments > 1 ? <div className="text-xs text-muted-foreground">{tLogs("segments", { count: delivery.segments })}</div> : null}<div className="truncate text-xs text-muted-foreground xl:hidden">{new Date(delivery.createdAt).toLocaleString(locale)}</div>{delivery.lastError && <div className="line-clamp-2 text-xs text-destructive" title={delivery.lastError}>{delivery.lastError}</div>}</td>
-                <td className="p-2"><span className={`inline-block max-w-full truncate rounded-full px-2 py-1 text-xs font-medium ${statusClass(delivery.status)}`}>{statusLabel(delivery.status)}</span></td>
-                <td className="hidden p-2 text-center lg:table-cell">{delivery.attempts}/{delivery.maxAttempts}</td>
-                <td className="p-2 text-center">{isRetryable(delivery.status) && <Button type="button" variant="ghost" size="icon" title={tLogs("retryNow")} aria-label={tLogs("retryNow")} onClick={() => void retry(delivery._id)} disabled={retryingId === delivery._id || busy}><RotateCcw className={`h-4 w-4 ${retryingId === delivery._id ? "animate-spin" : ""}`} /></Button>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <DataTablePagination
-        pagination={pagination}
-        pageSizeOptions={[5, 10, 25, 50]}
-        onPageChange={setPage}
-        onPageSizeChange={(pageSize) => { setLimit(pageSize); setPage(1); }}
-      />
+              <DataTablePagination
+                pagination={pagination}
+                pageSizeOptions={[10, 25, 50]}
+                onPageChange={setPage}
+                onPageSizeChange={(pageSize) => {
+                  setLimit(pageSize);
+                  setPage(1);
+                }}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+      </CardContent>
 
       <ConfirmDialog
-        open={deleteIntent !== null}
-        onOpenChange={(open) => { if (!open && !busy) setDeleteIntent(null); }}
-        onConfirm={() => void confirmDeletion()}
+        open={deleteIds !== null}
+        onOpenChange={(open) => {
+          if (!open && !busy) setDeleteIds(null);
+        }}
+        onConfirm={async () => {
+          if (deleteIds) await bulkRequest("DELETE", { ids: deleteIds });
+          setDeleteIds(null);
+        }}
         type="danger"
-        title={deleteIntent === "sent" ? kindText("clearTitle") : kindText("deleteTitle")}
-        description={
-          deleteIntent === "sent"
-            ? kindText("clearDescription", { count: stats.sent })
-            : kindText("deleteDescription", { count: selectedIds.length })
-        }
-        confirmText={deleteIntent === "sent" ? tLogs("clearSent") : tLogs("deleteLogs")}
-        cancelText={t("common.cancel")}
+        title={kindText("deleteTitle", { count: deleteIds?.length ?? 0 })}
+        description={kindText("deleteDescription", { count: deleteIds?.length ?? 0 })}
+        confirmText={t("delete")}
+        cancelText={tCommon("cancel")}
         confirmVariant="destructive"
         loading={busy}
       />
-    </div>
+      <ConfirmDialog
+        open={confirmClear}
+        onOpenChange={(open) => {
+          if (!open && !busy) setConfirmClear(false);
+        }}
+        onConfirm={async () => {
+          await bulkRequest("DELETE", { scope: "sent" });
+          setConfirmClear(false);
+        }}
+        type="danger"
+        title={kindText("clearTitle")}
+        description={kindText("clearDescription", { count: data?.clearable ?? 0 })}
+        confirmText={kindText("clearConfirm")}
+        cancelText={tCommon("cancel")}
+        confirmVariant="destructive"
+        loading={busy}
+      />
+    </Card>
   );
 }

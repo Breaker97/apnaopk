@@ -25,11 +25,8 @@ import {
   OFFLINE_BALANCE_REFERENCE_PREFIX,
   isStripeBalanceReference,
 } from "@/lib/payments/preorder-balance-reference";
-import {
-  PREORDER_ITEM_STATUS,
-  PURCHASE_TYPE,
-  consumePreorderStockOnReady,
-} from "@/lib/orders/preorders";
+import { isActiveCollection } from "@/lib/orders/preorder-scope";
+import { assertBalanceRequestCurrent } from "@/lib/payments/preorder-balance-request";
 
 /**
  * Collecting the balance on a deposit-mode pre-order.
@@ -89,8 +86,23 @@ type BalanceOrder = {
   preorderBalancePaidAt?: Date;
   /** The Customer a card was saved against at checkout — see the order model. */
   stripeCustomerId?: string;
+  preorderReadinessRevision?: number;
+  preorderCollection?: {
+    cycleId?: string;
+    state?: string;
+    scopeSubOrderIds?: unknown[];
+    amount?: number;
+    currency?: string;
+    readinessRevision?: number;
+  } | null;
+  subOrders?: Array<{
+    _id?: unknown;
+    status?: string;
+    items?: Array<{ purchaseType?: string; quantity?: number; preorderOutstandingAmount?: number | null }> | null;
+  }> | null;
   items?: Array<{ purchaseType?: string }>;
 };
+
 
 function orderCurrency(order: BalanceOrder, settings: SettingsDocument) {
   return String(order.currency || settings.general?.defaultCurrency || "USD")
@@ -268,6 +280,7 @@ export async function createPreorderBalanceIntent(params: {
   // The order's own currency — the balance is owed in whatever the order was
   // placed in, whatever the store prices in now.
   assertPaymentMethodSettles("card", currency);
+  assertBalanceRequestCurrent(order, balanceDue, currency);
 
   // A second click (or a reload mid-payment) must not mint a second intent:
   // two open intents for the same balance is two chances to charge it.
@@ -377,6 +390,9 @@ export async function createPreorderBalanceIntent(params: {
         orderNumber: order.orderNumber,
         userId: String(order.customerId || params.customerId || ""),
         locale: params.locale || "en",
+        ...(order.preorderCollection?.cycleId && isActiveCollection(order.preorderCollection)
+          ? { preorderCycle: order.preorderCollection.cycleId }
+          : {}),
       },
     },
     {
@@ -395,7 +411,12 @@ export async function createPreorderBalanceIntent(params: {
         staleIntentId
           ? `preorder-balance:${String(order._id)}:${amount}:${currency}:after:${staleIntentId}`
           : `preorder-balance:${String(order._id)}:${amount}:${currency}`
-      }${stripeCustomerId ? ":c" : ""}`,
+      }${stripeCustomerId ? ":c" : ""}${
+        // The request it pays for is part of the parameters, so part of the key.
+        order.preorderCollection?.cycleId && isActiveCollection(order.preorderCollection)
+          ? `:cy${order.preorderCollection.cycleId}`
+          : ""
+      }`,
     },
   );
   if (!paymentIntent.client_secret) {
@@ -834,91 +855,16 @@ export async function runPreorderBalanceSettledEffects(params: {
     console.error("Failed to refresh customer stats:", err),
   );
 
-  // The balance was requested because the goods are in: release them. Mirrors
-  // the admin "ready" action, including the stock claim — a pre-order sitting
-  // on payment_due has not consumed its received units yet. If the stock is
-  // not recorded the order stays on payment_due (paid), and the admin's own
-  // "Ready" now goes through because the balance reads as settled.
-  if (claimed.preorderStatus === PREORDER_ITEM_STATUS.PAYMENT_DUE) {
-    await releaseSettledPreorder(claimed, settings).catch((err) =>
-      console.error("Failed to release paid pre-order for fulfilment:", err),
-    );
-  }
-}
-
-async function releaseSettledPreorder(
-  order: BalanceOrder,
-  settings: SettingsDocument,
-) {
-  const outcome = await consumePreorderStockOnReady(String(order._id));
-  if (!outcome.consumed && !outcome.alreadyConsumed) {
-    console.error(
-      `Pre-order ${order.orderNumber} balance paid but stock not released: ${outcome.error}`,
-    );
-    return;
-  }
-  const updated = await Order.findOneAndUpdate(
-    {
-      _id: order._id,
-      status: { $ne: ORDER_STATUS.CANCELLED },
-      preorderStatus: PREORDER_ITEM_STATUS.PAYMENT_DUE,
-    },
-    {
-      $set: {
-        status: ORDER_STATUS.PROCESSING,
-        preorderStatus: PREORDER_ITEM_STATUS.READY,
-        processingAt: new Date(),
-        "items.$[item].preorderStatus": PREORDER_ITEM_STATUS.READY,
-        "subOrders.$[sub].status": ORDER_STATUS.PROCESSING,
-        "subOrders.$[sub].items.$[subItem].preorderStatus":
-          PREORDER_ITEM_STATUS.READY,
-      },
-    },
-    {
-      returnDocument: "after",
-      arrayFilters: [
-        { "item.purchaseType": PURCHASE_TYPE.PREORDER },
-        // ONLY the consignments still waiting on the pre-order. An order can
-        // mix a pre-order from one seller with stock lines from another that
-        // have already shipped, and a blanket write pulled those back to
-        // `processing` — telling the shopper goods they are holding are being
-        // packed.
-        { "sub.status": ORDER_STATUS.PREORDERED },
-        { "subItem.purchaseType": PURCHASE_TYPE.PREORDER },
-      ],
-    },
-  ).lean();
-  if (!updated) return;
-
-  // Paid in full and released, so it is shippable — queue a label rather than
-  // leaving it to the next sweep. Eligibility is judged per consignment inside,
-  // and a store with carrier automation switched off is a no-op.
-  const { queueAutoShipForOrder } = await import(
-    "@/lib/shipping/carriers/shipment-worker"
-  );
-  await queueAutoShipForOrder(String(order._id)).catch((err) =>
-    console.error("Failed to queue auto-ship for a released pre-order:", err),
-  );
-
-  // A guest order's `customerId` is its cart, not a user, so the update goes
-  // to the address on the order instead of being filed against nobody.
-  if (!order.customerId && !order.guestEmail) return;
-  const { notifyPreorderCustomerUpdate } = await import("@/lib/notifications/notifications");
-  await notifyPreorderCustomerUpdate(
-    String(order.customerId || ""),
-    order.orderNumber,
-    "ready",
-    String(order._id),
-    {
-      releaseDate: order.preorderReleaseDate,
-      guestEmail: order.guestEmail,
-      settings,
-    },
-  ).catch((err) =>
-    console.error("Failed to notify customer of released pre-order:", err),
+  // The money is in. What it was asked for decides what happens next: a
+  // prepared request (every consignment ready, its stock allocated) is
+  // released through the shared release service, durably — a release that
+  // cannot finish yet is recovered later, never dropped. A balance paid before
+  // anything was ready releases nothing: the goods wait for their sellers.
+  const { onPreorderBalanceSettled } = await import("@/lib/orders/preorder-collection");
+  await onPreorderBalanceSettled({ orderId: String(claimed._id) }).catch((err) =>
+    console.error("Failed to release paid pre-order for fulfilment:", err),
   );
 }
-
 
 /**
  * Record a pre-order balance that arrived outside any gateway.

@@ -6,10 +6,8 @@ import { ProductListQuerySchema } from "@/lib/validations";
 import { Product } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { resolveProductFeatures } from "@/lib/products/product-features";
-import {
-  getOrCreateDefaultVendor,
-  syncDefaultVendorWithSettings,
-} from "@/lib/vendors/multi-vendor";
+import { ensureDefaultVendorId } from "@/lib/vendors/multi-vendor";
+import { storeProfileUnavailable } from "@/lib/inventory/inventory-location-scope";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { USER_ROLES } from "@/config/app.config";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
@@ -25,6 +23,8 @@ import {
 } from "@/lib/products/import-export";
 import { MAX_IMPORT_FILE_BYTES } from "@/lib/products/import-limits";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogExport } from "@/lib/catalog/catalog-audit";
 
 function buildAdminProductQuery(params: {
   search?: string;
@@ -119,10 +119,17 @@ export const GET = withApi(
       .limit(5000)
       .lean();
 
-    return productsCsvResponse(
+    const response = productsCsvResponse(
       products as unknown as Parameters<typeof productsCsvResponse>[0],
       "products",
     );
+    // Recorded once the file is built: the row is the only trace that a copy of
+    // the catalog was taken, and it says how much and what narrowed it.
+    await auditCatalogExport(createAuditContext(request, session), "product", {
+      rowCount: products.length,
+      filters: { search, status, vendor, source, tag },
+    });
+    return response;
   },
 );
 
@@ -160,11 +167,6 @@ export const POST = withApi(
     }
 
     const settings = await getSettings();
-    await syncDefaultVendorWithSettings(
-      session.user.role === USER_ROLES.ADMIN ? session.user.id : undefined,
-      settings,
-    );
-    const defaultVendorId = String((await getOrCreateDefaultVendor(session.user.id))._id);
 
     // The import is one request but many writes, so it is judged per row the
     // way the product routes judge each write: creating needs the create
@@ -180,8 +182,19 @@ export const POST = withApi(
     const scoped = !isAdmin && hasStaffScope(access.staffScope);
     const scopeVendorIds = scoped ? (access.staffScope?.vendorIds ?? []) : [];
 
+    // Rows without a seller land in the house store, made here if it is
+    // missing. Staff scoped to sellers import into the first of them.
+    let defaultVendorId = scopeVendorIds[0];
+    if (!defaultVendorId) {
+      const house = await ensureDefaultVendorId({
+        preferredOwnerId: session.user.id,
+      });
+      if (!house.vendorId) throw storeProfileUnavailable(house.problem);
+      defaultVendorId = house.vendorId;
+    }
+
     const result = await importProductsFile(file.name, await file.text(), {
-      defaultVendorId: scopeVendorIds[0] ?? defaultVendorId,
+      defaultVendorId,
       productSource: "admin",
       allowedVendorIds: scopeVendorIds.length > 0 ? scopeVendorIds : undefined,
       productScopeFilter: buildStaffProductScopeFilter(access.staffScope),

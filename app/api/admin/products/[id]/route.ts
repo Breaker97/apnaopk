@@ -9,13 +9,9 @@ import {
 import { carryPreorderCounters } from "@/lib/products/preorder-counters";
 import { validatePartialBody, isValidObjectId } from "@/lib/api/validate";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
-import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
-import { syncProductCollections, removeProductFromAllCollections, updateAllCollectionProductCounts } from "@/lib/catalog/collections";
-import {
-  assertCategoryAcceptsProducts,
-  syncProductCategory,
-} from "@/lib/catalog/categories";
-import { syncProductAggregates } from "@/models/product.model";
+import { auditDelete, createAuditContext } from "@/lib/audit";
+import { removeProductFromAllCollections } from "@/lib/catalog/collections";
+import { syncProductCategory } from "@/lib/catalog/categories";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import {
   buildStaffProductScopeFilter,
@@ -44,8 +40,8 @@ import {
   buildBarcodeValidationPayload,
 } from "@/lib/products/barcode-validation";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
-import { notifyPreorderWaitlistsForProduct } from "@/lib/orders/preorder-waitlist";
-import { propagateProductReleaseDate } from "@/lib/orders/preorder-release-date-sync";
+import { markProductsForCatalogSync } from "@/lib/meta-catalog/sync-marks";
+import { runPreorderDateSyncJobs } from "@/lib/orders/preorder-terms-sync";
 import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
 import {
@@ -54,23 +50,20 @@ import {
   syncProductBarcodeRegistry,
 } from "@/lib/products/barcode-registry";
 import { cleanupDeletedProductReferences } from "@/lib/products/product-cleanup";
-import { releaseBoostInventoryIfProductWentDark } from "@/lib/boosts/boosts";
+import {
+  runProductAfterSave,
+  type ProductSaveSide,
+} from "@/lib/products/product-after-save";
 import {
   deleteProductDigitalFiles,
-  deleteRemovedProductDigitalFiles,
 } from "@/lib/products/digital-assets";
 import {
   allowedLocationIds,
+  productStockScope,
   resolveLocationScope,
 } from "@/lib/inventory/inventory-location-scope";
-
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { slugify } from "@/lib/strings";
+import { uniqueProductSlug } from "@/lib/products/product-slug";
 
 /**
  * GET /api/admin/products/[id]
@@ -164,15 +157,6 @@ export const PUT = withApi<{ id: string }>(
       });
     }
 
-    const oldCollectionIds = (existing.collectionIds || []).map(String);
-    const oldCategoryId = existing.category ? String(existing.category) : null;
-
-    // Only a MOVE has to satisfy the leaf rule: a product already filed on a
-    // category that has since grown children stays editable.
-    if (typeof body.category === "string" && body.category !== oldCategoryId) {
-      await assertCategoryAcceptsProducts(body.category);
-    }
-
     const updateSet: Record<string, unknown> = { ...(body as unknown as Record<string, unknown>) };
 
     // Apply the same sanitization the create route does so update writes
@@ -181,12 +165,19 @@ export const PUT = withApi<{ id: string }>(
     // - coerces variant.optionValues entries to objects (string → object)
     // - drops empty-string fields that should be unset
     // - normalizes locationInventory shape
-    // Stock may only be recorded at a location this store owns; the field is a
+    // Stock may only be recorded at the product owner's locations (and a
+    // staff member's assigned ones) — the owner's, not the editor's: an admin
+    // editing a vendor's product writes the vendor's shelves. The field is a
     // bare id, so nothing else stops a payload naming someone else's warehouse.
     const ownLocationIds =
       "variants" in updateSet || "locationInventory" in updateSet
         ? await allowedLocationIds(
-            await resolveLocationScope(session.user, "write"),
+            existing.vendorId
+              ? productStockScope(
+                  String(existing.vendorId),
+                  access.staffScope?.locationIds,
+                )
+              : await resolveLocationScope(session.user, "write"),
           )
         : undefined;
     if ("variants" in updateSet) {
@@ -287,25 +278,21 @@ export const PUT = withApi<{ id: string }>(
         : undefined;
 
     if (rawHandle) {
-      const nextSlug = toHandle(rawHandle);
+      const nextSlug = slugify(rawHandle);
       if (nextSlug && nextSlug !== existing.slug) {
         // Global slug uniqueness — storefront resolves by slug alone.
-        const conflict = await Product.exists({
-          slug: nextSlug,
-          _id: { $ne: id },
-        });
-        if (conflict) {
-          updateSet.slug = `${nextSlug}-${Date.now()}`;
-        } else {
-          updateSet.slug = nextSlug;
-        }
+        updateSet.slug = await uniqueProductSlug(nextSlug, id);
       }
 
-      updateSet.handle = updateSet.slug || toHandle(rawHandle);
+      // A handle with no Latin letters slugifies to nothing: the product keeps
+      // the URL it has instead of storing an empty handle.
+      updateSet.handle = updateSet.slug || nextSlug || existing.slug;
       updateSet.seo = { ...(body.seo || {}), handle: updateSet.handle };
     }
 
     let product;
+    // Whether the save that went through moved a release date.
+    let datesMoved = false;
     try {
       await reserveProductBarcodeRegistry(id, nextBarcodePayload);
       // The stock this form loaded is merged with stock that moved while it
@@ -327,6 +314,7 @@ export const PUT = withApi<{ id: string }>(
           updateSet,
           submitted: submittedStock,
           baseline: stockBaseline,
+          writableLocationIds: ownLocationIds,
         });
         // Reservation counters come from the database, never the form — see
         // `carryPreorderCounters`. Pinned to the earlier of the two reads, so
@@ -336,10 +324,14 @@ export const PUT = withApi<{ id: string }>(
           updateSet,
         });
         const pin = stockPin ?? counterPin;
+        datesMoved = Boolean(counterPin?.termsUpdate);
         product = await Product.findOneAndUpdate(
           { ...productFilter, ...(pin ? { updatedAt: pin.updatedAt } : {}) },
           {
-            $set: updateSet,
+            // A moved release date bumps the terms revision and records the
+            // propagation job in this same write — see `carryPreorderCounters`.
+            $set: { ...updateSet, ...(counterPin?.termsUpdate?.$set || {}) },
+            ...(counterPin?.termsUpdate ? { $inc: counterPin.termsUpdate.$inc } : {}),
             ...(Object.keys(clearedFields).length > 0
               ? { $unset: clearedFields }
               : {}),
@@ -376,78 +368,26 @@ export const PUT = withApi<{ id: string }>(
       product as unknown as Record<string, unknown>,
     );
 
-    // Recompute the derived fields $set can't maintain (price/compare-at
-    // ranges, variant stock roll-up, stock policy). Unconditional: a
-    // single-variant product has ranges too, and they drive the price the
-    // storefront prints.
-    await syncProductAggregates(id);
-
-    // Remove the private files this update detached. Best-effort: an orphaned
-    // object must never fail the merchant's save.
-    await deleteRemovedProductDigitalFiles(
-      existing.digitalAssets,
-      product.digitalAssets,
-    );
-
-    // Sync collection memberships
-    const newCollectionIds = (product.collectionIds || []).map(String);
-    await syncProductCollections(id, oldCollectionIds, newCollectionIds);
-
-    // Sync category product counts
-    // Note: product.category is populated, so we need to get the _id from the object
-    const populatedCategory = product.category as { _id?: unknown } | string | null;
-    const newCategoryId = populatedCategory
-      ? typeof populatedCategory === "object" && populatedCategory._id
-        ? String(populatedCategory._id)
-        : String(populatedCategory)
-      : null;
-    await syncProductCategory(oldCategoryId, newCategoryId);
-
-    // Recount automated collections when product status changes (affects which products match)
-    const oldStatus = (existing as Record<string, unknown>).status;
-    if (updateSet.status && updateSet.status !== oldStatus) {
-      updateAllCollectionProductCounts().catch((err) =>
-        console.error("Failed to update collection counts:", err)
+    // Aggregates, files, collections, category counts, boosted days, the
+    // Activity Log, the storefront cache and the pre-order waitlists.
+    const { boostReleases } = await runProductAfterSave({
+      productId: id,
+      before: existing as unknown as ProductSaveSide,
+      after: product as unknown as ProductSaveSide,
+      savedStatus: updateSet.status,
+      audit: createAuditContext(request, session),
+      defer: afterResponse,
+    });
+    // A moved date reaches the orders waiting on the old one through the
+    // durable job this save recorded; this only wakes the worker sooner. If
+    // it never runs, the scheduled job does the same work.
+    if (datesMoved) {
+      afterResponse(() =>
+        runPreorderDateSyncJobs({ budgetMs: 20_000, maxJobs: 1 }).catch((err) =>
+          console.error("Failed to start a pre-order date propagation:", err),
+        ),
       );
     }
-
-    // A booked position whose product just went dark burns a GLOBAL rung
-    // nobody else can buy for the rest of the booking, so the future days go
-    // back on the calendar now rather than at expiry. Awaited: the response
-    // carries what was released, and the caller has just been warned about it.
-    const boostReleases = await releaseBoostInventoryIfProductWentDark(
-      id,
-      existing as unknown as { status?: string; publishing?: { onlineStore?: boolean } | null },
-      product as unknown as { status?: string; publishing?: { onlineStore?: boolean } | null },
-    );
-
-    const auditContext = createAuditContext(request, session);
-    await auditUpdate(
-      auditContext,
-      "product",
-      id,
-      existing as unknown as Record<string, unknown>,
-      product as unknown as Record<string, unknown>,
-    );
-
-    revalidateProductContent({
-      slugs: [existing.slug, product.slug],
-    });
-
-    // A raised pre-order limit frees places without any reservation being
-    // released, so nothing else would tell the shoppers waiting for them.
-    // After the response and best-effort: the daily sweep catches a miss.
-    afterResponse(() => notifyPreorderWaitlistsForProduct(String(id)));
-    // A pushed-back date reaches the orders already waiting on the old one.
-    afterResponse(() =>
-      propagateProductReleaseDate({
-        productId: String(id),
-        before: existing as never,
-        after: product as never,
-      }).catch((err) =>
-        console.error("Failed to move pre-orders to the new release date:", err),
-      ),
-    );
 
     return successResponse({
       ...(product as unknown as Record<string, unknown>),
@@ -520,6 +460,8 @@ export const DELETE = withApi<{ id: string }>(
     );
 
     revalidateProductContent({ slugs: [before?.slug, product.slug] });
+    // Its items leave Meta on the live sync's next round.
+    await markProductsForCatalogSync([id]);
 
     return successResponse({ message: "Product deleted successfully" });
   },

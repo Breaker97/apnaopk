@@ -4,7 +4,8 @@ import { resolveOAuthCredentials } from "@/lib/settings/credentials";
 type SocialProviderConfig = {
   clientId: string;
   clientSecret: string;
-  disableIdTokenSignIn: true;
+  /** Set: the provider signs in through the redirect flow only. */
+  disableIdTokenSignIn?: true;
 };
 
 /** The slice of the security settings that decides which providers are on. */
@@ -25,15 +26,24 @@ type SocialProviderSettings = {
  * provider is active — .env only supplies credentials, it never auto-enables
  * the provider (otherwise the admin could not disable it).
  *
- * Every provider signs in through the redirect flow and nothing else. Better
- * Auth also accepts a provider ID token posted straight to `/sign-in/social`,
- * and that door skips both checks the redirect flow goes through: the
- * customer-only rule in the session hook recognises the OAuth callback path
- * alone (`isOAuthCallbackPath`), and the two-factor challenge only runs on
- * credential sign-ins. An admin or vendor whose Google or Facebook account —
- * same email — fell into someone else's hands would be let in without their
- * second factor. The storefront never uses ID tokens. A native app that needs
- * them must first get the session hook to guard `/sign-in/social` too.
+ * The storefront signs in through the redirect flow. Google also accepts an ID
+ * token posted to `/sign-in/social`: the shopper app's native "Continue with
+ * Google", where the phone's Google SDK signs the shopper in and hands the app
+ * a token (the app gets the client ID from `GET /config`, `auth.google`).
+ * Better Auth checks the token's signature against Google's keys, its issuer,
+ * its age, and that its audience is `clientId`: the store's own web client.
+ * The phone SDKs are given that same client ID (`webClientId` on Android,
+ * `serverClientID` on iOS), so the token they issue names it as its audience;
+ * a token Google issued to any other app is refused. The Android and iOS
+ * OAuth clients only identify the app to Google and are never an audience.
+ *
+ * That door is guarded like the redirect flow: the session hook's
+ * customer-only rule covers `/sign-in/social` too (`isOAuthCallbackPath`), so
+ * an ID token opens a shopper's session and nothing else. An admin, vendor or
+ * staff account is refused there, which is what keeps it from skipping its
+ * second factor (the two-factor challenge only runs on credential sign-ins).
+ * Facebook keeps the redirect flow only: the app has no Facebook sign-in, and
+ * an unused door stays shut.
  */
 export function buildSocialProviders(
   settings: SocialProviderSettings,
@@ -49,7 +59,6 @@ export function buildSocialProviders(
     providers.google = {
       clientId: oauth.google.clientId,
       clientSecret: oauth.google.clientSecret,
-      disableIdTokenSignIn: true,
     };
   }
 

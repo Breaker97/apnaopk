@@ -15,6 +15,7 @@ import type { createTSafe } from "@/components/admin/online-store/t-safe";
 import { apiClient, ApiClientError } from "@/lib/api/client";
 import type { SectionInstance } from "@/lib/storefront/sections/types";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useStoreBuilderScope } from "./builder-scope";
 
 interface HistoryEntry {
   index: number;
@@ -46,6 +47,7 @@ export function HistoryDialog({
   tSafe: ReturnType<typeof createTSafe>;
   onRestore: (sections: SectionInstance[]) => void;
 }) {
+  const { pageEndpoint } = useStoreBuilderScope();
   const [data, setData] = useState<HistoryResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -57,7 +59,7 @@ export function HistoryDialog({
     if (!open) return;
     let cancelled = false;
     apiClient
-      .get<HistoryResponse>(`/api/admin/store-pages/${handle}/history`)
+      .get<HistoryResponse>(`${pageEndpoint(handle)}/history`)
       .then((response) => {
         if (!cancelled) setData(response);
       })

@@ -172,10 +172,10 @@ export const MIGRATIONS = [
     envFiles: ENV_STRICT,
     since: "1.4",
     need: "required",
-    when: "web push",
+    when: "push notifications",
     auto: true,
     summary:
-      "Replace the plain unique index on pushsubscriptions.endpoint with its partial equivalent.",
+      "Replace the plain unique index on pushsubscriptions.endpoint with its partial equivalent; mark existing app installs as the shopper app's and give push tickets their one-day TTL (re-run for the mobile API).",
   },
   {
     name: "omnichannel",
@@ -616,6 +616,83 @@ export const MIGRATIONS = [
     summary:
       "Create the indexes the schemas gained in 2.4: store credit's two collections (one balance per shopper and currency, one transaction per idempotency key, the spend, history and upkeep reads), an order's credit hold and exchange links, one marketing suppression per address, and a signed-out shopper's AI conversations. Purely additive.",
   },
+  // ---------------------------------------------------------------- 2.4 → 3.0
+  {
+    name: "mobile-api-indexes",
+    script: "migrate-mobile-api-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.0",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Create the indexes the mobile apps' API relies on: one idempotency record per caller and key (kept a day), one order per key, the coupon sheet's listed codes and a shopper's own uploads; and the business app's durable operations (one order, payment leg and return per operation, the product editor's receipts, quotes and uploads). Purely additive.",
+  },
+  {
+    name: "activity-log",
+    script: "migrate-activity-log.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.0",
+    need: "conditional",
+    when: "you have vendors, or MONGODB_AUTO_INDEX=false",
+    auto: true,
+    options: ["--indexes-only"],
+    optionNotes: {
+      "--indexes-only":
+        "Create the two audit_logs indexes and skip the backfill.",
+    },
+    summary:
+      "Index the Activity Log, and stamp the audit rows already written by vendor owners and their staff with their store, so a vendor's own log is not empty for everything before the upgrade. Safe to re-run; rows an admin wrote are left unstamped.",
+  },
+  {
+    name: "meta-catalog-indexes",
+    script: "migrate-meta-catalog-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.0",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Create the indexes Settings → Meta catalog relies on: its one row, the live sync's one row per product (unique, so two marks of a product meet on the same row), its due-row claim and refused-items list, and the batch handles Meta is still ingesting (expired automatically). Purely additive.",
+  },
+  {
+    name: "abandoned-checkout-vendors",
+    script: "migrate-abandoned-checkout-vendors.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.0",
+    need: "required",
+    when: "multi-vendor",
+    auto: true,
+    summary:
+      "Write each line's seller onto the abandoned checkouts saved before the upgrade, so vendors see their own lines in Orders → Abandoned checkouts, and add the index that list reads. Safe to re-run; the store's own list is unchanged.",
+  },
+  {
+    name: "house-profile",
+    script: "migrate-house-profile.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.0",
+    need: "conditional",
+    when: "installed without demo data, or several vendors carry isDefault",
+    // Reports unless told to --apply: the report names vendors only a person
+    // can judge (which store is the house, a seller whose flag must stay).
+    applyArgs: ["--apply"],
+    dryArgs: [],
+    auto: false,
+    autoReason:
+      "Its report names vendors a person must judge — a probable older store profile, a seller still flagged as the store's own — so it is run deliberately, report first.",
+    options: ["--adopt=<vendorId>"],
+    optionNotes: {
+      "--adopt=<vendorId>":
+        "When the store has no profile, make this vendor the store's own (the probable older profile the report names). Nothing else about it changes.",
+    },
+    summary:
+      "Report the store's own vendor profile and repair the unambiguous cases: flag or slug a lone house, clear a stray isDefault from vendors with no orders or ledger history, and create the unique slug/userId indexes. Sellers with history keep their flag so finance posts nothing twice.",
+  },
   {
     name: "product-search",
     script: "backfill-product-search.ts",
@@ -667,12 +744,10 @@ export const MIGRATIONS = [
     need: "required",
     when: "Finance",
     auto: true,
-    options: ["--from=<date>", "--rebuild", "--method=<method>"],
+    options: ["--from=<date>", "--to=<date>"],
     optionNotes: {
-      "--from=<date>": "Post only entries from this date onward.",
-      "--rebuild":
-        "Delete the entries in scope and post them again. NOT part of a normal upgrade — only after a posting rule changes.",
-      "--method=<method>": "Narrow --rebuild to one payment method.",
+      "--from=<date>": "Resume additive posting from this date.",
+      "--to=<date>": "Keep a stable end date when resuming a backfill.",
     },
     summary:
       "Replay order and payout history into the finance ledger. Idempotent; without it reports start at upgrade time.",
@@ -680,7 +755,7 @@ export const MIGRATIONS = [
 ];
 
 /** Release sections, in upgrade order, for grouping `--list` output. */
-export const RELEASES = ["1.4", "1.5", "2.0", "2.1", "2.3", "2.4"];
+export const RELEASES = ["1.4", "1.5", "2.0", "2.1", "2.3", "2.4", "3.0"];
 
 const BY_NAME = new Map(MIGRATIONS.map((m) => [m.name, m]));
 
@@ -714,6 +789,32 @@ export function migrationArgs(
     ? (migration.dryArgs ?? ["--dry-run"])
     : (migration.applyArgs ?? []);
   return [...base, ...extra];
+}
+
+/**
+ * How to start a migration's process on this platform.
+ *
+ * Only Windows needs a shell, and only for what is not an `.exe`: the local
+ * `tsx` is a `.cmd` shim, which Node will not spawn without one (nor a bare
+ * `tsx` found on PATH). Node itself is an `.exe` and is started directly.
+ *
+ * Through a shell, Node joins the command and its arguments with spaces and
+ * quotes nothing. Every migration ran through the shell before, so on a standard
+ * Windows install `C:\Program Files\nodejs\node.exe` reached cmd.exe as
+ * `C:\Program` and every `node` migration failed to start. For the same reason,
+ * a shim path or argument with a space in it is quoted here.
+ *
+ * @param {string} command
+ * @param {string[]} args
+ * @param {string} [platform]
+ * @returns {{ command: string, args: string[], shell: boolean }}
+ */
+export function spawnPlan(command, args, platform = process.platform) {
+  if (platform !== "win32" || /\.exe$/i.test(command)) {
+    return { command, args, shell: false };
+  }
+  const quote = (value) => (/\s/.test(value) ? `"${value}"` : value);
+  return { command: quote(command), args: args.map(quote), shell: true };
 }
 
 /**

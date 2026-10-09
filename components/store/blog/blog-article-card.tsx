@@ -40,7 +40,7 @@ export function BlogArticleCard({
       className={cn(
         // h-full: a row of cards stretches to the tallest, so every footer
         // lands on the same baseline whatever the excerpt length.
-        "flex h-full flex-col overflow-hidden rounded-lg border border-border/80 bg-card transition-all hover:shadow-md sm:min-h-87.5",
+        "flex h-full flex-col overflow-hidden rounded-lg border border-border/40 bg-card transition-all hover:shadow-md sm:min-h-87.5",
         className,
       )}
     >

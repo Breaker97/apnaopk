@@ -18,13 +18,15 @@ import type { ListResult } from "@/lib/api/list-query";
  * own, including ones still in moderation; soft-deleted brands are hidden.
  */
 
-interface VendorBrandRow {
+export interface VendorBrandRow {
   _id: string;
   name: string;
   slug: string;
   description?: string;
   logo?: string;
   website?: string;
+  order?: number;
+  seo?: { pageTitle?: string; metaDescription?: string };
   isActive: boolean;
   featured: boolean;
   productCount: number;
@@ -36,15 +38,15 @@ interface VendorBrandRow {
   updatedAt?: string | Date;
 }
 
-export async function fetchVendorBrandList(
+/**
+ * Every brand the vendor may see for this query's search/status/sort, unpaged.
+ * The list page paginates it; the CSV export takes it whole, so a file never
+ * holds a brand the table would not show.
+ */
+export async function fetchVendorBrandRows(
   searchParams: URLSearchParams,
   vendorRef: mongoose.Types.ObjectId | string,
-): Promise<ListResult<unknown>> {
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-  const limit = Math.min(
-    100,
-    Math.max(1, parseInt(searchParams.get("limit") || "10", 10)),
-  );
+): Promise<VendorBrandRow[]> {
   const search = searchParams.get("search")?.trim() || "";
   const status = searchParams.get("status") || "all";
   const sortBy = searchParams.get("sortBy") || "name";
@@ -87,7 +89,7 @@ export async function fetchVendorBrandList(
 
   const brands = await Brand.find(brandQuery)
     .select(
-      "name slug description logo website isActive featured ownerVendorId approvalStatus rejectionReason createdAt updatedAt",
+      "name slug description logo website order seo isActive featured ownerVendorId approvalStatus rejectionReason createdAt updatedAt",
     )
     .lean();
 
@@ -98,6 +100,8 @@ export async function fetchVendorBrandList(
     description: brand.description,
     logo: brand.logo,
     website: brand.website,
+    order: brand.order,
+    seo: brand.seo,
     isActive: Boolean(brand.isActive),
     featured: Boolean(brand.featured),
     productCount: countByBrand.get(String(brand._id)) || 0,
@@ -133,6 +137,21 @@ export async function fetchVendorBrandList(
     });
     return sortOrder === "asc" ? compare : -compare;
   });
+
+  return rows;
+}
+
+export async function fetchVendorBrandList(
+  searchParams: URLSearchParams,
+  vendorRef: mongoose.Types.ObjectId | string,
+): Promise<ListResult<unknown>> {
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(searchParams.get("limit") || "10", 10)),
+  );
+
+  const rows = await fetchVendorBrandRows(searchParams, vendorRef);
 
   const total = rows.length;
   const totalPages = Math.ceil(total / limit);

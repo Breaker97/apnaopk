@@ -11,6 +11,7 @@ import {
   completeWhatsAppEmbeddedSignup,
 } from "@/lib/conversations/providers/meta-client";
 import { connectMetaChannel } from "@/lib/conversations/providers/connections";
+import { channelAuditContext } from "@/lib/conversations/providers/connection-audit";
 import { requireConversationViewer } from "@/lib/conversations/service";
 import {
   assertVendorChannelPermission,
@@ -114,6 +115,7 @@ export const POST = withApi(
     if (!verifyMetaOnboardingState(body.state, session.user.id)) {
       throw new ValidationError("Embedded Signup session is invalid or expired");
     }
+    const auditContext = channelAuditContext(request, session, viewer);
     if (body.provider === "instagram") {
       const signup = await completeInstagramEmbeddedSignup({
         code: body.code,
@@ -129,6 +131,7 @@ export const POST = withApi(
           "pages_manage_metadata",
           "pages_messaging",
         ],
+        auditContext,
       });
       if (viewer.kind === "admin") revalidateProductContent();
       return successResponse({ connection }, "Instagram connected");
@@ -142,6 +145,7 @@ export const POST = withApi(
         "whatsapp_business_management",
         "whatsapp_business_messaging",
       ],
+      auditContext,
     });
     if (viewer.kind === "admin") revalidateProductContent();
     return successResponse(

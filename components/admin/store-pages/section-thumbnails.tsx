@@ -793,6 +793,29 @@ const SCENES: Record<string, () => React.ReactNode> = {
     </div>
   ),
 };
+// Vendor landing pages only: a store's review cards, and its own slider
+// (drawn like the hero slideshow it plays the part of).
+SCENES["review-highlights"] = () => (
+  <div className="grid h-full grid-cols-3 gap-1.5">
+    {[0, 1, 2].map((index) => (
+      <span
+        key={index}
+        className="flex flex-col gap-1 rounded-[4px] bg-foreground/8 p-1.5"
+      >
+        <span className="flex gap-0.5">
+          {[0, 1, 2, 3, 4].map((star) => (
+            <span key={star} className="h-1.5 w-1.5 rounded-full bg-amber-400/80" />
+          ))}
+        </span>
+        <Line w="w-full" />
+        <Line w="w-4/5" />
+        <Line w="w-1/2" strong />
+      </span>
+    ))}
+  </div>
+);
+SCENES["store-slider"] = SCENES.slideshow;
+
 for (const type of [
   "service-benefits",
   "testimonials",

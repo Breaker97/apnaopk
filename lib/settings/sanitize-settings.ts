@@ -11,6 +11,7 @@ import { getCredentialEnvSources, maskSecretHint } from "@/lib/settings/credenti
 import { DEMO_MODE_MESSAGE, isDemoModeEnabled } from "@/lib/demo-mode";
 import { resolveAuthBaseUrl } from "@/lib/auth/oauth-callback";
 import { resolveCheckoutGatewayReadiness } from "@/lib/payments/checkout-gateways";
+import { isWebPushConfigured } from "@/lib/notifications/web-push-keys";
 import {
   CREDENTIAL_FIELD_PATHS,
   deleteCredentialPath,
@@ -117,6 +118,9 @@ export function sanitizeSettings(settings: unknown): Record<string, unknown> {
     // a different host than the configured one), so the OAuth settings screen
     // prints the callback URL from this rather than from window.location.
     authBaseUrl: resolveAuthBaseUrl(),
+    // Push is signed with keys from `.env` alone; Settings → Notifications
+    // says when they are missing, since every Push tick then sends nothing.
+    webPush: { configured: isWebPushConfigured() },
   };
   return safe;
 }
@@ -137,10 +141,14 @@ export async function getSanitizedSettings(): Promise<Record<
   try {
     await connectDB();
     const settings = await getSettings();
-    return JSON.parse(JSON.stringify(sanitizeSettings(settings))) as Record<
-      string,
-      unknown
-    >;
+    // Imported here, not at the top: the sanitizer itself stays free of the
+    // vendor module for the many callers that only need the stripping.
+    const { withStoreProfileStatus } = await import(
+      "@/lib/settings/store-profile-status"
+    );
+    return JSON.parse(
+      JSON.stringify(await withStoreProfileStatus(sanitizeSettings(settings))),
+    ) as Record<string, unknown>;
   } catch {
     return null;
   }

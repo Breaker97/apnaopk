@@ -8,7 +8,8 @@ import { ValidationError } from "@/lib/api/errors";
 import { USER_ROLES, type UserRole } from "@/config/app.config";
 import { validateQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema } from "@/lib/validations";
-import { createAuditContext, auditCreate } from "@/lib/audit";
+import { createAuditContext } from "@/lib/audit";
+import { auditStaffCreated } from "@/lib/access/audit-staff";
 import {
   ADMIN_PERMISSIONS,
   ALL_STAFF_PERMISSIONS,
@@ -187,13 +188,24 @@ export const POST = withApi(
       .select("name email image phone status role createdAt")
       .lean();
 
-    const auditContext = createAuditContext(request, session);
-    await auditCreate(
-      auditContext,
-      "user",
-      userId,
-      { name: name?.trim(), email: normalizedEmail, role },
-      normalizedEmail,
+    // The member as stored, not as asked for: the row shows the status and the
+    // permissions the account actually received, and an administrator, who holds
+    // no staff permissions or scope, is recorded without any.
+    await auditStaffCreated(
+      createAuditContext(request, session),
+      { userId, name: user?.name ?? name.trim(), email: normalizedEmail },
+      {
+        account: role === USER_ROLES.ADMIN ? "administrator" : "staff",
+        status: user?.status ?? "active",
+        isActive: staffProfile?.isActive,
+        permissions: staffProfile?.permissions,
+        department:
+          role === USER_ROLES.ADMIN ? department?.trim() : staffProfile?.department,
+        vendorIds: staffProfile?.vendorIds,
+        locationIds: staffProfile?.locationIds,
+        fulfillmentRegions: staffProfile?.fulfillmentRegions,
+        fromCustomer: Boolean(existingUser),
+      },
     );
 
     return createdResponse({

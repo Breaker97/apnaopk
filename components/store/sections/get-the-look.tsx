@@ -4,7 +4,11 @@ import { AppImage } from "@/components/ui/app-image";
 import { ModernProductCard } from "@/components/products/modern-product-card";
 import { AddAllToCartButton } from "@/components/store/sections/add-all-to-cart-button";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
-import { getStorefrontLook } from "@/lib/storefront/storefront-looks";
+import {
+  getStorefrontLook,
+  getVendorStorefrontLook,
+} from "@/lib/storefront/storefront-looks";
+import { vendorFilterHref } from "@/lib/vendors/vendor-store-page";
 import { cn } from "@/lib/utils";
 import {
   CARD_GRID_GAP_TIGHT,
@@ -39,6 +43,7 @@ export async function GetTheLook({
   ctaLabel,
   layout,
   emptyState = null,
+  vendor,
 }: {
   locale: Locale;
   collectionId: string;
@@ -63,15 +68,27 @@ export async function GetTheLook({
     radius: string;
   };
   emptyState?: React.ReactNode;
+  /**
+   * A vendor's landing page: only that store's pieces in the Look (so Add
+   * All to Cart bags its products alone), and the Look opens the store's own
+   * Products tab filtered to it.
+   */
+  vendor?: { id: string; slug: string };
 }) {
-  const look = collectionId ? await getStorefrontLook(collectionId, limit) : null;
+  const look = !collectionId
+    ? null
+    : vendor
+      ? await getVendorStorefrontLook(collectionId, limit, vendor.id)
+      : await getStorefrontLook(collectionId, limit);
   if (!look) return <>{emptyState}</>;
 
   const products = look.products.slice(0, limit);
   const shelfGrid =
     SHELF_GRIDS[layout.cardsPerRow > 0 ? layout.cardsPerRow : products.length] ??
     SHELF_GRIDS[4];
-  const href = `/collections/${look.slug}`;
+  const href = vendor
+    ? vendorFilterHref(locale, vendor.slug, "collection", look.slug)
+    : `/collections/${look.slug}`;
   const vars = {
     "--gl-image": `${layout.imageWidth}%`,
     "--gl-image-h": `${layout.imageHeight}px`,

@@ -112,6 +112,8 @@ const ENV = {
 
   openaiApiKey: ["OPENAI_API_KEY"],
 
+  expoAccessToken: ["EXPO_ACCESS_TOKEN"],
+
   shippoTestToken: ["SHIPPO_TEST_TOKEN"],
   shippoLiveToken: ["SHIPPO_LIVE_TOKEN"],
   shippoMode: ["SHIPPO_MODE"],
@@ -437,15 +439,16 @@ export function resolveSmtpConfig(
 
   if (!dbEnabledSmtp && !envHasCreds) return null;
 
-  const host = pick(email?.smtp?.host, ENV.smtpHost) || "smtp.gmail.com";
+  // Switched off in Settings, the server sends with its own login alone. The
+  // values saved on the page used to win field by field even then, though the
+  // page hides them while off: an old saved password broke the .env login.
+  const smtp = dbEnabledSmtp ? email?.smtp : undefined;
+  const host = pick(smtp?.host, ENV.smtpHost) || "smtp.gmail.com";
   const portStr =
-    pick(
-      email?.smtp?.port ? String(email.smtp.port) : undefined,
-      ENV.smtpPort,
-    ) || "587";
+    pick(smtp?.port ? String(smtp.port) : undefined, ENV.smtpPort) || "587";
   const port = parseInt(portStr, 10) || 587;
-  const user = pick(email?.smtp?.user, ENV.smtpUser);
-  const pass = pick(email?.smtp?.password, ENV.smtpPass);
+  const user = pick(smtp?.user, ENV.smtpUser);
+  const pass = pick(smtp?.password, ENV.smtpPass);
 
   if (!user || !pass) return null;
 
@@ -462,7 +465,9 @@ export function resolveSmtpConfig(
 export function resolveSmtpFromEmail(
   settings?: Pick<ISettings, "email"> | null,
 ): string | undefined {
-  return pick(settings?.email?.fromEmail, ENV.smtpFrom);
+  // Off in Settings: the .env login sends, so the .env sender goes with it.
+  const fromEmail = settings?.email?.enabled ? settings.email.fromEmail : undefined;
+  return pick(fromEmail, ENV.smtpFrom);
 }
 
 // ============================================
@@ -658,6 +663,22 @@ export function resolveOpenAICredentials(
 }
 
 // ============================================
+// Expo push (mobile app)
+// ============================================
+
+/**
+ * The access token for Expo's push service, sent as a bearer token when the
+ * store's Expo account has push security on. Stored on
+ * `settings.mobileApp.shop`; `EXPO_ACCESS_TOKEN` is the env fallback. Absent
+ * when neither is set, and pushes then go out without one.
+ */
+export function resolveExpoAccessToken(
+  shop?: { expoAccessToken?: string } | null,
+): string | undefined {
+  return pick(shop?.expoAccessToken, ENV.expoAccessToken);
+}
+
+// ============================================
 // Env-source detection (for the admin "Set via environment" indicator)
 // ============================================
 
@@ -731,6 +752,9 @@ export interface CredentialEnvSources {
   };
   ai: {
     apiKey: boolean;
+  };
+  mobileApp: {
+    expoAccessToken: boolean;
   };
   shipping: {
     shippo: {
@@ -837,6 +861,9 @@ export function getCredentialEnvSources(): CredentialEnvSources {
     },
     ai: {
       apiKey: envSet(ENV.openaiApiKey),
+    },
+    mobileApp: {
+      expoAccessToken: envSet(ENV.expoAccessToken),
     },
     shipping: {
       shippo: {

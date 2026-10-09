@@ -49,6 +49,8 @@ import {
   GalleryHorizontalEnd,
   LayoutGrid,
   PanelsTopLeft,
+  History,
+  Undo2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -85,6 +87,7 @@ import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
 import { useInboxUnreadCount } from "@/hooks/use-inbox-unread-count";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
 import { adminSettingsSectionFromPath } from "@/components/admin/settings/settings-sections";
 import { AdminSettingsSidebarNav } from "@/components/admin/settings/settings-sidebar-nav";
@@ -134,6 +137,7 @@ const iconMap: Record<string, LucideIcon> = {
   Landmark,
   GalleryHorizontalEnd,
   LayoutGrid,
+  History,
 };
 
 /**
@@ -217,6 +221,11 @@ interface DashboardSidebarProps {
     role: string;
   };
   vendorPermissions?: string[];
+  /**
+   * The vendor area only: the store lets vendors see their abandoned
+   * checkouts (Vendors → Configuration). Absent reads as off.
+   */
+  vendorAbandonedCheckouts?: boolean;
 }
 
 const adminNavGroups: {
@@ -572,6 +581,7 @@ function buildVendorNavGroups(
   permissions: string[] | undefined,
   posEnabled: boolean,
   vendorPlansEnabled: boolean,
+  abandonedCheckoutsEnabled: boolean,
 ): { label: string; items: NavItem[] }[] {
   const perms = new Set(permissions || []);
   const items: NavItem[] = [
@@ -668,6 +678,24 @@ function buildVendorNavGroups(
           href: "/vendor/returns",
           icon: "ArrowLeftRight",
         },
+        // Requests for a price on this vendor's own products, which the
+        // vendor answers unless the store has taken the quote over.
+        {
+          label: "admin.sidebar.quotes",
+          href: "/vendor/quotes",
+          icon: "FileText",
+        },
+        // The checkouts that held this vendor's products, its own lines
+        // only — unless the store has switched the page off for vendors.
+        ...(abandonedCheckoutsEnabled
+          ? [
+              {
+                label: "admin.sidebar.abandonedCheckouts",
+                href: "/vendor/abandoned-checkouts",
+                icon: "ShoppingCart",
+              },
+            ]
+          : []),
       ],
     });
     // Derived entirely from the vendor's own orders (registered and guest
@@ -781,6 +809,18 @@ function buildVendorNavGroups(
     });
   }
 
+  // The Activity log is not behind a permission: this sidebar is only ever the
+  // store owner's (vendor staff work in /staff), and "My activity" is the
+  // owner's own history. The staff tab inside the page is what `view_staff`
+  // gates, on the server. It lives under Team because the team's activity is
+  // what most of it is about — and stays a plain entry when Team is hidden, so
+  // it is never offered inside a group the viewer cannot open.
+  const activityLogItem: NavItem = {
+    label: "admin.sidebar.activityLog",
+    href: "/vendor/activity-log",
+    icon: "History",
+  };
+
   if (
     perms.has("view_staff") ||
     perms.has("manage_staff") ||
@@ -793,6 +833,43 @@ function buildVendorNavGroups(
       label: "admin.sidebar.staff",
       href: "/vendor/staff",
       icon: "UserCog",
+      items: [
+        {
+          label: "admin.sidebar.staffMembers",
+          href: "/vendor/staff",
+          icon: "Users",
+        },
+        activityLogItem,
+      ],
+    });
+  } else {
+    items.push(activityLogItem);
+  }
+
+  // The Vendor CMS, named and shaped like the admin's Online Store: the
+  // vendor's own landing page (the Home tab of their storefront) and the
+  // sliders it places. Gated like the store profile it sits beside.
+  if (
+    perms.has("view_store_settings") ||
+    perms.has("manage_store_settings") ||
+    perms.has("edit_store_settings")
+  ) {
+    items.push({
+      label: "admin.sidebar.onlineStore",
+      href: "/vendor/online-store",
+      icon: "Store",
+      items: [
+        {
+          label: "admin.sidebar.customize",
+          href: "/vendor/online-store/customize",
+          icon: "PanelsTopLeft",
+        },
+        {
+          label: "admin.sidebar.sliders",
+          href: "/vendor/online-store/sliders",
+          icon: "GalleryHorizontalEnd",
+        },
+      ],
     });
   }
 
@@ -998,12 +1075,120 @@ function CollapsedHoverSubmenu({
   );
 }
 
+// The one action pinned to the sidebar's foot. It is drawn as a filled button,
+// so it never reads as the list's last row, and its padding (px-5 = the
+// content's px-3 + the group's px-2) lines its icon up with the menu icons
+// above it.
+function SidebarFooterAction({
+  Icon,
+  href,
+  label,
+  isActive,
+  isApparent,
+  mirrorIcon,
+}: {
+  Icon: LucideIcon;
+  href: string;
+  label: string;
+  isActive: boolean;
+  isApparent: boolean;
+  mirrorIcon: boolean;
+}) {
+  return (
+    <SidebarFooter className="mt-auto px-5 py-3 group-data-[collapsible=icon]:p-2">
+      <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+        <SidebarMenuItem className="group-data-[collapsible=icon]:w-full">
+          <SidebarMenuButton
+            asChild
+            size="sm"
+            isActive={isActive}
+            className={cn(
+              "h-10 rounded-lg px-3 text-[13px] font-semibold transition-colors group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5",
+              isApparent
+                ? isActive
+                  ? "bg-white/25 text-white hover:bg-white/30 hover:text-white data-[active=true]:bg-white/25 data-[active=true]:text-white"
+                  : "bg-white/15 text-white hover:bg-white/20 hover:text-white"
+                : isActive
+                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary dark:bg-white/15 dark:text-white dark:hover:bg-white/20 dark:data-[active=true]:bg-white/15 dark:data-[active=true]:text-white"
+                  : "bg-foreground/[0.07] text-foreground hover:bg-foreground/10 hover:text-foreground",
+            )}
+          >
+            <Link
+              prefetch={false}
+              href={href}
+              className="relative flex w-full items-center gap-3 group-data-[collapsible=icon]:justify-center"
+            >
+              <Icon
+                className={cn(
+                  "size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:size-5",
+                  mirrorIcon && "-scale-x-100",
+                )}
+              />
+              <span className="flex-1 group-data-[collapsible=icon]:hidden">
+                {label}
+              </span>
+              <span
+                className={cn(
+                  "hidden text-[11px] leading-tight group-data-[collapsible=icon]:block text-center break-words whitespace-normal overflow-visible",
+                  isApparent
+                    ? "text-white"
+                    : isActive
+                      ? "text-sidebar-accent-foreground"
+                      : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarFooter>
+  );
+}
+
+// Scrolls the menu just far enough to show a section that has just opened —
+// its header and the links under it — but never so far that the header itself
+// leaves the top, when the links are longer than the menu is tall.
+function revealOpenedSection(header: HTMLElement) {
+  const scroller = header.closest<HTMLElement>(
+    '[data-slot="sidebar-content-scroller"]',
+  );
+  const item = header.closest<HTMLElement>(
+    '[data-sidebar="menu-sub-item"], [data-sidebar="menu-item"]',
+  );
+  if (!scroller || !item) return;
+
+  // A top-level section's links render inside its item; a nested section's in
+  // the list that follows it.
+  const links =
+    item.dataset.sidebar === "menu-item"
+      ? item
+      : ((item.nextElementSibling as HTMLElement | null) ?? item);
+  const view = scroller.getBoundingClientRect();
+  const gap = 12;
+  const overflow = links.getBoundingClientRect().bottom + gap - view.bottom;
+  const headroom = header.getBoundingClientRect().top - gap - view.top;
+  const distance = Math.min(overflow, headroom);
+  if (distance <= 0) return;
+
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  scroller.scrollBy({
+    top: distance,
+    behavior: reduceMotion ? "auto" : "smooth",
+  });
+}
+
 export function DashboardSidebar({
   locale,
   user,
   vendorPermissions,
+  vendorAbandonedCheckouts = false,
 }: DashboardSidebarProps) {
   const t = useTranslations();
+  const tSafe = useFallbackTranslator(t);
   const pathname = usePathname();
   const basePath = React.useMemo(() => {
     const prefix = `/${locale}`;
@@ -1050,7 +1235,8 @@ export function DashboardSidebar({
     basePath.startsWith("/staff/pos/");
 
   // Settings open inside the dashboard: while one of its pages is showing, the
-  // settings menu takes the main menu's place, with a way back out on top.
+  // settings menu takes the main menu's place, with a way back out pinned to
+  // the footer where the Settings button sat.
   const settingsSectionId =
     user.role === USER_ROLES.ADMIN
       ? adminSettingsSectionFromPath(basePath)
@@ -1081,6 +1267,7 @@ export function DashboardSidebar({
             vendorPermissions,
             Boolean(posEnabled),
             Boolean(vendorPlansEnabled),
+            vendorAbandonedCheckouts,
           );
 
     let nextGroups = baseGroups;
@@ -1134,6 +1321,7 @@ export function DashboardSidebar({
     aiAvailable,
     vendorPlansEnabled,
     vendorPermissions,
+    vendorAbandonedCheckouts,
   ]);
 
   // Polled only when Inbox is actually in the nav: a vendor without inbox
@@ -1278,6 +1466,16 @@ export function DashboardSidebar({
     });
   }, []);
 
+  // The header of the section a click just opened. Once it renders open, the
+  // menu scrolls its links into view — a section near the bottom (Online
+  // Store) would otherwise unfold out of sight, under the footer.
+  const revealAfterOpen = React.useRef<HTMLElement | null>(null);
+  React.useEffect(() => {
+    const header = revealAfterOpen.current;
+    revealAfterOpen.current = null;
+    if (header?.isConnected) revealOpenedSection(header);
+  }, [openSections]);
+
   // Removed hover-controlled flyout state to make submenus open on click only
   const canAccessVendorSettings = React.useMemo(() => {
     if (user.role !== USER_ROLES.VENDOR) {
@@ -1315,6 +1513,28 @@ export function DashboardSidebar({
 
     return null;
   }, [user.role, canAccessVendorSettings, t, tLabel]);
+
+  // The one button pinned to the sidebar's foot: Settings on the main menu, the
+  // way back to the dashboard once the settings menu has taken its place.
+  const footerAction = settingsSectionId
+    ? {
+        Icon: Undo2,
+        href: "/admin/dashboard",
+        label: tSafe("common.backToDashboard", "Back to dashboard"),
+        isActive: false,
+        mirrorInRtl: true,
+      }
+    : footerSettings
+      ? {
+          Icon: Settings,
+          href: footerSettings.href,
+          label: footerSettings.label,
+          isActive:
+            basePath === footerSettings.path ||
+            basePath.startsWith(`${footerSettings.path}/`),
+          mirrorInRtl: false,
+        }
+      : null;
 
   // ============================================
   // POS Terminal — no sidebar (fullscreen)
@@ -1483,41 +1703,16 @@ export function DashboardSidebar({
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2 mt-auto">
-          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                size="sm"
-                className={cn(
-                  "rounded-lg px-3 py-2.5 h-9 text-[13px] transition-colors group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5",
-                  isApparent
-                    ? "text-white/80 hover:bg-white/10 hover:text-white font-semibold"
-                    : "text-foreground/70 hover:bg-muted/60 hover:text-foreground font-semibold",
-                )}
-              >
-                <Link
-                  prefetch={false}
-                  href="/admin/settings"
-                  className="relative py-4 flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
-                >
-                  <Settings className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:size-5" />
-                  <span className="flex-1 group-data-[collapsible=icon]:hidden">
-                    {t("common.settings")}
-                  </span>
-                  <span
-                    className={cn(
-                      "hidden text-[11px] leading-tight group-data-[collapsible=icon]:block text-center",
-                      isApparent ? "text-white" : "text-muted-foreground",
-                    )}
-                  >
-                    {t("common.settings")}
-                  </span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+        {footerAction && (
+          <SidebarFooterAction
+            Icon={footerAction.Icon}
+            href={footerAction.href}
+            label={footerAction.label}
+            isActive={footerAction.isActive}
+            isApparent={isApparent}
+            mirrorIcon={footerAction.mirrorInRtl && isRTL}
+          />
+        )}
       </Sidebar>
     );
   }
@@ -1653,7 +1848,12 @@ export function DashboardSidebar({
                           size="sm"
                           isActive={isSectionActive}
                           aria-expanded={isOpen}
-                          onClick={() => toggleSection(item.href)}
+                          onClick={(event) => {
+                            if (!isOpen) {
+                              revealAfterOpen.current = event.currentTarget;
+                            }
+                            toggleSection(item.href);
+                          }}
                           className={cn(
                             "rounded-lg px-3 py-2.5 h-9 text-[13px] transition-colors w-full justify-between group/btn cursor-pointer",
                             isApparent
@@ -1741,9 +1941,13 @@ export function DashboardSidebar({
                                         size="sm"
                                         isActive={isChildLeafActive}
                                         aria-expanded={isChildOpen}
-                                        onClick={() =>
-                                          toggleSection(child.href)
-                                        }
+                                        onClick={(event) => {
+                                          if (!isChildOpen) {
+                                            revealAfterOpen.current =
+                                              event.currentTarget;
+                                          }
+                                          toggleSection(child.href);
+                                        }}
                                         className={cn(
                                           "rounded-md px-2 py-1 text-[13px] font-medium relative z-10 w-full justify-between",
                                           isApparent
@@ -1912,60 +2116,15 @@ export function DashboardSidebar({
         ))}
       </SidebarContent>
 
-      {footerSettings && !settingsSectionId && (
-        <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2 mt-auto">
-          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-            <SidebarMenuItem className="group-data-[collapsible=icon]:w-full">
-              {(() => {
-                const settingsPath = footerSettings.path;
-                const isSettingsActive =
-                  basePath === settingsPath ||
-                  basePath.startsWith(`${settingsPath}/`);
-
-                return (
-                  <SidebarMenuButton
-                    asChild
-                    size="sm"
-                    isActive={isSettingsActive}
-                    className={cn(
-                      "rounded-lg px-3 py-2.5 h-9 text-[13px] transition-colors group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5",
-                      isApparent
-                        ? isSettingsActive
-                          ? "bg-white/20 text-white hover:bg-white/25 font-semibold"
-                          : "text-white/80 hover:bg-white/10 hover:text-white font-semibold"
-                        : isSettingsActive
-                          ? "bg-primary/10 text-primary hover:bg-primary/10 dark:bg-white/15 dark:text-white dark:hover:bg-white/20 font-semibold"
-                          : "text-foreground/70 hover:bg-muted/60 hover:text-foreground font-semibold",
-                    )}
-                  >
-                    <Link
-                      prefetch={false}
-                      href={footerSettings.href}
-                      className="relative py-4 flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
-                    >
-                      <Settings className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:size-5" />
-                      <span className="flex-1 group-data-[collapsible=icon]:hidden">
-                        {footerSettings.label}
-                      </span>
-                      <span
-                        className={cn(
-                          "hidden text-[11px] leading-tight group-data-[collapsible=icon]:block text-center break-words whitespace-normal overflow-visible",
-                          isApparent
-                            ? "text-white"
-                            : isSettingsActive
-                              ? "text-sidebar-accent-foreground"
-                              : "text-muted-foreground",
-                        )}
-                      >
-                        {footerSettings.label}
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                );
-              })()}
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+      {footerAction && (
+        <SidebarFooterAction
+          Icon={footerAction.Icon}
+          href={footerAction.href}
+          label={footerAction.label}
+          isActive={footerAction.isActive}
+          isApparent={isApparent}
+          mirrorIcon={footerAction.mirrorInRtl && isRTL}
+        />
       )}
     </Sidebar>
   );

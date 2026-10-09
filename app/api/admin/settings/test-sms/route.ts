@@ -84,6 +84,8 @@ export const POST = withApi(
     return NextResponse.json({
       success: true,
       message: `Test SMS sent to ${phone}.`,
+      // The number as it was read, for the settings page to say in its own words.
+      data: { to: phone },
     });
   },
 );

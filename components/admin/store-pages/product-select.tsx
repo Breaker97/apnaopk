@@ -8,6 +8,7 @@ import { AppImage } from "@/components/ui/app-image";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useStoreBuilderScope } from "./builder-scope";
 
 interface ProductOption {
   _id: string;
@@ -37,6 +38,8 @@ export function ProductSelect({
   searchPlaceholder: string;
   clearLabel: string;
 }) {
+  // The admin's catalogue by default; a vendor's builder lists their own.
+  const { productsEndpoint } = useStoreBuilderScope();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ProductOption[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -53,7 +56,7 @@ export function ProductSelect({
     if (selected?._id === value) return;
     let cancelled = false;
     apiClient
-      .get<ProductOption>(`/api/admin/products/${value}`)
+      .get<ProductOption>(`${productsEndpoint}/${value}`)
       .then((product) => {
         if (!cancelled && product?._id) setSelected(product);
       })
@@ -80,7 +83,7 @@ export function ProductSelect({
     debounce.current = setTimeout(() => {
       apiClient
         .get<ProductListResponse>(
-          `/api/admin/products?page=1&limit=8&search=${encodeURIComponent(query.trim())}`,
+          `${productsEndpoint}?page=1&limit=8&search=${encodeURIComponent(query.trim())}`,
         )
         .then((response) => setResults(response?.data ?? []))
         .catch(() => setResults([]))
@@ -89,7 +92,7 @@ export function ProductSelect({
     return () => {
       if (debounce.current) clearTimeout(debounce.current);
     };
-  }, [query]);
+  }, [query, productsEndpoint]);
 
   return (
     <div className="space-y-2">

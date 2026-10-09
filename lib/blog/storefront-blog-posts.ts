@@ -39,6 +39,8 @@ type StorefrontBlogIndexQuery = {
   search?: string;
   categorySlug?: string;
   tag?: string;
+  /** Articles per page: the website's own size unless a reader asks for another. */
+  limit?: number;
 };
 
 interface BlogPostDetailResponse {
@@ -95,6 +97,7 @@ export function publishedBlogDateCondition() {
 }
 
 const BLOG_INDEX_LIMIT = 7;
+const BLOG_INDEX_MAX_LIMIT = 40;
 
 function toIsoDate(value: unknown) {
   return value instanceof Date ? value.toISOString() : "";
@@ -130,6 +133,10 @@ function normalizeBlogIndexQuery(
     search: query.search?.trim() || "",
     categorySlug: query.categorySlug?.trim() || "",
     tag: query.tag?.trim() || "",
+    limit:
+      Number.isInteger(query.limit) && query.limit! > 0
+        ? Math.min(query.limit!, BLOG_INDEX_MAX_LIMIT)
+        : BLOG_INDEX_LIMIT,
   };
 }
 
@@ -224,18 +231,18 @@ const getStorefrontBlogIndexCached = unstable_cache(
     if (selectedCategory) postQuery.categoryIds = selectedCategory._id;
     if (query.tag) postQuery.tags = query.tag;
 
-    const skip = (query.page - 1) * BLOG_INDEX_LIMIT;
+    const skip = (query.page - 1) * query.limit;
     const [posts, total] = await Promise.all([
       BlogPost.find(postQuery)
         .populate("author", "name image")
         .sort({ publishedAt: -1, createdAt: -1 })
         .skip(skip)
-        .limit(BLOG_INDEX_LIMIT)
+        .limit(query.limit)
         .lean(),
       BlogPost.countDocuments(postQuery),
     ]);
 
-    const totalPages = Math.max(1, Math.ceil(total / BLOG_INDEX_LIMIT));
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
 
     return JSON.parse(
       JSON.stringify({
@@ -245,7 +252,7 @@ const getStorefrontBlogIndexCached = unstable_cache(
           total,
           totalPages,
           page: query.page,
-          limit: BLOG_INDEX_LIMIT,
+          limit: query.limit,
         },
       }),
     ) as StorefrontBlogIndexResult;

@@ -1,24 +1,16 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import {
-  AlertTriangle,
-  ArrowRightLeft,
-  BookOpen,
-  Check,
-  Copy,
-  ExternalLink,
-} from "lucide-react";
+import { ArrowRightLeft, BookOpen, ExternalLink } from "lucide-react";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast-notification";
+import {
+  SetupGuide,
+  SetupGuideCaution,
+  SetupGuideSection,
+  SetupGuideSnippet,
+  SetupGuideSteps,
+} from "@/components/admin/setup-guide";
 import { STORAGE_PROVIDER_LABELS } from "@/lib/storage/types";
 import type { StorageProvider } from "@/components/admin/storage-provider-toggle";
 
@@ -272,176 +264,78 @@ export function StorageSetupGuide({
     ...(legacyLocal ? ["migration"] : []),
   ];
 
+  const copy = { label: copyLabel, failed: copyFailed };
+  const steps = (list: GuideStep[]) =>
+    list.map((step) => ({
+      key: step.key,
+      text: tr(step.key, step.fallback),
+      code: step.code,
+    }));
+
   return (
-    <Accordion
+    <SetupGuide
       key={provider}
-      type="multiple"
-      defaultValue={defaultOpen}
-      className="rounded-xl border bg-muted/30 px-5"
+      defaultOpen={defaultOpen}
+      className="rounded-xl bg-muted/30 px-5"
     >
-      <AccordionItem value="setup">
-        <AccordionTrigger className="hover:no-underline">
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <BookOpen className="size-4 text-muted-foreground" />
-            {tr("setup.title", "{provider} setup guide", {
-              provider: STORAGE_PROVIDER_LABELS[provider],
-            })}
-          </span>
-        </AccordionTrigger>
-        <AccordionContent className="space-y-3">
-          <Steps
-            steps={setup.steps}
-            tr={tr}
-            copyLabel={copyLabel}
-            copyFailed={copyFailed}
-          />
-          <Caution>{tr(setup.caution.key, setup.caution.fallback)}</Caution>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button asChild type="button" variant="outline" size="sm">
-              <a href={consoleLink.url} target="_blank" rel="noopener noreferrer">
-                {tr(consoleLink.key, consoleLink.fallback)}
-                <ExternalLink className="ml-2 size-3.5" />
-              </a>
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              {tr("setup.docs", "Full walkthrough: docs/STORAGE_SETUP.md")}
-            </p>
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-
-      <AccordionItem value="migration">
-        <AccordionTrigger className="hover:no-underline">
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <ArrowRightLeft className="size-4 text-muted-foreground" />
-            {tr("migration.title", "Move the files you already have")}
-          </span>
-        </AccordionTrigger>
-        <AccordionContent className="space-y-3">
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {tr(
-              "migration.intro",
-              "Choosing a provider only changes where new uploads go. Everything uploaded before it stays where it was and keeps loading until you move it across.",
-            )}
-          </p>
-          <Steps
-            steps={MIGRATION_STEPS}
-            tr={tr}
-            copyLabel={copyLabel}
-            copyFailed={copyFailed}
-          />
-          <Caution>
-            <span className="min-w-0 flex-1 space-y-1.5">
-              <span className="block">
-                {tr(
-                  "migration.backup",
-                  "Before your next deploy: if your update method replaces the app folder — cPanel upload, zip overwrite, a container with no volume — copy the media off the server first. Replacing the folder deletes it.",
-                )}
-              </span>
-              <Snippet
-                code={BACKUP_COMMAND}
-                copyLabel={copyLabel}
-                copyFailed={copyFailed}
-              />
-            </span>
-          </Caution>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {tr(
-              "migration.note",
-              "A file that fails to upload keeps its local URL, so a partial run leaves a working store rather than a half-broken one. Re-running is safe.",
-            )}
-          </p>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
-}
-
-function Steps({
-  steps,
-  tr,
-  copyLabel,
-  copyFailed,
-}: {
-  steps: GuideStep[];
-  tr: (key: string, fallback: string) => string;
-  copyLabel: string;
-  copyFailed: string;
-}) {
-  return (
-    <ol className="space-y-3">
-      {steps.map((step, index) => (
-        <li key={step.key} className="flex gap-3">
-          <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-background text-[11px] font-medium tabular-nums ring-1 ring-border">
-            {index + 1}
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5 text-xs leading-relaxed text-muted-foreground">
-            <p>{tr(step.key, step.fallback)}</p>
-            {step.code ? (
-              <Snippet
-                code={step.code}
-                copyLabel={copyLabel}
-                copyFailed={copyFailed}
-              />
-            ) : null}
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/**
- * A command block. Commands are what an admin gets wrong by retyping — a
- * missing `:dry` runs the real migration — so every one of them is copyable.
- */
-function Snippet({
-  code,
-  copyLabel,
-  copyFailed,
-}: {
-  code: string;
-  copyLabel: string;
-  copyFailed: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error(copyFailed);
-    }
-  };
-
-  return (
-    <span className="relative block">
-      <span className="block overflow-x-auto rounded-md bg-background py-1.5 pr-9 pl-2.5 font-mono text-[11px] leading-relaxed whitespace-pre text-foreground ring-1 ring-border">
-        {code}
-      </span>
-      <button
-        type="button"
-        onClick={() => void copy()}
-        aria-label={copyLabel}
-        className="absolute top-1 right-1 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      <SetupGuideSection
+        value="setup"
+        icon={BookOpen}
+        titleClassName="text-sm font-semibold"
+        title={tr("setup.title", "{provider} setup guide", {
+          provider: STORAGE_PROVIDER_LABELS[provider],
+        })}
       >
-        {copied ? (
-          <Check className="size-3.5 text-emerald-600" />
-        ) : (
-          <Copy className="size-3.5" />
-        )}
-      </button>
-    </span>
-  );
-}
+        <SetupGuideSteps steps={steps(setup.steps)} copy={copy} />
+        <SetupGuideCaution>{tr(setup.caution.key, setup.caution.fallback)}</SetupGuideCaution>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild type="button" variant="outline" size="sm">
+            <a href={consoleLink.url} target="_blank" rel="noopener noreferrer">
+              {tr(consoleLink.key, consoleLink.fallback)}
+              <ExternalLink className="ml-2 size-3.5" />
+            </a>
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {tr("setup.docs", "Full walkthrough: docs/STORAGE_SETUP.md")}
+          </p>
+        </div>
+      </SetupGuideSection>
 
-function Caution({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex items-start gap-2 rounded-md bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
-      <AlertTriangle className="mt-px size-3.5 shrink-0" />
-      {children}
-    </p>
+      <SetupGuideSection
+        value="migration"
+        icon={ArrowRightLeft}
+        titleClassName="text-sm font-semibold"
+        title={tr("migration.title", "Move the files you already have")}
+      >
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {tr(
+            "migration.intro",
+            "Choosing a provider only changes where new uploads go. Everything uploaded before it stays where it was and keeps loading until you move it across.",
+          )}
+        </p>
+        <SetupGuideSteps steps={steps(MIGRATION_STEPS)} copy={copy} />
+        <SetupGuideCaution>
+          <span className="min-w-0 flex-1 space-y-1.5">
+            <span className="block">
+              {tr(
+                "migration.backup",
+                "Before your next deploy: if your update method replaces the app folder — cPanel upload, zip overwrite, a container with no volume — copy the media off the server first. Replacing the folder deletes it.",
+              )}
+            </span>
+            <SetupGuideSnippet
+              code={BACKUP_COMMAND}
+              copyLabel={copyLabel}
+              copyFailed={copyFailed}
+            />
+          </span>
+        </SetupGuideCaution>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {tr(
+            "migration.note",
+            "A file that fails to upload keeps its local URL, so a partial run leaves a working store rather than a half-broken one. Re-running is safe.",
+          )}
+        </p>
+      </SetupGuideSection>
+    </SetupGuide>
   );
 }

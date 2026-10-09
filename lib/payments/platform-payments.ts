@@ -1,3 +1,5 @@
+import { financeQuery, financeTransaction } from "@/lib/finance/transaction";
+import { replayPlatformPayment, acceptPlatformRefund } from "@/lib/finance/payment-ledger";
 /**
  * Vendor→platform payments (product boosts, plan subscription periods) over
  * every storefront gateway — the first non-order payment rail in the app.
@@ -95,6 +97,8 @@ import {
   submitIotecCollection,
 } from "@/lib/payments/iotec";
 import { cancelBoostCampaign, fulfillBoostCampaign } from "@/lib/boosts/boosts";
+import { createSystemAuditContext, type AuditContext } from "@/lib/audit";
+import { auditPlatformPaymentReceived } from "@/lib/finance/audit-money";
 import {
   BOOST_CANCEL_REASON,
   PLATFORM_PAYMENT_GATEWAYS,
@@ -840,7 +844,16 @@ export async function finalizePlatformPayment(
       >
     >;
   },
+  /**
+   * Whose hands the money passed through, for the Activity Log. Webhooks, IPNs
+   * and verify polls leave it out and the row is the system's; the admin
+   * commission route passes the admin's, so a collection recorded by hand names
+   * who recorded it.
+   */
+  auditContext: AuditContext = createSystemAuditContext(),
 ): Promise<{ paid: boolean; alreadyPaid: boolean }> {
+  // Read before the flip: the status the money arrived against.
+  const statusBefore = payment.status;
   if (
     (verified.currency &&
       verified.currency.toUpperCase() !== payment.currency.toUpperCase()) ||
@@ -870,7 +883,8 @@ export async function finalizePlatformPayment(
     return { paid: false, alreadyPaid: false };
   }
 
-  const paid = await PlatformPayment.findOneAndUpdate(
+  const paid = await financeTransaction("platform:receipt", async () => {
+    const received = await financeQuery(PlatformPayment.findOneAndUpdate(
     // Only a not-yet-collected attempt may become paid. `$ne: "paid"` also
     // matched REFUNDED, so a reversed charge could be flipped back to paid —
     // and re-granted — by any later verify poll, because gateways keep
@@ -891,7 +905,10 @@ export async function finalizePlatformPayment(
       },
     },
     { returnDocument: "after" },
-  );
+  ));
+    if (received) await replayPlatformPayment(received._id);
+    return received;
+  });
   if (!paid) {
     // Not eligible for the flip. Either we lost the race to a concurrent
     // caller, a previous attempt crashed AFTER flipping to PAID but BEFORE the
@@ -901,6 +918,7 @@ export async function finalizePlatformPayment(
       // benefitGrantedAt separates "already granted" from "crashed mid-grant",
       // so gateway retries and verify polls repair the crash instead of
       // no-oping while the vendor's money sits ungranted.
+      await replayPlatformPayment(existing._id);
       if (!existing.benefitGrantedAt) await grantPlatformBenefit(existing);
       return { paid: true, alreadyPaid: true };
     }
@@ -908,8 +926,31 @@ export async function finalizePlatformPayment(
     return { paid: false, alreadyPaid: false };
   }
 
+  // Only the call that won the flip gets here — every replay returned above — so
+  // the money is logged exactly once. Before the grant, not after it: a crash
+  // while granting is finished by the repair path, which is not the winner and
+  // writes nothing, so the row has to exist already.
+  await replayPlatformPayment(paid._id);
+  await auditPlatformPaymentFlip(paid, statusBefore, auditContext);
   await grantPlatformBenefit(paid);
   return { paid: true, alreadyPaid: false };
+}
+
+/** The Activity Log row for money just recorded as paid. It can never fail the payment. */
+async function auditPlatformPaymentFlip(
+  paid: IPlatformPayment,
+  statusBefore: string,
+  context: AuditContext,
+): Promise<void> {
+  try {
+    await auditPlatformPaymentReceived(context, paid, {
+      method: CHECKOUT_GATEWAY_LABELS[paid.provider as CheckoutGatewayId] ?? paid.provider,
+      manual: paid.provider === PLATFORM_PAYMENT_PROVIDER.MANUAL,
+      statusBefore,
+    });
+  } catch (error) {
+    console.error(`Failed to log platform payment ${paid._id}:`, error);
+  }
 }
 
 /**
@@ -1025,54 +1066,19 @@ async function grantPlatformBenefit(paid: IPlatformPayment): Promise<void> {
     );
     await finalizeSubscriptionPlatformPayment(paid);
   }
-  await PlatformPayment.updateOne(
-    { _id: paid._id },
-    { $set: { benefitGrantedAt: new Date(), failureReason: null } },
-  );
-
-  // Boost and subscription income, posted once the benefit actually landed —
-  // the same moment the vendor got what they paid for. Keyed on the attempt,
-  // so the retries this function is built to tolerate post nothing extra.
-  const { postPlatformPaymentSafely } = await import("@/lib/finance/post-events");
-  postPlatformPaymentSafely({
-    _id: paid._id,
-    kind: paid.kind,
-    reference: paid.reference,
-    vendorId: paid.vendorId,
-    amount: paid.amount,
-    currency: paid.currency,
-    // Decides the cash account: a `manual` collection is the store's bank, not
-    // a gateway balance.
-    provider: paid.provider,
-    paidAt: paid.paidAt,
+  await financeTransaction("platform:application", async () => {
+    await financeQuery(PlatformPayment.updateOne({ _id: paid._id }, { $set: { benefitGrantedAt: new Date(), failureReason: null } }));
+    await replayPlatformPayment(paid._id);
   });
+  await replayPlatformPayment(paid._id);
+
 }
 
 /** Gateway reported a reversal/refund of a previously-paid attempt. */
 export async function markPlatformPaymentReversed(payment: IPlatformPayment) {
-  // What partials had already given back, read from the document as it was:
-  // the reversal below books only the REST, and `$set` on the same write makes
-  // the figure unreadable afterwards.
-  const beforeReversal = await PlatformPayment.findOneAndUpdate(
-    { _id: payment._id, status: PLATFORM_PAYMENT_STATUS.PAID },
-    // The whole payment has gone back, so that is what has been refunded. Left
-    // at the partial figure, the boost credit formula would go on offering the
-    // remainder as still refundable and an admin could pay it a second time.
-    {
-      $set: {
-        status: PLATFORM_PAYMENT_STATUS.REFUNDED,
-        refundedAmount: payment.amount,
-      },
-    },
-    { returnDocument: "before" },
-  );
-  if (!beforeReversal) return null;
-  const alreadyRefunded = Number(beforeReversal.refundedAmount || 0);
-  // Re-read rather than reuse the pre-image: everything below, and the caller,
-  // expect the document as it now stands. Read after the claim, not before it,
-  // so a partial refund landing in between cannot be missed — the claim is
-  // what decides there is exactly one reversal, and this runs only for the
-  // call that won it.
+  const current = await PlatformPayment.findById(payment._id);
+  if (!current?.paidAt || ![PLATFORM_PAYMENT_STATUS.PAID, PLATFORM_PAYMENT_STATUS.REFUNDED].includes(current.status as "paid" | "refunded") || current.benefitReversedAt) return null;
+  await acceptPlatformRefund(payment._id, payment.amount, new Date(), true);
   const updated = await PlatformPayment.findById(payment._id);
   if (!updated) return null;
   if (updated.kind === PLATFORM_PAYMENT_KIND.BOOST && updated.campaignId) {
@@ -1132,33 +1138,7 @@ export async function markPlatformPaymentReversed(payment: IPlatformPayment) {
     );
   }
 
-  // Take the income back off the books. The benefit already unwinds above; the
-  // money did not, so a marketplace that refunded a boost kept reporting the
-  // revenue for it. Keyed on the attempt, so a re-delivered reversal webhook
-  // posts nothing extra.
-  //
-  // Gated on `benefitGrantedAt`, which is the stamp the income posting sits
-  // immediately behind: an attempt that took the money but never granted
-  // anything posted no income, and reversing it would credit a refund against
-  // revenue that was never recognised.
-  if (updated.benefitGrantedAt) {
-    const { postPlatformPaymentReversedSafely } = await import(
-      "@/lib/finance/post-events"
-    );
-    postPlatformPaymentReversedSafely({
-      _id: updated._id,
-      kind: updated.kind,
-      reference: updated.reference,
-      vendorId: updated.vendorId,
-      amount: updated.amount,
-      currency: updated.currency,
-      provider: updated.provider,
-      // Only what is left to reverse: partial refunds already posted theirs.
-      alreadyRefunded,
-      reversedAt: new Date(),
-    });
-  }
-
+  await PlatformPayment.updateOne({ _id: updated._id }, { $set: { benefitReversedAt: new Date() } });
   return updated;
 }
 

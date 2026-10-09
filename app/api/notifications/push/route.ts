@@ -12,6 +12,10 @@ import {
 import { PushSubscription } from "@/models";
 import { getWebPushStatus } from "@/lib/notifications/push-notifications";
 import { isExpoPushToken } from "@/lib/notifications/push-native";
+import {
+  registerNativeDevice,
+  type NativePlatform,
+} from "@/lib/notifications/push-devices";
 import { withApi } from "@/lib/api/handler";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
@@ -70,7 +74,7 @@ function parseNativeRegistration(body: PushRegistrationBody) {
     );
   }
 
-  return { deviceToken, platform };
+  return { deviceToken, platform: platform as NativePlatform };
 }
 
 function parseSubscription(body: PushRegistrationBody) {
@@ -150,27 +154,18 @@ export const POST = withApi(
     await connectDB();
 
     if (native) {
-      // Native delivery goes through the mobile push service, which needs no
-      // VAPID keys — so a store with browser push switched off can still
-      // register app installs.
-      await PushSubscription.findOneAndUpdate(
-        { deviceToken: native.deviceToken },
-        {
-          $set: {
-            userId: session.user.id,
-            role,
-            platform: native.platform,
-            deviceToken: native.deviceToken,
-            locale,
-            userAgent,
-            isActive: true,
-            lastSeenAt: new Date(),
-            failedAt: undefined,
-            failureReason: undefined,
-          },
-        },
-        { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
-      );
+      // The shopper app registers through the mobile API (POST /devices);
+      // an install registered here is one too.
+      await registerNativeDevice({
+        userId: session.user.id,
+        role,
+        deviceToken: native.deviceToken,
+        platform: native.platform,
+        locale,
+        userAgent,
+        app: "shop",
+        sessionId: session.session.id,
+      });
     } else {
       if (!status.configured) {
         throw new ValidationError(

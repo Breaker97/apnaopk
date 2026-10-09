@@ -24,6 +24,9 @@ import { LEDGER_ACCOUNTS, type LedgerAccount } from "@/lib/finance/accounts";
 import { ALL_VENDOR_PACKS } from "@/config/permissions.config";
 import { hasUnsafeAddressText } from "@/lib/customers/address-text";
 import { parseExternalVideoUrl } from "@/lib/products/external-video";
+import { MAX_PRODUCT_MEDIA } from "@/lib/products/media-limits";
+import { DASHBOARD_PERIODS } from "@/lib/admin/dashboard-period";
+import { DAY_RANGE_PATTERN } from "@/lib/date-filter";
 import {
   DEFAULT_AUTOPLAY_SECONDS,
   MAX_AUTOPLAY_SECONDS,
@@ -328,7 +331,10 @@ export const CreateProductSchema = z.object({
         ),
     )
     // Same cap the media uploader enforces client-side.
-    .max(10, "A product can have at most 10 media files")
+    .max(
+      MAX_PRODUCT_MEDIA,
+      `A product can have at most ${MAX_PRODUCT_MEDIA} media files`,
+    )
     .optional(),
   // Digital deliverables. storageKey comes from the digital-assets upload
   // endpoint; vendor routes additionally verify the key sits in the caller's
@@ -921,6 +927,10 @@ export const OrderListQuerySchema = AdminListQuerySchema.extend({
     .optional(),
   channel: z.enum(["all", "online", "pos"]).optional(),
   view: z.enum(["all", "unfulfilled", "unpaid", "open", "archived"]).optional(),
+  // A named period, or two days joined by "_" (see `lib/date-filter.ts`).
+  date: z
+    .union([z.enum(DASHBOARD_PERIODS), z.string().regex(DAY_RANGE_PATTERN)])
+    .optional(),
 });
 
 /**
@@ -985,6 +995,8 @@ const CouponBaseSchema = z.object({
   status: z.enum(["active", "inactive", "expired"]).default("active"),
   /** Store coupons only — the vendor routes discard it. See the Coupon model. */
   fundedBy: z.enum(["platform", "vendor"]).optional(),
+  /** Shown in the shopper app's coupon list. See the Coupon model. */
+  listed: z.boolean().optional(),
 });
 
 export const CreateCouponSchema = CouponBaseSchema.superRefine((data, ctx) => {
@@ -1426,7 +1438,12 @@ export const InventoryLocationBodySchema = z.looseObject({
 // Collection Schemas
 // ============================================
 
-const CollectionConditionSchema = z.object({
+/**
+ * One automated-collection rule. Shared by the create and update routes and
+ * the CSV import, so a field or an operator the rule builder does not know
+ * is refused on every way in.
+ */
+export const CollectionConditionSchema = z.object({
   field: z.enum([
     "title",
     "productType",
@@ -1438,6 +1455,7 @@ const CollectionConditionSchema = z.object({
     "stock",
     "createdAt",
     "category",
+    "brand",
   ]),
   operator: z.enum([
     "equals",

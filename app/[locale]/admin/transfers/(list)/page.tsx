@@ -11,6 +11,9 @@ import {
 } from "@/lib/inventory/transfer-list";
 import { serializeRows } from "@/lib/api/list-query";
 import { resolveTransferLocationAccess } from "@/lib/inventory/transfers";
+import { ApiError } from "@/lib/api/errors";
+import { isStoreProfileErrorCode } from "@/lib/inventory/store-profile";
+import { StoreProfileNotice } from "@/components/admin/store-profile-notice";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -70,7 +73,18 @@ async function TransfersTable({
     params.set("limit", String(TRANSFERS_DEFAULT_PAGE_SIZE));
   }
 
-  const allowed = await resolveTransferLocationAccess(user);
+  // Staff see the transfers of the locations they hold, the house store's
+  // among them. Without a store profile (missing, and not makeable) there are
+  // none to hold: say why instead of the error screen.
+  let allowed: Awaited<ReturnType<typeof resolveTransferLocationAccess>>;
+  try {
+    allowed = await resolveTransferLocationAccess(user);
+  } catch (error) {
+    if (error instanceof ApiError && isStoreProfileErrorCode(error.code)) {
+      return <StoreProfileNotice code={error.code} />;
+    }
+    throw error;
+  }
   const [list, locationOptions] = await Promise.all([
     fetchTransferList(params, allowed),
     fetchTransferLocationOptions(allowed),

@@ -33,6 +33,7 @@
 @source "../components/admin/online-store/t-safe.ts";
 @source "../components/admin/storage-provider-toggle.tsx";
 @source "../components/admin/sliders/**/*.{ts,tsx}";
+@source "../components/admin/store-pages/builder-scope.tsx";
 @source "../components/admin/store-pages/product-select.tsx";
 @source "../components/admin/unit-field.tsx";
 @source "../components/vendor/vendor-registration-form.tsx";

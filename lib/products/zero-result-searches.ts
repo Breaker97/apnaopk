@@ -123,6 +123,31 @@ export function recordZeroResultSearch(input: {
   }
 }
 
+/**
+ * Count a catalogue search that came up empty, when it says something about
+ * the catalogue: the first page found nothing, and no facet narrowed it. The
+ * one rule every storefront search follows (the products API, the results
+ * page, the app); the assistant counts its own misses.
+ *
+ * `facets` are exactly the filters the search applied, each as it was given.
+ */
+export function recordSearchOutcome(input: {
+  search: string | null | undefined;
+  page: number | null | undefined;
+  total: number;
+  facets: Record<string, unknown>;
+  clientKey?: string | null;
+}): void {
+  if (!input.search) return;
+  if ((input.page ?? 1) > 1 || input.total !== 0) return;
+  if (hasNarrowingFacet(input.facets)) return;
+  recordZeroResultSearch({
+    query: input.search,
+    source: "storefront",
+    clientKey: input.clientKey,
+  });
+}
+
 export type ZeroResultSearchRow = {
   query: string;
   count: number;

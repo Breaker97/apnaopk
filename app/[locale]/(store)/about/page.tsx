@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AboutPageView } from "@/components/store/about-page-view";
-import { fetchTestimonials } from "@/components/store/sections/testimonials";
+import { fetchTestimonials } from "@/lib/storefront/section-data/content";
 import {
   fillContentPlaceholders,
   windowPlaceholders,

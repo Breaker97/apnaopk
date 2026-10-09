@@ -45,6 +45,10 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/preorder-jobs",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/abandoned-checkouts",
       "schedule": "*/15 * * * *"
     },
@@ -59,6 +63,14 @@
     {
       "path": "/api/cron/store-credit",
       "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/cron/account-emails",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/meta-catalog",
+      "schedule": "* * * * *"
     }
   ]
 }

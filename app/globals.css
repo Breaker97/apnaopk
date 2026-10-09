@@ -1755,6 +1755,27 @@ body[data-store-theme]
   .footer-row {
     grid-template-columns: var(--footer-cols);
   }
+
+  /* Let the logo and link headings share their natural height, then start
+     the description and link lists on the same row. */
+  .footer-row--aligned > .footer-column--aligned {
+    display: grid;
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+  }
+  .footer-column--links > div {
+    display: contents;
+  }
+  .footer-column--links h4 {
+    align-self: center;
+    margin-bottom: 0;
+  }
+  .footer-column--links ul {
+    align-self: start;
+  }
+  .footer-brand-content > p {
+    line-height: 1.5rem;
+  }
 }
 
 /* A STRIP — every column one track, like the legal line — takes its tracks

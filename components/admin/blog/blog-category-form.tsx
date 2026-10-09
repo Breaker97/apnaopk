@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
+import { foldForSlug } from "@/lib/strings";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -166,8 +167,7 @@ export function BlogCategoryForm({ categoryId }: { categoryId?: string }) {
                           {...field}
                           onChange={(e) =>
                             field.onChange(
-                              e.target.value
-                                .toLowerCase()
+                              foldForSlug(e.target.value)
                                 .replace(/\s+/g, "-")
                                 .replace(/[^a-z0-9-]/g, ""),
                             )

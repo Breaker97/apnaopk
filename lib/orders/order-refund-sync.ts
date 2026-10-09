@@ -44,7 +44,7 @@ import {
   disputeKey,
   type DisputeGateway,
 } from "@/lib/payments/dispute-gateways";
-import { createSystemAuditContext } from "@/lib/audit";
+import { createSystemAuditContext, type AuditContext } from "@/lib/audit";
 import {
   auditOrderChargebackReturned,
   auditOrderRefunded,
@@ -114,6 +114,97 @@ interface GatewayRefundRecord {
   chargeback?: { gateway: DisputeGateway; disputeId?: string };
   /** What its row should say, where that differs from the reading's reason. */
   reason?: string;
+  /** Strong identity supplied on a durable mobile refund, never inferred from its amount. */
+  bizOperation?: { id: string; leg: string };
+  gatewayStatus?: string;
+  gatewayProvider?: string;
+  gatewayCurrency?: string;
+}
+
+/**
+ * A mobile refund reserves its headroom before calling the provider. A report
+ * only fills that receipt; the owning operation settles money and stock. One
+ * receipt may span a deposit and balance, so keep every provider leg separately.
+ */
+async function pairWithPendingBizRefund(orderId: unknown, refund: GatewayRefundRecord): Promise<void> {
+  const identity = refund.bizOperation;
+  if (!/^[a-zA-Z0-9_-]{1,160}$/.test(refund.id)) throw new RefundInFlightError("mobile refund");
+  const row = await PaymentTransaction.findOne({
+    orderId, type: "refund",
+    ...(identity ? { bizOperationId: identity.id, bizOperationLeg: identity.leg } : {
+      status: "pending", bizOperationId: { $exists: true }, "metadata.bizHeadroomReserved": true,
+      $or: [{ externalId: refund.id }, { "metadata.gatewayRefundIds": refund.id }],
+    }),
+  }).select("status grossAmount externalId metadata bizOperationId bizOperationLeg provider currency").lean<{
+    _id: unknown; status: string; grossAmount: number; externalId?: string; bizOperationId: string; bizOperationLeg: string; provider?: string; currency?: string;
+    metadata?: { bizHeadroomReserved?: boolean; gatewayRefundIds?: string[]; bizGatewayReports?: Record<string, { amount: number; status: string; provider?: string }> };
+  } | null>();
+  if (!row) {
+    if (identity) throw new RefundInFlightError("mobile refund");
+    return;
+  }
+  if (row.status !== "pending") {
+    if (row.externalId === refund.id || row.metadata?.gatewayRefundIds?.includes(refund.id)) return;
+    throw new RefundInFlightError("mobile refund");
+  }
+  const amount = Number(refund.amount);
+  const previous = row.metadata?.bizGatewayReports?.[refund.id];
+  if (refund.gatewayCurrency !== undefined && refund.gatewayCurrency.toUpperCase() !== row.currency?.toUpperCase()) throw new RefundInFlightError("mobile refund");
+  if (refund.gatewayProvider && ((previous?.provider && previous.provider !== refund.gatewayProvider) || (!identity && !previous?.provider && row.provider && row.provider !== refund.gatewayProvider))) throw new RefundInFlightError("mobile refund");
+  if (!row.metadata?.bizHeadroomReserved || !Number.isFinite(amount) || amount <= 0 ||
+    amount > Number(row.grossAmount) + 0.000001 || (previous && Math.abs(previous.amount - amount) > 0.000001)) {
+    throw new RefundInFlightError("mobile refund");
+  }
+  const provider = refund.gatewayProvider || previous?.provider || row.provider;
+  const status = refund.gatewayStatus || "";
+  const succeeded: Record<string, string> = { stripe: "succeeded", paypal: "completed", razorpay: "processed", paystack: "processed" };
+  const statuses: Record<string, string[]> = {
+    stripe: ["succeeded", "pending", "requires_action", "failed", "canceled"],
+    paypal: ["completed", "pending", "failed", "cancelled"],
+    razorpay: ["processed", "created", "pending", "failed"],
+    paystack: ["processed", "pending", "processing", "failed", "needs_attention"],
+  };
+  if (!provider || !statuses[provider]?.includes(status.toLowerCase())) throw new RefundInFlightError("mobile refund");
+  const failed = new Set(["failed", "canceled", "cancelled"]);
+  const previousStatus = previous?.status.toLowerCase();
+  const nextStatus = status.toLowerCase();
+  // Out-of-order reports cannot turn terminal proof back into processing. A
+  // later provider failure may still overturn success, as the shared web path supports.
+  if (previousStatus && (failed.has(previousStatus) ||
+    (provider && previousStatus === succeeded[provider] && nextStatus !== succeeded[provider] && !failed.has(nextStatus)))) return;
+  const matched = await PaymentTransaction.updateOne({
+    _id: row._id, status: "pending", bizOperationId: row.bizOperationId, bizOperationLeg: row.bizOperationLeg,
+    [`metadata.bizGatewayReports.${refund.id}.status`]: previous ? previous.status : { $exists: false },
+  }, {
+    $set: {
+      ...(refund.gatewayProvider && !row.provider ? { provider: refund.gatewayProvider } : {}),
+      "metadata.bizGatewayState": "reported",
+      "metadata.bizGatewayStatus": status,
+      [`metadata.bizGatewayReports.${refund.id}`]: { id: refund.id, amount, status, ...(provider ? { provider } : {}) },
+    },
+    $addToSet: { "metadata.gatewayRefundIds": refund.id },
+  });
+  if (!matched.matchedCount) throw new RefundInFlightError("mobile refund");
+  // First provider id wins; later legs live in gatewayRefundIds/reports.
+  await PaymentTransaction.updateOne({ _id: row._id, status: "pending", externalId: { $in: [null, ""] } }, {
+    $set: { externalId: refund.id, "metadata.gatewayRefundId": refund.id },
+  });
+}
+
+/** Apply provider evidence only to its exact already-reserved business receipt. */
+export async function recordBizGatewayRefundReport(orderId: unknown, refund: GatewayRefundRecord): Promise<void> {
+  await connectDB();
+  await pairWithPendingBizRefund(orderId, refund);
+}
+
+/** Expired HTTP holds do not release a still-uncertain mobile money claim. */
+async function hasPendingBizRefund(orderId: unknown): Promise<boolean> {
+  const rows = await PaymentTransaction.find({
+    orderId, type: "refund", status: "pending", bizOperationId: { $exists: true }, "metadata.bizHeadroomReserved": true,
+  }).select("status bizOperationId metadata.bizHeadroomReserved").lean<Array<{
+    status?: string; bizOperationId?: string; metadata?: { bizHeadroomReserved?: boolean };
+  }>>();
+  return rows.some(row => row.status === "pending" && row.bizOperationId && row.metadata?.bizHeadroomReserved === true);
 }
 
 /** How an order is found from a gateway's own identifier. */
@@ -748,13 +839,22 @@ async function reconcileGatewayOrderRefunds(params: {
 }): Promise<number> {
   await connectDB();
 
-  const live = (params.refunds || []).filter(
-    (refund) => refund?.live && refund.id && Number(refund.amount) > 0,
+  const reports = (params.refunds || []).filter(
+    (refund) => refund?.id && Number.isFinite(Number(refund.amount)) && Number(refund.amount) > 0,
   );
-  if (live.length === 0) return 0;
+  if (reports.length === 0) return 0;
 
   const order = await findOrder(params.locator);
   if (!order) return 0;
+
+  // Include failed/pending reports. They are evidence for the original
+  // operation, never a second refund or an automatic reservation rollback.
+  const pendingBiz = await hasPendingBizRefund(order._id);
+  for (const refund of reports) {
+    if (!refund.chargeback && (refund.bizOperation || pendingBiz)) await pairWithPendingBizRefund(order._id, refund);
+  }
+  const live = reports.filter(refund => refund.live);
+  if (live.length === 0) return 0;
 
   // A refund raised in-app can span two gateway charges — a pre-order's
   // deposit and its balance — while writing ONE row. `metadata.gatewayRefundIds`
@@ -770,7 +870,8 @@ async function reconcileGatewayOrderRefunds(params: {
   // this is very likely that refund arriving first. Recording it now would be
   // the second row; failing now makes the gateway deliver it again, by which
   // time the row exists under this id.
-  if (live.some((refund) => !known.has(refund.id)) && isRefundInFlight(order)) {
+  if (live.some((refund) => !known.has(refund.id)) &&
+    (isRefundInFlight(order) || await hasPendingBizRefund(order._id))) {
     throw new RefundInFlightError(order.orderNumber);
   }
 
@@ -895,6 +996,12 @@ export async function reconcileStripeOrderRefunds(
       id: refund.id,
       amount: fromStripeAmount(refund.amount, currency),
       live: LIVE_REFUND_STATUSES.has(String(refund.status || "")),
+      gatewayStatus: String(refund.status || ""),
+      gatewayProvider: "stripe",
+      gatewayCurrency: String(refund.currency || currency),
+      ...(refund.metadata?.storifyBizOperationId && refund.metadata?.storifyBizOperationLeg ? {
+        bizOperation: { id: refund.metadata.storifyBizOperationId, leg: refund.metadata.storifyBizOperationLeg },
+      } : {}),
     })),
   });
 }
@@ -1657,6 +1764,12 @@ export async function reattributeChargeback(params: {
   subOrderIds: string[];
   actorId: string;
   actorLabel?: string;
+  /**
+   * Who is doing it, for the timeline row. Without one the move is written
+   * under the system actor, which names nobody — fine for a script, wrong for
+   * an admin moving money between two sellers' payouts.
+   */
+  auditContext?: AuditContext;
 }): Promise<{ amount: number; sellers: number }> {
   await connectDB();
   // The consignments too: the refund fields alone carry no `subOrders`, and
@@ -1736,7 +1849,7 @@ export async function reattributeChargeback(params: {
     const vendors = await Vendor.find({ _id: { $in: named.map((sub) => sub.vendorId) } })
       .select("storeName")
       .lean<Array<{ storeName?: string }>>();
-    await auditOrderChargebackAttributed(createSystemAuditContext(), order, {
+    await auditOrderChargebackAttributed(params.auditContext ?? createSystemAuditContext(), order, {
       amount,
       currency: String(order.currency || "USD"),
       sellers: vendors.map((vendor) => vendor.storeName || "a seller"),
@@ -1967,6 +2080,9 @@ export function readPaystackRefund(refund: {
         // Paystack calls a refund on its way out `pending` or `processing`,
         // and one that arrived `processed`. Everything else has stopped.
         live: PAYSTACK_LIVE_REFUND_STATUSES.has(status),
+        gatewayStatus: status,
+        gatewayProvider: "paystack",
+        gatewayCurrency: String(refund.currency || ""),
       },
     ],
   };
@@ -2002,7 +2118,6 @@ export async function reconcilePaystackRefunds(params: {
             : undefined,
         currency: currency || undefined,
       });
-      continue;
     }
     const disputeId = paystackRefundDisputeId(refund);
     records.push({
@@ -2012,6 +2127,9 @@ export async function reconcilePaystackRefunds(params: {
         String(refund.currency || "NGN"),
       ),
       live: PAYSTACK_LIVE_REFUND_STATUSES.has(status),
+      gatewayStatus: status,
+      gatewayProvider: "paystack",
+      gatewayCurrency: String(refund.currency || ""),
       ...(disputeId
         ? {
             chargeback: { gateway: "paystack" as const, disputeId },
@@ -2056,6 +2174,9 @@ export function readRazorpayRefund(refund: {
         // `created` is accepted and not yet settled; `processed` has settled.
         // `failed` is the case the reversal path exists for.
         live: ["processed", "created", "pending"].includes(status),
+        gatewayStatus: status,
+        gatewayProvider: "razorpay",
+        gatewayCurrency: String(refund.currency || ""),
       },
     ],
   };
@@ -2105,6 +2226,9 @@ export function readPayPalRefund(refund: {
         // `COMPLETED` went through, `PENDING` is still settling. `CANCELLED`
         // and `FAILED` are what the reversal path exists for.
         live: ["COMPLETED", "PENDING"].includes(status),
+        gatewayStatus: status,
+        gatewayProvider: "paypal",
+        gatewayCurrency: String(refund.amount?.currency_code || ""),
       },
     ],
   };

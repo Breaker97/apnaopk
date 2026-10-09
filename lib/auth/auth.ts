@@ -1,6 +1,7 @@
-import { betterAuth } from "better-auth";
+import { expo } from "@better-auth/expo";
+import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { twoFactor } from "better-auth/plugins";
 import { connectDB, mongoose } from "@/lib/db";
 import {
@@ -32,12 +33,33 @@ import {
   type EmailVerificationStatus,
 } from "@/lib/auth/email-verification-policy";
 import { isCurrentSmtpConfigurationVerified } from "@/lib/email/smtp-verification";
+import { RECENT_SIGN_IN_MS } from "@/lib/auth/recent-sign-in";
+import {
+  auditAccountSelfDeleted,
+  auditTwoFactorToggle,
+  contextOfRequest,
+  isAuthAuditPath,
+  recordAuthEvent,
+  type AuthHookContext,
+} from "@/lib/auth/auth-audit";
+import {
+  appOriginsFromSettings,
+  isExpectedClient,
+  NO_APP_ORIGINS,
+  resolveSessionClient,
+  sessionClientOf,
+  trustedAppOrigins,
+  type AppOrigins,
+  type SessionClient,
+  type SessionExpectation,
+} from "@/lib/auth/session-audience";
 import {
   DEFAULT_SESSION_MAX_AGE_DAYS,
   MAX_SESSION_MAX_AGE_DAYS,
   MIN_SESSION_MAX_AGE_DAYS,
 } from "@/lib/security-limits";
 import type { ISettings } from "@/models/settings.model";
+import type { CreatedUser } from "@/lib/auth/user-created";
 
 /**
  * Better Auth Server Configuration
@@ -101,10 +123,133 @@ function maskEmail(email: string): string {
   return `${maskedLocal}@${domain}`;
 }
 
+/**
+ * `@better-auth/expo` with only the part the shopper app's email sign-in
+ * needs: it copies the app's `expo-origin` header into `Origin`, so the
+ * cookie-bearing requests after sign-in (two-factor, sign-out, the account's
+ * own changes) pass Better Auth's origin check. React Native sends no Origin
+ * of its own.
+ *
+ * The plugin's other two parts serve a browser-based OAuth sign-in from the
+ * app, which this store does not offer (native sign-in with Google and Apple
+ * is planned instead), and both are harmful without it:
+ * - `/expo-authorization-proxy` redirects to any https address and can plant
+ *   an `oauth_state` cookie on the store's domain on the way: an open
+ *   redirect, and a login-CSRF building block.
+ * - its after-hook puts the session cookie into the redirect after an OAuth
+ *   callback when that redirect is an app scheme. Any Android app can claim a
+ *   scheme, so a crafted sign-in link would hand a web session to whichever
+ *   app answered.
+ */
+function shopAppTransport() {
+  const { endpoints: _proxy, hooks: _cookieHandoff, ...plugin } = expo();
+  return plugin;
+}
+
+/**
+ * The sign-in side of the Activity Log (lib/auth/auth-audit.ts): sign-ins, wrong
+ * codes at the second step, sign-outs, and the built-in password and session
+ * endpoints.
+ *
+ * A plugin, and listed after `twoFactor()`, because hooks run in that order and
+ * the two-factor plugin's after-hook is what turns a password-only sign-in into
+ * a pending challenge: it deletes the session it was just handed and clears
+ * `newSession`. A `hooks.after` of our own runs before every plugin's, so it
+ * would see that half-made session and log a sign-in that never happened.
+ */
+function activityLog(): BetterAuthPlugin {
+  return {
+    id: "activity-log",
+    hooks: {
+      // Sign-out finds its session from the cookie and deletes it, so the user
+      // is only known to the after-hook if the session is read first.
+      before: [
+        {
+          matcher: (ctx) => ctx.path === "/sign-out",
+          handler: createAuthMiddleware(async (ctx) => {
+            await getSessionFromCtx(ctx).catch(() => null);
+          }),
+        },
+      ],
+      after: [
+        {
+          matcher: (ctx) => isAuthAuditPath(ctx.path),
+          handler: createAuthMiddleware(async (ctx) => {
+            await recordAuthEvent(ctx as unknown as AuthHookContext);
+          }),
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * "Create account" and "Resend verification email" for an account the store
+ * made with no password (an imported customer): answered like a sign-up that
+ * waits on an email, and the email is the invite that sets the password
+ * (lib/auth/passwordless-sign-up.ts). Every other request goes on as before.
+ */
+function passwordlessCustomerAccess(): BetterAuthPlugin {
+  return {
+    id: "passwordless-customer-access",
+    hooks: {
+      before: [
+        {
+          matcher: (ctx) =>
+            ctx.path === "/sign-up/email" || ctx.path === "/send-verification-email",
+          handler: createAuthMiddleware(async (ctx) => {
+            const body = (ctx.body ?? {}) as {
+              email?: unknown;
+              name?: unknown;
+              password?: unknown;
+              callbackURL?: unknown;
+            };
+            if (ctx.path === "/sign-up/email") {
+              // Better Auth checks the password before it looks the email up;
+              // one it would refuse is left for it to refuse.
+              const password = typeof body.password === "string" ? body.password : "";
+              const { minPasswordLength, maxPasswordLength } = ctx.context.password.config;
+              if (password.length < minPasswordLength || password.length > maxPasswordLength) {
+                return;
+              }
+            }
+            const { inviteInsteadOfSignUp, localeOfAuthRequest } = await import(
+              "@/lib/auth/passwordless-sign-up"
+            );
+            const answered = await inviteInsteadOfSignUp({
+              email: body.email,
+              locale: localeOfAuthRequest(body.callbackURL, ctx.request?.headers ?? ctx.headers),
+            });
+            if (!answered) return;
+
+            if (ctx.path === "/send-verification-email") return ctx.json({ status: true });
+            // The work a real sign-up does, so the answer takes as long.
+            await ctx.context.password.hash(String(body.password));
+            const now = new Date();
+            return ctx.json({
+              token: null,
+              user: {
+                id: new ObjectId().toHexString(),
+                email: String(body.email).trim().toLowerCase(),
+                name: typeof body.name === "string" ? body.name : "",
+                image: null,
+                emailVerified: false,
+                createdAt: now,
+                updatedAt: now,
+              },
+            });
+          }),
+        },
+      ],
+    },
+  };
+}
+
 function createAuth(
   db: Db,
   client?: MongoClient,
   settings?: AuthSecuritySettings,
+  appOrigins: AppOrigins = NO_APP_ORIGINS,
 ) {
   const securitySettings = settings || defaultSecuritySettings;
   const requireCustomerVerification =
@@ -125,9 +270,16 @@ function createAuth(
   // Both env vars are legitimate origins for the same deployment and buyers
   // routinely set only one. Trusting both avoids a same-site request being
   // rejected as cross-origin because the other var carries the real domain.
+  // The shopper app's scheme joins them while the store has the app switched
+  // on (Settings → Mobile app); see lib/auth/session-audience.ts.
   const configuredOrigins = Array.from(
     new Set(
-      [baseURL, process.env.NEXT_PUBLIC_APP_URL, process.env.BETTER_AUTH_URL]
+      [
+        baseURL,
+        process.env.NEXT_PUBLIC_APP_URL,
+        process.env.BETTER_AUTH_URL,
+        ...trustedAppOrigins(appOrigins),
+      ]
         .map((origin) => (origin || "").trim())
         .filter(Boolean),
     ),
@@ -290,9 +442,26 @@ function createAuth(
     session: {
       expiresIn: 60 * 60 * 24 * securitySettings.sessionMaxAgeDays,
       updateAge: 60 * 60 * 24, // Update session every 24 hours
+      // What Better Auth calls a fresh session, which /delete-user accepts in
+      // place of the password: the same ten minutes as every other "sign in
+      // again first" change here (lib/auth/recent-sign-in.ts). Its default
+      // is a day.
+      freshAge: RECENT_SIGN_IN_MS / 1000,
       cookieCache: {
         enabled: true,
         maxAge: 60 * 5, // 5 minutes
+      },
+      additionalFields: {
+        // The session's audience (lib/auth/session-audience.ts), set by the
+        // session hook below. No default: Better Auth applies defaults after
+        // the fields it carries over when it re-mints a session (enabling
+        // two-factor, changing the password), so one would overwrite it.
+        // Not input: /update-session would otherwise let a client rewrite it.
+        client: {
+          type: "string",
+          required: false,
+          input: false,
+        },
       },
     },
 
@@ -345,13 +514,42 @@ function createAuth(
           input: true,
         },
       },
+      // A shopper deleting their own account (lib/customers/account-deletion.ts).
+      // Better Auth asks for the password, or a session younger than
+      // `freshAge`, before these run. Loaded on use: that module needs this
+      // one.
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user) => {
+          const { findAccountDeletionRefusal } = await import(
+            "@/lib/customers/account-deletion"
+          );
+          const refusal = await findAccountDeletionRefusal(user.id);
+          if (refusal) {
+            throw new APIError("FORBIDDEN", {
+              code:
+                refusal.reason === "DEMO_MODE"
+                  ? "DEMO_MODE_READ_ONLY"
+                  : "ACCOUNT_DELETION_NOT_ALLOWED",
+              message: refusal.message,
+            });
+          }
+        },
+        afterDelete: async (user, request) => {
+          const { cleanUpDeletedAccount } = await import(
+            "@/lib/customers/account-deletion"
+          );
+          await cleanUpDeletedAccount(user.id);
+          await auditAccountSelfDeleted(user, contextOfRequest(request));
+        },
+      },
     },
     socialProviders,
     appName: appConfig.name,
     account: {
       storeStateStrategy: "cookie",
     },
-    plugins: [twoFactor()],
+    plugins: [twoFactor(), shopAppTransport(), activityLog(), passwordlessCustomerAccess()],
     databaseHooks: {
       user: {
         create: {
@@ -374,23 +572,20 @@ function createAuth(
             };
           },
           after: async (user) => {
-            // Auto-create customer profile for customer roles
-            const role = (user as { role?: string }).role;
-            if (!role || role === USER_ROLES.CUSTOMER) {
-              try {
-                const { ensureCustomerProfile } = await import(
-                  "@/lib/customers/customer"
-                );
-                const userId =
-                  (user as { id?: string }).id ||
-                  (user as { _id?: { toString(): string } })._id?.toString();
-                if (userId) {
-                  await ensureCustomerProfile(userId);
-                }
-              } catch (error) {
-                console.error("Failed to create customer profile:", error);
-              }
-            }
+            // A customer's profile, and word to the admins of a sign-up.
+            const { onUserCreated } = await import("@/lib/auth/user-created");
+            await onUserCreated(user as CreatedUser);
+          },
+        },
+        update: {
+          // Two-factor turned on or off. `twoFactorEnabled` is only ever written
+          // by the two-factor plugin's own endpoints, so this is the one place
+          // that sees the flag actually flip (see auditTwoFactorToggle).
+          after: async (user, ctx) => {
+            await auditTwoFactorToggle(
+              user as unknown as Parameters<typeof auditTwoFactorToggle>[0],
+              ctx,
+            );
           },
         },
       },
@@ -468,6 +663,27 @@ function createAuth(
               });
             }
 
+            // Who the session is for: the shopper app or the business app
+            // when the request came from its scheme (the Expo plugin has put
+            // `expo-origin` into Origin by now), the web otherwise. Every
+            // session is minted here, re-mints included (two-factor, a
+            // password change), so every return below carries it.
+            const client = resolveSessionClient(
+              (ctx?.request?.headers ?? ctx?.headers)?.get("origin"),
+              appOrigins,
+            );
+
+            // The business app is for the people who run the store. A
+            // shopper is refused here, before any session exists, so the app
+            // never holds a session that every one of its calls would refuse.
+            if (client === "biz-app" && !runsTheStore(role, userDoc)) {
+              throw new APIError("FORBIDDEN", {
+                code: "BIZ_APP_OPERATORS_ONLY",
+                message:
+                  "This app is for the people who run the store. Shop with the store's shopping app.",
+              });
+            }
+
             // Fold any guest checkout history under this email into the
             // account — the Shopify "account activation" moment: guest orders
             // relink to the user and the email-keyed guest customer row is
@@ -489,7 +705,9 @@ function createAuth(
               }
             }
 
-            if (!isOAuthCallbackPath(ctx?.path)) return { data: session };
+            const minted = { ...session, client };
+
+            if (!isOAuthCallbackPath(ctx?.path)) return { data: minted };
 
             if (!assertOAuthCustomerOnlySession(ctx?.path, role)) {
               if (role === USER_ROLES.VENDOR && email) {
@@ -507,7 +725,25 @@ function createAuth(
               });
             }
 
-            return { data: session };
+            return { data: minted };
+          },
+        },
+        // However a session ends — Better Auth's own /sign-out, a revocation,
+        // an expired session cleared on read, the account deleted — the app
+        // installs it registered for push stop receiving the account's
+        // notifications. An app that signs out without unregistering its
+        // device first is covered; the sign-out itself never waits on a
+        // failure here.
+        delete: {
+          after: async (session) => {
+            try {
+              const { deactivateDevicesOfSessions } = await import(
+                "@/lib/notifications/push-devices"
+              );
+              await deactivateDevicesOfSessions([String(session.id)]);
+            } catch (error) {
+              console.error("Failed to stop push to a signed-out device:", error);
+            }
           },
         },
       },
@@ -559,6 +795,17 @@ function getPrimaryRole(role: UserRole, roles: UserRole[]): UserRole {
 }
 
 /**
+ * Whether an account runs the store (an administrator, staff, a seller), by
+ * the role its sessions are read with: `role`, or an administrator listed in
+ * `roles` (getPrimaryRole). Who may sign in to the business app.
+ */
+function runsTheStore(role: UserRole, userDoc: unknown): boolean {
+  const roles = (userDoc as { roles?: unknown }).roles;
+  const primary = getPrimaryRole(role, normalizeUserRoles(roles, role));
+  return primary !== USER_ROLES.CUSTOMER;
+}
+
+/**
  * Anything above a plain shopper. When the DB cannot confirm the current role,
  * these sessions are dropped rather than served from the cookie cache — a
  * five-minute window of stale privileges is a worse failure than an admin
@@ -566,6 +813,17 @@ function getPrimaryRole(role: UserRole, roles: UserRole[]): UserRole {
  */
 function isPrivilegedRole(role: unknown): boolean {
   return typeof role === "string" && role !== USER_ROLES.CUSTOMER;
+}
+
+/** The session with its audience settled: the stored row's when it was read. */
+function withSessionClient(session: AuthSession, stored?: unknown): AuthSession {
+  return {
+    ...session,
+    session: {
+      ...session.session,
+      client: sessionClientOf(stored ?? session.session.client),
+    },
+  };
 }
 
 /**
@@ -578,7 +836,9 @@ async function hydrateSessionUserFromDb(
   try {
     const db = mongoose.connection.db;
     if (!db || !ObjectId.isValid(session.user.id)) {
-      return isPrivilegedRole(session.user.role) ? null : session;
+      return isPrivilegedRole(session.user.role)
+        ? null
+        : withSessionClient(session);
     }
 
     // Also proves the session row still exists, so a revoked session stops
@@ -621,24 +881,29 @@ async function hydrateSessionUserFromDb(
       activeSecuritySettings,
     );
 
-    return {
-      ...session,
-      user: {
-        ...session.user,
-        role,
-        roles,
-        status,
-        emailVerified,
-        createdAt,
-        emailVerificationRequiredAt,
-        emailVerificationAudience,
-        emailVerificationStatus,
+    return withSessionClient(
+      {
+        ...session,
+        user: {
+          ...session.user,
+          role,
+          roles,
+          status,
+          emailVerified,
+          createdAt,
+          emailVerificationRequiredAt,
+          emailVerificationAudience,
+          emailVerificationStatus,
+        },
       },
-    };
+      userDoc.sessionClient,
+    );
   } catch (error) {
     console.error("Failed to hydrate session user from database:", error);
     // Fail closed for privileged roles; a shopper keeps browsing.
-    return isPrivilegedRole(session.user.role) ? null : session;
+    return isPrivilegedRole(session.user.role)
+      ? null
+      : withSessionClient(session);
   }
 }
 
@@ -664,9 +929,11 @@ async function getAuthInstance(): Promise<AuthInstance> {
 
       // Try to load security settings from database
       let securitySettings: AuthSecuritySettings | undefined;
+      let appOrigins = NO_APP_ORIGINS;
       try {
         const settingsCollection = db.collection("settings");
         const settings = await settingsCollection.findOne({});
+        appOrigins = appOriginsFromSettings(settings?.mobileApp);
         if (settings?.security) {
           const now = new Date();
           const verificationMigration: Record<string, Date> = {};
@@ -724,7 +991,7 @@ async function getAuthInstance(): Promise<AuthInstance> {
         );
       }
 
-      authInstance = createAuth(db, client, securitySettings);
+      authInstance = createAuth(db, client, securitySettings, appOrigins);
       activeSecuritySettings = securitySettings || defaultSecuritySettings;
       authInstanceBuiltAt = Date.now();
       return authInstance;
@@ -792,7 +1059,70 @@ interface AuthSession {
     expiresAt: Date;
     /** When this sign-in happened; see lib/auth/recent-sign-in.ts. */
     createdAt?: Date;
+    /** Where the session may be used; see lib/auth/session-audience.ts. */
+    client: SessionClient;
   };
+}
+
+type SessionReadArgs = GetSessionArgs[0] & {
+  /**
+   * The audiences this read accepts (lib/auth/session-audience.ts). The web
+   * unless said otherwise, so every page and `withApi` route refuses a
+   * session from an app without asking for it.
+   */
+  expect?: SessionExpectation;
+};
+
+async function readBetterAuthSession(
+  args: GetSessionArgs[0],
+): Promise<AuthSession | null> {
+  const instance = (await getAuthInstance()) as unknown as {
+    api: { getSession: (...innerArgs: unknown[]) => GetSessionReturn };
+  };
+  const session = await instance.api.getSession(args);
+  // Cast to our typed session which includes custom fields
+  return session as unknown as AuthSession | null;
+}
+
+/**
+ * A session read: the session, or none — and, when the session is good but
+ * held back for something its holder can put right, why. That is one thing
+ * today: the store requires a verified email address and theirs is not yet
+ * (`blocked_pending`). Sign-up still mints the session (the session hook lets
+ * /sign-up/email through), and Better Auth's own /get-session keeps answering
+ * it, so the shopper app has to be told why it is refused, or it takes the
+ * refusal for a lost session. Any other refusal is simply no session.
+ */
+interface SessionVerdict {
+  session: AuthSession | null;
+  hold?: "email_not_verified";
+}
+
+async function readSessionVerdict({
+  expect = "web",
+  ...args
+}: SessionReadArgs): Promise<SessionVerdict> {
+  const typedSession = await readBetterAuthSession(args);
+  if (!typedSession) return { session: null };
+  const hydratedSession = await hydrateSessionUserFromDb(typedSession);
+  if (!hydratedSession) return { session: null };
+
+  // A session from another client is no session here: an app's cookie on
+  // the web, or a browser's on the mobile API.
+  if (!isExpectedClient(hydratedSession.session.client, expect)) {
+    return { session: null };
+  }
+
+  // Banned or deactivated accounts lose their session whatever their role,
+  // so an admin can lock out staff and other admins without deleting them.
+  const status = hydratedSession.user.status || USER_ACCOUNT_STATUS.ACTIVE;
+  if (status !== USER_ACCOUNT_STATUS.ACTIVE) return { session: null };
+
+  if (hydratedSession.user.emailVerificationStatus === "blocked_pending") {
+    return { session: null, hold: "email_not_verified" };
+  }
+
+  return { session: hydratedSession };
 }
 
 export const auth = {
@@ -806,48 +1136,27 @@ export const auth = {
       : instance(request);
   },
   api: {
-    async getRegistrationSession(
-      ...args: GetSessionArgs
-    ): Promise<AuthSession | null> {
-      const instance = (await getAuthInstance()) as unknown as {
-        api: { getSession: (...innerArgs: unknown[]) => GetSessionReturn };
-      };
-      const session = await instance.api.getSession(...(args as unknown[]));
-      const typedSession = session as unknown as AuthSession | null;
+    async getRegistrationSession({
+      expect = "web",
+      ...args
+    }: SessionReadArgs): Promise<AuthSession | null> {
+      const typedSession = await readBetterAuthSession(args);
       if (!typedSession) return null;
 
       const hydratedSession = await hydrateSessionUserFromDb(typedSession);
       if (!hydratedSession) return null;
+      if (!isExpectedClient(hydratedSession.session.client, expect)) return null;
 
       const status = hydratedSession.user.status || USER_ACCOUNT_STATUS.ACTIVE;
       if (status !== USER_ACCOUNT_STATUS.ACTIVE) return null;
 
       return hydratedSession;
     },
-    async getSession(...args: GetSessionArgs): Promise<AuthSession | null> {
-      const instance = (await getAuthInstance()) as unknown as {
-        api: { getSession: (...innerArgs: unknown[]) => GetSessionReturn };
-      };
-      const session = await instance.api.getSession(...(args as unknown[]));
-      // Cast to our typed session which includes custom fields
-      const typedSession = session as unknown as AuthSession | null;
-      if (!typedSession) return null;
-      const hydratedSession = await hydrateSessionUserFromDb(typedSession);
-      if (!hydratedSession) return null;
-
-      // Banned or deactivated accounts lose their session whatever their role,
-      // so an admin can lock out staff and other admins without deleting them.
-      const status = hydratedSession.user.status || USER_ACCOUNT_STATUS.ACTIVE;
-      if (status !== USER_ACCOUNT_STATUS.ACTIVE) return null;
-
-      if (
-        hydratedSession.user.emailVerificationStatus === "blocked_pending"
-      ) {
-        return null;
-      }
-
-      return hydratedSession;
+    async getSession(args: SessionReadArgs): Promise<AuthSession | null> {
+      return (await readSessionVerdict(args)).session;
     },
+    /** `getSession`, saying why a good session is held back (`SessionVerdict`). */
+    getSessionVerdict: readSessionVerdict,
   },
 };
 

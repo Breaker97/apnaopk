@@ -5,7 +5,14 @@ import type { CartItem, IOrder, OrderItem } from "@/types";
 type AnalyticsConsentState = "granted" | "denied";
 
 interface AnalyticsItem {
+  /** GA4's id: always the product, whatever variant was picked. */
   item_id: string;
+  /**
+   * The Meta catalog item this is (lib/meta-catalog/map-product.ts): the
+   * variant's id when a variant is known, otherwise the product's. Only the
+   * Pixel sends it; GA4 keeps `item_id`. Build it with `metaContentId`.
+   */
+  meta_id?: string;
   item_name: string;
   price?: number;
   quantity?: number;
@@ -16,6 +23,12 @@ interface AnalyticsItem {
 }
 
 interface AnalyticsEcommercePayload {
+  /**
+   * What the Pixel's ids name. "product_group" for a product page whose
+   * variant is not picked yet: the id is then the product's, which the feed
+   * sends as `item_group_id`. Anything else is "product".
+   */
+  metaContentType?: "product" | "product_group";
   currency?: string;
   value?: number;
   items?: AnalyticsItem[];
@@ -79,6 +92,7 @@ function cleanItems(items: AnalyticsItem[] | undefined) {
       const quantity = Math.max(1, Number(item.quantity || 1));
       return {
         item_id: String(item.item_id || "").trim(),
+        meta_id: item.meta_id ? String(item.meta_id).trim() : undefined,
         item_name: String(item.item_name || "").trim(),
         price: numberOrUndefined(item.price),
         quantity,
@@ -115,9 +129,21 @@ export function warnAboutDirectAndGtmDuplicates(config?: AnalyticsConfig) {
   storage()?.setItem(DIRECT_WARNING_KEY, "1");
 }
 
+/**
+ * The id the Meta catalog knows a line by: the variant when there is one,
+ * the product when there is not — the feed's `id` either way.
+ */
+export function metaContentId(
+  productId: unknown,
+  variantId?: unknown,
+): string {
+  return variantId ? String(variantId) : String(productId);
+}
+
 function analyticsItemFromCartItem(item: CartItem): AnalyticsItem {
   return {
     item_id: String(item.productId),
+    meta_id: metaContentId(item.productId, item.variantId),
     item_name: item.name,
     item_variant: item.variantId ? String(item.variantId) : item.variantName,
     price: Number(item.price || 0),
@@ -132,6 +158,7 @@ export function analyticsItemsFromCart(items: CartItem[]) {
 function analyticsItemFromOrderItem(item: OrderItem): AnalyticsItem {
   return {
     item_id: String(item.productId),
+    meta_id: metaContentId(item.productId, item.variantId),
     item_name: item.name,
     item_variant: item.variantId ? String(item.variantId) : undefined,
     sku: item.sku,
@@ -143,7 +170,8 @@ function analyticsItemFromOrderItem(item: OrderItem): AnalyticsItem {
 export function analyticsPayloadFromOrder(order: Partial<IOrder>) {
   return normalizePayload({
     orderId: order.orderNumber || (order._id ? String(order._id) : undefined),
-    currency: undefined,
+    // The currency the order was charged in, frozen on it.
+    currency: order.currency || undefined,
     value: Number(order.total || 0),
     paymentMethod: order.paymentMethod,
     items: Array.isArray(order.items)
@@ -189,22 +217,25 @@ function ga4Payload(payload: AnalyticsEcommercePayload) {
     transaction_id: normalized.orderId,
     payment_type: normalized.paymentMethod,
     search_term: normalized.searchTerm,
-    items: normalized.items,
+    // GA4 is told about products; the Meta id is the Pixel's alone.
+    items: normalized.items.map(({ meta_id, ...item }) => item),
   };
 }
 
 function metaPayload(payload: AnalyticsEcommercePayload) {
   const normalized = normalizePayload(payload);
+  // The catalog's ids, so a catalog ad can match this event to an item.
+  const metaId = (item: AnalyticsItem) => item.meta_id || item.item_id;
   return {
     currency: normalized.currency,
     value: normalized.value,
-    content_ids: normalized.items.map((item) => item.item_id),
+    content_ids: normalized.items.map(metaId),
     contents: normalized.items.map((item) => ({
-      id: item.item_id,
+      id: metaId(item),
       quantity: item.quantity || 1,
       item_price: item.price,
     })),
-    content_type: "product",
+    content_type: normalized.metaContentType ?? "product",
     order_id: normalized.orderId,
     search_string: normalized.searchTerm,
   };

@@ -38,15 +38,22 @@ import {
 } from "@/lib/inventory/inventory";
 import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
+import { createAuditContext } from "@/lib/audit";
+import { auditOrderPlaced } from "@/lib/orders/audit-order";
 import { withApi } from "@/lib/api/handler";
 import { fetchVendorOrderList } from "@/lib/vendors/vendor-order-list";
+import {
+  auditVendorOrdersExported,
+  buildVendorOrderExport,
+} from "@/lib/vendors/vendor-order-export";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
 import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
 
 /**
  * GET /api/vendor/orders
- * Get orders for the current vendor
+ * Get orders for the current vendor. With `?format=csv`, the same filters as a
+ * file: every matching order (up to a cap), not one page of them.
  * Requires: VIEW_ORDERS permission
  */
 export const GET = withApi(
@@ -59,10 +66,12 @@ export const GET = withApi(
       "You do not have permission to view orders",
     );
 
+    const wantsCsv = request.nextUrl.searchParams.get("format") === "csv";
+
     await rateLimitByUser(
       request,
       session.user.id,
-      "vendor:orders:list",
+      wantsCsv ? "vendor:orders:export" : "vendor:orders:list",
       "lenient",
       session.user.role,
     );
@@ -74,6 +83,7 @@ export const GET = withApi(
       status,
       paymentStatus,
       view,
+      date,
       sortBy,
       sortOrder,
     } = validateQuery(request, OrderListQuerySchema);
@@ -83,8 +93,27 @@ export const GET = withApi(
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
 
     const vendor = await requireApprovedVendorByUserId(session.user.id);
+
+    // The vendor comes from the session, never the query, so the file is always
+    // their own.
+    if (wantsCsv) {
+      const { response, rowCount, truncated, filters } =
+        await buildVendorOrderExport(
+          request,
+          { search, status, paymentStatus, view, date, sortBy, sortOrder },
+          vendor._id,
+        );
+      // Recorded once the file is built: the row is the only trace that a copy
+      // of the seller's customers left the store.
+      await auditVendorOrdersExported(
+        createAuditContext(request, session, { vendorId: vendor._id }),
+        { rowCount, truncated, filters },
+      );
+      return response;
+    }
+
     const list = await fetchVendorOrderList(
-      { page, limit, search, status, paymentStatus, view, sortBy, sortOrder },
+      { page, limit, search, status, paymentStatus, view, date, sortBy, sortOrder },
       vendor._id,
     );
 
@@ -361,6 +390,20 @@ export async function POST(request: NextRequest) {
 
     await notifyOrderCreatedParticipants(order).catch((err) =>
       console.error("Failed to create vendor order notifications:", err),
+    );
+
+    // The birth event for the order's timeline: a seller hand-making an order,
+    // at prices of their choosing, is as much worth a row as an admin doing it.
+    await auditOrderPlaced(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      order,
+      {
+        source: "vendor",
+        total: order.total,
+        currency: order.currency,
+        itemCount: order.items.length,
+        paymentMethod: order.paymentMethod,
+      },
     );
 
     return createdResponse(

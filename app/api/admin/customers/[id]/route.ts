@@ -15,6 +15,7 @@ import {
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { AdminUpdateCustomerProfileSchema } from "@/lib/validations";
 import { computeLoyaltyTier } from "@/lib/customers/customer";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import { setMarketingConsent } from "@/lib/customers/marketing-consent";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import {
@@ -27,10 +28,13 @@ import { validateBody } from "@/lib/api/validate";
 import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
 import { isCustomerAccount } from "@/lib/access/customer-account";
 import { revokeAllSessions } from "@/lib/auth/session-revocation";
+import { notifyAccountStatusChange } from "@/lib/notifications/notifications";
+import { afterResponse } from "@/lib/after-response";
 import { hasStaffScope, type StaffAccessScope } from "@/lib/access/staff-scope";
 import { isProfileInStaffScope } from "@/lib/customers/customer-staff-scope";
 import { withApi } from "@/lib/api/handler";
 import { cleanupDeletedUserReferences } from "@/lib/customers/user-cleanup";
+import { accountEmailOption } from "@/lib/customers/account-email-recipients";
 import { getSettings } from "@/models/settings.model";
 import {
   areCountryValuesEquivalent,
@@ -116,7 +120,10 @@ export const GET = withApi<{ id: string }>(
       return notFoundResponse("Customer profile");
     }
 
-    return successResponse({ profile });
+    // The header's "Send password reset" / "Send account invite", or neither.
+    const accountEmail = await accountEmailOption(profile);
+
+    return successResponse({ profile, accountEmail });
   },
 );
 
@@ -203,7 +210,10 @@ export const PUT = withApi<{ id: string }>(
     // from `lifetimePoints` on every award and reversal. Setting the two
     // independently meant an adjusted balance was invisible to the tier, and a
     // hand-picked tier was silently reverted by the customer's next order.
-    if (parsed.loyaltyPoints !== undefined) {
+    // While loyalty is hidden (`isLoyaltyEnabled`) the balance takes no edits:
+    // the customer page's Save still sends the loaded balance, and rewriting
+    // it would also reset `lifetimePoints` behind a screen nobody can see.
+    if (parsed.loyaltyPoints !== undefined && isLoyaltyEnabled()) {
       const points = Math.max(0, Math.floor(parsed.loyaltyPoints));
       profileUpdateFields.loyaltyPoints = points;
       profileUpdateFields.lifetimePoints = points;
@@ -325,6 +335,15 @@ export const PUT = withApi<{ id: string }>(
       await User.updateOne({ _id: userId }, { $set: userUpdateFields });
     }
     if (userId && emailChanged) await revokeAllSessions(userId);
+    if (userId && userUpdateFields.status !== undefined) {
+      afterResponse(() =>
+        notifyAccountStatusChange({
+          userId,
+          from: existingUser?.status,
+          to: String(userUpdateFields.status),
+        }),
+      );
+    }
 
     // Audit log — guest rows audit against the profile id and checkout email,
     // there being no user to attribute the record to.

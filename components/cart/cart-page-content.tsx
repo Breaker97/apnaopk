@@ -24,10 +24,10 @@ import {
   formatPreorderDate,
   getPreorderPaymentLabel,
   getQuantityOptions,
-  parseVariantDetails,
   useCartPageState,
   type CartLineMetadata,
 } from "@/components/cart/use-cart-page-state";
+import { cartLineVariantOptions } from "@/lib/cart/variant-options";
 
 function CartAttribute({ label, value }: { label: string; value: string }) {
   return (
@@ -139,7 +139,11 @@ export function CartPageContent() {
     const variantId = item.variantId?.toString();
     const itemKey = variantId ? `${productId}-${variantId}` : productId;
     const isUpdating = updatingItems.has(itemKey);
-    const details = parseVariantDetails(item.variantName);
+    // The captions from lib/cart/variant-options.ts (the option names on
+    // the store today, attached by the cart read), not main-app's keyword
+    // guess, which could only ever say Color and Size. A pair from a stored
+    // label alone has no name; it keeps main-app's positional Color, Size.
+    const variantOptions = cartLineVariantOptions(item);
     const metadata = item as CartLineMetadata;
     const comparePrice = metadata.comparePrice;
     const hasComparePrice =
@@ -235,15 +239,16 @@ export function CartPageContent() {
 
         <div className="col-span-2 min-w-0 sm:col-span-1 sm:mt-[14px]">
           <div className="grid grid-cols-3 gap-3 sm:gap-[42px]">
-            {details.color && (
+            {variantOptions.map((option, index) => (
               <CartAttribute
-                label={t("products.color")}
-                value={details.color}
+                key={`${option.name}-${index}`}
+                label={
+                  option.name ||
+                  (index === 0 ? t("products.color") : t("products.size"))
+                }
+                value={option.value}
               />
-            )}
-            {details.size && (
-              <CartAttribute label={t("products.size")} value={details.size} />
-            )}
+            ))}
             <div className="min-w-0">
               <p className="truncate text-[13px] leading-5 text-muted-foreground sm:text-[14px]">
                 {t("common.quantity")}

@@ -1,17 +1,11 @@
 import { connectDB } from "@/lib/db";
-import { CustomerProfile, User } from "@/models";
 import { fetchVendorCustomerList } from "@/lib/customers/customer-list";
 import { paginatedResponse, createdResponse } from "@/lib/api/response";
+import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import {
-  AuthorizationError,
-  ConflictError,
-  NotFoundError,
-  ApiError,
-  ValidationError,
-} from "@/lib/api/errors";
-import { USER_ACCOUNT_STATUS, USER_ROLES } from "@/config/app.config";
-import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
-import { hasVendorPermission, isAdmin, type MinimalUser } from "@/lib/access/rbac";
+  requireVendorCustomerListPermission,
+  requireVendorOrderPermission,
+} from "@/lib/vendors/vendor-customer-access";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getSettings } from "@/models/settings.model";
 import { validateBody, validateQuery } from "@/lib/api/validate";
@@ -20,9 +14,8 @@ import {
   CustomerListQuerySchema,
 } from "@/lib/validations";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
-import { ensureCustomerProfile } from "@/lib/customers/customer";
-import { createAuditContext, auditCreate } from "@/lib/audit";
-import { notifyAdminsNewCustomer } from "@/lib/notifications/notifications";
+import { createAuditContext } from "@/lib/audit";
+import { createCustomerFromForm } from "@/lib/customers/customer-upsert";
 import { withApi } from "@/lib/api/handler";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 
@@ -55,35 +48,6 @@ function normalizeShippingAddress(address?: ShippingAddressInput) {
     isDefault: true,
     label: address.label || "home",
   };
-}
-
-async function requireVendorOrderPermission(user: MinimalUser) {
-  if (isAdmin(user)) return;
-  const canCreate = await hasVendorPermission(
-    user,
-    VENDOR_PERMISSIONS.CREATE_ORDERS,
-  );
-  if (canCreate) return;
-  const canManage = await hasVendorPermission(
-    user,
-    VENDOR_PERMISSIONS.MANAGE_ORDERS,
-  );
-  if (canManage) return;
-  throw new AuthorizationError(
-    "You do not have permission to create orders",
-  );
-}
-
-/**
- * Reading the list additionally opens to view_orders: the customers page
- * derives entirely from orders the vendor can already see, so it exposes
- * nothing an order-viewing member doesn't have. Creating customers (POST)
- * stays behind the order-creation permissions.
- */
-async function requireVendorCustomerListPermission(user: MinimalUser) {
-  if (isAdmin(user)) return;
-  if (await hasVendorPermission(user, VENDOR_PERMISSIONS.VIEW_ORDERS)) return;
-  return requireVendorOrderPermission(user);
 }
 
 /**
@@ -168,72 +132,24 @@ export const POST = withApi(
       });
     }
 
-    const existingUser = await User.findOne({ email }).select("_id role").lean();
-    if (existingUser) {
-      throw new ConflictError("A user with this email already exists");
-    }
-
-    const user = await User.create({
-      name: parsed.name.trim(),
-      email,
-      phone: parsed.phone?.trim() || undefined,
-      addresses: shippingAddress ? [shippingAddress] : [],
-      role: USER_ROLES.CUSTOMER,
-      roles: [USER_ROLES.CUSTOMER],
-      status: parsed.status || USER_ACCOUNT_STATUS.ACTIVE,
-    });
-
-    const baseProfile = await ensureCustomerProfile(user._id.toString());
-    if (!baseProfile) {
-      throw new ApiError("Failed to initialize customer profile", 500);
-    }
-
-    const tags =
-      parsed.tags?.map((tag) => tag.trim()).filter(Boolean) || undefined;
-
-    const profileUpdates: Record<string, unknown> = {};
-    if (tags) profileUpdates.tags = Array.from(new Set(tags));
-    if (parsed.notes !== undefined) profileUpdates.notes = parsed.notes;
-    if (shippingAddress) profileUpdates.shippingAddress = shippingAddress;
-
-    if (Object.keys(profileUpdates).length > 0) {
-      await CustomerProfile.updateOne(
-        { _id: baseProfile._id },
-        { $set: profileUpdates },
-      );
-    }
-
-    const profile = await CustomerProfile.findById(baseProfile._id)
-      .populate({
-        path: "userId",
-        select: "name email image phone role status createdAt",
-      })
-      .lean();
-
-    const auditContext = createAuditContext(request, session);
-    await auditCreate(
-      auditContext,
-      "user",
-      user._id.toString(),
+    // The same account the admin's form makes — a guest row under the email
+    // becomes its row — minus the store-only fields (points, source).
+    const profile = await createCustomerFromForm(
       {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        customerProfileId: String(baseProfile._id),
-        createdViaVendor: session.user.id,
+        name: parsed.name.trim(),
+        email,
+        phone: parsed.phone,
+        status: parsed.status,
+        tags: parsed.tags,
+        notes: parsed.notes,
+        shippingAddress,
       },
-      user.email,
-    );
-
-    await notifyAdminsNewCustomer(
       {
-        customerId: user._id.toString(),
-        name: user.name,
-        email: user.email,
+        auditContext: createAuditContext(request, session),
         createdBy: session.user.id,
+        audience: "vendor",
+        settings,
       },
-      { settings },
     );
 
     return createdResponse({ profile }, "Customer created successfully");

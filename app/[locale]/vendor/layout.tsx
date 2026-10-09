@@ -31,6 +31,7 @@ import { AiAvailabilityProvider } from "@/components/ai-authoring/ai-availabilit
 import { getAIAuthoringAvailability } from "@/lib/ai-authoring/runtime";
 import { vendorAuthoringDenial } from "@/lib/ai-authoring/permissions";
 import { NO_AI_AUTHORING_AVAILABILITY } from "@/lib/ai-authoring/access";
+import { vendorsSeeAbandonedCheckouts } from "@/lib/orders/vendor-abandoned-checkout-access";
 
 // Canonical, hreflang and robots from the URL being served.
 export { generateMetadata } from "@/lib/storefront/request-path-metadata";
@@ -204,6 +205,7 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
               role: session.user.role as string,
             }}
             vendorPermissions={vendorPermissions}
+            vendorAbandonedCheckouts={vendorsSeeAbandonedCheckouts(settings)}
           />
           <SidebarInset className="[--dashboard-header-height:5rem]">
             <VendorHeader

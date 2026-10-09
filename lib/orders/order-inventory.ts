@@ -29,6 +29,8 @@ type SubOrderShape = {
   items?: SubOrderItem[];
   status?: string;
   inventoryReserved?: boolean;
+  /** Committed pre-order evidence is restored by its own path, never here. */
+  preorderAllocation?: { state?: string } | null;
   fulfillment?: {
     method?: string;
     pickup?: { pickupLocationId?: unknown };
@@ -406,7 +408,10 @@ async function claimSubOrderRestore(params: {
 
   // Atomically flip the matching sub-order's reservation flag from
   // true -> false. Use arrayFilters so we only touch the one sub-order
-  // that is still reserved for this vendor.
+  // that is still reserved for this vendor. A consignment holding committed
+  // pre-order evidence is not this path's: its exact units are put back by
+  // `restoreAllocatedConsignments`, and taking it here too would restore the
+  // same units twice.
   const updated = await Order.findOneAndUpdate(
     {
       _id: params.orderId,
@@ -414,6 +419,7 @@ async function claimSubOrderRestore(params: {
         $elemMatch: {
           vendorId: new Types.ObjectId(params.vendorId),
           inventoryReserved: true,
+          "preorderAllocation.state": { $ne: "committed" },
         },
       },
     },
@@ -424,6 +430,7 @@ async function claimSubOrderRestore(params: {
         {
           "so.vendorId": new Types.ObjectId(params.vendorId),
           "so.inventoryReserved": true,
+          "so.preorderAllocation.state": { $ne: "committed" },
         },
       ],
     },
@@ -435,6 +442,8 @@ async function claimSubOrderRestore(params: {
   const sub = subOrders.find(
     (so) =>
       so.vendorId &&
+      so.inventoryReserved === true &&
+      so.preorderAllocation?.state !== "committed" &&
       String((so.vendorId as { _id?: unknown })?._id || so.vendorId) ===
         params.vendorId,
   );
@@ -485,6 +494,8 @@ function isClaimableSubOrder(
   options?: RestoreClaimOptions,
 ): boolean {
   if (!sub.inventoryReserved) return false;
+  // Restored by its evidence instead — see `restoreAllocatedConsignments`.
+  if (sub.preorderAllocation?.state === "committed") return false;
   if (
     options?.excludeSubOrderIds?.some((id) => String(id) === String(sub._id))
   ) {
@@ -515,7 +526,11 @@ async function claimAllRemainingRestores(
     return { lines: [], opts: {}, consignments: [] };
   }
 
-  const claimFilter: Record<string, unknown> = { "so.inventoryReserved": true };
+  const claimFilter: Record<string, unknown> = {
+    "so.inventoryReserved": true,
+    // Committed pre-order evidence is restored exactly, by its own path.
+    "so.preorderAllocation.state": { $ne: "committed" },
+  };
   if (!options?.includeDispatched) {
     claimFilter["so.status"] = { $nin: DISPATCHED_ORDER_STATUSES };
   }
@@ -569,22 +584,56 @@ export async function restoreOrderInventory(
   orderId: string,
   options?: RestoreClaimOptions,
 ): Promise<boolean> {
+  if (!Types.ObjectId.isValid(orderId)) return false;
   const claimed = await claimAllRemainingRestores(orderId, options);
+  // Consignments whose pre-order units were allocated carry evidence of
+  // exactly what left which shelf, and are restored from it — see below.
+  const excluded = new Set((options?.excludeSubOrderIds || []).map(String));
+  const evidenceSubs = (await readCommittedEvidence(orderId)).filter(
+    (sub) => !excluded.has(String(sub._id)),
+  );
   // Everything these consignments sold is back on the shelf now, a return
   // still open on them included. Marked BEFORE their restocked units are read
   // below: a return restocks a step only while it is unmarked, and records
   // that step in the same write — so every step is either read here or
   // refused, never both missed and restocked twice.
-  if (options?.includeDispatched && claimed.consignments.length > 0) {
-    await markReturnsRestockedByOrder(orderId, claimed.consignments);
+  if (
+    options?.includeDispatched &&
+    (claimed.consignments.length > 0 || evidenceSubs.length > 0)
+  ) {
+    await markReturnsRestockedByOrder(orderId, [
+      ...claimed.consignments,
+      ...evidenceSubs.map((sub) => ({
+        subOrderId: sub._id,
+        vendorId: sub.vendorId,
+        lines: [],
+        costed: false,
+      })),
+    ]);
   }
   // Delivered goods only come back through a return, and a return may have
   // restocked its own units already. The order-wide restock used to put them
   // back a second time. Taken consignment by consignment, so the ledger is
   // told which seller's units actually came back.
-  const alreadyBack = options?.includeDispatched
+  let alreadyBack = options?.includeDispatched
     ? new Map(await returnRestockedUnits(orderId))
     : new Map<string, number>();
+
+  // Allocated pre-order units: exactly the evidence, to the branches they came
+  // off, once — in a transaction where the deployment has them.
+  let evidence = false;
+  if (evidenceSubs.length > 0) {
+    const outcome = await restoreEvidenceConsignments(orderId, {
+      includeDispatched: options?.includeDispatched,
+      excludeSubOrderIds: options?.excludeSubOrderIds,
+      alreadyBack: alreadyBack.size > 0 ? alreadyBack : undefined,
+    });
+    evidence = outcome.restored;
+    // What the evidence restore left of the returned units, so the same unit
+    // is never taken off twice across the two paths.
+    if (outcome.alreadyBack) alreadyBack = outcome.alreadyBack;
+  }
+
   const consignments = claimed.consignments.map((consignment) => ({
     ...consignment,
     lines:
@@ -593,10 +642,109 @@ export async function restoreOrderInventory(
         : consignment.lines,
   }));
   const lines = consignments.flatMap((consignment) => consignment.lines);
-  if (lines.length === 0) return false;
-  await restoreInventory(lines, claimed.opts);
-  postRestockedUnits(orderId, consignments);
-  return true;
+  if (lines.length > 0) {
+    await restoreInventory(lines, claimed.opts);
+    postRestockedUnits(orderId, consignments);
+  }
+  return lines.length > 0 || evidence;
+}
+
+/**
+ * The consignments of this order holding committed pre-order evidence — the
+ * ones `restoreAllocatedConsignments` restores and the claims above leave
+ * alone. Empty when the order has none, which is every order but an allocated
+ * pre-order, so those pay one indexed read and nothing else.
+ */
+async function readCommittedEvidence(orderId: string): Promise<SubOrderShape[]> {
+  // Unit-test doubles of the model may not implement the read; an order
+  // nobody can read has no evidence to restore from.
+  if (typeof (Order as { findById?: unknown }).findById !== "function") return [];
+  try {
+    const order = await Order.findById(orderId)
+      .select(
+        "subOrders._id subOrders.vendorId subOrders.status subOrders.preorderAllocation.state subOrders.items.cost",
+      )
+      .lean<{ subOrders?: SubOrderShape[] } | null>();
+    return (order?.subOrders || []).filter(
+      (sub) => sub?.preorderAllocation?.state === "committed",
+    );
+  } catch (error) {
+    console.error("Failed to read pre-order allocation evidence:", error);
+    return [];
+  }
+}
+
+/**
+ * Restore the consignments of this order that hold committed pre-order
+ * evidence, and tell the ledger which costed units came back. Never throws: a
+ * cancellation that has already committed must not be reported as failed
+ * because a restock did — the failure is logged and the evidence stays
+ * committed, so nothing is lost and the next restore of the order (a retry, a
+ * refund with restock, the lifecycle worker) puts it back.
+ */
+async function restoreEvidenceConsignments(
+  orderId: string,
+  options: {
+    subOrderIds?: string[];
+    includeDispatched?: boolean;
+    excludeSubOrderIds?: ReadonlyArray<unknown>;
+    alreadyBack?: Map<string, number>;
+  },
+): Promise<{ restored: boolean; alreadyBack?: Map<string, number> }> {
+  try {
+    const { restoreAllocatedConsignments } = await import(
+      "@/lib/orders/preorder-allocation"
+    );
+    const result = await restoreAllocatedConsignments({
+      orderId,
+      subOrderIds: options.subOrderIds,
+      mode: "cancelled",
+      includeDispatched: options.includeDispatched,
+      excludeSubOrderIds: options.excludeSubOrderIds,
+      alreadyBack: options.alreadyBack,
+    });
+    const costed = new Set(
+      (await readCommittedEvidenceCosts(orderId, result.restored)).map(String),
+    );
+    const restocked = result.restored.filter((entry) => entry.lines.length > 0);
+    if (restocked.length > 0) {
+      postRestockedUnits(
+        orderId,
+        restocked.map((entry) => ({
+          subOrderId: entry.subOrderId,
+          vendorId: entry.vendorId,
+          lines: entry.lines,
+          costed: costed.has(entry.subOrderId),
+        })),
+      );
+    }
+    return {
+      restored: result.restored.length > 0,
+      alreadyBack: result.alreadyBack,
+    };
+  } catch (error) {
+    console.error("Failed to restore allocated pre-order stock:", error);
+    return { restored: false };
+  }
+}
+
+/** Which restored consignments recorded a unit cost — the ledger's question. */
+async function readCommittedEvidenceCosts(
+  orderId: string,
+  restored: Array<{ subOrderId: string }>,
+): Promise<string[]> {
+  if (restored.length === 0) return [];
+  const order = await Order.findById(orderId)
+    .select("subOrders._id subOrders.items.cost")
+    .lean<{ subOrders?: SubOrderShape[] } | null>();
+  const wanted = new Set(restored.map((entry) => entry.subOrderId));
+  return (order?.subOrders || [])
+    .filter(
+      (sub) =>
+        wanted.has(String(sub._id)) &&
+        (sub.items || []).some((item) => typeof item.cost === "number"),
+    )
+    .map((sub) => String(sub._id));
 }
 
 /**
@@ -771,8 +919,19 @@ export async function restoreSubOrderInventory(params: {
   orderId: string;
   vendorId: string;
 }): Promise<boolean> {
+  if (!Types.ObjectId.isValid(params.orderId)) return false;
+  // This vendor's allocated pre-order units, from their evidence.
+  const evidenceIds = (await readCommittedEvidence(params.orderId))
+    .filter((sub) => String(sub.vendorId || "") === params.vendorId)
+    .map((sub) => String(sub._id));
+  const evidence =
+    evidenceIds.length > 0
+      ? (await restoreEvidenceConsignments(params.orderId, { subOrderIds: evidenceIds }))
+          .restored
+      : false;
+
   const claim = await claimSubOrderRestore(params);
-  if (!claim || claim.lines.length === 0) return false;
+  if (!claim || claim.lines.length === 0) return evidence;
   await restoreInventory(claim.lines, claim.opts);
   postRestockedUnits(params.orderId, [claim.consignment]);
   return true;

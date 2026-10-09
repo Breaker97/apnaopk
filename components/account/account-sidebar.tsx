@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Pencil, Loader2, Star } from "lucide-react";
 import type { LoyaltyTier } from "@/types";
 import { cn } from "@/lib/utils";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import type { DemoModeState } from "@/lib/demo-mode-shared";
 import { useAuth } from "@/hooks/use-auth";
 import { signOutAndReload } from "@/lib/auth/auth-client";
@@ -193,7 +194,8 @@ export function AccountSidebar({
             <p className="text-xs text-muted-foreground truncate">
               {user?.email}
             </p>
-            {liveStats.loyaltyTier && (
+            {/* Hidden with the rest of loyalty (see `isLoyaltyEnabled`). */}
+            {isLoyaltyEnabled() && liveStats.loyaltyTier && (
               <Badge
                 variant="outline"
                 className={cn(

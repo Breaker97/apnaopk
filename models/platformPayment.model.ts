@@ -98,6 +98,8 @@ export interface IPlatformPayment extends Document {
    * money had already left.
    */
   refundedAmount: number;
+  refundedAt?: Date;
+  ledgerRefundAcceptedAmount?: number;
   currency: string;
   /** Our merchant reference ("BOOST-<id>-<ts36>" / "VSUB-<id>-<ts36>"). */
   reference: string;
@@ -122,6 +124,7 @@ export interface IPlatformPayment extends Document {
   /** MTN's financialTransactionId, present once SUCCESSFUL. */
   mtnMomoTransactionId: string | null;
   paidAt: Date | null;
+  benefitReversedAt?: Date;
   benefitGrantedAt: Date | null;
   failedAt: Date | null;
   failureReason: string | null;
@@ -235,6 +238,8 @@ const PlatformPaymentSchema = new Schema<IPlatformPayment>(
     mtnMomoReferenceId: { type: String, default: null },
     mtnMomoTransactionId: { type: String, default: null },
     paidAt: { type: Date, default: null },
+    ledgerRefundAcceptedAmount: { type: Number, min: 0 },
+    refundedAt: { type: Date },
   // Set once the purchased benefit (boost activation / period advance) has
   // landed. status PAID with this null = crashed mid-grant; retries repair.
   benefitGrantedAt: { type: Date, default: null },

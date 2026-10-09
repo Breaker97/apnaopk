@@ -4,7 +4,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Clock3, Mail, MapPin, Phone } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
-import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { ContactForm } from "@/components/store/contact-form";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import {
@@ -12,7 +11,7 @@ import {
   SocialIconLinks,
   buildSocialItems,
 } from "@/components/store/store-contact-rows";
-import { type ContactPageData } from "@/lib/site-config/content-pages-config";
+import { contactMapEmbedUrl, contactMapExternalUrl } from "@/lib/storefront/contact-map";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 
 interface PageProps {
@@ -43,74 +42,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const fallbackStoreContact: StoreContactData = {
-  storeName: DEFAULT_STORE_NAME,
-  email: "support@storify.com",
-  phone: "+1 (555) 010-2400",
-  address: "221 Commerce Street, New York, NY 10013",
-  social: {},
-};
-
-function hasCoordinates(page: ContactPageData) {
-  return page.mapLatitude.trim() && page.mapLongitude.trim();
-}
-
-function resolveMapQuery(page: ContactPageData, contact: StoreContactData) {
-  if (hasCoordinates(page)) {
-    return `${page.mapLatitude.trim()},${page.mapLongitude.trim()}`;
-  }
-
-  return page.mapAddress.trim() || contact.address || contact.storeName;
-}
-
-function resolveMapEmbedUrl(page: ContactPageData, contact: StoreContactData) {
-  const query = resolveMapQuery(page, contact);
-  const encodedQuery = encodeURIComponent(query);
-
-  if (
-    page.mapProvider === "custom" &&
-    /^https?:\/\//i.test(page.mapEmbedUrl.trim())
-  ) {
-    return page.mapEmbedUrl.trim();
-  }
-
-  if (page.mapProvider === "openstreetmap") {
-    if (hasCoordinates(page)) {
-      const lat = encodeURIComponent(page.mapLatitude.trim());
-      const lon = encodeURIComponent(page.mapLongitude.trim());
-      return `https://www.openstreetmap.org/export/embed.html?mlat=${lat}&mlon=${lon}&zoom=${page.mapZoom}`;
-    }
-
-    return `https://www.openstreetmap.org/search?query=${encodedQuery}`;
-  }
-
-  return `https://www.google.com/maps?q=${encodedQuery}&z=${page.mapZoom}&output=embed`;
-}
-
-function resolveMapExternalUrl(page: ContactPageData, contact: StoreContactData) {
-  const query = resolveMapQuery(page, contact);
-  const encodedQuery = encodeURIComponent(query);
-
-  if (page.mapProvider === "openstreetmap") {
-    if (hasCoordinates(page)) {
-      const lat = encodeURIComponent(page.mapLatitude.trim());
-      const lon = encodeURIComponent(page.mapLongitude.trim());
-      return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=${page.mapZoom}/${lat}/${lon}`;
-    }
-
-    return `https://www.openstreetmap.org/search?query=${encodedQuery}`;
-  }
-
-  if (
-    page.mapProvider === "custom" &&
-    /^https?:\/\//i.test(page.mapEmbedUrl.trim())
-  ) {
-    return page.mapEmbedUrl.trim();
-  }
-
-  return `https://www.google.com/maps/search/?api=1&query=${encodedQuery}`;
-}
-
 export default async function ContactPage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -130,16 +61,18 @@ export default async function ContactPage({ params }: PageProps) {
     notFound();
   }
 
+  // Only what the merchant entered: a row left blank is not shown, as in the
+  // app's /contact, rather than filled with someone else's address.
   const contact: StoreContactData = {
-    storeName: storeName || fallbackStoreContact.storeName,
-    email: storeEmail || fallbackStoreContact.email,
-    phone: storePhone || fallbackStoreContact.phone,
-    address: storeAddress || fallbackStoreContact.address,
+    storeName,
+    email: storeEmail,
+    phone: storePhone,
+    address: storeAddress,
     social,
   };
 
-  const mapEmbedUrl = resolveMapEmbedUrl(page, contact);
-  const mapExternalUrl = resolveMapExternalUrl(page, contact);
+  const mapEmbedUrl = contactMapEmbedUrl(page, contact.address, contact.storeName);
+  const mapExternalUrl = contactMapExternalUrl(page, contact.address, contact.storeName);
   const socialItems = page.showSocialLinks
     ? buildSocialItems(contact.social)
     : [];
@@ -188,23 +121,29 @@ export default async function ContactPage({ params }: PageProps) {
                 </p>
 
                 <div className="mt-8 space-y-5">
-                  <ContactRow
-                    icon={MapPin}
-                    title={page.headOfficeTitle}
-                    value={contact.address}
-                  />
-                  <ContactRow
-                    icon={Mail}
-                    title={page.emailTitle}
-                    value={contact.email}
-                    href={`mailto:${contact.email}`}
-                  />
-                  <ContactRow
-                    icon={Phone}
-                    title={page.phoneTitle}
-                    value={contact.phone}
-                    href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}
-                  />
+                  {contact.address ? (
+                    <ContactRow
+                      icon={MapPin}
+                      title={page.headOfficeTitle}
+                      value={contact.address}
+                    />
+                  ) : null}
+                  {contact.email ? (
+                    <ContactRow
+                      icon={Mail}
+                      title={page.emailTitle}
+                      value={contact.email}
+                      href={`mailto:${contact.email}`}
+                    />
+                  ) : null}
+                  {contact.phone ? (
+                    <ContactRow
+                      icon={Phone}
+                      title={page.phoneTitle}
+                      value={contact.phone}
+                      href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}
+                    />
+                  ) : null}
                   <ContactRow
                     icon={Clock3}
                     title={page.hoursTitle}

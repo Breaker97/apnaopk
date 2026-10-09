@@ -16,7 +16,7 @@ export function useAuth(options?: {
   requiredRole?: UserRole | UserRole[];
   redirectTo?: string;
 }) {
-  const { data: session, isPending, error } = useBetterAuthSession();
+  const { data: session, isPending, error, refetch } = useBetterAuthSession();
   const router = useRouter();
   const params = useParams();
   const locale = typeof params?.locale === "string" ? params.locale : "";
@@ -60,6 +60,7 @@ export function useAuth(options?: {
     createdAt: Date;
     updatedAt: Date;
     role?: UserRole;
+    roles?: UserRole[];
     phone?: string;
   };
 
@@ -77,5 +78,10 @@ export function useAuth(options?: {
     isLoading: isPending,
     isAuthenticated: !!session?.user,
     error,
+    /**
+     * Re-reads the session. `{ query: { disableCookieCache: true } }` reads the
+     * account itself rather than the up-to-five-minute-old copy in the cookie.
+     */
+    refetch,
   };
 }

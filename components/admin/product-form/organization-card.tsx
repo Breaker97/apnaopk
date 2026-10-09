@@ -34,6 +34,13 @@ interface OrganizationCardProps {
   categories: Category[];
   brands: Brand[];
   availableCollections: CollectionOption[];
+  /**
+   * Whether `categories` is an answer. Only a "ready" empty list means the
+   * store has no categories; while loading, or after the list failed to
+   * load, "create a category first" would send the merchant off to make one
+   * they already have.
+   */
+  categoriesState?: "loading" | "unavailable" | "ready";
 }
 
 export function OrganizationCard({
@@ -41,6 +48,7 @@ export function OrganizationCard({
   categories,
   brands,
   availableCollections,
+  categoriesState = "ready",
 }: OrganizationCardProps) {
   const t = useTranslations();
   const [tagInput, setTagInput] = useState("");
@@ -126,9 +134,12 @@ export function OrganizationCard({
                       "admin.productForm.placeholders.searchCategories",
                     ),
                     clear: t("common.clear"),
-                    noCategories: t(
-                      "admin.productForm.noCategories",
-                    ),
+                    noCategories:
+                      categoriesState === "loading"
+                        ? t("admin.productForm.formOptions.loadingCategories")
+                        : categoriesState === "unavailable"
+                          ? t("admin.productForm.formOptions.categoriesUnavailable")
+                          : t("admin.productForm.noCategories"),
                     noMatches: t(
                       "admin.productForm.noCategoryMatches",
                       {

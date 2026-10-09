@@ -92,7 +92,12 @@ export function buildSubscriptionForPlan(
     storeCurrency?: string | null;
   },
 ) {
-  const isPaid = plan.billingInterval !== VENDOR_BILLING_INTERVAL.NONE;
+  // A billing period with nothing to bill — a free tier sold "monthly" — is a
+  // free plan. The assign-plan route and the application wizard already read
+  // it so; building it as paid left it `incomplete` and out of the active slot,
+  // a store with no plan it could ever pay for.
+  const isPaid =
+    plan.billingInterval !== VENDOR_BILLING_INTERVAL.NONE && Number(plan.price ?? 0) > 0;
   const trialDays = trialDaysForPlan(plan);
   const startsTrial = isPaid && trialDays > 0 && !opts?.verifiedPaid;
   const status = opts?.verifiedPaid

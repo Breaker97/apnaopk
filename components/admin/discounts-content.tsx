@@ -7,8 +7,6 @@ import { apiClient } from "@/lib/api/client";
 import { useTranslations } from "next-intl";
 import {
   CalendarRange,
-  ChevronsUpDown,
-  Download,
   Pencil,
   Percent,
   Plus,
@@ -16,7 +14,6 @@ import {
   TicketPercent,
   Truck,
   Trash2,
-  Upload,
   CheckCircle2,
   CircleOff,
 } from "lucide-react";
@@ -25,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   DataTable,
@@ -67,6 +65,8 @@ interface AdminCoupon {
   status: CouponStatus;
   /** Store coupons only: who pays for the goods discount. Absent means the store. */
   fundedBy?: "platform" | "vendor";
+  /** Offered in the shopper app's coupon list. */
+  listed?: boolean;
 }
 
 interface DiscountsContentProps {
@@ -96,6 +96,7 @@ type CouponFormState = {
   endDate: string;
   status: CouponStatus;
   fundedBy: "platform" | "vendor";
+  listed: boolean;
 };
 
 const DEFAULT_FORM: CouponFormState = {
@@ -112,6 +113,7 @@ const DEFAULT_FORM: CouponFormState = {
   endDate: "",
   status: "active",
   fundedBy: "platform",
+  listed: false,
 };
 
 function getThrowableMessage(error: unknown, fallback: string) {
@@ -150,6 +152,7 @@ function toFormState(coupon?: AdminCoupon | null): CouponFormState {
     endDate: coupon.endDate.slice(0, 10),
     status: coupon.status,
     fundedBy: coupon.fundedBy === "vendor" ? "vendor" : "platform",
+    listed: coupon.listed === true,
   };
 }
 
@@ -216,6 +219,7 @@ export function DiscountsContent({
       startDate: formState.startDate || undefined,
       endDate: formState.endDate,
       status: formState.status,
+      listed: formState.listed,
     };
 
     if (formState.minOrderAmount) payload.minOrderAmount = Number(formState.minOrderAmount);
@@ -278,10 +282,7 @@ export function DiscountsContent({
     async (coupon: AdminCoupon) => {
       const confirmed = await confirm({
         title: tr("Delete Discount", "ডিসকাউন্ট মুছুন"),
-        description: tr(
-          `Are you sure you want to delete \"${coupon.code}\"? This action cannot be undone.`,
-          `আপনি কি \"${coupon.code}\" মুছতে চান? এই কাজটি ফিরিয়ে আনা যাবে না।`,
-        ),
+        description: t("admin.discountsDataTable.deleteSingleDescription", { code: coupon.code }),
         confirmText: tr("Delete", "মুছুন"),
         cancelText: tr("Cancel", "বাতিল"),
         variant: "destructive",
@@ -481,40 +482,8 @@ export function DiscountsContent({
           variant: "default",
           onClick: openCreateDialog,
         },
-        importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
-          variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: tr("Export", "এক্সপোর্ট"),
-              icon: <Download className="h-4 w-4" />,
-              onClick: () =>
-                toast.info(
-                  tr(
-                    "Export will be available soon",
-                    "এক্সপোর্ট খুব শিগগিরই উপলভ্য হবে",
-                  ),
-                ),
-            },
-            {
-              id: "toolbar-import",
-              label: tr("Import", "ইম্পোর্ট"),
-              icon: <Upload className="h-4 w-4" />,
-              onClick: () =>
-                toast.info(
-                  tr(
-                    "Import will be available soon",
-                    "ইম্পোর্ট খুব শিগগিরই উপলভ্য হবে",
-                  ),
-                ),
-            },
-          ],
-        },
       }),
-    [tr, t],
+    [tr],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<AdminCoupon>[]>(
@@ -802,6 +771,23 @@ export function DiscountsContent({
                     value={formState.description}
                     onChange={(e) => setField("description", e.target.value)}
                     placeholder={tr("Optional internal note for this discount", "এই ডিসকাউন্টের জন্য ঐচ্ছিক অভ্যন্তরীণ নোট")}
+                  />
+                </div>
+
+                <div className="flex items-start justify-between gap-4 rounded-md border p-3 md:col-span-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="discount-listed">{tr("Show to shoppers", "ক্রেতাদের দেখান")}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {tr(
+                        "List this code in the shopping app's coupon sheet. Off: it works only when typed.",
+                        "শপিং অ্যাপের কুপন তালিকায় এই কোডটি দেখান। বন্ধ থাকলে কোডটি শুধু টাইপ করলে কাজ করে।",
+                      )}
+                    </p>
+                  </div>
+                  <Switch
+                    id="discount-listed"
+                    checked={formState.listed}
+                    onCheckedChange={(checked) => setField("listed", checked)}
                   />
                 </div>
               </div>

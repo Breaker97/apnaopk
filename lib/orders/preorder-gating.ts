@@ -32,8 +32,45 @@ interface PreorderPolicy {
   expiryGraceDays?: number;
   autoRelease?: boolean;
   autoReleaseDelayDays?: number;
+  balanceChargeNoticeHours?: number;
   reservePercent?: number;
   reserveDays?: number;
+}
+
+/** The advance notice before an automatic balance charge, in hours. */
+export const DEFAULT_BALANCE_CHARGE_NOTICE_HOURS = 24;
+export const MIN_BALANCE_CHARGE_NOTICE_HOURS = 1;
+export const MAX_BALANCE_CHARGE_NOTICE_HOURS = 168;
+
+/**
+ * A whole number of hours within the bounds, or the default. Read on every
+ * use rather than trusted from storage: a store saved before the setting
+ * existed has none, and a value written around the API's validation must not
+ * shorten the notice a shopper is promised to nothing.
+ */
+export function resolveBalanceChargeNoticeHours(value: unknown): number {
+  const hours = Number(value);
+  if (!Number.isInteger(hours)) return DEFAULT_BALANCE_CHARGE_NOTICE_HOURS;
+  return Math.min(
+    MAX_BALANCE_CHARGE_NOTICE_HOURS,
+    Math.max(MIN_BALANCE_CHARGE_NOTICE_HOURS, hours),
+  );
+}
+
+/**
+ * Why a notice period cannot be saved, or null when it can — the settings
+ * API's check, kept beside the bounds it enforces.
+ */
+export function balanceChargeNoticeHoursError(value: unknown): string | null {
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < MIN_BALANCE_CHARGE_NOTICE_HOURS ||
+    value > MAX_BALANCE_CHARGE_NOTICE_HOURS
+  ) {
+    return `The balance charge notice must be a whole number of hours between ${MIN_BALANCE_CHARGE_NOTICE_HOURS} and ${MAX_BALANCE_CHARGE_NOTICE_HOURS}`;
+  }
+  return null;
 }
 
 export interface PreorderVendorAccess {
@@ -66,6 +103,11 @@ export function resolvePreorderPolicy(policy?: PreorderPolicy | null) {
       Number(policy?.autoReleaseDelayDays) > 0
         ? Math.min(90, Number(policy?.autoReleaseDelayDays))
         : 0,
+    // How long a shopper is told in advance before a saved card is charged.
+    // A product decision, not a statement of any jurisdiction's rules.
+    balanceChargeNoticeHours: resolveBalanceChargeNoticeHours(
+      policy?.balanceChargeNoticeHours,
+    ),
     // Zero is a real answer here, not a missing one — it means "no reserve".
     reservePercent:
       Number(policy?.reservePercent) > 0

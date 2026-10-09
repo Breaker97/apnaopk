@@ -23,6 +23,7 @@ const CollectionConditionSchema = new Schema<CollectionCondition>(
         "stock",
         "createdAt",
         "category",
+        "brand",
       ],
     },
     operator: {

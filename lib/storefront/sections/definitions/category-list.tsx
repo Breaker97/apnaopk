@@ -35,8 +35,11 @@ const render = (variant: CategoryListVariant): SectionDefinition["Render"] =>
         style={readCategoryListStyle(settings.style, variant)}
         emptyState={sectionEmptyState(ctx, {
           title: "Category row",
-          hint: "No categories to show yet — publish some, mark them featured, or pick them by hand in this section.",
+          hint: ctx.vendor
+            ? "No categories to show yet — the row reads the categories your active products are in (Featured, Top-level, or picked by hand)."
+            : "No categories to show yet — publish some, mark them featured, or pick them by hand in this section.",
         })}
+        vendor={ctx.vendor}
       />
     );
   };

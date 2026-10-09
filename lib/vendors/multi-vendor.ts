@@ -7,7 +7,9 @@ import {
   resolveCoordinates,
 } from "@/lib/intl/geocoding";
 import { vendorGeoPoint } from "@/lib/locations/vendor-geo";
+import { storefrontRouteOf } from "@/lib/vendors/vendor-signup-links";
 import { syncInheritedLocationGeo } from "@/lib/locations/location-geo";
+import { withFallback } from "@/lib/storefront/cached-read";
 import { getSettings, type ISettings } from "@/models/settings.model";
 import { Product, User, Vendor } from "@/models";
 import {
@@ -168,11 +170,33 @@ function normalizeOwnerId(value: unknown): string | null {
   return null;
 }
 
+/**
+ * The Vendor schema's own limits. The settings accept more (a 120-character
+ * store name, a description of any length), and a profile built from them
+ * must still save — the house profile is required, and its sync failing on a
+ * long name would leave the store without one.
+ */
+const VENDOR_STORE_NAME_MAX = 100;
+const VENDOR_DESCRIPTION_MAX = 1000;
+
+/** At most `max` UTF-16 units, never ending inside a surrogate pair. */
+function clipText(value: string, max: number): string {
+  if (value.length <= max) return value;
+  const lastUnit = value.charCodeAt(max - 1);
+  const end = lastUnit >= 0xd800 && lastUnit <= 0xdbff ? max - 1 : max;
+  return value.slice(0, end).trimEnd();
+}
+
 function buildDefaultVendorProfile(settings: DefaultVendorSettings) {
-  const storeName = normalizeStoreName(settings.general?.storeName);
-  const description =
+  const storeName = clipText(
+    normalizeStoreName(settings.general?.storeName),
+    VENDOR_STORE_NAME_MAX,
+  );
+  const description = clipText(
     normalizeText(settings.general?.storeDescription) ||
-    `Default store for ${storeName}`;
+      `Default store for ${storeName}`,
+    VENDOR_DESCRIPTION_MAX,
+  );
   const logo = normalizeText(settings.general?.logoUrl);
   const website = normalizeText(settings.general?.storeDomain);
 
@@ -220,23 +244,10 @@ const MULTI_VENDOR_ONLY_PATHS = ["/become-vendor", "/vendors"] as const;
  * for `/vendors`.
  */
 export function isMultiVendorOnlyHref(value: unknown): boolean {
-  if (typeof value !== "string" || !value) return false;
-  let pathname = value.trim();
-  if (/^https?:\/\//i.test(pathname)) {
-    try {
-      pathname = new URL(pathname).pathname;
-    } catch {
-      return false;
-    }
-  }
-  pathname = pathname.split(/[?#]/)[0].replace(/\/+$/, "");
-  if (!pathname.startsWith("/")) return false;
-
-  // A leading locale segment is part of every storefront link.
-  const withoutLocale = pathname.replace(/^\/[a-z]{2}(?=\/|$)/i, "");
+  const route = storefrontRouteOf(value);
+  if (!route) return false;
   return MULTI_VENDOR_ONLY_PATHS.some(
-    (route) =>
-      withoutLocale === route || withoutLocale.startsWith(`${route}/`),
+    (path) => route === path || route.startsWith(`${path}/`),
   );
 }
 
@@ -246,56 +257,272 @@ export async function isMultiVendorEnabled(): Promise<boolean> {
   return Boolean(settings.multiVendorMode?.enabled);
 }
 
-async function resolveDefaultVendorOwnerId(
-  preferredUserId?: string,
-): Promise<string | null> {
-  if (preferredUserId) {
-    const preferredUser = await User.findById(preferredUserId)
-      .select("_id role roles")
-      .lean<{ _id: unknown; role?: UserRole; roles?: UserRole[] } | null>();
+/**
+ * Why a house profile could not be found or made. `no_owner`: every admin
+ * already owns a store, and `Vendor.userId` is unique. `needs_review`: an
+ * admin-owned vendor without the flag holds the admin catalog — most likely
+ * the house of a store older than the flag — and only a person may say so
+ * (`pnpm db:migrate house-profile -- --adopt <id>`). `error`: anything else.
+ */
+export type DefaultVendorProblem = "no_owner" | "needs_review" | "error";
 
-    if (
-      preferredUser?.role === USER_ROLES.ADMIN ||
-      preferredUser?.roles?.includes(USER_ROLES.ADMIN)
-    ) {
-      return String(preferredUser._id);
+export type EnsuredDefaultVendor =
+  | { vendorId: string; problem?: undefined }
+  | { vendorId: null; problem: DefaultVendorProblem };
+
+/** Thrown by the settings-side sync when it may not make the house profile. */
+export class DefaultVendorUnavailableError extends Error {
+  readonly problem: DefaultVendorProblem;
+
+  constructor(problem: DefaultVendorProblem) {
+    super(
+      problem === "no_owner"
+        ? "No admin is free to own the store profile: every admin already owns a store"
+        : problem === "needs_review"
+          ? "An older store profile may already exist; review it with `pnpm db:migrate house-profile --dry-run`"
+          : "The store profile could not be created",
+    );
+    this.name = "DefaultVendorUnavailableError";
+    this.problem = problem;
+  }
+}
+
+const ADMIN_FILTER = {
+  $or: [{ role: USER_ROLES.ADMIN }, { roles: USER_ROLES.ADMIN }],
+};
+
+/**
+ * The one rule that says which vendor is the house: the canonical slug, then
+ * the oldest vendor carrying the flag. `isDefault` is not unique and real
+ * stores carry it on more than one vendor, while the slug is reserved for the
+ * house alone. Sorted even on the slug, so a store whose unique index was
+ * never built still gets the same answer every time.
+ */
+async function findDefaultVendorRow(): Promise<{
+  _id: unknown;
+  isDefault?: boolean;
+} | null> {
+  const bySlug = await Vendor.findOne({ slug: DEFAULT_VENDOR_SLUG })
+    .select("_id isDefault")
+    .sort({ _id: 1 })
+    .lean<{ _id: unknown; isDefault?: boolean } | null>();
+  if (bySlug?._id) return bySlug;
+
+  return Vendor.findOne({ isDefault: true })
+    .select("_id isDefault")
+    .sort({ _id: 1 })
+    .lean<{ _id: unknown; isDefault?: boolean } | null>();
+}
+
+/** The house profile as a document, by the same rule, for the settings sync. */
+async function findDefaultVendorDocument() {
+  const row = await findDefaultVendorRow();
+  return row?._id ? Vendor.findById(row._id) : null;
+}
+
+/**
+ * The admin-owned, unflagged vendor holding admin-made products, if any. A
+ * store from before the flag existed kept its house under the admin's own
+ * account; making a second, empty house beside it would split the catalog
+ * and move its sales to the other book. `productSource` missing counts as
+ * admin: the field is younger than those stores.
+ */
+async function findLegacyHouseCandidate(): Promise<string | null> {
+  const admins = await User.find(ADMIN_FILTER)
+    .select("_id")
+    .lean<Array<{ _id: unknown }>>();
+  if (admins.length === 0) return null;
+
+  const adminVendors = await Vendor.find({
+    userId: { $in: admins.map((admin) => admin._id) },
+    isDefault: { $ne: true },
+    slug: { $ne: DEFAULT_VENDOR_SLUG },
+  })
+    .select("_id")
+    .lean<Array<{ _id: unknown }>>();
+  if (adminVendors.length === 0) return null;
+
+  const product = await Product.findOne({
+    vendorId: { $in: adminVendors.map((vendor) => vendor._id) },
+    $or: [
+      { productSource: "admin" },
+      { productSource: { $exists: false } },
+      { productSource: null },
+    ],
+  })
+    .select("vendorId")
+    .lean<{ vendorId?: unknown } | null>();
+
+  return product?.vendorId ? String(product.vendorId) : null;
+}
+
+/**
+ * Who owns a new house profile: the admin acting, if they own no store yet,
+ * else the longest-standing admin who owns none. Never an admin with a store
+ * of their own — `Vendor.userId` is unique, and taking over that store is
+ * exactly the adoption this replaced.
+ */
+async function pickDefaultVendorOwnerId(
+  preferredUserId?: string,
+  skip: readonly string[] = [],
+): Promise<string | null> {
+  const admins = await User.find(ADMIN_FILTER)
+    .select("_id")
+    .sort({ createdAt: 1, _id: 1 })
+    .lean<Array<{ _id: unknown }>>();
+  const adminIds = admins.map((admin) => String(admin._id));
+  const ordered =
+    preferredUserId && adminIds.includes(preferredUserId)
+      ? [preferredUserId, ...adminIds.filter((id) => id !== preferredUserId)]
+      : adminIds;
+  const candidates = ordered.filter((id) => !skip.includes(id));
+  if (candidates.length === 0) return null;
+
+  const owning = await Vendor.find({ userId: { $in: candidates } })
+    .select("userId")
+    .lean<Array<{ userId?: unknown }>>();
+  const taken = new Set(owning.map((vendor) => String(vendor.userId)));
+
+  return candidates.find((id) => !taken.has(id)) ?? null;
+}
+
+function duplicateKeyField(error: unknown): string | null {
+  const e = error as { code?: number; keyPattern?: Record<string, unknown> };
+  if (e?.code !== 11000) return null;
+  return Object.keys(e.keyPattern ?? {})[0] ?? "unknown";
+}
+
+/**
+ * Insert a fresh house profile — never an existing vendor taken over. The
+ * address is written as text only: geocoding is a network call with retries,
+ * and this runs inside page renders. The next settings save places the pin.
+ *
+ * Returns the house that exists afterwards (this insert, or a concurrent one
+ * that won the slug), or the reason there is none.
+ */
+async function insertDefaultVendor(
+  settings: DefaultVendorSettings,
+  preferredOwnerId?: string,
+): Promise<EnsuredDefaultVendor> {
+  const skip: string[] = [];
+  const profile = buildDefaultVendorProfile(settings);
+  const address = defaultVendorAddressFromShippingOrigin(
+    settings.shipping?.origin,
+  );
+
+  // One retry: an owner picked a moment ago may have just been given a store
+  // of their own, which the unique `userId` index reports.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const ownerId = await pickDefaultVendorOwnerId(preferredOwnerId, skip);
+    if (!ownerId) return { vendorId: null, problem: "no_owner" };
+
+    try {
+      const vendor = await Vendor.create({
+        userId: ownerId,
+        isDefault: true,
+        storeName: profile.storeName,
+        slug: DEFAULT_VENDOR_SLUG,
+        description: profile.description,
+        logo: profile.logo,
+        socialLinks: profile.website ? { website: profile.website } : undefined,
+        address,
+        status: VENDOR_STATUS.APPROVED,
+        commission: 0,
+      });
+      return { vendorId: String(vendor._id) };
+    } catch (error) {
+      const field = duplicateKeyField(error);
+      if (!field) throw error;
+      const winner = await findDefaultVendorRow();
+      if (winner?._id) return { vendorId: String(winner._id) };
+      if (field !== "userId") throw error;
+      skip.push(ownerId);
     }
   }
 
-  const adminUser = await User.findOne({
-    $or: [{ role: USER_ROLES.ADMIN }, { roles: USER_ROLES.ADMIN }],
-  })
-    .select("_id")
-    .sort({ createdAt: 1 })
-    .lean<{ _id: unknown } | null>();
-
-  return adminUser ? String(adminUser._id) : preferredUserId || null;
+  return { vendorId: null, problem: "no_owner" };
 }
 
-async function findDefaultVendorCandidate(preferredUserId?: string) {
-  const byFlag = await Vendor.findOne({ isDefault: true });
-  if (byFlag) return byFlag;
+/**
+ * Concurrent first requests in one process share one creation: the POS page
+ * alone resolves the scope three times in parallel. Across processes the
+ * unique slug index decides, and the loser reads the winner back.
+ */
+let defaultVendorCreation: Promise<EnsuredDefaultVendor> | null = null;
 
-  const bySlug = await Vendor.findOne({ slug: DEFAULT_VENDOR_SLUG });
-  if (bySlug) return bySlug;
+async function createMissingDefaultVendor(
+  preferredOwnerId?: string,
+): Promise<EnsuredDefaultVendor> {
+  try {
+    if (await findLegacyHouseCandidate()) {
+      return { vendorId: null, problem: "needs_review" };
+    }
+    return await insertDefaultVendor(await getSettings(), preferredOwnerId);
+  } catch (error) {
+    console.error("[house-profile] The store profile could not be created:", error);
+    return { vendorId: null, problem: "error" };
+  }
+}
 
-  const adminProductVendorIds = await Product.distinct("vendorId", {
-    productSource: "admin",
+/**
+ * What is wrong with the house profile, read only — for the settings screen,
+ * which explains it rather than repairing it: `null` when it is there,
+ * otherwise the reason the next attempt would give (`missing` = it would be
+ * made).
+ */
+export async function diagnoseDefaultVendor(): Promise<
+  "missing" | "no_owner" | "needs_review" | null
+> {
+  await connectDB();
+  if (await findDefaultVendorRow()) return null;
+  if (await findLegacyHouseCandidate()) return "needs_review";
+  if (!(await pickDefaultVendorOwnerId())) return "no_owner";
+  return "missing";
+}
+
+/**
+ * The house profile's id, made once on first need.
+ *
+ * Read paths call this (the product form, inventory, POS, locations,
+ * transfers, order creation), so it writes only when something is missing:
+ * no profile at all (a 2.4.0 store installed without demo data), or a slug
+ * holder that lost its flag while no other vendor carries one. It never
+ * geocodes, never touches a user's roles and never revalidates a cache — a
+ * page render may be the caller. When it may not make one, it says why and
+ * writes nothing.
+ */
+export async function ensureDefaultVendorId(
+  options: { preferredOwnerId?: string } = {},
+): Promise<EnsuredDefaultVendor> {
+  await connectDB();
+
+  const existing = await findDefaultVendorRow();
+  if (existing?._id) {
+    if (existing.isDefault !== true) {
+      // The slug holder without its flag. Flag-only readers (finance,
+      // commission, conversations) would take it for a seller; the per-request
+      // syncs used to put the flag back. With a second vendor flagged it is a
+      // person's call, which the house-profile migration reports.
+      const otherFlagged = await Vendor.exists({
+        isDefault: true,
+        _id: { $ne: existing._id },
+      });
+      if (!otherFlagged) {
+        await Vendor.updateOne(
+          { _id: existing._id, isDefault: { $ne: true } },
+          { $set: { isDefault: true } },
+        );
+      }
+    }
+    return { vendorId: String(existing._id) };
+  }
+
+  defaultVendorCreation ??= createMissingDefaultVendor(
+    options.preferredOwnerId,
+  ).finally(() => {
+    defaultVendorCreation = null;
   });
-  const uniqueAdminVendorIds = adminProductVendorIds
-    .map((id) => normalizeOwnerId(id))
-    .filter((id): id is string => Boolean(id));
-
-  if (uniqueAdminVendorIds.length === 1) {
-    const byAdminProducts = await Vendor.findById(uniqueAdminVendorIds[0]);
-    if (byAdminProducts) return byAdminProducts;
-  }
-
-  if (preferredUserId) {
-    return Vendor.findOne({ userId: preferredUserId });
-  }
-
-  return null;
+  return defaultVendorCreation;
 }
 
 async function canUseDefaultSlug(vendorId: unknown) {
@@ -433,47 +660,36 @@ export async function syncDefaultVendorWithSettings(
   await connectDB();
 
   const settings = providedSettings || (await getSettings());
-  const ownerId = await resolveDefaultVendorOwnerId(preferredOwnerId);
-  let vendor = await findDefaultVendorCandidate(ownerId || preferredOwnerId);
+  let vendor = await findDefaultVendorDocument();
 
+  // Missing: made the way `ensureDefaultVendorId` makes it — a new document,
+  // owned by an admin with no store of their own, never an existing vendor
+  // taken over. The owner is picked here only: a healthy single-admin store,
+  // whose one admin already owns the house, must not read as "no owner".
   let created = false;
   if (!vendor) {
-    if (!ownerId) {
-      throw new Error("Unable to resolve an admin owner for the default vendor");
+    if (await findLegacyHouseCandidate()) {
+      throw new DefaultVendorUnavailableError("needs_review");
     }
-
-    const profile = buildDefaultVendorProfile(settings);
-
-    try {
-      vendor = await Vendor.create({
-        userId: ownerId,
-        isDefault: true,
-        storeName: profile.storeName,
-        slug: DEFAULT_VENDOR_SLUG,
-        description: profile.description,
-        logo: profile.logo,
-        socialLinks: profile.website ? { website: profile.website } : undefined,
-        status: VENDOR_STATUS.APPROVED,
-        commission: 0,
-      });
-      created = true;
-    } catch (err: unknown) {
-      const maybeError = err as { code?: number };
-      if (maybeError.code !== 11000) throw err;
-
-      vendor = await findDefaultVendorCandidate(ownerId);
-      if (!vendor) throw err;
+    const inserted = await insertDefaultVendor(settings, preferredOwnerId);
+    if (inserted.vendorId === null) {
+      throw new DefaultVendorUnavailableError(inserted.problem);
     }
+    vendor = await Vendor.findById(inserted.vendorId);
+    if (!vendor) throw new DefaultVendorUnavailableError("error");
+    created = true;
   }
 
+  // A settings save may take its time: the address is geocoded here, and the
+  // house's own branches follow its pin.
   const syncedVendor = await syncVendorDocument(
     vendor as VendorRecord,
     settings,
-    ownerId,
+    null,
     { syncAddress: options.syncAddress || created },
   );
   await repairDefaultVendorOwnerRole(
-    ownerId || normalizeOwnerId((syncedVendor as VendorRecord).userId),
+    normalizeOwnerId((syncedVendor as VendorRecord).userId),
   );
 
   return syncedVendor;
@@ -486,34 +702,37 @@ export async function getOrCreateDefaultVendor(ownerUserId?: string) {
   return syncDefaultVendorWithSettings(ownerUserId);
 }
 
+// Thrown inside the cached reader when there is no house yet, so the absence is
+// never stored: a cached `null` outlived the creation that followed it, and
+// every order for five minutes took the slow path.
+const NO_DEFAULT_VENDOR_YET = "no-default-vendor-yet";
+
 // Cached read of just the default vendor's id. The default vendor is a stable
 // singleton, so its id effectively never changes; a short revalidate window is
 // enough to pick up a rare recreation. Tagged `settings` because the one action
 // that can recreate it — saving general/multi-vendor settings, which runs
 // `syncDefaultVendorWithSettings` — already busts that tag, so the id refreshes
 // immediately instead of after the revalidate window.
-const getCachedDefaultVendorId = unstable_cache(
-  async (): Promise<string | null> => {
-    await connectDB();
-    const vendor = await Vendor.findOne({ isDefault: true })
-      .select("_id")
-      .lean<{ _id: unknown } | null>();
-    return vendor?._id ? String(vendor._id) : null;
-  },
-  ["default-vendor-id"],
-  { revalidate: 300, tags: [CACHE_TAGS.settings] },
+const getCachedDefaultVendorId = withFallback(
+  unstable_cache(
+    async (): Promise<string> => {
+      const id = await findDefaultVendorIdReadOnly();
+      if (!id) throw new Error(NO_DEFAULT_VENDOR_YET);
+      return id;
+    },
+    ["default-vendor-id", "canonical"],
+    { revalidate: 300, tags: [CACHE_TAGS.settings] },
+  ),
+  () => null,
 );
 
 /**
  * Resolve just the default vendor's id for the order-creation hot path.
  *
- * `syncDefaultVendorWithSettings` (via `getOrCreateDefaultVendor`) ran ~3-4
- * uncached queries plus a possible save on *every* single-vendor order, even
- * though it only re-derives display fields that the admin settings/vendor save
- * paths already keep in sync. Order creation only needs the vendorId, so this
- * returns it from a cache and only falls through to the full get-or-create when
- * the default vendor doesn't exist yet (first order on a fresh store, or right
- * after a rare recreation) — which also seeds/repairs it exactly once.
+ * Order creation only needs the vendorId, so this returns it from a cache and
+ * only falls through to `ensureDefaultVendorId` when the default vendor does
+ * not exist yet (first order on a profile-less store) — which makes it once.
+ * `null` means it may not be made; order creation answers `STORE_NOT_READY`.
  */
 export async function resolveDefaultVendorId(
   ownerUserId?: string,
@@ -521,44 +740,20 @@ export async function resolveDefaultVendorId(
   const cachedId = await getCachedDefaultVendorId();
   if (cachedId) return cachedId;
 
-  const vendor = await getOrCreateDefaultVendor(ownerUserId);
-  return vendor?._id ? String(vendor._id) : null;
+  return (await ensureDefaultVendorId({ preferredOwnerId: ownerUserId }))
+    .vendorId;
 }
 
 /**
- * The default vendor's id, **without ever creating or repairing one**.
- *
- * `resolveDefaultVendorId` falls through to `getOrCreateDefaultVendor`, which
- * writes: it re-syncs the vendor document and can rewrite the owner's roles. On
- * a settings save that is the point. On a read path it is not — and inventory
- * location scoping runs on every product form load, every inventory list and
- * every POS keystroke, where a store whose house vendor lacks the `isDefault`
- * flag would take a database write per request.
- *
- * The `slug` fallback mirrors `findDefaultVendorCandidate`, so an install whose
- * flag was never set still resolves rather than silently scoping to nothing.
+ * The default vendor's id, **without ever creating or repairing one**, by the
+ * one rule (`findDefaultVendorRow`): the canonical slug, then the oldest flag.
+ * For reads that only report — the settings notice, returns — and for the
+ * cached lookup above.
  */
 export async function findDefaultVendorIdReadOnly(): Promise<string | null> {
   await connectDB();
-
-  // Slug before flag, deliberately. `isDefault` is not enforced unique and real
-  // stores are found carrying it on more than one vendor, in which case a
-  // `findOne({ isDefault: true })` answers whichever document Mongo happens to
-  // return first — a scope that changes between requests. The canonical slug is
-  // the one identifier only the house store can hold.
-  const bySlug = await Vendor.findOne({ slug: DEFAULT_VENDOR_SLUG })
-    .select("_id")
-    .lean<{ _id: unknown } | null>();
-  if (bySlug?._id) return String(bySlug._id);
-
-  // No canonical slug: fall back to the flag, oldest first so repeated calls at
-  // least agree with each other.
-  const byFlag = await Vendor.findOne({ isDefault: true })
-    .select("_id")
-    .sort({ _id: 1 })
-    .lean<{ _id: unknown } | null>();
-
-  return byFlag?._id ? String(byFlag._id) : null;
+  const row = await findDefaultVendorRow();
+  return row?._id ? String(row._id) : null;
 }
 
 /**

@@ -25,11 +25,16 @@ const loadAuthPageFlags = unstable_cache(
     await connectDB();
     const settings = await getSettingsLean();
     const oauth = resolveOAuthCredentials(settings.security);
+    const googleOAuthEnabled =
+      Boolean(settings.security?.googleOAuthEnabled) &&
+      Boolean(oauth.google.clientId && oauth.google.clientSecret);
 
     return {
-      googleOAuthEnabled:
-        Boolean(settings.security?.googleOAuthEnabled) &&
-        Boolean(oauth.google.clientId && oauth.google.clientSecret),
+      googleOAuthEnabled,
+      // Public: Google shows it in every sign-in URL. The shopper app hands it
+      // to the phone's Google SDK (GET /config, `auth.google`). The secret is
+      // never part of these flags.
+      googleClientId: googleOAuthEnabled ? oauth.google.clientId || null : null,
       facebookOAuthEnabled:
         Boolean(settings.security?.facebookOAuthEnabled) &&
         Boolean(oauth.facebook.appId && oauth.facebook.appSecret),

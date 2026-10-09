@@ -12,9 +12,11 @@ import { TEAM_USER_ROLES } from "@/lib/access/staff-role";
 import { isVendorOwnedStaff } from "@/lib/access/staff-ownership";
 import { USER_ROLES } from "@/config/app.config";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import { auditStaffInvited } from "@/lib/access/audit-staff";
 
 type PasswordResetModelWithCreateToken = {
-  createToken: (userId: unknown) => Promise<{ token: string }>;
+  createToken: (userId: unknown, purpose: "invite") => Promise<{ token: string }>;
 };
 
 /**
@@ -26,7 +28,7 @@ export const POST = withApi<{ id: string }>(
     auth: "admin",
     rateLimit: { action: "admin:staff:invite", preset: "moderate" },
   },
-  async ({ request, params }) => {
+  async ({ request, params, session }) => {
     const { id } = params;
     if (!Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid team member ID");
@@ -57,10 +59,11 @@ export const POST = withApi<{ id: string }>(
       );
     }
 
-    // Create a password reset token (valid for 1 hour for invites)
+    // An invitation link: it works for 7 days, and a password reset asked
+    // for in the meantime does not cancel it.
     const passwordResetModel =
       PasswordReset as unknown as PasswordResetModelWithCreateToken;
-    const { token } = await passwordResetModel.createToken(user._id);
+    const { token } = await passwordResetModel.createToken(user._id, "invite");
 
     // Build invite URL
     const localeParam = request.nextUrl.searchParams.get("locale");
@@ -91,6 +94,12 @@ export const POST = withApi<{ id: string }>(
         "Failed to send invite email. Please check your SMTP settings.",
       );
     }
+
+    await auditStaffInvited(
+      createAuditContext(request, session),
+      { userId: id, email: user.email },
+      user.role === USER_ROLES.ADMIN ? "administrator" : "staff",
+    );
 
     return successResponse({
       message: `Invite email sent to ${user.email}`,

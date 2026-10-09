@@ -3,10 +3,7 @@ import { getTranslations } from "next-intl/server";
 import type { GridResultQuery } from "@/components/products/grid-result-count";
 import { getClientIP } from "@/lib/api/rate-limit-middleware";
 import { getStorefrontProducts } from "@/lib/products/storefront-products";
-import {
-  hasNarrowingFacet,
-  recordZeroResultSearch,
-} from "@/lib/products/zero-result-searches";
+import { recordSearchOutcome } from "@/lib/products/zero-result-searches";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,11 +38,11 @@ export async function SearchOutcome({
     return null;
   }
 
-  const firstPage = (gridQuery.page ?? 1) <= 1;
-  if (
-    firstPage &&
-    result.pagination.total === 0 &&
-    !hasNarrowingFacet({
+  recordSearchOutcome({
+    search: gridQuery.search,
+    page: gridQuery.page,
+    total: result.pagination.total,
+    facets: {
       category: gridQuery.category,
       collection: gridQuery.collection,
       brand: gridQuery.brand,
@@ -56,14 +53,9 @@ export async function SearchOutcome({
       pickupNearby: gridQuery.pickupNearby,
       inStock: gridQuery.inStock,
       outOfStock: gridQuery.outOfStock,
-    })
-  ) {
-    recordZeroResultSearch({
-      query: gridQuery.search,
-      source: "storefront",
-      clientKey: getClientIP({ headers: await headers() }),
-    });
-  }
+    },
+    clientKey: getClientIP({ headers: await headers() }),
+  });
 
   if (!result.searchCorrection || result.pagination.total === 0) return null;
   const t = await getTranslations({ locale });

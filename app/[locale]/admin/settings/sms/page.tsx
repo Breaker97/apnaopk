@@ -6,6 +6,7 @@ import { SectionLoader } from "@/components/admin/settings/section-loader";
 
 export default function Page() {
   const {
+    savedSettings,
     isSaving,
     isTestingSms,
     testSmsTo,
@@ -13,6 +14,7 @@ export default function Page() {
     dirtySections,
     updateNestedField,
     saveSection,
+    discardEdits,
     testSms,
   } = useAdminSettingsContext();
 
@@ -21,6 +23,7 @@ export default function Page() {
       {(loadedSettings) => (
         <SmsSettingsTab
           settings={loadedSettings}
+          savedSettings={savedSettings ?? loadedSettings}
           isSaving={isSaving}
           isDirty={dirtySections.has("sms")}
           isTestingSms={isTestingSms}
@@ -28,7 +31,10 @@ export default function Page() {
           setTestSmsTo={setTestSmsTo}
           updateNestedField={updateNestedField}
           onSave={() => saveSection("sms", loadedSettings.sms)}
-          onTestSms={() => testSms()}
+          onDiscard={discardEdits}
+          onTestSms={testSms}
+          // Only the retention is sent, so other unsaved edits stay in the form.
+          onSaveRetention={(days) => saveSection("sms", { logRetentionDays: days })}
         />
       )}
     </SectionLoader>

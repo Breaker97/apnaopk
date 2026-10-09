@@ -190,7 +190,7 @@ function lineReturnWindowStartsAt(
 }
 
 /** When a line's window closes, or null while it cannot — none set, or not started. */
-function lineReturnWindowEndsAt(
+export function lineReturnWindowEndsAt(
   order: ReturnWindowOrderLike,
   index: number,
   terms: ReturnWindowTerms,

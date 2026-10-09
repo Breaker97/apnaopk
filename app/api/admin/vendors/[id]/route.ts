@@ -9,22 +9,12 @@ import {
 } from "@/models";
 import type { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
-import { releaseBoostInventoryForVendor } from "@/lib/boosts/boosts";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
-import { requestEmailVerification } from "@/lib/auth/auth";
-import { defaultLocale } from "@/config/i18n.config";
 import {
   USER_ACCOUNT_STATUS,
-  BOOST_CANCEL_REASON,
-  USER_ROLES,
   COD_COLLECTED_BY,
   COD_COLLECTED_BY_INHERIT,
-  VENDOR_APPLICATION_PAYMENT_STATUS,
   VENDOR_APPLICATION_STATUS,
-  VENDOR_BILLING_INTERVAL,
-  VENDOR_PAYMENT_INVITATION,
-  VENDOR_STATUS,
-  VENDOR_SUBSCRIPTION_STATUS,
 } from "@/config/app.config";
 import {
   ALL_VENDOR_PACKS,
@@ -48,41 +38,39 @@ import {
 } from "@/lib/intl/geocoding";
 import { vendorGeoPoint } from "@/lib/locations/vendor-geo";
 import { syncInheritedLocationGeo } from "@/lib/locations/location-geo";
-import { ensureVendorOwnerRole, revokeVendorRole } from "@/lib/access/user-role";
-import { isStaffRole } from "@/lib/access/staff-role";
+import { revokeVendorRole } from "@/lib/access/user-role";
 import { getSettings } from "@/models/settings.model";
 import { isValidObjectId, validateBody } from "@/lib/api/validate";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import {
   DEFAULT_VENDOR_SLUG,
   isDefaultVendorRecord,
-  syncDefaultVendorWithSettings,
 } from "@/lib/vendors/multi-vendor";
-import {
-  createAuditContext,
-  auditDelete,
-  auditVendorDecision,
-  auditUpdate,
-} from "@/lib/audit";
+import { createAuditContext, auditDelete, auditUpdate } from "@/lib/audit";
 import { getEffectiveSubscription } from "@/lib/vendors/vendor-plans";
+import {
+  vendorAuditSnapshot,
+  type VendorAuditSubject,
+} from "@/lib/vendors/vendor-audit";
+import {
+  applyVendorStatusChange,
+  assertCanChangeVendorOwnerRole,
+  auditVendorStatusChange,
+  notifyVendorStatusChange,
+  prepareVendorStatusChange,
+  releaseBoostsOfClosedStore,
+} from "@/lib/vendors/vendor-decision";
 import { findLatestVendorApplication } from "@/lib/vendors/vendor-application";
 import { isVendorDocumentReference } from "@/lib/vendors/vendor-documents";
-import {
-  sendVendorApplicationRejectedEmail,
-  sendVendorApprovedEmail,
-  sendVendorPaymentRequiredEmail,
-} from "@/lib/email/vendor-emails";
-import { notifyVendorApplicationStatus } from "@/lib/notifications/notifications";
-import { normalizeNotificationSettings } from "@/lib/notifications/notification-settings";
 import {
   revalidateCouponContent,
   revalidateProductContent,
 } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
-import { cancelVendorApplicationBilling } from "@/lib/vendors/vendor-stripe-billing";
+import { notifyAccountStatusChange } from "@/lib/notifications/notifications";
+import { afterResponse } from "@/lib/after-response";
+import { slugify } from "@/lib/strings";
 import { assertStripeBillingReady } from "@/lib/vendors/vendor-plan-stripe";
-import { assertVendorBillingReady } from "@/lib/vendors/vendor-billing-providers";
-import { trialWindow } from "@/lib/vendors/vendor-subscriptions";
 import { getStripeForSecretKey } from "@/lib/payments/stripe";
 import { retrieveVendorBillingSnapshot } from "@/lib/vendors/vendor-stripe-adapter";
 import {
@@ -196,135 +184,6 @@ function sanitizeVendorOverrides(
   return Array.from(byPermission.values());
 }
 
-/**
- * Comparable form of the override set for the audit diff.
- *
- * Sorted and flattened to strings so `auditUpdate` reports "this permission
- * moved" rather than "the array changed", and so a save that touched nothing
- * still writes nothing.
- */
-function overridesAuditValue(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-  return input
-    .map((raw) => {
-      const row = (raw ?? {}) as Record<string, unknown>;
-      const expiry = row.expiresAt
-        ? new Date(String(row.expiresAt)).toISOString()
-        : "never";
-      return `${String(row.permission)}:${String(row.mode)}:${expiry}`;
-    })
-    .sort();
-}
-
-/**
- * Keep an identifier auditable without storing it.
- *
- * Bank and tax numbers must show up in the change log — "who moved the payout
- * account" is exactly what an audit trail is for — but the log is a long-lived,
- * broadly-readable table, so only enough to recognise a value is retained.
- */
-function maskIdentifier(value: unknown): string {
-  const text = String(value ?? "").trim();
-  if (!text) return "";
-  return text.length <= 4 ? "••••" : `••••${text.slice(-4)}`;
-}
-
-interface VendorAuditSubject {
-  status?: unknown;
-  verified?: unknown;
-  commission?: unknown;
-  storeName?: unknown;
-  slug?: unknown;
-  description?: unknown;
-  logo?: unknown;
-  banner?: unknown;
-  notes?: unknown;
-  permissionOverrides?: unknown;
-  address?: Record<string, unknown> | null;
-  bankDetails?: Record<string, unknown> | null;
-  documents?: Record<string, unknown> | null;
-}
-
-/**
- * Comparable snapshot of everything this endpoint can change.
- *
- * `auditUpdate` diffs the two snapshots and skips writing when nothing moved,
- * so this can be built unconditionally. Derived address fields (coordinates,
- * geo) are left out: they follow the address rather than being edited, and
- * including them would report a change on every re-geocode.
- */
-function vendorAuditSnapshot(
-  vendor: VendorAuditSubject,
-  owner: { name?: unknown; email?: unknown; phone?: unknown; status?: unknown },
-): Record<string, unknown> {
-  const address = (vendor.address ?? {}) as Record<string, unknown>;
-  const bank = (vendor.bankDetails ?? {}) as Record<string, unknown>;
-  const documents = (vendor.documents ?? {}) as Record<string, unknown>;
-  // Access deviations, not the legacy grant list. "Who gave this vendor POS,
-  // and when" is only answerable from the change log if the log records the
-  // field the decision is actually stored in.
-  const permissionOverrides = overridesAuditValue(vendor.permissionOverrides);
-
-  return {
-    status: vendor.status ?? "",
-    // Who awarded or withdrew the storefront badge, and when, is exactly the
-    // kind of decision the change log exists for.
-    verified: vendor.verified === true,
-    commission: Number(vendor.commission ?? 0),
-    storeName: vendor.storeName ?? "",
-    slug: vendor.slug ?? "",
-    description: vendor.description ?? "",
-    logo: vendor.logo ?? "",
-    banner: vendor.banner ?? "",
-    notes: vendor.notes ?? "",
-    permissionOverrides,
-    address: {
-      street: address.street ?? "",
-      city: address.city ?? "",
-      state: address.state ?? "",
-      postalCode: address.postalCode ?? "",
-      country: address.country ?? "",
-      phone: address.phone ?? "",
-    },
-    bankDetails: {
-      accountName: bank.accountName ?? "",
-      accountNumber: maskIdentifier(bank.accountNumber),
-      bankName: bank.bankName ?? "",
-      routingNumber: maskIdentifier(bank.routingNumber),
-      swiftCode: bank.swiftCode ?? "",
-    },
-    documents: {
-      businessLicense: documents.businessLicense ?? "",
-      taxId: maskIdentifier(documents.taxId),
-      taxCertificate: documents.taxCertificate ?? "",
-      governmentId: documents.governmentId ?? "",
-    },
-    ownerName: owner.name ?? "",
-    ownerEmail: owner.email ?? "",
-    ownerPhone: owner.phone ?? "",
-    ownerStatus: owner.status ?? "",
-  };
-}
-
-async function assertCanChangeVendorOwnerRole(userId: unknown) {
-  const owner = await User.findById(userId).select("role roles").lean();
-  const roles = Array.isArray((owner as { roles?: unknown } | null)?.roles)
-    ? ((owner as { roles?: string[] }).roles || [])
-    : [];
-  const role = (owner as { role?: string } | null)?.role;
-
-  if (
-    role === USER_ROLES.ADMIN ||
-    isStaffRole(role) ||
-    roles.includes(USER_ROLES.ADMIN) ||
-    roles.some(isStaffRole)
-  ) {
-    throw new ValidationError(
-      "Admin and staff accounts cannot be converted through vendor updates",
-    );
-  }
-}
-
 // Shape check for the admin vendor editor. The nested documents (address,
 // bank details, documents, commission, permission overrides) keep their own
 // normalisers below; every status transition is validated there too.
@@ -358,7 +217,7 @@ const AdminVendorUpdateSchema = z.object({
  */
 export const GET = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params, session }) => {
+  async ({ params }) => {
     const { id } = params;
 
     if (!isValidObjectId(id)) {
@@ -368,7 +227,6 @@ export const GET = withApi<{ id: string }>(
     await connectDB();
     const settings = await getSettings();
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
-    await syncDefaultVendorWithSettings(session.user.id, settings);
 
     // Lazily reconcile an expired trial/period before reading the vendor, so the
     // returned commission and subscription status are current.
@@ -554,7 +412,6 @@ export const PUT = withApi<{ id: string }>(
     await connectDB();
     const settings = await getSettings();
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
-    await syncDefaultVendorWithSettings(session.user.id, settings);
 
     // `phone` is selected so the audit snapshot below can tell an owner-phone
     // edit from a field that was simply never loaded.
@@ -571,94 +428,15 @@ export const PUT = withApi<{ id: string }>(
       );
     }
 
-    const application = await findLatestVendorApplication({
-      vendorId: vendorBefore._id,
-      userId: vendorBefore.userId,
+    const change = await prepareVendorStatusChange({
+      vendor: vendorBefore,
+      status: body.status,
+      settings,
     });
-    const selectedPlan =
-      !application?.planSnapshot && vendorBefore.planId
-        ? await VendorPlan.findById(vendorBefore.planId)
-            .select("price billingInterval")
-            .lean<{ price?: number; billingInterval?: string } | null>()
-        : null;
-    if (
-      body.status === VENDOR_STATUS.PAYMENT_REQUIRED &&
-      vendorBefore.status !== VENDOR_STATUS.PAYMENT_REQUIRED
-    ) {
-      throw new ValidationError(
-        "Payment Required is a system-managed status. Approve the paid application to create setup access.",
-      );
-    }
-    const paidApplication = Boolean(
-      (application?.planSnapshot || selectedPlan) &&
-        (application?.planSnapshot?.billingInterval ||
-          selectedPlan?.billingInterval) !==
-          VENDOR_BILLING_INTERVAL.NONE &&
-        Number(
-          application?.planSnapshot?.price || selectedPlan?.price || 0,
-        ) > 0,
-    );
-    // A paid plan sold with trial days collects nothing at approval: the vendor
-    // sells for the trial and is handed to the payment rail only when it lapses
-    // (see `getEffectiveSubscription`).
-    //
-    // Read from the APPLICATION snapshot alone, never from `selectedPlan`. The
-    // live plan is only consulted for a vendor placed on a plan by an admin,
-    // and that endpoint writes `trialDays: 0` deliberately — treating its row
-    // as a trial would waive the first payment of an admin assignment that is
-    // sitting in `incomplete` waiting for exactly that payment.
-    const approvalTrialDays = Math.max(
-      0,
-      Math.floor(Number(application?.planSnapshot?.trialDays ?? 0) || 0),
-    );
-    const startsTrialOnApproval = paidApplication && approvalTrialDays > 0;
-    const requiresInitialPayment = Boolean(
-      body.status === VENDOR_STATUS.APPROVED &&
-        paidApplication &&
-        !startsTrialOnApproval &&
-        application?.paymentStatus !==
-          VENDOR_APPLICATION_PAYMENT_STATUS.PAID,
-    );
-    if (
-      requiresInitialPayment ||
-      (startsTrialOnApproval && body.status === VENDOR_STATUS.APPROVED)
-    ) {
-      if (!application) {
-        throw new ValidationError(
-          "Paid vendor approval requires a submitted application billing record",
-        );
-      }
-      // Any enabled subscription gateway can collect the first period —
-      // approving a paid vendor no longer requires Stripe specifically.
-      //
-      // Checked for a TRIAL too, even though it collects nothing today: a trial
-      // that starts on a marketplace with no enabled gateway ends in a store
-      // the vendor has no way to reopen. Failing here puts that in front of the
-      // admin who can fix it, days before the vendor meets it.
-      assertVendorBillingReady(settings);
-    }
 
-    const updates: Record<string, unknown> = {};
+    const updates: Record<string, unknown> = { ...change.vendorFields };
     const unsetFields: Record<string, "" | 1> = {};
     const userUpdates: Record<string, unknown> = {};
-
-    if (
-      body.status &&
-      (Object.values(VENDOR_STATUS) as string[]).includes(body.status)
-    ) {
-      updates.status = requiresInitialPayment
-        ? VENDOR_STATUS.PAYMENT_REQUIRED
-        : body.status;
-      if (body.status === VENDOR_STATUS.APPROVED) {
-        updates.storeActive = !requiresInitialPayment;
-      }
-      if (
-        body.status === VENDOR_STATUS.REJECTED ||
-        body.status === VENDOR_STATUS.SUSPENDED
-      ) {
-        updates.storeActive = false;
-      }
-    }
 
     // The storefront badge. Deliberately its own field and its own decision:
     // nothing in the approval, document-upload or subscription paths may set it,
@@ -850,11 +628,7 @@ export const PUT = withApi<{ id: string }>(
     }
 
     if (body.slug !== undefined && String(body.slug).trim()) {
-      const slug = String(body.slug)
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const slug = slugify(String(body.slug));
       if (!slug) throw new ValidationError("Invalid store slug");
       if (slug === DEFAULT_VENDOR_SLUG) {
         throw new ValidationError("This store slug is reserved for the default store");
@@ -930,241 +704,45 @@ export const PUT = withApi<{ id: string }>(
       );
     }
 
-    // The promotion is deliberately NOT gated on a status transition, unlike
-    // everything else this save does. A vendor brought back by a billing
-    // webhook already reads `approved`, so a transition-only repair can never
-    // reach an owner the suspension before it demoted: the admin re-saves, the
-    // audit trail says `approved -> approved`, and the merchant stays locked
-    // out. `ensureVendorOwnerRole` is idempotent and skips admin/staff owners,
-    // so an ordinary edit to an untouched vendor costs one indexed read.
-    if (body.status === VENDOR_STATUS.APPROVED && vendor.userId) {
-      await ensureVendorOwnerRole(vendor.userId);
-    }
-
-    if (body.status && body.status !== vendorBefore.status && vendor.userId) {
-      if (body.status === VENDOR_STATUS.APPROVED) {
-        // The verification clock and the account reactivation stay on the
-        // transition. Re-stamping them on every save would ask a live vendor
-        // to verify their email again each time an admin touches their logo.
-        if (settings.security?.emailVerificationForVendors) {
-          userUpdates.emailVerificationRequiredAt = new Date();
-        }
-        if (!body.userStatus) {
-          userUpdates.status = USER_ACCOUNT_STATUS.ACTIVE;
-        }
-      } else if (
-        body.status === VENDOR_STATUS.REJECTED ||
-        body.status === VENDOR_STATUS.SUSPENDED
-      ) {
-        // Only the vendor membership goes. `setUserRole(CUSTOMER)` rewrote
-        // the whole set, so a seller or staff member whose application was
-        // rejected walked away a plain customer — the promotion above guards
-        // exactly that, and the demotion did not.
-        await revokeVendorRole(vendor.userId);
-        if (!body.userStatus) {
-          userUpdates.status = USER_ACCOUNT_STATUS.ACTIVE;
-        }
-      }
-    }
-
-    if (body.status && body.status !== vendorBefore.status && vendor.userId) {
-      if (application) {
-        if (body.status === VENDOR_STATUS.APPROVED) {
-          application.status = VENDOR_APPLICATION_STATUS.APPROVED;
-          const approvedAt = new Date();
-          application.approvedAt = approvedAt;
-          application.rejectedAt = null;
-          application.rejectionReason = null;
-          if (requiresInitialPayment) {
-            application.paymentStatus =
-              VENDOR_APPLICATION_PAYMENT_STATUS.PENDING;
-            application.paymentDueAt = new Date(
-              approvedAt.getTime() +
-                VENDOR_PAYMENT_INVITATION.DEADLINE_DAYS * 24 * 60 * 60 * 1000,
-            );
-            application.paymentExpiredAt = null;
-            application.setupAccessExpiredAt = null;
-            application.paymentReminder3SentAt = null;
-            application.paymentReminder6SentAt = null;
-          } else {
-            application.paymentDueAt = null;
-          }
-          application.lastError = null;
-          await application.save();
-        } else if (body.status === VENDOR_STATUS.REJECTED) {
-          application.status = VENDOR_APPLICATION_STATUS.REJECTED;
-          application.rejectedAt = new Date();
-          // What the applicant reads on /become-vendor before applying
-          // again. A rejection without one just produces the same
-          // application a second time.
-          application.rejectionReason = rejectionReason || null;
-          application.lastError = null;
-          await application.save();
-          if (
-            application.paymentStatus ===
-            VENDOR_APPLICATION_PAYMENT_STATUS.PAID
-          ) {
-            await cancelVendorApplicationBilling(
-              application,
-              settings,
-            ).catch((error) =>
-              console.error(
-                "Failed to cancel rejected vendor billing:",
-                error,
-              ),
-            );
-          }
-        }
-      }
-    }
-
-    // Start the trial clock at APPROVAL, not at submission: a wizard sent on
-    // Monday and reviewed on Friday must not arrive with four of its trial days
-    // already spent. The row was written `trialing` with null dates by
-    // `buildSubscriptionForPlan`, and a null `trialEnd` is what keeps the lazy
-    // expiry clock parked until here. Guarded on `trialEnd: null` so a re-save
-    // of an already-approved vendor cannot restart a trial that is running.
-    if (
-      startsTrialOnApproval &&
-      body.status === VENDOR_STATUS.APPROVED &&
-      body.status !== vendorBefore.status
-    ) {
-      const { trialStart, trialEnd } = trialWindow(
-        approvalTrialDays,
-        new Date(),
-      );
-      await VendorSubscription.updateOne(
-        {
-          vendorId: vendor._id,
-          status: VENDOR_SUBSCRIPTION_STATUS.TRIALING,
-          trialEnd: null,
-        },
-        { $set: { trialStart, trialEnd } },
-      );
-    }
-
-    // An admin rewording an already-rejected application. The transition
-    // block above only runs when the status actually moves.
-    if (
-      rejectionReason !== undefined &&
-      application &&
-      application.status === VENDOR_APPLICATION_STATUS.REJECTED &&
-      (!body.status || body.status === vendorBefore.status)
-    ) {
-      const nextReason = rejectionReason || null;
-      if ((application.rejectionReason ?? null) !== nextReason) {
-        application.rejectionReason = nextReason;
-        await application.save();
-      }
-    }
+    Object.assign(
+      userUpdates,
+      await applyVendorStatusChange({
+        change,
+        before: vendorBefore,
+        vendor,
+        status: body.status,
+        rejectionReason,
+        explicitUserStatus: body.userStatus,
+        settings,
+      }),
+    );
 
     if (Object.keys(userUpdates).length > 0 && vendor.userId) {
       await User.updateOne({ _id: vendor.userId }, { $set: userUpdates });
-    }
-
-    if (
-      body.status === VENDOR_STATUS.APPROVED &&
-      body.status !== vendorBefore.status &&
-      vendor.userId
-    ) {
-      const notificationSettings = normalizeNotificationSettings(
-        settings.notifications,
-      );
-      const vendorApplicationChannels =
-        notificationSettings.vendor.applicationStatus;
-      const vendorUser = vendor.user as {
-        name?: string;
-        email?: string;
-        emailVerified?: boolean;
-      } | null;
-      const vendorEmail = String(userUpdates.email || vendorUser?.email || "");
-      if (
-        settings.security?.emailVerificationForVendors &&
-        vendorEmail &&
-        !vendorUser?.emailVerified
-      ) {
-        await requestEmailVerification(
-          vendorEmail,
-          `/${defaultLocale}/email-verified`,
-        ).catch(
-          (error) => {
-            console.error("Failed to request vendor email verification:", error);
-          },
+      if (userUpdates.status !== undefined) {
+        const ownerId = String(vendor.userId);
+        const ownerStatusBefore = (vendorBefore.user as { status?: string } | null)
+          ?.status;
+        afterResponse(() =>
+          notifyAccountStatusChange({
+            userId: ownerId,
+            from: ownerStatusBefore,
+            to: String(userUpdates.status),
+            settings,
+          }),
         );
       }
-      if (vendorApplicationChannels.email && vendorEmail) {
-        if (
-          requiresInitialPayment &&
-          application?.planSnapshot &&
-          application.paymentDueAt
-        ) {
-          await sendVendorPaymentRequiredEmail({
-            vendorEmail,
-            vendorName: String(userUpdates.name || vendorUser?.name || ""),
-            storeName: vendor.storeName,
-            planName: application.planSnapshot.name,
-            price: application.planSnapshot.price,
-            currency: application.planSnapshot.currency,
-            billingInterval: application.planSnapshot.billingInterval,
-            paymentDueAt: application.paymentDueAt,
-            settings,
-          });
-        } else {
-          await sendVendorApprovedEmail({
-            vendorEmail,
-            vendorName: String(userUpdates.name || vendorUser?.name || ""),
-            storeName: vendor.storeName,
-            settings,
-          });
-        }
-      }
-      await notifyVendorApplicationStatus(
-        vendor.userId.toString(),
-        requiresInitialPayment
-          ? VENDOR_STATUS.PAYMENT_REQUIRED
-          : VENDOR_STATUS.APPROVED,
-        { settings, channels: vendorApplicationChannels },
-      );
     }
 
-    if (
-      body.status === VENDOR_STATUS.REJECTED &&
-      body.status !== vendorBefore.status &&
-      vendor.userId
-    ) {
-      // A rejection used to go out silently — no mail, no notification — so
-      // the applicant learned of it by loading /become-vendor. Same channels
-      // and gating as the approval above; the email is not allowed to fail a
-      // status change that is already persisted.
-      const vendorApplicationChannels = normalizeNotificationSettings(
-        settings.notifications,
-      ).vendor.applicationStatus;
-      const vendorUser = vendor.user as {
-        name?: string;
-        email?: string;
-      } | null;
-      const vendorEmail = String(userUpdates.email || vendorUser?.email || "");
-      if (vendorApplicationChannels.email && vendorEmail) {
-        await sendVendorApplicationRejectedEmail({
-          vendorEmail,
-          vendorName: String(userUpdates.name || vendorUser?.name || ""),
-          storeName: vendor.storeName,
-          reason: rejectionReason || null,
-          settings,
-        }).catch((error) =>
-          console.error("Failed to send vendor rejection email:", error),
-        );
-      }
-      await notifyVendorApplicationStatus(
-        vendor.userId.toString(),
-        VENDOR_STATUS.REJECTED,
-        {
-          settings,
-          channels: vendorApplicationChannels,
-          reason: rejectionReason || null,
-        },
-      );
-    }
+    await notifyVendorStatusChange({
+      change,
+      before: vendorBefore,
+      vendor,
+      status: body.status,
+      rejectionReason,
+      owner: userUpdates,
+      settings,
+    });
 
     const auditContext = createAuditContext(request, session);
 
@@ -1187,20 +765,7 @@ export const PUT = withApi<{ id: string }>(
       status: userUpdates.status ?? ownerBefore.status,
     };
 
-    if (
-      body.status &&
-      body.status !== vendorBefore.status &&
-      (body.status === VENDOR_STATUS.APPROVED ||
-        body.status === VENDOR_STATUS.REJECTED ||
-        body.status === VENDOR_STATUS.SUSPENDED)
-    ) {
-      await auditVendorDecision(
-        auditContext,
-        id,
-        body.status as "approved" | "rejected" | "suspended",
-        vendorBefore.storeName,
-      );
-    }
+    await auditVendorStatusChange(auditContext, id, vendorBefore, body.status);
 
     await auditUpdate(
       auditContext,
@@ -1213,19 +778,7 @@ export const PUT = withApi<{ id: string }>(
 
     revalidateProductContent();
 
-    // A store that has gone dark is already rendering a filler in every rung it
-    // holds — the sponsored pool requires `storeActive` — so leaving the days
-    // booked would keep global inventory off the market with nothing shown in
-    // it. Release is scoped to the transition: re-saving an already-inactive
-    // vendor has nothing left to release and sends nothing.
-    if (vendorBefore.storeActive !== false && vendor.storeActive === false) {
-      await releaseBoostInventoryForVendor(
-        id,
-        BOOST_CANCEL_REASON.VENDOR_INACTIVE,
-      ).catch((error) =>
-        console.error("Failed to release boost inventory for vendor", id, error),
-      );
-    }
+    await releaseBoostsOfClosedStore(id, vendorBefore, vendor);
 
     return successResponse(vendor);
   },
@@ -1249,7 +802,6 @@ export const DELETE = withApi<{ id: string }>(
     await connectDB();
     const settings = await getSettings();
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
-    await syncDefaultVendorWithSettings(session.user.id, settings);
 
     const vendor = await Vendor.findById(id)
       .populate("user", "name email")

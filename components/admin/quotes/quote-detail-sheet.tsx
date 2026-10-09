@@ -6,6 +6,7 @@ import {
   Copy,
   ExternalLink,
   Loader2,
+  Lock,
   Mail,
   Tag,
   TriangleAlert,
@@ -32,9 +33,13 @@ import { useCurrency } from "@/providers/currency-provider";
 import {
   formatQuoteDate,
   GuestChip,
+  QuoteOfferBy,
   QuoteProductThumb,
   QuoteStageBadge,
+  quoteApiPath,
+  quoteMovesFor,
   useLotMessage,
+  type QuoteScope,
 } from "./quote-ui";
 
 /**
@@ -43,6 +48,11 @@ import {
  * store can actually sell that lot, what happened so far, and the note the
  * team keeps for itself. Opens from a row click, like an order does from the
  * Orders list.
+ *
+ * On the vendor's page the note is the vendor's own (the store reads it, the
+ * vendor never sees the store's), the shopper's contact details are missing
+ * when the store hides them, and once the store has taken the quote over the
+ * sheet says so in place of the moves the vendor no longer has.
  *
  * The moves that ask for confirmation or open the price dialog are handed to
  * the page, which closes this sheet first: a dialog opened over a sheet sits
@@ -61,6 +71,7 @@ interface QuoteDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canManage: boolean;
+  scope?: QuoteScope;
   /** Changed by the page after a write, so an open sheet reads the quote again. */
   version: number;
   onAction: (action: QuoteSheetAction, quote: AdminQuoteDetail) => void;
@@ -89,6 +100,7 @@ export function QuoteDetailSheet({
   open,
   onOpenChange,
   canManage,
+  scope = "admin",
   version,
   onAction,
 }: QuoteDetailSheetProps) {
@@ -108,7 +120,7 @@ export function QuoteDetailSheet({
     if (!open || !quoteId || loaded?.key === requestKey) return;
     const controller = new AbortController();
     apiClient
-      .get<AdminQuoteDetail>(`/api/admin/quotes/${quoteId}`, {
+      .get<AdminQuoteDetail>(quoteApiPath(scope, quoteId), {
         signal: controller.signal,
       })
       .then((detail) => {
@@ -126,12 +138,15 @@ export function QuoteDetailSheet({
         onOpenChange(false);
       });
     return () => controller.abort();
-  }, [loaded?.key, onOpenChange, open, quoteId, requestKey, t]);
+  }, [loaded?.key, onOpenChange, open, quoteId, requestKey, scope, t]);
 
+  // The note this page writes: the store's internal one, or the vendor's own.
+  const noteField = scope === "vendor" ? "vendorNote" : "adminNote";
+  const savedNote = quote?.[noteField] ?? "";
   const [note, setNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
-  useApplyOnChange([quote?._id ?? null, quote?.adminNote ?? ""], () => {
-    setNote(quote?.adminNote ?? "");
+  useApplyOnChange([quote?._id ?? null, savedNote], () => {
+    setNote(savedNote);
   });
 
   const saveNote = async () => {
@@ -139,8 +154,8 @@ export function QuoteDetailSheet({
     setSavingNote(true);
     try {
       const updated = await apiClient.patch<AdminQuoteDetail>(
-        `/api/admin/quotes/${quote._id}`,
-        { adminNote: note.trim() },
+        quoteApiPath(scope, quote._id),
+        { [noteField]: note.trim() },
       );
       setLoaded({ key: requestKey, quote: updated });
       toast.success(t("toast.noteSaved"));
@@ -186,7 +201,7 @@ export function QuoteDetailSheet({
         at: offer.offeredAt,
         tone: "blue",
         title: index === 0 ? t("history.priceSent") : t("history.newPriceSent"),
-        detail: `${offer.quantity} × ${formatPrice(offer.unitPrice)} · ${heldFor(offer)}`,
+        detail: `${offer.quantity} × ${formatPrice(offer.unitPrice)} · ${heldFor(offer)} · ${t(`by.${offer.offeredByRole}`)}`,
       });
       if (offer.withdrawnAt) {
         events.push({
@@ -194,6 +209,7 @@ export function QuoteDetailSheet({
           at: offer.withdrawnAt,
           tone: "slate",
           title: t("history.withdrawn"),
+          detail: offer.withdrawnByRole ? t(`by.${offer.withdrawnByRole}`) : undefined,
         });
       }
     });
@@ -275,17 +291,10 @@ export function QuoteDetailSheet({
   })();
 
   const onOrder = quote?.stage === "ordered" || quote?.stage === "won";
-  const openStage =
-    quote?.stage === "needs_reply" ||
-    quote?.stage === "offer_sent" ||
-    quote?.stage === "expired";
-  const canReopen =
-    quote?.stage === "closed" &&
-    quote.status === "lost" &&
-    !quote.offer?.withdrawnAt;
+  const moves = quote ? quoteMovesFor(scope, quote) : null;
 
   const copyEmail = () => {
-    if (!quote) return;
+    if (!quote?.email) return;
     void navigator.clipboard.writeText(quote.email);
     toast.success(t("toast.emailCopied"));
   };
@@ -319,8 +328,10 @@ export function QuoteDetailSheet({
               <SheetTitle className="text-xl">{quote.name}</SheetTitle>
               <SheetDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 {quote.company ? <span>{quote.company}</span> : null}
-                {quote.company ? <span aria-hidden="true">·</span> : null}
-                <span>{quote.email}</span>
+                {quote.company && quote.email ? (
+                  <span aria-hidden="true">·</span>
+                ) : null}
+                {quote.email ? <span>{quote.email}</span> : null}
               </SheetDescription>
             </SheetHeader>
 
@@ -331,25 +342,38 @@ export function QuoteDetailSheet({
                 </h3>
                 <dl className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 text-sm">
                   <dt className="text-muted-foreground">{tRoot("common.email")}</dt>
-                  <dd className="flex min-w-0 items-center gap-1.5">
-                    <a
-                      href={`mailto:${quote.email}`}
-                      className="truncate font-medium text-primary hover:underline"
-                    >
-                      {quote.email}
-                    </a>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground"
-                      aria-label={t("sheet.copyEmail")}
-                      onClick={copyEmail}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </dd>
-                  {quote.phone ? (
+                  {quote.contactHidden ? (
+                    <dd className="italic text-muted-foreground">
+                      {t("sheet.contactHidden")}
+                    </dd>
+                  ) : (
+                    <dd className="flex min-w-0 items-center gap-1.5">
+                      <a
+                        href={`mailto:${quote.email}`}
+                        className="truncate font-medium text-primary hover:underline"
+                      >
+                        {quote.email}
+                      </a>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground"
+                        aria-label={t("sheet.copyEmail")}
+                        onClick={copyEmail}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </dd>
+                  )}
+                  {quote.contactHidden ? (
+                    <>
+                      <dt className="text-muted-foreground">{t("sheet.phone")}</dt>
+                      <dd className="italic text-muted-foreground">
+                        {t("sheet.contactHidden")}
+                      </dd>
+                    </>
+                  ) : quote.phone ? (
                     <>
                       <dt className="text-muted-foreground">{t("sheet.phone")}</dt>
                       <dd>
@@ -387,7 +411,7 @@ export function QuoteDetailSheet({
                   />
                   <div className="min-w-0">
                     <Link
-                      href={`/admin/products/${quote.productId}/edit`}
+                      href={`/${scope}/products/${quote.productId}/edit`}
                       className="line-clamp-2 text-sm font-medium hover:text-primary hover:underline"
                     >
                       {quote.productName}
@@ -440,9 +464,12 @@ export function QuoteDetailSheet({
                         {priceState}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {quote.offer.quantity} × {formatPrice(quote.offer.unitPrice)} ·{" "}
-                      {t("price.beforeShippingTax")}
+                    <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                      <QuoteOfferBy role={quote.offer.offeredByRole} />
+                      <span>
+                        {quote.offer.quantity} × {formatPrice(quote.offer.unitPrice)} ·{" "}
+                        {t("price.beforeShippingTax")}
+                      </span>
                     </span>
                     {quote.offer.note ? (
                       <p className="mt-1.5 whitespace-pre-wrap border-t pt-2 text-xs leading-relaxed text-muted-foreground">
@@ -453,6 +480,15 @@ export function QuoteDetailSheet({
                 ) : (
                   <p className="text-sm text-muted-foreground">{t("price.none")}</p>
                 )}
+                {moves?.lockedByStore ? (
+                  <div
+                    role="note"
+                    className="flex items-start gap-2.5 rounded-lg bg-muted/70 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"
+                  >
+                    <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{t("sheet.lockedByStore")}</span>
+                  </div>
+                ) : null}
                 {offerLotProblem && quote.offer ? (
                   <div
                     role="note"
@@ -464,7 +500,7 @@ export function QuoteDetailSheet({
                 ) : null}
                 {quote.order ? (
                   <Link
-                    href={`/admin/orders/${quote.order._id}`}
+                    href={`/${scope}/orders/${quote.order._id}`}
                     className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-sm hover:bg-muted/50"
                   >
                     <span>
@@ -509,9 +545,26 @@ export function QuoteDetailSheet({
                 </ol>
               </section>
 
+              {/* The store reads the vendor's note but cannot change it. */}
+              {scope === "admin" && quote.vendorNote ? (
+                <section className="grid gap-2 border-b py-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t("sheet.vendorNote")}
+                  </h3>
+                  <p className="whitespace-pre-wrap rounded-lg bg-muted/70 px-3 py-2.5 text-sm leading-relaxed [overflow-wrap:anywhere]">
+                    {quote.vendorNote}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("sheet.vendorNoteReadOnly")}
+                  </p>
+                </section>
+              ) : null}
+
               <section className="grid gap-2 py-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  <label htmlFor="quote-internal-note">{t("sheet.internalNote")}</label>
+                  <label htmlFor="quote-internal-note">
+                    {scope === "vendor" ? t("sheet.vendorNote") : t("sheet.internalNote")}
+                  </label>
                 </h3>
                 <Textarea
                   id="quote-internal-note"
@@ -519,10 +572,14 @@ export function QuoteDetailSheet({
                   onChange={(event) => setNote(event.target.value)}
                   rows={3}
                   maxLength={2000}
-                  placeholder={t("sheet.internalNotePlaceholder")}
+                  placeholder={
+                    scope === "vendor"
+                      ? t("sheet.vendorNotePlaceholder")
+                      : t("sheet.internalNotePlaceholder")
+                  }
                   disabled={!canManage}
                 />
-                {canManage && note.trim() !== (quote.adminNote ?? "") ? (
+                {canManage && note.trim() !== savedNote ? (
                   <div className="flex justify-end">
                     <Button
                       type="button"
@@ -545,29 +602,27 @@ export function QuoteDetailSheet({
                 whole right-hand pair onto its own line, still on the right. */}
             <div className="flex flex-wrap items-center gap-2 border-t px-6 py-4">
               <div className="flex flex-wrap items-center gap-1">
-                {canManage && openStage ? (
-                  <>
-                    {quote.stage === "offer_sent" ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="text-muted-foreground"
-                        onClick={() => onAction("withdraw", quote)}
-                      >
-                        {t("actions.withdraw")}
-                      </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="text-muted-foreground"
-                      onClick={() => onAction("mark_lost", quote)}
-                    >
-                      {t("actions.markLost")}
-                    </Button>
-                  </>
+                {canManage && moves?.canWithdraw ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    onClick={() => onAction("withdraw", quote)}
+                  >
+                    {t("actions.withdraw")}
+                  </Button>
                 ) : null}
-                {canManage && quote.stage === "closed" ? (
+                {canManage && moves?.canMarkLost ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    onClick={() => onAction("mark_lost", quote)}
+                  >
+                    {t("actions.markLost")}
+                  </Button>
+                ) : null}
+                {canManage && moves?.canDelete && quote.stage === "closed" ? (
                   <Button
                     type="button"
                     variant="ghost"
@@ -579,23 +634,25 @@ export function QuoteDetailSheet({
                 ) : null}
               </div>
               <div className="ms-auto flex flex-wrap items-center justify-end gap-2">
-                <Button asChild variant="outline">
-                  <a href={`mailto:${quote.email}`}>
-                    <Mail className="me-2 h-4 w-4" />
-                    {t("actions.email")}
-                  </a>
-                </Button>
+                {quote.email ? (
+                  <Button asChild variant="outline">
+                    <a href={`mailto:${quote.email}`}>
+                      <Mail className="me-2 h-4 w-4" />
+                      {t("actions.email")}
+                    </a>
+                  </Button>
+                ) : null}
                 {onOrder && quote.order ? (
                   <Button asChild>
-                    <Link href={`/admin/orders/${quote.order._id}`}>
+                    <Link href={`/${scope}/orders/${quote.order._id}`}>
                       {t("actions.openOrder")}
                     </Link>
                   </Button>
-                ) : canManage && canReopen ? (
+                ) : canManage && moves?.canReopen ? (
                   <Button type="button" onClick={() => onAction("reopen", quote)}>
                     {t("actions.reopen")}
                   </Button>
-                ) : canManage && !onOrder ? (
+                ) : canManage && moves?.canSendPrice ? (
                   <Button type="button" onClick={() => onAction("send_price", quote)}>
                     <Tag className="me-2 h-4 w-4" />
                     {quote.offer ? t("actions.sendNewPrice") : t("actions.sendPrice")}

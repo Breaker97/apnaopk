@@ -19,6 +19,7 @@ import { Vendor, VendorPlan, Product, StaffProfile } from "@/models";
 import { VENDOR_OWNED_STAFF_FILTER } from "@/lib/access/staff-ownership";
 import { getSettings, type ISettings } from "@/models/settings.model";
 import { PRODUCT_STATUS } from "@/config/app.config";
+import { markForMetaCatalog } from "@/lib/meta-catalog/mark-later";
 import {
   planSellsPack,
   type VendorPermissionPack,
@@ -247,6 +248,8 @@ export async function draftExcessProducts(
     { _id: { $in: overflow.map((p) => p._id) } },
     { $set: { status: PRODUCT_STATUS.DRAFT } },
   );
+  // Drafted products leave Meta's catalog on the live sync's next round.
+  await markForMetaCatalog(overflow.map((p) => p._id));
 
   return { limit, activeBefore, drafted: overflow.length };
 }

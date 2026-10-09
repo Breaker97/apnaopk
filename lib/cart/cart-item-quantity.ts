@@ -2,6 +2,7 @@ import "server-only";
 
 import { Product } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
+import { CartRefusal, insufficientStock } from "@/lib/cart/cart-refusal";
 import { getSettings } from "@/models/settings.model";
 import {
   calculatePreorderDeposit,
@@ -25,20 +26,34 @@ import {
  *
  * Mutates the cart document in place; the caller saves it. Returns false when
  * no line matches.
+ *
+ * `admit` is the caller's own rule for the line, asked once the product and
+ * the line's purchase type are known and before anything changes: it throws
+ * a `CartRefusal` to refuse (the app takes no pre-orders, for one).
  */
 
 type CartUpdateProduct = {
   stock?: number;
-  /** Whether `stock` is a limit — see lib/products/stock-policy.ts. */
+  /** Whether the product or a variant ships at all: read by `admit`. */
   shipping?: { isPhysicalProduct?: boolean };
+  /** Whether `stock` is a limit — see lib/products/stock-policy.ts. */
   inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
   preorder?: PreorderSettingsShape;
   variants?: Array<{
     _id?: unknown;
     stock?: number;
+    requiresShipping?: boolean;
     preorder?: PreorderSettingsShape;
   }>;
 };
+
+/** What `admit` is shown of a line before it is written. */
+export type CartLineAdmission = {
+  product: CartUpdateProduct;
+  variantId?: string;
+  purchaseType: string;
+};
+export type AdmitCartLine = (line: CartLineAdmission) => void;
 
 type MutableCartLine = {
   productId: { toString: () => string };
@@ -72,6 +87,7 @@ export function assertWholeQuantities(items: Array<{ quantity?: unknown }>): voi
 export async function setCartItemQuantity(
   cart: { items: MutableCartLine[] },
   line: { productId: string; variantId?: string; quantity: number },
+  options: { admit?: AdmitCartLine } = {},
 ): Promise<boolean> {
   const { productId, variantId, quantity } = line;
   const itemIndex = cart.items.findIndex(
@@ -92,14 +108,15 @@ export async function setCartItemQuantity(
     // stepper cannot move it: changing the number would make the offer stop
     // resolving at checkout and the shopper would lose the price without
     // being told why. Removing the line is still allowed, above.
-    throw new ValidationError(
+    throw new CartRefusal(
       "This price was quoted for a fixed quantity. Remove the item and request a new quote to change it.",
+      "quoted_quantity",
     );
   }
 
   const currentType = item.purchaseType || PURCHASE_TYPE.STANDARD;
   const product = await Product.findById(productId).lean<CartUpdateProduct>();
-  if (!product) throw new ValidationError("Product not found");
+  if (!product) throw new CartRefusal("Product not found", "not_available");
 
   const purchase = resolvePurchaseType({
     product,
@@ -107,8 +124,9 @@ export async function setCartItemQuantity(
     requestedQuantity: quantity,
   });
   if (!purchase || purchase.purchaseType !== currentType) {
-    throw new ValidationError("Insufficient stock");
+    throw insufficientStock(product, variantId);
   }
+  options.admit?.({ product, variantId, purchaseType: purchase.purchaseType });
   const preorderTerms =
     purchase.purchaseType === PURCHASE_TYPE.PREORDER
       ? calculatePreorderDeposit({

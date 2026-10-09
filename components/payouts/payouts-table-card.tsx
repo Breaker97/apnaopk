@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useCurrency } from "@/providers/currency-provider";
+import { formatCurrency } from "@/lib/intl/money";
 import {
   DataTable,
   TextCell,
@@ -145,7 +145,6 @@ export function PayoutsTableCard({
   rowActionsHeader,
 }: PayoutsTableCardProps) {
   const t = useTranslations();
-  const { formatPrice } = useCurrency();
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
     [locale],
@@ -218,7 +217,7 @@ export function PayoutsTableCard({
         sortable: true,
         cell: (row) => (
           <span className="block font-medium">
-            {formatPrice(row.netAmount)}
+            {formatCurrency(row.netAmount, row.currency || "USD")}
           </span>
         ),
         className: "w-[160px]",
@@ -236,7 +235,7 @@ export function PayoutsTableCard({
         headerClassName: "hidden md:table-cell",
       },
     ],
-    [detailHref, formatDate, formatPrice, showVendorColumn, t, translatePayoutStatus],
+    [detailHref, formatDate, showVendorColumn, t, translatePayoutStatus],
   );
 
   const tableHeader = useMemo(

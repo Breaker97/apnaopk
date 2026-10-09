@@ -28,15 +28,14 @@ type EmailConfig = ResolvedSmtpConfig;
  * wrapped again with the display name.
  */
 function buildFromHeader(settings?: ISettingsData | null): string {
+  // Switched off, the page's login and sender are not in use (.env sends).
+  const page = settings?.email?.enabled ? settings.email : undefined;
   const resolved =
-    resolveSmtpFromEmail(settings) ||
-    settings?.email?.smtp?.user ||
-    getSenderEmail();
+    resolveSmtpFromEmail(settings) || page?.smtp?.user || getSenderEmail();
 
   if (resolved.includes("<") && resolved.includes(">")) return resolved;
 
-  const name =
-    settings?.email?.fromName || settings?.general?.storeName || getAppName();
+  const name = page?.fromName || settings?.general?.storeName || getAppName();
   return `"${name}" <${resolved}>`;
 }
 
@@ -248,6 +247,7 @@ async function deliverEmailJob(
     const hardBounce = isHardBounce(error, job.to);
     const exhausted = hardBounce || job.attempts >= job.maxAttempts;
     job.status = exhausted ? "failed" : "retrying";
+    if (hardBounce) job.hardBounce = true;
     job.lastError = sanitizeEmailError(error);
     job.nextAttemptAt = exhausted
       ? undefined
@@ -273,6 +273,28 @@ export async function processPendingEmailDeliveries(limit = 20) {
   await connectDB();
   const now = new Date();
   const staleBefore = new Date(Date.now() - 10 * 60_000);
+
+  // A send that died on its last try can never be reclaimed (it is out of
+  // attempts), so without this it would sit at "sending" for good: never
+  // sent, never failed, never reaped. The SMS outbox has the same sweep
+  // (lib/sms/sms.ts).
+  await EmailDelivery.updateMany(
+    {
+      status: "sending",
+      lastAttemptAt: { $lte: staleBefore },
+      $expr: { $gte: ["$attempts", "$maxAttempts"] },
+    },
+    {
+      $set: {
+        status: "failed",
+        lastError:
+          "The last attempt never finished, so the email may or may not have been sent.",
+        expiresAt: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
+      },
+      $unset: { nextAttemptAt: "" },
+    },
+  );
+
   const jobs = await EmailDelivery.find({
     $and: [
       { $expr: { $lt: ["$attempts", "$maxAttempts"] } },
@@ -321,10 +343,7 @@ export async function retryEmailDelivery(jobId: string) {
   return deliverEmailJob(String(job._id));
 }
 
-/**
- * Send email helper
- */
-export async function sendEmail(options: {
+interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
@@ -349,17 +368,39 @@ export async function sendEmail(options: {
    * unique index, so a store whose index was never built still holds.
    */
   dedupeKey?: string;
-}): Promise<boolean> {
+  /**
+   * Tries before the job is marked failed (4 by default). The settings page's
+   * test email sends once: a test that failed and then went out by itself
+   * half an hour later said nothing about the settings being tested.
+   */
+  maxAttempts?: number;
+}
+
+/**
+ * Send email helper
+ */
+export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
+  return (await sendEmailWithOutcome(options)).sent;
+}
+
+/**
+ * `sendEmail`, with the mail server's answer when the send failed: the
+ * sanitized error the outbox keeps on the job. The settings page's test email
+ * shows it where the admin is looking, instead of pointing at the log.
+ */
+export async function sendEmailWithOutcome(
+  options: SendEmailOptions,
+): Promise<{ sent: boolean; error?: string }> {
   try {
     await connectDB();
     const settings = options.settings;
     // A store that never set up SMTP has opted out of email: queueing would
     // only log a failure per event and leave rows for the retry cron to chew.
     if (!isEmailDeliveryConfigured(settings ?? (await getSettings()))) {
-      return false;
+      return { sent: false };
     }
     if (options.dedupeKey && (await EmailDelivery.exists({ dedupeKey: options.dedupeKey }))) {
-      return true;
+      return { sent: true };
     }
     // Marketing is the one category consent governs. Order updates, password
     // resets and invoices are transactional and go out regardless — an
@@ -370,7 +411,7 @@ export async function sendEmail(options: {
       const { isMarketingSuppressed } = await import(
         "@/lib/customers/marketing-consent"
       );
-      if (await isMarketingSuppressed(options.to)) return false;
+      if (await isMarketingSuppressed(options.to)) return { sent: false };
     }
     const job = await EmailDelivery.create({
       to: options.to,
@@ -387,13 +428,161 @@ export async function sendEmail(options: {
       category: options.category || "transactional",
       ...(options.headers ? { headers: options.headers } : {}),
       ...(options.dedupeKey ? { dedupeKey: options.dedupeKey } : {}),
+      ...(options.maxAttempts ? { maxAttempts: options.maxAttempts } : {}),
       status: "queued",
       nextAttemptAt: new Date(),
     });
-    return deliverEmailJob(String(job._id), settings);
+    if (await deliverEmailJob(String(job._id), settings)) return { sent: true };
+    const failed = await EmailDelivery.findById(job._id).select("lastError").lean();
+    return { sent: false, error: failed?.lastError };
   } catch (error) {
-    if ((error as { code?: number } | null)?.code === 11000) return true;
-    console.error("Failed to queue email:", sanitizeEmailError(error));
-    return false;
+    if ((error as { code?: number } | null)?.code === 11000) return { sent: true };
+    const message = sanitizeEmailError(error);
+    console.error("Failed to queue email:", message);
+    return { sent: false, error: message };
   }
+}
+
+/**
+ * What became of one outbox email, as evidence: `sent` only once the mail
+ * server ACCEPTED it (`sentAt` is that moment), `failed` with whether the
+ * address itself was refused, anything else still on its way.
+ */
+export type EmailDeliveryOutcome = {
+  jobId?: string;
+  status: "queued" | "sending" | "retrying" | "sent" | "failed" | "cancelled" | "unconfigured";
+  sentAt?: Date;
+  hardBounce?: boolean;
+  error?: string;
+};
+
+export async function readEmailDelivery(jobId: string): Promise<EmailDeliveryOutcome | null> {
+  await connectDB();
+  const job = await EmailDelivery.findById(jobId)
+    .select("status sentAt hardBounce lastError")
+    .lean<{
+      _id: unknown;
+      status: EmailDeliveryOutcome["status"];
+      sentAt?: Date;
+      hardBounce?: boolean;
+      lastError?: string;
+    } | null>();
+  if (!job) return null;
+  return {
+    jobId,
+    status: job.status,
+    ...(job.sentAt ? { sentAt: job.sentAt } : {}),
+    ...(job.hardBounce ? { hardBounce: true } : {}),
+    ...(job.lastError ? { error: job.lastError } : {}),
+  };
+}
+
+/**
+ * `sendEmail` for a caller that needs evidence rather than a boolean: the
+ * outbox job behind the message and what became of it. A message already
+ * queued under the same `dedupeKey` is not sent again — its job and its real
+ * status are returned, never a blanket "sent" (which `sendEmail` reports for
+ * a duplicate, sent or not).
+ */
+export async function queueEmailWithEvidence(
+  options: SendEmailOptions & { dedupeKey: string },
+): Promise<EmailDeliveryOutcome> {
+  await connectDB();
+  const settings = options.settings;
+  if (!isEmailDeliveryConfigured(settings ?? (await getSettings()))) {
+    return { status: "unconfigured" };
+  }
+  const existing = await EmailDelivery.findOne({ dedupeKey: options.dedupeKey })
+    .select("_id")
+    .lean<{ _id: unknown } | null>();
+  let jobId = existing ? String(existing._id) : undefined;
+  if (!jobId) {
+    try {
+      const job = await EmailDelivery.create({
+        to: options.to,
+        subject: options.subject,
+        from: buildFromHeader(settings),
+        replyTo: options.replyTo,
+        html: options.html,
+        text: options.text || options.html.replace(/<[^>]*>/g, ""),
+        category: options.category || "transactional",
+        ...(options.headers ? { headers: options.headers } : {}),
+        dedupeKey: options.dedupeKey,
+        ...(options.maxAttempts ? { maxAttempts: options.maxAttempts } : {}),
+        status: "queued",
+        nextAttemptAt: new Date(),
+      });
+      jobId = String(job._id);
+      await deliverEmailJob(jobId, settings);
+    } catch (error) {
+      if ((error as { code?: number } | null)?.code !== 11000) {
+        return { status: "failed", error: sanitizeEmailError(error) };
+      }
+      const raced = await EmailDelivery.findOne({ dedupeKey: options.dedupeKey })
+        .select("_id")
+        .lean<{ _id: unknown } | null>();
+      jobId = raced ? String(raced._id) : undefined;
+    }
+  }
+  if (!jobId) return { status: "failed", error: "The email could not be queued" };
+  return (await readEmailDelivery(jobId)) ?? { jobId, status: "queued" };
+}
+
+
+/**
+ * Drop an unsent email's body from the outbox, leaving the row in the log
+ * with its failure. For a message whose content must not be retried or read
+ * later — a "set your password" link that has been spent.
+ */
+export async function discardEmailContent(jobId: string): Promise<void> {
+  await connectDB();
+  await EmailDelivery.updateOne(
+    { _id: jobId, status: { $ne: "sent" } },
+    { $unset: { html: 1, text: 1, attachments: 1 } },
+  );
+}
+
+/**
+ * The addresses among `to` (lower-cased) that were sent an email of one of
+ * these categories since `since`, or have one on its way. Rows whose dedupe
+ * key starts with `excludeKeyPrefix` — the caller's own earlier tries — do
+ * not count.
+ */
+export async function recentEmailRecipients(params: {
+  to: string[];
+  categories: string[];
+  since: Date;
+  excludeKeyPrefix?: string;
+}): Promise<Set<string>> {
+  if (params.to.length === 0) return new Set();
+  await connectDB();
+  const rows = await EmailDelivery.find({
+    to: { $in: params.to },
+    category: { $in: params.categories },
+    createdAt: { $gte: params.since },
+    status: { $in: ["queued", "sending", "retrying", "sent"] },
+    ...(params.excludeKeyPrefix
+      ? { dedupeKey: { $not: new RegExp(`^${escapeRegExp(params.excludeKeyPrefix)}`) } }
+      : {}),
+  })
+    .select("to")
+    .lean<Array<{ to: string }>>();
+  return new Set(rows.map((row) => row.to.toLowerCase()));
+}
+
+/** The sent email whose dedupe key starts with `prefix`, if one went out. */
+export async function findSentEmailByKeyPrefix(
+  prefix: string,
+): Promise<{ category?: string } | null> {
+  await connectDB();
+  return EmailDelivery.findOne({
+    dedupeKey: new RegExp(`^${escapeRegExp(prefix)}`),
+    status: "sent",
+  })
+    .select("category")
+    .lean<{ category?: string } | null>();
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

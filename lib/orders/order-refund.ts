@@ -55,6 +55,8 @@ type RefundGatewayResult = {
    * `charge.refunded` webhook from recording the second one a second time.
    */
   externalRefundIds?: string[];
+  /** Individual evidence for split charges/providers; an aggregate last status cannot settle them. */
+  refundReports?: Array<{ id: string; provider: string; amount: number; status: string }>;
   /** Provider-specific refund status string, when available. */
   status?: string;
 };
@@ -98,6 +100,15 @@ export async function refundOrderPayment(params: {
   manual?: boolean;
   /** Who is issuing the refund; recorded in the gateway's audit trail. */
   actor?: string;
+  /**
+   * Makes a repeat of THIS refund request return the refund already made
+   * instead of a second one, where the gateway honours it (Stripe's
+   * idempotency key, PayPal's request id). A caller that may run again after
+   * a crash — the pre-order lifecycle worker — passes a stable one.
+   */
+  idempotencyKey?: string;
+  /** Tags the gateway refund, so a resumed caller can find what it made. */
+  gatewayMetadata?: Record<string, string>;
 }): Promise<RefundGatewayResult> {
   const { order, amount, reason, manual, actor } = params;
 
@@ -132,7 +143,14 @@ export async function refundOrderPayment(params: {
   // charge it knows, and the other half was simply unreachable.
   const legs = preorderRefundLegs(order, method);
   if (legs) {
-    return refundAcrossPreorderLegs({ order, legs, amount, reason });
+    return refundAcrossPreorderLegs({
+      order,
+      legs,
+      amount,
+      reason,
+      idempotencyKey: params.idempotencyKey,
+      gatewayMetadata: params.gatewayMetadata,
+    });
   }
 
   // Stripe card payments
@@ -212,6 +230,7 @@ export async function refundOrderPayment(params: {
     }
 
     const refundIds: string[] = [];
+    const refundReports: NonNullable<RefundGatewayResult["refundReports"]> = [];
     let lastStatus: string | undefined;
     // What went back, in Stripe's units, for a part-failure to report.
     let refundedMinor = 0;
@@ -223,12 +242,17 @@ export async function refundOrderPayment(params: {
       if (take <= 0) continue;
       let refund: { id: string; status?: string | null };
       try {
-        refund = await stripe.refunds.create({
+        const body = {
           payment_intent: entry.intentId,
           amount: take,
-          reason: "requested_by_customer",
-          metadata: reason ? { note: reason.slice(0, 500) } : undefined,
-        });
+          reason: "requested_by_customer" as const,
+          metadata: refundMetadata(reason, params.gatewayMetadata),
+        };
+        refund = await (params.idempotencyKey
+          ? stripe.refunds.create(body, {
+              idempotencyKey: `${params.idempotencyKey}:${entry.intentId}:${take}`,
+            })
+          : stripe.refunds.create(body));
       } catch (err) {
         // The connection dropped, or Stripe's own server failed: the refund
         // may have been made before the answer was lost. Asked of Stripe
@@ -240,6 +264,7 @@ export async function refundOrderPayment(params: {
               intentId: entry.intentId,
               amount: take,
               since: attemptStartedAt,
+              metadata: params.gatewayMetadata,
               exclude: refundIds,
             })
           : null;
@@ -254,6 +279,7 @@ export async function refundOrderPayment(params: {
             {
               refundedAmount: fromStripeAmount(refundedMinor, refundCurrency),
               refundIds: [...refundIds],
+              refundReports: [...refundReports],
               provider: "stripe",
               failure: message,
             },
@@ -268,13 +294,15 @@ export async function refundOrderPayment(params: {
           `Part of this refund went through (${refundIds.join(", ")}) but the next part failed: ${refused}. The part already refunded is recorded from the gateway's own notification — refund only the remainder again.`,
           {
             refundedAmount: fromStripeAmount(refundedMinor, refundCurrency),
-            refundIds: [...refundIds],
+            refundIds: [...refundIds, refund.id],
+            refundReports: [...refundReports, { id: refund.id, provider: "stripe", amount: fromStripeAmount(take, refundCurrency), status: String(refund.status || "failed") }],
             provider: "stripe",
             failure: refused,
           },
         );
       }
       refundIds.push(refund.id);
+      refundReports.push({ id: refund.id, provider: "stripe", amount: fromStripeAmount(take, refundCurrency), status: String(refund.status || "pending") });
       lastStatus = refund.status || lastStatus;
       refundedMinor += take;
       remaining -= take;
@@ -285,6 +313,7 @@ export async function refundOrderPayment(params: {
       provider: "stripe",
       externalRefundId: refundIds[0],
       externalRefundIds: refundIds,
+      refundReports,
       status: lastStatus,
     };
   }
@@ -312,6 +341,9 @@ export async function refundOrderPayment(params: {
       amount,
       currency: order.currency,
       reason,
+      requestId: params.idempotencyKey
+        ? `${params.idempotencyKey}:${captureId}`
+        : undefined,
     }).catch((err: unknown) => {
       throw unknownOutcomeError("PayPal", err);
     });
@@ -447,6 +479,7 @@ export async function refundOrderPayment(params: {
 export class PartialRefundError extends Error {
   readonly refundedAmount: number;
   readonly refundIds: string[];
+  readonly refundReports?: RefundGatewayResult["refundReports"];
   readonly provider: string;
   /** Why the next part failed, as the gateway said it. */
   readonly failure: string;
@@ -456,6 +489,7 @@ export class PartialRefundError extends Error {
     details: {
       refundedAmount: number;
       refundIds: string[];
+      refundReports?: RefundGatewayResult["refundReports"];
       provider: string;
       failure: string;
     },
@@ -464,6 +498,7 @@ export class PartialRefundError extends Error {
     this.name = "PartialRefundError";
     this.refundedAmount = details.refundedAmount;
     this.refundIds = details.refundIds;
+    this.refundReports = details.refundReports;
     this.provider = details.provider;
     this.failure = details.failure;
   }
@@ -543,9 +578,37 @@ function refundOutcomeUnknown(err: unknown): boolean {
  */
 function unknownOutcomeError(gateway: string, err: unknown): unknown {
   if (!refundOutcomeUnknown(err)) return err;
-  return new Error(
-    `${gateway} did not answer, so it is not known whether this refund went through. Check the ${gateway} dashboard before refunding again — a refund that went through appears on the order by itself.`,
-  );
+  return new RefundOutcomeUnknownError(gateway);
+}
+
+/**
+ * Nobody knows whether this refund went through — the gateway's answer was
+ * lost. Never to be read as a refusal: retried as one, a refund that had gone
+ * through was sent a second time. Reconciled against the gateway (or its own
+ * report) before anything is sent again.
+ */
+export class RefundOutcomeUnknownError extends Error {
+  readonly gateway: string;
+
+  constructor(gateway: string) {
+    super(
+      `${gateway} did not answer, so it is not known whether this refund went through. Check the ${gateway} dashboard before refunding again — a refund that went through appears on the order by itself.`,
+    );
+    this.name = "RefundOutcomeUnknownError";
+    this.gateway = gateway;
+  }
+}
+
+/** The refund's note plus a caller's tags, within Stripe's metadata limits. */
+function refundMetadata(
+  reason: string | undefined,
+  extra: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  const metadata: Record<string, string> = {
+    ...(reason ? { note: reason.slice(0, 500) } : {}),
+    ...(extra || {}),
+  };
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
 /**
@@ -558,6 +621,7 @@ async function findLandedStripeRefund(params: {
   /** Minor units, as the refund was asked for. */
   amount: number;
   since: number;
+  metadata?: Record<string, string>;
   /** Refunds this attempt already counted. */
   exclude: string[];
 }) {
@@ -571,6 +635,7 @@ async function findLandedStripeRefund(params: {
       recent.data.find(
         (refund) =>
           refund.amount === params.amount &&
+          (!params.metadata || Object.entries(params.metadata).every(([key, value]) => refund.metadata?.[key] === value)) &&
           !params.exclude.includes(refund.id) &&
           refund.status !== "failed" &&
           refund.status !== "canceled",
@@ -661,6 +726,8 @@ async function refundAcrossPreorderLegs(params: {
   legs: PreorderRefundLeg[];
   amount: number;
   reason?: string;
+  idempotencyKey?: string;
+  gatewayMetadata?: Record<string, string>;
 }): Promise<RefundGatewayResult> {
   const { order, legs, amount, reason } = params;
   const settings = await getSettings();
@@ -735,6 +802,7 @@ async function refundAcrossPreorderLegs(params: {
   }
 
   const refundIds: string[] = [];
+  const refundReports: NonNullable<RefundGatewayResult["refundReports"]> = [];
   const providers: string[] = [];
   let lastStatus: string | undefined;
   let refundedHundredths = 0;
@@ -744,14 +812,21 @@ async function refundAcrossPreorderLegs(params: {
     if (take <= 0) continue;
     try {
       if (entry.leg.gateway === "stripe" && stripe) {
-        const refund = await stripe.refunds.create({
+        const minor = toStripeAmount(take / 100, currency);
+        const body = {
           payment_intent: entry.leg.intentId,
-          amount: toStripeAmount(take / 100, currency),
-          reason: "requested_by_customer",
-          metadata: reason ? { note: reason.slice(0, 500) } : undefined,
-        });
+          amount: minor,
+          reason: "requested_by_customer" as const,
+          metadata: refundMetadata(reason, params.gatewayMetadata),
+        };
+        const refund = await (params.idempotencyKey
+          ? stripe.refunds.create(body, {
+              idempotencyKey: `${params.idempotencyKey}:${entry.leg.intentId}:${minor}`,
+            })
+          : stripe.refunds.create(body));
         assertRefundNotRefused("Stripe", refund.status);
         refundIds.push(refund.id);
+        refundReports.push({ id: refund.id, provider: "stripe", amount: take / 100, status: String(refund.status || "pending") });
         providers.push("stripe");
         lastStatus = refund.status || lastStatus;
       } else if (entry.leg.gateway === "paypal" && paypalCreds) {
@@ -761,9 +836,15 @@ async function refundAcrossPreorderLegs(params: {
           amount: take / 100,
           currency,
           reason,
+          requestId: params.idempotencyKey
+            ? `${params.idempotencyKey}:${entry.leg.captureId}`
+            : undefined,
         });
         assertRefundNotRefused("PayPal", result.status);
-        if (result.refundId) refundIds.push(result.refundId);
+        if (result.refundId) {
+          refundIds.push(result.refundId);
+          refundReports.push({ id: result.refundId, provider: "paypal", amount: take / 100, status: String(result.status || "PENDING") });
+        }
         providers.push("paypal");
         lastStatus = result.status || lastStatus;
       }
@@ -780,6 +861,7 @@ async function refundAcrossPreorderLegs(params: {
         {
           refundedAmount: refundedHundredths / 100,
           refundIds: [...refundIds],
+          refundReports: [...refundReports],
           provider: providers[0] || "stripe",
           failure: message,
         },
@@ -796,6 +878,7 @@ async function refundAcrossPreorderLegs(params: {
     provider: providers[0] || "manual",
     externalRefundId: refundIds[0],
     externalRefundIds: refundIds,
+    refundReports,
     status: lastStatus,
   };
 }

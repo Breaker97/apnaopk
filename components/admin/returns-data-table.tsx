@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "@/components/language/link";
 import {
   Archive,
@@ -214,6 +215,8 @@ interface AdminReturnRequest {
   orderId: string;
   orderNumber: string;
   customerId?: { name?: string; email?: string };
+  /** On a walk-in POS sale: no customer is sent (lib/returns/return-walk-in.ts). */
+  posWalkIn?: boolean;
   status: string;
   refundStatus: string;
   reason: string;
@@ -399,6 +402,7 @@ export function ReturnsDataTable({
   scope = "admin",
   canIssueRefunds = scope === "admin",
 }: ReturnsDataTableProps) {
+  const t = useTranslations();
   // Only the admin area can move money, and there only an admin.
   const mayMoveMoney = scope === "admin" && canIssueRefunds;
   const [returns, setReturns] = useState<AdminReturnRequest[]>([]);
@@ -1514,7 +1518,11 @@ export function ReturnsDataTable({
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <p>{request.customerId?.name || "Customer"}</p>
+                        <p>
+                          {request.posWalkIn
+                            ? t("admin.orderDetails.walkInCustomer")
+                            : request.customerId?.name || "Customer"}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {request.customerId?.email}
                         </p>

@@ -10,6 +10,7 @@ import {
   getPreorderCollectedAmount,
 } from "@/lib/orders/order-payment-status";
 import { resolvePreorderPolicy } from "@/lib/orders/preorder-gating";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 import type { ISettingsData } from "@/models/settings.model";
 import type { Address, IOrder, OrderItem } from "@/types";
 
@@ -117,6 +118,10 @@ export function buildOrderInvoiceData(
       : addDays(createdAt, 30);
   const customer = getInvoiceCustomer(order.customerId);
   const shipping = order.shippingAddress;
+  // A counter sale with no customer chosen is filed under its cashier, so the
+  // invoice the POS terminal opens after the sale printed the cashier's name
+  // and email as Bill to. It names nobody, whatever a caller passes.
+  const walkIn = isPosWalkIn(order);
 
   const items: InvoiceItem[] = order.items.map((item: OrderItem) => ({
     name: item.name,
@@ -141,8 +146,10 @@ export function buildOrderInvoiceData(
     },
     to: buildInvoiceAddress(
       shipping,
-      customerName || customer?.name || shipping.fullName || "Customer",
-      customerEmail || customer?.email,
+      walkIn
+        ? "Walk-in customer"
+        : customerName || customer?.name || shipping.fullName || "Customer",
+      walkIn ? undefined : customerEmail || customer?.email,
     ),
     items,
     subtotal: order.subtotal,

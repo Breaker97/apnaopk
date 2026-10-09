@@ -90,6 +90,8 @@ interface SectionWriteTarget {
   templateType?: StoreTemplateType;
   zone?: SectionZone;
   purpose?: "page" | "library";
+  /** A vendor's landing page — the one surface `vendorOnly` sections may go. */
+  surface?: "vendor";
 }
 
 /**
@@ -129,6 +131,12 @@ export function prepareSectionsForWrite(
     if (target.purpose === "library" && (def.locked || def.required)) {
       throw new SectionWriteError(
         `"${def.type}" is a template core section and cannot be saved to the library`,
+      );
+    }
+
+    if (def.vendorOnly && target.surface !== "vendor") {
+      throw new SectionWriteError(
+        `"${def.type}" belongs on a vendor's landing page only`,
       );
     }
 

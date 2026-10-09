@@ -87,9 +87,16 @@ export function ProductsSort({
   labels,
   triggerClassName,
   variant = "pill",
+  browseDefault,
 }: {
   currentSort?: string;
   labels: ProductsSortLabels;
+  /**
+   * The order the page runs with no `sortBy` and no search — "popular"
+   * unless the page sets its own (a vendor's chosen order). Picking it
+   * clears `sortBy`; every other choice is written into the URL.
+   */
+  browseDefault?: string;
   /** Themed trigger overrides — the Electronics toolbar squares the pill off. */
   triggerClassName?: string;
   /**
@@ -119,7 +126,10 @@ export function ProductsSort({
   // into the URL instead of being implied by an absent `sortBy`.
   const canSortByRelevance =
     Boolean(labels.bestMatch) && Boolean(searchParams.get("search")?.trim());
-  const defaultSort = defaultListingSort(canSortByRelevance);
+  const defaultSort =
+    browseDefault && !canSortByRelevance
+      ? browseDefault
+      : defaultListingSort(canSortByRelevance);
   const allowed: readonly string[] = [
     ...(canSortByRelevance ? ["relevance"] : []),
     ...SORT_VALUES,

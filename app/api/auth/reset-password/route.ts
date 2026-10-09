@@ -10,11 +10,27 @@ import * as z from "zod";
 import { upsertCredentialPassword } from "@/lib/auth/auth-credentials";
 import { getActivePasswordPolicy } from "@/lib/auth/auth";
 import { revokeAllSessions } from "@/lib/auth/session-revocation";
+import { primaryRole } from "@/lib/auth/auth-audit";
+import { audit, createAuditContext } from "@/lib/audit";
 import { handleApiError, RateLimitError } from "@/lib/api/errors";
 import {
   checkPasswordPolicy,
   MIN_ALLOWED_PASSWORD_LENGTH,
 } from "@/lib/auth/password-policy";
+import { tokenPurpose } from "@/models/password-reset.model";
+import { inspectAccountAccessToken } from "@/lib/auth/account-access-token";
+import { isCustomerAccount } from "@/lib/access/customer-account";
+import { USER_ACCOUNT_STATUS } from "@/config/app.config";
+
+type ResetUser = {
+  _id: unknown;
+  email?: string;
+  name?: string;
+  role?: string;
+  roles?: string[];
+  status?: string;
+  emailVerified?: boolean;
+};
 
 const ResetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -98,18 +114,67 @@ export async function POST(request: NextRequest) {
       throw new Error("Database not connected");
     }
 
-    const userExists = await db
-      .collection("user")
-      .findOne({ _id: resetDoc.userId }, { projection: { _id: 1 } });
+    const user = (await db.collection("user").findOne(
+      { _id: resetDoc.userId },
+      {
+        projection: {
+          email: 1,
+          name: 1,
+          role: 1,
+          roles: 1,
+          status: 1,
+          emailVerified: 1,
+        },
+      },
+    )) as ResetUser | null;
 
-    if (!userExists) {
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "User not found" },
         { status: 404 },
       );
     }
 
+    // A banned account gets no way back in through an emailed link, one sent
+    // before the ban included. The link is spent either way.
+    if (user.status === USER_ACCOUNT_STATUS.BANNED) {
+      return NextResponse.json(
+        { success: false, message: "Your account has been banned. Contact support." },
+        { status: 403 },
+      );
+    }
+
+    // Also spends every other link of this user's, of either kind.
     await upsertCredentialPassword(db, resetDoc.userId, password);
+
+    const userId = resetDoc.userId.toString();
+    // Opening the emailed link proved the address, as a verification link
+    // would have — an invited shopper must not be asked to verify it again.
+    if (user.email && user.emailVerified !== true) {
+      try {
+        const { markAccountEmailVerified } = await import(
+          "@/lib/auth/email-verification"
+        );
+        await markAccountEmailVerified({
+          id: userId,
+          email: user.email,
+          name: user.name || "",
+        });
+      } catch (error) {
+        console.error("Could not mark the email verified:", error);
+      }
+    }
+    // The address is proven, so the guest orders kept under it are theirs —
+    // and an invited guest's customer row becomes the account's own, so the
+    // customers list keeps one row for them.
+    if (user.email && isCustomerAccount(user)) {
+      try {
+        const { claimGuestCustomerData } = await import("@/lib/customers/customer");
+        await claimGuestCustomerData(userId, user.email);
+      } catch (error) {
+        console.error("Failed to claim guest customer data:", error);
+      }
+    }
 
     // Sign the account out everywhere: whoever had it before the reset —
     // someone who took over a session, say — must not keep it.
@@ -120,11 +185,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Reset rate limit for this user's email
-    const user = await db.collection("user").findOne({ _id: resetDoc.userId });
-    if (user?.email) {
+    if (user.email) {
       await resetRateLimit(`forgot-password:${user.email}`);
       await resetRateLimit(`login:${user.email}`);
     }
+
+    // Everyone's password reset is logged, a shopper's included. The actor is
+    // the account's owner: holding the emailed link is what proved it.
+    await audit(
+      createAuditContext(request, {
+        user: {
+          id: userId,
+          email: user.email,
+          role: primaryRole(user),
+        },
+      }),
+      {
+        action: "PASSWORD_RESET",
+        resource: "user",
+        resourceId: userId,
+        resourceName: user.email,
+        changes: {
+          summary:
+            tokenPurpose(resetDoc) === "invite"
+              ? "Set their password from an account invitation, and was signed out everywhere."
+              : "Reset their password from an emailed link, and was signed out everywhere.",
+        },
+      },
+    );
 
     return NextResponse.json({
       success: true,
@@ -143,6 +231,10 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/auth/reset-password
  * Verify if a reset token is still valid
+ *
+ * Kept for a reset page opened before the check moved to
+ * POST /api/auth/reset-password/check, which keeps the token out of the
+ * query string — and so out of every access log the request passes.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -156,15 +248,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     // Verify token without marking as used
-    const resetDoc = await PasswordReset.verifyToken(token);
+    const check = await inspectAccountAccessToken(token);
 
     return NextResponse.json({
       success: true,
-      valid: !!resetDoc,
-      message: resetDoc ? "Token is valid" : "Token is invalid or expired",
+      ...check,
+      message: check.valid ? "Token is valid" : "Token is invalid or expired",
     });
   } catch (error) {
     console.error("Verify reset token error:", error);

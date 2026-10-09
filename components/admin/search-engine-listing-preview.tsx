@@ -19,7 +19,7 @@ import { ExternalLink, Pencil, Plus, X } from "lucide-react";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SeoChecklist } from "@/components/admin/seo-checklist";
-import { escapeRegExp } from "@/lib/strings";
+import { escapeRegExp, foldForSlug } from "@/lib/strings";
 
 const DEFAULT_PREVIEW_BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -60,8 +60,7 @@ interface SearchEngineListingPreviewProps {
 }
 
 export function generateSearchHandle(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .trim()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
@@ -71,8 +70,7 @@ export function generateSearchHandle(value: string): string {
 }
 
 export function sanitizeSearchHandle(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .trim()
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")

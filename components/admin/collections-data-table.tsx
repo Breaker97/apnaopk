@@ -5,9 +5,7 @@ import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
 import {
   Plus,
-  ChevronsUpDown,
   Download,
-  Upload,
   Pencil,
   Trash2,
   Layers,
@@ -79,7 +77,6 @@ export function CollectionsDataTable({
   const [selectedCollections, setSelectedCollections] = useState<Collection[]>(
     []
   );
-  const importInputId = "admin-collections-import-csv";
 
   const list = useListNavigation<Collection>({
     items: data,
@@ -123,59 +120,6 @@ export function CollectionsDataTable({
       toast.error("Collections could not be exported");
     }
   }, [buildImportExportParams]);
-
-  const handleImportCollections = useCallback(() => {
-    document.getElementById(importInputId)?.click();
-  }, []);
-
-  const handleImportFileChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = "";
-      if (!file) return;
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/admin/collections/import-export", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Import failed");
-        }
-
-        const result = data.data as {
-          created: number;
-          updated: number;
-          failed: number;
-          errors?: { row: number; message: string }[];
-        };
-        const summary = `Imported ${result.created} created, ${result.updated} updated`;
-        if (result.failed > 0) {
-          toast.error(
-            `${summary}. ${result.failed} failed${
-              result.errors?.[0]
-                ? `: row ${result.errors[0].row} ${result.errors[0].message}`
-                : "."
-            }`,
-          );
-        } else {
-          toast.success(summary);
-        }
-        list.handlePageChange(1);
-        list.refetch();
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Collections could not be imported",
-        );
-      }
-    },
-    [list],
-  );
 
   const handleDelete = useCallback(
     async (collection: Collection) => {
@@ -414,27 +358,14 @@ export function CollectionsDataTable({
           variant: "default",
         },
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: t("admin.collectionsDataTable.actions.export"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: t("admin.collectionsDataTable.actions.export"),
-              icon: <Download className="h-4 w-4" />,
-              onClick: handleExportCollections,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.collectionsDataTable.actions.import"),
-              icon: <Upload className="h-4 w-4" />,
-              onClick: handleImportCollections,
-            },
-          ],
+          onClick: handleExportCollections,
         },
       }),
-    [handleExportCollections, handleImportCollections, locale, t],
+    [handleExportCollections, locale, t],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<Collection>[]>(
@@ -484,58 +415,49 @@ export function CollectionsDataTable({
   );
 
   return (
-    <>
-      <input
-        id={importInputId}
-        type="file"
-        accept=".csv,text/csv"
-        className="hidden"
-        onChange={handleImportFileChange}
-      />
-      <DataTable
-        data={list.items}
-        columns={columns}
-        keyField="_id"
-        isLoading={list.isLoading}
-        loadingMode="rows"
-        title={tableHeader.title}
-        tabs={tabs}
-        activeTab={list.activeTab}
-        onTabChange={list.handleTabChange}
-        actions={tableHeader.actions}
-        selectable
-        selectedItems={selectedCollections}
-        onSelectionChange={setSelectedCollections}
-        bulkActions={bulkActions}
-        searchable
-        searchPlaceholder={t("admin.collectionsDataTable.searchPlaceholder")}
-        searchValue={list.search}
-        onSearchChange={list.handleSearchChange}
-        filters={filters}
-        filterValues={list.filters}
-        onFilterChange={list.handleFilterChange}
-        toolbarActions={tableHeader.toolbarActions}
-        toolbarLayout={tableHeader.toolbarLayout}
-        tabsVariant={tableHeader.tabsVariant}
-        filtersVariant={tableHeader.filtersVariant}
-        appearance={tableHeader.appearance}
-        stackedTopControls={tableHeader.stackedTopControls}
-        showToolbarSortButton={tableHeader.showToolbarSortButton}
-        sortColumn={list.sortBy}
-        sortDirection={list.sortOrder}
-        onSortChange={list.handleSortChange}
-        pagination={list.pagination}
-        onPageChange={list.handlePageChange}
-        onPageSizeChange={list.handlePageSizeChange}
-        rowActions={rowActions}
-        rowActionsHeader={t("admin.collectionsDataTable.rowActionsHeader")}
-        rowActionsVariant="inline"
-        onRowClick={(row) =>
-          router.push(`/admin/collections/${row._id}`)
-        }
-        emptyMessage={t("admin.collectionsDataTable.empty")}
-        emptyIcon={<Layers className="h-8 w-8" />}
-      />
-    </>
+    <DataTable
+      data={list.items}
+      columns={columns}
+      keyField="_id"
+      isLoading={list.isLoading}
+      loadingMode="rows"
+      title={tableHeader.title}
+      tabs={tabs}
+      activeTab={list.activeTab}
+      onTabChange={list.handleTabChange}
+      actions={tableHeader.actions}
+      selectable
+      selectedItems={selectedCollections}
+      onSelectionChange={setSelectedCollections}
+      bulkActions={bulkActions}
+      searchable
+      searchPlaceholder={t("admin.collectionsDataTable.searchPlaceholder")}
+      searchValue={list.search}
+      onSearchChange={list.handleSearchChange}
+      filters={filters}
+      filterValues={list.filters}
+      onFilterChange={list.handleFilterChange}
+      toolbarActions={tableHeader.toolbarActions}
+      toolbarLayout={tableHeader.toolbarLayout}
+      tabsVariant={tableHeader.tabsVariant}
+      filtersVariant={tableHeader.filtersVariant}
+      appearance={tableHeader.appearance}
+      stackedTopControls={tableHeader.stackedTopControls}
+      showToolbarSortButton={tableHeader.showToolbarSortButton}
+      sortColumn={list.sortBy}
+      sortDirection={list.sortOrder}
+      onSortChange={list.handleSortChange}
+      pagination={list.pagination}
+      onPageChange={list.handlePageChange}
+      onPageSizeChange={list.handlePageSizeChange}
+      rowActions={rowActions}
+      rowActionsHeader={t("admin.collectionsDataTable.rowActionsHeader")}
+      rowActionsVariant="inline"
+      onRowClick={(row) =>
+        router.push(`/admin/collections/${row._id}`)
+      }
+      emptyMessage={t("admin.collectionsDataTable.empty")}
+      emptyIcon={<Layers className="h-8 w-8" />}
+    />
   );
 }

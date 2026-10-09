@@ -1,4 +1,5 @@
 "use client";
+import { formatCurrency } from "@/lib/intl/money";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/language/link";
@@ -23,7 +24,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
-import { useCurrency } from "@/providers/currency-provider";
+import { useCurrencyFormatter } from "@/providers/currency-provider";
 import { CommissionOwedCard } from "./commission-owed-card";
 
 interface VendorFinance {
@@ -136,7 +137,7 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
     totalPages: number;
   } | null>(null);
 
-  const { formatPrice: format } = useCurrency();
+  const format = useCurrencyFormatter(finance?.currency);
 
   useEffect(() => {
     let active = true;
@@ -237,7 +238,7 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
       id: "netAmount",
       header: "Net amount",
       cell: (row) => (
-        <CurrencyCell value={row.netAmount} />
+        <span className="tabular-nums">{formatCurrency(row.netAmount, row.currency || "USD")}</span>
       ),
       className: "w-[140px]",
     },

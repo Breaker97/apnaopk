@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Download, Plus, Receipt } from "lucide-react";
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableFilter,
+} from "@/components/ui/data-table";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
+import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { localToday } from "@/components/admin/finance/expense-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +39,7 @@ import {
   EXPENSE_CATEGORY_LABELS,
   type ExpenseCategory,
 } from "@/lib/finance/expense-categories";
+import { expenseListRange } from "@/lib/finance/expense-list-range";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
@@ -46,6 +54,13 @@ interface Row {
 }
 
 const API = "/api/vendor/finance/expenses";
+const PAGE_SIZE = 20;
+
+interface ListPayload {
+  data: Row[];
+  pagination?: { page: number; totalPages: number; total: number };
+  totals: Array<{ currency: string; amount: number }>;
+}
 
 /**
  * A vendor's own costs.
@@ -54,13 +69,31 @@ const API = "/api/vendor/finance/expenses";
  * marketplace's books, so nothing here changes what they are owed. The subtitle
  * says so, because a seller entering a cost reasonably expects it to come off
  * something.
+ *
+ * The period is the dashboard's, held in the URL by its picker; the category is
+ * a table filter. The totals beside the heading are computed over both, not over
+ * the rows on screen.
  */
-export function VendorExpenses({ storeCurrency }: { storeCurrency: string }) {
+export function VendorExpenses({
+  storeCurrency,
+  period,
+  from,
+  to,
+}: {
+  storeCurrency: string;
+  /** The resolved period key: one of the dashboard's, or "custom" for picked dates. */
+  period: string;
+  /** The period as "YYYY-MM-DD" days, "" for all time. */
+  from: string;
+  to: string;
+}) {
   const t = useTranslations();
   const label = useFallbackTranslator(t);
 
   const [rows, setRows] = useState<Row[]>([]);
   const [totals, setTotals] = useState<Array<{ currency: string; amount: number }>>([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [category, setCategory] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,33 +106,81 @@ export function VendorExpenses({ storeCurrency }: { storeCurrency: string }) {
   });
 
   const load = useCallback(
-    () =>
-      apiClient
-        .get<{
-          data: Row[];
-          totals: Array<{ currency: string; amount: number }>;
-        }>(API)
+    (page = 1) => {
+      // Named periods are read from the viewer's own today, so an expense
+      // dated today is in the list it was recorded in.
+      const range = expenseListRange(period, from, to, localToday());
+      return apiClient
+        .get<ListPayload>(API, {
+          query: {
+            page,
+            limit: PAGE_SIZE,
+            ...(range ?? {}),
+            ...(category !== "all" ? { category } : {}),
+          },
+        })
         .then((data) => {
           setRows(data.data || []);
           setTotals(data.totals || []);
+          setPagination({
+            page: data.pagination?.page ?? 1,
+            totalPages: data.pagination?.totalPages ?? 1,
+            total: data.pagination?.total ?? 0,
+          });
         })
         .catch(() => {
           // A vendor without the permission simply sees nothing here.
         })
-        .finally(() => setIsLoading(false)),
-    [],
+        .finally(() => setIsLoading(false));
+    },
+    [category, period, from, to],
   );
   const reload = useCallback(() => {
     setIsLoading(true);
-    return load();
+    return load(1);
   }, [load]);
+  const changePage = useCallback(
+    (page: number) => {
+      setIsLoading(true);
+      void load(page);
+    },
+    [load],
+  );
 
+  // A different period or category is a different list: back to its first page.
   useApplyOnChange([load], () => {
     setIsLoading(true);
   });
   useEffect(() => {
-    void load();
+    void load(1);
   }, [load]);
+
+  const filters = useMemo<DataTableFilter[]>(
+    () => [
+      {
+        id: "category",
+        label: label("finance.expenses.category", "Category"),
+        type: "select",
+        options: [
+          { value: "all", label: label("common.all", "All") },
+          ...EXPENSE_CATEGORIES.map((key) => ({
+            value: key,
+            label: label(
+              `finance.expenseCategory.${key}`,
+              EXPENSE_CATEGORY_LABELS[key],
+            ),
+          })),
+        ],
+      },
+    ],
+    [label],
+  );
+
+  // The "Filter" dropdown the other tables have; the screen keeps its own
+  // heading, so only the table's layout is taken from the shared header.
+  const tableHeader = buildAdminCommerceTableHeader({
+    title: label("finance.expenses.mine", "Your expenses"),
+  });
 
   const save = useCallback(async () => {
     const amount = Number(form.amount);
@@ -206,7 +287,13 @@ export function VendorExpenses({ storeCurrency }: { storeCurrency: string }) {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <DashboardPeriodPicker
+            period={period}
+            from={from}
+            to={to}
+            defaultPeriod="month"
+          />
           {totals.map((total) => (
             <span key={total.currency} className="text-sm font-semibold tabular-nums">
               {formatCurrency(total.amount, total.currency)}
@@ -223,7 +310,7 @@ export function VendorExpenses({ storeCurrency }: { storeCurrency: string }) {
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/api/vendor/finance/export?type=expenses&period=ytd">
               <Download className="h-4 w-4" />
-              {label("finance.statement.download", "Download")}
+              {label("finance.expenses.export", "Export")}
             </a>
           </Button>
           <Button onClick={() => setOpen(true)}>
@@ -238,6 +325,25 @@ export function VendorExpenses({ storeCurrency }: { storeCurrency: string }) {
         columns={columns}
         keyField="_id"
         isLoading={isLoading}
+        loadingMode="rows"
+        appearance={tableHeader.appearance}
+        toolbarLayout={tableHeader.toolbarLayout}
+        tabsVariant={tableHeader.tabsVariant}
+        filtersVariant={tableHeader.filtersVariant}
+        stackedTopControls={tableHeader.stackedTopControls}
+        showToolbarSortButton={tableHeader.showToolbarSortButton}
+        filters={filters}
+        filterValues={{ category }}
+        onFilterChange={(filterId, value) => {
+          if (filterId === "category") setCategory(value);
+        }}
+        pagination={{
+          page: pagination.page,
+          pageSize: PAGE_SIZE,
+          total: pagination.total,
+          totalPages: pagination.totalPages,
+        }}
+        onPageChange={changePage}
         emptyIcon={<Receipt className="h-8 w-8" />}
         emptyMessage={label(
           "finance.expenses.empty",

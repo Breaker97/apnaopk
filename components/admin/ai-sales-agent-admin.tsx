@@ -69,7 +69,10 @@ import {
   AI_SALES_AGENT_REASONING_EFFORTS,
   AI_SALES_AGENT_TONES,
 } from "@/lib/ai-sales-agent/models";
-import type { AISalesChatMessage } from "@/lib/ai-sales-agent/types";
+import type {
+  AISalesChatMessage,
+  AISalesStreamEvent,
+} from "@/lib/ai-sales-agent/types";
 import {
   AISalesAssistantAvatar,
   AISalesHeaderIcon,
@@ -200,6 +203,44 @@ function formatFullDate(value?: string) {
   return date.toLocaleString();
 }
 
+type TestChatMessage = AISalesChatMessage & { streaming?: boolean };
+
+/**
+ * The chat answers newline-delimited JSON, one `AISalesStreamEvent` per line
+ * (the storefront widget reads it the same way; this is its reader). A line
+ * may arrive split across chunks.
+ */
+async function* readStreamEvents(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<AISalesStreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const parse = (line: string): AISalesStreamEvent | null => {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    try {
+      return JSON.parse(trimmed) as AISalesStreamEvent;
+    } catch {
+      return null;
+    }
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let newline = buffer.indexOf("\n");
+    while (newline >= 0) {
+      const event = parse(buffer.slice(0, newline));
+      buffer = buffer.slice(newline + 1);
+      if (event) yield event;
+      newline = buffer.indexOf("\n");
+    }
+  }
+  const last = parse(buffer);
+  if (last) yield last;
+}
+
 export function AISalesAgentAdmin({ locale }: { locale: string }) {
   const { confirm } = useConfirmation();
   const t = useTranslations("aiSalesAgentAdmin");
@@ -230,10 +271,12 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
   // Test chat state
   const [testMessage, setTestMessage] = React.useState("");
   const [testConversationId, setTestConversationId] = React.useState<string>();
-  const [testMessages, setTestMessages] = React.useState<AISalesChatMessage[]>(
+  const [testMessages, setTestMessages] = React.useState<TestChatMessage[]>(
     [],
   );
   const [testing, setTesting] = React.useState(false);
+  /** Nothing of the reply has arrived yet: the typing dots show. */
+  const [awaitingReply, setAwaitingReply] = React.useState(false);
 
   // Conversation logs state
   const [conversationList, setConversationList] = React.useState<
@@ -420,6 +463,33 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
       { id: crypto.randomUUID(), role: "user", content: message },
     ]);
     setTestMessage("");
+    setAwaitingReply(true);
+
+    // The reply streams (as in the storefront widget): one bubble that fills
+    // in — the first event creates it and every later one patches it in place.
+    const replyId = crypto.randomUUID();
+    const patchReply = (
+      patch: (message: TestChatMessage) => TestChatMessage,
+    ) => {
+      setTestMessages((prev) => {
+        const index = prev.findIndex((entry) => entry.id === replyId);
+        if (index === -1) {
+          return [
+            ...prev,
+            patch({
+              id: replyId,
+              role: "assistant",
+              content: "",
+              streaming: true,
+            }),
+          ];
+        }
+        const next = [...prev];
+        next[index] = patch(next[index]!);
+        return next;
+      });
+    };
+
     try {
       const res = await fetch("/api/ai-sales-agent/chat", {
         method: "POST",
@@ -430,17 +500,61 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
           locale,
         }),
       });
-      const json = await res.json();
-      if (!res.ok || !json.success)
-        throw new Error(json.message || t("toast.testFailed"));
-      setTestConversationId(json.data.conversationId);
-      setTestMessages((prev) => [...prev, json.data.message]);
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok || !res.body || !contentType.includes("application/x-ndjson")) {
+        // A refusal before the stream opens is the usual JSON envelope.
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.message || t("toast.testFailed"));
+      }
+
+      for await (const event of readStreamEvents(res.body)) {
+        switch (event.type) {
+          case "meta":
+            setTestConversationId(event.conversationId);
+            break;
+          case "tools":
+            patchReply((entry) => ({
+              ...entry,
+              productCards: event.productCards,
+              orderCards: event.orderCards,
+              actions: event.actions,
+            }));
+            break;
+          case "delta":
+            setAwaitingReply(false);
+            patchReply((entry) => ({
+              ...entry,
+              content: entry.content + event.text,
+            }));
+            break;
+          case "done":
+            setTestConversationId(event.conversationId);
+            patchReply(() => ({ ...event.message, id: replyId }));
+            break;
+          case "error":
+            throw new Error(event.message);
+        }
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("toast.testChatFailed"),
       );
+      // Whatever did arrive stays; an empty in-flight bubble does not.
+      setTestMessages((prev) =>
+        prev
+          .filter(
+            (entry) =>
+              entry.id !== replyId ||
+              entry.content ||
+              (entry.productCards && entry.productCards.length > 0),
+          )
+          .map((entry) =>
+            entry.id === replyId ? { ...entry, streaming: false } : entry,
+          ),
+      );
     } finally {
       setTesting(false);
+      setAwaitingReply(false);
     }
   };
 
@@ -1527,10 +1641,11 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                         formatPrice={formatPreviewPrice}
                         addedActions={emptyActionSet}
                         pendingActions={emptyActionSet}
+                        streaming={message.streaming}
                       />
                     ))}
 
-                    {testing && (
+                    {awaitingReply && (
                       <div className="flex items-center gap-2">
                         <AISalesAssistantAvatar
                           primaryColor={settings.widget.primaryColor}

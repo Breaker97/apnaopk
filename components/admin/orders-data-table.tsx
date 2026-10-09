@@ -5,14 +5,12 @@ import {
   Circle,
   CheckCircle,
   Clock3,
-  ChevronsUpDown,
   Download,
   Eye,
   Package,
   Plus,
   Trash2,
   Truck,
-  Upload,
   XCircle,
 } from "lucide-react";
 import {
@@ -26,13 +24,16 @@ import {
   type DataTableTab,
 } from "@/components/ui/data-table";
 import { useTranslations } from "next-intl";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useMemo, useState } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { apiClient } from "@/lib/api/client";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { periodPickerConfig } from "@/components/admin/period-picker-config";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +46,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { getOrderTimeLabel } from "@/lib/orders/order-time";
 import {
   canTransitionOrderStatus,
   getOrderStatusActions,
@@ -71,12 +73,14 @@ function paymentBlockFor(order: AdminOrder, target: string): string | null {
 interface AdminOrder {
   _id: string;
   orderNumber: string;
-  customerId?: { name?: string; email?: string };
+  customerId?: { _id?: string; name?: string; email?: string };
   total: number;
   status: string;
   paymentStatus: string;
   paymentMethod?: string;
   channel?: string;
+  /** With `channel` and the customer, tells a walk-in POS sale. */
+  staffId?: string;
   hasPreorder?: boolean;
   preorderOutstandingAmount?: number;
   preorderBalancePaidAt?: string | null;
@@ -119,7 +123,7 @@ interface OrdersDataTableProps {
 }
 
 /** Filter ids this table reads out of the query string. */
-const ORDER_FILTER_IDS = ["status", "paymentStatus", "channel"];
+const ORDER_FILTER_IDS = ["status", "paymentStatus", "channel", "date"];
 
 function getItemsCount(items: AdminOrder["items"]) {
   return items.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -234,6 +238,7 @@ export function OrdersDataTable({
   pagination,
 }: OrdersDataTableProps) {
   const t = useTranslations();
+  const tOr = useFallbackTranslator(t);
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
@@ -558,7 +563,24 @@ export function OrdersDataTable({
       {
         id: "createdAt",
         header: t("admin.ordersPage.table.date"),
-        cell: (row) => <DateCell date={row.createdAt} format="medium" />,
+        cell: (row) => {
+          const time = getOrderTimeLabel(row.createdAt);
+          return (
+            <div className="min-w-0">
+              <DateCell date={row.createdAt} format="medium" />
+              {time ? (
+                <div className="text-xs text-muted-foreground">
+                  {/* Server and browser can sit in different time zones, so
+                      the server's render of the time may not be the browser's
+                      — the same call the order timeline makes. */}
+                  <time dateTime={row.createdAt} suppressHydrationWarning>
+                    {time}
+                  </time>
+                </div>
+              ) : null}
+            </div>
+          );
+        },
         className: "w-[140px] hidden lg:table-cell",
         headerClassName: "hidden lg:table-cell",
         sortable: true,
@@ -566,14 +588,28 @@ export function OrdersDataTable({
       {
         id: "customer",
         header: t("admin.ordersPage.table.customer"),
-        cell: (row) => (
-          <div className="min-w-0">
-            <TextCell value={row.customerId?.name || t("common.guest")} />
-            <div className="text-xs text-muted-foreground">
-              <TextCell value={row.customerId?.email} truncate maxWidth="220px" />
+        cell: (row) => {
+          // A walk-in POS sale is filed under its cashier: it names nobody.
+          const walkIn = isPosWalkIn(row);
+          return (
+            <div className="min-w-0">
+              <TextCell
+                value={
+                  walkIn
+                    ? t("admin.orderDetails.walkInCustomer")
+                    : row.customerId?.name || t("common.guest")
+                }
+              />
+              <div className="text-xs text-muted-foreground">
+                <TextCell
+                  value={walkIn ? undefined : row.customerId?.email}
+                  truncate
+                  maxWidth="220px"
+                />
+              </div>
             </div>
-          </div>
-        ),
+          );
+        },
         className: "w-[260px]",
       },
       {
@@ -709,7 +745,7 @@ export function OrdersDataTable({
     [t],
   );
 
-  const filters = useMemo<DataTableFilter[]>(
+  const selectFilters = useMemo<DataTableFilter[]>(
     () => [
       {
         id: "status",
@@ -764,6 +800,18 @@ export function OrdersDataTable({
     [t],
   );
 
+  // Built on every render rather than memoised: "today" and the last day the
+  // calendar lets you pick move at midnight, and this tab can outlive it. The
+  // pickers' period names and footer are the dashboard's.
+  const now = new Date();
+  const dateFilter: DataTableFilter = {
+    id: "date",
+    label: tOr("admin.ordersPage.filters.date", "Date"),
+    type: "date",
+    date: { locale, ...periodPickerConfig(tOr, locale, now), maxDate: now },
+  };
+  const filters = [...selectFilters, dateFilter];
+
   const handleExportCurrentView = useCallback(() => {
     const headers = [
       "Order number",
@@ -776,17 +824,21 @@ export function OrdersDataTable({
       "Items",
       "Total",
     ];
-    const rows = list.items.map((order) => [
-      order.orderNumber,
-      order.createdAt,
-      order.customerId?.name || "",
-      order.customerId?.email || "",
-      order.channel || "online",
-      order.status,
-      order.paymentStatus,
-      getItemsCount(order.items),
-      order.total,
-    ]);
+    const rows = list.items.map((order) => {
+      // A walk-in POS sale names no customer, as the table does.
+      const walkIn = isPosWalkIn(order);
+      return [
+        order.orderNumber,
+        order.createdAt,
+        walkIn ? t("admin.orderDetails.walkInCustomer") : order.customerId?.name || "",
+        walkIn ? "" : order.customerId?.email || "",
+        order.channel || "online",
+        order.status,
+        order.paymentStatus,
+        getItemsCount(order.items),
+        order.total,
+      ];
+    });
     const csv = [headers, ...rows]
       .map((row) => row.map(escapeCsvValue).join(","))
       .join("\n");
@@ -807,25 +859,14 @@ export function OrdersDataTable({
     () =>
       buildAdminCommerceTableHeader({
         title: t("admin.orders"),
+        // Export only: orders are created at checkout or the POS, never
+        // imported, so there is no menu to hang a second entry on.
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: t("admin.ordersPage.export"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: t("admin.ordersPage.export"),
-              icon: <Download className="h-4 w-4" />,
-              onClick: handleExportCurrentView,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.productsDataTable.actions.import"),
-              icon: <Upload className="h-4 w-4" />,
-              disabled: true,
-            },
-          ],
+          onClick: handleExportCurrentView,
         },
         addAction: readOnly
           ? undefined

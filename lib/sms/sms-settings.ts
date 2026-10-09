@@ -1,12 +1,12 @@
 import { ValidationError } from "@/lib/api/errors";
 import { isKnownCountryCode } from "@/lib/intl/country-availability";
 import { isPlainObject } from "@/lib/utils";
-
-const TWILIO_ACCOUNT_SID_PATTERN = /^AC[0-9a-f]{32}$/i;
-const TWILIO_MESSAGING_SERVICE_SID_PATTERN = /^MG[0-9a-f]{32}$/i;
-const E164_PATTERN = /^\+[1-9]\d{6,14}$/;
-/** Twilio alphanumeric sender IDs: 1–11 letters, digits and spaces, one letter at least. */
-const ALPHANUMERIC_SENDER_PATTERN = /^(?=.*[A-Za-z])[A-Za-z0-9 ]{1,11}$/;
+import {
+  isMessagingServiceSid,
+  isTwilioAccountSid,
+  isValidSmsSender,
+  normalizeSmsSender,
+} from "@/lib/sms/sms-format";
 
 /**
  * Shape checks for the SMS section. Whether the result can actually send
@@ -52,7 +52,7 @@ export function validateSmsSettings(data: Record<string, unknown>) {
 
   if (typeof twilio.accountSid === "string" && twilio.accountSid.trim()) {
     const accountSid = twilio.accountSid.trim();
-    if (!TWILIO_ACCOUNT_SID_PATTERN.test(accountSid)) {
+    if (!isTwilioAccountSid(accountSid)) {
       throw new ValidationError(
         "The Twilio Account SID starts with AC followed by 32 characters",
       );
@@ -71,7 +71,7 @@ export function validateSmsSettings(data: Record<string, unknown>) {
       typeof twilio.messagingServiceSid === "string"
         ? twilio.messagingServiceSid.trim()
         : "";
-    if (sid && !TWILIO_MESSAGING_SERVICE_SID_PATTERN.test(sid)) {
+    if (sid && !isMessagingServiceSid(sid)) {
       throw new ValidationError(
         "The Messaging Service SID starts with MG followed by 32 characters",
       );
@@ -79,10 +79,9 @@ export function validateSmsSettings(data: Record<string, unknown>) {
     twilio.messagingServiceSid = sid;
   }
   if (twilio.fromNumber !== undefined && twilio.fromNumber !== null) {
-    const raw = typeof twilio.fromNumber === "string" ? twilio.fromNumber.trim() : "";
-    // "+1 (415) 555-0100" is how numbers are copied out of the Twilio console.
-    const from = raw.startsWith("+") ? `+${raw.replace(/\D/g, "")}` : raw;
-    if (from && !E164_PATTERN.test(from) && !ALPHANUMERIC_SENDER_PATTERN.test(from)) {
+    const from =
+      typeof twilio.fromNumber === "string" ? normalizeSmsSender(twilio.fromNumber) : "";
+    if (from && !isValidSmsSender(from)) {
       throw new ValidationError(
         "The sender must be a number with its country code (+15551234567) or a sender ID of up to 11 letters and digits",
       );

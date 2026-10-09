@@ -16,6 +16,7 @@ import {
   fetchAdminCustomerStats,
 } from "@/lib/customers/customer-list";
 import { getStoreMoneyFormatter } from "@/lib/intl/server-currency";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import type { StaffAccessScope } from "@/lib/access/staff-scope";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
@@ -24,6 +25,11 @@ interface CustomersListViewProps {
   locale: string;
   area: "admin" | "staff";
   readOnly?: boolean;
+  /** May send password resets and account invites — see the table's prop. */
+  canSendAccountEmail?: boolean;
+  /** May import customers, and update the ones a file matches — see the table's props. */
+  canImportCustomers?: boolean;
+  canUpdateOnImport?: boolean;
   staffScope?: StaffAccessScope | null;
   searchParams: SearchParams;
 }
@@ -33,6 +39,9 @@ export function CustomersListView({
   locale,
   area,
   readOnly,
+  canSendAccountEmail,
+  canImportCustomers,
+  canUpdateOnImport,
   staffScope,
   searchParams,
 }: CustomersListViewProps) {
@@ -55,7 +64,9 @@ export function CustomersListView({
 
   return (
     <div className="space-y-4">
-      <Suspense fallback={<AdminStatsStripSkeleton items={5} />}>
+      <Suspense
+        fallback={<AdminStatsStripSkeleton items={isLoyaltyEnabled() ? 5 : 4} />}
+      >
         <CustomersStats locale={locale} />
       </Suspense>
 
@@ -68,6 +79,9 @@ export function CustomersListView({
           locale={locale}
           area={area}
           readOnly={readOnly}
+          canSendAccountEmail={canSendAccountEmail}
+          canImportCustomers={canImportCustomers}
+          canUpdateOnImport={canUpdateOnImport}
           staffScope={staffScope}
           query={{
             ...query,
@@ -85,12 +99,18 @@ async function CustomersTable({
   locale,
   area,
   readOnly,
+  canSendAccountEmail,
+  canImportCustomers,
+  canUpdateOnImport,
   staffScope,
   query,
 }: {
   locale: string;
   area: "admin" | "staff";
   readOnly?: boolean;
+  canSendAccountEmail?: boolean;
+  canImportCustomers?: boolean;
+  canUpdateOnImport?: boolean;
   staffScope?: StaffAccessScope | null;
   query: ReturnType<typeof parsePageQuery<typeof CustomerListQuerySchema>> & {
     subscription?: string;
@@ -103,6 +123,9 @@ async function CustomersTable({
       locale={locale}
       area={area}
       readOnly={readOnly}
+      canSendAccountEmail={canSendAccountEmail}
+      canImportCustomers={canImportCustomers}
+      canUpdateOnImport={canUpdateOnImport}
       data={serializeRows(list.items)}
       pagination={{
         page: list.page,
@@ -136,13 +159,19 @@ async function CustomersStats({ locale }: { locale: string }) {
       icon: <BadgeCheck className="h-5 w-5" />,
       iconClassName: "text-green-700 bg-green-100",
     },
-    {
-      title: t("admin.customersPage.stats.vipCustomers.title"),
-      value: stats.vipCustomers,
-      description: t("admin.customersPage.stats.vipCustomers.description"),
-      icon: <Crown className="h-5 w-5" />,
-      iconClassName: "text-amber-700 bg-amber-100",
-    },
+    // VIP is the gold and platinum tiers, so it hides with the rest of loyalty
+    // (see `isLoyaltyEnabled`).
+    ...(isLoyaltyEnabled()
+      ? [
+          {
+            title: t("admin.customersPage.stats.vipCustomers.title"),
+            value: stats.vipCustomers,
+            description: t("admin.customersPage.stats.vipCustomers.description"),
+            icon: <Crown className="h-5 w-5" />,
+            iconClassName: "text-amber-700 bg-amber-100",
+          },
+        ]
+      : []),
     {
       title: t("admin.customersPage.stats.customerSpend.title"),
       value: money(stats.totalSpend),

@@ -41,7 +41,7 @@ import {
   getQuoteButtonLabel,
   isQuoteOnlyProduct,
 } from "@/lib/products/quote-pricing";
-import { trackAddToCart } from "@/lib/analytics/events";
+import { metaContentId, trackAddToCart } from "@/lib/analytics/events";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { NumberInput } from "@/components/ui/number-input";
 import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
@@ -567,6 +567,7 @@ export function ProductQuickViewModal({
         items: [
           {
             item_id: String(product._id),
+            meta_id: metaContentId(product._id, currentVariant?._id),
             item_name: product.name,
             item_variant: currentVariant?._id,
             sku: currentVariant?.sku,
@@ -607,6 +608,7 @@ export function ProductQuickViewModal({
         items: [
           {
             item_id: String(product._id),
+            meta_id: metaContentId(product._id, currentVariant?._id),
             item_name: product.name,
             item_variant: currentVariant?._id,
             sku: currentVariant?.sku,

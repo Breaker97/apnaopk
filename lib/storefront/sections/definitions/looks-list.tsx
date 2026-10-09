@@ -1,8 +1,12 @@
 import { LooksListLazy as LooksList } from "@/components/store/sections/looks-list-lazy";
-import type { LooksShape } from "@/components/store/sections/looks-list";
+import type { LooksShape } from "@/lib/storefront/sections/looks-shapes";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getStorefrontLooks } from "@/lib/storefront/storefront-looks";
+import {
+  getStorefrontLooks,
+  getVendorStorefrontLooks,
+} from "@/lib/storefront/storefront-looks";
+import { vendorFilterHref } from "@/lib/vendors/vendor-store-page";
 import { lt } from "../localized";
 import type {
   BlockInstance,
@@ -11,7 +15,8 @@ import type {
 } from "../types";
 
 /** The hand-picked collection ids, in order; `undefined` when automatic. */
-function pickedLookIds(
+/** The hand-picked Looks in row order, or undefined for the automatic row. */
+export function pickedLookIds(
   settings: Record<string, unknown>,
   blocks: BlockInstance[],
 ): string[] | undefined {
@@ -104,14 +109,28 @@ export const looksList: SectionDefinition = {
   async Render({ settings, blocks, ctx }) {
     const limit = settings.limit as number;
     const ids = pickedLookIds(settings, blocks);
+    const vendor = ctx.vendor;
     // A hand-pick with nothing picked is an empty row, not the automatic one.
+    // On a vendor's landing page: only the Looks holding that store's
+    // products, each opening its own Products tab filtered to the Look.
     const looks =
-      ids && ids.length === 0 ? [] : await getStorefrontLooks({ limit, ids });
+      ids && ids.length === 0
+        ? []
+        : vendor
+          ? (await getVendorStorefrontLooks({ vendorId: vendor.id, limit, ids })).map(
+              (look) => ({
+                ...look,
+                href: vendorFilterHref(ctx.locale, vendor.slug, "collection", look.slug),
+              }),
+            )
+          : await getStorefrontLooks({ limit, ids });
 
     if (looks.length === 0) {
       return sectionEmptyState(ctx, {
         title: "Looks",
-        hint: "Mark collections as Looks (Collections → kind: Look), or add Look blocks here and pick collections by hand.",
+        hint: vendor
+          ? "Shows the marketplace's Looks that hold your products. Pick collections by hand in Look blocks to choose your own."
+          : "Mark collections as Looks (Collections → kind: Look), or add Look blocks here and pick collections by hand.",
       });
     }
 

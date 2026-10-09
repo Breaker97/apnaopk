@@ -9,6 +9,8 @@ export interface RecentOrder {
   _id: string;
   orderNumber: string;
   customerName?: string;
+  /** A walk-in POS sale: it names no customer, the card prints its own label. */
+  walkIn?: boolean;
   total: number;
   status: string;
   paymentMethod?: string;
@@ -18,13 +20,24 @@ export interface RecentOrder {
   primaryItemImage?: string;
 }
 
-export interface OrderChartPoint {
-  year: number;
-  monthIndex: number;
+export type OrderChartGranularity = "hour" | "day" | "week" | "month" | "year";
+
+/** One bar group of the orders chart. `start` is the bucket's UTC start, ISO. */
+export interface OrderChartBucket {
+  start: string;
   inStoreOrders: number;
   onlineOrders: number;
   inStoreSales: number;
   onlineSales: number;
+}
+
+/** The orders chart for the dashboard's selected period. */
+export interface OrderChartSeries {
+  granularity: OrderChartGranularity;
+  /** The period the series covers, ISO. */
+  from: string;
+  to: string;
+  points: OrderChartBucket[];
 }
 
 export interface LatestProduct {

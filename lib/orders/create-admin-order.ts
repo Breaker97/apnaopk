@@ -46,7 +46,7 @@ type AdminOrderLineInput = {
   price?: number;
 };
 
-type ResolvedAdminOrderLine = AdminOrderLineInput & {
+export type ResolvedAdminOrderLine = AdminOrderLineInput & {
   product: {
     _id: unknown;
     name?: string;
@@ -130,6 +130,23 @@ export async function resolveAdminOrderLines(
 
 type Settings = Awaited<ReturnType<typeof getSettings>>;
 
+/** Shared manual-order arithmetic; callers must resolve and authorize prices first. */
+export function priceAdminOrder(input: {
+  lines: ReadonlyArray<{ price: number; quantity: number }>;
+  discount: number;
+  taxRate: number;
+  shippingCost: number;
+  currency: string;
+}) {
+  const subtotal = roundMoney(input.lines.reduce((sum, line) => sum + line.price * line.quantity, 0));
+  const discount = Math.min(roundMoney(input.discount), subtotal);
+  const taxableSubtotal = Math.max(subtotal - discount, 0);
+  const tax = quantizeToCurrency(taxableSubtotal * (input.taxRate / 100), input.currency);
+  const shippingCost = quantizeToCurrency(input.shippingCost, input.currency);
+  const total = quantizeToCurrency(taxableSubtotal + tax + shippingCost, input.currency);
+  return { subtotal, discount, tax, shippingCost, total };
+}
+
 /**
  * Price the lines, split them into consignments, take the stock, write the
  * order and — paid when made — record the payment, the points and the
@@ -180,21 +197,9 @@ export async function createAdminOrder(params: {
     vendorContext,
     (item) => item.product.vendorId,
   );
-  const subtotal = roundMoney(
-    params.lines.reduce((sum, item) => sum + item.price * item.quantity, 0),
-  );
-  const discount = Math.min(roundMoney(params.discount), subtotal);
-  const taxableSubtotal = Math.max(subtotal - discount, 0);
-  // Rounded to what the currency can hold: 2 decimals left fractional yen.
-  const tax = quantizeToCurrency(
-    taxableSubtotal * (params.taxRate / 100),
-    orderCurrency,
-  );
-  const shippingCost = quantizeToCurrency(params.shippingCost, orderCurrency);
-  const total = quantizeToCurrency(
-    taxableSubtotal + tax + shippingCost,
-    orderCurrency,
-  );
+  const { subtotal, discount, tax, shippingCost, total } = priceAdminOrder({
+    ...params, currency: orderCurrency,
+  });
 
   const subOrders = await buildVendorSubOrders(vendorGroups, {
     codCollectedByDefault: settings.shipping?.codCollectedBy,

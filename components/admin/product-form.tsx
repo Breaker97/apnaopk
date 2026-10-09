@@ -101,12 +101,15 @@ import {
 } from "@/components/admin/product-form/digital-files-card";
 import { ProductFormSkeleton } from "@/components/admin/product-form/product-form-skeleton";
 import { preventEnterSubmit } from "@/components/admin/product-form/prevent-enter-submit";
+import { useProductFormOptions } from "@/components/admin/product-form/use-product-form-options";
+import { FormOptionsNotice } from "@/components/admin/product-form/form-options-notice";
 import { apiClient, describeApiError } from "@/lib/api/client";
 import type {
   ProductFormOptions,
   VendorPreorderAccess,
 } from "@/lib/products/form-options-types";
 import type { ProductFeatures } from "@/lib/products/product-features";
+import { MAX_PRODUCT_MEDIA } from "@/lib/products/media-limits";
 
 interface ProductFormProps {
   productId?: string;
@@ -190,11 +193,6 @@ export function ProductForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isFetchingProduct, setIsFetchingProduct] = useState(!!productId);
-  const [isFetchingOptions, setIsFetchingOptions] = useState(true);
-  // Editing waits for the dropdown data too, so the category/brand/collection
-  // controls are never briefly empty on a product that has them set. Creating a
-  // product renders immediately — an empty picker there is the correct state.
-  const isFetching = isFetchingProduct || (!!productId && isFetchingOptions);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [availableCollections, setAvailableCollections] = useState<
@@ -366,45 +364,45 @@ export function ProductForm({
   // payload. These used to be five separate requests (plus a sixth for the
   // vendor shipping override), each re-authenticating and each returning whole
   // documents the form threw away.
-  useEffect(() => {
-    let active = true;
-    const endpoint = isVendor
-      ? "/api/vendor/products/form-options"
+  //
+  // The admin editor offers the edited product's OWNER's locations — a
+  // vendor's product is stocked on the vendor's shelves, not the house's.
+  const optionsEndpoint = isVendor
+    ? "/api/vendor/products/form-options"
+    : productId
+      ? `/api/admin/products/form-options?productId=${encodeURIComponent(productId)}`
       : "/api/admin/products/form-options";
+  // Applies an answer to the form's own lists. A retry lands here too, and it
+  // touches nothing the editor typed: the weight unit only while untouched,
+  // and the category's variant template is applied once per category choice
+  // (`appliedCategoryRef`), not once per answer.
+  const applyFormOptions = useCallback(
+    (data: ProductFormOptions) => {
+      setCategories(data.categories || []);
+      setBrands(data.brands || []);
+      setAvailableCollections(data.collections || []);
+      setActiveLocations(data.locations || []);
+      setCanManageLocations(data.canManageLocations !== false);
+      setDeferredBalanceSupported(
+        data.preorder?.deferredBalanceSupported !== false,
+      );
+      setPreorderAccess(data.preorder?.access ?? null);
 
-    async function fetchFormOptions() {
-      try {
-        const data = await apiClient.get<ProductFormOptions>(endpoint);
-        if (!active || !data) return;
-
-        setCategories(data.categories || []);
-        setBrands(data.brands || []);
-        setAvailableCollections(data.collections || []);
-        setActiveLocations(data.locations || []);
-        setCanManageLocations(data.canManageLocations !== false);
-        setDeferredBalanceSupported(
-          data.preorder?.deferredBalanceSupported !== false,
-        );
-        setPreorderAccess(data.preorder?.access ?? null);
-
-        if (data.shipping) {
-          setShippingContext(data.shipping);
-          if (!productId && !form.formState.dirtyFields.shipping?.weightUnit) {
-            form.setValue("shipping.weightUnit", data.shipping.weightUnit);
-          }
+      if (data.shipping) {
+        setShippingContext(data.shipping);
+        if (!productId && !form.formState.dirtyFields.shipping?.weightUnit) {
+          form.setValue("shipping.weightUnit", data.shipping.weightUnit);
         }
-      } catch (error) {
-        console.error("Failed to load product form options:", error);
-      } finally {
-        if (active) setIsFetchingOptions(false);
       }
-    }
-
-    fetchFormOptions();
-    return () => {
-      active = false;
-    };
-  }, [form, isVendor, productId]);
+    },
+    [form, productId],
+  );
+  const formOptions = useProductFormOptions(optionsEndpoint, applyFormOptions);
+  // Editing waits for the dropdown data too, so the category/brand/collection
+  // controls are never briefly empty on a product that has them set. Creating a
+  // product renders immediately — an empty picker there is the correct state.
+  // Only the FIRST answer is waited for: a retry keeps the form on screen.
+  const isFetching = isFetchingProduct || (!!productId && formOptions.pending);
 
   // Keep productLocationInventory in sync with activeLocations.
   // When locations are added, missing entries are appended.
@@ -1041,6 +1039,15 @@ export function ProductForm({
 
 
   const onSubmit = async (data: ProductFormData) => {
+    // Never saved on reference data that did not load: an edit would send no
+    // per-location stock (and the stock merge reads missing rows as removed),
+    // a new product could not have its category. The Save button says so too;
+    // this covers every other way a submit can start.
+    if (!formOptions.usable) {
+      toast.error(t("admin.productForm.formOptions.saveBlocked"));
+      return;
+    }
+
     // Taking a booked product off the storefront releases every future booked
     // day back onto the ladder IMMEDIATELY, and a competitor can buy them the
     // same second. That is not recoverable by re-publishing, so the vendor sees
@@ -1093,10 +1100,13 @@ export function ProductForm({
       }
     }
 
-    const formHasVariantOptions = productOptions.some(
-      (option) => option.name.trim() && option.values.length > 0,
-    );
-    const missingRequiredWeight = formHasVariantOptions
+    // A product sells variants exactly while it has variant rows — the test
+    // the Pricing and Inventory cards use to decide what they show. Options
+    // left behind after every variant was removed describe nothing: the form
+    // shows a single product's price, stock and weight, and that is what is
+    // saved. Judging by the options instead saved price 0 and stock 0.
+    const savesVariants = variants.length > 0;
+    const missingRequiredWeight = savesVariants
       ? variants.some((variant) => {
           const requiresShipping =
             variant.requiresShipping ?? data.shipping.isPhysicalProduct;
@@ -1150,12 +1160,8 @@ export function ProductForm({
         (a, b) => a.position - b.position,
       );
 
-      const hasVariantOptions = sortedOptions.some(
-        (o) => o.name.trim().length > 0 && o.values.length > 0,
-      );
-
       // Updated: preserve full option structure with _id, position, and structured values
-      const normalizedOptions = hasVariantOptions
+      const normalizedOptions = savesVariants
         ? sortedOptions
             .filter((o) => o.name.trim().length > 0 && o.values.length > 0)
             .map((o, idx) => ({
@@ -1187,7 +1193,7 @@ export function ProductForm({
       };
 
       // Updated: preserve full optionValues structure with optionId, optionName, valueId, value, colorCode
-      const normalizedVariants = hasVariantOptions
+      const normalizedVariants = savesVariants
         ? variants.map((v) => {
             const structuredOptionValues = v.optionValues.map((ov) => ({
               optionId: ov.optionId,
@@ -1259,13 +1265,13 @@ export function ProductForm({
       // form would create two competing sources of truth — instead we send
       // sensible aggregates so listing/cart code that reads product.* still
       // works, but treat per-variant values as canonical.
-      const aggregatedPrice = hasVariantOptions
+      const aggregatedPrice = savesVariants
         ? normalizedVariants.reduce(
             (min, v) => (v.price < min ? v.price : min),
             normalizedVariants[0]?.price ?? 0,
           )
         : data.pricing.price;
-      const aggregatedStock = hasVariantOptions
+      const aggregatedStock = savesVariants
         ? normalizedVariants.reduce((sum, v) => sum + (v.stock || 0), 0)
         : data.inventory.quantity;
 
@@ -1274,7 +1280,7 @@ export function ProductForm({
       // pre-save hook will sum it back into product.stock so reads stay
       // consistent. When no locations are configured, fall back to stock.
       const productLevelLocationInventory =
-        !hasVariantOptions && activeLocations.length > 0
+        !savesVariants && activeLocations.length > 0
           ? productLocationInventory.filter((li) =>
               activeLocations.some((l) => l._id === String(li.locationId)),
             )
@@ -1302,7 +1308,7 @@ export function ProductForm({
         // undefined, so an emptied input would never reach the server and the
         // stored value would survive. With variants these are derived from the
         // variant rows instead, so we leave them out entirely.
-        comparePrice: hasVariantOptions
+        comparePrice: savesVariants
           ? undefined
           : (data.pricing.comparePrice ?? null),
         unitPrice: data.pricing.unitPrice ?? null,
@@ -1321,17 +1327,17 @@ export function ProductForm({
           ? data.pricing.quoteButtonLabel?.trim() || null
           : null,
         sku: baseSku,
-        barcode: hasVariantOptions ? undefined : data.inventory.barcode,
+        barcode: savesVariants ? undefined : data.inventory.barcode,
         // With variants these come from the variant rows (omitted entirely).
         // Otherwise "auto"/"unspecified" mean "no stored value" — sent as null
         // so the server clears the old one instead of silently keeping it.
         // "auto" then lets assignMissingProductBarcodes re-detect the format.
-        barcodeFormat: hasVariantOptions
+        barcodeFormat: savesVariants
           ? undefined
           : data.inventory.barcodeFormat === "auto"
             ? null
             : data.inventory.barcodeFormat,
-        barcodeSource: hasVariantOptions
+        barcodeSource: savesVariants
           ? undefined
           : data.inventory.barcodeSource === "unspecified"
             ? null
@@ -1428,18 +1434,17 @@ export function ProductForm({
     control: form.control,
     name: "shipping.weight",
   });
-  const watchedMissingShippingWeight = productOptions.some(
-    (option) => option.name.trim() && option.values.length > 0,
-  )
-    ? variants.some((variant) => {
-        const requiresShipping =
-          variant.requiresShipping ?? watchedIsPhysicalProduct;
-        return (
-          requiresShipping &&
-          Number(variant.weight ?? watchedShippingWeight ?? 0) <= 0
-        );
-      })
-    : watchedIsPhysicalProduct && Number(watchedShippingWeight || 0) <= 0;
+  const watchedMissingShippingWeight =
+    variants.length > 0
+      ? variants.some((variant) => {
+          const requiresShipping =
+            variant.requiresShipping ?? watchedIsPhysicalProduct;
+          return (
+            requiresShipping &&
+            Number(variant.weight ?? watchedShippingWeight ?? 0) <= 0
+          );
+        })
+      : watchedIsPhysicalProduct && Number(watchedShippingWeight || 0) <= 0;
 
   // Auto-apply the selected category's variant option template to the product.
   // Picking (or changing) the category merges its options in; options the user
@@ -1908,7 +1913,12 @@ export function ProductForm({
               )}
               <Button
                 type="submit"
-                disabled={isLoading || isDeleting}
+                disabled={isLoading || isDeleting || !formOptions.usable}
+                title={
+                  formOptions.usable
+                    ? undefined
+                    : t("admin.productForm.formOptions.saveBlocked")
+                }
                 size="sm"
               >
                 {isLoading && (
@@ -1928,6 +1938,14 @@ export function ProductForm({
               </Button>
             </>
           }
+        />
+
+        <FormOptionsNotice
+          status={formOptions.status}
+          failed={formOptions.failed}
+          usable={formOptions.usable}
+          errorCode={formOptions.errorCode}
+          onRetry={() => void formOptions.retry()}
         />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
@@ -2057,7 +2075,7 @@ export function ProductForm({
                       ),
                     );
                   }}
-                  maxFiles={10}
+                  maxFiles={MAX_PRODUCT_MEDIA}
                   allowExternalVideo
                   allowMediaLibrary
                   onGenerateAlt={aiAllowed ? generateMediaAltText : undefined}
@@ -2356,6 +2374,13 @@ export function ProductForm({
               categories={categories}
               brands={brands}
               availableCollections={availableCollections}
+              categoriesState={
+                formOptions.usable
+                  ? "ready"
+                  : formOptions.failed
+                    ? "unavailable"
+                    : "loading"
+              }
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Store,
@@ -68,6 +68,7 @@ import {
   type VendorStoreVisibility,
 } from "@/lib/vendors/vendor-address";
 import { cn } from "@/lib/utils";
+import { foldForSlug } from "@/lib/strings";
 import {
   DEFAULT_PROFILE_DEMO_MODE,
   normalizeDemoModeState,
@@ -79,6 +80,8 @@ import {
 } from "@/lib/notifications/vendor-messaging";
 import { ChannelConnectionsPanel } from "@/components/chat/channel-connections-panel";
 import { CountrySelect } from "@/components/common/country-multi-select";
+import { settleCountryForPolicy } from "@/lib/intl/country-availability";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 type SettingsTab =
   | "store"
@@ -201,9 +204,33 @@ function normalizeTab(value?: string): SettingsTab {
   return "store";
 }
 
+/**
+ * Settings as the server sent them, with the address country the locked
+ * picker will hold, plus the saved country that replaced, if any (see
+ * `settleCountryForPolicy`).
+ */
+function withSettledCountry(
+  data: VendorSettingsState,
+  availability: unknown,
+): { settings: VendorSettingsState; replaced: string } {
+  const country = settleCountryForPolicy(
+    data.vendor.address?.country,
+    availability,
+  );
+  return {
+    settings: {
+      vendor: {
+        ...data.vendor,
+        address: { ...data.vendor.address, country: country.value },
+      },
+      user: data.user,
+    },
+    replaced: country.replaced,
+  };
+}
+
 function normalizeSlugInput(value: string) {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+/g, "")
     .slice(0, 120);
@@ -219,6 +246,14 @@ export function VendorSettingsForm({
     normalizeTab(initialTab),
   );
   const [settings, setSettings] = useState<VendorSettingsState>(DEFAULT_SETTINGS);
+  /** The saved address country the store's country policy replaced on load. */
+  const [replacedAddressCountry, setReplacedAddressCountry] = useState("");
+  const { countryAvailability } = useAppSettings();
+  // Read when the settings arrive rather than a dependency of that load.
+  const countryAvailabilityRef = useRef(countryAvailability);
+  useEffect(() => {
+    countryAvailabilityRef.current = countryAvailability;
+  }, [countryAvailability]);
   const [vendorShippingEnabled, setVendorShippingEnabled] = useState(false);
   // The store's zones — the geography this vendor prices but does not define.
   const [platformShipping, setPlatformShipping] =
@@ -306,7 +341,12 @@ export function VendorSettingsForm({
         if (json.data.demoMode) {
           setDemoMode(normalizeDemoModeState(json.data.demoMode));
         }
-        setSettings({ vendor: json.data.vendor, user: json.data.user });
+        const loaded = withSettledCountry(
+          { vendor: json.data.vendor, user: json.data.user },
+          countryAvailabilityRef.current,
+        );
+        setSettings(loaded.settings);
+        setReplacedAddressCountry(loaded.replaced);
         // If the admin disabled shipping but the URL pointed at that tab, fall
         // back to the store tab so there's always visible content.
         if (!enabled) {
@@ -360,7 +400,12 @@ export function VendorSettingsForm({
       if (typeof json.data.carrierOverrideAllowed === "boolean") {
         setCarrierOverrideAllowed(json.data.carrierOverrideAllowed);
       }
-      setSettings({ vendor: json.data.vendor, user: json.data.user });
+      const saved = withSettledCountry(
+        { vendor: json.data.vendor, user: json.data.user },
+        countryAvailabilityRef.current,
+      );
+      setSettings(saved.settings);
+      setReplacedAddressCountry(saved.replaced);
 
       if (section === "account") {
         await authClient
@@ -886,6 +931,9 @@ export function VendorSettingsForm({
                       },
                     }))
                   }
+                  // Where the seller is, not where the store delivers.
+                  lockedHint={false}
+                  replacedCountry={replacedAddressCountry}
                   placeholder={tSafe(
                     "vendor.registration.countryPlaceholder",
                     "Select country",

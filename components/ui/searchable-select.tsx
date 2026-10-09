@@ -59,6 +59,14 @@ interface SearchableSelectProps {
    * not be scrolled. A modal popover takes the lock over for itself.
    */
   modal?: boolean;
+  /**
+   * Take the matching over. Called with what is typed, and with "" when the
+   * list closes; `options` is then shown exactly as given, so the parent
+   * answers by passing the matches. For a list too long to hand over whole
+   * (searched on the server), or one whose values are ids nobody types —
+   * the built-in match reads `value` too.
+   */
+  onSearch?: (query: string) => void;
 }
 
 /**
@@ -82,6 +90,7 @@ export function SearchableSelect({
   trigger,
   align = "start",
   modal = false,
+  onSearch,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -94,16 +103,24 @@ export function SearchableSelect({
     [options, value],
   );
 
+  const matchedByParent = Boolean(onSearch);
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options;
+    if (!q || matchedByParent) return options;
     return options.filter(
       (o) =>
         o.label.toLowerCase().includes(q) ||
         o.value.toLowerCase().includes(q) ||
         o.keywords?.toLowerCase().includes(q),
     );
-  }, [options, query]);
+  }, [options, query, matchedByParent]);
+
+  // Closing clears the search (below, during render). A parent doing the
+  // matching has to hear of it too, and only an event handler may tell it.
+  const changeOpen = (next: boolean) => {
+    setOpen(next);
+    if (!next && query) onSearch?.("");
+  };
 
   // Reset the search each time the popover closes.
   useApplyOnChange([open], () => {
@@ -130,7 +147,7 @@ export function SearchableSelect({
 
   const selectOption = (option: SearchableSelectOption) => {
     onValueChange(option.value);
-    setOpen(false);
+    changeOpen(false);
   };
 
   const handleSearchKeyDown = (
@@ -165,7 +182,7 @@ export function SearchableSelect({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={modal}>
+    <Popover open={open} onOpenChange={changeOpen} modal={modal}>
       <PopoverTrigger asChild>
         {trigger ?? (
           <button
@@ -223,7 +240,10 @@ export function SearchableSelect({
             aria-controls={listboxId}
             aria-activedescendant={activeOptionId}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              onSearch?.(e.target.value);
+            }}
             onKeyDown={handleSearchKeyDown}
             placeholder={searchPlaceholder}
             // `!`: the storefront's theme gives every input its field border

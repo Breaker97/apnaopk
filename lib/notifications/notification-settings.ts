@@ -1,4 +1,9 @@
 import { isRecord } from "@/lib/utils";
+import {
+  STAFF_PERMISSIONS,
+  type StaffPermission,
+} from "@/config/permissions.config";
+
 export interface NotificationChannelSettings {
   inApp: boolean;
   email: boolean;
@@ -15,6 +20,8 @@ export interface NotificationSettings {
     returns: NotificationChannelSettings;
     payments: NotificationChannelSettings;
     preorderAccessRequests: NotificationChannelSettings;
+    /** The store's own products only; each vendor hears of theirs. */
+    lowStock: NotificationChannelSettings;
   };
   staff: {
     newOrders: NotificationChannelSettings;
@@ -48,6 +55,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
     returns: { inApp: true, email: true, browserPush: true, sms: false },
     payments: { inApp: true, email: false, browserPush: true, sms: false },
     preorderAccessRequests: { inApp: true, email: true, browserPush: true, sms: false },
+    lowStock: { inApp: true, email: false, browserPush: true, sms: false },
   },
   staff: {
     newOrders: { inApp: true, email: false, browserPush: true, sms: false },
@@ -122,9 +130,63 @@ export function hasAnyNotificationChannel(
 
 /** Whether any event, for any audience, is set to send a text. */
 export function hasAnySmsNotification(settings: NotificationSettings): boolean {
-  return Object.values(settings).some((group) =>
-    Object.values(group as Record<string, NotificationChannelSettings>).some(
-      (channels) => channels.sms,
-    ),
+  return countSmsNotifications(settings) > 0;
+}
+
+/** How many events, across every audience, are set to send a text. */
+export function countSmsNotifications(settings: NotificationSettings): number {
+  return countChannelNotifications(settings, "sms");
+}
+
+/** How many events, across every audience, use one channel. */
+export function countChannelNotifications(
+  settings: NotificationSettings,
+  channel: keyof NotificationChannelSettings,
+): number {
+  return Object.values(settings).reduce(
+    (total, group) =>
+      total +
+      Object.values(group as Record<string, NotificationChannelSettings>).filter(
+        (channels) => channels[channel],
+      ).length,
+    0,
   );
 }
+
+/**
+ * The staff who hear of each staff event: anyone holding one of these. The
+ * dispatch and the settings page's "nobody can see …" note both read this, so
+ * the page never says a row reaches someone the dispatch would skip.
+ */
+export const STAFF_NOTIFICATION_PERMISSIONS: Record<
+  keyof NotificationSettings["staff"],
+  StaffPermission[]
+> = {
+  newOrders: [
+    STAFF_PERMISSIONS.VIEW_ORDERS,
+    STAFF_PERMISSIONS.MANAGE_ORDERS,
+    STAFF_PERMISSIONS.EDIT_ORDERS,
+  ],
+  newCustomers: [
+    STAFF_PERMISSIONS.VIEW_CUSTOMERS,
+    STAFF_PERMISSIONS.MANAGE_CUSTOMERS,
+    STAFF_PERMISSIONS.CREATE_CUSTOMERS,
+    STAFF_PERMISSIONS.EDIT_CUSTOMERS,
+  ],
+  returns: [
+    STAFF_PERMISSIONS.VIEW_ORDERS,
+    STAFF_PERMISSIONS.MANAGE_ORDERS,
+    STAFF_PERMISSIONS.EDIT_ORDERS,
+  ],
+  payments: [
+    STAFF_PERMISSIONS.ACCESS_POS,
+    STAFF_PERMISSIONS.MANAGE_POS,
+    STAFF_PERMISSIONS.VIEW_ORDERS,
+    STAFF_PERMISSIONS.MANAGE_ORDERS,
+  ],
+  lowStock: [
+    STAFF_PERMISSIONS.VIEW_INVENTORY,
+    STAFF_PERMISSIONS.MANAGE_INVENTORY,
+    STAFF_PERMISSIONS.EDIT_INVENTORY,
+  ],
+};

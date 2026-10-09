@@ -3,6 +3,7 @@
 import Link from "@/components/language/link";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import {
   Heart,
   Scale,
@@ -19,10 +20,6 @@ import { memo, useRef, useState, useCallback } from "react";
 import { useSponsoredTracking } from "@/components/store/sponsored-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppImage } from "@/components/ui/app-image";
-// Keep the wrapper static: Next 16.3 can emit a missing preload chunk for
-// this dynamic boundary on the wishlist page. The heavy 3D library still
-// loads lazily inside ModelViewer when the model enters the viewport.
-import { ModelViewer } from "@/components/ui/model-viewer";
 import { CardBrandLogo } from "@/components/products/card-brand-logo";
 import { useCurrency } from "@/providers/currency-provider";
 import { useCartActions } from "@/hooks/use-cart";
@@ -49,7 +46,7 @@ import {
   getQuoteButtonLabel,
   isQuoteOnlyProduct,
 } from "@/lib/products/quote-pricing";
-import { trackAddToCart } from "@/lib/analytics/events";
+import { metaContentId, trackAddToCart } from "@/lib/analytics/events";
 import {
   useCardBrandDirectory,
   useProductCardConfig,
@@ -73,11 +70,19 @@ import {
   resolveCardBrand,
   type ProductCardElement,
 } from "@/lib/products/product-card-config";
+import {
+  getPrimaryProductMedia,
+  getSecondProductImage,
+} from "@/lib/products/card-media";
+import {
+  CARD_SWAP_IN_CLASS,
+  CARD_SWAP_OUT_CLASS,
+  CardStageLayer,
+} from "@/components/products/card-stage-layer";
 
 import type {
   ModernProduct,
   ProductMedia,
-  ProductMediaKind,
   ProductPreorder,
 } from "@/lib/products/modern-product";
 import { formatPreorderReleaseDate } from "@/lib/products/preorder-date";
@@ -108,58 +113,9 @@ interface ModernProductCardProps {
   imagePriority?: boolean;
 }
 
-function inferMediaType(media: {
-  type?: ProductMediaKind;
-  url: string;
-  mimeType?: string;
-}): ProductMediaKind {
-  if (media.type) return media.type;
-  const mimeType = media.mimeType?.toLowerCase() || "";
-  const url = media.url.toLowerCase();
-
-  if (mimeType.startsWith("video/")) return "video";
-  if (
-    mimeType.includes("gltf") ||
-    mimeType === "application/octet-stream" ||
-    url.endsWith(".glb") ||
-    url.endsWith(".gltf")
-  ) {
-    return "model";
-  }
-
-  return "image";
-}
-
-function getPrimaryProductMedia(product: ModernProduct): ProductMedia | null {
-  if (Array.isArray(product.media) && product.media.length > 0) {
-    const media = [...product.media]
-      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-      // An external video is only renderable on the card via its thumbnail.
-      .find((item) =>
-        item.type === "external_video"
-          ? Boolean(item.thumbnailUrl)
-          : Boolean(item.url),
-      );
-
-    if (media) {
-      return {
-        ...media,
-        type: inferMediaType(media),
-        alt: media.alt || product.name,
-      };
-    }
-  }
-
-  const image = product.images?.find(Boolean);
-  return image
-    ? {
-        _id: "primary-image",
-        type: "image",
-        url: image,
-        alt: product.name,
-      }
-    : null;
-}
+/** The card's picture slot; the "Second image" hover shot keeps to it too. */
+const CARD_IMAGE_SIZES =
+  "(max-width: 640px) 46vw, (max-width: 1024px) 32vw, 25vw";
 
 function getPreorderRemaining(preorder?: ProductPreorder) {
   const limit = Number(preorder?.limit || 0);
@@ -239,12 +195,36 @@ function getPreorderReserveLabel(preorder?: ProductPreorder) {
   return `${remaining} left`;
 }
 
+// The 3D viewer, for the few products whose card shows a model: its code
+// loads in the browser when such a card renders, rather than with every
+// storefront page, which the card is part of. The placeholder is its own
+// Suspense boundary, so a card drawn in the browser — a shelf tab, the next
+// page of a grid — never blanks the section while the code arrives.
+//
+// The import sits in a loader of its own on purpose. Written inside
+// `dynamic()`, Next lists it for the server to preload with the page, and
+// Turbopack writes a chunk into that list that it never builds
+// (https://github.com/vercel/next.js/issues/99149): the account wishlist page
+// asked for a missing file on every visit. Without the list there is no
+// preload to go wrong. `ssr: false` because <model-viewer> draws nothing until
+// the browser has loaded its library anyway. `pnpm check:chunks` after any
+// change here (see product-details-lazy.tsx).
+function loadModelViewer() {
+  return import("@/components/ui/model-viewer").then((module) => module.ModelViewer);
+}
+const ModelViewer = dynamic(loadModelViewer, {
+  loading: () => <div className="h-full w-full bg-muted" aria-hidden />,
+  ssr: false,
+});
+
 function ProductCardMedia({
   media,
   productName,
   hoverZoom = true,
   contain = false,
   priority = false,
+  decorative = false,
+  onLoad,
 }: {
   media: ProductMedia | null;
   productName: string;
@@ -254,6 +234,13 @@ function ProductCardMedia({
   hoverZoom?: boolean;
   /** A "contain" stage floats the shot on its padding instead of filling. */
   contain?: boolean;
+  /**
+   * A purely visual shot (the "Second image" hover): no alt text, so the
+   * card's link is not read out with the product twice.
+   */
+  decorative?: boolean;
+  /** Called once the picture has loaded and decoded. */
+  onLoad?: () => void;
 }) {
   const [isModelInteractive, setIsModelInteractive] = useState(false);
 
@@ -261,7 +248,7 @@ function ProductCardMedia({
     return null;
   }
 
-  const alt = media.alt || productName;
+  const alt = decorative ? "" : media.alt || productName;
 
   if (media.type === "model") {
     return (
@@ -306,7 +293,8 @@ function ProductCardMedia({
       alt={alt}
       fill
       priority={priority}
-      sizes="(max-width: 640px) 46vw, (max-width: 1024px) 32vw, 25vw"
+      sizes={CARD_IMAGE_SIZES}
+      onLoad={onLoad}
       className={cn(
         contain ? "object-contain" : "object-cover",
         hoverZoom && "transition-transform duration-500 group-hover:scale-105",
@@ -524,10 +512,19 @@ export const ModernProductCard = memo(function ModernProductCard({
   // the home page's DOM. False on the server and while hydrating, so a
   // desktop adds the bars right after, well before a hover can reach one.
   const canHover = useMediaQuery("(hover: hover)");
+  // "Second image" hover: the gallery's next picture after the primary.
+  // Rendered only where a pointer can hover, so a phone never downloads it.
   const secondImageUrl =
-    cardStyle.previewHover === "second-image"
-      ? (product.images ?? []).filter(Boolean)[1]
-      : undefined;
+    cardStyle.previewHover === "second-image" && canHover
+      ? getSecondProductImage(product)
+      : null;
+  // The swap starts once that picture has loaded: a hover over one still on
+  // its way, or broken, keeps the primary instead of emptying the stage.
+  const [loadedSecondImage, setLoadedSecondImage] = useState<string | null>(
+    null,
+  );
+  const swapOnHover =
+    secondImageUrl !== null && loadedSecondImage === secondImageUrl;
   const contained = cardStyle.previewFit === "contain";
 
   const handleAddToCart = useCallback(
@@ -564,6 +561,7 @@ export const ModernProductCard = memo(function ModernProductCard({
           items: [
             {
               item_id: String(product._id),
+              meta_id: metaContentId(product._id, onlyVariant?._id),
               item_name: product.name,
               item_variant: onlyVariant?._id,
               price: onlyVariant?.price ?? priceRange.min,
@@ -743,46 +741,45 @@ export const ModernProductCard = memo(function ModernProductCard({
             }}
           >
             {primaryMedia ? (
-              contained ? (
-                // A contained stage floats the product shot with air on
-                // every side rather than bleeding it to the edges.
-                <div
-                  className="absolute inset-0"
-                  style={{ padding: cardStyle.previewPadding }}
-                >
-                  <div className="relative h-full w-full">
-                    <ProductCardMedia
-                      media={primaryMedia}
-                      productName={product.name}
-                      priority={imagePriority}
-                      contain
-                      hoverZoom={cardStyle.previewHover === "zoom"}
-                    />
-                  </div>
-                </div>
-              ) : (
+              // A contained stage floats the product shot with air on every
+              // side; a covered one bleeds it to the edges.
+              <CardStageLayer
+                contained={contained}
+                padding={cardStyle.previewPadding}
+                className={swapOnHover ? CARD_SWAP_OUT_CLASS : undefined}
+              >
                 <ProductCardMedia
                   media={primaryMedia}
                   productName={product.name}
                   priority={imagePriority}
+                  contain={contained}
                   hoverZoom={cardStyle.previewHover === "zoom"}
                 />
-              )
+              </CardStageLayer>
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">
                 {t("common.noImage")}
               </div>
             )}
 
-            {/* "Second image" hover effect: cross-fade to the next gallery shot. */}
+            {/* "Second image" hover effect: the next gallery shot takes the
+                primary's place, in the same frame, while the primary fades
+                out of it. */}
             {secondImageUrl ? (
-              <AppImage
-                src={secondImageUrl}
-                alt={product.name}
-                fill
-                sizes="(max-width: 640px) 46vw, (max-width: 1024px) 32vw, 25vw"
-                className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              />
+              <CardStageLayer
+                contained={contained}
+                padding={cardStyle.previewPadding}
+                className={swapOnHover ? CARD_SWAP_IN_CLASS : "opacity-0"}
+              >
+                <ProductCardMedia
+                  media={{ _id: "second-image", type: "image", url: secondImageUrl }}
+                  productName={product.name}
+                  contain={contained}
+                  hoverZoom={false}
+                  decorative
+                  onLoad={() => setLoadedSecondImage(secondImageUrl)}
+                />
+              </CardStageLayer>
             ) : null}
 
             {/* Top Left Badges */}

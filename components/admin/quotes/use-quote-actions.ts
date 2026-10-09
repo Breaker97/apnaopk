@@ -6,6 +6,7 @@ import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient, ApiClientError } from "@/lib/api/client";
 import type { AdminQuoteDetail, AdminQuoteRow } from "@/lib/quotes/quotes";
+import { quoteApiPath, type QuoteScope } from "./quote-ui";
 
 type QuoteLike = Pick<AdminQuoteRow, "_id" | "name" | "productName" | "stage">;
 
@@ -14,9 +15,13 @@ type QuoteLike = Pick<AdminQuoteRow, "_id" | "name" | "productName" | "stage">;
  * back, withdraw its price, delete it. Each asks first where the move is hard
  * to undo, reports how it went, and hands the fresh quote to `onChanged` so
  * the list and the sheet can both redraw from the server's answer.
+ *
+ * `scope` picks whose routes the writes go to. Deleting is the store's alone,
+ * so the vendor's routes have no DELETE for `remove` to reach.
  */
 export function useQuoteActions(
   onChanged: (quote: AdminQuoteDetail | null) => void,
+  scope: QuoteScope = "admin",
 ) {
   const t = useTranslations("admin.quotesPage");
   const tc = useTranslations("common");
@@ -59,25 +64,25 @@ export function useQuoteActions(
       if (!confirmed) return false;
       return run(
         () =>
-          apiClient.patch<AdminQuoteDetail>(`/api/admin/quotes/${quote._id}`, {
+          apiClient.patch<AdminQuoteDetail>(quoteApiPath(scope, quote._id), {
             action: "mark_lost",
           }),
         t("toast.markedLost"),
       );
     },
-    [confirm, run, t, tc],
+    [confirm, run, scope, t, tc],
   );
 
   const reopen = useCallback(
     (quote: QuoteLike) =>
       run(
         () =>
-          apiClient.patch<AdminQuoteDetail>(`/api/admin/quotes/${quote._id}`, {
+          apiClient.patch<AdminQuoteDetail>(quoteApiPath(scope, quote._id), {
             action: "reopen",
           }),
         t("toast.reopened"),
       ),
-    [run, t],
+    [run, scope, t],
   );
 
   const withdraw = useCallback(
@@ -93,13 +98,13 @@ export function useQuoteActions(
       return run(
         () =>
           apiClient.patch<AdminQuoteDetail>(
-            `/api/admin/quotes/${quote._id}/offer`,
+            quoteApiPath(scope, quote._id, "offer"),
             {},
           ),
         t("toast.withdrawn"),
       );
     },
-    [confirm, run, t, tc],
+    [confirm, run, scope, t, tc],
   );
 
   const remove = useCallback(
@@ -117,7 +122,7 @@ export function useQuoteActions(
       });
       if (!confirmed) return false;
       return run(async () => {
-        await apiClient.delete(`/api/admin/quotes/${quote._id}`);
+        await apiClient.delete(quoteApiPath("admin", quote._id));
         return null;
       }, t("toast.deleted"));
     },

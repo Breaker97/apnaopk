@@ -6,6 +6,7 @@ import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
+import { liveOfferCodeForToken } from "@/lib/orders/abandoned-offers";
 
 const RecoverCheckoutSchema = z.object({
   token: z.string().trim().max(200).optional(),
@@ -81,11 +82,21 @@ export const POST = withApi(
       0,
     );
 
+    // A vendor's offer still open on this checkout comes back with it, so the
+    // button in the offer's email lands the shopper with the code applied.
+    // Only the token's holder — the shopper the email went to — gets it, and
+    // the code works for that shopper alone anyway.
+    const offerCode =
+      cart.status === "recovered"
+        ? null
+        : await liveOfferCodeForToken(token).catch(() => null);
+
     const response = successResponse({
       cartId: String(cart._id),
       items: cart.items,
       totalItems,
       subtotal,
+      ...(offerCode ? { offerCode } : {}),
     });
 
     if (cart.sessionId) {

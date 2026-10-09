@@ -2,7 +2,6 @@
 
 import Link from "@/components/language/link";
 import {
-  ChevronsUpDown,
   CheckCircle,
   Circle,
   Download,
@@ -10,7 +9,6 @@ import {
   Package,
   Plus,
   Truck,
-  Upload,
   XCircle,
 } from "lucide-react";
 import {
@@ -28,6 +26,7 @@ import { useCurrency } from "@/providers/currency-provider";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useCallback, useMemo, useState } from "react";
 import { useListNavigation } from "@/hooks/use-list-navigation";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { apiClient } from "@/lib/api/client";
 import { useTranslations } from "next-intl";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
@@ -43,7 +42,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { periodPickerConfig } from "@/components/admin/period-picker-config";
 import { VendorFulfillmentBadge } from "@/components/vendor/vendor-fulfillment-badge";
+import { getOrderTimeLabel } from "@/lib/orders/order-time";
 
 interface VendorOrderItem {
   name: string;
@@ -65,6 +66,8 @@ interface VendorOrder {
   _id: string;
   orderNumber: string;
   customerId?: { name?: string; email?: string };
+  /** A walk-in POS sale: no customer is sent (lib/vendors/vendor-order-view.ts). */
+  posWalkIn?: boolean;
   /** This vendor's own payment state, not the order's. */
   paymentStatus: string;
   createdAt: string;
@@ -92,6 +95,9 @@ interface VendorOrdersTableProps {
     totalPages: number;
   };
 }
+
+/** Filter ids this table reads out of the query string. */
+const ORDER_FILTER_IDS = ["status", "paymentStatus", "date"];
 
 function getSubOrder(order: VendorOrder): VendorSubOrder | null {
   return order.subOrders?.[0] || null;
@@ -162,6 +168,7 @@ export function VendorOrdersTable({
   pagination,
 }: VendorOrdersTableProps) {
   const t = useTranslations();
+  const tOr = useFallbackTranslator(t);
   const router = useRouter();
   const { confirm } = useConfirmation();
   const { formatPrice } = useCurrency();
@@ -172,12 +179,13 @@ export function VendorOrdersTable({
     orderId: string;
   }>({ open: false, orderId: "" });
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const list = useListNavigation<VendorOrder>({
     items: data,
     pagination,
     tabParam: "view",
-    filterIds: ["status", "paymentStatus"],
+    filterIds: ORDER_FILTER_IDS,
   });
 
   const handleUpdateStatus = useCallback(
@@ -294,6 +302,51 @@ export function VendorOrdersTable({
     [confirm, list, t],
   );
 
+  // The table's own view — search, tab, filters and sort — as a file, but every
+  // matching order and not just the page on screen: the server reads the vendor
+  // from the session and applies the same query the page does.
+  const { search, activeTab, filters: activeFilters, sortBy, sortOrder } = list;
+  const handleExportOrders = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams({ format: "csv" });
+      if (search) params.set("search", search);
+      if (activeTab && activeTab !== "all") params.set("view", activeTab);
+      for (const [id, value] of Object.entries(activeFilters)) {
+        if (value && value !== "all") params.set(id, value);
+      }
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
+
+      const res = await fetch(`/api/vendor/orders?${params.toString()}`);
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vendor-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      // More orders matched than one file carries; the header says how many it did.
+      const truncated = res.headers.get("X-Export-Truncated");
+      if (truncated) {
+        toast.success(
+          t("vendor.ordersTable.exportTruncated", { count: Number(truncated) }),
+        );
+      } else {
+        toast.success(t("vendor.ordersTable.exportSuccess"));
+      }
+    } catch {
+      toast.error(t("vendor.ordersTable.exportFailed"));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [activeFilters, activeTab, search, sortBy, sortOrder, t]);
+
   const columns = useMemo<DataTableColumn<VendorOrder>[]>(
     () => [
       {
@@ -304,7 +357,7 @@ export function VendorOrdersTable({
           <div className="min-w-0">
             <Link
               href={`/vendor/orders/${row._id}`}
-              className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
+              className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
             >
               {row.orderNumber}
             </Link>
@@ -313,7 +366,7 @@ export function VendorOrdersTable({
             </div>
           </div>
         ),
-        className: "w-[180px]",
+        className: "w-[170px]",
       },
       {
         id: "customer",
@@ -322,10 +375,10 @@ export function VendorOrdersTable({
           <div className="min-w-0">
             <TextCell
               value={
-                row.customerId?.name ||
-                t("vendor.ordersTable.guest")
+                row.posWalkIn
+                  ? t("admin.orderDetails.walkInCustomer")
+                  : row.customerId?.name || t("vendor.ordersTable.guest")
               }
-              className="text-sm"
             />
             <div className="text-xs text-muted-foreground">
               <TextCell value={row.customerId?.email} truncate maxWidth="220px" />
@@ -338,12 +391,28 @@ export function VendorOrdersTable({
         id: "createdAt",
         header: t("vendor.ordersTable.columns.date"),
         sortable: true,
-        cell: (row) => (
-          <span className="text-sm">
-            <DateCell date={row.createdAt} format="medium" />
-          </span>
-        ),
-        className: "w-[140px]",
+        cell: (row) => {
+          const time = getOrderTimeLabel(row.createdAt);
+          return (
+            <div className="min-w-0">
+              <span className="text-sm">
+                <DateCell date={row.createdAt} format="medium" />
+              </span>
+              {time ? (
+                <div className="text-xs text-muted-foreground">
+                  {/* Server and browser can sit in different time zones, so
+                      the server's render of the time may not be the browser's
+                      — the same call the order timeline makes. */}
+                  <time dateTime={row.createdAt} suppressHydrationWarning>
+                    {time}
+                  </time>
+                </div>
+              ) : null}
+            </div>
+          );
+        },
+        className: "w-[140px] hidden lg:table-cell",
+        headerClassName: "hidden lg:table-cell",
       },
       {
         id: "paymentStatus",
@@ -359,7 +428,8 @@ export function VendorOrdersTable({
             })}
           </span>
         ),
-        className: "w-[170px]",
+        className: "w-[170px] hidden md:table-cell",
+        headerClassName: "hidden md:table-cell",
       },
       {
         id: "fulfillmentStatus",
@@ -373,7 +443,8 @@ export function VendorOrdersTable({
             />
           );
         },
-        className: "w-[150px]",
+        className: "w-[150px] hidden lg:table-cell",
+        headerClassName: "hidden lg:table-cell",
       },
       {
         id: "items",
@@ -383,14 +454,16 @@ export function VendorOrdersTable({
           const itemCount = getItemsCount(subOrder?.items || []);
           return (
             <TextCell
-              value={t("vendor.ordersTable.itemCount", {
-                count: itemCount,
-              })}
-              className="text-sm"
+              value={`${itemCount} ${
+                itemCount === 1
+                  ? t("admin.ordersPage.item")
+                  : t("common.items")
+              }`}
             />
           );
         },
-        className: "w-[120px]",
+        className: "w-[110px] text-center hidden md:table-cell",
+        headerClassName: "text-center hidden md:table-cell",
       },
       {
         id: "vendorEarnings",
@@ -399,7 +472,7 @@ export function VendorOrdersTable({
           return (
             <TextCell
               value={formatPrice(row.netSales || 0)}
-              className="block w-full text-right text-sm"
+              className="block w-full text-right"
             />
           );
         },
@@ -436,7 +509,7 @@ export function VendorOrdersTable({
     [t],
   );
 
-  const filters = useMemo<DataTableFilter[]>(
+  const selectFilters = useMemo<DataTableFilter[]>(
     () => [
       {
         id: "status",
@@ -508,6 +581,18 @@ export function VendorOrdersTable({
     [t],
   );
 
+  // Built on every render rather than memoised: "today" and the last day the
+  // calendar lets you pick move at midnight, and this tab can outlive it. The
+  // pickers' period names and footer are the dashboard's, as on the admin's list.
+  const now = new Date();
+  const dateFilter: DataTableFilter = {
+    id: "date",
+    label: tOr("admin.ordersPage.filters.date", "Date"),
+    type: "date",
+    date: { locale, ...periodPickerConfig(tOr, locale, now), maxDate: now },
+  };
+  const filters = [...selectFilters, dateFilter];
+
   const bulkActions = useMemo<DataTableBulkAction<VendorOrder>[]>(
     () => {
       const actions: DataTableBulkAction<VendorOrder>[] = [];
@@ -554,25 +639,15 @@ export function VendorOrdersTable({
     () =>
       buildAdminCommerceTableHeader({
         title: t("vendor.ordersTable.title"),
+        // Export only: orders are created at checkout or the POS, never
+        // imported, so there is no menu to hang a second entry on.
         importExportAction: {
-          id: "import-export",
-          label: t("admin.productsDataTable.actions.importExport"),
-          icon: <ChevronsUpDown className="h-4 w-4" />,
+          id: "toolbar-export",
+          label: t("admin.productsDataTable.actions.export"),
+          icon: <Download className="h-4 w-4" />,
           variant: "outline",
-          items: [
-            {
-              id: "toolbar-export",
-              label: t("admin.productsDataTable.actions.export"),
-              icon: <Download className="h-4 w-4" />,
-              disabled: true,
-            },
-            {
-              id: "toolbar-import",
-              label: t("admin.productsDataTable.actions.import"),
-              icon: <Upload className="h-4 w-4" />,
-              disabled: true,
-            },
-          ],
+          onClick: handleExportOrders,
+          disabled: isExporting,
         },
         addAction: canCreateOrder
           ? {
@@ -583,7 +658,7 @@ export function VendorOrdersTable({
             }
           : undefined,
       }),
-    [canCreateOrder, locale, t],
+    [canCreateOrder, handleExportOrders, isExporting, locale, t],
   );
 
   const rowActions = useCallback(
@@ -716,6 +791,7 @@ export function VendorOrdersTable({
         rowActions={rowActions}
         rowActionsHeader={t("vendor.ordersTable.columns.actions")}
         rowActionsVariant="dropdown"
+        className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
         onRowClick={(row) => router.push(`/vendor/orders/${row._id}`)}
         emptyMessage={t("vendor.ordersTable.empty")}
       />

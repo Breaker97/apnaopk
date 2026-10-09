@@ -18,6 +18,7 @@ import {
   type CategoryListStyle,
   type CategoryTile,
 } from "@/lib/storefront/sections/category-list-style";
+import { vendorFilterHref } from "@/lib/vendors/vendor-store-page";
 import { cn } from "@/lib/utils";
 
 // Soft, theme-friendly background/foreground pairs for the monogram shown
@@ -65,6 +66,7 @@ export function CategoryTiles({
   title = "",
   activeSlug = null,
   linkTo,
+  vendorSlug,
   className,
 }: {
   locale: Locale;
@@ -76,6 +78,11 @@ export function CategoryTiles({
   activeSlug?: string | null;
   /** Overrides the style's link target (the listing keeps shoppers on the listing). */
   linkTo?: CategoryListStyle["linkTo"];
+  /**
+   * A vendor's landing page: each tile opens that store's Products tab
+   * filtered to the category, whatever the style's link target says.
+   */
+  vendorSlug?: string;
   className?: string;
 }) {
   const t = useTranslations();
@@ -202,7 +209,11 @@ export function CategoryTiles({
             <Tile
               key={category.id}
               category={category}
-              href={categoryTileHref(locale, category.slug, target)}
+              href={
+                vendorSlug
+                  ? vendorFilterHref(locale, vendorSlug, "category", category.slug)
+                  : categoryTileHref(locale, category.slug, target)
+              }
               style={style}
               active={activeSlug === category.slug}
             />

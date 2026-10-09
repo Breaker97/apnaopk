@@ -11,7 +11,7 @@ import {
 } from "@/components/store/blog/blog-article-card";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 
-export type TopArticle = BlogArticleCardData;
+type TopArticle = BlogArticleCardData;
 
 interface Props {
   articles: TopArticle[];

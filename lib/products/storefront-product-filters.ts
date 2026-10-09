@@ -234,8 +234,8 @@ export const getStorefrontCategoryFacets = unstable_cache(
       .lean();
     if (!category) return { priceRange: null, brands: [] };
 
-    // Products sit on the leaves, so the branch — not the category alone —
-    // is the scope. Same expansion the product query itself applies.
+    // The branch — not the category alone — is the scope: products sit on
+    // every level. Same expansion the product query itself applies.
     const branchIds = await expandCategoryIdsWithDescendants([
       String(category._id),
     ]);

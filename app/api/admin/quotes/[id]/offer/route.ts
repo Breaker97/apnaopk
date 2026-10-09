@@ -1,27 +1,35 @@
-import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { validateBody } from "@/lib/api/validate";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { Order, Product, QuoteRequest } from "@/models";
-import { PRODUCT_STATUS } from "@/config/app.config";
+import { QuoteRequest } from "@/models";
 import {
   buildQuoteScopeFilter,
   fetchAdminQuoteDetail,
 } from "@/lib/quotes/quotes";
 import { mergeScopeFilter } from "@/lib/access/staff-scope";
+import { withdrawSupersededOffers } from "@/lib/quotes/quote-offer";
 import {
-  orderHoldsOffer,
-  withdrawSupersededOffers,
-} from "@/lib/quotes/quote-offer";
+  announceQuoteOffer,
+  assertOfferNotOnLiveOrder,
+  buildOfferUpdate,
+  loadOfferProduct,
+  resolveOfferVariant,
+  SendOfferSchema,
+  type QuoteDoc,
+} from "@/lib/quotes/quote-offer-write";
+import { quoteOfferRole } from "@/lib/quotes/quote-status";
 import { noticeQuoteWithdrawn } from "@/lib/quotes/quote-notices";
-import { notifyQuoteOffer } from "@/lib/notifications/notifications";
-import { sendQuoteOfferEmail } from "@/lib/email/quote-emails";
-import { roundMoney } from "@/lib/intl/money";
+import {
+  auditQuoteOffer,
+  auditQuoteOfferWithdrawn,
+} from "@/lib/quotes/audit-quote";
+import { createAuditContext } from "@/lib/audit";
+import { notifyVendorQuotePriceChanged } from "@/lib/notifications/notifications";
 
 /**
- * Answering a quote with a price.
+ * The store answering a quote with a price.
  *
  * This is the one write that turns a lead into something buyable: from here
  * the shopper sees the number on the product page and can put it in the cart
@@ -29,85 +37,12 @@ import { roundMoney } from "@/lib/intl/money";
  * It is kept off the generic PATCH because it is not a field edit — it
  * notifies the shopper, emails them, and moves the quote through its pipeline.
  *
- * Offers are only ever *replaced*, never edited in place: re-quoting is how a
- * negotiation moves, so the previous number is pushed onto `offerHistory`
- * rather than overwritten, and the merchant can see what they already offered.
+ * The store's price is final. The vendor whose product it is may price its
+ * own quotes (`/api/vendor/quotes/[id]/offer`), but a price the store sends
+ * replaces the vendor's, and from then on the price is the store's to set —
+ * so the store may always price here, and the vendor is told when its own
+ * price is replaced or withdrawn.
  */
-
-const OFFER_HISTORY_LIMIT = 10;
-
-const SendOfferSchema = z.object({
-  /**
-   * Per unit, and above zero: a zero here would let the shopper place a real
-   * order for nothing, which is never what "I have not decided a price yet"
-   * should do.
-   */
-  unitPrice: z.number().positive().max(100_000_000),
-  quantity: z.number().int().min(1).max(1_000_000),
-  note: z.string().trim().max(2000).optional().default(""),
-  /**
-   * How long the price is held. 0 (or absent) means it does not expire —
-   * some merchants quote standing prices and a forced deadline would be a
-   * worse default than none.
-   */
-  expiresInDays: z.number().int().min(0).max(365).optional().default(0),
-  /**
-   * Which variant the price is for, when the shopper asked about a product
-   * with variants without picking one. The cart refuses a variant product
-   * added without a variant, so a price with none attached could never be
-   * bought. Ignored in favour of the quote's own when it already names one.
-   */
-  variantId: z.string().trim().max(64).optional(),
-});
-
-type QuoteDoc = {
-  _id: unknown;
-  productId?: unknown;
-  variantId?: unknown;
-  productName?: string;
-  variantName?: string;
-  name?: string;
-  email?: string;
-  userId?: unknown;
-  status?: string;
-  offer?: {
-    unitPrice?: number;
-    quantity?: number;
-    note?: string;
-    expiresAt?: Date;
-    offeredAt?: Date;
-    offeredBy?: unknown;
-    withdrawnAt?: Date;
-  } | null;
-  orderId?: unknown;
-};
-
-/**
- * A quote whose offer has already been spent on an order that still holds it
- * is closed to re-pricing: the shopper is mid-purchase at the old number, and
- * handing them a second live offer would let the same negotiation be bought
- * twice. The merchant cancels the order first if that is really what they want.
- *
- * Returns true when the quote points at an order that no longer holds it
- * (cancelled, deleted, or expired unpaid), so the caller can start the new
- * price unspent.
- */
-async function assertOfferNotOnLiveOrder(quote: QuoteDoc): Promise<boolean> {
-  if (!quote.orderId) return false;
-  const order = await Order.findById(quote.orderId)
-    .select("status paymentStatus orderNumber")
-    .lean<{
-      status?: string;
-      paymentStatus?: string;
-      orderNumber?: string;
-    } | null>();
-  if (!orderHoldsOffer(order)) return true;
-  throw new ValidationError(
-    `This quote has already been ordered${
-      order?.orderNumber ? ` (${order.orderNumber})` : ""
-    }. Cancel that order before quoting a new price.`,
-  );
-}
 
 async function loadScopedQuote(
   id: string,
@@ -124,53 +59,9 @@ async function loadScopedQuote(
   return quote;
 }
 
-type OfferProduct = {
-  status?: string;
-  variants?: Array<{ _id: unknown; name?: string }>;
-};
-
-/**
- * The product the price is for, which has to be on sale: a price for a
- * product that is gone or unpublished could never be bought, yet it still
- * sent the shopper a "your quote is ready" email.
- */
-async function loadOfferProduct(quote: QuoteDoc): Promise<OfferProduct> {
-  const product = await Product.findById(quote.productId)
-    .select("status variants._id variants.name")
-    .lean<OfferProduct | null>();
-  if (!product || product.status !== PRODUCT_STATUS.ACTIVE) {
-    throw new ValidationError(
-      "This product is not on sale, so a price for it could never be bought. Publish the product first.",
-    );
-  }
-  return product;
-}
-
-/**
- * The variant this price is for: the one the shopper picked, or — when they
- * picked none on a product that has variants — the one the merchant chooses
- * now. Null for a product without variants.
- */
-function resolveOfferVariant(
-  quote: QuoteDoc,
-  product: OfferProduct,
-  requestedVariantId: string | undefined,
-): { _id: unknown; name?: string } | null {
-  if (quote.variantId) return null;
-
-  const variants = product.variants ?? [];
-  if (variants.length === 0) return null;
-
-  if (!requestedVariantId) {
-    throw new ValidationError(
-      "This product has variants. Choose which one the price is for.",
-    );
-  }
-  const variant = variants.find(
-    (candidate) => String(candidate._id) === requestedVariantId,
-  );
-  if (!variant) throw new NotFoundError("Variant");
-  return variant;
+/** The vendor's own price, still standing, about to be overridden by the store. */
+function vendorPriceStanding(quote: QuoteDoc): boolean {
+  return quoteOfferRole(quote.offer) === "vendor" && !quote.offer?.withdrawnAt;
 }
 
 /**
@@ -201,42 +92,14 @@ export const POST = withApi<{ id: string }>(
     const variant = resolveOfferVariant(quote, product, body.variantId);
 
     const now = new Date();
-    const expiresAt = body.expiresInDays
-      ? new Date(now.getTime() + body.expiresInDays * 24 * 60 * 60 * 1000)
-      : undefined;
-
-    const offer = {
-      unitPrice: roundMoney(body.unitPrice),
-      quantity: body.quantity,
-      note: body.note || undefined,
-      expiresAt,
-      offeredAt: now,
-      offeredBy: session?.user?.id,
-    };
-
-    const update: Record<string, unknown> = {
-      $set: {
-        offer,
-        // Answering a request is what moves it out of the queue. A quote that
-        // was marked won is left alone: the merchant is re-quoting a repeat
-        // order, not undoing the sale they already made.
-        ...(quote.status === "won" ? {} : { status: "quoted" }),
-        ...(variant
-          ? { variantId: variant._id, variantName: variant.name }
-          : {}),
-      },
-    };
-    if (quote.offer?.unitPrice !== undefined) {
-      update.$push = {
-        offerHistory: {
-          $each: [quote.offer],
-          $slice: -OFFER_HISTORY_LIMIT,
-        },
-      };
-    }
-    // The order the old price was spent on no longer holds it, so the new
-    // price starts unspent rather than tied to a cancelled order.
-    if (handedBack) update.$unset = { orderId: "" };
+    const { offer, update } = buildOfferUpdate({
+      quote,
+      body,
+      variant,
+      handedBack,
+      actor: { userId: session?.user?.id, role: "admin" },
+      now,
+    });
 
     const updated = await QuoteRequest.findByIdAndUpdate(params.id, update, {
       returnDocument: "after",
@@ -246,35 +109,30 @@ export const POST = withApi<{ id: string }>(
 
     // One open price per shopper per line: this one replaces any other the
     // same shopper holds for this product and variant.
-    const replacedOffers = await withdrawSupersededOffers(updated, now).catch(
+    const replacedOffers = await withdrawSupersededOffers(updated, now, "admin").catch(
       (err) => {
         console.error("Failed to withdraw superseded quote offers:", err);
         return 0;
       },
     );
 
-    // Telling the shopper is the whole point, but a store with no SMTP set up
-    // must still be able to quote: both channels are best-effort and the price
-    // is already saved by the time either is attempted.
+    // The price is the record: it is what the shopper can now put in their cart.
+    // A re-quote names the one it replaced, which moved into the history above.
+    await auditQuoteOffer(createAuditContext(request, session), updated, {
+      offer,
+      previous: quote.offer?.unitPrice !== undefined ? quote.offer : null,
+      status: { from: quote.status, to: updated.status },
+      replacedOffers,
+    });
+
     await Promise.allSettled([
-      updated.userId
-        ? notifyQuoteOffer({
+      announceQuoteOffer(updated, offer),
+      vendorPriceStanding(quote)
+        ? notifyVendorQuotePriceChanged({
             quoteId: String(updated._id),
-            userId: String(updated.userId),
-            productName: updated.productName ?? "your item",
-          })
-        : Promise.resolve(),
-      updated.email
-        ? sendQuoteOfferEmail({
-            quoteId: String(updated._id),
+            vendorId: updated.vendorId,
             productName: updated.productName ?? "",
-            variantName: updated.variantName,
-            quantity: offer.quantity,
-            unitPrice: offer.unitPrice,
-            name: updated.name ?? "",
-            email: updated.email,
-            note: offer.note,
-            expiresAt,
+            kind: "replaced",
           })
         : Promise.resolve(),
     ]);
@@ -295,7 +153,7 @@ export const PATCH = withApi<{ id: string }>(
     staffPermissions: [STAFF_PERMISSIONS.MANAGE_ORDERS],
     rateLimit: { action: "admin:quotes:offer", preset: "moderate" },
   },
-  async ({ params, staff }) => {
+  async ({ request, params, staff, session }) => {
     const quote = await loadScopedQuote(params.id, staff?.scope);
     if (quote.offer?.unitPrice === undefined) {
       throw new ValidationError("There is no price to withdraw");
@@ -307,13 +165,33 @@ export const PATCH = withApi<{ id: string }>(
 
     const updated = await QuoteRequest.findByIdAndUpdate(
       params.id,
-      { $set: { "offer.withdrawnAt": new Date() } },
+      {
+        $set: {
+          "offer.withdrawnAt": new Date(),
+          "offer.withdrawnByRole": "admin",
+        },
+      },
       { returnDocument: "after", runValidators: true },
     ).lean<QuoteDoc | null>();
     if (!updated) throw new NotFoundError("Quote request");
 
-    // The shopper was told the price; they are told it is gone, too.
-    await noticeQuoteWithdrawn(updated);
+    await auditQuoteOfferWithdrawn(createAuditContext(request, session), updated, {
+      offer: quote.offer,
+    });
+
+    // The shopper was told the price; they are told it is gone, too. So is
+    // the vendor, when the price was theirs.
+    await Promise.allSettled([
+      noticeQuoteWithdrawn(updated),
+      vendorPriceStanding(quote)
+        ? notifyVendorQuotePriceChanged({
+            quoteId: String(updated._id),
+            vendorId: updated.vendorId,
+            productName: updated.productName ?? "",
+            kind: "withdrawn",
+          })
+        : Promise.resolve(),
+    ]);
 
     return offerResponse(params.id, staff?.scope);
   },

@@ -59,6 +59,8 @@ const preloadViewer = () =>
 
 /** Thumbnails shown under the main media before overflow collapses into "+N". */
 const THUMBNAIL_SLOTS = 4;
+/** Past this many items the carousel counts ("3 / 25") instead of one dot each. */
+const CAROUSEL_DOT_LIMIT = 10;
 
 
 /**
@@ -477,7 +479,14 @@ export function ProductImageGallery({
             )}
           </div>
 
-          {canNavigate && (
+          {canNavigate && media.length > CAROUSEL_DOT_LIMIT ? (
+            <p
+              aria-live="polite"
+              className="text-center text-sm tabular-nums text-muted-foreground"
+            >
+              {selectedIndex + 1} / {media.length}
+            </p>
+          ) : canNavigate ? (
             <div className="flex justify-center gap-2">
               {media.map((item, index) => (
                 <button
@@ -495,7 +504,7 @@ export function ProductImageGallery({
                 />
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       ) : layout === "vertical" ? (
         /* Vertical carousel: every media item stacked full-width; the buy box

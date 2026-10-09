@@ -1,10 +1,7 @@
 import { paginatedResponse } from "@/lib/api/response";
 import { getClientIP, rateLimitByIP } from "@/lib/api/rate-limit-middleware";
 import { getStorefrontProducts } from "@/lib/products/storefront-products";
-import {
-  hasNarrowingFacet,
-  recordZeroResultSearch,
-} from "@/lib/products/zero-result-searches";
+import { recordSearchOutcome } from "@/lib/products/zero-result-searches";
 import { withApi } from "@/lib/api/handler";
 
 /**
@@ -59,18 +56,13 @@ export const GET = withApi(
     // The header search box answers through here as the shopper types. A
     // first page with no filter that found nothing is a product the store
     // does not have — the admin's Search insights report counts it.
-    if (
-      search &&
-      result.pagination.page === 1 &&
-      result.pagination.total === 0 &&
-      !hasNarrowingFacet(facets)
-    ) {
-      recordZeroResultSearch({
-        query: search,
-        source: "storefront",
-        clientKey: getClientIP(request),
-      });
-    }
+    recordSearchOutcome({
+      search,
+      page: result.pagination.page,
+      total: result.pagination.total,
+      facets,
+      clientKey: getClientIP(request),
+    });
 
     return paginatedResponse(
       result.data,

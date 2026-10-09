@@ -4,13 +4,18 @@ import {
   AdminStatsStrip,
   type AdminStatsStripItem,
 } from "@/components/admin/admin-stats-strip";
-import { fetchAdminQuoteStats } from "@/lib/quotes/quotes";
+import {
+  fetchAdminQuoteStats,
+  fetchVendorQuoteStats,
+} from "@/lib/quotes/quotes";
 import { getStoreMoneyFormatter } from "@/lib/intl/server-currency";
 import type { StaffAccessScope } from "@/lib/access/staff-scope";
 
 interface QuotesStatsStripProps {
   locale: string;
   staffScope?: StaffAccessScope | null;
+  /** Counts this vendor's quotes only — the vendor's Quotes page. */
+  vendorId?: string;
 }
 
 /**
@@ -23,10 +28,11 @@ interface QuotesStatsStripProps {
 export async function QuotesStatsStrip({
   locale,
   staffScope,
+  vendorId,
 }: QuotesStatsStripProps) {
   const [t, stats, money] = await Promise.all([
     getTranslations("admin.quotesPage.stats"),
-    fetchAdminQuoteStats(staffScope),
+    vendorId ? fetchVendorQuoteStats(vendorId) : fetchAdminQuoteStats(staffScope),
     getStoreMoneyFormatter(),
   ]);
 

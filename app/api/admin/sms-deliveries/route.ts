@@ -9,40 +9,50 @@ import {
 import { getSettingsLean } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";
 import { validateBody } from "@/lib/api/validate";
-import { escapeRegExp } from "@/lib/strings";
+import { appBaseUrl } from "@/lib/app-url";
+import { smsDeliveryReceiptsEnabled } from "@/lib/sms/sms";
+import {
+  DELIVERY_LOG_RANGES,
+  countDeliveryLogGroups,
+  deliveryLogFilter,
+  isDeliveryLogGroup,
+  statusesInGroup,
+} from "@/lib/notifications/delivery-log-groups";
 
-const PENDING_STATUSES: SmsDeliveryStatus[] = ["queued", "sending", "retrying"];
-/** "Failed" in the stats and the retry action: the provider or the carrier said no. */
-const FAILED_STATUSES: SmsDeliveryStatus[] = ["failed", "undelivered"];
-
-function createdAfter(range: string | null) {
-  const days = range === "today" ? 1 : Number(range?.replace("d", ""));
-  if (![1, 7, 30, 90].includes(days)) return undefined;
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-}
+/** What the log's search looks in. */
+const SEARCH_FIELDS = ["to", "body", "category"] as const;
+/** "Failed" in the tabs and the retry action: the provider or the carrier said no. */
+const FAILED_STATUSES: SmsDeliveryStatus[] = statusesInGroup("failed", SMS_DELIVERY_STATUSES);
+/** What "Clear sent" deletes. */
+const SENT_STATUSES: SmsDeliveryStatus[] = statusesInGroup("sent", SMS_DELIVERY_STATUSES);
 
 /**
  * GET /api/admin/sms-deliveries — the SMS delivery log (Settings → SMS).
+ *
+ * `range` and `search` pick the rows; `group` (sent, failed, waiting) is the
+ * tab. The counts per tab are taken over the range and search, so they match
+ * the table whichever tab is open.
  */
 export const GET = withApi({ auth: "admin" }, async ({ request }) => {
   const params = request.nextUrl.searchParams;
   const limit = Math.min(Math.max(Number(params.get("limit")) || 10, 5), 50);
   const page = Math.max(Number(params.get("page")) || 1, 1);
-  const status = params.get("status");
-  const search = params.get("search")?.trim().slice(0, 200);
-  const after = createdAfter(params.get("range"));
+  const base = deliveryLogFilter({
+    range: params.get("range"),
+    search: params.get("search"),
+    searchFields: SEARCH_FIELDS,
+  });
 
-  const filter: Record<string, unknown> = {};
-  if (status && SMS_DELIVERY_STATUSES.includes(status as SmsDeliveryStatus)) {
+  const filter: Record<string, unknown> = { ...base };
+  const group = params.get("group");
+  const status = params.get("status");
+  if (isDeliveryLogGroup(group)) {
+    filter.status = { $in: statusesInGroup(group, SMS_DELIVERY_STATUSES) };
+  } else if (status && SMS_DELIVERY_STATUSES.includes(status as SmsDeliveryStatus)) {
     filter.status = status;
   }
-  if (search) {
-    const pattern = new RegExp(escapeRegExp(search), "i");
-    filter.$or = [{ to: pattern }, { body: pattern }, { category: pattern }];
-  }
-  if (after) filter.createdAt = { $gte: after };
 
-  const [deliveries, total, sent, failed, pending, settings] = await Promise.all([
+  const [deliveries, total, byStatus, clearable, settings] = await Promise.all([
     SmsDelivery.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -52,9 +62,12 @@ export const GET = withApi({ auth: "admin" }, async ({ request }) => {
       )
       .lean(),
     SmsDelivery.countDocuments(filter),
-    SmsDelivery.countDocuments({ status: { $in: ["sent", "delivered"] } }),
-    SmsDelivery.countDocuments({ status: { $in: FAILED_STATUSES } }),
-    SmsDelivery.countDocuments({ status: { $in: PENDING_STATUSES } }),
+    SmsDelivery.aggregate<{ _id: string; count: number }>([
+      { $match: base },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]),
+    // "Clear sent" deletes every sent text, whatever the filters show.
+    SmsDelivery.countDocuments({ status: { $in: SENT_STATUSES } }),
     getSettingsLean(),
   ]);
 
@@ -68,8 +81,12 @@ export const GET = withApi({ auth: "admin" }, async ({ request }) => {
         total,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
-      stats: { total: sent + failed + pending, sent, failed, pending },
+      stats: countDeliveryLogGroups(byStatus),
+      clearable,
       retentionDays: settings.sms?.logRetentionDays ?? 30,
+      // Without a public https address Twilio has nowhere to post its receipts,
+      // so every text stays at "sent" and the log should say why.
+      receipts: { enabled: smsDeliveryReceiptsEnabled(), origin: appBaseUrl() },
     },
   });
 });
@@ -77,6 +94,9 @@ export const GET = withApi({ auth: "admin" }, async ({ request }) => {
 const RetrySchema = z.object({
   action: z.literal("retry_failed"),
   ids: z.array(z.string().regex(/^[a-f0-9]{24}$/i)).max(100).optional(),
+  // Without ids: every failed text the log is showing, by its range and search.
+  range: z.enum(DELIVERY_LOG_RANGES).optional(),
+  search: z.string().max(200).optional(),
 });
 
 /**
@@ -86,9 +106,11 @@ const RetrySchema = z.object({
 export const POST = withApi(
   { auth: "admin", demo: "block-mutations" },
   async ({ request }) => {
-    const { ids } = await validateBody(request, RetrySchema);
-    const filter: Record<string, unknown> = { status: { $in: FAILED_STATUSES } };
-    if (ids?.length) filter._id = { $in: ids };
+    const { ids, range, search } = await validateBody(request, RetrySchema);
+    const filter: Record<string, unknown> = ids?.length
+      ? { _id: { $in: ids } }
+      : deliveryLogFilter({ range, search, searchFields: SEARCH_FIELDS });
+    filter.status = { $in: FAILED_STATUSES };
 
     const result = await SmsDelivery.updateMany(filter, {
       $set: { status: "queued", attempts: 0, nextAttemptAt: new Date() },
@@ -116,7 +138,7 @@ export const DELETE = withApi({ auth: "admin" }, async ({ request }) => {
 
   let filter: Record<string, unknown>;
   if (scope === "sent") {
-    filter = { status: { $in: ["sent", "delivered"] } };
+    filter = { status: { $in: SENT_STATUSES } };
   } else if (ids?.length) {
     filter = { _id: { $in: ids }, status: { $in: TERMINAL_SMS_STATUSES } };
   } else {

@@ -191,6 +191,11 @@ export async function createOrderPayIntent(params: {
   viaAccessLink?: boolean;
   customerEmail?: string;
   settings?: SettingsDocument;
+  /**
+   * The signed-in shopper's Stripe Customer (the shopper app's Pay now), so
+   * the sheet can use and save their cards. A pay link leaves it out.
+   */
+  stripeCustomerId?: string;
 }): Promise<OrderPayIntentResult> {
   const order = await loadPayableOrder(params);
   if (!isOrderPayable(order)) {
@@ -233,6 +238,7 @@ export async function createOrderPayIntent(params: {
           orderNumber: String(order.orderNumber || ""),
         },
         ...(receiptEmail ? { receipt_email: receiptEmail } : {}),
+        ...(params.stripeCustomerId ? { customer: params.stripeCustomerId } : {}),
       },
       // Two concurrent clicks get the same intent from Stripe rather than two
       // chargeable ones. Keyed on the order and the amount so that a partial
@@ -240,7 +246,11 @@ export async function createOrderPayIntent(params: {
       // the old figure — and on the receipt address, so that a request can
       // never differ from the one first sent under its key.
       {
-        idempotencyKey: `order-pay:${String(order._id)}:${amount}:${currency}:${receiptKey(receiptEmail)}`,
+        // The Customer joins the key when there is one: an intent made for
+        // the pay link (none) and one for the app (the shopper's) differ.
+        idempotencyKey: `order-pay:${String(order._id)}:${amount}:${currency}:${receiptKey(receiptEmail)}${
+          params.stripeCustomerId ? `:${params.stripeCustomerId}` : ""
+        }`,
       },
     );
   } catch (error) {
@@ -381,10 +391,17 @@ export async function settleOrderPayIntent(
   // that arrived while the shopper was typing their card. The order owes
   // nothing, so this money is not ours to keep.
   //
+  // But "already paid" is also what the second settlement of THIS payment
+  // hears: the shopper's confirm and Stripe's webhook each settle the same
+  // intent, and whichever comes second lands here. That is not a second
+  // charge — refunding it sent back the very payment the order was paid with.
+  // Only a payment the order did not record is a duplicate, as Razorpay's
+  // `returnSecondRazorpayPayment` has it.
+  //
   // Only the card path can reach this. PayPal's twin captures INSIDE `verify`,
   // which `finalizeCapturedOrder` never reaches on an order already paid, so
   // its approval simply lapses with nothing taken.
-  if (result.alreadyPaid) {
+  if (result.alreadyPaid && !(await isRecordedPayment(orderId, intent.id))) {
     await refundDuplicatePayLinkCharge({
       intent,
       orderId,
@@ -399,6 +416,14 @@ export async function settleOrderPayIntent(
     alreadyPaid: result.alreadyPaid,
     orderId: result.orderId,
   };
+}
+
+/** Whether the order's recorded payment is this one. */
+async function isRecordedPayment(orderId: string, paymentId: string): Promise<boolean> {
+  const order = await Order.findById(orderId)
+    .select("paymentId")
+    .lean<{ paymentId?: string | null } | null>();
+  return String(order?.paymentId || "") === paymentId;
 }
 
 /**

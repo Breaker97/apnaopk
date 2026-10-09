@@ -3,11 +3,12 @@
 import { IOrder } from "@/types";
 import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Mail, Phone, Store } from "lucide-react";
+import { AlertTriangle, Mail, Phone, Store, UserCheck, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import { OrderCheckoutAnswers } from "@/components/common/order-checkout-answers";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 
 interface OrderCustomerProps {
   order: IOrder & {
@@ -25,6 +26,11 @@ interface OrderCustomerProps {
      * and for a counter sale rung up on shared stock.
      */
     posLocationName?: string;
+    /**
+     * Who rang a POS sale up, resolved on the server from `staffId` (a bare
+     * string). Absent for online orders and when that user no longer exists.
+     */
+    soldByName?: string;
   };
 }
 
@@ -33,7 +39,11 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
   const tRoot = useTranslations();
   const payment = getPaymentMethodMeta(tRoot, order.paymentMethod);
 
-  const customer = typeof order.customerId === 'object' ? order.customerId : null;
+  // A counter sale with no customer chosen is filed under its cashier. It
+  // names nobody: not the cashier's name, email, phone or join date.
+  const walkIn = isPosWalkIn(order);
+  const customer =
+    !walkIn && typeof order.customerId === "object" ? order.customerId : null;
   const shipping = order.shippingAddress;
   const billing = order.billingAddress || shipping;
   const getAddressName = (address: typeof shipping) =>
@@ -44,6 +54,10 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
   const customerSinceYear = customer?.createdAt
     ? new Date(customer.createdAt).getFullYear()
     : null;
+  // Guest orders carry the checkout email on the order itself — customerId
+  // points at the guest's cart and populates nothing.
+  const contactEmail = customer?.email || order.guestEmail;
+  const contactPhone = order.contactPhone || customer?.phone || shipping.phone;
 
   return (
     <div className="space-y-6">
@@ -56,11 +70,19 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
             <Avatar className="h-12 w-12">
               <AvatarImage src={customer?.image} />
               <AvatarFallback>
-                {customer?.name?.charAt(0).toUpperCase() || "C"}
+                {walkIn ? (
+                  <UserRound className="h-5 w-5 text-muted-foreground" aria-hidden />
+                ) : (
+                  customer?.name?.charAt(0).toUpperCase() || "C"
+                )}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium">{customer?.name || t("orderDetails.guestCheckout")}</p>
+              <p className="font-medium">
+                {walkIn
+                  ? t("orderDetails.walkInCustomer")
+                  : customer?.name || t("orderDetails.guestCheckout")}
+              </p>
               {customerSinceYear ? (
                 <p className="text-sm text-muted-foreground">
                   {t("orderDetails.customerSince")} {customerSinceYear}
@@ -72,34 +94,35 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
           <Separator className="my-4" />
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-muted-foreground">{t("orderDetails.contactInfo")}</h4>
-            </div>
-            <div className="grid gap-2 text-sm">
-              {/* Guest orders carry the checkout email on the order itself —
-                  customerId points at the guest's cart and populates nothing. */}
-              {(customer?.email || order.guestEmail) && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <a
-                    href={`mailto:${customer?.email || order.guestEmail}`}
-                    className="hover:underline"
-                  >
-                    {customer?.email || order.guestEmail}
-                  </a>
+            {/* Nothing to show for a walk-in unless the till took a number:
+                the heading alone would say there is contact info. */}
+            {contactEmail || contactPhone ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-muted-foreground">{t("orderDetails.contactInfo")}</h4>
                 </div>
-              )}
-              {(order.contactPhone || customer?.phone || shipping.phone) && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a href={`tel:${order.contactPhone || customer?.phone || shipping.phone}`} className="hover:underline">
-                    {order.contactPhone || customer?.phone || shipping.phone}
-                  </a>
+                <div className="grid gap-2 text-sm">
+                  {contactEmail && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <a href={`mailto:${contactEmail}`} className="hover:underline">
+                        {contactEmail}
+                      </a>
+                    </div>
+                  )}
+                  {contactPhone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a href={`tel:${contactPhone}`} className="hover:underline">
+                        {contactPhone}
+                      </a>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <Separator className="my-4" />
+                <Separator className="my-4" />
+              </>
+            ) : null}
 
             {/* Digital-only checkouts never collect a shipping address —
                 `shippingAddress` there is a copy of the billing address, so
@@ -189,6 +212,12 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
                     </span>
                   ) : null}
                 </span>
+              </div>
+            ) : null}
+            {order.channel === "pos" && order.soldByName ? (
+              <div className="flex items-center gap-2 text-sm">
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                <span>{t("orderDetails.soldBy", { name: order.soldByName })}</span>
               </div>
             ) : null}
           </div>

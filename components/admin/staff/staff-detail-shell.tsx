@@ -44,6 +44,7 @@ import {
 import { ProfileTab } from "./tabs/profile-tab";
 import { PermissionsTab } from "./tabs/permissions-tab";
 import { ScopeTab } from "./tabs/scope-tab";
+import { storeProfileCodeOf } from "@/components/admin/store-profile-notice";
 import { OrdersTab } from "./tabs/orders-tab";
 import { ActivityTab } from "./tabs/activity-tab";
 import { NotesTab } from "./tabs/notes-tab";
@@ -137,6 +138,7 @@ export function StaffDetailShell({
 
   const [vendors, setVendors] = useState<StaffScopeOption[]>([]);
   const [locations, setLocations] = useState<StaffScopeOption[]>([]);
+  const [locationsProblem, setLocationsProblem] = useState<string | null>(null);
   const [optionsLoading, setOptionsLoading] = useState(area === "admin");
 
   const mountedRef = useRef(true);
@@ -315,6 +317,9 @@ export function StaffDetailShell({
             })),
           );
         }
+      } else if (locationsRes.status === "fulfilled") {
+        const answer = await locationsRes.value.json().catch(() => null);
+        if (active) setLocationsProblem(storeProfileCodeOf(answer));
       }
     };
 
@@ -688,6 +693,7 @@ export function StaffDetailShell({
                 setField={setField}
                 vendors={vendors}
                 locations={locations}
+                locationsProblem={locationsProblem}
                 optionsLoading={optionsLoading}
                 readOnly={readOnly}
               />

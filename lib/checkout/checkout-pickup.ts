@@ -1,4 +1,5 @@
 import { Cart, Vendor } from "@/models";
+import { ConflictError, ValidationError } from "@/lib/api/errors";
 import { resolveItemShipping, type ProductShippingData, type VariantShippingData } from "@/lib/catalog/product-shipping";
 import { CANONICAL_CART_WEIGHT_UNIT } from "@/lib/shipping/shipping";
 import {
@@ -366,16 +367,28 @@ export async function resolvePickupCheckoutFulfillment(input: {
   owner: PickupCartOwnership;
   pickupLocationId?: string;
 }): Promise<PickupFulfillmentSnapshot> {
+  // Each refusal is the shopper's to fix (another branch, delivery instead),
+  // so each is a 4xx that says which — never the 500 a bare Error became.
   const eligibility = await resolvePickupEligibility(input.owner);
-  if (!eligibility.eligible) throw new Error("Pickup is unavailable for this cart");
+  if (!eligibility.eligible) {
+    throw new ConflictError("Pickup is unavailable for this cart", {
+      reason: "pickup_unavailable",
+    });
+  }
 
   const requestedLocationId = input.pickupLocationId?.trim();
-  if (!requestedLocationId) throw new Error("Pickup location is required");
+  if (!requestedLocationId) {
+    throw new ValidationError({ pickupLocationId: ["Pickup location is required"] });
+  }
 
   const location = eligibility.locations.find(
     (candidate) => candidate.id === requestedLocationId,
   );
-  if (!location) throw new Error("Pickup location is unavailable");
+  if (!location) {
+    throw new ConflictError("Pickup location is unavailable", {
+      reason: "pickup_location_unavailable",
+    });
+  }
 
   // Re-checked here, not merely offered by the availability endpoint. That
   // endpoint is anonymous and its answer travels through the browser, so a
@@ -383,8 +396,9 @@ export async function resolvePickupCheckoutFulfillment(input: {
   // out. This runs on both payment routes BEFORE the charge, so the shopper is
   // turned back rather than billed for a collection nobody can hand over.
   if (!branchCanFulfill(eligibility.stockLines, location.id)) {
-    throw new Error(
+    throw new ConflictError(
       `${location.name} does not have everything in your order right now`,
+      { reason: "pickup_location_short" },
     );
   }
 

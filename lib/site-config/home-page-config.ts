@@ -14,17 +14,30 @@ const HOME_SECTION_IDS = [
 type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 
 /**
+ * Sources that read ONE picked category, brand or collection — the shelf
+ * shows that pick's products and nothing else. Every product shelf offers
+ * them after its own sources, and each stores its pick in a setting of its
+ * own (lib/storefront/sections/product-source.ts):
+ * - category:   the category and every category below it, newest first
+ * - brand:      the brand's products, newest first
+ * - collection: the collection's products, in the collection's own order
+ */
+export const PRODUCT_TARGET_SOURCES = ["category", "brand", "collection"] as const;
+
+/**
  * Product-selection logic for the "Products on Sale" (newArrivals) section.
  * - discounted: products whose comparePrice > price (or any variant on sale)
  * - featured:   products flagged as featured
  * - latest:     newest products by creation date
  * - manual:     a hand-picked, ordered list of product IDs
+ * - category / brand / collection: see PRODUCT_TARGET_SOURCES
  */
 export const NEW_ARRIVALS_SOURCES = [
   "discounted",
   "featured",
   "latest",
   "manual",
+  ...PRODUCT_TARGET_SOURCES,
 ] as const;
 
 export type NewArrivalsSource = (typeof NEW_ARRIVALS_SOURCES)[number];
@@ -59,6 +72,8 @@ export const FEATURED_CATEGORIES_LIMIT_MAX = 20;
  * - latest:     newest products by creation date
  * - discounted: products whose comparePrice > price (or any variant on sale)
  * - manual:     a hand-picked, ordered list of product IDs
+ * - category / brand / collection: see PRODUCT_TARGET_SOURCES — a fixed
+ *   shelf, never the endless browser
  */
 export const FEATURED_PRODUCTS_SOURCES = [
   "all",
@@ -66,6 +81,7 @@ export const FEATURED_PRODUCTS_SOURCES = [
   "latest",
   "discounted",
   "manual",
+  ...PRODUCT_TARGET_SOURCES,
 ] as const;
 
 export type FeaturedProductsSource = (typeof FEATURED_PRODUCTS_SOURCES)[number];
@@ -76,12 +92,12 @@ export type FeaturedProductsSource = (typeof FEATURED_PRODUCTS_SOURCES)[number];
  * row, which reads as a loading bug rather than a choice.
  */
 export const PRODUCT_BROWSER_ROWS_MIN = 1;
-export const PRODUCT_BROWSER_ROWS_MAX = 4;
+export const PRODUCT_BROWSER_ROWS_MAX = 20;
 export const PRODUCT_BROWSER_LAYOUTS = ["browser", "plain"] as const;
 export type ProductBrowserLayout = (typeof PRODUCT_BROWSER_LAYOUTS)[number];
 
 const FEATURED_PRODUCTS_LIMIT_MIN = 4;
-export const FEATURED_PRODUCTS_LIMIT_MAX = 24;
+const FEATURED_PRODUCTS_LIMIT_MAX = 24;
 
 export const SPONSORED_PRODUCTS_LIMIT_MIN = 4;
 export const SPONSORED_PRODUCTS_LIMIT_MAX = 12;

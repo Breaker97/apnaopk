@@ -108,6 +108,9 @@ export const CREDENTIAL_FIELD_PATHS: readonly string[] = [
   "analytics.plausibleApiKey",
   // AI authoring
   "aiAuthoring.apiKey",
+  // Mobile app: Expo's push service takes it when the store's Expo account
+  // has push security on.
+  "mobileApp.shop.expoAccessToken",
 ];
 
 /**

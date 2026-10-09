@@ -12,11 +12,16 @@
  * which user to reach, in which locale, and whether the registration is still
  * good. Only the delivery step differs, and `lib/push-notifications.ts`
  * branches on `platform` to pick it.
+ *
+ * A native install also says which of the store's apps it is (`app`): the
+ * shopper app hears what a customer hears, the business app (later) what the
+ * store's people hear (lib/notifications/notification-app.ts).
  */
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 type PushPlatform = "web" | "ios" | "android";
+type PushApp = "shop" | "biz";
 
 interface IPushSubscription extends Document {
   userId: string;
@@ -32,6 +37,17 @@ interface IPushSubscription extends Document {
   };
   /** Native only: the token the device's push service issued. */
   deviceToken?: string;
+  /**
+   * Native only: which app the install is. Missing on an install registered
+   * before the field existed, which is the shopper app's (the `push`
+   * migration writes it).
+   */
+  app?: PushApp;
+  /**
+   * Native only: the sign-in that registered it. Revoking that session
+   * (lib/auth/session-revocation.ts) stops the device's notifications.
+   */
+  sessionId?: string;
   locale?: string;
   userAgent?: string;
   isActive: boolean;
@@ -61,6 +77,13 @@ const PushSubscriptionSchema = new Schema<IPushSubscription>(
       type: String,
     },
     deviceToken: {
+      type: String,
+    },
+    app: {
+      type: String,
+      enum: ["shop", "biz"],
+    },
+    sessionId: {
       type: String,
     },
     expirationTime: {

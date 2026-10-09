@@ -63,12 +63,27 @@ export function assertOwnDigitalAssetKeys(
  */
 export async function deleteProductDigitalFiles(
   assets: { storageKey: string }[] | undefined | null,
+  options: { strict?: boolean } = {},
 ): Promise<void> {
   if (!assets?.length) return;
   try {
     const storage = await getStorageService();
     const results = await Promise.allSettled(
-      assets.map((asset) => storage.deletePrivateFile(asset.storageKey)),
+      assets.map(async (asset) => {
+        if (options.strict) {
+          // Another editor may have reattached a legacy asset while cleanup was pending.
+          // Never remove a blob that a current product still references.
+          const { Product } = await import("@/models");
+          if (
+            await Product.exists({
+              "digitalAssets.storageKey": asset.storageKey,
+            })
+          ) {
+            return { success: true, key: asset.storageKey };
+          }
+        }
+        return storage.deletePrivateFile(asset.storageKey);
+      }),
     );
     results.forEach((result, index) => {
       if (result.status === "rejected") {
@@ -78,7 +93,16 @@ export async function deleteProductDigitalFiles(
         );
       }
     });
+    if (
+      options.strict &&
+      results.some(
+        (result) => result.status === "rejected" || !result.value.success,
+      )
+    ) {
+      throw new Error("Private product file cleanup is incomplete");
+    }
   } catch (error) {
+    if (options.strict) throw error;
     console.error("Failed to delete digital files:", error);
   }
 }
@@ -98,13 +122,16 @@ export async function deleteProductDigitalFiles(
 export async function deleteRemovedProductDigitalFiles(
   before: { storageKey?: string }[] | undefined | null,
   after: { storageKey?: string }[] | undefined | null,
+  options: { strict?: boolean } = {},
 ): Promise<void> {
   if (!before?.length) return;
   if (!Array.isArray(after)) return;
   const kept = new Set(
     after
       .map((asset) => asset?.storageKey)
-      .filter((key): key is string => typeof key === "string" && key.length > 0),
+      .filter(
+        (key): key is string => typeof key === "string" && key.length > 0,
+      ),
   );
   const removed = before.filter(
     (asset): asset is { storageKey: string } =>
@@ -112,7 +139,7 @@ export async function deleteRemovedProductDigitalFiles(
       asset.storageKey.length > 0 &&
       !kept.has(asset.storageKey),
   );
-  await deleteProductDigitalFiles(removed);
+  await deleteProductDigitalFiles(removed, options);
 }
 
 export function sanitizeDigitalAssetsForStorefront<T extends object>(

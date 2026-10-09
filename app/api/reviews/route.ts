@@ -3,6 +3,7 @@ import { Review, Product } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { AuthenticationError, ValidationError } from "@/lib/api/errors";
 import { rateLimitByIP, rateLimitByUser } from "@/lib/api/rate-limit-middleware";
+import { readProductReviews, toReviewSort } from "@/lib/catalog/product-reviews";
 import { recomputeProductRating } from "@/lib/catalog/reviews";
 import { isReviewableOrder } from "@/lib/catalog/review-eligibility";
 import { withApi } from "@/lib/api/handler";
@@ -11,13 +12,6 @@ import { validateBody } from "@/lib/api/validate";
 
 // Server-side sort options for the reviews list. Rating-led sorts fall back to
 // createdAt so equal ratings keep a stable, newest-first order.
-const REVIEW_SORTS: Record<string, Record<string, 1 | -1>> = {
-  newest: { createdAt: -1 },
-  oldest: { createdAt: 1 },
-  highest: { rating: -1, createdAt: -1 },
-  lowest: { rating: 1, createdAt: -1 },
-};
-
 const CreateReviewBodySchema = z.object({
   productId: z
     .string({ error: "Product ID is required" })
@@ -67,9 +61,7 @@ export const GET = withApi(
     const ratingParam = request.nextUrl.searchParams.get("rating");
     const ratingFilter =
       ratingParam && /^[1-5]$/.test(ratingParam) ? Number(ratingParam) : null;
-    const reviewSort =
-      REVIEW_SORTS[request.nextUrl.searchParams.get("sort") || "newest"] ??
-      REVIEW_SORTS.newest;
+    const reviewSort = toReviewSort(request.nextUrl.searchParams.get("sort"));
 
     if (!productId) {
       throw new ValidationError({ productId: ["Product ID is required"] });
@@ -80,95 +72,9 @@ export const GET = withApi(
       throw new ValidationError({ productId: ["Invalid product ID"] });
     }
 
-    const skip = (page - 1) * limit;
-    const productObjectId = new mongoose.Types.ObjectId(productId);
-
-    // Fetch the page of reviews and the rating breakdown in one round trip. The
-    // aggregate already yields the total (totalReviews), so a separate
-    // countDocuments over the same { productId, isApproved } set is redundant.
-    const [reviews, stats] = await Promise.all([
-      Review.find({
-        productId,
-        isApproved: true,
-        ...(ratingFilter ? { rating: ratingFilter } : {}),
-      })
-        .select(
-          "rating title comment images isVerified createdAt reply.comment reply.createdAt reply.updatedAt userId",
-        )
-        .populate("userId", "name image")
-        .sort(reviewSort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Review.aggregate([
-        {
-          $match: {
-            productId: productObjectId,
-            isApproved: true,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            averageRating: { $avg: "$rating" },
-            totalReviews: { $sum: 1 },
-            rating5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
-            rating4: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } },
-            rating3: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
-            rating2: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
-            rating1: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
-          },
-        },
-      ]),
-    ]);
-
-    const ratingStats = stats[0] || {
-      averageRating: 0,
-      totalReviews: 0,
-      rating5: 0,
-      rating4: 0,
-      rating3: 0,
-      rating2: 0,
-      rating1: 0,
-    };
-
-    // When a rating filter is active, the pagination total is that rating's
-    // count (already computed in the histogram) — not the unfiltered total —
-    // otherwise hasNext would be wrong. No extra query needed.
-    const ratingCounts: Record<number, number> = {
-      1: ratingStats.rating1,
-      2: ratingStats.rating2,
-      3: ratingStats.rating3,
-      4: ratingStats.rating4,
-      5: ratingStats.rating5,
-    };
-    const total = ratingFilter
-      ? ratingCounts[ratingFilter] ?? 0
-      : ratingStats.totalReviews;
-    const totalPages = Math.ceil(total / limit);
-
-    return successResponse({
-      reviews,
-      stats: {
-        average: Math.round(ratingStats.averageRating * 10) / 10,
-        total: ratingStats.totalReviews,
-        breakdown: {
-          5: ratingStats.rating5,
-          4: ratingStats.rating4,
-          3: ratingStats.rating3,
-          2: ratingStats.rating2,
-          1: ratingStats.rating1,
-        },
-      },
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
-      },
-    });
+    return successResponse(
+      await readProductReviews({ productId, page, limit, rating: ratingFilter, sort: reviewSort }),
+    );
   },
 );
 

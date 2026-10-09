@@ -19,6 +19,7 @@ import {
 } from "@/lib/ai-sales-agent/models";
 import { revalidateSettingsContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
+import { auditSettingsChange, createAuditContext } from "@/lib/audit";
 import { isPlainObject } from "@/lib/utils";
 
 const ALLOWED_MODELS = new Set<string>(AI_SALES_AGENT_MODEL_IDS);
@@ -305,8 +306,20 @@ export const PUT = withApi(
       aiAuthoring?: { apiKey?: string };
     } | null>();
 
+    // Both sides through the normalizer, so a form that echoes the stored values
+    // back (trimmed or not) is no change, and a row is only for one that is.
+    // This section holds no credential: the OpenAI key lives under `aiAuthoring`,
+    // which this route never reads into the row.
+    const saved = normalizeAISalesAgentSettings(fresh?.aiSalesAgent);
+    await auditSettingsChange(
+      createAuditContext(request, session),
+      "aiSalesAgent",
+      current as unknown as Record<string, unknown>,
+      saved as unknown as Record<string, unknown>,
+    );
+
     return successResponse({
-      settings: normalizeAISalesAgentSettings(fresh?.aiSalesAgent),
+      settings: saved,
       configured: isOpenAIConfigured(fresh?.aiAuthoring),
     });
   },

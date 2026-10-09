@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getSettings } from "@/models/settings.model";
 import {
-  getPaystackCredentials,
-  verifyPaystackTransaction,
-} from "@/lib/payments/paystack";
-import { finalizePaystackOrder } from "@/lib/payments/paystack-orders";
+  assertPaystackEnabled,
+  checkPaystackPayment,
+} from "@/lib/payments/paystack-verify";
 import { isPlatformPaymentReference } from "@/models/platformPayment.model";
 import {
   findPlatformPaymentByReference,
@@ -59,11 +58,7 @@ export const POST = withApi(
 
     await connectDB();
     const settings = await getSettings();
-    const paystack = settings.payment?.paystack;
-
-    if (!paystack?.enabled) {
-      throw new ValidationError("Paystack is disabled");
-    }
+    assertPaystackEnabled(settings);
 
     // Vendor→platform payments (boosts, subscriptions) share this gateway;
     // their references are prefix-marked and never match an Order.
@@ -79,20 +74,17 @@ export const POST = withApi(
       });
     }
 
-    const creds = getPaystackCredentials({
-      publicKey: paystack.publicKey,
-      secretKey: paystack.secretKey,
-    });
-    const transaction = await verifyPaystackTransaction({ creds, reference });
-
-    const result = await finalizePaystackOrder({
+    // The transaction read back and the order settled whatever its state —
+    // the finalizer refuses one that is not a success. See
+    // lib/payments/paystack-verify.ts.
+    const check = await checkPaystackPayment({
       reference,
-      transaction,
       settings,
       sessionUserId: session?.user?.id,
       cartSessionId,
       customerEmail: session?.user?.email,
     });
+    const result = await check.settle();
 
     return NextResponse.json({
       success: true,

@@ -679,6 +679,17 @@ export const STAFF_PERMISSIONS = {
   VIEW_INBOX: "view_inbox",
   REPLY_INBOX: "reply_inbox",
   MANAGE_INBOX: "manage_inbox",
+
+  // Abandoned checkouts
+  /**
+   * See the abandoned checkouts inside the staff member's scope, with the
+   * shopper's contact details. A grant of its own rather than a part of
+   * orders: these are people who did not buy, so being trusted with the
+   * order queue is not the same as being trusted with them.
+   */
+  VIEW_ABANDONED_CHECKOUTS: "view_abandoned_checkouts",
+  /** Send a recovery email and copy a checkout's recovery link. */
+  MANAGE_ABANDONED_CHECKOUTS: "manage_abandoned_checkouts",
 } as const;
 
 export type StaffPermission =
@@ -720,6 +731,11 @@ export const VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS: readonly StaffPermission[] 
   STAFF_PERMISSIONS.MANAGE_ORDERS,
   STAFF_PERMISSIONS.CREATE_ORDERS,
   STAFF_PERMISSIONS.DELETE_ORDERS,
+  // The staff area's list is the store's, with every shopper's contact
+  // details on it; a vendor's own view of its abandoned checkouts lives in the
+  // vendor dashboard, with its own lines only and nobody named.
+  STAFF_PERMISSIONS.VIEW_ABANDONED_CHECKOUTS,
+  STAFF_PERMISSIONS.MANAGE_ABANDONED_CHECKOUTS,
 ];
 
 /** The staff permissions a vendor may grant its own staff. */

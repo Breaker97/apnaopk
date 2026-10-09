@@ -13,8 +13,8 @@ import { headers } from "next/headers";
 import { getSettings } from "@/models/settings.model";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
-import { applyStockChangeAtomic } from "@/lib/inventory/inventory";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
+import { applyStockEdits } from "@/lib/inventory/stock-adjust";
+import { createAuditContext } from "@/lib/audit";
 import { hasVendorPermission } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { withApi } from "@/lib/api/handler";
@@ -127,81 +127,18 @@ export async function PATCH(request: NextRequest) {
       allowPaymentRequiredSetup: true,
     });
 
-    const results: Array<{
-      success: boolean;
-      productId: string;
-      variantId?: string;
-      error?: string;
-    }> = [];
-
-    // A vendor may only adjust stock at their own locations. `scopeFilter`
-    // below pins the product to them, but `locationId` is a bare string with no
-    // ownership of its own, so without this a crafted request could write a
-    // quantity into another merchant's warehouse.
-    const ownLocationIds = await allowedLocationIds(
-      vendorLocationScope(String(vendor._id)),
+    // A vendor may only adjust stock at their own locations, and only their
+    // own products.
+    const { results, summary } = await applyStockEdits(
+      updates,
+      {
+        locationIds: await allowedLocationIds(vendorLocationScope(String(vendor._id))),
+        productFilter: { vendorId: vendor._id },
+      },
+      createAuditContext(request, session, { vendorId: vendor._id }),
     );
 
-    for (const update of updates) {
-      const { productId, variantId, quantity, locationId, adjustment } = update;
-
-      if (!productId) {
-        results.push({ success: false, productId: "", error: "productId is required" });
-        continue;
-      }
-      if (locationId && !ownLocationIds.has(String(locationId))) {
-        results.push({
-          success: false,
-          productId,
-          variantId,
-          error: "Location does not belong to this store",
-        });
-        continue;
-      }
-
-      try {
-        // Guarded compare-and-swap update — see applyStockChangeAtomic for why
-        // a document save() must never be used for stock changes.
-        const outcome = await applyStockChangeAtomic({
-          productId: String(productId),
-          variantId: variantId ? String(variantId) : undefined,
-          locationId: locationId ? String(locationId) : undefined,
-          quantity: Number(quantity),
-          adjustment: Boolean(adjustment),
-          scopeFilter: { vendorId: vendor._id },
-        });
-        results.push({
-          success: outcome.success,
-          productId,
-          variantId,
-          ...(outcome.error ? { error: outcome.error } : {}),
-        });
-      } catch (err) {
-        results.push({
-          success: false,
-          productId,
-          variantId,
-          error: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
-    }
-
-    const successCount = results.filter((result) => result.success).length;
-
-    // Refresh storefront product caches so a vendor's manual stock edit reflects
-    // immediately (applyStockChangeAtomic does not self-invalidate).
-    if (successCount > 0) {
-      revalidateProductContent();
-    }
-
-    return successResponse({
-      results,
-      summary: {
-        total: results.length,
-        success: successCount,
-        failed: results.filter((result) => !result.success).length,
-      },
-    });
+    return successResponse({ results, summary });
   } catch (error) {
     return handleApiError(error);
   }

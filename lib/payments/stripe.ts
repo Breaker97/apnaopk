@@ -12,6 +12,9 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 // This prevents build errors when key is not set
 const stripeBySecretKey = new Map<string, Stripe>();
 
+/** The Stripe API version every call of this store is made at. */
+export const STRIPE_API_VERSION = "2026-02-25.clover" as const;
+
 export function getStripeForSecretKey(secretKey?: string): Stripe {
   const key = secretKey || stripeSecretKey;
   if (!key) {
@@ -22,7 +25,7 @@ export function getStripeForSecretKey(secretKey?: string): Stripe {
   if (cached) return cached;
 
   const instance = new Stripe(key, {
-    apiVersion: "2026-02-25.clover",
+    apiVersion: STRIPE_API_VERSION,
     typescript: true,
   });
   stripeBySecretKey.set(key, instance);

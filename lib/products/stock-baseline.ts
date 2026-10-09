@@ -132,6 +132,77 @@ export function mergeLocationRows(
   return merged;
 }
 
+/**
+ * Rows at locations this caller may not write stay exactly as stored.
+ *
+ * The write path strips them from the payload — a caller cannot stock a shelf
+ * that is not theirs — so a submission never carries them, and to the merge a
+ * missing row reads as one the form removed. Without this, a staff member
+ * pinned to one branch deleted the product's stock at every other branch by
+ * saving it.
+ */
+export function keepUnwritableRows(
+  rows: Row[],
+  current: Row[] | undefined,
+  writable: ReadonlySet<string>,
+): Row[] {
+  const stored = toMap(current);
+  const kept: Row[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const locationId = String(row.locationId);
+    seen.add(locationId);
+    if (writable.has(locationId)) kept.push(row);
+    else if (stored.has(locationId)) {
+      kept.push({ ...row, locationId, quantity: stored.get(locationId) ?? 0 });
+    }
+  }
+  for (const [locationId, quantity] of stored) {
+    if (!seen.has(locationId) && !writable.has(locationId)) {
+      kept.push({ locationId, quantity });
+    }
+  }
+  return kept;
+}
+
+/**
+ * {@link keepUnwritableRows} over a whole product: its own rows, and each
+ * variant's against the stored variant with the same id. A variant the
+ * database does not have yet holds nothing to keep.
+ */
+export function keepUnwritableStock(
+  stock: { locationInventory?: Row[]; variants?: VariantHolder[] },
+  current: StockHolder & { variants?: VariantHolder[] },
+  writable: ReadonlySet<string>,
+): { locationInventory?: Row[]; variants?: VariantHolder[] } {
+  const currentById = new Map(
+    (current.variants || []).map((variant) => [String(variant._id), variant]),
+  );
+  return {
+    locationInventory: stock.locationInventory
+      ? keepUnwritableRows(
+          stock.locationInventory,
+          current.locationInventory,
+          writable,
+        )
+      : undefined,
+    variants: stock.variants?.map((variant) => {
+      const now = isValidId(variant._id)
+        ? currentById.get(String(variant._id))
+        : undefined;
+      if (!now) return variant;
+      return {
+        ...variant,
+        locationInventory: keepUnwritableRows(
+          Array.isArray(variant.locationInventory) ? variant.locationInventory : [],
+          now.locationInventory,
+          writable,
+        ),
+      };
+    }),
+  };
+}
+
 function isValidId(value: unknown): boolean {
   return value != null && mongoose.isValidObjectId(String(value));
 }
@@ -231,15 +302,20 @@ export function mergeProductStock(params: {
  *
  * `submitted` is the sanitized stock the form sent, kept apart from `updateSet`
  * so a retry merges from the form's numbers, not from the previous attempt.
+ *
+ * `writableLocationIds` are the locations the caller may write. Rows anywhere
+ * else keep their stored quantities (`keepUnwritableStock`), with or without a
+ * baseline — a payload that cannot name a location cannot empty it either.
  */
 export async function applyStockBaseline(params: {
   filter: Record<string, unknown>;
   updateSet: Record<string, unknown>;
   submitted: { stock?: number; locationInventory?: Row[]; variants?: VariantHolder[] };
   baseline: StockBaseline | undefined;
+  writableLocationIds?: ReadonlySet<string>;
 }): Promise<{ updatedAt: Date } | null> {
-  const { filter, updateSet, submitted, baseline } = params;
-  if (!baseline) return null;
+  const { filter, updateSet, submitted, baseline, writableLocationIds } = params;
+  if (!baseline && !writableLocationIds) return null;
   if (!("variants" in updateSet || "locationInventory" in updateSet || "stock" in updateSet)) {
     return null;
   }
@@ -253,7 +329,13 @@ export async function applyStockBaseline(params: {
 
   let merged: ReturnType<typeof mergeProductStock>;
   try {
-    merged = mergeProductStock({ submitted, baseline, current });
+    merged = baseline
+      ? mergeProductStock({ submitted, baseline, current })
+      : {
+          stock: submitted.stock,
+          locationInventory: submitted.locationInventory,
+          variants: submitted.variants,
+        };
   } catch (error) {
     if (!(error instanceof StockMergeConflict)) throw error;
     const location = error.locationId
@@ -265,6 +347,13 @@ export async function applyStockBaseline(params: {
     throw new ConflictError(
       `Stock for ${error.label}${location?.name ? ` at ${location.name}` : ""} changed to ${error.current} while you were editing. Reload the product to see the latest stock, then make your change again.`,
     );
+  }
+
+  if (writableLocationIds) {
+    merged = {
+      ...merged,
+      ...keepUnwritableStock(merged, current, writableLocationIds),
+    };
   }
 
   if ("variants" in updateSet && merged.variants) updateSet.variants = merged.variants;

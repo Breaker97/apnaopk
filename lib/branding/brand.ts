@@ -78,6 +78,16 @@ function brandColor(value: unknown, fallback: string): string {
 }
 
 /**
+ * The brand's square mark, for a small round or square place the wide logo
+ * does not fit: the installed-app icon, else the favicon (the order the
+ * storefront's own icons use). Empty when the store set neither; the logo is
+ * never a stand-in.
+ */
+export function brandIconUrl(assets: Pick<Brand["assets"], "appIconUrl" | "faviconUrl">): string {
+  return assets.appIconUrl || assets.faviconUrl;
+}
+
+/**
  * Resolve the brand from a settings document (or any object shaped like one —
  * the sanitized admin payload qualifies). Never throws: a legacy document
  * missing whole sub-objects resolves to the shipped defaults.

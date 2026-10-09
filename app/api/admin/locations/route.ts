@@ -13,10 +13,12 @@ import {
   dispatchFieldsFromBody,
   pickupAddressError,
   pickupFieldsFromBody,
+  locationAuditContext,
   requireScope,
   resolveLocationGeo,
   returnsFieldsFromBody,
 } from "@/lib/locations/location-api";
+import { auditCatalogCreate, LOCATION_AUDIT } from "@/lib/catalog/catalog-audit";
 
 /**
  * Inventory locations for the caller's own store.
@@ -121,6 +123,12 @@ export async function POST(request: NextRequest) {
       ...returnsFieldsFromBody(body),
       ...(await resolveLocationGeo(body, authResult.scope.vendorId)),
     });
+
+    await auditCatalogCreate(
+      locationAuditContext(request, authResult),
+      LOCATION_AUDIT,
+      location,
+    );
 
     return NextResponse.json(
       {

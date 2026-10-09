@@ -36,11 +36,14 @@ import {
 } from "@/components/ui/table";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 
 export interface StaffRecentOrder {
   _id: string;
   orderNumber: string;
   customerName?: string;
+  /** A walk-in POS sale: no customer, so no name (lib/orders/pos-walk-in.ts). */
+  walkIn?: boolean;
   total: number;
   status: string;
   paymentStatus?: string;
@@ -716,8 +719,9 @@ export function StaffDashboardContent({
                           {order.orderNumber}
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {order.customerName ||
-                            tf("common.guest", "Guest")}
+                          {order.walkIn
+                            ? tf("admin.orderDetails.walkInCustomer", "Walk-in customer")
+                            : order.customerName || tf("common.guest", "Guest")}
                           {" • "}
                           {order.itemsCount}{" "}
                           {order.itemsCount === 1
@@ -956,7 +960,11 @@ export function StaffDashboardContent({
             ) : (
               <div className="divide-y divide-border/60 border-t border-border/60">
                 {latestCustomers.map((customer) => {
-                  const tierKey = (customer.loyaltyTier || "").toLowerCase();
+                  // The tier pill hides with the rest of loyalty (see
+                  // `isLoyaltyEnabled`).
+                  const tierKey = isLoyaltyEnabled()
+                    ? (customer.loyaltyTier || "").toLowerCase()
+                    : "";
                   const tierClass =
                     tierPillClass[tierKey] ||
                     "bg-muted text-muted-foreground";

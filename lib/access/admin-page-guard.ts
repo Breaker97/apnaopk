@@ -14,7 +14,7 @@ import { localeHref } from "@/lib/i18n/locale-routing";
 export const requireAdminPageAccess = cache(async (locale: string) => {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
-  if (!session || !isAdmin(session.user)) {
+  if (!session) {
     redirect(
       await localeHref(
         locale,
@@ -24,6 +24,12 @@ export const requireAdminPageAccess = cache(async (locale: string) => {
         ),
       ),
     );
+  }
+  // Signed in, but not as an admin. Not the login page: it sends a signed-in
+  // visitor straight back to the page they came from, which would be this one
+  // again — a redirect loop. The other guards answer this case the same way.
+  if (!isAdmin(session.user)) {
+    redirect(await localeHref(locale, "/forbidden"));
   }
 
   return session;

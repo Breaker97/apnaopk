@@ -1,3 +1,4 @@
+import { financeQuery } from "@/lib/finance/transaction";
 import { Types } from "mongoose";
 import { Payout } from "@/models";
 import { roundMoney } from "@/lib/intl/money";
@@ -107,8 +108,10 @@ export async function claimMaturedReserves(params: {
     currency: params.currency.toUpperCase(),
     preorderReserveHeld: { $gt: 0 },
     preorderReserveReleasedAt: null,
+    preorderReserveReleasedInPayoutId: null,
     preorderReserveReleaseAt: { $lte: now },
-    status: { $nin: ["cancelled", "failed"] },
+    status: "paid",
+    paidAt: { $ne: null },
   };
 
   // The candidates first, so every query below is bounded by `_id`. Reading
@@ -116,24 +119,24 @@ export async function claimMaturedReserves(params: {
   // every payout the store has ever made, on every payout run. The claim
   // itself stays conditional, so a concurrent run that saw the same rows
   // stamps none of them and reads back nothing.
-  const candidates = await Payout.find(matured).select("_id").lean();
+  const candidates = await financeQuery(Payout.find(matured)).sort({ _id: 1 }).limit(500).select("_id").lean();
   if (candidates.length === 0) return { amount: 0, count: 0 };
   const ids = candidates.map((row) => row._id);
 
-  await Payout.updateMany(
+  await financeQuery(Payout.updateMany(
     { ...matured, _id: { $in: ids } },
     {
       $set: {
-        preorderReserveReleasedAt: now,
+        preorderReserveReservedAt: now,
         preorderReserveReleasedInPayoutId: params.payoutId,
       },
     },
-  );
+  ));
 
-  const claimed = await Payout.find({
+  const claimed = await financeQuery(Payout.find({
     _id: { $in: ids },
     preorderReserveReleasedInPayoutId: params.payoutId,
-  })
+  }))
     .select("preorderReserveHeld")
     .lean();
 
@@ -158,16 +161,16 @@ export async function unclaimReserves(params: {
   vendorId: Types.ObjectId | string;
   payoutId: unknown;
 }): Promise<number> {
-  const result = await Payout.updateMany(
+  const result = await financeQuery(Payout.updateMany(
     {
       vendorId: new Types.ObjectId(String(params.vendorId)),
       preorderReserveReleasedInPayoutId: params.payoutId,
     },
     {
       $set: { preorderReserveReleasedAt: null },
-      $unset: { preorderReserveReleasedInPayoutId: "" },
+      $unset: { preorderReserveReleasedInPayoutId: "", preorderReserveReservedAt: "" },
     },
-  );
+  ));
   return result.modifiedCount ?? 0;
 }
 
@@ -176,13 +179,13 @@ export async function sumHeldReserve(params: {
   vendorId: Types.ObjectId | string;
   currency?: string;
 }): Promise<number> {
-  const rows = await Payout.find({
+  const rows = await financeQuery(Payout.find({
     vendorId: new Types.ObjectId(String(params.vendorId)),
     ...(params.currency ? { currency: params.currency.toUpperCase() } : {}),
     preorderReserveHeld: { $gt: 0 },
     preorderReserveReleasedAt: null,
     status: { $nin: ["cancelled", "failed"] },
-  })
+  }))
     .select("preorderReserveHeld")
     .lean();
   return roundMoney(

@@ -7,7 +7,12 @@ import {
   rateLimitBySession,
   rateLimitByUser,
 } from "@/lib/api/rate-limit-middleware";
-import { updateCheckoutSnapshot } from "@/lib/orders/abandoned-checkouts";
+import {
+  unrecordedCheckoutReply,
+  updateCheckoutSnapshot,
+} from "@/lib/orders/abandoned-checkouts";
+import { isCustomerAccount } from "@/lib/access/customer-account";
+import { isStaffAccountEmail } from "@/lib/customers/customer";
 import type { Address } from "@/types";
 import { withApi } from "@/lib/api/handler";
 import * as z from "zod";
@@ -102,9 +107,22 @@ export const PATCH = withApi(
       request,
       TrackCheckoutSchema,
     );
+    const email = body.email || session?.user?.email;
+    // An admin, team member or seller cannot buy from the store, so their
+    // checkout is never a recovery target: nothing is recorded and no recovery
+    // email reaches them. The reply looks like any other, so the email field
+    // cannot be used to find out which addresses are staff logins.
+    if (
+      (session?.user && !isCustomerAccount(session.user)) ||
+      (await isStaffAccountEmail(email))
+    ) {
+      return successResponse(
+        await unrecordedCheckoutReply(cart, { locale: body.locale || "en" }),
+      );
+    }
     await updateCheckoutSnapshot(cart, {
       locale: body.locale || "en",
-      email: body.email || session?.user?.email,
+      email,
       phone: body.phone,
       customerName: body.customerName || session?.user?.name,
       customerLocale: body.locale,

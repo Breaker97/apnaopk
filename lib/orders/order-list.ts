@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import type { StaffAccessScope } from "@/lib/access/staff-scope";
 import { buildStaffOrderScopeFilter, mergeScopeFilter } from "@/lib/access/staff-scope";
 import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+import { resolveDateFilter } from "@/lib/date-filter";
 
 /**
  * Admin order list query.
@@ -25,6 +26,8 @@ interface AdminOrderListParams {
   paymentStatus?: string;
   channel?: string;
   view?: string;
+  /** A named period or a picked day range; see `lib/date-filter.ts`. */
+  date?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -45,6 +48,8 @@ interface AdminOrderListItem {
   status: string;
   paymentStatus: string;
   channel?: string;
+  /** With `channel` and the customer, tells a walk-in POS sale (lib/orders/pos-walk-in.ts). */
+  staffId?: string;
   createdAt: string;
   items: { name: string; quantity: number; productId?: string | null }[];
 }
@@ -56,9 +61,10 @@ interface AdminOrderListItem {
  * response weight and none of the value.
  */
 // The payment fields are what `getFulfillmentPaymentBlock` reads, so the row
-// menu can grey out a fulfilment move the server would refuse.
+// menu can grey out a fulfilment move the server would refuse. `staffId`
+// tells a walk-in POS sale, which names no customer.
 const LIST_PROJECTION =
-  "orderNumber total status paymentStatus paymentMethod channel hasPreorder preorderOutstandingAmount preorderBalancePaidAt createdAt customerId items.name items.quantity items.productId subOrders.status subOrders.paymentStatus subOrders.items.preorderOutstandingAmount";
+  "orderNumber total status paymentStatus paymentMethod channel staffId hasPreorder preorderOutstandingAmount preorderBalancePaidAt createdAt customerId items.name items.quantity items.productId subOrders.status subOrders.paymentStatus subOrders.items.preorderOutstandingAmount";
 
 const ALLOWED_SORT_FIELDS = new Set([
   "createdAt",
@@ -80,14 +86,14 @@ const ALLOWED_SORT_FIELDS = new Set([
  */
 const UNIQUE_SORT_FIELDS = new Set(["createdAt", "orderNumber"]);
 
-function buildAdminOrderListFilter(
+export function buildAdminOrderListFilter(
   params: Pick<
     AdminOrderListParams,
-    "search" | "status" | "paymentStatus" | "channel" | "view"
+    "search" | "status" | "paymentStatus" | "channel" | "view" | "date"
   >,
   staffScope?: StaffAccessScope | null,
 ): Record<string, unknown> {
-  const { search, status, paymentStatus, channel, view } = params;
+  const { search, status, paymentStatus, channel, view, date } = params;
   const andConditions: Record<string, unknown>[] = [];
 
   if (view && view !== "all") {
@@ -109,6 +115,13 @@ function buildAdminOrderListFilter(
     andConditions.push({ paymentStatus });
   }
   if (channel && channel !== "all") andConditions.push({ channel });
+
+  const placedWithin = resolveDateFilter(date);
+  if (placedWithin) {
+    andConditions.push({
+      createdAt: { $gte: placedWithin.from, $lte: placedWithin.to },
+    });
+  }
 
   // `search` reaches here already escaped by SafeSearchSchema, so the value is
   // a literal — no regex injection, no user-supplied backtracking.

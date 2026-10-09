@@ -20,6 +20,7 @@ import { FreeShippingProgress } from "@/components/cart/free-shipping-progress";
 import { CartShippingEstimator } from "@/components/cart/cart-shipping-estimator";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
 import { WishlistButton } from "@/components/products/wishlist-button";
+import { formatVariantOptionLines } from "@/lib/cart/variant-options";
 import {
   ArrowRight,
   CalendarClock,
@@ -267,9 +268,10 @@ export function ElectronicsCart() {
               >
                 {item.name}
               </NameHeading>
-              {item.variantName ? (
+              {/* Captions from lib/cart/variant-options.ts, not the stored label. */}
+              {formatVariantOptionLines(item).length > 0 ? (
                 <p className="mt-1 truncate text-[12.5px] leading-4 text-muted-foreground">
-                  {item.variantName}
+                  {formatVariantOptionLines(item).join(" · ")}
                 </p>
               ) : null}
               {item.purchaseType === "preorder" && (

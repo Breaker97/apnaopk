@@ -48,6 +48,7 @@ import {
 import { ensurePendingChargeTransaction } from "@/lib/payments/payment-transactions";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
 import { assertStorefrontWriteAllowed } from "@/lib/maintenance";
+import { assertShopperSession } from "@/lib/checkout/shopper-account";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
 import {
   buildOrderItemCustomsSnapshot,
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
+    assertShopperSession(session);
 
     await connectDB();
 

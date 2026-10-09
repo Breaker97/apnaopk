@@ -27,7 +27,7 @@ import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
 import { CountrySelect } from "@/components/common/country-multi-select";
 import { USER_ACCOUNT_STATUS } from "@/config/app.config";
-import { computeLoyaltyTier } from "@/lib/customers/loyalty";
+import { computeLoyaltyTier, isLoyaltyEnabled } from "@/lib/customers/loyalty";
 
 interface CustomerFormProps {
   locale: string;
@@ -184,12 +184,17 @@ export function CustomerForm({
     [customerId],
   );
 
+  // The loyalty fields hide with the rest of loyalty (see `isLoyaltyEnabled`).
+  const loyaltyEnabled = isLoyaltyEnabled();
+
   const pageDescription = useMemo(
     () =>
       customerId
-        ? "View and update customer profile, loyalty data, and internal notes"
+        ? loyaltyEnabled
+          ? "View and update customer profile, loyalty data, and internal notes"
+          : "View and update customer profile and internal notes"
         : "Create a new customer profile",
-    [customerId],
+    [customerId, loyaltyEnabled],
   );
 
   useEffect(() => {
@@ -485,51 +490,55 @@ export function CustomerForm({
 
           <Card>
             <CardHeader>
-              <CardTitle>Loyalty & Segmentation</CardTitle>
+              <CardTitle>
+                {loyaltyEnabled ? "Loyalty & Segmentation" : "Segmentation"}
+              </CardTitle>
               <CardDescription>
                 Profile settings used by support and marketing teams
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/*
-                  The tier is derived from the points, not chosen: the server
-                  recomputes it on every award and refund, so a hand-picked one
-                  only survived until the customer's next order. Shown live so
-                  an adjustment's effect is visible before saving.
-                */}
-                <div className="space-y-2">
-                  <Label htmlFor="customer-loyalty-tier">Loyalty tier</Label>
-                  <Input
-                    id="customer-loyalty-tier"
-                    value={derivedTierLabel}
-                    readOnly
-                    disabled
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Derived from the points balance
-                  </p>
-                </div>
+              {loyaltyEnabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/*
+                    The tier is derived from the points, not chosen: the server
+                    recomputes it on every award and refund, so a hand-picked one
+                    only survived until the customer's next order. Shown live so
+                    an adjustment's effect is visible before saving.
+                  */}
+                  <div className="space-y-2">
+                    <Label htmlFor="customer-loyalty-tier">Loyalty tier</Label>
+                    <Input
+                      id="customer-loyalty-tier"
+                      value={derivedTierLabel}
+                      readOnly
+                      disabled
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Derived from the points balance
+                    </p>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="customer-loyalty-points">
-                    Loyalty points
-                  </Label>
-                  <NumberInput
-                    id="customer-loyalty-points"
-                    min={0}
-                    step={1}
-                    value={form.loyaltyPoints}
-                    whenEmpty={0}
-                    normalize={Math.trunc}
-                    onValueChange={(next) => setField("loyaltyPoints", next ?? 0)}
-                    disabled={readOnly}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Overrides the balance earned from orders
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer-loyalty-points">
+                      Loyalty points
+                    </Label>
+                    <NumberInput
+                      id="customer-loyalty-points"
+                      min={0}
+                      step={1}
+                      value={form.loyaltyPoints}
+                      whenEmpty={0}
+                      normalize={Math.trunc}
+                      onValueChange={(next) => setField("loyaltyPoints", next ?? 0)}
+                      disabled={readOnly}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Overrides the balance earned from orders
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="customer-acquisition-source">

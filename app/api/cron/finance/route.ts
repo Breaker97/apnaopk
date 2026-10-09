@@ -1,3 +1,4 @@
+import { recoverFinanceOperations } from "@/lib/finance/operations";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { runRecurringExpenses } from "@/lib/finance/recurring-expenses";
@@ -43,6 +44,7 @@ export const maxDuration = 60;
 
 export const GET = withCronRun("finance", async () => {
   await connectDB();
+  const operations = await recoverFinanceOperations(200, 8000);
   const recurring = await runRecurringExpenses();
   const ledger = await reconcileRecentLedger({
     since: new Date(Date.now() - LEDGER_RECONCILE_WINDOW_MS),
@@ -60,6 +62,7 @@ export const GET = withCronRun("finance", async () => {
   return NextResponse.json({
     success: true,
     data: {
+      operations,
       recurring,
       ledger,
       sweep: { ...sweep, since: sweepWindow.since, until: sweepWindow.until },

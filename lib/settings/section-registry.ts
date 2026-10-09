@@ -196,6 +196,7 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "expiryGraceDays",
     "autoRelease",
     "autoReleaseDelayDays",
+    "balanceChargeNoticeHours",
     "reservePercent",
     "reserveDays",
   ] as const),
@@ -206,6 +207,9 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "requiredDocuments",
     "defaultPlanId",
     "paymentMethods",
+    "showQuoteContactToVendors",
+    "showAbandonedCheckoutsToVendors",
+    "abandonedOffers",
   ] as const),
   // Typed rather than `unknown`: `findOneAndUpdate` runs no Mongoose
   // validators, so the schema's `enum` would not stop an unrecognised value
@@ -219,6 +223,63 @@ export const SETTINGS_SECTION_SCHEMAS = {
     physicalProducts: z.boolean().optional(),
     digitalProducts: z.boolean().optional(),
     priceOnRequest: z.boolean().optional(),
+  }),
+  // Typed for the catalog's reason: the route writes with `set()` and runs no
+  // Mongoose validators, and a string "false" would switch an API on.
+  // Formats are checked by validateMobileAppSettings (lib/settings/mobile-app.ts).
+  mobileApp: z.object({
+    shop: z
+      .object({
+        enabled: z.boolean().optional(),
+        scheme: z.string().optional(),
+        ios: z
+          .object({
+            bundleId: z.string().optional(),
+            teamId: z.string().optional(),
+            appStoreUrl: z.string().optional(),
+            minVersion: z.string().optional(),
+            latestVersion: z.string().optional(),
+          })
+          .optional(),
+        android: z
+          .object({
+            packageName: z.string().optional(),
+            sha256CertFingerprints: z.array(z.string()).optional(),
+            playStoreUrl: z.string().optional(),
+            minVersion: z.string().optional(),
+            latestVersion: z.string().optional(),
+          })
+          .optional(),
+        allowDigitalPurchases: z.boolean().optional(),
+        // A credential: "" keeps the stored token, null removes it
+        // (applyCredentialUpdateMarkers).
+        expoAccessToken: z.string().nullable().optional(),
+      })
+      .optional(),
+    // The business app: no link files and no push token of its own (push
+    // goes out with the one token above).
+    biz: z
+      .object({
+        enabled: z.boolean().optional(),
+        scheme: z.string().optional(),
+        ios: z
+          .object({
+            bundleId: z.string().optional(),
+            appStoreUrl: z.string().optional(),
+            minVersion: z.string().optional(),
+            latestVersion: z.string().optional(),
+          })
+          .optional(),
+        android: z
+          .object({
+            packageName: z.string().optional(),
+            playStoreUrl: z.string().optional(),
+            minVersion: z.string().optional(),
+            latestVersion: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
   }),
   boosting: section([
     "enabled",

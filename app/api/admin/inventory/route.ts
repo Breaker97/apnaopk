@@ -17,8 +17,8 @@ import {
 } from "@/lib/access/staff-scope";
 import { withApi } from "@/lib/api/handler";
 import { fetchInventoryList } from "@/lib/inventory/inventory-list";
-import { applyStockChangeAtomic } from "@/lib/inventory/inventory";
-import { revalidateProductContent } from "@/lib/cache-invalidation";
+import { applyStockEdits } from "@/lib/inventory/stock-adjust";
+import { createAuditContext } from "@/lib/audit";
 import {
   allowedLocationIds,
   resolveLocationScope,
@@ -112,103 +112,27 @@ export async function PATCH(request: NextRequest) {
     await connectDB();
 
     // Stock may only be adjusted at a location this store owns. The staff
-    // restriction below narrows further, but on its own it let an unrestricted
+    // restriction narrows further, but on its own it let an unrestricted
     // admin or staff session name any location id at all — including another
     // merchant's — and write a quantity into it.
-    const scope = await resolveLocationScope(session.user, "write");
-    const ownLocationIds = await allowedLocationIds(scope);
-
-    const results: Array<{
-      success: boolean;
-      productId: string;
-      variantId?: string;
-      error?: string;
-    }> = [];
-
-    for (const update of updates) {
-      const { productId, variantId, quantity, locationId, adjustment } = update;
-
-      if (!productId) {
-        results.push({
-          success: false,
-          productId: "",
-          error: "productId is required",
-        });
-        continue;
-      }
-      if (locationId && !ownLocationIds.has(String(locationId))) {
-        results.push({
-          success: false,
-          productId,
-          variantId,
-          error: "Location does not belong to this store",
-        });
-        continue;
-      }
-      if (
-        locationId &&
-        access.staffScope?.locationIds.length &&
-        !access.staffScope.locationIds.includes(String(locationId))
-      ) {
-        results.push({
-          success: false,
-          productId,
-          variantId,
-          error: "Location is outside this staff member's assigned scope",
-        });
-        continue;
-      }
-
-      try {
-        // Guarded compare-and-swap update: never read-modify-write the product
-        // document here — a document save() would clobber any sale that lands
-        // concurrently (its $inc would be overwritten by the stale array $set).
-        const outcome = await applyStockChangeAtomic({
-          productId: String(productId),
-          variantId: variantId ? String(variantId) : undefined,
-          locationId: locationId ? String(locationId) : undefined,
-          quantity: Number(quantity),
-          adjustment: Boolean(adjustment),
-          scopeFilter: mergeScopeFilter(
-            {},
-            buildStaffProductScopeFilter(access.staffScope),
-          ),
-        });
-        results.push({
-          success: outcome.success,
-          productId,
-          variantId,
-          ...(outcome.error ? { error: outcome.error } : {}),
-        });
-      } catch (err) {
-        results.push({
-          success: false,
-          productId,
-          variantId,
-          error: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
-    }
-
-    const successCount = results.filter((r) => r.success).length;
-    const failCount = results.filter((r) => !r.success).length;
-
-    // applyStockChangeAtomic (unlike the order decrement/restore paths) does not
-    // self-invalidate, so a manual stock edit would otherwise leave the
-    // storefront out-of-stock / availability badges stale for up to the 60s
-    // cache window (oversell risk). Bust the products tag once per bulk request.
-    if (successCount > 0) {
-      revalidateProductContent();
-    }
-
-    return successResponse({
-      results,
-      summary: {
-        total: results.length,
-        success: successCount,
-        failed: failCount,
+    const { results, summary } = await applyStockEdits(
+      updates,
+      {
+        locationIds: await allowedLocationIds(
+          await resolveLocationScope(session.user, "write"),
+        ),
+        staffLocationIds: access.staffScope?.locationIds,
+        productFilter: mergeScopeFilter(
+          {},
+          buildStaffProductScopeFilter(access.staffScope),
+        ),
       },
-    });
+      // No vendor id passed: `audit()` stamps a vendor-owned staff member with
+      // their vendor, and leaves an admin's edit of a vendor's stock unstamped.
+      createAuditContext(request, session),
+    );
+
+    return successResponse({ results, summary });
   } catch (error) {
     return handleApiError(error);
   }

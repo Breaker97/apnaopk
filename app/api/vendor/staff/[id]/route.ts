@@ -16,6 +16,14 @@ import {
 import { getDemoModeMutationResponse } from "@/lib/demo-mode";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
+import { createAuditContext } from "@/lib/audit";
+import { notifyAccountStatusChange } from "@/lib/notifications/notifications";
+import { afterResponse } from "@/lib/after-response";
+import {
+  auditStaffRemoved,
+  auditStaffUpdated,
+  staffAuditSnapshot,
+} from "@/lib/access/audit-staff";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -84,7 +92,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { vendor } = await requireVendorStaffPermission(
+    const { session, vendor } = await requireVendorStaffPermission(
       request,
       [
         VENDOR_PERMISSIONS.EDIT_STAFF,
@@ -134,6 +142,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (Object.keys(userUpdate).length > 0) {
       await User.updateOne({ _id: id }, { $set: userUpdate });
     }
+    if (userUpdate.status !== undefined) {
+      afterResponse(() =>
+        notifyAccountStatusChange({
+          userId: id,
+          from: user.status,
+          to: String(userUpdate.status),
+        }),
+      );
+    }
 
     const profileUpdate: Record<string, unknown> = {};
     if (Array.isArray(permissions)) {
@@ -166,6 +183,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const updatedProfile = await StaffProfile.findOne({ userId: id })
       .populate("assignedBy", "name email")
       .lean();
+
+    // Diffed against what is stored now, not what the form asked for: the form
+    // posts every field back on every save, and a write that changed nothing
+    // must leave no row.
+    if (updatedUser && updatedProfile) {
+      await auditStaffUpdated(
+        createAuditContext(request, session, { vendorId: vendor._id }),
+        { userId: id, email: user.email },
+        staffAuditSnapshot(user, profile),
+        staffAuditSnapshot(updatedUser, updatedProfile),
+      );
+    }
 
     return successResponse({
       ...stripPassword(updatedUser),
@@ -205,6 +234,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }).lean();
     if (!profile) return notFoundResponse("Staff member");
 
+    // The profile holds no name or email, and the audit row has to say who was
+    // removed.
+    const member = await User.findById(id).select("name email").lean();
+
     const remainingVendorIds = (profile.vendorIds || [])
       .map(String)
       .filter((vendorId: string) => vendorId !== String(vendor._id));
@@ -224,6 +257,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       // staff area and bounced from /account.
       await setUserRole(id, USER_ROLES.CUSTOMER);
     }
+
+    await auditStaffRemoved(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      { userId: id, name: member?.name, email: member?.email },
+      {
+        permissions: profile.permissions,
+        isActive: profile.isActive,
+        accountRemoved: remainingVendorIds.length === 0,
+      },
+    );
 
     return successResponse({ message: "Staff member removed successfully" });
   } catch (error) {

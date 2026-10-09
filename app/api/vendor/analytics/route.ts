@@ -7,10 +7,16 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getSettings } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";
 import { getVendorDashboardData } from "@/lib/vendors/vendor-order-metrics";
+import { resolveDashboardPeriod } from "@/lib/admin/dashboard-period";
 
 /**
- * GET /api/vendor/analytics
+ * GET /api/vendor/analytics?period=today|yesterday|week|month|all
+ * GET /api/vendor/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD
  * Get vendor dashboard analytics
+ *
+ * The period is the admin dashboard's (`resolveDashboardPeriod`), so a link
+ * means the same span on both and an unparsable one falls back to the same
+ * default instead of erroring.
  *
  * Every figure comes from `lib/vendors/vendor-order-metrics.ts`, the module the
  * vendor orders page reads too, so the dashboard and the orders page report
@@ -21,7 +27,7 @@ export const GET = withApi(
     auth: "user",
     rateLimit: { action: "vendor:analytics", preset: "lenient" },
   },
-  async ({ session }) => {
+  async ({ request, session }) => {
     // The dashboard hides the analytics widget when this grant is revoked;
     // without the same check here the vendor could just call the endpoint and
     // read revenue and order counts anyway.
@@ -40,6 +46,13 @@ export const GET = withApi(
       allowPaymentRequiredSetup: true,
     });
 
-    return successResponse(await getVendorDashboardData(vendor._id));
+    const { searchParams } = new URL(request.url);
+    const { range } = resolveDashboardPeriod({
+      period: searchParams.get("period") ?? undefined,
+      from: searchParams.get("from") ?? undefined,
+      to: searchParams.get("to") ?? undefined,
+    });
+
+    return successResponse(await getVendorDashboardData(vendor._id, range));
   },
 );

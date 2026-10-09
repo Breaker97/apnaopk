@@ -118,13 +118,7 @@ export function formatVariantOptionLines(item: {
   variantOptions?: CartVariantOption[] | null;
   variantName?: string | null;
 }): string[] {
-  const options = Array.isArray(item.variantOptions) ? item.variantOptions : [];
-  const pairs =
-    options.length > 0
-      ? options
-      : splitVariantLabel(clean(item.variantName), undefined);
-
-  return pairs
+  return cartLineVariantOptions(item)
     .map((pair) => {
       const value = clean(pair?.value);
       if (!value) return "";
@@ -132,4 +126,19 @@ export function formatVariantOptionLines(item: {
       return name ? `${name}: ${value}` : value;
     })
     .filter(Boolean);
+}
+
+/**
+ * The same pairs as name/value, for a surface that lays each option out
+ * on its own (the cart page's attribute row). A pair from a stored label
+ * alone has no name.
+ */
+export function cartLineVariantOptions(item: {
+  variantOptions?: CartVariantOption[] | null;
+  variantName?: string | null;
+}): CartVariantOption[] {
+  const options = Array.isArray(item.variantOptions) ? item.variantOptions : [];
+  return options.length > 0
+    ? options
+    : splitVariantLabel(clean(item.variantName), undefined);
 }

@@ -116,6 +116,12 @@ export async function getActiveStaffAccess(userId: string): Promise<{
   scope: StaffAccessScope;
   /** A vendor created this staff member — see `effectiveStaffPermissions`. */
   vendorOwned: boolean;
+  /**
+   * An active account with an active staff profile. False is a staff member
+   * whose access was switched off (or never set up): no permissions, and no
+   * scope to read as "unscoped" either.
+   */
+  active: boolean;
 }> {
   await connectDB();
   const [profile, user] = await Promise.all([
@@ -129,7 +135,7 @@ export async function getActiveStaffAccess(userId: string): Promise<{
     status &&
     status !== USER_ACCOUNT_STATUS.ACTIVE
   ) {
-    return { permissions: [], scope: EMPTY_STAFF_SCOPE, vendorOwned: false };
+    return { permissions: [], scope: EMPTY_STAFF_SCOPE, vendorOwned: false, active: false };
   }
   const staffProfile =
     profile as {
@@ -140,6 +146,7 @@ export async function getActiveStaffAccess(userId: string): Promise<{
       fulfillmentRegions?: unknown[];
     } | null;
   return {
+    active: Boolean(staffProfile),
     permissions: staffProfile ? effectiveStaffPermissions(staffProfile) : [],
     vendorOwned: staffProfile ? isVendorOwnedStaffProfile(staffProfile) : false,
     scope: normalizeStaffScope({

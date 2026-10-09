@@ -74,6 +74,10 @@ type AdvancedProduct = {
   countryOfOrigin: string;
   hsCode: string;
   vendorId: string;
+  /** The store, by its owner's email, its slug or its name (admin imports only). */
+  vendorEmail: string;
+  vendorSlug: string;
+  vendor: string;
   productSource: string;
   isPhysicalProduct?: boolean;
   inventoryTracked?: boolean;
@@ -368,6 +372,9 @@ export function normalizeAdvancedProduct(raw: unknown): AdvancedProduct {
     countryOfOrigin: text(raw.countryOfOrigin),
     hsCode: text(raw.hsCode),
     vendorId: text(raw.vendorId),
+    vendorEmail: text(raw.vendorEmail),
+    vendorSlug: text(raw.vendorSlug),
+    vendor: text(raw.vendor),
     productSource: text(raw.productSource),
     isPhysicalProduct,
     inventoryTracked: optionalBoolean(raw.inventoryTracked, "inventoryTracked"),
@@ -442,6 +449,9 @@ export function toImportValues(product: AdvancedProduct): Record<string, string>
     countryOfOrigin: product.countryOfOrigin,
     hsCode: product.hsCode,
     vendorId: product.vendorId,
+    vendorEmail: product.vendorEmail,
+    vendorSlug: product.vendorSlug,
+    vendor: product.vendor,
     productSource: product.productSource,
     isPhysicalProduct: cell(product.isPhysicalProduct),
     inventoryTracked: cell(product.inventoryTracked),

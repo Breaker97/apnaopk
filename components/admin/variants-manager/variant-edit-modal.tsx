@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -20,12 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Loader2,
-  Upload,
-  CalendarClock,
-  RefreshCw,
-} from "lucide-react";
+import { CalendarClock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateBarcode } from "@/lib/products/codes";
 import { useCurrency } from "@/providers/currency-provider";
@@ -43,7 +38,6 @@ export function ImageSelectorModal({
   mediaItems,
   selectedId,
   onSelect,
-  onUpload,
   isBulk = false,
   bulkCount = 0,
 }: {
@@ -52,46 +46,9 @@ export function ImageSelectorModal({
   mediaItems: MediaItem[];
   selectedId?: string;
   onSelect: (id: string | undefined) => void;
-  onUpload?: (file: File) => Promise<MediaItem | null>;
   isBulk?: boolean;
   bulkCount?: number;
 }) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = async (file: File) => {
-    if (!onUpload) return;
-
-    setIsUploading(true);
-    try {
-      const newMedia = await onUpload(file);
-      if (newMedia) {
-        onSelect(newMedia._id);
-        onClose();
-      }
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-    e.target.value = "";
-  };
-
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="gap-6 sm:max-w-2xl">
@@ -107,51 +64,6 @@ export function ImageSelectorModal({
         </DialogHeader>
 
         <div className="space-y-5">
-          {/* Upload Zone */}
-          {onUpload && (
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              className={cn(
-                "border-2 border-dashed rounded-2xl p-6 text-center transition-colors",
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25",
-                isUploading && "opacity-50 pointer-events-none"
-              )}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleInputChange}
-                className="hidden"
-              />
-
-              {isUploading ? (
-                <div className="flex items-center justify-center gap-2 py-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="text-sm">Uploading...</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2"
-                >
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-sm text-muted-foreground">
-                    Drop image here or click to upload
-                  </p>
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Existing Media Grid */}
           {mediaItems.length > 0 && (
             <div className="grid max-h-[60vh] grid-cols-3 gap-4 overflow-y-auto pr-1 scrollbar-none [&::-webkit-scrollbar]:hidden hover:scrollbar-thin hover:[scrollbar-color:var(--border)_transparent] hover:[&::-webkit-scrollbar]:block hover:[&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-track]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border/50">
@@ -198,7 +110,7 @@ export function ImageSelectorModal({
           )}
 
           {/* Empty state */}
-          {mediaItems.length === 0 && !onUpload && (
+          {mediaItems.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-4">
               No product media available. Upload images in the Media section
               first.

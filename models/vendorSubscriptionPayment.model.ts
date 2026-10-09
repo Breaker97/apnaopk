@@ -43,6 +43,10 @@ interface IVendorSubscriptionPayment extends Document {
   amountDue: number;
   amountPaid: number;
   amountRefunded: number;
+  refundedAt?: Date;
+  refundStateObservedAt?: Date;
+  stripeRefunds?: Array<{ id: string; amount: number; status: string; created: number }>;
+  ledgerRefundAcceptedAmount?: number;
   currency: string;
   periodStart?: Date | null;
   periodEnd?: Date | null;
@@ -114,6 +118,10 @@ const VendorSubscriptionPaymentSchema =
       amountDue: { type: Number, default: 0, min: 0 },
       amountPaid: { type: Number, default: 0, min: 0 },
       amountRefunded: { type: Number, default: 0, min: 0 },
+      refundedAt: { type: Date },
+      refundStateObservedAt: { type: Date },
+      stripeRefunds: { type: [Schema.Types.Mixed], default: undefined },
+      ledgerRefundAcceptedAmount: { type: Number, min: 0 },
       currency: {
         type: String,
         required: true,

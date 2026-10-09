@@ -1,5 +1,6 @@
 import { localeConfig, type Locale } from "@/config/i18n.config";
 import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import { htmlToPlainText } from "@/lib/strings";
 
 interface OrganizationJsonLdInput {
   storeName: string;
@@ -60,25 +61,6 @@ export function generateOrganizationJsonLd({
 }
 
 /**
- * Strip HTML tags from a string for plain text SEO meta description
- * and JSON-LD structured data.
- */
-function stripHtmlForSeo(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/**
  * Truncate text to a maximum length, adding an ellipsis when exceeded.
  * Used for SEO descriptions and JSON-LD text fields.
  */
@@ -132,7 +114,7 @@ export function generateProductJsonLd(product: {
     ];
 
   const plainDescription = truncateForSeo(
-    stripHtmlForSeo(product.description || ""),
+    htmlToPlainText(product.description),
     5000,
   );
 

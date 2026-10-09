@@ -11,13 +11,7 @@ import {
   type AppliedDateRange,
   type DateRangePreset,
 } from "@/components/ui/date-range-picker";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FinanceBookFilter } from "@/components/admin/finance/finance-book-filter";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 const PERIODS = ["7d", "30d", "90d", "ytd", "all"] as const;
@@ -118,33 +112,7 @@ export function FinancePeriodPicker({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {showBookFilter ? (
-        <Select
-          // Normalized, not passed straight through: callers say "all" or
-          // nothing at all for the unfiltered case, and a value matching no
-          // item renders the trigger EMPTY rather than falling back — which is
-          // what it did until someone looked at the screen.
-          value={book === "own" || book === "marketplace" ? book : "all-books"}
-          onValueChange={(value) =>
-            setParams({ book: value === "all-books" ? null : value })
-          }
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-books">
-              {label("finance.book.all", "Both books")}
-            </SelectItem>
-            <SelectItem value="own">
-              {label("finance.book.own", "Own store")}
-            </SelectItem>
-            <SelectItem value="marketplace">
-              {label("finance.book.marketplace", "Marketplace")}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      ) : null}
+      {showBookFilter ? <FinanceBookFilter book={book} /> : null}
 
       <DateRangePicker
         value={applied}

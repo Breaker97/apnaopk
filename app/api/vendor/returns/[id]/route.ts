@@ -24,13 +24,17 @@ import {
   restockReturnStep,
 } from "@/lib/returns/return-restock";
 import { resolveReturnFault } from "@/lib/returns/return-policy";
-import type { ReturnRequestItem } from "@/models/return-request.model";
+import type {
+  ReturnRequestItem,
+  ReturnRequestRefundEstimate,
+} from "@/models/return-request.model";
 import {
   isReturnDeclineReason,
   NOTHING_REFUNDED_ON_RETURN,
   NOTHING_RESTOCKED_ON_RETURN,
   releasesReturnQuantity,
   RETURN_DECLINE_MESSAGES,
+  RETURN_DECLINE_REASON_LABELS,
   returnHasRestocked,
   returnGoodsBack,
   returnMayRestock,
@@ -46,8 +50,14 @@ import {
   withoutRefundDestinationUnlessPayer,
 } from "@/lib/returns/refund-settlement";
 import { notifyReturnRequestCustomer } from "@/lib/notifications/notifications";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditOrderRefundSettled,
+  auditOrderReturn,
+} from "@/lib/orders/audit-order";
 import { withApi } from "@/lib/api/handler";
 import { returnShippingUpdates } from "@/lib/returns/return-destination";
+import { markWalkInReturns } from "@/lib/returns/return-walk-in";
 
 function getTimestampUpdate(status?: string) {
   const now = new Date();
@@ -105,7 +115,11 @@ export const GET = withApi<{ id: string }>(
       .lean();
 
     if (!returnRequest) return notFoundResponse("Return request");
-    return successResponse(withoutRefundDestinationUnlessPayer(returnRequest));
+    // A return on a walk-in POS sale names no customer — see markWalkInReturns.
+    const [shown] = await markWalkInReturns([
+      withoutRefundDestinationUnlessPayer(returnRequest),
+    ]);
+    return successResponse(shown);
   },
 );
 
@@ -193,6 +207,7 @@ export const PUT = withApi<{ id: string }>(
     // (`resolveRefundPayer`). On every other order the money sits with the
     // store, and a vendor marking it paid would be closing a refund they
     // cannot make.
+    let settlementRecorded = false;
     if (body.settlement !== undefined) {
       if (String(before.refundPayer || "") !== "vendor") {
         throw new AuthorizationError(
@@ -213,6 +228,7 @@ export const PUT = withApi<{ id: string }>(
       updates["actualRefund.settledAt"] = new Date();
       updates["actualRefund.settledBy"] = session.user.id;
       updates.refundStatus = RETURN_REFUND_STATUS.SUCCEEDED;
+      settlementRecorded = true;
     }
 
     if (body.status) updates.status = body.status;
@@ -536,9 +552,52 @@ export const PUT = withApi<{ id: string }>(
         console.error("Failed to tell the shopper how to send a return back:", err),
       );
     }
-    return successResponse({
-      ...withoutRefundDestinationUnlessPayer(returnRequest),
-      ...responseExtras,
-    });
+
+    // Recorded against the ORDER through the same helpers the admin route uses,
+    // so a seller's decision reads in the order's timeline exactly as the
+    // store's does. A seller never issues a refund (refused above), so what
+    // they can add next to a status move is the record of one they sent.
+    const auditContext = createAuditContext(request, session, { vendorId: vendor._id });
+    const auditedOrder = {
+      _id: before.orderId,
+      orderNumber: String(before.orderNumber || ""),
+    };
+    if (statusChanged) {
+      await auditOrderReturn(auditContext, auditedOrder, {
+        returnNumber: String(before.returnNumber || ""),
+        from: String(before.status),
+        to: String(returnRequest.status),
+        // The seller's own reason with what the shopper was told, as the admin
+        // route words it — the order timeline is staff-only.
+        reason:
+          body.status === RETURN_STATUS.REJECTED
+            ? [
+                isReturnDeclineReason(updates.declineReason)
+                  ? RETURN_DECLINE_REASON_LABELS[updates.declineReason]
+                  : null,
+                (updates.rejectionReason as string | undefined) || null,
+              ]
+                .filter(Boolean)
+                .join(" — ") || undefined
+            : undefined,
+      });
+    }
+    if (settlementRecorded && body.settlement) {
+      await auditOrderRefundSettled(auditContext, auditedOrder, {
+        amount: Number(returnRequest.actualRefund?.amount || 0),
+        currency:
+          (returnRequest.estimatedRefund as ReturnRequestRefundEstimate | undefined)
+            ?.currency || settings.general?.defaultCurrency,
+        method: body.settlement.method,
+        reference: body.settlement.reference,
+        returnNumber: String(before.returnNumber || "") || undefined,
+      });
+    }
+
+    // The returns table swaps its row for this answer: the same walk-in label.
+    const [shown] = await markWalkInReturns([
+      { ...withoutRefundDestinationUnlessPayer(returnRequest), ...responseExtras },
+    ]);
+    return successResponse(shown);
   },
 );

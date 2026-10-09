@@ -1,3 +1,4 @@
+import { financeQuery } from "@/lib/finance/transaction";
 import { Types } from "mongoose";
 import {
   CommissionInvoice,
@@ -344,10 +345,10 @@ export function buildPayableOrderFilter(
 export async function loadOrderIdsHeldForReturns(
   vendorId: Types.ObjectId | string,
 ): Promise<Types.ObjectId[]> {
-  return ReturnRequest.distinct("orderId", {
+  return financeQuery(ReturnRequest.distinct("orderId", {
     vendorIds: new Types.ObjectId(String(vendorId)),
     status: { $in: PAYOUT_HOLDING_RETURN_STATUSES },
-  });
+  }));
 }
 
 /**
@@ -633,16 +634,18 @@ export interface RefundRow {
  */
 async function loadRefundRows(
   orderIds: ReadonlyArray<Types.ObjectId | string>,
+  asOf?: Date,
 ): Promise<RefundRow[]> {
   if (orderIds.length === 0) return [];
 
-  const rows = await PaymentTransaction.find({
+  const rows = await financeQuery(PaymentTransaction.find({
     orderId: {
       $in: orderIds.map((id) => new Types.ObjectId(String(id))),
     },
     type: "refund",
     status: "succeeded",
-  })
+    ...(asOf ? { createdAt: { $lte: asOf } } : {}),
+  }))
     .select("orderId grossAmount createdAt refundAllocation")
     .lean<
       Array<{
@@ -735,8 +738,9 @@ export function summarizeRefundRows(
 /** Succeeded refunds per order, broken down for the payout arithmetic. */
 export async function fetchRefundTotalsByOrder(
   orderIds: ReadonlyArray<Types.ObjectId | string>,
+  asOf?: Date,
 ): Promise<Map<string, OrderRefundBreakdown>> {
-  return summarizeRefundRows(await loadRefundRows(orderIds));
+  return summarizeRefundRows(await loadRefundRows(orderIds, asOf));
 }
 
 /**
@@ -884,7 +888,7 @@ async function loadSettlementDrift(params: {
   // The shared projection takes `subOrders` whole, so every stamp this reads
   // is already there. Naming a subpath as well collides with the parent and
   // Mongo rejects the query outright.
-  const settled = await Order.find(params.orderFilter)
+  const settled = await financeQuery(Order.find(params.orderFilter))
     .select(PAYABLE_ORDER_PROJECTION)
     .lean<
       Array<PayableOrderLike & { _id: unknown; subOrders?: PayableSubOrderLike[] | null }>
@@ -981,11 +985,11 @@ async function sumOverpaymentRecovered(
   tracked: number;
 }> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
-  const payouts = await Payout.find({
+  const payouts = await financeQuery(Payout.find({
     vendorId: vendorObjectId,
     currency: currency.toUpperCase(),
     status: { $nin: ["cancelled", "failed"] },
-  })
+  }))
     .select("overpaymentRecovered adjustments preorderReserveHeld")
     .lean<
       Array<{
@@ -1003,10 +1007,10 @@ async function sumOverpaymentRecovered(
   if (legacy.length > 0) {
     // Scoped to the vendor, whose index narrows it: a payout only ever
     // releases its own vendor's reserves.
-    const released = await Payout.find({
+    const released = await financeQuery(Payout.find({
       vendorId: vendorObjectId,
       preorderReserveReleasedInPayoutId: { $in: legacy.map((row) => row._id) },
-    })
+    }))
       .select("preorderReserveHeld preorderReserveReleasedInPayoutId")
       .lean<
         Array<{
@@ -1065,11 +1069,11 @@ async function sumCommissionCreditApplied(
   currency: string,
   driftAsOf: (asOf?: Date) => number,
 ): Promise<number> {
-  const invoices = await CommissionInvoice.find({
+  const invoices = await financeQuery(CommissionInvoice.find({
     vendorId: new Types.ObjectId(String(vendorId)),
     currency: currency.toUpperCase(),
     status: { $in: ["open", "paid"] },
-  })
+  }))
     .select("creditApplied createdAt")
     .lean<Array<{ creditApplied?: number | null; createdAt?: Date | null }>>();
 
@@ -1104,7 +1108,7 @@ export async function fetchVendorEarnedCommission(params: {
   const vendorObjectId = new Types.ObjectId(String(params.vendorId));
   const currency = params.currency.toUpperCase();
   const collectedStatuses = [...SETTLED_ORDER_PAYMENT_STATUSES, "refunded"];
-  const orders = await Order.find({
+  const orders = await financeQuery(Order.find({
     status: { $ne: "cancelled" },
     paymentStatus: { $in: collectedStatuses },
     $nor: [uncollectedPreorderBalanceMatch()],
@@ -1115,7 +1119,7 @@ export async function fetchVendorEarnedCommission(params: {
         paymentStatus: { $in: [...SETTLED_SUB_ORDER_PAYMENT_MATCH.$in, "refunded"] },
       },
     },
-  })
+  }))
     .select(PAYABLE_ORDER_PROJECTION)
     .lean<Array<PayableOrderLike & { _id: unknown; subOrders?: PayableSubOrderLike[] | null }>>();
   if (orders.length === 0) return 0;

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-notification";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 export interface EmbeddedSignupConfig {
   configured: boolean;
@@ -110,6 +111,7 @@ export function WhatsAppEmbeddedSignupButton({
 }: WhatsAppEmbeddedSignupButtonProps) {
   const t = useTranslations("chat");
   const tr = useFallbackTranslator(t);
+  const { storeName } = useAppSettings();
 
   const [config, setConfig] = useState<EmbeddedSignupConfig>();
   const [working, setWorking] = useState(false);
@@ -231,7 +233,8 @@ export function WhatsAppEmbeddedSignupButton({
         <p className="mt-1 text-xs text-muted-foreground">
           {tr(
             "signup.whatsappHint",
-            "Let Meta securely select and authorize the WhatsApp Business Account and phone number. No access token is pasted into Storify.",
+            "Let Meta securely select and authorize the WhatsApp Business Account and phone number. No access token is pasted into {storeName}.",
+            { storeName },
           )}
         </p>
         <Button

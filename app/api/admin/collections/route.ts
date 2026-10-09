@@ -8,15 +8,13 @@ import {
 import { normalizeCollectionConditions, updateCollectionProductCount, syncCollectionProducts } from "@/lib/catalog/collections";
 import { revalidateCollectionContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
+import { slugify } from "@/lib/strings";
 import { fetchAdminCollectionList } from "@/lib/catalog/collection-list";
-
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditCatalogCreate,
+  COLLECTION_AUDIT,
+} from "@/lib/catalog/catalog-audit";
 
 /**
  * GET /api/admin/collections
@@ -55,7 +53,7 @@ export const POST = withApi(
     auth: "admin",
     rateLimit: { action: "admin:collections:create", preset: "moderate" },
   },
-  async ({ request }) => {
+  async ({ request, session }) => {
     const body = await validateBody(request, CreateCollectionSchema);
 
     const baseHandle =
@@ -63,7 +61,7 @@ export const POST = withApi(
         ? body.seo.handle.trim()
         : body.title;
 
-    const slug = toHandle(baseHandle);
+    const slug = slugify(baseHandle);
 
     const existingCollection = await Collection.findOne({ slug });
     const finalSlug = existingCollection ? `${slug}-${Date.now()}` : slug;
@@ -100,6 +98,14 @@ export const POST = withApi(
 
     // Fetch the updated collection
     const updatedCollection = await Collection.findById(collection._id).lean();
+
+    // The collection as it ended up, with its product count — update and delete
+    // are audited in the [id] route.
+    await auditCatalogCreate(
+      createAuditContext(request, session),
+      COLLECTION_AUDIT,
+      updatedCollection ?? collection,
+    );
 
     revalidateCollectionContent({ slugs: [updatedCollection?.slug] });
 

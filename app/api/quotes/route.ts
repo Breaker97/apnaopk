@@ -5,7 +5,10 @@ import { createdResponse } from "@/lib/api/response";
 import { NotFoundError, ValidationError } from "@/lib/api/errors";
 import { Product, QuoteRequest } from "@/models";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
-import { notifyAdminsQuoteRequest } from "@/lib/notifications/notifications";
+import {
+  notifyAdminsQuoteRequest,
+  notifyVendorQuoteRequest,
+} from "@/lib/notifications/notifications";
 import { sendQuoteRequestEmails } from "@/lib/email/quote-emails";
 import { PRODUCT_STATUS, USER_ROLES } from "@/config/app.config";
 
@@ -116,6 +119,15 @@ export const POST = withApi(
     await Promise.allSettled([
       notifyAdminsQuoteRequest({
         quoteId,
+        productName: product.name,
+        customerName: body.name,
+        quantity: body.quantity,
+      }),
+      // The vendor whose product it is answers it too. Skipped inside for
+      // the store's own products, whose admins were just told.
+      notifyVendorQuoteRequest({
+        quoteId,
+        vendorId: product.vendorId,
         productName: product.name,
         customerName: body.name,
         quantity: body.quantity,

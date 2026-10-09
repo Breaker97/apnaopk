@@ -61,22 +61,15 @@ function retryDelayMs(attempts: number) {
   return minutes[Math.min(Math.max(attempts - 1, 0), minutes.length - 1)] * 60_000;
 }
 
+// Built where the settings page can build the same text for its preview.
+export { buildNotificationSmsBody } from "@/lib/sms/sms-text";
+
 /**
- * "Store: message link" — the store name first because a text arrives from a
- * bare number or a sender ID the shopper may not recognise.
+ * Whether Twilio can report what the carrier did with a text. Without a
+ * public https address it cannot, and every text stays at "sent".
  */
-export function buildNotificationSmsBody(params: {
-  storeName: string;
-  message: string;
-  link?: string;
-}): string {
-  const text = `${params.storeName.trim()}: ${params.message}`
-    .replace(/\s+/g, " ")
-    .trim();
-  return (params.link ? `${text} ${params.link}` : text).slice(
-    0,
-    TWILIO_MAX_BODY_LENGTH,
-  );
+export function smsDeliveryReceiptsEnabled(): boolean {
+  return Boolean(statusCallbackUrl());
 }
 
 /**

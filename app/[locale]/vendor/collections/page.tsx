@@ -135,7 +135,8 @@ async function getVendorCollectionStats(vendorId: string): Promise<CollectionSta
     },
   ]);
 
-  const stats = result?.[0] || {};
+  // `[result]` already took the one grouped row: indexing it again read nothing, and the cards showed zeros.
+  const stats = result ?? {};
   return {
     totalCollections: stats.totalCollections ?? 0,
     activeCollections: stats.activeCollections ?? 0,

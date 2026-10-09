@@ -19,4 +19,5 @@ export type {
   DataTableBulkAction,
   DataTablePagination as DataTablePaginationType,
   DataTableFilter,
+  DataTableDateFilter,
 } from "./types";

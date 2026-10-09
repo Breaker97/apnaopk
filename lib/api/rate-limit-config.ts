@@ -28,7 +28,10 @@ const DEFAULTS: RateLimitSettings = {
 };
 
 let cached: RateLimitSettings = DEFAULTS;
-let initialized = false;
+// 0 makes the first lookup load the store's settings. Nothing loads them when
+// the module is imported: `next build` imports every route that limits
+// requests while it collects page data, and a read at import time made each
+// build worker open a database connection.
 let lastRefreshAtMs = 0;
 let refreshing = false;
 const REFRESH_TTL_MS = 60_000;
@@ -60,7 +63,6 @@ export function setRateLimitSettingsFromSecurity(security: unknown) {
   if (isPresetSetting(rl.authPreset)) next.authPreset = rl.authPreset;
 
   cached = next;
-  initialized = true;
   lastRefreshAtMs = Date.now();
 }
 
@@ -113,11 +115,3 @@ export function resolveRateLimitPresetForIdentifier(
 
   return fallbackPreset;
 }
-
-async function init() {
-  if (initialized) return;
-  initialized = true;
-  await refreshFromDB();
-}
-
-void init();

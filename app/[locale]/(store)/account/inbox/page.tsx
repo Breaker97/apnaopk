@@ -64,8 +64,14 @@ export default async function CustomerInboxPage({
     typeof search.product === "string" ? search.product : undefined;
   const requestedVendorId =
     typeof search.vendor === "string" ? search.vendor : undefined;
+  // Only a thread that still takes messages is reopened: one the store closed
+  // or marked as spam would refuse every send, so a new one is drafted instead.
+  const replyable = chatConversations.filter(
+    (conversation) =>
+      conversation.status !== "closed" && conversation.status !== "spam",
+  );
   const existingContextConversation = requestedProductId
-    ? chatConversations.find(
+    ? replyable.find(
         (conversation) =>
           conversation.productContext?.productId === requestedProductId &&
           (requestedVendorId
@@ -75,7 +81,7 @@ export default async function CustomerInboxPage({
     : requestedVendorId
       ? // Store-level thread with this vendor: the one without product context,
         // so a "chat with the store" click never reopens a product question.
-        chatConversations.find(
+        replyable.find(
           (conversation) =>
             conversation.ownerVendorId === requestedVendorId &&
             !conversation.productContext,

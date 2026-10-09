@@ -50,6 +50,18 @@ const ReviewSchema = new Schema<IReview>(
       type: Boolean,
       default: false,
     },
+    /**
+     * When the store last approved or unpublished it by hand. A review not
+     * approved and never moderated is waiting; one the store unpublished is
+     * rejected, which is how its author is told.
+     */
+    moderatedAt: {
+      type: Date,
+    },
+    /** When its author last changed it. */
+    editedAt: {
+      type: Date,
+    },
     reply: {
       type: new Schema(
         {

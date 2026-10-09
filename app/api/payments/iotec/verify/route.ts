@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
-import { Order } from "@/models";
 import { getSettings } from "@/models/settings.model";
-import {
-  getIotecCredentials,
-  getIotecTransactionState,
-  getIotecTransactionStatus,
-  getIotecTransactionStatusByExternalId,
-} from "@/lib/payments/iotec";
-import { finalizeIotecOrder } from "@/lib/payments/iotec-orders";
-import { resolveIotecCredentials } from "@/lib/settings/credentials";
+import { verifyIotecOrderPayment } from "@/lib/payments/iotec-verify";
 import { isPlatformPaymentReference } from "@/models/platformPayment.model";
 import {
   findPlatformPaymentByReference,
@@ -85,83 +77,14 @@ export const POST = withApi(
       });
     }
 
-    const orderQuery: Record<string, unknown> = { paymentMethod: "iotec" };
-    if (transactionId) {
-      orderQuery.iotecTransactionId = transactionId;
-    } else {
-      orderQuery.iotecExternalId = externalId;
-    }
-    if (session?.user?.id) orderQuery.customerId = session.user.id;
-
-    const order = await Order.findOne(orderQuery).select(
-      "_id orderNumber iotecTransactionId iotecExternalId",
-    );
-    if (!order) {
-      throw new ValidationError("Order not found for ioTec transaction");
-    }
-
-    if (
-      externalId &&
-      order.iotecExternalId &&
-      externalId !== order.iotecExternalId
-    ) {
-      throw new ValidationError("ioTec reference mismatch");
-    }
-
-    const settings = await getSettings();
-    const resolved = resolveIotecCredentials(settings.payment?.iotec);
-    const creds = getIotecCredentials(resolved);
-    const transaction = transactionId
-      ? await getIotecTransactionStatus({ creds, transactionId })
-      : await getIotecTransactionStatusByExternalId({ creds, externalId });
-
-    // The order's stored transaction id is authoritative; a status response
-    // for a different collection must not finalize this order.
-    if (
-      transaction.id &&
-      order.iotecTransactionId &&
-      String(transaction.id) !== String(order.iotecTransactionId)
-    ) {
-      throw new ValidationError("ioTec reference mismatch");
-    }
-    // Falls back to the id on the status response for the brief window between
-    // the collection being accepted and its id landing on the order.
-    const resolvedTransactionId =
-      transactionId || String(order.iotecTransactionId || transaction.id || "");
-    if (!resolvedTransactionId) {
-      throw new ValidationError("Order not found for ioTec transaction");
-    }
-
-    const status = getIotecTransactionState(transaction);
-    if (status !== "completed") {
-      return NextResponse.json({
-        success: true,
-        data: {
-          status,
-          orderId: String(order._id),
-          orderNumber: order.orderNumber,
-        },
-      });
-    }
-
-    const result = await finalizeIotecOrder({
-      transactionId: resolvedTransactionId,
-      externalId: externalId || order.iotecExternalId || undefined,
-      transaction,
-      settings,
-      sessionUserId: session?.user?.id,
+    // See lib/payments/iotec-verify.ts.
+    const data = await verifyIotecOrderPayment({
+      transactionId,
+      externalId,
+      customerId: session?.user?.id,
       cartSessionId,
       customerEmail: session?.user?.email,
     });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        status,
-        orderId: result.orderId,
-        orderNumber: result.orderNumber,
-        alreadyPaid: result.alreadyPaid,
-      },
-    });
+    return NextResponse.json({ success: true, data });
   },
 );

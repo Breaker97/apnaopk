@@ -12,6 +12,7 @@ import { parsePageLimit } from "@/lib/api/list-query";
 import { escapeRegExp } from "@/lib/strings";
 import { attachIncomingStock } from "@/lib/inventory/transfer-incoming";
 import { attachStockBreakdown } from "@/lib/inventory/stock-breakdown";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory/low-stock";
 import { productTracksStock } from "@/lib/products/stock-policy";
 
 /**
@@ -74,7 +75,7 @@ function mapLocationInventory(
 
 function matchesStockLevel(stockLevel: string, available: number) {
   if (stockLevel === "in") return available > 0;
-  if (stockLevel === "low") return available > 0 && available <= 10;
+  if (stockLevel === "low") return available > 0 && available <= LOW_STOCK_THRESHOLD;
   if (stockLevel === "out") return available <= 0;
   return true;
 }

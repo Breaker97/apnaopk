@@ -2,7 +2,10 @@ import { Order, PaymentTransaction } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import type { AuditContext } from "@/lib/audit";
-import { refundOrderPayment } from "@/lib/orders/order-refund";
+import {
+  RefundOutcomeUnknownError,
+  refundOrderPayment,
+} from "@/lib/orders/order-refund";
 import { createRefundTransaction } from "@/lib/payments/payment-transactions";
 import { settleRefundedPaymentStatus } from "@/lib/orders/refund-payment-status";
 import { quantizeToCurrency } from "@/lib/intl/money";
@@ -74,6 +77,11 @@ type CancelRefundOutcome = {
    * only when somebody has to act.
    */
   failed?: boolean;
+  /**
+   * The gateway's answer was lost: the refund may or may not have been made.
+   * Never retried blind — see `RefundOutcomeUnknownError`.
+   */
+  outcomeUnknown?: boolean;
 };
 
 /**
@@ -294,6 +302,14 @@ export async function refundCancelledPreorder(params: {
    * spreading one seller's cancellation over everybody on the order.
    */
   consignmentIds?: ReadonlyArray<unknown>;
+  /**
+   * The durable operation this refund belongs to, recorded on the refund row
+   * and the gateway refund, so a run resumed after a crash can find what an
+   * earlier run made — see `lib/orders/preorder-operations.ts`.
+   */
+  operationId?: string;
+  /** Stable per refund attempt; makes a gateway replay return the same refund. */
+  idempotencyKey?: string;
 }): Promise<CancelRefundOutcome> {
   const order = (await Order.findById(
     params.orderId,
@@ -461,9 +477,14 @@ export async function refundCancelledPreorder(params: {
             amount: gatewayPart,
             reason: params.reason || "Pre-order cancelled",
             actor: params.actor,
+            idempotencyKey: params.idempotencyKey,
+            gatewayMetadata: params.operationId
+              ? { preorderOperation: params.operationId }
+              : undefined,
           })
         : undefined;
   } catch (err) {
+    const outcomeUnknown = err instanceof RefundOutcomeUnknownError;
     const refusal =
       err instanceof Error ? err.message : "the gateway refused the refund";
     console.error(
@@ -495,9 +516,10 @@ export async function refundCancelledPreorder(params: {
       return {
         refunded: false,
         failed: true,
+        ...(outcomeUnknown ? { outcomeUnknown: true } : {}),
         amount,
         currency,
-        reason: `Refund this order by hand — ${refusal}`,
+        reason: outcomeUnknown ? refusal : `Refund this order by hand — ${refusal}`,
       };
     }
     // The store credit part never needed the gateway: it still goes back.
@@ -674,6 +696,9 @@ export async function refundCancelledPreorder(params: {
           gatewayCalled: gateway?.gatewayCalled,
           notifySettlement: params.notifySettlement,
           consignmentIds: params.consignmentIds,
+          ...(params.operationId
+            ? { metadata: { preorderOperationId: params.operationId } }
+            : {}),
         })
     .then(() => true)
     .catch(async (err: unknown) => {
@@ -812,6 +837,10 @@ export async function refundOrderCancellation(params: {
   auditContext?: AuditContext;
   /** See `refundCancelledPreorder`. */
   reportFailure?: boolean;
+  /** See `refundCancelledPreorder`. */
+  operationId?: string;
+  /** See `refundCancelledPreorder`. */
+  idempotencyKey?: string;
 }): Promise<CancelRefundOutcome | undefined> {
   const order = (await Order.findById(params.orderId).lean()) as
     | (RefundableOrder & {
@@ -877,6 +906,8 @@ export async function refundOrderCancellation(params: {
     createdBy: params.createdBy,
     auditContext: params.auditContext,
     reportFailure: params.reportFailure,
+    operationId: params.operationId,
+    idempotencyKey: params.idempotencyKey,
   };
   if (order.status === ORDER_STATUS.CANCELLED) {
     return refundCancelledPreorder(refundParams);

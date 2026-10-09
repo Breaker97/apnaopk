@@ -1,4 +1,5 @@
 import { HomeBecomeVendorSection } from "@/components/store/home-become-vendor-section";
+import { VendorSignupGate } from "@/components/store/vendor-signup-gate";
 import { lt } from "../localized";
 import type { LocalizedText, SectionDefinition } from "../types";
 
@@ -21,17 +22,20 @@ export const becomeVendor: SectionDefinition = {
   ],
   available: (ctx) => ctx.isMultiVendorEnabled,
   // Synchronous — no data fetch, so no Skeleton, matching the boundary the
-  // home page drew for it.
+  // home page drew for it. An invitation to apply, so an admin, vendor or
+  // staff member browsing the store does not get it (VendorSignupGate).
   Render({ settings, ctx }) {
     return (
-      <HomeBecomeVendorSection
-        locale={ctx.locale}
-        imageSrc={settings.image as string}
-        title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
-        subtitle={lt(settings.subtitle as LocalizedText, ctx.locale, ctx.defaultLanguage)}
-        buttonLabel={lt(settings.buttonLabel as LocalizedText, ctx.locale, ctx.defaultLanguage)}
-        buttonHref={settings.buttonHref as string}
-      />
+      <VendorSignupGate>
+        <HomeBecomeVendorSection
+          locale={ctx.locale}
+          imageSrc={settings.image as string}
+          title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
+          subtitle={lt(settings.subtitle as LocalizedText, ctx.locale, ctx.defaultLanguage)}
+          buttonLabel={lt(settings.buttonLabel as LocalizedText, ctx.locale, ctx.defaultLanguage)}
+          buttonHref={settings.buttonHref as string}
+        />
+      </VendorSignupGate>
     );
   },
 };

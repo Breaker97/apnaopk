@@ -54,6 +54,8 @@ export interface ConversationDTO {
     phone?: string;
     image?: string;
   };
+  /** The shopper account that wrote it signed in; for the store's side only. */
+  customerUserId?: string;
   subject: string;
   status: "open" | "pending" | "resolved" | "closed" | "spam";
   assignedTo?: {
@@ -98,7 +100,29 @@ export interface ConversationMessageDTO {
     mimeType?: string;
     size?: number;
   }>;
+  /**
+   * A product shared in the message, as it was when sent. Prices are plain
+   * amounts in `currency` (the store's currency code then); absent for a
+   * price-on-request product.
+   */
+  product?: {
+    productId: string;
+    name: string;
+    slug: string;
+    imageUrl?: string;
+    variantName?: string;
+    price?: number;
+    compareAtPrice?: number;
+    currency?: string;
+  };
+  /**
+   * The body is the product's name and link, written because nothing was
+   * typed with the product: a client showing the product's card hides it.
+   */
+  bodyIsFallback: boolean;
   deliveryStatus: "queued" | "sent" | "delivered" | "read" | "failed";
+  /** The sending client's own id for the message, which settles its retries. */
+  clientMessageId?: string;
   messageKind?: "whatsapp_template";
   errorMessage?: string;
   createdAt: string;

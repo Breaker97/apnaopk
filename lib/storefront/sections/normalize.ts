@@ -67,6 +67,8 @@ export function normalizeFieldValue(field: Field, value: unknown): unknown {
     case "image":
     case "url":
     case "collection":
+    case "category":
+    case "brand":
     case "product":
     case "slider":
     case "coupon":
@@ -83,6 +85,10 @@ export function normalizeFieldValue(field: Field, value: unknown): unknown {
       return normalizeIdList(value, field.max);
     case "categoryList":
       return normalizeIdList(value);
+    case "vendorList":
+      return normalizeIdList(value, field.max);
+    case "reviewList":
+      return normalizeIdList(value, field.max);
     // Inline slide lists ride the slider contract's own normalizer, so the
     // write gate enforces exactly what the saved-slider API enforces.
     case "slides":

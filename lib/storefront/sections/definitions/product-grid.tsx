@@ -9,6 +9,10 @@ import {
   type NewArrivalsSource,
 } from "@/lib/site-config/home-page-config";
 import { lt } from "../localized";
+import {
+  isProductTargetUnpicked,
+  productSourceTargetFields,
+} from "../product-source";
 import type { LocalizedText, SectionDefinition } from "../types";
 
 /** A curated product row (the legacy "Products on Sale" section). */
@@ -21,6 +25,9 @@ export const productGrid: SectionDefinition = {
     { key: "title", type: "text", translatable: true, default: "Products on Sale" },
     { key: "subtitle", type: "text", translatable: true, default: "" },
     { key: "source", type: "select", options: NEW_ARRIVALS_SOURCES, default: "discounted" },
+    // The picked category, brand or collection — each shown only for its
+    // source, and only the current source's is ever read.
+    ...productSourceTargetFields(),
     {
       key: "limit",
       type: "number",
@@ -42,6 +49,8 @@ export const productGrid: SectionDefinition = {
       showWhen: { key: "source", values: ["manual"] },
     },
   ],
+  // A category, brand or collection source with nothing picked draws nothing.
+  isEmpty: ({ settings }) => isProductTargetUnpicked(settings),
   Render({ settings, ctx }) {
     return (
       <HomeNewArrivals
@@ -52,6 +61,13 @@ export const productGrid: SectionDefinition = {
         limit={settings.limit as number}
         desktopColumns={settings.desktopColumns as number}
         productIds={settings.productIds as string[]}
+        categoryId={settings.categoryId as string}
+        brandId={settings.brandId as string}
+        collectionId={settings.collectionId as string}
+        preview={ctx.preview}
+        // A vendor's landing page shows that store alone, and "View all"
+        // opens its own Products tab instead of the marketplace catalogue.
+        vendor={ctx.vendor}
       />
     );
   },

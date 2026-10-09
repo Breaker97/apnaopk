@@ -2,6 +2,7 @@ import * as z from "zod";
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { validateBody } from "@/lib/api/validate";
+import { auditSettingsChange, createAuditContext } from "@/lib/audit";
 import {
   getPlatformMessagingConfiguration,
   updatePlatformMessagingConfiguration,
@@ -36,6 +37,24 @@ const MessagingSettingsSchema = z.object({
   ]),
 });
 
+type MessagingConfiguration = Awaited<
+  ReturnType<typeof getPlatformMessagingConfiguration>
+>;
+
+function plainConfiguration(
+  config: MessagingConfiguration,
+): Record<string, unknown> {
+  return {
+    ...config,
+    businessHours: config.businessHours.map(({ day, enabled, start, end }) => ({
+      day,
+      enabled,
+      start,
+      end,
+    })),
+  };
+}
+
 export const GET = withApi(
   {
     auth: "admin",
@@ -58,12 +77,20 @@ export const PUT = withApi(
   },
   async ({ request, session }) => {
     const body = await validateBody(request, MessagingSettingsSchema);
-    return successResponse(
-      await updatePlatformMessagingConfiguration({
-        ...body,
-        userId: session.user.id,
-      }),
-      "Live-chat settings updated",
+    const before = await getPlatformMessagingConfiguration();
+    const after = await updatePlatformMessagingConfiguration({
+      ...body,
+      userId: session.user.id,
+    });
+    // A save of an unchanged form is no change, and writes no row. Plain copies,
+    // because the update hands back the schedule as a Mongoose array, which
+    // `auditSettingsChange` cannot clone.
+    await auditSettingsChange(
+      createAuditContext(request, session),
+      "messaging",
+      plainConfiguration(before),
+      plainConfiguration(after),
     );
+    return successResponse(after, "Live-chat settings updated");
   },
 );

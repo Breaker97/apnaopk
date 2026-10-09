@@ -1,3 +1,4 @@
+import { PayoutBreakdown } from "@/components/payouts/payout-breakdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/intl/money";
 import type { VendorBalance } from "@/lib/vendors/vendor-balance";
@@ -23,6 +24,8 @@ export function VendorBalanceCard({
     title: string;
     ready: string;
     readyHint: string;
+    tooManyOrders?: string;
+    asOf?: string;
     belowMinimum: string;
     held: string;
     heldHint: string;
@@ -44,7 +47,7 @@ export function VendorBalanceCard({
       id: "ready",
       label: labels.ready,
       hint:
-        balance.minWithdrawal > 0 && balance.readyToPay < balance.minWithdrawal
+        balance.hasMore ? labels.tooManyOrders || labels.readyHint : balance.minWithdrawal > 0 && balance.readyToPay < balance.minWithdrawal
           ? labels.belowMinimum.replace("{amount}", money(balance.minWithdrawal))
           : labels.readyHint.replace("{count}", String(balance.orderCount)),
       value: money(balance.readyToPay),
@@ -88,6 +91,7 @@ export function VendorBalanceCard({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">{labels.title}</CardTitle>
+        {labels.asOf && <p className="text-xs text-muted-foreground">{labels.asOf}</p>}
       </CardHeader>
       <CardContent className="p-0">
         <dl className="divide-y">
@@ -110,6 +114,7 @@ export function VendorBalanceCard({
             </div>
           ))}
         </dl>
+        {balance.breakdown && <div className="p-4"><PayoutBreakdown breakdown={balance.breakdown} currency={balance.currency} /></div>}
       </CardContent>
     </Card>
   );

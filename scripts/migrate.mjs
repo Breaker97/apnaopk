@@ -31,6 +31,7 @@ import {
   manualMigrations,
   migrationArgs,
   needLabel,
+  spawnPlan,
 } from "./migrations.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -201,12 +202,13 @@ function runMigration(migration, { dryRun, extra }) {
   return new Promise((resolve) => {
     // cwd is the project root so the `--env-file=.env` paths above resolve the
     // same way they did when each migration was its own package.json script.
-    // `shell: true` on Windows, where the tsx bin is a .cmd shim execvp cannot
-    // launch directly.
-    const child = spawn(command, args, {
+    // A shell only for the Windows tsx shim, with its path quoted — see
+    // `spawnPlan`.
+    const plan = spawnPlan(command, args);
+    const child = spawn(plan.command, plan.args, {
       stdio: "inherit",
       cwd: ROOT,
-      shell: process.platform === "win32",
+      shell: plan.shell,
     });
     child.on("error", (error) => {
       console.error(`\n❌ Could not start ${command}: ${error.message}`);

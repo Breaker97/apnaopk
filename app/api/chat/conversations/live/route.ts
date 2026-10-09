@@ -16,6 +16,7 @@ import {
 import {
   getConversationFeedVersion,
   listConversations,
+  messageVisibilityQuery,
   requireConversationViewer,
   serializeConversationMessage,
 } from "@/lib/conversations/service";
@@ -59,6 +60,22 @@ function parseCursor(value: string | null): Types.ObjectId {
   // between its initial REST fetch and its first tick here.
   return Types.ObjectId.createFromTime(
     Math.max(0, Math.floor(Date.now() / 1000) - 5),
+  );
+}
+
+/**
+ * How far behind its cursor each tick reads again. An ObjectId only rises
+ * within one process: a message another server instance stores a moment
+ * later can carry a lower id than the cursor already handed out, and a
+ * strict `> cursor` would never deliver it. The client merges by id, so a
+ * message read twice is only replaced.
+ */
+const CURSOR_LOOKBACK_SECONDS = 5;
+
+function readFrom(cursor: Types.ObjectId): Types.ObjectId {
+  const seconds = Math.floor(cursor.getTimestamp().getTime() / 1000);
+  return Types.ObjectId.createFromTime(
+    Math.max(0, seconds - CURSOR_LOOKBACK_SECONDS),
   );
 }
 
@@ -110,10 +127,14 @@ export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
   let updatedMessages: ReturnType<typeof serializeConversationMessage>[] = [];
   let nextStatusSince = statusSince;
 
+  // A customer's feed never carries the team's internal notes.
+  const visible = messageVisibilityQuery(viewer);
+
   if (conversationIds.length > 0) {
     const created = await ConversationMessage.find({
       conversationId: { $in: conversationIds },
-      _id: { $gt: cursor },
+      _id: { $gt: readFrom(cursor) },
+      ...visible,
     })
       .sort({ _id: 1 })
       .limit(CREATED_POLL_LIMIT)
@@ -121,12 +142,16 @@ export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
 
     createdMessages = created.map(serializeConversationMessage);
     const newestCreated = created[created.length - 1];
-    if (newestCreated) nextCursor = newestCreated._id as Types.ObjectId;
+    // Never backwards: a tick that only re-read the lookback keeps its cursor.
+    if (newestCreated && String(newestCreated._id) > String(cursor)) {
+      nextCursor = newestCreated._id as Types.ObjectId;
+    }
 
     const recentlyUpdated = await ConversationMessage.find({
       conversationId: { $in: conversationIds },
       $expr: { $gt: ["$updatedAt", "$createdAt"] },
       updatedAt: { $gte: statusSince },
+      ...visible,
     })
       .sort({ updatedAt: -1, _id: -1 })
       .limit(STATUS_POLL_LIMIT)

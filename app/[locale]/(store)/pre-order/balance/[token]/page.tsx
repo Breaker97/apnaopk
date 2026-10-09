@@ -8,6 +8,7 @@ import { Order } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { Button } from "@/components/ui/button";
 import { readPreorderBalanceToken } from "@/lib/payments/preorder-balance-link";
+import { preorderAutoChargeAt } from "@/lib/orders/preorder-scope";
 import {
   getPreorderBalanceDeadline,
   getPreorderBalanceDue,
@@ -103,7 +104,7 @@ export default async function PreorderBalanceLinkPage({ params }: PageProps) {
   await connectDB();
   const order = await Order.findById(orderId)
     .select(
-      "orderNumber status paymentStatus paymentMethod total refundedTotal hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount preorderReleaseDate preorderBalanceRequestedAt subOrders.status subOrders.items.preorderOutstandingAmount",
+      "orderNumber status paymentStatus paymentMethod total refundedTotal hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount preorderReleaseDate preorderBalanceRequestedAt preorderCollection subOrders.status subOrders.items.preorderOutstandingAmount",
     )
     .lean();
   if (!order) {
@@ -159,6 +160,7 @@ export default async function PreorderBalanceLinkPage({ params }: PageProps) {
             preorderBalanceDue: balanceDue,
             preorderPaidSoFar: getPreorderPaidSoFar(order),
             preorderBalanceDeadline: deadline?.toISOString(),
+            preorderAutoChargeAt: preorderAutoChargeAt(order)?.toISOString(),
             total: Number(order.total || 0),
           }}
         />

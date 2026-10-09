@@ -1,5 +1,8 @@
 import {
+  AbandonedCheckout,
   AdminProfile,
+  AISalesConversation,
+  BlogComment,
   Cart,
   Conversation,
   ConversationContact,
@@ -7,9 +10,11 @@ import {
   ConversationParticipant,
   CustomerProfile,
   Notification,
+  PreorderWaitlist,
   PushSubscription,
   Review,
   StaffProfile,
+  VendorFollow,
   Wishlist,
 } from "@/models";
 import { recomputeProductRating } from "@/lib/catalog/reviews";
@@ -22,8 +27,18 @@ const DELETED_CONTACT_NAME = "Deleted user";
  * Without this, deleting a user strands a CustomerProfile with a unique
  * userId (blocking any future profile for a reused id), plus carts,
  * wishlists, notifications, push subscriptions, and reviews that reference a
- * user who no longer exists. Orders are intentionally kept — they are
- * financial history.
+ * user who no longer exists.
+ *
+ * Personal data goes with the account: also the checkouts they left
+ * unfinished (each holds their contact details and address), their places on
+ * pre-order waiting lists, the stores they follow, their conversations with
+ * the AI shopping assistant, and the email, address and browser kept with
+ * their blog comments (the comments stay, under the name they posted with).
+ *
+ * Money and business records stay, because the store has to keep them:
+ * orders, store credit, returns, quote requests, checkout attempts, seller
+ * applications and the audit log. `tests/user-cleanup.test.ts` holds both
+ * lists.
  *
  * The user's reviews are deleted and each affected product's rating cache is
  * recomputed so storefront aggregates don't keep counting ghost reviews.
@@ -64,6 +79,14 @@ export async function cleanupDeletedUserReferences(
     Notification.deleteMany({ userId }),
     PushSubscription.deleteMany({ userId }),
     Review.deleteMany({ userId }),
+    AbandonedCheckout.deleteMany({ userId }),
+    PreorderWaitlist.deleteMany({ userId }),
+    VendorFollow.deleteMany({ userId }),
+    AISalesConversation.deleteMany({ userId }),
+    BlogComment.updateMany(
+      { userId },
+      { $unset: { authorEmail: "", ipAddress: "", userAgent: "" } },
+    ),
     ConversationParticipant.deleteMany({ userId }),
     ConversationContact.updateMany(
       { userId },
@@ -107,6 +130,11 @@ export async function cleanupDeletedUserReferences(
     "notifications",
     "push subscriptions",
     "reviews",
+    "abandoned checkouts",
+    "pre-order waitlist entries",
+    "store follows",
+    "AI assistant conversations",
+    "blog comment details",
     "conversation participants",
     "conversation contacts",
     "conversation contact snapshots",

@@ -92,14 +92,15 @@ export function TwoFactorSettingsTab(props: {
               </p>
             )}
           </div>
-          <StickySaveFooter
-            label={t("admin.settings.twoFactor.save")}
-            isSaving={props.isSaving}
-            isDirty={props.isDirty}
-            onSave={props.onSave}
-          />
         </CardContent>
       </Card>
+
+      <StickySaveFooter
+        label={t("admin.settings.twoFactor.save")}
+        isSaving={props.isSaving}
+        isDirty={props.isDirty}
+        onSave={props.onSave}
+      />
     </div>
   );
 }

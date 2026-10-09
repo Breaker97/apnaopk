@@ -1,15 +1,18 @@
+import { runFinanceOperation, mutationKey } from "@/lib/finance/operations";
+import { financeSession } from "@/lib/finance/transaction";
+import { expensePostings } from "@/lib/finance/postings";
 import { Types } from "mongoose";
 import * as z from "zod";
 import { Expense } from "@/models/expense.model";
 import { getSettings } from "@/models/settings.model";
 import { successResponse } from "@/lib/api/response";
-import { ApiError, ValidationError } from "@/lib/api/errors";
+import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { validateBody, validateQuery } from "@/lib/api/validate";
 import { CreateExpenseSchema, SafeSearchSchema } from "@/lib/validations";
-import { auditCreate, createAuditContext } from "@/lib/audit";
+import { createAuditContext } from "@/lib/audit";
+import { auditExpenseRecorded } from "@/lib/finance/audit-expense";
 import { currencyMinimumPrice, quantizeToCurrency, roundMoney } from "@/lib/intl/money";
-import { postExpense } from "@/lib/finance/post-events";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY,
@@ -254,7 +257,10 @@ export const POST = withApi(
       ? repeatingFrom(body.date, body.recurring)
       : null;
 
-    const expense = await Expense.create({
+    const outcome = await runFinanceOperation({
+      action: "expense:create", actorId: session.user.id, requestKey: mutationKey(request), fingerprint: body,
+      work: async () => {
+    const expense = new Expense({
       date: body.date,
       book,
       scope: "platform",
@@ -277,44 +283,12 @@ export const POST = withApi(
         EXPENSE_CATEGORY_DEBIT_ACCOUNT[body.category] ?? "operating_expense",
       createdBy: session.user.id,
     });
-
-    try {
-      await postExpense(
-        {
-          _id: expense._id,
-          date: expense.date,
-          book: expense.book,
-          category: expense.category,
-          amount: expense.amount,
-          currency: expense.currency,
-          description: expense.description,
-          paidFrom: expense.paidFrom,
-          vendorId: expense.vendorId,
-          revision: 0,
-          debitAccount: expense.debitAccount,
-        },
-        null,
-        { strict: true },
-      );
-    } catch (error) {
-      await Expense.deleteOne({ _id: expense._id }).catch(() => undefined);
-      console.error("Expense not recorded — the ledger write failed:", error);
-      throw new ApiError(
-        "The expense could not be written to the books, so it was not saved. Try again.",
-        503,
-        "LEDGER_WRITE_FAILED",
-      );
-    }
-
-    const auditContext = createAuditContext(request, session);
-    await auditCreate(
-      auditContext,
-      "expense",
-      String(expense._id),
-      expense.toObject() as unknown as Record<string, unknown>,
-    );
-
-    return successResponse(expense, "Expense recorded", 201);
+    await expense.save({ session: financeSession() });
+    await auditExpenseRecorded(createAuditContext(request, session), expense);
+    return { result: expense.toObject(), sourceId: expense._id, postings: expensePostings(expense.toObject()) };
+      },
+    });
+    return successResponse({ ...outcome.data, operationId: outcome.operationId, bookkeepingState: outcome.bookkeepingState }, "Expense recorded", outcome.bookkeepingState === "complete" ? 201 : 202);
   },
 );
 

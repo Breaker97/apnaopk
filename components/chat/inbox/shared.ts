@@ -2,7 +2,10 @@ import { isToday, isYesterday } from "date-fns";
 // Pure constants and arithmetic, no models and no `server-only`, so the client
 // and the route it polls stay on one number rather than two that can drift.
 import { CONVERSATION_LIMIT } from "@/lib/conversations/live-feed";
-import type { ConversationDTO } from "@/lib/conversations/types";
+import type {
+  ConversationDTO,
+  ConversationMessageDTO,
+} from "@/lib/conversations/types";
 
 export type ConversationStatusValue = ConversationDTO["status"];
 
@@ -97,6 +100,55 @@ export const DELIVERY_STATUS_FALLBACKS: Record<string, string> = {
   read: "Read",
   failed: "Failed",
 };
+
+/**
+ * Messages further apart than this start a run of their own, with the
+ * sender's picture and their own time: a reply an hour later is not read as
+ * part of what came before (the apps use the same gap).
+ */
+export const RUN_GAP_MS = 5 * 60 * 1000;
+
+/**
+ * Who a message is from, for runs: the customer's side as one, and each
+ * person on the store's side as their own (several people answer for one
+ * store, and the name above a run says who).
+ */
+export function messageAuthor(message: ConversationMessageDTO) {
+  if (message.direction === "inbound") return "inbound";
+  return `${message.direction}:${message.senderUserId || message.senderName}`;
+}
+
+/**
+ * A product shared with nothing else: drawn as its card alone, it stands
+ * apart from the run around it.
+ */
+export function isProductOnly(message: ConversationMessageDTO) {
+  return Boolean(
+    message.product &&
+      (!message.body || message.bodyIsFallback) &&
+      message.attachments.length === 0 &&
+      message.messageKind !== "whatsapp_template",
+  );
+}
+
+/**
+ * Messages merged by id, in the order they were written. Whatever arrives
+ * (a page of history, a feed tick, a send's answer) lands in its place, and
+ * an id already held only has its contents replaced.
+ */
+export function mergeMessages(
+  current: ConversationMessageDTO[],
+  incoming: ConversationMessageDTO[],
+) {
+  if (!incoming.length) return current;
+  const byId = new Map(current.map((message) => [message._id, message]));
+  for (const message of incoming) byId.set(message._id, message);
+  return [...byId.values()].sort(
+    (a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+      (a._id < b._id ? -1 : a._id > b._id ? 1 : 0),
+  );
+}
 
 export function getInitials(value: string) {
   const parts = value

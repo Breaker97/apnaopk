@@ -1,12 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
-  clampDesktopColumns,
   PRODUCT_GRID_DESKTOP_COLUMN_CLASSES,
   PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES,
   CARD_BROWSER_GRID_GAP,
   CARD_SHELF_GAP,
 } from "./product-grid-columns";
+import { clampDesktopColumns } from "@/lib/storefront/sections/shelf-columns";
 
 const PRODUCT_DESKTOP_COLUMN_CLASSES = PRODUCT_SHELF_DESKTOP_COLUMN_CLASSES;
 

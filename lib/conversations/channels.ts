@@ -23,6 +23,13 @@ const MB = 1024 * 1024;
 /** Ceiling applied to every chat attachment regardless of channel. */
 export const MAX_CHAT_ATTACHMENT_BYTES = 16 * MB;
 
+/**
+ * What one website upload carries: one file of at most 4 MB, the apps' own
+ * ceiling. A larger body is refused before the route sees it (Vercel stops
+ * at 4.5 MB, the proxy at 10 MB), so nothing above it is offered.
+ */
+export const WEB_CHAT_ATTACHMENT_CEILING = { maxBytes: 4 * MB, maxFiles: 1 } as const;
+
 interface ChannelCapability {
   /** Human-readable name used in UI badges and error messages. */
   label: string;
@@ -224,6 +231,26 @@ export function attachmentKindFor(
   if (mimeType.startsWith("audio/")) return "audio";
   if (mimeType === "application/pdf") return "document";
   return undefined;
+}
+
+/**
+ * What a client may send into a conversation on this channel: the files one
+ * message carries, and each type taken with its largest size. `ceiling` is
+ * what the client's transport carries (a request body its host accepts, the
+ * files one request takes): nothing above it is offered.
+ */
+export function conversationAttachmentPolicy(
+  channel: string,
+  ceiling: { maxBytes: number; maxFiles: number },
+): { maxFiles: number; types: Array<{ mimeType: string; maxBytes: number }> } {
+  const capability = channelCapability(channel);
+  return {
+    maxFiles: Math.min(capability.maxAttachments, ceiling.maxFiles),
+    types: Object.entries(capability.media).map(([mimeType, maxBytes]) => ({
+      mimeType,
+      maxBytes: Math.min(maxBytes, MAX_CHAT_ATTACHMENT_BYTES, ceiling.maxBytes),
+    })),
+  };
 }
 
 /** True only where a Messenger Platform profile lookup is actually possible. */

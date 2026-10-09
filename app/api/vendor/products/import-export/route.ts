@@ -18,6 +18,8 @@ import {
 } from "@/lib/products/import-export";
 import { MAX_IMPORT_FILE_BYTES } from "@/lib/products/import-limits";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogExport } from "@/lib/catalog/catalog-audit";
 
 function buildVendorProductQuery(params: {
   vendorId: unknown;
@@ -93,10 +95,18 @@ export const GET = withApi(
       .limit(5000)
       .lean();
 
-    return productsCsvResponse(
+    const response = productsCsvResponse(
       products as unknown as Parameters<typeof productsCsvResponse>[0],
       "vendor-products",
     );
+    // Recorded once the file is built: the row is the only trace that a copy of
+    // the catalog was taken, and it says how much and what narrowed it.
+    await auditCatalogExport(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      "product",
+      { rowCount: products.length, filters: { search, status } },
+    );
+    return response;
   },
 );
 

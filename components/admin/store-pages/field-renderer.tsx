@@ -21,11 +21,16 @@ import {
   SectionImageField,
   type ImageFieldContext,
 } from "./section-image-field";
+import { BrandSelect } from "./brand-select";
+import { CategorySelect } from "./category-select";
 import { CollectionSelect } from "./collection-select";
 import { CouponSelect } from "./coupon-select";
 import { ProductSelect } from "./product-select";
 import { SliderSelect } from "./slider-select";
+import { VendorListSelect } from "./vendor-list-select";
+import { ReviewListSelect } from "./review-list-select";
 import { PanelGroup, PanelRow } from "./editor-shell";
+import { useStoreBuilderScope } from "./builder-scope";
 import {
   BackgroundSwatchField,
   editorBackground,
@@ -95,6 +100,8 @@ function fieldWidth(field: Field): FieldWidth {
     case "text":
     case "url":
     case "collection":
+    case "category":
+    case "brand":
     case "product":
     case "slider":
     case "coupon":
@@ -128,6 +135,8 @@ const PANEL_TYPES = new Set<Field["type"]>([
   "url",
   "slider",
   "collection",
+  "category",
+  "brand",
   "coupon",
 ]);
 /**
@@ -196,6 +205,8 @@ function panelGroupOf(field: Field): PanelGroupKey {
     field.type === "url" ||
     field.type === "slider" ||
     field.type === "collection" ||
+    field.type === "category" ||
+    field.type === "brand" ||
     field.type === "coupon" ||
     CONTENT_KEY.test(field.key)
   ) {
@@ -285,7 +296,9 @@ export function FieldRenderer({
         const ownsLabel =
           field.type === "toggle" ||
           field.type === "productList" ||
-          field.type === "categoryList";
+          field.type === "categoryList" ||
+          field.type === "vendorList" ||
+          field.type === "reviewList";
         if (layout === "panel") {
           const inline = inlineInPanel(field);
           return (
@@ -432,6 +445,8 @@ function FieldControl({
   imageContext: ImageFieldContext;
   tSafe: ReturnType<typeof createTSafe>;
 }) {
+  const { productsEndpoint, reviewsEndpoint, categoriesEndpoint } =
+    useStoreBuilderScope();
   switch (field.type) {
     case "text":
     case "textarea":
@@ -533,10 +548,27 @@ function FieldControl({
         <CollectionSelect
           value={typeof value === "string" ? value : ""}
           onChange={onChange}
+          ariaLabel={label}
           placeholder={tSafe(
             "admin.storeBuilder.selectCollection",
             "Select a collection…",
           )}
+        />
+      );
+    case "category":
+      return (
+        <CategorySelect
+          value={typeof value === "string" ? value : ""}
+          onChange={onChange}
+          ariaLabel={label}
+        />
+      );
+    case "brand":
+      return (
+        <BrandSelect
+          value={typeof value === "string" ? value : ""}
+          onChange={onChange}
+          ariaLabel={label}
         />
       );
     case "product":
@@ -567,6 +599,7 @@ function FieldControl({
           onChange={(ids) => onChange(ids)}
           title={label}
           max={field.max}
+          endpoint={productsEndpoint}
         />
       );
     case "categoryList":
@@ -575,8 +608,70 @@ function FieldControl({
           selectedCategories={Array.isArray(value) ? (value as string[]) : []}
           onChange={(ids) => onChange(ids)}
           title={label}
+          // The store's categories, or in a vendor's builder its own.
+          endpoint={categoriesEndpoint}
         />
       );
+    case "vendorList":
+      return (
+        <VendorListSelect
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(ids) => onChange(ids)}
+          title={label}
+          max={field.max}
+          labels={{
+            search: tSafe("admin.storeBuilder.vendorPicker.search", "Search approved stores…"),
+            empty: tSafe(
+              "admin.storeBuilder.vendorPicker.empty",
+              "No stores picked yet. Add them from the list below.",
+            ),
+            noResults: tSafe("admin.storeBuilder.vendorPicker.noResults", "No more approved stores"),
+            unavailable: tSafe(
+              "admin.storeBuilder.vendorPicker.unavailable",
+              "Store unavailable (not approved)",
+            ),
+            remove: tSafe("admin.storeBuilder.vendorPicker.remove", "Remove store"),
+            reorder: tSafe("admin.storeBuilder.vendorPicker.reorder", "Drag to reorder"),
+            limitReached: tSafe(
+              "admin.storeBuilder.vendorPicker.limitReached",
+              "Limit reached. Remove a store to add another.",
+            ),
+          }}
+        />
+      );
+    case "reviewList":
+      // Only a store's own builder lists reviews to quote.
+      return reviewsEndpoint ? (
+        <ReviewListSelect
+          endpoint={reviewsEndpoint}
+          value={Array.isArray(value) ? (value as string[]) : []}
+          onChange={(ids) => onChange(ids)}
+          title={label}
+          max={field.max}
+          labels={{
+            search: tSafe("admin.storeBuilder.reviewPicker.search", "Search your reviews…"),
+            empty: tSafe(
+              "admin.storeBuilder.reviewPicker.empty",
+              "No reviews picked yet. Add them from the list below.",
+            ),
+            noResults: tSafe(
+              "admin.storeBuilder.reviewPicker.noResults",
+              "No more approved reviews with a comment",
+            ),
+            unavailable: tSafe(
+              "admin.storeBuilder.reviewPicker.unavailable",
+              "Review unavailable (no longer approved)",
+            ),
+            remove: tSafe("admin.storeBuilder.reviewPicker.remove", "Remove review"),
+            reorder: tSafe("admin.storeBuilder.reviewPicker.reorder", "Drag to reorder"),
+            limitReached: tSafe(
+              "admin.storeBuilder.reviewPicker.limitReached",
+              "Limit reached. Remove a review to add another.",
+            ),
+            verified: tSafe("admin.storeBuilder.reviewPicker.verified", "Verified purchase"),
+          }}
+        />
+      ) : null;
     case "coupon":
       return (
         <CouponSelect

@@ -9,6 +9,7 @@ import {
 import { toVendorOrderView } from "@/lib/vendors/vendor-order-view";
 import { fetchVendorOrderSettlements } from "@/lib/vendors/vendor-earnings";
 import { PAYMENT_STATUS } from "@/config/app.config";
+import { resolveDateFilter } from "@/lib/date-filter";
 import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 
 /**
@@ -53,36 +54,44 @@ interface VendorOrderListParams {
   status?: string;
   paymentStatus?: string;
   view?: string;
+  /** A named period or a picked day range; see `lib/date-filter.ts`. */
+  date?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
 
-export async function fetchVendorOrderList(
+/**
+ * The query behind a vendor's order list, narrowed to their consignments:
+ * every filter matches inside `subOrders[]` (status, payment), never
+ * order-wide. Null when the filters cannot both hold (a status outside the
+ * view's), which the list answers as empty.
+ *
+ * `consignment` adds conditions on the vendor's own consignment beside the
+ * status the view or `status` sets (the business app's pre-order tab).
+ */
+export function buildVendorOrderListFilter(
   {
-    page,
-    limit,
     search,
     status,
     paymentStatus,
     view,
-    sortBy,
-    sortOrder,
-  }: VendorOrderListParams,
+    date,
+    consignment,
+  }: Pick<
+    VendorOrderListParams,
+    "search" | "status" | "paymentStatus" | "view" | "date"
+  > & {
+    consignment?: Record<string, unknown>;
+  },
   vendorId: Types.ObjectId | string,
-): Promise<ListResult<unknown>> {
-  await connectDB();
-
-  const skip = (page - 1) * limit;
-
+): Record<string, unknown> | null {
   const andConditions: Record<string, unknown>[] = [];
 
   const statusFromView = getStatusesForView((view || "all") as ViewType);
   let subOrderStatusCondition: Record<string, unknown> | undefined;
 
   if (status && status !== "all") {
-    if (statusFromView && !statusFromView.includes(status)) {
-      return listResult([], page, limit, 0);
-    }
+    if (statusFromView && !statusFromView.includes(status)) return null;
     subOrderStatusCondition = { status };
   } else if (statusFromView) {
     subOrderStatusCondition = { status: { $in: statusFromView } };
@@ -91,6 +100,7 @@ export async function fetchVendorOrderList(
   const vendorSubOrderMatch = {
     vendorId,
     ...(subOrderStatusCondition || {}),
+    ...(consignment || {}),
   };
 
   andConditions.push({ subOrders: { $elemMatch: vendorSubOrderMatch } });
@@ -129,14 +139,47 @@ export async function fetchVendorOrderList(
     );
   }
 
+  // The day the order was placed, the same window the admin's list and the
+  // dashboard read from this value.
+  const placedWithin = resolveDateFilter(date);
+  if (placedWithin) {
+    andConditions.push({
+      createdAt: { $gte: placedWithin.from, $lte: placedWithin.to },
+    });
+  }
+
   if (search) {
     andConditions.push({
       $or: [{ orderNumber: { $regex: search, $options: "i" } }],
     });
   }
 
-  const query: Record<string, unknown> =
-    andConditions.length > 0 ? { $and: andConditions } : {};
+  return { $and: andConditions };
+}
+
+export async function fetchVendorOrderList(
+  {
+    page,
+    limit,
+    search,
+    status,
+    paymentStatus,
+    view,
+    date,
+    sortBy,
+    sortOrder,
+  }: VendorOrderListParams,
+  vendorId: Types.ObjectId | string,
+): Promise<ListResult<unknown>> {
+  await connectDB();
+
+  const skip = (page - 1) * limit;
+
+  const query = buildVendorOrderListFilter(
+    { search, status, paymentStatus, view, date },
+    vendorId,
+  );
+  if (!query) return listResult([], page, limit, 0);
 
   const allowedSortFields = new Set([
     "createdAt",

@@ -101,6 +101,7 @@ interface IExpense extends Document {
    * correction's figures while the row on screen showed the latest.
    */
   revision: number;
+  version: number;
   /**
    * The ledger account this expense's cost was debited to, decided at creation.
    *
@@ -195,6 +196,7 @@ const ExpenseSchema = new Schema<IExpense>(
     },
     note: { type: String, trim: true, maxlength: 1000, default: null },
     revision: { type: Number, default: 0, min: 0 },
+    version: { type: Number, default: 0, min: 0 },
     debitAccount: { type: String, default: null },
     createdBy: { type: String, required: true },
     updatedBy: { type: String, default: null },

@@ -14,6 +14,7 @@ import { loadOrderShipmentTracking } from "@/lib/orders/order-shipment-view";
 import { finalSaleItemIndexes } from "@/lib/returns/final-sale";
 import { resolveReturnPolicy } from "@/lib/returns/return-policy";
 import { getOrderReviewStates } from "@/lib/catalog/review-eligibility";
+import { preorderAutoChargeAt } from "@/lib/orders/preorder-scope";
 import {
   getPreorderBalanceDeadline,
   getPreorderBalanceDue,
@@ -89,6 +90,8 @@ export const GET = withApi<{ id: string }>(
             preorderBalanceDue: getPreorderBalanceDue(order),
             preorderPaidSoFar: getPreorderPaidSoFar(order),
             preorderBalanceDeadline: deadline ? deadline.toISOString() : undefined,
+            // When the saved card may be charged — on or after, never before.
+            preorderAutoChargeAt: preorderAutoChargeAt(order)?.toISOString(),
           };
         })()
       : null;

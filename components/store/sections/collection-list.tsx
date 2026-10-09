@@ -4,12 +4,19 @@ import { getTranslations } from "next-intl/server";
 import { AppImage } from "@/components/ui/app-image";
 import { type Locale } from "@/config/i18n.config";
 import { getStorefrontCollections } from "@/lib/storefront/storefront-collections";
+import { vendorFilterHref } from "@/lib/vendors/vendor-store-page";
+import { getVendorStoreTaxonomy } from "@/lib/vendors/vendor-store-taxonomy";
 import { SectionHeading } from "./section-shell";
 
 interface CollectionListProps {
   locale: Locale;
   title: string;
   limit: number;
+  /**
+   * A vendor's landing page: the collections that store sells in, each
+   * opening its own Products tab filtered to it, with its own product count.
+   */
+  vendor?: { id: string; slug: string };
 }
 
 /** Collection cards in position order, linking through to each collection. */
@@ -17,9 +24,27 @@ export async function CollectionList({
   locale,
   title,
   limit,
+  vendor,
 }: CollectionListProps) {
-  const result = await getStorefrontCollections({ page: 1, limit });
-  const collections = result.data;
+  const collections: {
+    _id: unknown;
+    title: string;
+    slug: string;
+    image?: unknown;
+    productCount?: number;
+    href?: string;
+  }[] = vendor
+    ? ((await getVendorStoreTaxonomy(vendor.id).catch(() => null))?.collections ?? [])
+        .slice(0, Math.max(1, limit))
+        .map((collection) => ({
+          _id: collection.id,
+          title: collection.title,
+          slug: collection.slug,
+          image: collection.image,
+          productCount: collection.productCount,
+          href: vendorFilterHref(locale, vendor.slug, "collection", collection.slug),
+        }))
+    : (await getStorefrontCollections({ page: 1, limit })).data;
   if (collections.length === 0) return null;
 
   const t = await getTranslations({ locale, namespace: "home" });
@@ -39,7 +64,7 @@ export async function CollectionList({
             return (
             <Link
               key={String(collection._id)}
-              href={`/collections/${collection.slug}`}
+              href={collection.href ?? `/collections/${collection.slug}`}
               className="group overflow-hidden rounded-md border border-border/70 bg-card transition-shadow hover:shadow-md"
             >
               <div className="relative aspect-[4/3] bg-muted">

@@ -2,6 +2,8 @@
  * Shared brand helpers used by the admin and vendor brand APIs.
  */
 
+import { foldForSlug } from "@/lib/strings";
+
 export const BRAND_APPROVAL_STATUS = {
   APPROVED: "approved",
   PENDING: "pending",
@@ -28,9 +30,35 @@ export const STOREFRONT_BRAND_FILTER = {
   deletedAt: null,
 } as const;
 
+/**
+ * Whether a brand is approved. Brands from before moderation existed have no
+ * `approvalStatus` and count as approved, same as `APPROVED_BRAND_CONDITION`.
+ */
+export function isApprovedBrand(brand: { approvalStatus?: string | null }): boolean {
+  return (
+    brand.approvalStatus !== BRAND_APPROVAL_STATUS.PENDING &&
+    brand.approvalStatus !== BRAND_APPROVAL_STATUS.REJECTED
+  );
+}
+
+/**
+ * Re-moderation rule for a vendor's edit: an already-approved brand whose name or
+ * logo changes goes back to the review queue before it can go live again. The
+ * same rule `PUT /api/vendor/brands/[id]` applies; a field that is not part of
+ * the edit (`undefined`) is not a change.
+ */
+export function vendorBrandEditNeedsReview(
+  current: { approvalStatus?: string | null; name?: string; logo?: string },
+  edit: { name?: string; logo?: string },
+): boolean {
+  if (current.approvalStatus !== BRAND_APPROVAL_STATUS.APPROVED) return false;
+  const nameChanged = edit.name !== undefined && edit.name.trim() !== current.name;
+  const logoChanged = edit.logo !== undefined && edit.logo !== current.logo;
+  return nameChanged || logoChanged;
+}
+
 export function slugifyBrand(value: string): string {
-  return value
-    .toLowerCase()
+  return foldForSlug(value)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }

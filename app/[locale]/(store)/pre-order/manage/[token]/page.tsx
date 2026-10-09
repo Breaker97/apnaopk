@@ -108,7 +108,7 @@ export default async function PreorderManagePage({ params }: PageProps) {
   await connectDB();
   const order = await Order.findById(orderId)
     .select(
-      "orderNumber status paymentStatus paymentMethod total refundedTotal digitalOnly shippingAddress hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount preorderReleaseDate preorderOriginalReleaseDate preorderDelayReason preorderBalanceRequestedAt subOrders.status subOrders.fulfillment.method subOrders.items.preorderOutstandingAmount",
+      "orderNumber status paymentStatus paymentMethod total refundedTotal digitalOnly shippingAddress hasPreorder preorderStatus preorderPaymentMode preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidAmount preorderReleaseDate preorderOriginalReleaseDate preorderDelayReason preorderBalanceRequestedAt preorderCollection subOrders.status subOrders.fulfillment.method subOrders.items.preorderOutstandingAmount",
     )
     .lean();
   if (!order || !order.hasPreorder) return <InvalidLink />;

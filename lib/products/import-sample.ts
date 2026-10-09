@@ -46,11 +46,12 @@ const ADMIN_ONLY_COLUMNS = new Set<SampleColumn>(["featured"]);
 const PLACEHOLDER_CATEGORY = "Your category";
 
 /**
- * Up to `count` categories a product can be filed under — leaves, written the
- * way the importer reads them unambiguously: the path ("Women > Dresses") for a
- * nested one, the slug for a top-level one whose name another category shares,
- * the plain name otherwise — so the sample imports into this store as it
- * stands instead of failing on a category it never had.
+ * Up to `count` categories to file the examples under — the deepest ones, as
+ * the most specific example (any level imports) — written the way the importer
+ * reads them unambiguously: the path ("Women > Dresses") for a nested one, the
+ * slug for a top-level one whose name another category shares, the plain name
+ * otherwise — so the sample imports into this store as it stands instead of
+ * failing on a category it never had.
  */
 async function sampleCategories(count: number): Promise<string[]> {
   const categories = await Category.find({})

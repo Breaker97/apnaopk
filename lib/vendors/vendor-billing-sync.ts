@@ -1,3 +1,6 @@
+import { financeQuery, financeTransaction } from "@/lib/finance/transaction";
+import { replaySubscriptionInvoice } from "@/lib/finance/payment-ledger";
+import { finishFinanceOperation } from "@/lib/finance/operations";
 import { Types } from "mongoose";
 import {
   VENDOR_APPLICATION_PAYMENT_STATUS,
@@ -75,6 +78,7 @@ export interface SubscriptionPaymentWrite {
   amountDue: number;
   amountPaid: number;
   amountRefunded: number;
+  refundsKnown?: boolean;
   currency: string;
   periodStart: Date | null;
   periodEnd: Date | null;
@@ -344,7 +348,10 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
     },
 
     async recordPayment(context, payment) {
-      const saved = await VendorSubscriptionPayment.findOneAndUpdate(
+      const outcome = await financeTransaction("subscription:record", async () => {
+      const previous = payment.refundsKnown === false ? await financeQuery(VendorSubscriptionPayment.findOne({ provider: payment.provider, providerInvoiceId: payment.providerInvoiceId })).select("amountRefunded").lean() : null;
+      const amountRefunded = payment.refundsKnown === false ? previous?.amountRefunded || 0 : payment.amountRefunded;
+      const saved = await financeQuery(VendorSubscriptionPayment.findOneAndUpdate(
         {
           provider: payment.provider,
           providerInvoiceId: payment.providerInvoiceId,
@@ -360,10 +367,10 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
           },
           $set: {
             providerPaymentIntentId: payment.providerPaymentIntentId,
-            status: payment.status,
+            status: amountRefunded > 0 && amountRefunded >= payment.amountPaid ? "refunded" : payment.status,
             amountDue: payment.amountDue,
             amountPaid: payment.amountPaid,
-            amountRefunded: payment.amountRefunded,
+            amountRefunded,
             currency: payment.currency,
             periodStart: payment.periodStart,
             periodEnd: payment.periodEnd,
@@ -376,27 +383,12 @@ function createMongoBillingSyncDependencies(): BillingSyncDependencies {
           },
         },
         { upsert: true, returnDocument: "after" },
-      ).lean<{ _id: unknown } | null>();
-
-      // Plan revenue. A subscription billed by the provider's own engine never
-      // becomes a `PlatformPayment`, so without this every renewal on a store
-      // using Stripe Billing was invisible to the profit and loss. Keyed on the
-      // row this upsert just settled, so a re-delivered webhook posts nothing.
-      if (!saved?._id) return;
-      const { postSubscriptionInvoiceSafely } = await import(
-        "@/lib/finance/post-events"
-      );
-      postSubscriptionInvoiceSafely({
-        _id: saved._id,
-        vendorId: context.subscription.vendorId,
-        providerInvoiceId: payment.providerInvoiceId,
-        status: payment.status,
-        amountPaid: payment.amountPaid,
-        amountRefunded: payment.amountRefunded,
-        currency: payment.currency,
-        paidAt: payment.paidAt,
-        providerCreatedAt: payment.providerCreatedAt,
+      )).lean<{ _id: unknown } | null>();
+      if (!saved?._id) return null;
+      return replaySubscriptionInvoice(saved._id);
       });
+      if (outcome && typeof outcome === "object") await finishFinanceOperation(outcome.operationId);
+
     },
 
     async updateSubscription(context, patch) {
@@ -619,6 +611,7 @@ function paymentWrite(
     amountDue: invoice.amountDue,
     amountPaid: invoice.amountPaid,
     amountRefunded: invoice.amountRefunded,
+    refundsKnown: invoice.refundsKnown,
     currency: invoice.currency,
     periodStart: invoice.periodStart,
     periodEnd: invoice.periodEnd,

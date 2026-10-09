@@ -84,3 +84,65 @@ export function describeAuthError(
     t("errors.unauthorized")
   );
 }
+
+/**
+ * The `?error=` codes a failed Google/Facebook sign-in brings back to the
+ * login page, by the sentence each one gets. Matched lowercased: Better Auth
+ * sends its own codes in snake_case but forwards our session hook's
+ * (`OAUTH_ACCOUNT_ROLE_CONFLICT`, …) exactly as thrown.
+ */
+const OAUTH_ERROR_KEYS: Record<string, string> = {
+  // The shopper said no on the provider's consent screen.
+  access_denied: "auth.errors.oauthCancelled",
+  user_cancelled_login: "auth.errors.oauthCancelled",
+  user_cancelled_authorize: "auth.errors.oauthCancelled",
+  // The state cookie set when sign-in began is gone or does not match: the
+  // round trip took longer than ten minutes, ended in another browser, or
+  // came back on a different host than it started from.
+  state_mismatch: "auth.errors.oauthSessionExpired",
+  state_not_found: "auth.errors.oauthSessionExpired",
+  state_invalid: "auth.errors.oauthSessionExpired",
+  state_security_mismatch: "auth.errors.oauthSessionExpired",
+  please_restart_the_process: "auth.errors.oauthSessionExpired",
+  email_not_found: "auth.errors.oauthEmailMissing",
+  unable_to_get_user_info: "auth.errors.oauthEmailMissing",
+  account_not_linked: "auth.errors.oauthAccountExists",
+  account_already_linked_to_different_user: "auth.errors.oauthAccountExists",
+  "email_doesn't_match": "auth.errors.oauthAccountExists",
+  unable_to_link_account: "auth.errors.oauthAccountExists",
+  email_not_verified: "auth.errors.oauthEmailNotVerified",
+  account_inactive_or_banned: "auth.errors.oauthAccountInactive",
+  oauth_customer_only: "auth.oauthCustomerOnly",
+  oauth_signin_is_only_available_for_customers: "auth.oauthCustomerOnly",
+};
+
+/**
+ * The sentence for a failed social sign-in, or null when the login page was
+ * opened without one. Only the code is ever read — never Better Auth's
+ * `error_description` — so a crafted link cannot put its own words on the
+ * sign-in page. A code nobody listed still gets the generic sentence, never
+ * silence: an OAuth round trip that lands back on the form with nothing said
+ * reads as a broken button.
+ */
+export function describeOAuthError(
+  error: { code: string | null; role?: string; email?: string },
+  t: Translate,
+): string | null {
+  const code = error.code?.trim().toLowerCase();
+  if (!code) return null;
+
+  if (code === "oauth_account_role_conflict") {
+    const rawRole = error.role?.trim() ?? "";
+    const role = rawRole
+      ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1)
+      : t("auth.vendorRole");
+    // Better Auth's own redirect carries the code alone; only a refusal that
+    // came back as JSON names the (masked) address.
+    const email = error.email?.trim();
+    return email
+      ? t("auth.oauthRoleConflict", { email, role })
+      : t("auth.oauthRoleConflictNoEmail", { role });
+  }
+
+  return t(OAUTH_ERROR_KEYS[code] ?? "auth.errors.oauthFailed");
+}

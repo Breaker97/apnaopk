@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { Order } from "@/models";
 import { getSettings } from "@/models/settings.model";
-import {
-  getOrangeMoneyCredentials,
-  getOrangeMoneyTransactionState,
-  getOrangeMoneyTransactionStatus,
-} from "@/lib/payments/orange-money";
-import { finalizeOrangeMoneyOrder } from "@/lib/payments/orange-money-orders";
-import { resolveOrangeMoneyCredentials } from "@/lib/settings/credentials";
+import { checkOrangeMoneyPayment } from "@/lib/payments/orange-money-verify";
 import { isPlatformPaymentReference } from "@/models/platformPayment.model";
 import {
   findPlatformPaymentByReference,
@@ -104,22 +98,20 @@ export const POST = withApi(
     }
 
     const settings = await getSettings();
-    const resolved = resolveOrangeMoneyCredentials(
-      settings.payment?.orange_money,
-    );
-    const creds = getOrangeMoneyCredentials(resolved);
 
-    // What every gateway is held to — store credit included (R8).
-    const expectedAmount = amountDueNow(order);
-
-    const transaction = await getOrangeMoneyTransactionStatus({
-      creds,
-      orderId,
-      amount: expectedAmount,
+    // Orange's word on it — see lib/payments/orange-money-verify.ts. Asked
+    // about what every gateway is held to, store credit included (R8).
+    const check = await checkOrangeMoneyPayment({
+      orangeMoneyOrderId: orderId,
       payToken: order.orangeMoneyPayToken,
+      amount: amountDueNow(order),
+      settings,
+      sessionUserId: session?.user?.id,
+      cartSessionId,
+      customerEmail: session?.user?.email,
     });
 
-    const state = getOrangeMoneyTransactionState(transaction);
+    const state = check.state;
     if (state !== "completed") {
       return NextResponse.json({
         success: true,
@@ -131,15 +123,7 @@ export const POST = withApi(
       });
     }
 
-    const result = await finalizeOrangeMoneyOrder({
-      orderId,
-      transaction,
-      mode: creds.mode,
-      settings,
-      sessionUserId: session?.user?.id,
-      cartSessionId,
-      customerEmail: session?.user?.email,
-    });
+    const result = await check.settle();
 
     return NextResponse.json({
       success: true,

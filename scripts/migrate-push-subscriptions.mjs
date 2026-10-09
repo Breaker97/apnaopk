@@ -28,6 +28,13 @@ import mongoose from "mongoose";
  * Also backfills `platform: "web"` on existing rows so the sender can tell the
  * two kinds apart; a schema default only applies to new documents.
  *
+ * Re-run for the mobile app (safe on a database that already had the steps
+ * above): every native install registered before installs said which app
+ * they are is the shopper app's, so it gets `app: "shop"` — the business app
+ * will register its own, and the sender sends a store's own notifications
+ * only there. And the `pushtickets` collection gets its TTL index: native
+ * pushes waiting for their delivery receipt, kept a day at most.
+ *
  * Deployment ordering matters: run this AFTER deploying the code whose schema
  * declares the partial indexes.
  *
@@ -72,6 +79,28 @@ async function listIndexes(collection) {
     // Collection does not exist yet (fresh install) — nothing to migrate.
     return null;
   }
+}
+
+const TICKETS = "pushtickets";
+const TICKET_TTL_SECONDS = 24 * 60 * 60;
+
+async function ensureTicketIndex(db) {
+  const tickets = db.collection(TICKETS);
+  const existing = (await listIndexes(tickets))?.find((index) => index.name === "createdAt_1");
+  if (existing?.expireAfterSeconds === TICKET_TTL_SECONDS) {
+    console.log(`   ✓ ${TICKETS}.createdAt_1 already expires after a day`);
+    return;
+  }
+  if (DRY_RUN) {
+    console.log(`   [dry-run] would ${existing ? "recreate" : "create"} ${TICKETS}.createdAt_1 (TTL one day)`);
+    return;
+  }
+  if (existing) await tickets.dropIndex("createdAt_1");
+  await tickets.createIndex(
+    { createdAt: 1 },
+    { name: "createdAt_1", expireAfterSeconds: TICKET_TTL_SECONDS },
+  );
+  console.log(`   + created ${TICKETS}.createdAt_1 (TTL one day)`);
 }
 
 async function main() {
@@ -137,6 +166,7 @@ async function main() {
   }
 
   // 3. Backfill platform on pre-existing (browser) registrations.
+  //    (Native rows always carried one, so they are never caught here.)
   const missingPlatform = await collection.countDocuments({
     platform: { $exists: false },
   });
@@ -153,6 +183,26 @@ async function main() {
     );
     console.log(`   ~ set platform="web" on ${result.modifiedCount} document(s)`);
   }
+
+  // 4. Native installs from before `app` existed are the shopper app's.
+  const nativeWithoutApp = {
+    platform: { $in: ["ios", "android"] },
+    app: { $exists: false },
+  };
+  const missingApp = await collection.countDocuments(nativeWithoutApp);
+  if (missingApp === 0) {
+    console.log(`   ✓ ${COLLECTION}.app already set on every app install`);
+  } else if (DRY_RUN) {
+    console.log(`   [dry-run] would set app="shop" on ${missingApp} app install(s)`);
+  } else {
+    const result = await collection.updateMany(nativeWithoutApp, {
+      $set: { app: "shop" },
+    });
+    console.log(`   ~ set app="shop" on ${result.modifiedCount} app install(s)`);
+  }
+
+  // 5. Push tickets expire a day after the send (Expo keeps receipts that long).
+  await ensureTicketIndex(db);
 
   console.log("\nDone.");
   await mongoose.disconnect();

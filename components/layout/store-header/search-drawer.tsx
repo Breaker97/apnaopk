@@ -126,10 +126,8 @@ export function SearchDrawer({
   }, [open, shelfKey]);
 
   const typing = query.trim().length >= 2;
-  const trendingLabel = t.has("nav.trendingSearches")
-    ? t("nav.trendingSearches")
-    : "Trending searches";
-  const closeLabel = t.has("common.close") ? t("common.close") : "Close";
+  const trendingLabel = t("nav.trendingSearches");
+  const closeLabel = t("common.close");
 
   const submit = (event: FormEvent) => {
     onSubmit(event);
@@ -150,7 +148,7 @@ export function SearchDrawer({
         }}
       >
         <SheetTitle className="sr-only">
-          {t.has("common.search") ? t("common.search") : "Search"}
+          {t("common.search")}
         </SheetTitle>
 
         <div className="relative px-4 pb-6 pt-5 sm:px-8">

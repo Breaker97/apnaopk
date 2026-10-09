@@ -5,17 +5,18 @@ import crypto from "crypto";
 import type { Address } from "@/types";
 import type { ISettings } from "@/models/settings.model";
 import type { MarketingSuppressionReason } from "@/lib/customers/marketing-consent";
-import { AbandonedCheckout, Cart, EmailDelivery } from "@/models";
+import { AbandonedCheckout, Cart, EmailDelivery, Order } from "@/models";
 import { sendEmail } from "@/lib/email/email";
 import { escapeHtml } from "@/lib/email/escape-html";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
+import { stampCheckoutLineVendors } from "@/lib/orders/abandoned-checkout-vendors";
 
 type CheckoutCartDocument = {
   _id: unknown;
   userId?: unknown;
   sessionId?: string;
-  items?: Array<{ price?: number; quantity?: number }>;
+  items?: Array<{ productId?: unknown; price?: number; quantity?: number }>;
   checkoutToken?: string;
   checkoutUrl?: string;
   recoveryToken?: string;
@@ -203,6 +204,27 @@ async function ensureCheckoutToken(
   return token;
 }
 
+/**
+ * What a snapshot call answers — the cart's id and recovery link — for a
+ * checkout that is not recorded, so the reply does not show that it wasn't.
+ * Nothing is saved: a link minted here leads nowhere, and the storefront
+ * never reads it.
+ */
+export async function unrecordedCheckoutReply(
+  cart: CheckoutCartDocument,
+  params: { locale?: string } = {},
+) {
+  return {
+    checkoutId: String(cart._id),
+    checkoutUrl:
+      cart.checkoutUrl ||
+      (await buildCheckoutRecoveryUrl({
+        locale: params.locale || cart.customerLocale,
+        token: cart.checkoutToken || cart.recoveryToken || crypto.randomUUID(),
+      })),
+  };
+}
+
 export async function updateCheckoutSnapshot(
   cart: CheckoutCartDocument,
   input: CheckoutSnapshotInput,
@@ -337,6 +359,11 @@ export async function upsertAbandonedCheckoutSnapshot(
       }),
     );
 
+  // Each line's seller, so a vendor's list can show its own lines and nobody
+  // else's. Null when the products could not be read: the lines are still
+  // written, and the sellers recorded last time stay as they were.
+  const stamped = await stampCheckoutLineVendors(cart.items || []);
+
   await AbandonedCheckout.findOneAndUpdate(
     { checkoutToken: token },
     {
@@ -359,7 +386,8 @@ export async function upsertAbandonedCheckoutSnapshot(
         landingSite: cart.landingSite,
         referringSite: cart.referringSite,
         gateway: cart.gateway,
-        items: cart.items || [],
+        items: stamped?.items ?? cart.items ?? [],
+        ...(stamped ? { vendorIds: stamped.vendorIds } : {}),
         itemCount,
         subtotalPrice,
         shippingPrice: cart.shippingPrice || 0,
@@ -503,9 +531,12 @@ export async function markCheckoutRecovered(params: {
     status: "recovered",
     orderId: params.orderId,
   });
-  await recordRecoveredRevenue(cart, params.total, params.recoveredVia).catch(
-    (err) => console.error("Failed to record recovered checkout revenue:", err),
-  );
+  await recordRecoveredRevenue(
+    cart,
+    params.total,
+    params.recoveredVia,
+    params.orderId,
+  ).catch((err) => console.error("Failed to record recovered checkout revenue:", err));
   // The cart is an order now; its other gateway attempts will never be paid.
   const { retireCartCheckoutAttempts } = await import(
     "@/lib/checkout/checkout-attempts"
@@ -525,6 +556,11 @@ export async function markCheckoutRecovered(params: {
  * the third says the cart will not be held for ever. None of them invents a
  * discount — a store that trains its shoppers to abandon a checkout for money
  * off has taught them something expensive.
+ *
+ * The one exception is the marketplace's to make: where the store lets its
+ * vendors make offers (Vendors → Configuration), a vendor's own discount — at
+ * the vendor's cost, on the vendor's goods — can ride on the second rung
+ * (`lib/orders/abandoned-offers.ts`). The store's copy still promises nothing.
  */
 const RECOVERY_EMAIL_COPY: Record<
   number,
@@ -557,21 +593,25 @@ const RECOVERY_EMAIL_COPY: Record<
  * reminder that worked from a shopper who would have returned anyway. A
  * checkout that came back with no email sent is recorded as `organic`, so the
  * two are never added together. One paid through a failed payment's pay link
- * is `pay_link`: that email, not the ladder, is what it answered.
+ * is `pay_link`: that email, not the ladder, is what it answered. One whose
+ * order carried a vendor's offer code is `vendor_offer` — the code is proof
+ * the offer was used, which no email can claim — and the offer is marked used.
  */
 async function recordRecoveredRevenue(
   cart: CheckoutCartDocument,
   total?: number,
   via?: "pay_link",
+  orderId?: unknown,
 ) {
   const token = cart.checkoutToken || cart.recoveryToken;
   if (!token) return;
 
   const record = await AbandonedCheckout.findOne({ checkoutToken: token })
-    .select("recoveryEmails totalPrice")
+    .select("recoveryEmails totalPrice offers")
     .lean<{
       recoveryEmails?: Array<{ step: number; status?: string; sentAt?: Date }>;
       totalPrice?: number;
+      offers?: Array<{ _id: unknown; code?: string }>;
     } | null>();
   if (!record) return;
 
@@ -579,6 +619,16 @@ async function recordRecoveredRevenue(
     .filter((rung) => rung.status === "sent")
     .sort((a, b) => a.step - b.step)
     .pop();
+
+  // Read only where there is an offer to match: most checkouts never had one.
+  let offerUsed: { _id: unknown } | undefined;
+  if (orderId && record.offers?.length) {
+    const order = await Order.findById(orderId)
+      .select("coupon.code")
+      .lean<{ coupon?: { code?: string } } | null>();
+    const code = order?.coupon?.code?.trim().toUpperCase();
+    offerUsed = code ? record.offers.find((offer) => offer.code === code) : undefined;
+  }
 
   await AbandonedCheckout.updateOne(
     { checkoutToken: token },
@@ -589,10 +639,24 @@ async function recordRecoveredRevenue(
           Number(cart.totalPrice) ||
           Number(record.totalPrice) ||
           0,
-        recoveredVia: via ?? (lastSent ? `email_${lastSent.step}` : "organic"),
+        recoveredVia: offerUsed
+          ? "vendor_offer"
+          : (via ?? (lastSent ? `email_${lastSent.step}` : "organic")),
       },
     },
   );
+  if (offerUsed) {
+    await AbandonedCheckout.updateOne(
+      { checkoutToken: token, "offers._id": offerUsed._id },
+      {
+        $set: {
+          "offers.$.status": "used",
+          "offers.$.usedAt": new Date(),
+          "offers.$.orderId": orderId,
+        },
+      },
+    );
+  }
 }
 
 export async function sendAbandonedCheckoutRecoveryEmail(params: {
@@ -607,6 +671,14 @@ export async function sendAbandonedCheckoutRecoveryEmail(params: {
    * answer to a shopper who says the link never arrived.
    */
   dedupe?: boolean;
+  /**
+   * A vendor's offer to carry (`lib/orders/abandoned-offers.ts`): its block of
+   * HTML, set between the lead and the button, and — for an offer sent on its
+   * own — the subject and lead that replace the rung's.
+   */
+  offer?: { html: string; subject?: string; lead?: string };
+  /** The outbox key, when the caller owns it (an offer sent on its own). */
+  dedupeKey?: string;
 }): Promise<{
   outcome: RecoveryEmailOutcome;
   dedupeKey?: string;
@@ -667,6 +739,10 @@ export async function sendAbandonedCheckoutRecoveryEmail(params: {
 
   const step = Math.min(Math.max(Number(params.step) || 1, 1), 3);
   const copy = RECOVERY_EMAIL_COPY[step] || RECOVERY_EMAIL_COPY[1];
+  // A vendor's offer is built (and escaped) by its own module; the store's
+  // copy stays the store's unless the offer goes out on its own.
+  const lead = params.offer?.lead ? escapeHtml(params.offer.lead) : copy.lead;
+  const subject = params.offer?.subject ?? copy.subject(storeName);
 
   // Escaped, every one: the name is whatever was typed into a checkout — by
   // anyone, against any address — so unescaped it let a stranger send a
@@ -675,7 +751,8 @@ export async function sendAbandonedCheckoutRecoveryEmail(params: {
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
       <h2 style="margin:0 0 12px">${escapeHtml(storeName)}</h2>
       <p>Hi ${escapeHtml(firstName)},</p>
-      <p>${copy.lead}</p>
+      <p>${lead}</p>
+      ${params.offer?.html ?? ""}
       <p><a href="${escapeHtml(recoveryUrl)}" style="display:inline-block;background:#111827;color:#fff;padding:12px 18px;border-radius:6px;text-decoration:none">${copy.cta}</a></p>
       <p style="color:#6b7280;font-size:13px">If you already completed your order, you can ignore this email.</p>
       ${
@@ -698,13 +775,14 @@ export async function sendAbandonedCheckoutRecoveryEmail(params: {
   // is never deduped away (that is the point of the button), and it can still
   // be found in the outbox afterwards to say whether it actually went.
   const dedupeKey =
-    params.dedupe === false
+    params.dedupeKey ??
+    (params.dedupe === false
       ? `checkout-recovery-manual:${token}:${Date.now()}:${step}`
-      : recoveryEmailDedupeKey(token, cart.abandonedAt, step);
+      : recoveryEmailDedupeKey(token, cart.abandonedAt, step));
 
   const sent = await sendEmail({
     to,
-    subject: copy.subject(storeName),
+    subject,
     html,
     settings,
     // Marketing rather than transactional: the suppression check in
@@ -801,7 +879,7 @@ async function outboxOutcome(dedupeKey: string): Promise<RecoveryEmailOutcome> {
  * too, since they have just asked for it — unless they are on record as having
  * said no, which is the newer, deliberate answer.
  */
-async function filterConsentingCheckouts(
+export async function filterConsentingCheckouts(
   candidates: Array<{ _id: unknown; email?: string; buyerAcceptsMarketing?: boolean }>,
   limit: number,
 ) {
@@ -987,7 +1065,11 @@ async function sendDueRecoveryEmails(params: {
       $elemMatch: { status: "pending", claimedAt: null, dueAt: { $lte: now } },
     },
   })
-    .select("_id cartId email buyerAcceptsMarketing recoveryEmails")
+    // Items, sellers, offers and the shopper's account are read for the
+    // vendor's standing offer, which rides on one rung (see below).
+    .select(
+      "_id cartId email buyerAcceptsMarketing recoveryEmails items vendorIds offers userId abandonedAt",
+    )
     // Oldest first, so a backlog drains in order. Without it the consent
     // filter below — which reads three times the page and keeps what it may
     // send — could take the same non-consenting rows every run and never
@@ -1009,6 +1091,18 @@ async function sendDueRecoveryEmails(params: {
           claimedAt?: Date;
           status?: string;
         }>;
+        items?: Array<{ productId?: unknown; vendorId?: unknown; name?: string; price?: number; quantity?: number }>;
+        vendorIds?: unknown[];
+        offers?: Array<{
+          _id?: unknown;
+          vendorId?: unknown;
+          code?: string;
+          status?: string;
+          validUntil?: Date;
+          createdAt?: Date;
+        }>;
+        userId?: unknown;
+        abandonedAt?: Date;
       }>
     >();
 
@@ -1063,13 +1157,43 @@ async function sendDueRecoveryEmails(params: {
       continue;
     }
 
+    // A vendor's standing offer rides on one rung of the ladder rather than
+    // adding an email of its own — the shopper still gets three at most.
+    // Never in the way of the reminder: if the offer cannot be made, the
+    // rung goes out without it.
+    let automaticOffer: Awaited<
+      ReturnType<typeof import("@/lib/orders/abandoned-offers").prepareAutomaticOffer>
+    > = null;
+    try {
+      const { offerRungStep } = await import("@/lib/orders/abandoned-offer-state");
+      if (rung.step === offerRungStep(record.recoveryEmails)) {
+        const { prepareAutomaticOffer } = await import("@/lib/orders/abandoned-offers");
+        automaticOffer = await prepareAutomaticOffer({
+          record,
+          settings: params.settings,
+          now,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to prepare a vendor's automatic offer:", error);
+    }
+    const settleAutomaticOffer = async (outcome: string, dedupeKey?: string) => {
+      if (!automaticOffer) return;
+      const { settleOffer } = await import("@/lib/orders/abandoned-offers");
+      await settleOffer(record._id, automaticOffer.offer, outcome, dedupeKey).catch(
+        (error) => console.error("Failed to record a vendor's automatic offer:", error),
+      );
+    };
+
     try {
       const { outcome, dedupeKey, suppression } =
         await sendAbandonedCheckoutRecoveryEmail({
           cart,
           settings: params.settings,
           step: rung.step,
+          ...(automaticOffer ? { offer: automaticOffer.mail } : {}),
         });
+      await settleAutomaticOffer(outcome, dedupeKey);
       if (outcome === "suppressed") {
         // Not a failure, and not something the next sweep should retry. A
         // refusal ends every ladder running for the address; an unconfirmed
@@ -1097,6 +1221,7 @@ async function sendDueRecoveryEmails(params: {
     } catch (error) {
       failed += 1;
       await closeRecoveryRung(record._id, rung.step, "failed");
+      await settleAutomaticOffer("failed");
       console.error("Failed to send abandoned checkout recovery email:", error);
     }
   }

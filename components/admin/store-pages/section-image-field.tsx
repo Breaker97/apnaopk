@@ -4,6 +4,7 @@ import { MediaUploader, type UploadedMedia } from "@/components/ui/media-uploade
 import { AiStudioImageField } from "@/components/ai-authoring/ai-studio-image-field";
 import { HeroBannerAiStudio } from "@/components/ai-authoring/hero-banner-ai-studio";
 import { PROMO_CARD_SLOT_STUDIOS } from "@/components/ai-authoring/promo-card-ai-studio";
+import { useStoreBuilderScope } from "./builder-scope";
 
 export interface ImageFieldContext {
   locale: string;
@@ -38,8 +39,15 @@ export function SectionImageField({
   sizeGuide?: string;
   previewAspectRatio?: string;
 }) {
+  // The AI studios run on the scope's own AI routes (the admin's, or the
+  // vendor's); a builder without any gets the uploader alone.
+  const { aiScope } = useStoreBuilderScope();
+  // The hero-banner studio has an admin route only; elsewhere a slide image
+  // takes the generic studio.
   const isHeroSlide =
-    context.sectionType === "slideshow" && context.blockType === "slide";
+    aiScope === "admin" &&
+    context.sectionType === "slideshow" &&
+    context.blockType === "slide";
   const promoSlot =
     context.sectionType === "promotion-grid" && context.blockType === "card"
       ? (PROMO_CARD_SLOT_STUDIOS[context.blockIndex ?? 0] ??
@@ -60,7 +68,7 @@ export function SectionImageField({
   ) : (
     <AiStudioImageField
       entity="content_page"
-      scope="admin"
+      scope={aiScope ?? "admin"}
       locale={context.locale}
       targetField={`${context.sectionType}Image`}
       audience="shopper"
@@ -112,7 +120,7 @@ export function SectionImageField({
         const image = items.find((item) => item.type === "image");
         onChange(image?.url || "");
       }}
-      aiGenerateAction={aiAction}
+      aiGenerateAction={aiScope ? aiAction : undefined}
     />
   );
 }

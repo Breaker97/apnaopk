@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "@/components/language/link";
 import { NativeSelect } from "@/components/ui/native-select";
 import { apiClient } from "@/lib/api/client";
+import { useStoreBuilderScope } from "./builder-scope";
 
 interface SliderOption {
   _id: string;
@@ -29,12 +30,14 @@ export function SliderSelect({
   noneLabel: string;
   manageLabel: string;
 }) {
+  // The store's sliders by default; a vendor's builder lists their own.
+  const { slidersEndpoint, manageSlidersHref } = useStoreBuilderScope();
   const [options, setOptions] = useState<SliderOption[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     apiClient
-      .get<SliderOption[]>("/api/admin/sliders")
+      .get<SliderOption[]>(slidersEndpoint)
       .then((sliders) => {
         if (!cancelled && Array.isArray(sliders)) setOptions(sliders);
       })
@@ -44,7 +47,7 @@ export function SliderSelect({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [slidersEndpoint]);
 
   const known = options.some((option) => option.handle === value);
 
@@ -69,7 +72,7 @@ export function SliderSelect({
         ))}
       </NativeSelect>
       <Link
-        href="/admin/online-store/sliders"
+        href={manageSlidersHref}
         className="inline-block text-xs font-medium text-primary hover:underline"
       >
         {manageLabel}

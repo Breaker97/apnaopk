@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "@/components/language/link";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -24,8 +23,15 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { WarningBanner } from "@/components/ui/warning-banner";
 import { StorageProviderToggle } from "@/components/admin/storage-provider-toggle";
-import { createTSafe } from "@/components/admin/online-store/t-safe";
+import { createTSafe, type TSafe } from "@/components/admin/online-store/t-safe";
+import { rememberLocale } from "@/hooks/use-locale-navigation";
 import { apiClient, ApiClientError } from "@/lib/api/client";
+import { buildLocalePath } from "@/lib/i18n/locale-prefix";
+import {
+  readInstallCompletion,
+  type InstallCompletion,
+  type InstallWarningCode,
+} from "@/lib/install/completion";
 import {
   INSTALL_TOKEN_HEADER,
   findAppUrlProblem,
@@ -34,6 +40,7 @@ import {
 } from "@/lib/install/payload";
 import type { StorageProvider } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/providers/app-settings-provider";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 
 interface TemplateOption {
@@ -75,6 +82,37 @@ const LANGUAGE_OPTIONS = locales.map((code) => {
 
 type Step = "check" | "admin" | "store" | "storage" | "template" | "done";
 const STEPS: Step[] = ["check", "admin", "store", "storage", "template"];
+
+/** The finish's warning codes, worded in the buyer's language. */
+function describeInstallWarning(code: InstallWarningCode, tSafe: TSafe): string {
+  switch (code) {
+    case "sample_catalog_empty":
+      return tSafe(
+        "install.warnings.sampleCatalogEmpty",
+        "No sample catalog ships with this template — you can import one from Products after signing in.",
+      );
+    case "sample_catalog_failed":
+      return tSafe(
+        "install.warnings.sampleCatalogFailed",
+        "The sample catalog could not be imported — you can import one from Products after signing in.",
+      );
+    case "sample_catalog_skipped":
+      return tSafe(
+        "install.warnings.sampleCatalogSkipped",
+        "The sample catalog was not imported. Once setup is finished, you can import one from Products.",
+      );
+    case "template_failed":
+      return tSafe(
+        "install.warnings.templateFailed",
+        "The template could not be applied — pick it under Online Store → Themes after signing in.",
+      );
+    case "template_skipped":
+      return tSafe(
+        "install.warnings.templateSkipped",
+        "The template was not applied. Once setup is finished, pick it under Online Store → Themes.",
+      );
+  }
+}
 
 /** Every credential the four backends can ask for, in one flat draft. */
 type StorageDraft = Record<StorageField["key"], string> & {
@@ -200,6 +238,7 @@ export function InstallWizard({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  const { refreshSettings } = useAppSettings();
 
   const [status, setStatus] = useState<InstallStatus | null>(null);
   const [step, setStep] = useState<Step>("check");
@@ -210,7 +249,15 @@ export function InstallWizard({
   const [installToken, setInstallToken] = useState("");
   const [checkingToken, setCheckingToken] = useState(false);
   const tokenHeaders = { headers: { [INSTALL_TOKEN_HEADER]: installToken.trim() } };
-  const [warnings, setWarnings] = useState<string[]>([]);
+  // What the finish reported. Once it is set the installer is locked on the
+  // server, whatever it says: nothing from here on may offer to submit again.
+  const [completion, setCompletion] = useState<InstallCompletion | null>(null);
+  // The page around the wizard was rendered with the PRE-install settings
+  // (no name, USD, English). "failed" only means this page could not load
+  // the new ones — the install itself is done, and signing in loads them.
+  const [settingsRefresh, setSettingsRefresh] = useState<
+    "idle" | "loading" | "failed"
+  >("idle");
 
   const [admin, setAdmin] = useState({ name: "", email: "", password: "" });
   const [store, setStore] = useState({
@@ -315,33 +362,65 @@ export function InstallWizard({
     loadStatus();
   }, [loadStatus]);
 
+  /** Loads the installed store's name, currency and languages into the page. */
+  const loadInstalledSettings = async () => {
+    setSettingsRefresh("loading");
+    const refreshed = await refreshSettings().catch(() => false);
+    setSettingsRefresh(refreshed ? "idle" : "failed");
+  };
+
   const submit = async () => {
     setSubmitting(true);
     setError(null);
+    let outcome: InstallCompletion;
     try {
-      const result = await apiClient.post<{ ok: boolean; warnings: string[] }>(
-        "/api/install/complete",
-        {
-          admin,
-          store,
-          storage: skipStorage ? null : buildStorage(),
-          template,
-          sampleData,
-        },
-        tokenHeaders,
+      outcome = readInstallCompletion(
+        await apiClient.post<unknown>(
+          "/api/install/complete",
+          {
+            admin,
+            store,
+            storage: skipStorage ? null : buildStorage(),
+            template,
+            sampleData,
+          },
+          tokenHeaders,
+        ),
       );
-      setWarnings(result.warnings ?? []);
-      setStep("done");
     } catch (err) {
+      // Refused before the admin existed (or never reached the server): the
+      // installer is still open, so trying again is the right advice.
       setError(
         err instanceof ApiClientError
           ? err.message
           : tSafe("install.failed", "Installation failed — please try again"),
       );
-    } finally {
       setSubmitting(false);
+      return;
     }
+    setCompletion(outcome);
+    setStep("done");
+    setSubmitting(false);
+    // After the step change, and outside the try above: a settings read that
+    // fails is not a failed install and must never be reported as one.
+    await loadInstalledSettings();
   };
+
+  /**
+   * The sign-in page in the language the store was just set up in. Its URL
+   * is unprefixed (that language is now the store default), and the proxy
+   * serves an unprefixed URL in whatever language the locale cookie names —
+   * so the cookie is set to it first, for this handoff only.
+   *
+   * A full page load, not a client-side navigation: the providers around
+   * this page were rendered for the store as it was before the install.
+   */
+  const signInHref = buildLocalePath(
+    store.language,
+    "/login",
+    store.language as Locale,
+  );
+  const handOverToSignIn = () => rememberLocale(store.language);
 
   /**
    * The first step's Continue: the token is checked here, so a mistyped one
@@ -958,38 +1037,109 @@ export function InstallWizard({
               </div>
             ) : null}
 
-            {step === "done" ? (
+            {step === "done" && completion ? (
               <div className="space-y-4 py-4 text-center">
-                <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold">
-                    {tSafe("install.doneTitle", "Your store is ready")}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {tSafe(
-                      "install.doneSubtitle",
-                      "Sign in with the admin account you just created.",
-                    )}
-                  </p>
-                </div>
-                {warnings.length > 0 ? (
-                  <div className="space-y-1.5 rounded-md border border-border bg-muted/40 p-3 text-left">
-                    {warnings.map((warning) => (
+                {completion.setupComplete ? (
+                  <>
+                    <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-semibold">
+                        {tSafe("install.doneTitle", "Your store is ready")}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {tSafe(
+                          "install.doneSubtitle",
+                          "Sign in with the admin account you just created.",
+                        )}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="mx-auto h-10 w-10 text-amber-500" />
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-semibold">
+                        {tSafe(
+                          "install.incompleteTitle",
+                          "Your store is installed, but setup is not finished",
+                        )}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {tSafe(
+                          "install.incompleteSubtitle",
+                          "Your admin account works, but the store profile your products belong to could not be created. Finish it from the admin:",
+                        )}
+                      </p>
+                    </div>
+                    <ol className="list-decimal space-y-1 rounded-md border border-border p-3 ps-8 text-start text-sm">
+                      <li>
+                        {tSafe(
+                          "install.incompleteStepSignIn",
+                          "Sign in with the admin account you just created.",
+                        )}
+                      </li>
+                      <li>
+                        {tSafe(
+                          "install.incompleteStepGeneral",
+                          "Open Settings → General Settings.",
+                        )}
+                      </li>
+                      <li>
+                        {tSafe(
+                          "install.incompleteStepSave",
+                          "Check the store name, language and currency, then click Save.",
+                        )}
+                      </li>
+                    </ol>
+                    <p className="text-xs text-muted-foreground">
+                      {tSafe(
+                        "install.incompleteNote",
+                        "Saving creates the missing store profile. The installer cannot be run again now that your account exists.",
+                      )}
+                    </p>
+                  </>
+                )}
+                {completion.warnings.length > 0 ? (
+                  <div className="space-y-1.5 rounded-md border border-border bg-muted/40 p-3 text-start">
+                    {completion.warnings.map((code) => (
                       <p
-                        key={warning}
+                        key={code}
                         className="flex items-start gap-2 text-xs text-muted-foreground"
                       >
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        {warning}
+                        {describeInstallWarning(code, tSafe)}
                       </p>
                     ))}
                   </div>
                 ) : null}
+                {settingsRefresh === "failed" ? (
+                  <WarningBanner
+                    className="text-start"
+                    action={
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={() => void loadInstalledSettings()}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        {tSafe("install.settingsRefreshRetry", "Try again")}
+                      </Button>
+                    }
+                  >
+                    {tSafe(
+                      "install.settingsRefreshFailed",
+                      "Your store is installed, but this page could not load its new name and currency. Signing in loads them.",
+                    )}
+                  </WarningBanner>
+                ) : null}
                 <Button asChild className="gap-1.5">
-                  <Link href="/login">
+                  {/* A plain anchor on purpose: a full page load (see signInHref). */}
+                  <a href={signInHref} onClick={handOverToSignIn}>
                     {tSafe("install.goToLogin", "Go to sign in")}
                     <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-                  </Link>
+                  </a>
                 </Button>
               </div>
             ) : null}

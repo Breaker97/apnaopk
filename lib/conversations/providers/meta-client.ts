@@ -1,168 +1,14 @@
 import { ServiceUnavailableError, ValidationError } from "@/lib/api/errors";
+import { graphRequest, graphUrl } from "@/lib/meta/graph-client";
 import type {
   IChannelConnection,
   MessageProvider,
 } from "@/models/channel-connection.model";
 import { decryptMessagingSecret } from "@/lib/conversations/secret-box";
 
-function graphVersion() {
-  const version = process.env.META_GRAPH_API_VERSION?.trim();
-  if (!version || !/^v\d+\.\d+$/.test(version)) {
-    throw new ServiceUnavailableError(
-      "META_GRAPH_API_VERSION is not configured",
-      undefined,
-      "META_GRAPH_VERSION_NOT_CONFIGURED",
-    );
-  }
-  return version;
-}
-
-/** Meta codes that mean the stored token is dead — retrying cannot help. */
-const META_AUTH_ERROR_CODES = new Set([102, 190, 463, 467]);
-
-/** Meta codes that mean "slow down", not "this will never work". */
-const META_THROTTLE_ERROR_CODES = new Set([4, 17, 32, 613, 80007, 131056]);
-
-/**
- * Meta codes that are terminal for THIS message: the payload, recipient or
- * template is unacceptable, so the outbox should dead-letter it immediately
- * instead of burning eight retries on a guaranteed rejection.
- */
-const META_PERMANENT_ERROR_CODES = new Set([
-  10, // permission denied
-  100, // invalid parameter
-  131026, // message undeliverable
-  131047, // re-engagement required (24h window closed)
-  131051, // unsupported message type
-  131052, // media download error
-  131053, // media upload error
-  132000, // template param count mismatch
-  132001, // template does not exist
-  132005, // template hydrated text too long
-  132007, // template format character policy violated
-  132012, // template parameter format mismatch
-  132015, // template is paused
-  132016, // template is disabled
-  368, // temporarily blocked for policy violations
-]);
-
-/**
- * A Graph API failure with Meta's structured error preserved.
- *
- * The previous `new Error(payload.error.message)` destroyed `code` /
- * `error_subcode` at the transport boundary, which left every caller unable to
- * tell a revoked token from a rate limit from a malformed template — so all
- * three were retried identically.
- */
-export class MetaGraphError extends Error {
-  readonly status: number;
-  readonly code?: number;
-  readonly subcode?: number;
-  readonly type?: string;
-  readonly fbtraceId?: string;
-  readonly retryAfterSeconds?: number;
-
-  constructor(params: {
-    message: string;
-    status: number;
-    code?: number;
-    subcode?: number;
-    type?: string;
-    fbtraceId?: string;
-    retryAfterSeconds?: number;
-  }) {
-    super(params.message);
-    this.name = "MetaGraphError";
-    this.status = params.status;
-    this.code = params.code;
-    this.subcode = params.subcode;
-    this.type = params.type;
-    this.fbtraceId = params.fbtraceId;
-    this.retryAfterSeconds = params.retryAfterSeconds;
-  }
-
-  /** The connection's token is invalid or revoked; the connection is dead. */
-  get isAuthFailure() {
-    return (
-      (this.code !== undefined && META_AUTH_ERROR_CODES.has(this.code)) ||
-      (this.subcode !== undefined && META_AUTH_ERROR_CODES.has(this.subcode)) ||
-      this.status === 401
-    );
-  }
-
-  /** Rate limited: retry later, with a longer delay. */
-  get isThrottled() {
-    return (
-      this.status === 429 ||
-      (this.code !== undefined && META_THROTTLE_ERROR_CODES.has(this.code))
-    );
-  }
-
-  /** Retrying this exact request will never succeed. */
-  get isPermanent() {
-    if (this.isThrottled) return false;
-    if (this.isAuthFailure) return true;
-    if (this.code !== undefined && META_PERMANENT_ERROR_CODES.has(this.code)) {
-      return true;
-    }
-    // Meta's permission errors occupy 200-299. Everything else 4xx that we do
-    // not recognise stays retryable, so an unknown code degrades safely.
-    if (this.code !== undefined && this.code >= 200 && this.code <= 299) {
-      return true;
-    }
-    return false;
-  }
-}
-
-function positiveInteger(value: string | null) {
-  if (!value) return undefined;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-async function graphRequest<T>(params: {
-  path: string;
-  token: string;
-  method?: "GET" | "POST";
-  body?: Record<string, unknown>;
-}) {
-  const response = await fetch(
-    `https://graph.facebook.com/${graphVersion()}/${params.path}`,
-    {
-      method: params.method || "GET",
-      headers: {
-        Authorization: `Bearer ${params.token}`,
-        ...(params.body ? { "Content-Type": "application/json" } : {}),
-      },
-      body: params.body ? JSON.stringify(params.body) : undefined,
-      signal: AbortSignal.timeout(15_000),
-    },
-  );
-  const payload = (await response.json().catch(() => null)) as
-    | (T & {
-        error?: {
-          message?: string;
-          code?: number;
-          error_subcode?: number;
-          type?: string;
-          fbtrace_id?: string;
-        };
-      })
-    | null;
-  if (!response.ok || !payload) {
-    throw new MetaGraphError({
-      message:
-        payload?.error?.message || `Meta Graph API returned ${response.status}`,
-      status: response.status,
-      code: payload?.error?.code,
-      subcode: payload?.error?.error_subcode,
-      type: payload?.error?.type,
-      fbtraceId: payload?.error?.fbtrace_id,
-      retryAfterSeconds: positiveInteger(response.headers.get("retry-after")),
-    });
-  }
-  return payload;
-}
+// The Graph client is shared with the catalog sync (lib/meta/graph-client.ts);
+// the error type is still read from here by the outbox's adapters and tests.
+export { MetaGraphError } from "@/lib/meta/graph-client";
 
 /**
  * Exchanges a Facebook Login for Business code for a user access token.
@@ -181,9 +27,7 @@ async function exchangeLoginCode(code: string) {
       "META_EMBEDDED_SIGNUP_NOT_CONFIGURED",
     );
   }
-  const tokenUrl = new URL(
-    `https://graph.facebook.com/${graphVersion()}/oauth/access_token`,
-  );
+  const tokenUrl = new URL(graphUrl("oauth/access_token"));
   tokenUrl.searchParams.set("client_id", appId);
   tokenUrl.searchParams.set("client_secret", appSecret);
   tokenUrl.searchParams.set("code", code);

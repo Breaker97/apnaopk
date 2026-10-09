@@ -28,6 +28,7 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.CASH_BANK]: "Bank",
   [LEDGER_ACCOUNT.CASH_ON_HAND]: "Cash in hand",
   [LEDGER_ACCOUNT.INVENTORY]: "Inventory",
+  [LEDGER_ACCOUNT.UNAPPLIED_PAYMENT_PAYABLE]: "Received payments awaiting application",
   [LEDGER_ACCOUNT.VENDOR_PAYABLE]: "Owed to vendors",
   [LEDGER_ACCOUNT.COMMISSION_RECEIVABLE]: "Commission owed to you",
   [LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE]: "Owed by customers",

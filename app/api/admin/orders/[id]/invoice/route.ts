@@ -42,9 +42,10 @@ export const GET = withApi<{ id: string }>(
     }
 
     const settings = await getSettingsLean();
-    const customerName =
-      order.customerId?.name || order.shippingAddress?.fullName || "Customer";
-    const pdfBuffer = await generateOrderInvoicePdf(order, settings, customerName);
+    // Bill to is the invoice builder's: the customer, the delivery name, or
+    // for a walk-in POS sale (filed under its cashier) nobody. Naming the
+    // populated customer here printed the cashier on every walk-in.
+    const pdfBuffer = await generateOrderInvoicePdf(order, settings);
 
     return new Response(new Uint8Array(pdfBuffer), {
       status: 200,

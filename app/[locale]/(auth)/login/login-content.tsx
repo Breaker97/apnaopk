@@ -13,6 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  describeOAuthError,
+  type Translate,
+} from "@/lib/auth/auth-error-message";
 import { sanitizeReturnPath } from "@/lib/auth/return-path";
 import { cn } from "@/lib/utils";
 import { useParams, useSearchParams } from "next/navigation";
@@ -45,32 +49,21 @@ function LoginContent({ oauthEnabled, demoCredentials }: LoginPageProps) {
 
   const showDemoCredentials = demoCredentials.length > 0;
 
-  const formatRoleLabel = (role: string) => {
-    const value = role.trim();
-    if (!value) return "";
-    return value.charAt(0).toUpperCase() + value.slice(1);
-  };
-
+  // A Google/Facebook sign-in that failed comes back here with `?error=`.
   const searchErrorCode = searchParams.get("error");
   const searchErrorRole = searchParams.get("role") || "";
   const searchErrorEmail = searchParams.get("email") || "";
   const searchErrorKey = searchErrorCode
     ? `${searchErrorCode}:${searchErrorRole}:${searchErrorEmail}`
     : null;
-  let searchErrorMessage: string | null = null;
-
-  if (searchErrorCode === "oauth_account_role_conflict") {
-    const role = formatRoleLabel(searchErrorRole);
-    searchErrorMessage = t("auth.oauthRoleConflict", {
-      email: searchErrorEmail || t("auth.thisEmail"),
-      role: role || t("auth.vendorRole"),
-    });
-  } else if (
-    searchErrorCode === "oauth_customer_only" ||
-    searchErrorCode === "OAUTH_SIGNIN_IS_ONLY_AVAILABLE_FOR_CUSTOMERS"
-  ) {
-    searchErrorMessage = t("auth.oauthCustomerOnly");
-  }
+  const searchErrorMessage = describeOAuthError(
+    {
+      code: searchErrorCode,
+      role: searchErrorRole,
+      email: searchErrorEmail,
+    },
+    t as unknown as Translate,
+  );
 
   const dismissSearchError = () => {
     if (searchErrorKey) {

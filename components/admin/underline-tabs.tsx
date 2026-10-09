@@ -49,6 +49,10 @@ export function UnderlineTabsTrigger({
         "group/underline-tab -mb-px h-auto flex-none gap-2 rounded-none border-0 border-b-2 border-transparent bg-transparent px-4 py-3 text-sm font-medium shadow-none transition-colors",
         "text-muted-foreground hover:text-foreground",
         "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none",
+        // The base trigger's dark active look (a filled box, a grey border, white
+        // text) outranks the lines above in dark mode; undone so the underline
+        // shows there too.
+        "dark:data-[state=active]:border-primary dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-primary",
         className,
       )}
       {...props}

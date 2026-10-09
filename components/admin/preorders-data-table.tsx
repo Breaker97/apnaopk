@@ -14,6 +14,8 @@ import {
   Download,
   Eye,
   PackageCheck,
+  RotateCcw,
+  Undo2,
   XCircle,
 } from "lucide-react";
 import {
@@ -72,6 +74,23 @@ interface PreorderSubOrder {
   subtotal: number;
   vendorEarnings?: number;
   items: PreorderItem[];
+  /** The seller's "goods available" for this consignment. */
+  preorderReadiness?: { declaredAt?: string };
+}
+
+/** The balance request, as far as the row needs it. */
+interface PreorderCollectionSummary {
+  state?: string;
+  chargeNotBefore?: string;
+  attentionReason?: string;
+}
+
+/** A paid order's release for fulfilment, as far as the row needs it. */
+interface PreorderReleaseSummary {
+  state?: string;
+  reason?: string;
+  lastAttemptAt?: string;
+  nextAttemptAt?: string;
 }
 
 interface PreorderOrder {
@@ -93,7 +112,97 @@ interface PreorderOrder {
   createdAt: string;
   items: PreorderItem[];
   subOrders?: PreorderSubOrder[];
+  /** Admin rows: the whole order's request and release. */
+  preorderCollection?: PreorderCollectionSummary;
+  preorderRelease?: PreorderReleaseSummary;
+  /**
+   * Vendor rows carry answers rather than the order's money: whether the
+   * order's balance is still owed, whether fulfilment is blocked, how many
+   * other consignments are still waiting — never whose, or what they hold.
+   */
+  balanceOwed?: boolean;
+  fulfillmentBlocked?: boolean;
+  readiness?: { ownReady: boolean; othersWaiting: number };
+  collection?: PreorderCollectionSummary;
+  release?: PreorderReleaseSummary;
 }
+
+const ACTIVE_COLLECTION_STATES = ["notice_pending", "awaiting_payment", "attention"];
+
+/** Release reason codes, in words a merchant acts on. */
+const RELEASE_REASON_LABELS: Record<string, string> = {
+  stock_unavailable: "waiting for stock",
+  allocation_ambiguous: "stock records need checking",
+  readiness_changed: "goods no longer marked available",
+  date_sync_pending: "a date change is being applied",
+  side_effect_failed: "a follow-up step failed",
+  payment_not_settled: "payment not settled",
+  transactions_unavailable: "database setup",
+};
+
+function rowCollection(order: PreorderOrder, scope: "admin" | "vendor") {
+  return scope === "vendor" ? order.collection : order.preorderCollection;
+}
+
+function rowRelease(order: PreorderOrder, scope: "admin" | "vendor") {
+  return scope === "vendor" ? order.release : order.preorderRelease;
+}
+
+function rowBalanceOwed(order: PreorderOrder, scope: "admin" | "vendor") {
+  return scope === "vendor"
+    ? Boolean(order.balanceOwed)
+    : getPreorderBalanceDue(order) > 0;
+}
+
+/**
+ * The state worth showing first on a row: where the money and the goods are
+ * actually stuck, ahead of the bare pre-order stage.
+ */
+function workflowState(
+  order: PreorderOrder,
+  scope: "admin" | "vendor",
+): { label: string; detail?: string; tone: string } | null {
+  const release = rowRelease(order, scope);
+  if (release?.state === "requested" || release?.state === "waiting") {
+    return {
+      label: "Paid — waiting for stock",
+      detail: release.reason
+        ? RELEASE_REASON_LABELS[release.reason] || release.reason
+        : "release pending",
+      tone: "cyan",
+    };
+  }
+  if (release?.state === "attention") {
+    return {
+      label: "Paid — release stopped",
+      detail: release.reason ? RELEASE_REASON_LABELS[release.reason] || release.reason : undefined,
+      tone: "red",
+    };
+  }
+  const collection = rowCollection(order, scope);
+  if (collection?.state === "notice_pending") {
+    return { label: "Balance requested", detail: "sending the notice", tone: "orange" };
+  }
+  if (collection?.state === "attention") {
+    return { label: "Notice not delivered", detail: "no automatic charge", tone: "red" };
+  }
+  if (scope === "vendor" && order.readiness?.ownReady && order.readiness.othersWaiting > 0) {
+    if (!collection?.state || !ACTIVE_COLLECTION_STATES.includes(collection.state)) {
+      return {
+        label: "Waiting for other consignments",
+        detail: `${order.readiness.othersWaiting} still to come`,
+        tone: "cyan",
+      };
+    }
+  }
+  return null;
+}
+
+const WORKFLOW_TONE: Record<string, string> = {
+  cyan: "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300",
+  orange: "bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300",
+  red: "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300",
+};
 
 interface PreordersDataTableProps {
   locale: string;
@@ -316,7 +425,16 @@ export function PreordersDataTable({
   });
 
   const runAction = useCallback(
-    async (orderId: string, action: "ready" | "payment_due" | "cancel") => {
+    async (
+      orderId: string,
+      action:
+        | "ready"
+        | "payment_due"
+        | "cancel"
+        | "withdraw_ready"
+        | "resend_notice"
+        | "retry",
+    ) => {
       // Cancelling refunds whatever the shopper paid, so the confirmation says
       // so. "Cancel this pre-order?" hid the fact that money moves. A vendor
       // cancels only their own consignment, and only what the shopper paid for
@@ -334,14 +452,17 @@ export function PreordersDataTable({
       }
       try {
         const result = await apiClient.put<{
-          refund?: { refunded?: boolean; reason?: string };
+          refund?: { refunded?: boolean; reason?: string; pending?: boolean };
+          outcomeMessage?: string;
         }>(`/api/${scope}/preorders/${orderId}`, { action });
         if (action === "cancel") {
           const refund = result?.refund;
           // A refund the gateway would not take is the one outcome an admin
           // has to act on, so it is a warning rather than a success line they
           // would scroll past.
-          if (refund && !refund.refunded && refund.reason) {
+          if (refund?.pending) {
+            toast.warning("Pre-order cancelled — the refund is still being processed");
+          } else if (refund && !refund.refunded && refund.reason) {
             toast.warning(`Pre-order cancelled — ${refund.reason}`);
           } else {
             toast.success(
@@ -351,10 +472,19 @@ export function PreordersDataTable({
             );
           }
         } else {
+          // The server says what actually happened: released, requested,
+          // waiting for other consignments, a reminder sent.
           toast.success(
-            action === "ready"
-              ? "Pre-order moved to fulfillment"
-              : "Balance request sent",
+            result?.outcomeMessage ||
+              (action === "withdraw_ready"
+                ? "Goods are no longer marked available"
+                : action === "resend_notice"
+                  ? "Balance notice sent again"
+                  : action === "retry"
+                    ? "Tried again"
+                    : action === "ready"
+                      ? "Pre-order updated"
+                      : "Balance request sent"),
           );
         }
         list.refetch();
@@ -493,9 +623,13 @@ export function PreordersDataTable({
           refunded?: number;
           refundsNeedingAttention?: Array<{ orderNumber?: string; reason?: string }>;
           skipped?: Array<{ orderNumber?: string; reason?: string }>;
+          results?: Array<{ orderNumber?: string; outcome: string; message?: string }>;
         }>("/api/admin/preorders", body);
         const needsAttention = result?.refundsNeedingAttention || [];
         const skipped = result?.skipped || [];
+        const waitingVendors = (result?.results || []).filter(
+          (row) => row.outcome === "waiting_for_vendors",
+        );
         if (skipped.length > 0) {
           // Named, with the reason: a silent "updated" over rows that were
           // refused leaves the admin believing shipped or unpaid orders moved.
@@ -518,7 +652,11 @@ export function PreordersDataTable({
           toast.success(
             `Cancelled and refunded ${result?.refunded ?? items.length} pre-order(s)`,
           );
-        } else {
+        } else if (waitingVendors.length > 0) {
+          toast.success(
+            `Updated. ${waitingVendors.length} order(s) are still waiting for consignments to be marked available.`,
+          );
+        } else if (skipped.length === 0) {
           toast.success("Selected pre-orders updated");
         }
         list.refetch();
@@ -545,9 +683,9 @@ export function PreordersDataTable({
     // A file download, not a page: the route answers with the CSV, so the
     // document navigates to it and the browser saves the response.
     window.location.assign(
-      new URL(`/api/admin/preorders?${params.toString()}`, window.location.origin).href,
+      new URL(`/api/${scope}/preorders?${params.toString()}`, window.location.origin).href,
     );
-  }, [list.activeTab, list.search]);
+  }, [list.activeTab, list.search, scope]);
 
   const tabs = useMemo<DataTableTab[]>(
     () => [
@@ -641,12 +779,46 @@ export function PreordersDataTable({
         headerClassName: "!px-4",
         cell: (row) => {
           const status = getPreorderStatus(row, scope);
+          const workflow = workflowState(row, scope);
+          if (workflow) {
+            return (
+              <div className="min-w-0">
+                <span className={`${STATUS_CHIP_CLASS} ${WORKFLOW_TONE[workflow.tone]}`}>
+                  {workflow.label}
+                </span>
+                {workflow.detail ? (
+                  <p className="truncate text-xs text-muted-foreground" title={workflow.detail}>
+                    {workflow.detail}
+                  </p>
+                ) : null}
+              </div>
+            );
+          }
+          const collection = rowCollection(row, scope);
+          const chargeAt =
+            scope === "admin" &&
+            collection?.state === "awaiting_payment" &&
+            collection.chargeNotBefore
+              ? new Intl.DateTimeFormat(locale, {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(new Date(collection.chargeNotBefore))
+              : null;
           return (
-            <span
-              className={`${STATUS_CHIP_CLASS} ${getPreorderStatusStyles(status)}`}
-            >
-              {PREORDER_STATUS_LABELS[status] || status}
-            </span>
+            <div className="min-w-0">
+              <span
+                className={`${STATUS_CHIP_CLASS} ${getPreorderStatusStyles(status)}`}
+              >
+                {PREORDER_STATUS_LABELS[status] || status}
+              </span>
+              {chargeAt ? (
+                <p className="truncate text-xs text-muted-foreground">
+                  Card on or after {chargeAt}
+                </p>
+              ) : null}
+            </div>
           );
         },
       },
@@ -741,7 +913,12 @@ export function PreordersDataTable({
       // Only while the balance is still owed: an order whose balance was
       // collected (online, or recorded by an admin) moves straight to
       // fulfilment rather than asking the shopper to pay it again.
-      const hasOutstandingBalance = getPreorderBalanceDue(row) > 0;
+      const hasOutstandingBalance = rowBalanceOwed(row, scope);
+      const collection = rowCollection(row, scope);
+      const release = rowRelease(row, scope);
+      const requestOpen = Boolean(
+        collection?.state && ACTIVE_COLLECTION_STATES.includes(collection.state),
+      );
       const actions: DataTableAction[] = [
         {
           id: "view",
@@ -756,85 +933,123 @@ export function PreordersDataTable({
       // action anyway only produced an error. Shown, greyed, with the reason.
       const paymentBlock = hasOutstandingBalance
         ? null
-        : getFulfillmentPaymentBlock(
-            { ...row, hasPreorder: true } as Parameters<typeof getFulfillmentPaymentBlock>[0],
-            scope === "vendor" ? getSubOrder(row) : null,
-          );
-      if (
-        canEditPreorder &&
-        (preorderStatus === "reserved" || preorderStatus === "delayed")
-      ) {
-        actions.push({
-          id: hasOutstandingBalance ? "payment_due" : "ready",
-          disabled: Boolean(paymentBlock),
-          label: hasOutstandingBalance
-            ? "Request balance"
-            : "Move to fulfillment",
-          hint: paymentBlock ? "Payment not received" : undefined,
-          icon: hasOutstandingBalance ? (
-            <CreditCard className="h-4 w-4" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4" />
-          ),
-          onClick: () =>
-            void runAction(
-              row._id,
-              hasOutstandingBalance ? "payment_due" : "ready",
+        : scope === "vendor"
+          ? row.fulfillmentBlocked
+            ? "Payment not received"
+            : null
+          : getFulfillmentPaymentBlock(
+              { ...row, hasPreorder: true } as Parameters<typeof getFulfillmentPaymentBlock>[0],
+              null,
+            );
+      const waiting =
+        preorderStatus === "reserved" ||
+        preorderStatus === "delayed" ||
+        preorderStatus === "partially_ready";
+
+      if (scope === "vendor") {
+        // A seller speaks for their own goods only.
+        const own = getSubOrder(row);
+        const ownWaiting = own?.status === "preordered";
+        const ownReady = Boolean(row.readiness?.ownReady);
+        if (canEditPreorder && ownWaiting && !ownReady) {
+          actions.push({
+            id: "ready",
+            label: "Mark goods available",
+            disabled: Boolean(paymentBlock),
+            hint: paymentBlock ? "Payment not received" : undefined,
+            icon: <CheckCircle2 className="h-4 w-4" />,
+            onClick: () => void runAction(row._id, "ready"),
+          });
+        }
+        if (canEditPreorder && ownWaiting && ownReady && !requestOpen) {
+          actions.push({
+            id: "withdraw_ready",
+            label: "Withdraw goods available",
+            icon: <Undo2 className="h-4 w-4" />,
+            onClick: () => void runAction(row._id, "withdraw_ready"),
+          });
+        }
+        if (canEditPreorder && collection?.state === "awaiting_payment" && hasOutstandingBalance) {
+          actions.push({
+            id: "payment_due",
+            label: "Send balance reminder",
+            icon: <CreditCard className="h-4 w-4" />,
+            onClick: () => void runAction(row._id, "payment_due"),
+          });
+        }
+        if (canEditPreorder && ownWaiting) {
+          actions.push({
+            id: "delay",
+            label: "Update release date",
+            icon: <Clock3 className="h-4 w-4" />,
+            onClick: () => void runDelayAction(row._id),
+          });
+        }
+      } else {
+        if (canEditPreorder && waiting && !requestOpen) {
+          actions.push({
+            id: hasOutstandingBalance ? "payment_due" : "ready",
+            disabled: Boolean(paymentBlock),
+            // Declares every waiting consignment's goods available. With a
+            // balance owed, it is requested (with its advance notice) once the
+            // stock is allocated; with nothing owed, the goods are released.
+            label: hasOutstandingBalance ? "Request balance" : "Move to fulfillment",
+            hint: paymentBlock ? "Payment not received" : undefined,
+            icon: hasOutstandingBalance ? (
+              <CreditCard className="h-4 w-4" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
             ),
-        });
-        // A vendor moves their own date too — they are the one who knows when
-        // the goods arrive. Bulk updates stay admin-only: they post to the
-        // admin collection route, which a vendor cannot reach.
-        actions.push({
-          id: "delay",
-          label: "Update release date",
-          icon: <Clock3 className="h-4 w-4" />,
-          onClick: () => void runDelayAction(row._id),
-        });
+            onClick: () =>
+              void runAction(row._id, hasOutstandingBalance ? "payment_due" : "ready"),
+          });
+        }
+        if (canEditPreorder && collection?.state === "attention") {
+          actions.push({
+            id: "resend_notice",
+            label: "Resend balance notice",
+            icon: <RotateCcw className="h-4 w-4" />,
+            onClick: () => void runAction(row._id, "resend_notice"),
+          });
+        }
+        if (
+          canEditPreorder &&
+          collection?.state === "awaiting_payment" &&
+          hasOutstandingBalance
+        ) {
+          actions.push({
+            id: "payment_due",
+            label: "Send balance reminder",
+            icon: <CreditCard className="h-4 w-4" />,
+            onClick: () => void runAction(row._id, "payment_due"),
+          });
+        }
+        // The goods can still slip after the balance is asked for: the date
+        // moves, and the request is taken back with its stock and any
+        // scheduled charge, to be asked again when the goods are ready.
+        if (canEditPreorder && (waiting || preorderStatus === "payment_due")) {
+          actions.push({
+            id: "delay",
+            label: "Update release date",
+            icon: <Clock3 className="h-4 w-4" />,
+            onClick: () => void runDelayAction(row._id),
+          });
+        }
       }
 
+      // A paid order whose release stopped — waiting on stock, or on a
+      // person: try again now rather than at the next sweep.
       if (
         canEditPreorder &&
-        preorderStatus === "payment_due" &&
-        hasOutstandingBalance
+        (release?.state === "waiting" ||
+          release?.state === "requested" ||
+          release?.state === "attention")
       ) {
         actions.push({
-          id: "payment_due",
-          label: "Send balance reminder",
-          icon: <CreditCard className="h-4 w-4" />,
-          onClick: () => void runAction(row._id, "payment_due"),
-        });
-      }
-
-      // The goods can still slip after the balance is asked for. The server
-      // moves only the date and keeps the request standing (payment due, with
-      // its charge retries, reminders and deadline), so the row offers it too
-      // rather than leaving it to the bulk toolbar alone.
-      if (canEditPreorder && preorderStatus === "payment_due") {
-        actions.push({
-          id: "delay",
-          label: "Update release date",
-          icon: <Clock3 className="h-4 w-4" />,
-          onClick: () => void runDelayAction(row._id),
-        });
-      }
-
-      // Paid, but still on `payment_due`: the balance landed while its stock
-      // was not recorded yet (the settle path then leaves it waiting), or a
-      // vendor's consignment was released before the money came in. Nothing
-      // else on the row moves it on, so it sat there paid for good.
-      if (
-        canEditPreorder &&
-        preorderStatus === "payment_due" &&
-        !hasOutstandingBalance
-      ) {
-        actions.push({
-          id: "ready",
-          label: "Move to fulfillment",
-          hint: paymentBlock ? "Payment not received" : undefined,
-          disabled: Boolean(paymentBlock),
-          icon: <CheckCircle2 className="h-4 w-4" />,
-          onClick: () => void runAction(row._id, "ready"),
+          id: "retry",
+          label: "Retry release",
+          icon: <RotateCcw className="h-4 w-4" />,
+          onClick: () => void runAction(row._id, "retry"),
         });
       }
 
@@ -888,23 +1103,20 @@ export function PreordersDataTable({
 
       return actions;
     },
-    [canCancelPreorder, canEditPreorder, locale, runAction, runDelayAction, scope],
+    [canCancelPreorder, canEditPreorder, runAction, runDelayAction, scope],
   );
 
   const toolbarActions = useMemo(
-    () =>
-      scope === "admin"
-        ? [
-            ...(tableHeader.toolbarActions || []),
-            {
-              id: "export",
-              label: "Export CSV",
-              icon: <Download className="h-4 w-4" />,
-              onClick: exportCsv,
-            },
-          ]
-        : tableHeader.toolbarActions,
-    [exportCsv, scope, tableHeader.toolbarActions],
+    () => [
+      ...(tableHeader.toolbarActions || []),
+      {
+        id: "export",
+        label: "Export",
+        icon: <Download className="h-4 w-4" />,
+        onClick: exportCsv,
+      },
+    ],
+    [exportCsv, tableHeader.toolbarActions],
   );
 
   const bulkActions = useMemo(

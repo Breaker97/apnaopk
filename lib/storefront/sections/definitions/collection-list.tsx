@@ -17,6 +17,7 @@ export const collectionList: SectionDefinition = {
         locale={ctx.locale}
         title={lt(settings.title as LocalizedText, ctx.locale, ctx.defaultLanguage)}
         limit={settings.limit as number}
+        vendor={ctx.vendor}
       />
     );
   },

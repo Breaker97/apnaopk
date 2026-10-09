@@ -14,10 +14,8 @@ import { ProductGrid } from "@/components/products/product-grid";
 import { ProductSkeleton } from "@/components/products/product-skeleton";
 import { ProductsSortLazy as ProductsSort } from "@/components/products/products-sort-lazy";
 import { PRODUCTS_MOBILE_TOOLBAR_SORT_CLASS } from "@/components/products/products-mobile-toolbar";
-import {
-  LISTING_GRID_COLUMNS_CLASS,
-  ListingShell,
-} from "@/components/products/listing-view";
+import { LISTING_GRID_COLUMNS_CLASS } from "@/components/products/listing-view-constants";
+import { ListingShell } from "@/components/products/listing-view";
 import { ListingFeaturedProductsLazy as ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products-lazy";
 import {
   FilterSectionLazy,

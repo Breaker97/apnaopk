@@ -3,7 +3,7 @@ import { type Locale } from "@/config/i18n.config";
 import {
   fetchTestimonials,
   type TestimonialEntry,
-} from "@/components/store/sections/testimonials";
+} from "@/lib/storefront/section-data/content";
 
 interface LuxeTestimonialsProps {
   locale: Locale;

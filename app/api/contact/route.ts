@@ -1,46 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as z from "zod";
 import { connectDB } from "@/lib/db";
-import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { auth } from "@/lib/auth/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIP } from "@/lib/api/rate-limit-middleware";
 import { handleApiError, RateLimitError } from "@/lib/api/errors";
 import { rateLimitMessage } from "@/lib/api/rate-limit-message";
-import { getSettings } from "@/models/settings.model";
 import { headers } from "next/headers";
-import {
-  DEFAULT_PRIMARY_COLOR,
-  DEFAULT_STORE_NAME,
-} from "@/config/branding.config";
 import { USER_ROLES } from "@/config/app.config";
+import { ContactMessageRequest } from "@/contracts/mobile/shop/v1/content";
+import { sendContactMessage } from "@/lib/conversations/contact-message";
 import {
   attachChatGuestCookie,
   CHAT_GUEST_COOKIE,
   createChatGuestToken,
   hashChatGuestToken,
 } from "@/lib/conversations/guest-session";
-import { startLiveConversation } from "@/lib/conversations/service";
 import { resolveConversationViewer } from "@/lib/conversations/viewer";
 
-const ContactMessageSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  email: z.string().trim().email().max(160),
-  phone: z.string().trim().max(40).optional().default(""),
-  company: z.string().trim().max(100).optional().default(""),
-  subject: z.string().trim().min(3).max(140),
-  message: z.string().trim().min(10).max(2000),
+/**
+ * The form's fields, checked as the app's POST /contact/messages checks them,
+ * and `website`: a field people never see, so whatever fills it is a bot.
+ */
+const ContactMessageSchema = ContactMessageRequest.extend({
   website: z.string().trim().max(200).optional().default(""),
 });
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,9 +38,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = parsed.data;
+    const { website, ...message } = parsed.data;
 
-    if (data.website) {
+    if (website) {
       return NextResponse.json({
         success: true,
         message: "Thanks, your message has been received.",
@@ -81,12 +65,6 @@ export async function POST(request: NextRequest) {
     const session = await auth.api
       .getSession({ headers: await headers() })
       .catch(() => null);
-    const settings = await getSettings();
-    const storeName = settings.general?.storeName?.trim() || DEFAULT_STORE_NAME;
-    const recipient =
-      settings.general?.storeEmail?.trim() ||
-      settings.email?.replyTo?.trim() ||
-      settings.email?.fromEmail?.trim();
 
     const customerSession =
       session?.user.role === USER_ROLES.CUSTOMER ? session : null;
@@ -100,80 +78,15 @@ export async function POST(request: NextRequest) {
           ? hashChatGuestToken(guestToken)
           : undefined,
     });
-    if (!viewer) throw new Error("Unable to initialize support conversation");
-    const conversation = await startLiveConversation({
-      viewer,
-      name: data.name,
-      email: data.email,
-      subject: data.subject,
-      message: data.message,
-      clientMessageId: crypto.randomUUID(),
-      // The contact form is not the live-chat widget: turning live chat off
-      // must not reject (and therefore lose) a contact submission.
-      enforceLiveChatAvailability: false,
-    });
-
-    const safe = {
-      name: escapeHtml(data.name),
-      email: escapeHtml(data.email),
-      phone: escapeHtml(data.phone),
-      company: escapeHtml(data.company),
-      subject: escapeHtml(data.subject),
-      message: escapeHtml(data.message).replace(/\n/g, "<br />"),
-    };
-
-    if (isEmailDeliveryConfigured(settings) && recipient) {
-      const sent = await sendEmail({
-        to: recipient,
-        replyTo: data.email,
-        subject: `[${storeName}] ${data.subject}`,
-        settings,
-        html: `
-        <div style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,sans-serif;color:#111827;">
-          <div style="max-width:640px;margin:0 auto;padding:28px;">
-            <div style="border-radius:10px;background:#ffffff;overflow:hidden;border:1px solid #e5e7eb;">
-              <div style="background:${DEFAULT_PRIMARY_COLOR};padding:22px 26px;color:#ffffff;">
-                <p style="margin:0 0 6px;font-size:13px;opacity:.9;">New contact message</p>
-                <h1 style="margin:0;font-size:22px;line-height:1.3;">${safe.subject}</h1>
-              </div>
-              <div style="padding:26px;">
-                <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">${safe.message}</p>
-                <div style="border-top:1px solid #e5e7eb;padding-top:18px;font-size:14px;line-height:1.7;color:#374151;">
-                  <p style="margin:0;"><strong>Name:</strong> ${safe.name}</p>
-                  <p style="margin:0;"><strong>Email:</strong> ${safe.email}</p>
-                  ${safe.phone ? `<p style="margin:0;"><strong>Phone:</strong> ${safe.phone}</p>` : ""}
-                  ${safe.company ? `<p style="margin:0;"><strong>Company:</strong> ${safe.company}</p>` : ""}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `,
-        text: [
-          `New contact message for ${storeName}`,
-          `Subject: ${data.subject}`,
-          `Name: ${data.name}`,
-          `Email: ${data.email}`,
-          data.phone ? `Phone: ${data.phone}` : "",
-          data.company ? `Company: ${data.company}` : "",
-          "",
-          data.message,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      });
-
-      if (!sent) {
-        console.error(
-          `Contact email delivery failed for conversation ${conversation.conversation._id}`,
-        );
-      }
+    if (!viewer || (viewer.kind !== "customer" && viewer.kind !== "guest")) {
+      throw new Error("Unable to initialize support conversation");
     }
+    const { conversationId } = await sendContactMessage({ viewer, message });
 
     const response = NextResponse.json({
       success: true,
       message: "Thanks, your message has been sent.",
-      data: { conversationId: conversation.conversation._id },
+      data: { conversationId },
     });
     return shouldSetGuestCookie && guestToken
       ? attachChatGuestCookie(response, guestToken)

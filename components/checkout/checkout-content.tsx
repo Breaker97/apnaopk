@@ -188,12 +188,21 @@ import {
 } from "@/lib/locations/shopper-location";
 import { readStoredShopperLocationFromBrowser } from "@/lib/locations/shopper-location-client";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useHydrated } from "@/hooks/use-client-value";
 import { useIdlePreload } from "@/hooks/use-idle-preload";
 import { preorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
 import { canCollectDeferredBalance } from "@/lib/payments/balance-methods";
 import { codLimitBreach } from "@/lib/checkout/cod-limits";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { invalidateResources } from "@/hooks/use-suspense-resource";
+import { StaffCheckoutNotice } from "@/components/checkout/staff-checkout-notice";
+import { getRoleDashboardPath } from "@/lib/access/role-dashboard";
+import {
+  CHECKOUT_EMAIL_NOT_ALLOWED,
+  STAFF_ACCOUNT_CHECKOUT,
+} from "@/lib/access/customer-account";
+import { STORE_NOT_READY } from "@/lib/inventory/store-profile";
+import { USER_ROLES } from "@/config/app.config";
 
 type PickupAvailabilityState = {
   loading: boolean;
@@ -260,10 +269,96 @@ interface CheckoutContentProps {
   addressCheck: boolean;
 }
 
-export function CheckoutContent({
+/**
+ * A refusal checkout answers in place rather than in a toast: the account may
+ * not buy from the store, so the notice takes the form's place; or a guest's
+ * email is the login of an account that may not, said under the contact field.
+ */
+class CheckoutRefusal extends Error {
+  readonly code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * Throws the refusal a payment route's error body names, if it names one. A
+ * store that cannot take orders right now (`STORE_NOT_READY`: its own profile
+ * is missing and may not be made) is said in the shopper's language.
+ */
+export function throwIfCheckoutRefusal(
+  body: { code?: unknown; message?: unknown } | null | undefined,
+  storeNotReadyMessage: string,
+) {
+  if (body?.code === STORE_NOT_READY) throw new Error(storeNotReadyMessage);
+  if (
+    body?.code === STAFF_ACCOUNT_CHECKOUT ||
+    body?.code === CHECKOUT_EMAIL_NOT_ALLOWED
+  ) {
+    throw new CheckoutRefusal(body.code, String(body.message ?? ""));
+  }
+}
+
+/**
+ * Checkout, or — for an admin, a team member or a seller — the notice that
+ * takes its place (components/checkout/staff-checkout-notice.tsx), decided by
+ * the rule the header's dashboard link follows so the two never disagree.
+ *
+ * Nothing is drawn until the session has been read once, so the form never
+ * flashes at an account it is not for. Only once: a guest's session is read
+ * again whenever the tab regains focus, and swapping the form out each time
+ * would throw away what they had typed. Nor while hydrating: the server has no
+ * session and sends the skeleton, while the browser may have read it already
+ * (the header asks too), and drawing the notice or the form then would not
+ * match that HTML.
+ */
+export function CheckoutContent(props: CheckoutContentProps) {
+  const params = useParams();
+  const locale = params.locale as string;
+  const hydrated = useHydrated();
+  const { user, isLoading: authLoading, refetch } = useAuth();
+  const [authSettled, setAuthSettled] = useState(false);
+  useApplyOnChange([authLoading], () => {
+    if (!authLoading) setAuthSettled(true);
+  });
+  // A payment route refused the account while the form was up. The browser's
+  // session can carry a role up to five minutes old (the cookie cache), or a
+  // second role beside "customer", so the account is read afresh before the
+  // notice says which kind it is.
+  const [refusal, setRefusal] = useState<"checking" | "checked" | null>(null);
+  const onStaffAccountRefused = useCallback(() => {
+    setRefusal("checking");
+    void refetch({ query: { disableCookieCache: true } }).finally(() =>
+      setRefusal("checked"),
+    );
+  }, [refetch]);
+
+  if (!hydrated || !authSettled) return <CheckoutSkeleton />;
+  const noticeRole = getRoleDashboardPath(locale, user?.role)
+    ? user?.role
+    : refusal === "checked" && user
+      ? (user.roles?.find((role) => getRoleDashboardPath(locale, role)) ??
+        USER_ROLES.STAFF)
+      : null;
+  if (noticeRole) {
+    return <StaffCheckoutNotice locale={locale} role={noticeRole} />;
+  }
+  if (refusal === "checking") return <CheckoutSkeleton />;
+  return (
+    <CheckoutForm {...props} onStaffAccountRefused={onStaffAccountRefused} />
+  );
+}
+
+function CheckoutForm({
   settings: checkoutSettings,
   addressCheck,
-}: CheckoutContentProps) {
+  onStaffAccountRefused,
+}: CheckoutContentProps & {
+  /** A payment route refused this account (`STAFF_ACCOUNT_CHECKOUT`). */
+  onStaffAccountRefused: () => void;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const params = useParams();
@@ -346,6 +441,11 @@ export function CheckoutContent({
   // the two had already drifted: the hook interpolates `{placeholders}` into
   // the fallback and is memoised, so it is safe in a dependency array.
   const tr = useFallbackTranslator(t);
+  const storeNotReadyMessage = () =>
+    tr(
+      "checkout.storeNotReady",
+      "This store can't take orders right now. Please try again later.",
+    );
   const issueMessage = (code: CheckoutIssueCode) => {
     switch (code) {
       case "invalid_email":
@@ -574,6 +674,7 @@ export function CheckoutContent({
    * payment routes, the order — sees exactly what it always has.
    */
   const [contactValue, setContactValue] = useState("");
+  const contactInputRef = useRef<HTMLInputElement>(null);
   /**
    * Which marketing box to show, decided by what the shopper has given us to
    * reach them on. Two consents, never one standing for both: agreeing to
@@ -765,7 +866,15 @@ export function CheckoutContent({
         }
         await refreshCart();
         toast.success("Checkout restored");
-        router.replace("/checkout");
+        // A seller's offer on this checkout: carried as `?coupon=`, which the
+        // coupon effect below applies once the cart has loaded.
+        const offerCode =
+          typeof json?.data?.offerCode === "string" ? json.data.offerCode : "";
+        router.replace(
+          offerCode
+            ? `/checkout?coupon=${encodeURIComponent(offerCode)}`
+            : "/checkout",
+        );
       } catch (error) {
         toast.error(
           error instanceof Error
@@ -2747,6 +2856,7 @@ export function CheckoutContent({
         });
         const intentJson = await intentRes.json().catch(() => null);
         if (!intentRes.ok || !intentJson?.success) {
+          throwIfCheckoutRefusal(intentJson, storeNotReadyMessage());
           if (isCartPricesChangedResponse(intentJson)) {
             throw await pricesChangedError();
           }
@@ -2820,6 +2930,7 @@ export function CheckoutContent({
           });
           const placeJson = await placeRes.json().catch(() => null);
           if (!placeRes.ok || !placeJson?.success) {
+            throwIfCheckoutRefusal(placeJson, storeNotReadyMessage());
             if (isCartPricesChangedResponse(placeJson)) {
               throw await pricesChangedError();
             }
@@ -2892,6 +3003,7 @@ export function CheckoutContent({
       const result = await res.json();
 
       if (!res.ok || !result.success) {
+        throwIfCheckoutRefusal(result, storeNotReadyMessage());
         if (isCartPricesChangedResponse(result)) {
           throw await pricesChangedError();
         }
@@ -2979,6 +3091,26 @@ export function CheckoutContent({
         throw new Error("Failed to create payment session");
       }
     } catch (err: unknown) {
+      if (err instanceof CheckoutRefusal) {
+        if (err.code === STAFF_ACCOUNT_CHECKOUT) {
+          onStaffAccountRefused();
+        } else {
+          form.setError(
+            "email",
+            {
+              type: "server",
+              message: tr(
+                "checkout.emailNotAllowed",
+                "This email can't be used for checkout. Please use a different email.",
+              ),
+            },
+            { shouldFocus: true },
+          );
+          // The combined field writes `email` without registering an input.
+          contactInputRef.current?.focus();
+        }
+        return;
+      }
       const message = err instanceof Error ? err.message : "An error occurred";
       setError(message);
       toast.error(message || t("common.error"));
@@ -3131,6 +3263,7 @@ export function CheckoutContent({
       <div className="space-y-0">
         <div className="relative">
           <Input
+            ref={contactInputRef}
             id="checkout-contact"
             type="text"
             inputMode="email"
@@ -4639,6 +4772,9 @@ export function CheckoutContent({
                                             <CountrySelect
                                               value={field.value || ""}
                                               onChange={field.onChange}
+                                              // Nothing is delivered to a
+                                              // billing address.
+                                              lockedHint={false}
                                               ariaLabel={addressFieldLabel(
                                                 "country",
                                                 t("checkout.country"),

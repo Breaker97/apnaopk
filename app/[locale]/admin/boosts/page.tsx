@@ -5,7 +5,6 @@ import {
   Eye,
   Receipt,
   Rocket,
-  TrendingUp,
 } from "lucide-react";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { connectDB } from "@/lib/db";
@@ -129,23 +128,18 @@ export default async function AdminBoostsPage({
       iconClassName: "text-amber-700 bg-amber-100",
     },
     {
+      // CTR is a fraction of these same views, so it rides under them rather
+      // than taking a sixth cell of its own.
       title: tSafe("boosts.stats.impressions", "Impressions"),
       value: stats.impressions.toLocaleString(),
-      description: tSafe(
-        "boosts.stats.impressionsDescription",
-        "Sponsored views, all time",
-      ),
+      description: stats.impressions
+        ? `${tSafe("boosts.stats.ctrDescription", "Click-through rate")} ${((stats.clicks / stats.impressions) * 100).toFixed(1)}%`
+        : tSafe(
+            "boosts.stats.impressionsDescription",
+            "Sponsored views, all time",
+          ),
       icon: <Eye className="h-5 w-5" />,
       iconClassName: "text-violet-700 bg-violet-100",
-    },
-    {
-      title: tSafe("boosts.stats.ctr", "CTR"),
-      value: stats.impressions
-        ? `${((stats.clicks / stats.impressions) * 100).toFixed(1)}%`
-        : "—",
-      description: tSafe("boosts.stats.ctrDescription", "Click-through rate"),
-      icon: <TrendingUp className="h-5 w-5" />,
-      iconClassName: "text-amber-700 bg-amber-100",
     },
   ];
 

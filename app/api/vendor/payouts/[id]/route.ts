@@ -1,5 +1,6 @@
+import { payoutDetail } from "@/lib/finance/payout-dto";
 import { connectDB } from "@/lib/db";
-import { getSettings, Order, Payout } from "@/models";
+import { getSettings, Payout } from "@/models";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { assertVendorPermission } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -42,16 +43,6 @@ export const GET = withApi<{ id: string }>(
 
     if (!payout) return notFoundResponse("Payout");
 
-    const orderRows = await Order.find({
-      _id: { $in: payout.orderIds || [] },
-    })
-      .select("orderNumber createdAt total paymentStatus status")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return successResponse({
-      payout,
-      orders: orderRows,
-    });
+    return successResponse(await payoutDetail(payout));
   },
 );

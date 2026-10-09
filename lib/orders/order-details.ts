@@ -8,6 +8,7 @@ import { AuditLog } from "@/models/audit-log.model";
 import { PaymentTransaction } from "@/models/payment-transaction.model";
 import { connectDB } from "@/lib/db";
 import { isValidObjectId } from "@/lib/api/validate";
+import { resolvePosSoldByName } from "@/lib/orders/pos-sold-by";
 import {
   buildStaffOrderScopeFilter,
   mergeScopeFilter,
@@ -138,6 +139,8 @@ export async function getOrderDetails(
       .lean<{ name?: string } | null>();
     posLocationName = location?.name;
   }
+  // And who rang it up: the "Sold by" line of every POS order.
+  const soldByName = await resolvePosSoldByName(order);
 
   // Who each consignment belongs to, by store name. A split order's sub-orders
   // carry only a vendor id, and a list of ids is no help to someone deciding
@@ -218,7 +221,13 @@ export async function getOrderDetails(
 
   // ObjectIds and Dates are not serializable across the RSC boundary.
   return JSON.parse(
-    JSON.stringify({ ...order, posLocationName, consignmentSellers, chargebacks }),
+    JSON.stringify({
+      ...order,
+      posLocationName,
+      soldByName,
+      consignmentSellers,
+      chargebacks,
+    }),
   );
 }
 

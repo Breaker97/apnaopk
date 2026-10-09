@@ -79,13 +79,20 @@ function SettingsShellInner({ children }: { children: ReactNode }) {
   // owns the Media Library — a browse surface that must stay interactive
   // (open, search, filter, preview) even in demo. That page applies its own
   // read-only treatment to just the storage config form, so exclude it from
-  // the blanket lock here.
-  const locked =
-    isDemoMode &&
-    adminSettingsSectionFromPath(splitLocalePath(pathname).rest) !== "storage";
+  // the blanket lock here. The Activity Log is the same kind of page: nothing
+  // on it saves, and a disabled fieldset would switch off its filters.
+  const section = adminSettingsSectionFromPath(splitLocalePath(pathname).rest);
+  const locked = isDemoMode && section !== "storage" && section !== "activityLog";
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    // Settings are forms, so a narrow column. The log is a table of six
+    // columns and does not fit in one.
+    <div
+      className={cn(
+        "mx-auto w-full",
+        section !== "activityLog" && "max-w-4xl",
+      )}
+    >
       {isDemoMode && (
         <WarningBanner icon={LockKeyhole} title={t("demoMode")} className="mb-4">
           {demoModeMessage}

@@ -1,8 +1,9 @@
 import "server-only";
 
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/auth";
+import { createAuditContext } from "@/lib/audit";
 import {
   resolveLocationScope,
   type InventoryLocationScope,
@@ -26,13 +27,18 @@ import { vendorGeoPoint } from "@/lib/locations/vendor-geo";
  */
 
 type ScopedSession = {
-  user: { id: string; role?: string | null; roles?: (string | null)[] | null };
+  user: {
+    id: string;
+    email?: string | null;
+    role?: string | null;
+    roles?: (string | null)[] | null;
+  };
 };
 
 export async function requireScope(
   mode: "read" | "write",
 ): Promise<
-  | { ok: true; scope: InventoryLocationScope }
+  | { ok: true; scope: InventoryLocationScope; session: ScopedSession }
   | { ok: false; response: NextResponse }
 > {
   const session = (await auth.api.getSession({
@@ -50,7 +56,11 @@ export async function requireScope(
   }
 
   try {
-    return { ok: true, scope: await resolveLocationScope(session.user, mode) };
+    return {
+      ok: true,
+      scope: await resolveLocationScope(session.user, mode),
+      session,
+    };
   } catch (error) {
     const status = error instanceof ApiError ? error.statusCode : 403;
     return {
@@ -62,11 +72,35 @@ export async function requireScope(
             error instanceof ApiError
               ? error.message
               : "You do not have permission to manage locations",
+          // The screen words a missing store profile by its code
+          // (lib/inventory/store-profile.ts) rather than showing this English.
+          ...(error instanceof ApiError ? { code: error.code } : {}),
         },
         { status },
       ),
     };
   }
+}
+
+/**
+ * Who a location change is recorded against.
+ *
+ * One endpoint serves admin, staff and vendor, so the store the actor acts for
+ * is not always the scope's `vendorId`: an admin's scope is the house store, and
+ * stamping that on the row would put an admin's change in the house vendor's
+ * log. Only a merchant acting as themselves passes it; staff and admins leave it
+ * to `audit()`, which stamps a vendor's own staff and nobody else.
+ */
+export function locationAuditContext(
+  request: NextRequest,
+  authResult: { scope: InventoryLocationScope; session: ScopedSession },
+) {
+  const { id, email, role } = authResult.session.user;
+  return createAuditContext(
+    request,
+    { user: { id, email: email ?? undefined, role: role ?? undefined } },
+    { vendorId: authResult.scope.isVendor ? authResult.scope.vendorId : undefined },
+  );
 }
 
 /**

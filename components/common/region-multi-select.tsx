@@ -30,6 +30,11 @@ type RegionMultiSelectProps = {
   emptyText?: string;
   freeTextPlaceholder?: string;
   disabled?: boolean;
+  /**
+   * Set inside a Dialog, whose scroll lock otherwise swallows the wheel over
+   * the portaled list (see `CountrySelect`).
+   */
+  modal?: boolean;
 };
 
 const parseCsv = (value: string) =>
@@ -64,6 +69,7 @@ export function RegionMultiSelect({
   emptyText = "No regions found.",
   freeTextPlaceholder = "Dhaka, Chittagong",
   disabled = false,
+  modal = false,
 }: RegionMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -134,6 +140,7 @@ export function RegionMultiSelect({
     <div className="space-y-2">
       <Popover
         open={open}
+        modal={modal}
         onOpenChange={(nextOpen) => {
           setOpen(nextOpen);
           if (!nextOpen) setQuery("");

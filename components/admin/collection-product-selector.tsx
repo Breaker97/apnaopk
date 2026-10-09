@@ -58,6 +58,12 @@ interface CollectionProductSelectorProps {
    * render, where the merchant would never learn why.
    */
   max?: number;
+  /**
+   * Product search and lookup route. The admin's by default; the vendor
+   * landing-page editor passes the vendor's own, which lists only their
+   * products.
+   */
+  endpoint?: string;
 }
 
 function indexById(products: Product[] | undefined): Record<string, Product> {
@@ -73,6 +79,7 @@ export function CollectionProductSelector({
   title = "Products in Collection",
   max,
   query: extraQuery,
+  endpoint = "/api/admin/products",
 }: CollectionProductSelectorProps) {
   const { formatPrice } = useCurrency();
   const [searchValue, setSearchValue] = useState("");
@@ -99,7 +106,7 @@ export function CollectionProductSelector({
     Promise.all(
       missing.map((id) =>
         // A product that 404s just stays unresolved; the rest still render.
-        apiClient.get<Product>(`/api/admin/products/${id}`).catch(() => null),
+        apiClient.get<Product>(`${endpoint}/${id}`).catch(() => null),
       ),
     ).then((results) => {
       const resolved = results.filter((item): item is Product =>
@@ -108,7 +115,7 @@ export function CollectionProductSelector({
       if (resolved.length === 0) return;
       setProductDetails((current) => ({ ...current, ...indexById(resolved) }));
     });
-  }, [selectedProducts, productDetails]);
+  }, [selectedProducts, productDetails, endpoint]);
 
   // Search products
   const extraQueryKey = JSON.stringify(extraQuery ?? {});
@@ -128,7 +135,7 @@ export function CollectionProductSelector({
         params.set(key, value);
       }
 
-      const res = await fetch(`/api/admin/products?${params.toString()}`);
+      const res = await fetch(`${endpoint}?${params.toString()}`);
       const data = await res.json();
 
       if (data.success) {
@@ -147,7 +154,7 @@ export function CollectionProductSelector({
     // Serialized so a caller passing a fresh object each render does not
     // re-create the search (and re-fire the debounce) on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extraQueryKey]);
+  }, [extraQueryKey, endpoint]);
 
   // Debounced search
   useEffect(() => {

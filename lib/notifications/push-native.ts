@@ -6,7 +6,15 @@
  * FCM and APNs directly — makes every buyer register a Firebase project, mint
  * a service account and upload an APNs key before a single notification
  * arrives. Expo needs no server credentials at all; the device's token is the
- * only thing required, and the app supplies that when it registers.
+ * only thing required, and the app supplies that when it registers. A store
+ * that turns on push security in its Expo account sets an access token
+ * (Settings → Mobile app, or EXPO_ACCESS_TOKEN), sent as a bearer token.
+ *
+ * Delivery is reported twice. The ticket, in the answer to the send, says
+ * whether Expo accepted the message; the receipt, fetched later by ticket id
+ * (`fetchNativePushReceipts`), says whether Apple or Google took it. An
+ * uninstalled app usually shows up only in the receipt, as
+ * DeviceNotRegistered.
  *
  * Swapping providers means replacing `sendNativePush` — the callers only know
  * about tokens and payloads. If you ship a bare React Native app (no Expo),
@@ -14,8 +22,11 @@
  */
 
 const EXPO_PUSH_ENDPOINT = "https://exp.host/--/api/v2/push/send";
+const EXPO_RECEIPTS_ENDPOINT = "https://exp.host/--/api/v2/push/getReceipts";
 /** Expo accepts at most 100 messages per request. */
 const EXPO_BATCH_SIZE = 100;
+/** And at most 1,000 ticket ids per receipt request. */
+export const EXPO_RECEIPT_BATCH_SIZE = 1000;
 
 export interface NativePushMessage {
   token: string;
@@ -28,9 +39,24 @@ export interface NativePushMessage {
 interface NativePushTicket {
   token: string;
   ok: boolean;
+  /** Expo's ticket id, on an accepted message: its receipt is fetched by it. */
+  id?: string;
   /** Set when Expo rejects the token permanently, so we can deactivate it. */
   unregistered?: boolean;
   error?: string;
+}
+
+/** Who is sending: the store's Expo access token, when push security is on. */
+interface NativePushAuth {
+  accessToken?: string;
+}
+
+function expoHeaders(auth: NativePushAuth): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+  };
 }
 
 /** Expo tokens look like `ExponentPushToken[xxxxxxxx]` or `ExpoPushToken[...]`. */
@@ -40,6 +66,7 @@ export function isExpoPushToken(token: string): boolean {
 
 interface ExpoTicket {
   status?: string;
+  id?: string;
   message?: string;
   details?: { error?: string };
 }
@@ -52,6 +79,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 export async function sendNativePush(
   messages: NativePushMessage[],
+  auth: NativePushAuth = {},
 ): Promise<NativePushTicket[]> {
   if (messages.length === 0) return [];
 
@@ -61,10 +89,7 @@ export async function sendNativePush(
     try {
       const response = await fetch(EXPO_PUSH_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: expoHeaders(auth),
         body: JSON.stringify(
           batch.map((message) => ({
             to: message.token,
@@ -94,7 +119,11 @@ export async function sendNativePush(
       batch.forEach((message, index) => {
         const ticket = results[index];
         if (ticket?.status === "ok") {
-          tickets.push({ token: message.token, ok: true });
+          tickets.push({
+            token: message.token,
+            ok: true,
+            ...(typeof ticket.id === "string" && ticket.id ? { id: ticket.id } : {}),
+          });
           return;
         }
         tickets.push({
@@ -117,4 +146,50 @@ export async function sendNativePush(
   }
 
   return tickets;
+}
+
+/** What became of one accepted message, once Apple or Google answered. */
+interface NativePushReceipt {
+  ok: boolean;
+  /** The device is gone (app uninstalled, token revoked): stop sending to it. */
+  unregistered?: boolean;
+  error?: string;
+}
+
+/**
+ * The receipts of accepted messages, by ticket id. A ticket whose receipt is
+ * not ready yet is simply absent; ask again later. Null when Expo could not be
+ * asked at all (network, an outage, a refused access token), so the caller
+ * keeps every ticket for the next run.
+ */
+export async function fetchNativePushReceipts(
+  ids: string[],
+  auth: NativePushAuth = {},
+): Promise<Map<string, NativePushReceipt> | null> {
+  const receipts = new Map<string, NativePushReceipt>();
+  for (const batch of chunk(ids, EXPO_RECEIPT_BATCH_SIZE)) {
+    try {
+      const response = await fetch(EXPO_RECEIPTS_ENDPOINT, {
+        method: "POST",
+        headers: expoHeaders(auth),
+        body: JSON.stringify({ ids: batch }),
+      });
+      if (!response.ok) return null;
+      const payload = (await response.json()) as { data?: Record<string, ExpoTicket> };
+      for (const [id, receipt] of Object.entries(payload.data ?? {})) {
+        if (receipt?.status === "ok") {
+          receipts.set(id, { ok: true });
+          continue;
+        }
+        receipts.set(id, {
+          ok: false,
+          unregistered: receipt?.details?.error === "DeviceNotRegistered",
+          error: receipt?.message || receipt?.details?.error || "Push not delivered",
+        });
+      }
+    } catch {
+      return null;
+    }
+  }
+  return receipts;
 }

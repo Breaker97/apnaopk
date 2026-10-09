@@ -2,16 +2,9 @@ import Link from "@/components/language/link";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/config/i18n.config";
-import { getStoreMoneyFormatter } from "@/lib/intl/server-currency";
 import { BackgroundVideo } from "@/components/store/background-video";
 import { backgroundCss, type SlideBackground } from "@/lib/sliders/types";
-import {
-  describeCouponCondition,
-  describeCouponOffer,
-  formatCouponEnds,
-  getStorefrontCoupon,
-  isCouponLive,
-} from "@/lib/storefront/storefront-coupon";
+import { loadCouponBanner } from "@/lib/storefront/section-data/coupon-banner";
 import { sectionEmptyState } from "./section-empty-state";
 import { CouponCodeButton } from "./coupon-code-button";
 import { isExternalSectionHref, resolveSectionHref } from "./section-shell";
@@ -56,46 +49,26 @@ export async function CouponBanner({
   background,
   ctx,
 }: CouponBannerProps) {
-  const [tHome, tCommon] = await Promise.all([
+  const [tHome, tCommon, banner] = await Promise.all([
     getTranslations({ locale, namespace: "home" }),
     getTranslations({ locale, namespace: "common" }),
+    loadCouponBanner({ code, offer: heading, condition: subheading, showExpiry, locale }),
   ]);
-  const say = (key: string, fallback: string, values?: Record<string, string>) =>
-    tHome.has(key) ? tHome(key, values) : fallback;
 
-  if (!code.trim()) {
+  if (banner.kind === "unset") {
     return sectionEmptyState(ctx, {
       title: "Coupon banner",
       hint: "Pick a discount for this banner to advertise. The offer, the minimum spend and the end date all come from it.",
     });
   }
-
-  const coupon = await getStorefrontCoupon(code);
-
-  // A discount that has ended, been paused, or has not started yet: the strip
-  // goes quiet rather than sending shoppers to a rejection at checkout.
-  if (coupon && !isCouponLive(coupon)) {
+  if (banner.kind === "notLive") {
     return sectionEmptyState(ctx, {
       title: "Coupon banner",
-      hint: `${coupon.code} is not running right now, so this banner is hidden on the storefront.`,
+      hint: `${banner.code} is not running right now, so this banner is hidden on the storefront.`,
     });
   }
-
-  const money = await getStoreMoneyFormatter();
-  // A code with no discount behind it is left as the merchant wrote it —
-  // some stores run codes this system never sees — so their own copy carries
-  // the banner instead of derived text that would be a guess.
-  const offer =
-    heading.trim() || (coupon ? describeCouponOffer(coupon, money, say) : "");
-  const condition =
-    subheading.trim() ||
-    (coupon ? describeCouponCondition(coupon, money, say) : "");
-  const endsOn =
-    showExpiry && coupon?.endDate
-      ? formatCouponEnds(coupon.endDate, locale, say)
-      : "";
-
-  if (!offer) return null;
+  if (banner.kind === "silent") return null;
+  const { offer, condition, endsOn } = banner;
 
   const resolvedHref = href ? resolveSectionHref(locale, href) : "";
   // One muted line under the offer: two levels of type, never three.
@@ -138,7 +111,7 @@ export async function CouponBanner({
                 button hanging under a 253px pill. */}
             <div className="flex w-full shrink-0 flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
               <CouponCodeButton
-                code={coupon?.code || code}
+                code={banner.code}
                 copyLabel={tHome("copyCode")}
                 copiedLabel={tCommon("copiedToClipboard")}
                 className="border-white/60 bg-transparent text-white hover:bg-white/10 hover:text-white"

@@ -30,6 +30,11 @@ import { useTranslations } from "next-intl";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { getEffectiveDirtySections, keepUnsavedEdits } from "./dirty-sections";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
+import {
+  DEFAULT_VENDOR_NEEDS_REVIEW,
+  DEFAULT_VENDOR_NO_OWNER,
+  DEFAULT_VENDOR_SYNC_FAILED,
+} from "@/lib/settings/save-warnings";
 
 const REQUIRED_OBJECT_SECTIONS = [
   "general",
@@ -98,6 +103,30 @@ function normalizeSettingsPayload(value: unknown): Settings | null {
   return normalized as unknown as Settings;
 }
 
+/**
+ * A save's answer, split into the settings to keep and what the save could not
+ * do although it stored them (`_meta.saveWarnings`). The warnings belong to
+ * that one answer, so they are not kept with the settings.
+ */
+function takeSaveWarnings(saved: Settings): {
+  settings: Settings;
+  warnings: readonly string[];
+} {
+  const meta = saved._meta;
+  if (!meta?.saveWarnings) return { settings: saved, warnings: [] };
+  const { saveWarnings, ...rest } = meta;
+  return { settings: { ...saved, _meta: rest }, warnings: saveWarnings };
+}
+
+/** What a test text came to: Twilio took it (`to` is the number as read), or why not. */
+export type SmsTestResult = { ok: boolean; message: string; to?: string };
+
+/**
+ * What a test email came to: the server sent it (and the settings now count as
+ * tested, at `verifiedAt`), or the reason it did not.
+ */
+export type EmailTestResult = { ok: boolean; message: string; verifiedAt?: string };
+
 /** Why a carrier action waits, by action (`admin.settings.shipping.carriers.saveFirst`). */
 const SAVE_SHIPPING_FIRST = {
   test: "Save shipping settings before testing the connection",
@@ -154,7 +183,6 @@ export function useAdminSettings(initialData?: unknown) {
   const [isTestingOAuth, setIsTestingOAuth] = useState(false);
   const [isRegisteringPesapalIpn, setIsRegisteringPesapalIpn] = useState(false);
   const [isCarrierBusy, setIsCarrierBusy] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
   const [testSmsTo, setTestSmsTo] = useState("");
   // The pages an edit has touched, each compared with the saved copy below. A
   // save leaves them be: what it wrote compares clean, and a page it did not
@@ -349,6 +377,43 @@ export function useAdminSettings(initialData?: unknown) {
     return overwrite;
   };
 
+  /**
+   * "Settings saved" — unless the save stored the settings but could not do
+   * something that depends on them, which is its own outcome. A store profile
+   * that failed to sync leaves products, inventory and the POS without one,
+   * so the admin is told, not congratulated.
+   */
+  const announceSaved = (warnings: readonly string[]) => {
+    if (warnings.includes(DEFAULT_VENDOR_NO_OWNER)) {
+      toast.warning(
+        tSafe(
+          "admin.settings.toasts.defaultVendorNoOwner",
+          "Settings were saved, but the store profile could not be created: every admin account already owns a seller store, and a store has one owner. Add an admin account that owns no store, then save again.",
+        ),
+      );
+      return;
+    }
+    if (warnings.includes(DEFAULT_VENDOR_NEEDS_REVIEW)) {
+      toast.warning(
+        tSafe(
+          "admin.settings.toasts.defaultVendorNeedsReview",
+          "Settings were saved, but a new store profile was not created: an older one probably exists under an admin's own store. A developer can review it with pnpm db:migrate house-profile --dry-run.",
+        ),
+      );
+      return;
+    }
+    if (warnings.includes(DEFAULT_VENDOR_SYNC_FAILED)) {
+      toast.warning(
+        tSafe(
+          "admin.settings.toasts.defaultVendorSyncFailed",
+          "Settings were saved, but the store profile could not be created or updated, so products, inventory and the POS may not work yet. Save again; if this keeps happening, check the server log.",
+        ),
+      );
+      return;
+    }
+    toast.success(tSafe("admin.settings.toasts.saved", "Settings saved"));
+  };
+
   const saveSection = async (
     section: string,
     data: unknown,
@@ -390,11 +455,12 @@ export function useAdminSettings(initialData?: unknown) {
           : { expectedVersions: expectedVersionsFor([apiSection]) }),
       });
       {
-        const nextSettings = normalizeSettingsPayload(saved);
-        if (!nextSettings) {
+        const normalized = normalizeSettingsPayload(saved);
+        if (!normalized) {
           toast.error(tSafe("admin.settings.toasts.saveFailed", "Failed to save settings"));
           return false;
         }
+        const { settings: nextSettings, warnings } = takeSaveWarnings(normalized);
         setSettings((draft) =>
           draft && initialSettings
             ? keepUnsavedEdits(nextSettings, draft, initialSettings, written)
@@ -418,7 +484,7 @@ export function useAdminSettings(initialData?: unknown) {
         // switching POS on left the admin looking at a nav that had not changed
         // and reasonably concluding the toggle was broken. One cached GET.
         await refreshSettings();
-        toast.success(tSafe("admin.settings.toasts.saved", "Settings saved"));
+        announceSaved(warnings);
         return true;
       }
     } catch (error) {
@@ -458,11 +524,12 @@ export function useAdminSettings(initialData?: unknown) {
           : { expectedVersions: expectedVersionsFor(Object.keys(data)) }),
       });
       {
-        const nextSettings = normalizeSettingsPayload(saved);
-        if (!nextSettings) {
+        const normalized = normalizeSettingsPayload(saved);
+        if (!normalized) {
           toast.error(tSafe("admin.settings.toasts.saveFailed", "Failed to save settings"));
           return false;
         }
+        const { settings: nextSettings, warnings } = takeSaveWarnings(normalized);
         setSettings((draft) =>
           draft && initialSettings
             ? keepUnsavedEdits(nextSettings, draft, initialSettings, written)
@@ -473,7 +540,7 @@ export function useAdminSettings(initialData?: unknown) {
           applySavedBrand(nextSettings.appearance);
         }
         await refreshSettings();
-        toast.success(tSafe("admin.settings.toasts.saved", "Settings saved"));
+        announceSaved(warnings);
         return true;
       }
     } catch (error) {
@@ -494,41 +561,49 @@ export function useAdminSettings(initialData?: unknown) {
   };
 
   /**
-   * Sends through the saved SMTP settings, like the SMS test: the password
-   * never comes back to the browser, so an unsaved host or login would be
-   * tested against the old one and a pass would vouch for the wrong server.
+   * Sends one test email to `to` through the saved SMTP settings, like the
+   * SMS test: the password never comes back to the browser, so an unsaved
+   * host or login would be tested against the old one and a pass would vouch
+   * for the wrong server.
+   *
+   * Answers with the outcome rather than a toast: the Email page shows it on
+   * the Mail server card, where the mail server's reason ("535 … not
+   * accepted") stays readable.
    */
-  const testSmtp = async () => {
+  const testSmtp = async (to: string): Promise<EmailTestResult | undefined> => {
     if (isDemoMode) {
       notifyDemoMode();
-      return;
+      return undefined;
     }
     if (dirtySections.has("email")) {
-      toast.error(
-        tSafe(
+      return {
+        ok: false,
+        message: tSafe(
           "admin.settings.toasts.saveEmailFirst",
           "Save the email settings before sending a test email",
         ),
-      );
-      return;
+      };
     }
     try {
       setIsTestingEmail(true);
-      const result = await apiClient.request<unknown>(
+      const result = await apiClient.request<{ verifiedAt?: string } | undefined>(
         "POST",
         "/api/admin/settings/test-email",
-        { testEmail },
+        { testEmail: to },
       );
-      toast.success(
-        result.message ||
-          tSafe("admin.settings.email.test.success", "Test email sent successfully!"),
-      );
+      return {
+        ok: true,
+        message: result.message || "",
+        verifiedAt: result.data?.verifiedAt,
+      };
     } catch (error) {
-      toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : tSafe("admin.settings.email.test.error", "Failed to send test email"),
-      );
+      return {
+        ok: false,
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : tSafe("admin.settings.email.test.error", "Failed to send test email"),
+      };
     } finally {
       setIsTestingEmail(false);
     }
@@ -538,37 +613,41 @@ export function useAdminSettings(initialData?: unknown) {
    * Send one real text through the saved Twilio settings. Gated on a saved
    * section like the carrier and OAuth checks: the credentials never come back
    * to the browser, so an unsaved edit would be tested against the old ones.
+   *
+   * Answers with the outcome rather than a toast: the SMS page shows it under
+   * the field, where Twilio's reason (a trial account, a blocked country) stays
+   * readable instead of fading out.
    */
-  const testSms = async () => {
+  const testSms = async (): Promise<SmsTestResult | undefined> => {
     if (isDemoMode) {
       notifyDemoMode();
-      return;
+      return undefined;
     }
     if (dirtySections.has("sms")) {
-      toast.error(
-        tSafe(
+      return {
+        ok: false,
+        message: tSafe(
           "admin.settings.toasts.saveSmsFirst",
           "Save the SMS settings before sending a test message",
         ),
-      );
-      return;
+      };
     }
     try {
       setIsTestingSms(true);
-      const result = await apiClient.request<unknown>(
+      const result = await apiClient.request<{ to?: string } | undefined>(
         "POST",
         "/api/admin/settings/test-sms",
         { to: testSmsTo },
       );
-      toast.success(
-        result.message || tSafe("admin.settings.sms.testSent", "Test SMS sent"),
-      );
+      return { ok: true, message: result.message || "", to: result.data?.to };
     } catch (error) {
-      toast.error(
-        error instanceof Error && error.message
-          ? error.message
-          : tSafe("admin.settings.sms.testFailed", "Failed to send test SMS"),
-      );
+      return {
+        ok: false,
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : tSafe("admin.settings.sms.testFailed", "Failed to send test SMS"),
+      };
     } finally {
       setIsTestingSms(false);
     }
@@ -847,6 +926,8 @@ export function useAdminSettings(initialData?: unknown) {
 
   return {
     settings,
+    /** The copy last loaded or saved, which the form's edits are measured against. */
+    savedSettings: initialSettings,
     setSettings,
     isLoading,
     isSaving,
@@ -855,8 +936,6 @@ export function useAdminSettings(initialData?: unknown) {
     isTestingPayment,
     isTestingOAuth,
     isRegisteringPesapalIpn,
-    testEmail,
-    setTestEmail,
     testSmsTo,
     setTestSmsTo,
     dirtySections,

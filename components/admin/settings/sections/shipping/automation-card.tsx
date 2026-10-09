@@ -1,291 +1,284 @@
 "use client";
 
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CountryMultiSelect } from "@/components/common/country-multi-select";
+import { FeatureGroup } from "@/components/admin/settings/fields/feature-row";
+import { SettingSwitchItem } from "@/components/admin/settings/fields/setting-row";
 import type { Settings } from "@/components/admin/settings/types";
+import type { CarrierRateChoice } from "@/lib/shipping/carrier-config";
+import {
+  EditDialogFooter,
+  EditDialogHeader,
+  FieldLine,
+  Segmented,
+  SwitchRow,
+  Unit,
+  useDraft,
+} from "./dialog-fields";
 
 type Automation = NonNullable<Settings["shipping"]["automation"]>;
-type TSafe = (key: string, fallback: string) => string;
+
+const DEFAULT_AUTOMATION: Automation = {
+  enabled: false,
+  includeCod: false,
+  rateChoice: "cheapest",
+  buyLabel: true,
+  markOrderShipped: true,
+};
+
+/** A limit that is set: the rules read 0, null and absent as "no limit". */
+function limit(value: number | null | undefined): number | undefined {
+  return typeof value === "number" && value > 0 ? value : undefined;
+}
+
+/** True when a limit keeps some paid orders out of automation. */
+export function automationHasLimits(automation: Automation): boolean {
+  return (
+    limit(automation.minOrderValue) !== undefined ||
+    limit(automation.maxOrderValue) !== undefined ||
+    limit(automation.maxLabelCost) !== undefined ||
+    (automation.restrictToCountries?.length ?? 0) > 0
+  );
+}
 
 /**
- * When a shipment is created without anyone clicking anything.
+ * When a shipment is created without anyone clicking anything: a switch, what
+ * it will do in a sentence or two, and the rest behind Customize.
  *
  * The rule is evaluated per sub-order, not per order: on a split order one
  * vendor may already have shipped while another has not, and the sub-order is
  * the unit a parcel corresponds to.
  */
-export function AutomationCard(props: {
-  automation: Automation;
-  carriersEnabled: boolean;
-  tSafe: TSafe;
+export function AutomationSection(props: {
+  automation?: Automation;
+  currency: string;
   updateField: (path: string, value: unknown) => void;
 }) {
-  const { automation, tSafe, updateField } = props;
-  const set = (key: keyof Automation, value: unknown) =>
-    updateField(`shipping.automation.${key}`, value);
+  const t = useTranslations("admin.settings.shipping.automation");
+  // Read as stored, never rebuilt from defaults: the dialog hands this object
+  // back, and one whose keys moved would count as an unsaved change.
+  const automation = props.automation ?? DEFAULT_AUTOMATION;
+  const buysLabel = automation.buyLabel !== false;
+  const [customizing, setCustomizing] = useState(false);
+
+  const buys = !buysLabel
+    ? t("summary.draft")
+    : automation.rateChoice === "fastest"
+      ? t("summary.fastest")
+      : automation.rateChoice === "fixed_service"
+        ? automation.fixedServiceToken
+          ? t("summary.fixed", { service: automation.fixedServiceToken })
+          : t("summary.fixedUnset")
+        : t("summary.cheapest");
+  const summary = [
+    buys,
+    buysLabel && automation.markOrderShipped !== false ? t("summary.marksShipped") : null,
+    automation.includeCod ? t("summary.codIncluded") : t("summary.codExcluded"),
+    automationHasLimits(automation) ? t("summary.limited") : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold">
-            {tSafe(
-              "admin.settings.shipping.automation.title",
-              "Automatic shipping",
-            )}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {tSafe(
-              "admin.settings.shipping.automation.description",
-              "Create a shipment as soon as an order is paid and moved to processing. You can always send an order to a courier by hand instead.",
-            )}
-          </p>
+    <FeatureGroup title={t("title")}>
+      <SettingSwitchItem
+        title={t("enable")}
+        description={t("description")}
+        checked={Boolean(automation.enabled)}
+        onCheckedChange={(checked) => props.updateField("shipping.automation.enabled", checked)}
+      />
+      {automation.enabled ? (
+        <div className="flex flex-wrap items-center gap-3 p-4">
+          <p className="text-muted-foreground min-w-0 flex-1 basis-72 text-sm">{summary}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setCustomizing(true)}
+          >
+            {t("customize")}
+          </Button>
         </div>
-        <Switch
-          checked={automation.enabled ?? false}
-          disabled={!props.carriersEnabled}
-          onCheckedChange={(checked) => set("enabled", checked)}
-          aria-label={tSafe(
-            "admin.settings.shipping.automation.enable",
-            "Enable automatic shipping",
-          )}
-        />
-      </div>
-
-      {!props.carriersEnabled ? (
-        <p className="text-xs text-muted-foreground">
-          {tSafe(
-            "admin.settings.shipping.automation.requiresCarrier",
-            "Connect a carrier first — automation has nothing to buy a label from.",
-          )}
-        </p>
       ) : null}
 
-      {automation.enabled && props.carriersEnabled ? (
-        <div className="space-y-5 rounded-lg border p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="automation-cod">
-                {tSafe(
-                  "admin.settings.shipping.automation.includeCod",
-                  "Include cash-on-delivery orders",
-                )}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {tSafe(
-                  "admin.settings.shipping.automation.includeCodHint",
-                  "A COD order is never marked paid, so it only ships automatically when this is on.",
-                )}
-              </p>
-            </div>
-            <Switch
-              id="automation-cod"
-              checked={automation.includeCod ?? false}
-              onCheckedChange={(checked) => set("includeCod", checked)}
+      {customizing ? (
+        <AutomationDialog
+          initial={automation}
+          currency={props.currency}
+          onClose={() => setCustomizing(false)}
+          onDone={(next) => {
+            props.updateField("shipping.automation", next);
+            setCustomizing(false);
+          }}
+        />
+      ) : null}
+    </FeatureGroup>
+  );
+}
+
+const LIMIT_KEYS = ["minOrderValue", "maxOrderValue", "maxLabelCost"] as const;
+
+function AutomationDialog(props: {
+  initial: Automation;
+  currency: string;
+  onClose: () => void;
+  onDone: (automation: Automation) => void;
+}) {
+  const t = useTranslations("admin.settings.shipping.automation");
+  const tUnits = useTranslations("admin.settings.shipping.units");
+  // A stored 0 means "no limit", so its box opens empty like an unset one.
+  const [opened] = useState<Automation>(() => ({
+    ...props.initial,
+    minOrderValue: limit(props.initial.minOrderValue),
+    maxOrderValue: limit(props.initial.maxOrderValue),
+    maxLabelCost: limit(props.initial.maxLabelCost),
+  }));
+  const { draft, set, changed } = useDraft<Automation>(opened);
+  const rateChoice = draft.rateChoice || "cheapest";
+
+  /**
+   * A limit emptied here is written as 0: an absent value is left out of the
+   * save, which keeps the old limit, so a limit could never be taken off. One
+   * that was already empty goes back as it was.
+   */
+  const done = () => {
+    if (!changed) return props.onClose();
+    const next = { ...draft };
+    for (const key of LIMIT_KEYS) {
+      if (draft[key] !== undefined) continue;
+      next[key] = limit(props.initial[key]) === undefined ? props.initial[key] : 0;
+    }
+    props.onDone(next);
+  };
+
+  const choices: { id: CarrierRateChoice; label: string }[] = [
+    { id: "cheapest", label: t("rateChoiceCheapest") },
+    { id: "fastest", label: t("rateChoiceFastest") },
+    { id: "fixed_service", label: t("rateChoiceFixed") },
+  ];
+
+  return (
+    <Dialog open onOpenChange={(open) => (open ? null : props.onClose())}>
+      <DialogContent className="grid-cols-1 gap-0 p-0 sm:max-w-xl">
+        <EditDialogHeader>
+          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogDescription>{t("dialogHint")}</DialogDescription>
+        </EditDialogHeader>
+
+        <div className="max-h-[70vh] min-w-0 space-y-5 overflow-y-auto px-6 py-5">
+          <div className="space-y-1.5">
+            <p id="automation-rate-choice" className="text-sm font-medium">
+              {t("rateChoice")}
+            </p>
+            <Segmented
+              labelledBy="automation-rate-choice"
+              className="grid-cols-3"
+              value={rateChoice}
+              options={choices}
+              onChange={(next) => set({ rateChoice: next })}
             />
           </div>
 
-          <Separator />
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="automation-min">
-                {tSafe(
-                  "admin.settings.shipping.automation.minOrderValue",
-                  "Minimum order value",
-                )}
-              </Label>
-              <NumberInput
-                id="automation-min"
-                min={0}
-                value={automation.minOrderValue}
-                placeholder="0"
-                onValueChange={(next) => set("minOrderValue", next)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="automation-max">
-                {tSafe(
-                  "admin.settings.shipping.automation.maxOrderValue",
-                  "Maximum order value",
-                )}
-              </Label>
-              <NumberInput
-                id="automation-max"
-                min={0}
-                value={automation.maxOrderValue}
-                placeholder={tSafe(
-                  "admin.settings.shipping.automation.noLimit",
-                  "No limit",
-                )}
-                onValueChange={(next) => set("maxOrderValue", next)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="automation-max-cost">
-                {tSafe(
-                  "admin.settings.shipping.automation.maxLabelCost",
-                  "Abort above label cost",
-                )}
-              </Label>
-              <NumberInput
-                id="automation-max-cost"
-                min={0}
-                value={automation.maxLabelCost}
-                placeholder={tSafe(
-                  "admin.settings.shipping.automation.noLimit",
-                  "No limit",
-                )}
-                onValueChange={(next) => set("maxLabelCost", next)}
-              />
-              <p className="text-xs text-muted-foreground">
-                {tSafe(
-                  "admin.settings.shipping.automation.maxLabelCostHint",
-                  "In your carrier account's currency, not the store's.",
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="automation-rate-choice">
-              {tSafe(
-                "admin.settings.shipping.automation.rateChoice",
-                "Which rate to buy",
-              )}
-            </Label>
-            <Select
-              value={automation.rateChoice || "cheapest"}
-              onValueChange={(value) => set("rateChoice", value)}
-            >
-              <SelectTrigger id="automation-rate-choice">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cheapest">
-                  {tSafe(
-                    "admin.settings.shipping.automation.rateChoiceCheapest",
-                    "Cheapest",
-                  )}
-                </SelectItem>
-                <SelectItem value="fastest">
-                  {tSafe(
-                    "admin.settings.shipping.automation.rateChoiceFastest",
-                    "Fastest",
-                  )}
-                </SelectItem>
-                <SelectItem value="fixed_service">
-                  {tSafe(
-                    "admin.settings.shipping.automation.rateChoiceFixed",
-                    "A specific service",
-                  )}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {automation.rateChoice === "fixed_service" ? (
-            <div className="space-y-2">
-              <Label htmlFor="automation-service">
-                {tSafe(
-                  "admin.settings.shipping.automation.fixedServiceToken",
-                  "Service token",
-                )}
-              </Label>
+          {rateChoice === "fixed_service" ? (
+            <div className="space-y-1.5">
+              <label htmlFor="automation-service" className="text-sm font-medium">
+                {t("fixedServiceToken")}
+              </label>
               <Input
                 id="automation-service"
-                value={automation.fixedServiceToken || ""}
+                value={draft.fixedServiceToken || ""}
                 placeholder="usps_priority"
-                onChange={(e) => set("fixedServiceToken", e.target.value)}
+                onChange={(event) => set({ fixedServiceToken: event.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                {tSafe(
-                  "admin.settings.shipping.automation.fixedServiceHint",
-                  "The carrier's own service identifier. Send one order to a courier by hand to see the tokens your account returns.",
-                )}
-              </p>
+              <p className="text-muted-foreground text-xs">{t("fixedServiceHint")}</p>
             </div>
           ) : null}
 
-          <Separator />
+          <SwitchRow
+            title={t("buyLabel")}
+            hint={t("buyLabelHint")}
+            checked={draft.buyLabel ?? true}
+            onCheckedChange={(checked) => set({ buyLabel: checked })}
+          />
+          {/* Nothing is bought without the label, so there is nothing to mark. */}
+          {draft.buyLabel !== false ? (
+            <SwitchRow
+              title={t("markShipped")}
+              hint={t("markShippedHint")}
+              checked={draft.markOrderShipped ?? true}
+              onCheckedChange={(checked) => set({ markOrderShipped: checked })}
+            />
+          ) : null}
+          <SwitchRow
+            title={t("includeCod")}
+            hint={t("includeCodHint")}
+            checked={draft.includeCod ?? false}
+            onCheckedChange={(checked) => set({ includeCod: checked })}
+          />
 
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="automation-buy">
-                {tSafe(
-                  "admin.settings.shipping.automation.buyLabel",
-                  "Buy the label automatically",
-                )}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {tSafe(
-                  "admin.settings.shipping.automation.buyLabelHint",
-                  "Off creates a rate-shopped draft and stops, leaving the purchase to a human.",
-                )}
-              </p>
+          <div className="space-y-4 border-t pt-5">
+            <p className="text-sm font-semibold">{t("limitsHeading")}</p>
+            <FieldLine label={t("orderValue")} htmlFor="automation-min">
+              <NumberInput
+                id="automation-min"
+                className="w-24"
+                min={0}
+                value={draft.minOrderValue}
+                placeholder="0"
+                onValueChange={(next) => set({ minOrderValue: next })}
+              />
+              <Unit>{tUnits("to")}</Unit>
+              <NumberInput
+                className="w-28"
+                aria-label={t("maxOrderValue")}
+                min={0}
+                value={draft.maxOrderValue}
+                placeholder={t("noLimit")}
+                onValueChange={(next) => set({ maxOrderValue: next })}
+              />
+              <Unit>{props.currency}</Unit>
+            </FieldLine>
+            <div className="space-y-1.5">
+              <FieldLine label={t("maxLabelCost")} htmlFor="automation-max-cost">
+                <NumberInput
+                  id="automation-max-cost"
+                  className="w-28"
+                  min={0}
+                  value={draft.maxLabelCost}
+                  placeholder={t("noLimit")}
+                  onValueChange={(next) => set({ maxLabelCost: next })}
+                />
+              </FieldLine>
+              <p className="text-muted-foreground text-xs">{t("maxLabelCostHint")}</p>
             </div>
-            <Switch
-              id="automation-buy"
-              checked={automation.buyLabel ?? true}
-              onCheckedChange={(checked) => set("buyLabel", checked)}
-            />
-          </div>
-
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="automation-mark-shipped">
-                {tSafe(
-                  "admin.settings.shipping.automation.markShipped",
-                  "Mark the order shipped once the label is bought",
-                )}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {tSafe(
-                  "admin.settings.shipping.automation.markShippedHint",
-                  "Sends the customer their tracking number.",
-                )}
-              </p>
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor="automation-countries" className="text-sm font-medium">
+                {t("restrictCountries")}
+              </label>
+              <CountryMultiSelect
+                id="automation-countries"
+                modal
+                value={draft.restrictToCountries ?? []}
+                onChange={(next) => set({ restrictToCountries: next })}
+              />
+              <p className="text-muted-foreground text-xs">{t("restrictCountriesHint")}</p>
             </div>
-            <Switch
-              id="automation-mark-shipped"
-              checked={automation.markOrderShipped ?? true}
-              onCheckedChange={(checked) => set("markOrderShipped", checked)}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label>
-              {tSafe(
-                "admin.settings.shipping.automation.restrictCountries",
-                "Only automate these destinations",
-              )}
-            </Label>
-            <CountryMultiSelect
-              value={automation.restrictToCountries ?? []}
-              onChange={(next) => set("restrictToCountries", next)}
-            />
-            <p className="text-xs text-muted-foreground">
-              {tSafe(
-                "admin.settings.shipping.automation.restrictCountriesHint",
-                "Leave empty to automate every destination.",
-              )}
-            </p>
           </div>
         </div>
-      ) : null}
-    </div>
+
+        <EditDialogFooter onCancel={props.onClose} onDone={done} />
+      </DialogContent>
+    </Dialog>
   );
 }

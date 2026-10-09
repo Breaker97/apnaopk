@@ -12,6 +12,24 @@ import type { LoyaltyTier } from "@/types";
  */
 
 /**
+ * Whether the loyalty programme is switched on for this build.
+ *
+ * Loyalty is half built: paid orders earn points and refunds take them back,
+ * but nothing lets a customer spend them and a tier gives nothing. Until the
+ * rest exists the whole feature stays out of sight and paid orders stop
+ * earning, unless `NEXT_PUBLIC_LOYALTY_ENABLED` is exactly "true".
+ *
+ * Read literally so Next inlines it into client bundles: the admin screens,
+ * the storefront account and the payment code all get the same answer, and a
+ * change needs a rebuild (a restart in dev). Points already earned keep
+ * following refunds while it is off — `reverseOrderLoyaltyPoints` is never
+ * gated.
+ */
+export function isLoyaltyEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_LOYALTY_ENABLED === "true";
+}
+
+/**
  * Loyalty tier thresholds based on lifetime points
  */
 export const LOYALTY_THRESHOLDS = {

@@ -3,6 +3,7 @@ import { Order } from "@/models";
 import { connectDB } from "@/lib/db";
 import { PAYMENT_STATUS } from "@/config/app.config";
 import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 
 /**
  * Orders attributed to one staff member.
@@ -20,6 +21,8 @@ interface StaffOrderRow {
   channel?: string;
   total: number;
   customerName?: string;
+  /** A walk-in POS sale: filed under this staff member, so no name. */
+  walkIn?: boolean;
   createdAt: string;
 }
 
@@ -138,7 +141,7 @@ export async function fetchStaffOrders(params: StaffOrdersParams): Promise<{
 
   const [rows, total] = await Promise.all([
     Order.find(filter)
-      .select("orderNumber status paymentStatus channel total createdAt customerId guestEmail")
+      .select("orderNumber status paymentStatus channel staffId total createdAt customerId guestEmail")
       // Guest checkouts point `customerId` at a cart, so this populate simply
       // resolves to null there and the row falls back to the guest email.
       .populate("customerId", "name email")
@@ -158,8 +161,14 @@ export async function fetchStaffOrders(params: StaffOrdersParams): Promise<{
       paymentStatus: String(row.paymentStatus ?? ""),
       channel: row.channel,
       total: Number(row.total ?? 0),
-      customerName:
-        customer?.name || customer?.email || row.guestEmail || undefined,
+      // A walk-in POS sale is filed under the cashier — the staff member whose
+      // orders these are — and names nobody.
+      ...(isPosWalkIn(row)
+        ? { walkIn: true }
+        : {
+            customerName:
+              customer?.name || customer?.email || row.guestEmail || undefined,
+          }),
       createdAt: new Date(row.createdAt).toISOString(),
     };
   });

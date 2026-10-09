@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Pencil, Star } from "lucide-react";
 
 import type { LoyaltyTier } from "@/types";
 import { cn } from "@/lib/utils";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import type { DemoModeState } from "@/lib/demo-mode-shared";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -160,7 +161,8 @@ export function AccountMobileNav({
           {stripTitle}
         </h1>
 
-        {stats.loyaltyTier && (
+        {/* Hidden with the rest of loyalty (see `isLoyaltyEnabled`). */}
+        {isLoyaltyEnabled() && stats.loyaltyTier && (
           <span
             className={cn(
               "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",

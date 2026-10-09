@@ -36,6 +36,15 @@ function resolveTurnstile(settings: TurnstileSettings): TurnstileConfig | null {
   return turnstile;
 }
 
+/**
+ * The site key the widget is shown with, or null when the store has no
+ * working Turnstile — and then no check is ever asked for, whatever the
+ * card-testing counters say (`verifyTurnstileToken` lets every payment by).
+ */
+export function turnstileSiteKey(settings: TurnstileSettings): string | null {
+  return resolveTurnstile(settings)?.siteKey ?? null;
+}
+
 type TurnstileOutcome =
   /** Cloudflare says a human did this. */
   | { ok: true }

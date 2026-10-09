@@ -83,6 +83,8 @@ export function DataTable<T extends object>({
   // Empty state
   emptyMessage,
   emptyIcon,
+  emptyDescription,
+  emptyAction,
 
   // Customization
   className,
@@ -425,6 +427,12 @@ export function DataTable<T extends object>({
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     {emptyIcon || <Package className="h-8 w-8" />}
                     <p className="text-sm">{emptyText}</p>
+                    {emptyDescription ? (
+                      <p className="max-w-sm text-center text-xs">
+                        {emptyDescription}
+                      </p>
+                    ) : null}
+                    {emptyAction}
                   </div>
                 </TableCell>
               </TableRow>

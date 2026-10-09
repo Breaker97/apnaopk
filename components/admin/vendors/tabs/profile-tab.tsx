@@ -28,7 +28,12 @@ import type { VendorFormValues, VendorTabProps } from "../vendor-detail-types";
 const VENDOR_IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp";
 const VENDOR_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 
-export function ProfileTab({ form, setField, readOnly }: VendorTabProps) {
+export function ProfileTab({
+  form,
+  setField,
+  readOnly,
+  replacedAddressCountry,
+}: VendorTabProps) {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card>
@@ -204,6 +209,9 @@ export function ProfileTab({ form, setField, readOnly }: VendorTabProps) {
                 id="vendor-address-country"
                 value={form.addressCountry}
                 onChange={(country) => setField("addressCountry", country)}
+                // Where the seller is, not where the store delivers.
+                lockedHint={false}
+                replacedCountry={replacedAddressCountry}
                 placeholder="Select country"
                 disabled={readOnly}
               />

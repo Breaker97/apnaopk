@@ -20,6 +20,8 @@ import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import { useRenderNow } from "@/components/store/render-clock";
+import { useVendorSignupVisible } from "@/hooks/use-vendor-signup-visible";
+import { isVendorSignupHref } from "@/lib/vendors/vendor-signup-links";
 import {
   getDefaultFooterSettings,
   resolveFooterContactDetails,
@@ -80,6 +82,8 @@ export function StoreFooter({
     socialLinks,
   } = useAppSettings();
   const { isDark } = useAppTheme();
+  // "Become a Vendor" is for shoppers; see lib/vendors/vendor-signup-links.ts.
+  const showVendorSignup = useVendorSignupVisible();
 
   const resolvedStoreName =
     typeof storeName === "string" && storeName.trim()
@@ -347,7 +351,10 @@ export function StoreFooter({
         // A column sourced from a reusable menu has already had its links
         // resolved server-side (resolveFooterMenuColumns), which is why the
         // item carries both and reads whichever it was given.
-        const links = item.links.filter((link) => link.label);
+        const links = item.links.filter(
+          (link) =>
+            link.label && (showVendorSignup || !isVendorSignupHref(link.url)),
+        );
         if (links.length === 0) return null;
         return (
           <div key={item.id} style={inset}>
@@ -428,7 +435,7 @@ export function StoreFooter({
     return null;
   };
 
-  const renderColumn = (column: FooterLayoutColumn) => {
+  const renderColumn = (column: FooterLayoutColumn, headingGap?: number) => {
     const drawn = column.items.map(renderItem).filter(Boolean);
     if (drawn.length === 0) return null;
     return (
@@ -436,6 +443,10 @@ export function StoreFooter({
         key={column.id}
         className={cn(
           "flex min-w-0",
+          headingGap !== undefined && "footer-column--aligned",
+          headingGap !== undefined &&
+            column.items[0]?.type === "links" &&
+            "footer-column--links",
           column.flow === "row" ? "flex-wrap items-center" : "flex-col",
           // Below `lg` the tracks are the grid's own, so a column wider than
           // one track says so by spanning; from `lg` the row states every
@@ -443,7 +454,7 @@ export function StoreFooter({
           column.width > 1 && "col-span-2 lg:col-span-1",
         )}
         style={{
-          gap: column.gap,
+          gap: headingGap ?? column.gap,
           justifyContent: FLOW_JUSTIFY[column.justify],
           alignItems:
             column.flow === "row"
@@ -451,7 +462,17 @@ export function StoreFooter({
               : ALIGN_ITEMS[column.align.horizontal],
         }}
       >
-        {drawn}
+        {headingGap !== undefined && column.items[0]?.type === "brand" ? (
+          <>
+            {drawn[0]}
+            <div
+              className="footer-brand-content flex flex-col"
+              style={{ gap: column.gap }}
+            >
+              {drawn.slice(1)}
+            </div>
+          </>
+        ) : drawn}
       </div>
     );
   };
@@ -462,7 +483,24 @@ export function StoreFooter({
     // would otherwise leave an empty track behind and push its neighbours
     // off their share of the row.
     const drawnColumns = row.columns.filter((column) => renderColumn(column) !== null);
-    const drawn = drawnColumns.map(renderColumn);
+    // Share the logo/heading track in a conventional brand-and-links row.
+    // A taller logo then cannot push only the description/contact down.
+    const brandColumn = drawnColumns.find(
+      (column) => column.items[0]?.type === "brand",
+    );
+    const alignHeadings = brandColumn && drawnColumns.length > 1 &&
+      drawnColumns.every((column) =>
+        column.flow === "stack" &&
+        column.justify === "start" &&
+        column.align.horizontal === "start" &&
+        (column === brandColumn ||
+          (column.items.length === 1 &&
+            column.items[0]?.type === "links" &&
+            column.items[0].title &&
+            Object.values(column.items[0].padding).every((value) => value === 0))),
+      );
+    const headingGap = alignHeadings ? brandColumn.gap : undefined;
+    const drawn = drawnColumns.map((column) => renderColumn(column, headingGap));
     if (drawn.length === 0) return null;
     const strip = drawnColumns.every((column) => column.width === 1);
     return (
@@ -480,29 +518,37 @@ export function StoreFooter({
             : undefined
         }
       >
-        <div className={contentClass} style={paddingStyle(row.padding)}>
-          <div
-            className={cn(
-              "footer-row grid",
-              // Below `lg` the row keeps the shape the footer has always
-              // had. A STRIP — every column one track, like the legal
-              // line — stacked and centred on a phone and spread across
-              // the width from `md`; a BANK with a wide brand column kept
-              // the two- and four-track grids, the brand spanning two.
-              strip
-                ? "footer-row--strip grid-cols-1 justify-items-center md:justify-items-stretch"
-                : "grid-cols-2 md:grid-cols-4",
-            )}
-            style={
-              {
-                gap: row.gap,
-                "--footer-cols": drawnColumns
-                  .map((column) => `minmax(0, ${column.width}fr)`)
-                  .join(" "),
-              } as CSSProperties
-            }
-          >
-            {drawn}
+        {/* The page gutter (`px-4`) lives on this box and the row's own
+            padding on the one inside it. They used to share one element, and
+            the row's inline `padding: 48 0` then overwrote the gutter's left
+            and right — so on a phone the footer ran flush to the screen
+            edge. Now the row's padding adds to the gutter instead. */}
+        <div className={contentClass}>
+          <div style={paddingStyle(row.padding)}>
+            <div
+              className={cn(
+                "footer-row grid",
+                alignHeadings && "footer-row--aligned",
+                // Below `lg` the row keeps the shape the footer has always
+                // had. A STRIP — every column one track, like the legal
+                // line — stacked and centred on a phone and spread across
+                // the width from `md`; a BANK with a wide brand column kept
+                // the two- and four-track grids, the brand spanning two.
+                strip
+                  ? "footer-row--strip grid-cols-1 justify-items-center md:justify-items-stretch"
+                  : "grid-cols-2 md:grid-cols-4",
+              )}
+              style={
+                {
+                  gap: row.gap,
+                  "--footer-cols": drawnColumns
+                    .map((column) => `minmax(0, ${column.width}fr)`)
+                    .join(" "),
+                } as CSSProperties
+              }
+            >
+              {drawn}
+            </div>
           </div>
         </div>
       </div>

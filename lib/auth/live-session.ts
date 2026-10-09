@@ -12,6 +12,15 @@ const LIVE_SESSION_USER_PROJECTION = {
 } as const;
 
 /**
+ * The user's fields, plus the session row's audience as `sessionClient`
+ * (lib/auth/session-audience.ts), read from the row rather than the cookie.
+ */
+const LIVE_SESSION_PROJECTION = {
+  ...LIVE_SESSION_USER_PROJECTION,
+  sessionClient: 1,
+} as const;
+
+/**
  * The user behind a session, read in the same round trip that proves the
  * session row still exists. Null means the session must not be honoured:
  * revoked, signed out elsewhere, or its user gone.
@@ -22,6 +31,9 @@ const LIVE_SESSION_USER_PROJECTION = {
  * reset, a password change, or "Sign out other devices". Starting from the
  * session row closes that window at no extra cost: this read replaced a lookup
  * of the user alone.
+ *
+ * The same read carries the session's audience (`sessionClient`), so checking
+ * where a session may be used costs nothing either.
  *
  * Both ids are matched as ObjectIds because that is how Better Auth's Mongo
  * adapter stores them; a string filter matches nothing.
@@ -54,8 +66,12 @@ export async function readLiveSessionUser(
         },
       },
       { $unwind: "$user" },
-      { $replaceRoot: { newRoot: "$user" } },
-      { $project: LIVE_SESSION_USER_PROJECTION },
+      {
+        $replaceRoot: {
+          newRoot: { $mergeObjects: ["$user", { sessionClient: "$client" }] },
+        },
+      },
+      { $project: LIVE_SESSION_PROJECTION },
     ])
     .toArray();
 

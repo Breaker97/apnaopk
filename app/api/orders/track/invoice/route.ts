@@ -1,110 +1,48 @@
-import { connectDB } from "@/lib/db";
-import { Order } from "@/models";
-import { getSettingsLean } from "@/models/settings.model";
-import { ValidationError } from "@/lib/api/errors";
+import { RateLimitError, ValidationError } from "@/lib/api/errors";
+import { resolveClientIp } from "@/lib/api/client-ip";
 import {
   SHOPPING_ADDRESS_ALLOWANCE,
   rateLimitByIP,
-  rateLimitByIPAndSubject,
 } from "@/lib/api/rate-limit-middleware";
+import { rateLimitMessage } from "@/lib/api/rate-limit-message";
 import { withApi } from "@/lib/api/handler";
 import { validateOptionalBody } from "@/lib/api/validate";
 import { TrackOrderBodySchema } from "@/lib/validations";
-import { generateOrderInvoicePdf } from "@/lib/orders/order-invoice";
-import type { IOrder } from "@/types";
-
-type InvoiceCustomer = {
-  name?: string;
-  email?: string;
-  phone?: string;
-};
-
-
-function normalizeText(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizePhone(value: string) {
-  return value.replace(/[^\d+]/g, "");
-}
-
-
-function getCustomerName(
-  order: Pick<IOrder, "shippingAddress"> & { customerId?: InvoiceCustomer },
-) {
-  const shipping = order.shippingAddress;
-  const addressName =
-    shipping.fullName ||
-    [shipping.firstName, shipping.lastName].filter(Boolean).join(" ");
-  return addressName || order.customerId?.name || "Customer";
-}
-
+import {
+  buildGuestInvoicePdf,
+  lookUpGuestOrder,
+} from "@/lib/orders/guest-order-tracking";
 
 export const POST = withApi(
   {},
   async ({ request }) => {
     // Public, unauthenticated endpoint guarded only by email/phone match.
-    // Held like order tracking: a strict limit per order and address, and the
-    // address to ten times that (brute-forcing contact details, PDF scraping).
+    // Held like order tracking, and sharing its count per order: a strict
+    // limit per order and address, and the address to ten times that
+    // (brute-forcing contact details, PDF scraping).
     await rateLimitByIP(request, "strict", SHOPPING_ADDRESS_ALLOWANCE);
 
     const body = await validateOptionalBody(request, TrackOrderBodySchema);
-    const orderNumber = normalizeText(body.orderNumber || body.orderId);
-    const identifier = normalizeText(body.identifier);
+    const lookup = await lookUpGuestOrder({
+      orderNumber: body.orderNumber || body.orderId || "",
+      contact: body.identifier || "",
+      ip: resolveClientIp(request.headers) ?? undefined,
+    });
 
-    if (orderNumber) {
-      await rateLimitByIPAndSubject(
-        request,
-        `order:${orderNumber.toUpperCase().slice(0, 64)}`,
-        "strict",
-      );
+    switch (lookup.kind) {
+      case "rate_limited":
+        throw new RateLimitError(
+          await rateLimitMessage(request, lookup.retryAfter),
+          lookup.retryAfter,
+        );
+      case "incomplete":
+        throw new ValidationError("Order number and email or phone are required");
+      case "not_found":
+        return new Response("Order not found", { status: 404 });
     }
 
-    if (!orderNumber || !identifier) {
-      throw new ValidationError("Order number and email or phone are required");
-    }
-
-    await connectDB();
-
-    // Exact uppercase match seeks the unique orderNumber index (numbers are
-    // generated uppercase); the case-insensitive regex scanned it instead.
-    const order = await Order.findOne({
-      orderNumber: orderNumber.trim().toUpperCase(),
-    })
-      .populate("customerId", "name email phone")
-      .lean<(IOrder & { customerId?: InvoiceCustomer }) | null>();
-
-    if (!order) {
-      return new Response("Order not found", { status: 404 });
-    }
-
-    const identifierLower = identifier.toLowerCase();
-    const identifierPhone = normalizePhone(identifier);
-    // Guest orders populate no customer (customerId points at the guest's
-    // cart), so their checkout email lives on the order itself.
-    const emailMatches = [order.customerId?.email, order.guestEmail]
-      .filter(Boolean)
-      .some((email) => email!.toLowerCase() === identifierLower);
-    const phoneMatches = [
-      order.customerId?.phone,
-      order.contactPhone,
-      order.shippingAddress.phone,
-    ]
-      .filter(Boolean)
-      .map((phone) => normalizePhone(phone!))
-      .some((phone) => phone === identifierPhone);
-
-    if (!emailMatches && !phoneMatches) {
-      return new Response("Order not found", { status: 404 });
-    }
-
-    const settings = await getSettingsLean();
-    const pdfBuffer = await generateOrderInvoicePdf(
-      order,
-      settings,
-      getCustomerName(order),
-      order.customerId?.email || order.guestEmail,
-    );
+    const { order } = lookup;
+    const pdfBuffer = await buildGuestInvoicePdf(order);
 
     return new Response(new Uint8Array(pdfBuffer), {
       status: 200,

@@ -19,16 +19,24 @@ import { PLATFORM_GATEWAY_PAYMENT_METHODS } from "@/lib/payments/payment-custody
  * alongside it, which is the point: an order promoted from an attempt days
  * later has no checkout route around it to ask.
  *
- * The two side effects are each best-effort. Neither may fail the order: the
- * money is either taken or committed by the time this runs, and an order whose
- * quote offers were not closed, or whose guest profile was not written, is a
- * paperwork gap, while an order that failed to save is a lost sale.
+ * The three side effects are each best-effort. None of them may fail the
+ * order: the money is either taken or committed by the time this runs, and an
+ * order that exists with a missing analytics event is a paperwork gap, while
+ * an order that failed to save is a lost sale.
  */
 
 /** The parts of an order document this module reads. */
 export type OrderDocumentLike = Record<string, unknown> & {
+  customerId?: unknown;
   guestEmail?: string;
   paymentMethod?: string;
+  subtotal?: number;
+  shippingCost?: number;
+  tax?: number;
+  discount?: number;
+  total?: number;
+  hasPreorder?: boolean;
+  coupon?: { code?: string } | null;
   shippingAddress?: { fullName?: string } | null;
   items?: Array<{ quoteId?: unknown }> | null;
 };

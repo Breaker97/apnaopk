@@ -6,26 +6,18 @@ import { AppImage } from "@/components/ui/app-image";
 import { Button } from "@/components/ui/button";
 import { ModernProductCard } from "@/components/products/modern-product-card";
 import { SavedSliderLazy as SavedSlider } from "@/components/store/saved-slider-lazy";
-import { fetchCollectionShelf } from "@/components/store/sections/featured-collection";
 import { buildRenderSlides } from "@/lib/sliders/render";
-import { resolveCellData } from "@/lib/storefront/sections/section-grid";
-import type { SliderCellContent } from "@/lib/storefront/sections/slider-grids";
+import {
+  loadCollectionRows,
+  type CollectionRowEntry,
+} from "@/lib/storefront/section-data/collection-shelf";
 import {
   CARD_GRID_GAP_TIGHT,
 } from "@/components/store/product-grid-columns";
 import type { CollectionRowsSpacing } from "@/lib/storefront/sections/collection-rows-spacing";
+import { composeCollectionShelf } from "@/lib/storefront/sections/collection-shelf";
 import { cn } from "@/lib/utils";
-
-/** One row's stored content — a collection block's settings, read leniently. */
-export interface CollectionRowEntry {
-  collection: string;
-  /** Cards beside the panel — the row's shelf size. */
-  limit: number;
-  /** The feature slot: a static image or a saved slider, like a hero cell. */
-  kind: "image" | "slider";
-  image: string;
-  slider: string;
-}
+import { vendorFilterHref } from "@/lib/vendors/vendor-store-page";
 
 /**
  * Desktop templates per card count: two cells — the panel at 3fr, then the
@@ -84,12 +76,19 @@ export async function CollectionRows({
   rows,
   spacing,
   emptyState = null,
+  vendor,
 }: {
   locale: Locale;
   title: string;
   rows: CollectionRowEntry[];
   spacing: CollectionRowsSpacing;
   emptyState?: React.ReactNode;
+  /**
+   * A vendor's landing page: each row shows that store's products in the
+   * collection, its links open the store's own Products tab filtered to it,
+   * and a slider panel is one of the store's own sliders.
+   */
+  vendor?: { id: string; slug: string };
 }) {
   const PANEL_FRAME = panelFrame(spacing);
   // The custom properties every row reads. A custom gap is the space
@@ -101,30 +100,12 @@ export async function CollectionRows({
     "--fc-radius": spacing.radius,
     ...(spacing.gap !== null ? { gap: spacing.gap } : {}),
   } as React.CSSProperties;
-  // One extra product per row: the first backstops the panel artwork.
-  const shelves = await Promise.all(
-    rows.map((row) =>
-      row.collection
-        ? fetchCollectionShelf(row.collection, row.limit + 1)
-        : Promise.resolve(null),
-    ),
+  const { rows: resolved, sliders, products } = await loadCollectionRows(
+    rows,
+    "page",
+    vendor ? { vendorId: vendor.id } : {},
   );
-  const resolved = rows.flatMap((row, index) => {
-    const shelf = shelves[index];
-    return shelf ? [{ row, shelf }] : [];
-  });
   if (resolved.length === 0) return <>{emptyState}</>;
-
-  // The feature slots are slider cells — resolve their sliders (and the
-  // products their price elements need) exactly like the hero grid does.
-  const cells: SliderCellContent[] = resolved.map(({ row }) => ({
-    kind: row.kind,
-    slider: row.slider,
-    image: row.image,
-    link: "",
-    alt: "",
-  }));
-  const { sliders, products } = await resolveCellData(cells);
 
   const t = await getTranslations({ locale, namespace: "common" });
   const [firstWord, ...restWords] = title.trim().split(/\s+/);
@@ -142,11 +123,14 @@ export async function CollectionRows({
         ) : null}
 
         {resolved.map(({ row, shelf }, index) => {
-          const href = `/collections/${shelf.slug}`;
-          const [lead, ...rest] = shelf.products;
-          const cards = (
-            rest.length >= row.limit ? rest : shelf.products
-          ).slice(0, row.limit);
+          const href = vendor
+            ? vendorFilterHref(locale, vendor.slug, "collection", shelf.slug)
+            : `/collections/${shelf.slug}`;
+          const { cards, lead } = composeCollectionShelf(
+            shelf.products,
+            shelf.picked,
+            row.limit,
+          );
           const rowGrid =
             spacing.panelWidth > 0
               ? ROW_GRID_SIZED
@@ -164,7 +148,9 @@ export async function CollectionRows({
                 className="h-full w-full rounded-[var(--fc-radius)] aspect-auto"
                 transition={slider.transition}
                 controls={slider.controls}
-                handle={slider.handle}
+                // A vendor's slider is not counted: the counters are keyed
+                // by the store's own slider handles.
+                handle={vendor ? undefined : slider.handle}
                 autoplayDelayMs={slider.autoplaySeconds * 1000}
               />
             </div>

@@ -47,6 +47,8 @@ interface UploadMediaFileDependencies {
    * `resolveUploadScope`. Server-derived only — see UploadOptions.ownerScope.
    */
   ownerScope?: string;
+  /** Server-generated deterministic destination for a durable upload attempt. */
+  customPath?: string;
   createId?: () => string;
   /**
    * Skip the WebP re-encode and store the image exactly as uploaded. Required
@@ -234,6 +236,7 @@ export async function uploadMediaFile(
     contentType: prepared.contentType,
     fileSize: prepared.fileSize,
     ownerScope: dependencies.ownerScope,
+    customPath: dependencies.customPath,
     metadata: dependencies.uploadedBy
       ? {
           uploadedBy: dependencies.uploadedBy,

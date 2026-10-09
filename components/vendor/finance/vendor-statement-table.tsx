@@ -84,13 +84,13 @@ export function VendorStatementTable({
         className: "text-right",
         headerClassName: "text-right",
         cell: (row) =>
-          row.affects === "held" ? (
+          (row.heldMovement ?? (row.affects === "held" ? row.amount : 0)) !== 0 ? (
             <span
               className={`font-medium tabular-nums ${
                 row.amount < 0 ? "text-destructive" : ""
               }`}
             >
-              {formatCurrency(row.amount, row.currency)}
+              {formatCurrency(row.heldMovement ?? row.amount, row.currency)}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -102,11 +102,11 @@ export function VendorStatementTable({
         className: "text-right",
         headerClassName: "text-right",
         cell: (row) =>
-          row.affects === "owed" ? (
+          (row.owedMovement ?? (row.affects === "owed" ? row.amount : 0)) !== 0 ? (
             // Amber rather than red: a debt is due, not lost, and it was never
             // taken out of the money the marketplace is holding.
             <span className="font-medium tabular-nums text-amber-600">
-              {formatCurrency(row.amount, row.currency)}
+              {formatCurrency(row.owedMovement ?? row.amount, row.currency)}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -118,9 +118,9 @@ export function VendorStatementTable({
 
   return (
     <DataTable<VendorStatementLine>
-      data={lines}
+      data={lines.map((line, index) => ({ ...line, id: line.id || `${line.date}:${line.reference}:${index}` }))}
       columns={columns}
-      keyField="date"
+      keyField="id"
       emptyIcon={<Receipt className="h-8 w-8" />}
       emptyMessage={label(
         "finance.statement.empty",

@@ -18,8 +18,14 @@ import {
   Vendor,
 } from "@/models";
 import { NotificationType } from "@/models/notification.model";
+import { SmsDelivery } from "@/models/sms-delivery.model";
 import { sendPushToUser } from "@/lib/notifications/push-notifications";
-import { sendEmail } from "@/lib/email/email";
+import {
+  isEmailDeliveryConfigured,
+  queueEmailWithEvidence,
+  sendEmail,
+  type EmailDeliveryOutcome,
+} from "@/lib/email/email";
 import {
   orderAddressLinkPath,
   preorderBalanceLinkPath,
@@ -37,11 +43,8 @@ import {
 } from "@/config/app.config";
 import { isAdmin } from "@/lib/access/rbac";
 import { isStaffRole } from "@/lib/access/staff-role";
-import { DEFAULT_CURRENCY, DEFAULT_STORE_NAME } from "@/config/branding.config";
-import {
-  STAFF_PERMISSIONS,
-  type StaffPermission,
-} from "@/config/permissions.config";
+import { DEFAULT_CURRENCY } from "@/config/branding.config";
+import type { StaffPermission } from "@/config/permissions.config";
 import {
   sendReturnApprovedEmail,
   sendReturnRequestOwnerEmail,
@@ -58,9 +61,12 @@ import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
 import {
   hasAnyNotificationChannel,
   normalizeNotificationSettings,
+  STAFF_NOTIFICATION_PERMISSIONS,
   type NotificationChannelSettings,
+  type NotificationSettings,
 } from "@/lib/notifications/notification-settings";
 import { appBaseUrl } from "@/lib/app-url";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 import {
   PREORDER_ACCESS_REVIEW_PATH,
   sendAdminPreorderAccessRequestEmail,
@@ -80,6 +86,8 @@ import {
   notificationDedupeKey,
   sendSms,
 } from "@/lib/sms/sms";
+import { smsStoreName } from "@/lib/sms/sms-text";
+import { orderStatusMessage } from "@/lib/notifications/order-status-messages";
 
 interface CreateNotificationParams {
   userId: string;
@@ -304,6 +312,56 @@ async function getStaffNotificationRecipients(
   return Array.from(recipients.values());
 }
 
+type StaffEvent = keyof NotificationSettings["staff"];
+
+/**
+ * Who each staff event can reach at all, for Settings → Notifications: a row
+ * that reaches nobody says so there. Counted the way the query above picks
+ * recipients — active profiles of active users holding one of the event's
+ * permissions — in any seller's scope, since that seller's events reach them.
+ * A new customer belongs to no seller, so only staff without one hear of it,
+ * and a vendor's staff member with no vendor left hears of nothing.
+ */
+export async function countStaffNotificationAudience(): Promise<{
+  total: number;
+  events: Record<StaffEvent, number>;
+}> {
+  await connectDB();
+  const profiles = await StaffProfile.find({ isActive: true })
+    .select("userId permissions vendorIds managedBy")
+    .populate("userId", "status")
+    .lean<
+      Array<{
+        userId?: { status?: string } | null;
+        permissions?: string[];
+        vendorIds?: unknown[];
+        managedBy?: string;
+      }>
+    >();
+
+  const reachable = profiles.filter((profile) => {
+    const user = profile.userId;
+    if (!user || (user.status && user.status !== USER_ACCOUNT_STATUS.ACTIVE)) {
+      return false;
+    }
+    const sellers = profile.vendorIds?.length ?? 0;
+    return !(profile.managedBy === "vendor" && sellers === 0);
+  });
+
+  const events = {} as Record<StaffEvent, number>;
+  for (const event of Object.keys(STAFF_NOTIFICATION_PERMISSIONS) as StaffEvent[]) {
+    const wanted: readonly string[] = STAFF_NOTIFICATION_PERMISSIONS[event];
+    events[event] = reachable.filter((profile) => {
+      if (!(profile.permissions ?? []).some((permission) => wanted.includes(permission))) {
+        return false;
+      }
+      if (event !== "newCustomers") return true;
+      return (profile.vendorIds?.length ?? 0) === 0 && profile.managedBy !== "vendor";
+    }).length;
+  }
+  return { total: reachable.length, events };
+}
+
 type VendorContactDoc = {
   _id?: unknown;
   address?: { phone?: string; country?: string };
@@ -333,15 +391,21 @@ type OrderContactLike = {
   guestEmail?: string;
   contactPhone?: string;
   currency?: string;
+  channel?: string;
+  staffId?: unknown;
   shippingAddress?: { fullName?: string; phone?: string; country?: string };
   billingAddress?: { fullName?: string; phone?: string; country?: string };
 };
 
 const ORDER_CONTACT_FIELDS =
-  "orderNumber customerId guestEmail contactPhone currency shippingAddress.fullName shippingAddress.phone shippingAddress.country billingAddress.fullName billingAddress.phone billingAddress.country";
+  "orderNumber customerId guestEmail contactPhone currency channel staffId shippingAddress.fullName shippingAddress.phone shippingAddress.country billingAddress.fullName billingAddress.phone billingAddress.country";
 
 type OrderCustomer = NotificationRecipient & {
-  /** Who the "customer" really is — a POS sale with no shopper is the cashier's. */
+  /**
+   * Who the "customer" really is: a staff-side account that placed an order
+   * for itself (before checkout refused them) is answered as staff. A walk-in
+   * POS sale has no customer at all.
+   */
   role: string;
 };
 
@@ -364,6 +428,10 @@ function notificationRoleOf(user: UserContact) {
 async function resolveOrderCustomer(
   order: OrderContactLike,
 ): Promise<OrderCustomer | null> {
+  // A walk-in POS sale is filed under its cashier, who hears of it as staff
+  // ("New Order Received") and never as its buyer — not even at a number
+  // typed at the till. See lib/orders/pos-walk-in.ts.
+  if (isPosWalkIn(order)) return null;
   const customerId = getIdString(order.customerId);
   const user = customerId ? await loadUserContact(customerId) : null;
   const orderAddress = order.shippingAddress?.phone?.trim()
@@ -400,6 +468,17 @@ async function resolveOrderCustomer(
     ...orderPhone,
     role: USER_ROLES.CUSTOMER,
   };
+}
+
+/** Whether an order, known only by its id, is a walk-in POS sale. */
+async function isWalkInOrder(orderId: unknown): Promise<boolean> {
+  const id = getIdString(orderId);
+  if (!id || !isValidObjectId(id)) return false;
+  await connectDB();
+  const order = await Order.findById(id)
+    .select("channel staffId customerId")
+    .lean<OrderContactLike | null>();
+  return isPosWalkIn(order);
 }
 
 async function loadOrderCustomer(orderId: string) {
@@ -439,6 +518,8 @@ function trackOrderLink(orderNumber: string) {
 // ============================================
 
 interface DispatchOptions {
+  /** Durable business operations require every configured channel's outbox receipt. */
+  requireOutbox?: boolean;
   recipient: NotificationRecipient;
   channels: NotificationChannelSettings;
   /** The in-app row; its `dedupe` also keys the text, so an event is texted once. */
@@ -460,11 +541,7 @@ interface DispatchOptions {
 }
 
 function storeNameOf(settings?: ISettings) {
-  return (
-    settings?.general?.storeName?.trim() ||
-    process.env.NEXT_PUBLIC_APP_NAME ||
-    DEFAULT_STORE_NAME
-  );
+  return smsStoreName(settings?.general?.storeName);
 }
 
 function absoluteLink(link?: string) {
@@ -506,6 +583,16 @@ async function deliverNotificationEmail(
     return;
   }
   if (!contact.email) return;
+  if (options.requireOutbox) {
+    if (!dedupeKey) throw new Error("A durable notification needs a channel identity");
+    const receipt = await queueEmailWithEvidence({
+      to: contact.email, subject: options.notification.title,
+      html: buildCustomerNotificationEmailHtml({ title: options.notification.title, message: options.notification.message, customerName: contact.name, link: options.notification.link, settings: options.settings }),
+      settings: options.settings, category: "notification", dedupeKey,
+    });
+    if (!receipt.jobId) throw new Error("The order email could not be durably queued");
+    return;
+  }
   await sendEmail({
     to: contact.email,
     subject: options.notification.title,
@@ -548,6 +635,10 @@ async function deliverNotificationSms(
     dedupeKey: deliveryKey(options, "sms", to),
     settings,
   });
+  if (options.requireOutbox) {
+    const dedupeKey = deliveryKey(options, "sms", to);
+    if (!dedupeKey || !(await SmsDelivery.exists({ dedupeKey }))) throw new Error("The order text could not be durably queued");
+  }
 }
 
 /**
@@ -569,10 +660,11 @@ async function dispatchNotification(options: DispatchOptions) {
       { ...notification, userId: recipient.userId },
       channels,
     );
-    if (record.duplicate) return record.notification;
+    if (options.requireOutbox && channels.inApp && !record.notification) throw new Error("The order notification could not be recorded");
+    if (record.duplicate && !options.requireOutbox) return record.notification;
   }
 
-  const wantsEmail = channels.email && !options.skip?.email;
+  const wantsEmail = channels.email && !options.skip?.email && (!options.requireOutbox || isEmailDeliveryConfigured(settings));
   const wantsSms =
     channels.sms && !options.skip?.sms && isSmsDeliveryConfigured(settings);
   if (!wantsEmail && !wantsSms) return record.notification;
@@ -591,14 +683,19 @@ async function dispatchNotification(options: DispatchOptions) {
     ...(recipient.phone ? {} : accountPhone(user)),
   };
 
-  await Promise.allSettled([
+  const deliveries = await Promise.allSettled([
     wantsEmail ? deliverNotificationEmail(options, contact) : undefined,
     wantsSms ? deliverNotificationSms(options, contact) : undefined,
   ]);
+  if (options.requireOutbox) {
+    const failures = deliveries.filter((result) => result.status === "rejected");
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), "Order notification channels were not durably queued");
+  }
   return record.notification;
 }
 
 async function notifyStaffUsers(params: {
+  requireOutbox?: boolean;
   permissions: StaffPermission[];
   /** The vendors the event belongs to; empty for a store-wide one. */
   vendorIds: string[];
@@ -617,9 +714,10 @@ async function notifyStaffUsers(params: {
     params.permissions,
     params.vendorIds,
   );
-  await Promise.allSettled(
+  const deliveries = await Promise.allSettled(
     staff.map((recipient) =>
       dispatchNotification({
+        requireOutbox: params.requireOutbox,
         recipient,
         channels: params.channels,
         settings: params.settings,
@@ -637,6 +735,10 @@ async function notifyStaffUsers(params: {
       }),
     ),
   );
+  if (params.requireOutbox) {
+    const failures = deliveries.filter((result) => result.status === "rejected");
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), "Staff order notifications were not durably queued");
+  }
 }
 
 // ============================================
@@ -742,8 +844,9 @@ function buildOrderNotificationLink(recipientRole: string, orderId?: string) {
 /**
  * Tell the order's customer it was placed.
  *
- * On a POS sale with no shopper attached the "customer" is the cashier, which
- * the copy already accounts for; they are never texted about their own sale.
+ * A walk-in POS sale never gets here: it has no customer (see
+ * `resolveOrderCustomer`). A staff-side account answered as staff is never
+ * texted.
  */
 async function notifyOrderPlaced(
   customer: OrderCustomer,
@@ -752,6 +855,7 @@ async function notifyOrderPlaced(
     settings: ISettings;
     channels: NotificationChannelSettings;
     customerEmailSent?: boolean;
+    requireOutbox?: boolean;
   },
 ) {
   const { settings, channels } = options;
@@ -768,6 +872,7 @@ async function notifyOrderPlaced(
       : { orderEmail: false, sms: false };
 
   return dispatchNotification({
+    requireOutbox: options.requireOutbox,
     recipient: customer,
     channels,
     settings,
@@ -834,21 +939,12 @@ export async function notifyOrderStatus(params: {
   if (!customer) return null;
 
   const orderNumber = order.orderNumber;
-  const statusMessages: Record<string, string> = {
-    pending: `Your order #${orderNumber} is now pending.`,
-    processing: `Your order #${orderNumber} is now processing.`,
-    shipped: `Your order #${orderNumber} has been shipped.`,
-    // The link opens the order page, where each delivered item can be rated.
-    delivered: `Your order #${orderNumber} has been delivered. How was it? Rate your items to help other shoppers.`,
-    cancelled: `Your order #${orderNumber} has been cancelled.`,
-  };
   const statusTitle = status
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
   const title = `Order ${statusTitle}`;
-  const message =
-    statusMessages[status] || `Order #${orderNumber} status: ${status}`;
+  const message = orderStatusMessage(status, orderNumber);
   const link = customer.userId
     ? `/account/orders/${orderId}`
     : trackOrderLink(orderNumber);
@@ -1067,6 +1163,27 @@ export async function notifyPreorderCustomerUpdate(
      * the order itself says who the shopper is and how to reach them.
      */
     guestEmail?: string;
+    /**
+     * On a cancellation or expiry: what became of the shopper's money, so the
+     * message never claims a refund that has not happened — `processing`
+     * while it is on its way, `manual` when a person is sending it.
+     */
+    refundOutcome?: "refunded" | "processing" | "manual" | "none";
+    /** Only part of the order was called off; the rest is still coming. */
+    partOfOrder?: boolean;
+    /**
+     * The balance request this message belongs to. Part of the dedupe key, so
+     * a NEW request after the old one was withdrawn is announced rather than
+     * swallowed as a repeat of the first.
+     */
+    balanceCycleId?: string;
+    /** The cycle's deadline basis — see `getPreorderBalanceDeadline`. */
+    preorderCollection?: {
+      cycleId?: string | null;
+      notice?: { acceptedAt?: Date | string | null } | null;
+    } | null;
+    /** Channels this one message must not use — see the balance notice. */
+    skip?: { email?: boolean; sms?: boolean };
     settings?: ISettings;
     channels?: NotificationChannelSettings;
   } = {},
@@ -1118,11 +1235,29 @@ export async function notifyPreorderCustomerUpdate(
             {
               preorderReleaseDate: options.releaseDate,
               preorderBalanceRequestedAt: options.balanceRequestedAt,
+              preorderCollection: options.preorderCollection,
             },
             resolvePreorderPolicy(settings.preorder).expiryGraceDays,
           ) ?? undefined,
         )
       : "";
+  // What a cancellation or expiry did with the money — only what is true.
+  const refundSentence =
+    options.refundOutcome === "refunded"
+      ? " Anything you paid towards it has been refunded."
+      : options.refundOutcome === "processing"
+        ? " We are returning anything you paid towards it and will confirm once the refund is on its way."
+        : options.refundOutcome === "manual"
+          ? " We will return anything you paid towards it by hand and will be in touch about it."
+          : options.refundOutcome === "none"
+            ? " Nothing was charged for it."
+            : "";
+  const scopeLead = options.partOfOrder
+    ? `Part of your pre-order #${orderNumber}`
+    : `Your pre-order #${orderNumber}`;
+  const scopeTail = options.partOfOrder
+    ? " The rest of your order is not affected."
+    : "";
 
   /** Present only where there is a balance to collect — see the link below. */
   const balanceLink =
@@ -1212,7 +1347,7 @@ export async function notifyPreorderCustomerUpdate(
     },
     cancelled: {
       title: "Pre-order Cancelled",
-      message: `Your pre-order #${orderNumber} has been cancelled.`,
+      message: `${scopeLead} has been cancelled.${refundSentence}${scopeTail}`,
     },
     fulfilled: {
       title: "Pre-order Fulfilled",
@@ -1220,7 +1355,7 @@ export async function notifyPreorderCustomerUpdate(
     },
     expired: {
       title: "Pre-order Expired",
-      message: `Your pre-order #${orderNumber} expired because the required payment was not completed in time.`,
+      message: `${scopeLead} expired because the required payment was not completed in time.${refundSentence}${scopeTail}`,
     },
   };
 
@@ -1261,6 +1396,8 @@ export async function notifyPreorderCustomerUpdate(
         ...(options.addressSummary ? { addressSummary: options.addressSummary } : {}),
         ...(options.chargeAttempt ? { chargeAttempt: options.chargeAttempt } : {}),
         ...(options.reminderStage ? { reminderStage: options.reminderStage } : {}),
+        ...(options.balanceCycleId ? { balanceCycleId: options.balanceCycleId } : {}),
+        ...(options.refundOutcome ? { refundOutcome: options.refundOutcome } : {}),
       },
       // Status and release date alone cannot tell two DIFFERENT events of the
       // same kind apart, and the dedupe gate returns before email is sent — so
@@ -1282,10 +1419,189 @@ export async function notifyPreorderCustomerUpdate(
         ...(options.reminderStage
           ? { "data.reminderStage": options.reminderStage }
           : {}),
+        ...(options.balanceCycleId
+          ? { "data.balanceCycleId": options.balanceCycleId }
+          : {}),
       },
     },
-    skip: { email: optOuts.orderEmail, sms: optOuts.sms || !isShopper },
+    skip: {
+      email: optOuts.orderEmail || options.skip?.email === true,
+      sms: optOuts.sms || !isShopper || options.skip?.sms === true,
+    },
   });
+}
+
+/**
+ * What happened to a pre-order balance notice's email — the evidence the
+ * notice window starts from. `blocked` means no email could be attempted at
+ * all, and why; the caller treats that exactly like a failure: no automatic
+ * charge, and a person is asked to look.
+ */
+export type PreorderBalanceNoticeDelivery =
+  | { status: "blocked"; reason: "no_contact" | "email_channel_disabled" | "customer_opted_out" | "email_unconfigured" }
+  | EmailDeliveryOutcome;
+
+/**
+ * The advance notice of a pre-order balance — the one message whose delivery
+ * is evidence rather than courtesy.
+ *
+ * It says how much, in what currency, for which goods and when they are
+ * expected; the earliest moment a saved card may be charged ("on or after",
+ * because the daily job may run later, never earlier); the payment deadline;
+ * and where to pay now or, for a guest, separately where to cancel. The email
+ * goes through the outbox with a key per request and attempt, and what the
+ * outbox did with it is returned — the caller records `sentAt` as the moment
+ * the notice was accepted, and nothing less starts the notice window. The
+ * in-app row and the text message go out through the usual dispatch, never
+ * an email of their own beside this one.
+ */
+export async function deliverPreorderBalanceNotice(params: {
+  orderId: string;
+  cycleId: string;
+  attempt: number;
+  amount: number;
+  currency: string;
+  releaseDate?: Date | string | null;
+  /** The earliest the card may be charged, if this notice went out now. */
+  chargeNotBefore?: Date | null;
+  /** The last day to pay, if this notice went out now. */
+  payBy?: Date | null;
+  /** A saved card and mandate exist, so an automatic charge is planned. */
+  autoCharge: boolean;
+  settings?: ISettings;
+}): Promise<PreorderBalanceNoticeDelivery> {
+  const settings = params.settings || (await getSettings());
+  const channels = normalizeNotificationSettings(settings.notifications).customer.orderUpdates;
+  const loaded = await loadOrderCustomer(params.orderId);
+  if (!loaded?.customer) return { status: "blocked", reason: "no_contact" };
+  const { order, customer } = loaded;
+  const orderNumber = String(order.orderNumber || "");
+  const amount = formatCurrency(params.amount, params.currency || DEFAULT_CURRENCY);
+  const day = (value?: Date | string | null, withTime = false) => {
+    if (!value) return "";
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      ...(withTime ? { hour: "2-digit", minute: "2-digit", timeZoneName: "short" } : {}),
+      timeZone: "UTC",
+    }).format(date);
+  };
+  const release = day(params.releaseDate);
+  const chargeAt = day(params.chargeNotBefore, true);
+  const payBy = day(params.payBy);
+  const guest = !customer.userId;
+  const accountLink = guest ? undefined : `/account/orders/${params.orderId}`;
+  const payLink =
+    preorderBalanceLinkPath(params.orderId) || accountLink || trackOrderLink(orderNumber);
+  const manageLink = guest ? preorderManageLinkPath(params.orderId) : undefined;
+
+  const title = "Your pre-order is ready — balance due";
+  const message = [
+    `Your pre-order #${orderNumber}${release ? `, expected around ${release},` : ""} is ready.`,
+    `The remaining balance is ${amount}.`,
+    params.autoCharge && chargeAt
+      ? `As you authorised at checkout, we will charge it to your saved card on or after ${chargeAt}, unless you pay it yourself first.`
+      : "Please pay it from the link below.",
+    payBy
+      ? `If it has not been paid by ${payBy}, the pre-order will be cancelled and anything you have paid refunded.`
+      : "",
+    "You can pay now, or cancel the pre-order for a refund of anything you have paid, until it is released for fulfilment.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  // The in-app row and any text message: the usual dispatch, without email.
+  const isShopper = customer.role === USER_ROLES.CUSTOMER;
+  const optOuts =
+    isShopper && (channels.email || channels.sms)
+      ? await customerOptOuts(customer.userId)
+      : { orderEmail: false, sms: false };
+  await dispatchNotification({
+    recipient: customer,
+    channels,
+    settings,
+    notification: {
+      type: NotificationType.ORDER_STATUS,
+      title,
+      message,
+      link: guest ? payLink : accountLink,
+      data: {
+        orderNumber,
+        orderId: params.orderId,
+        status: "payment_due",
+        balanceCycleId: params.cycleId,
+        outstandingAmount: params.amount,
+        recipientRole: USER_ROLES.CUSTOMER,
+      },
+      dedupe: {
+        type: NotificationType.ORDER_STATUS,
+        "data.orderNumber": orderNumber,
+        "data.status": "payment_due",
+        "data.balanceCycleId": params.cycleId,
+        "data.recipientRole": USER_ROLES.CUSTOMER,
+      },
+    },
+    skip: { email: true, sms: optOuts.sms || !isShopper },
+  }).catch((error) => console.error("Failed to post a balance notice in-app:", error));
+
+  // The email is the evidence, so every reason it cannot go is named.
+  if (!channels.email) return { status: "blocked", reason: "email_channel_disabled" };
+  if (optOuts.orderEmail) return { status: "blocked", reason: "customer_opted_out" };
+  const contact =
+    customer.email || (customer.userId ? (await loadUserContact(customer.userId))?.email : undefined);
+  if (!contact) return { status: "blocked", reason: "no_contact" };
+  if (!isEmailDeliveryConfigured(settings)) {
+    return { status: "blocked", reason: "email_unconfigured" };
+  }
+  return queueEmailWithEvidence({
+    to: contact,
+    subject: `${title} (#${orderNumber})`,
+    html: buildPreorderBalanceNoticeHtml({
+      title,
+      message,
+      customerName: customer.name,
+      payLink,
+      manageLink,
+      accountLink,
+      settings,
+    }),
+    settings,
+    category: "notification",
+    dedupeKey: `preorder-balance-notice:${params.cycleId}:${params.attempt}`,
+  });
+}
+
+function buildPreorderBalanceNoticeHtml(params: {
+  title: string;
+  message: string;
+  customerName?: string;
+  payLink: string;
+  manageLink?: string;
+  accountLink?: string;
+  settings?: ISettings;
+}) {
+  const button = (href: string, label: string, primary: boolean) =>
+    `<a href="${escapeHtml(absoluteLink(href))}" style="display:inline-block; margin:0 8px 8px 0; padding:12px 18px; background:${primary ? "#18181b" : "#ffffff"}; color:${primary ? "#ffffff" : "#18181b"}; border:1px solid #18181b; text-decoration:none; border-radius:6px; font-size:14px; font-weight:600;">${escapeHtml(label)}</a>`;
+  const base = buildCustomerNotificationEmailHtml({
+    title: params.title,
+    message: params.message,
+    customerName: params.customerName,
+    link: params.accountLink || params.payLink,
+    settings: params.settings,
+  });
+  const buttons = [
+    button(params.payLink, "Pay the balance now", true),
+    params.manageLink ? button(params.manageLink, "Manage or cancel", false) : "",
+    params.accountLink ? button(params.accountLink, "View your order", false) : "",
+  ].join("");
+  // Swap the generic single button for the notice's own.
+  return base.replace(
+    /<a href="[^"]*" style="display:inline-block; padding:12px 18px; background:#18181b;[^>]*>View details<\/a>/,
+    buttons,
+  );
 }
 
 /**
@@ -1464,11 +1780,18 @@ export async function notifyAdminsAddressHold(params: {
 /**
  * Create vendor application status notification. The vendor's email is sent
  * by the caller (each status has its own template), so this owns the in-app
- * row, the push and the text.
+ * row, the push and the text — except for a suspension and a reinstatement,
+ * which have no template of their own and go out as the generic notice.
  */
 export async function notifyVendorApplicationStatus(
   userId: string,
-  status: "approved" | "rejected" | "payment_required" | "payment_expired",
+  status:
+    | "approved"
+    | "rejected"
+    | "payment_required"
+    | "payment_expired"
+    | "suspended"
+    | "reinstated",
   options: {
     settings?: ISettings;
     channels?: NotificationChannelSettings;
@@ -1481,7 +1804,15 @@ export async function notifyVendorApplicationStatus(
     options.channels ||
     normalizeNotificationSettings(settings.notifications).vendor
       .applicationStatus;
-  if (!channels.inApp && !channels.browserPush && !channels.sms) return null;
+  const sendsOwnEmail = status === "suspended" || status === "reinstated";
+  if (
+    !channels.inApp &&
+    !channels.browserPush &&
+    !channels.sms &&
+    !(sendsOwnEmail && channels.email)
+  ) {
+    return null;
+  }
 
   const vendor =
     channels.sms && isValidObjectId(userId)
@@ -1496,7 +1827,7 @@ export async function notifyVendorApplicationStatus(
     recipient: (vendor && vendorRecipient(vendor)) || { userId },
     channels,
     settings,
-    skip: { email: true },
+    skip: { email: !sendsOwnEmail },
     notification: {
       type: NotificationType.VENDOR_APPLICATION,
       title:
@@ -1506,7 +1837,11 @@ export async function notifyVendorApplicationStatus(
             ? "Vendor Verification Approved"
             : status === "payment_expired"
               ? "Vendor Setup Access Ended"
-              : "Vendor Application Update",
+              : status === "suspended"
+                ? "Vendor Store Suspended"
+                : status === "reinstated"
+                  ? "Vendor Store Reactivated"
+                  : "Vendor Application Update",
       message:
         status === "approved"
           ? "Your subscription is active and your vendor store can now start selling."
@@ -1514,9 +1849,121 @@ export async function notifyVendorApplicationStatus(
             ? "Your application passed review. You have 7 days of setup access. Complete payment to activate selling."
             : status === "payment_expired"
               ? "Your setup access ended because payment was not completed. You can still complete payment to reactivate your vendor dashboard."
-              : `Your vendor application was not approved.${reason ? ` Reason: ${reason}` : ""} You can update your details and apply again.`,
-      link: status === "rejected" ? "/become-vendor" : "/vendor/dashboard",
+              : status === "suspended"
+                ? "Your vendor store has been suspended. Your products are hidden from the store and you can't sell until it is reactivated. If you think this is a mistake, please contact us."
+                : status === "reinstated"
+                  ? "Your vendor store has been reactivated. Your products are visible again and you can start selling."
+                  : `Your vendor application was not approved.${reason ? ` Reason: ${reason}` : ""} You can update your details and apply again.`,
+      link:
+        status === "rejected"
+          ? "/become-vendor"
+          : status === "suspended"
+            ? "/contact"
+            : "/vendor/dashboard",
       data: { status },
+    },
+  });
+}
+
+// ============================================
+// Account status
+// ============================================
+
+/**
+ * Every channel but the text: an account that loses (or gets back) its
+ * sign-in is told whatever the event matrix says, like a password reset —
+ * the owner of a banned account would otherwise learn of it only at the
+ * login form. A text is billed, so it is never sent unasked.
+ */
+const ACCOUNT_STATUS_CHANNELS: NotificationChannelSettings = {
+  inApp: true,
+  email: true,
+  browserPush: true,
+  sms: false,
+};
+
+type AccountStatusNotice = "banned" | "deactivated" | "reactivated";
+
+function accountStatusNotice(
+  from: string | null | undefined,
+  to: string | null | undefined,
+): AccountStatusNotice | null {
+  const before = from || USER_ACCOUNT_STATUS.ACTIVE;
+  if (!to || to === before) return null;
+  if (to === USER_ACCOUNT_STATUS.BANNED) return "banned";
+  if (to === USER_ACCOUNT_STATUS.INACTIVE) return "deactivated";
+  if (to === USER_ACCOUNT_STATUS.ACTIVE) return "reactivated";
+  return null;
+}
+
+/** Where a reactivated account starts again. */
+function accountHomeLink(role: string) {
+  if (role === USER_ROLES.ADMIN) return "/admin";
+  if (role === USER_ROLES.VENDOR) return "/vendor/dashboard";
+  if (isStaffRole(role)) return "/staff";
+  return "/account";
+}
+
+/**
+ * Tell an account's owner that an admin banned, deactivated or reactivated
+ * it. `from` is the status before the save (missing reads as active); a save
+ * that left the status where it was sends nothing.
+ *
+ * A team member's "banned" reads "suspended", the word the Team page uses.
+ * Call it after the account write, so the row and the mail never announce a
+ * change that was refused.
+ */
+export async function notifyAccountStatusChange(params: {
+  userId: string;
+  from: string | null | undefined;
+  to: string | null | undefined;
+  settings?: ISettings;
+}) {
+  const notice = accountStatusNotice(params.from, params.to);
+  if (!notice) return null;
+  const user = await loadUserContact(params.userId);
+  if (!user) return null;
+
+  const settings = params.settings || (await getSettings());
+  const storeName = storeNameOf(settings);
+  const role = notificationRoleOf(user);
+  const isTeam = role === USER_ROLES.ADMIN || isStaffRole(role);
+  const banWord = isTeam ? "suspended" : "banned";
+
+  const copy =
+    notice === "banned"
+      ? {
+          title: `Your Account Has Been ${isTeam ? "Suspended" : "Banned"}`,
+          message: `Your ${storeName} account has been ${banWord}. You can no longer sign in. If you think this is a mistake, please contact us.`,
+          link: isTeam ? undefined : "/contact",
+        }
+      : notice === "deactivated"
+        ? {
+            title: "Your Account Has Been Deactivated",
+            message: `Your ${storeName} account has been deactivated. You can't sign in until it is reactivated. If you have questions, please contact us.`,
+            link: isTeam ? undefined : "/contact",
+          }
+        : {
+            title: "Your Account Has Been Reactivated",
+            message: `Your ${storeName} account is active again. You can sign in now.`,
+            link: accountHomeLink(role),
+          };
+
+  return dispatchNotification({
+    recipient: {
+      userId: params.userId,
+      name: user.name,
+      email: user.email,
+      ...accountPhone(user),
+    },
+    channels: ACCOUNT_STATUS_CHANNELS,
+    settings,
+    notification: {
+      type: NotificationType.SYSTEM,
+      title: copy.title,
+      message: copy.message,
+      link: copy.link,
+      data: { accountStatus: params.to, notice, recipientRole: role },
     },
   });
 }
@@ -1780,7 +2227,10 @@ export async function notifyVendorPreorderAccessDecision(
 }
 
 /**
- * Notify admins when a customer profile is created.
+ * Notify admins (and staff who can see customers) of a new customer: one the
+ * admin, a till or a vendor added, or — `signedUp` — one who made their own
+ * account on the store. Sign-ups used to tell nobody, though the switch read
+ * "when a customer profile is created".
  */
 export async function notifyAdminsNewCustomer(
   customer: {
@@ -1788,6 +2238,8 @@ export async function notifyAdminsNewCustomer(
     name?: string;
     email?: string;
     createdBy?: string;
+    /** They made the account themselves: sign-up, social login, checkout. */
+    signedUp?: boolean;
   },
   options: {
     settings?: ISettings;
@@ -1811,8 +2263,10 @@ export async function notifyAdminsNewCustomer(
       ? await findAdminRecipients()
       : [];
     const customerLabel = customer.name || customer.email || "A customer";
-    const title = "New Customer Created";
-    const message = `${customerLabel} has been added as a customer.`;
+    const title = customer.signedUp ? "New Customer Sign-up" : "New Customer Created";
+    const message = customer.signedUp
+      ? `${customerLabel} created a customer account.`
+      : `${customerLabel} has been added as a customer.`;
     const link = customer.customerId
       ? `/admin/customers/${customer.customerId}`
       : "/admin/customers";
@@ -1822,6 +2276,7 @@ export async function notifyAdminsNewCustomer(
       customerName: customer.name,
       customerEmail: customer.email,
       createdBy: customer.createdBy,
+      signedUp: customer.signedUp === true,
     };
     const dedupe = {
       type: NotificationType.SYSTEM,
@@ -1846,12 +2301,7 @@ export async function notifyAdminsNewCustomer(
         }),
       ),
       notifyStaffUsers({
-        permissions: [
-          STAFF_PERMISSIONS.VIEW_CUSTOMERS,
-          STAFF_PERMISSIONS.MANAGE_CUSTOMERS,
-          STAFF_PERMISSIONS.CREATE_CUSTOMERS,
-          STAFF_PERMISSIONS.EDIT_CUSTOMERS,
-        ],
+        permissions: STAFF_NOTIFICATION_PERMISSIONS.newCustomers,
         // A new account has bought nothing yet, so it is in no seller's scope.
         vendorIds: [],
         channels: staffChannels,
@@ -1959,12 +2409,7 @@ export async function notifyAdminsPaymentReceived(
         }),
       ),
       notifyStaffUsers({
-        permissions: [
-          STAFF_PERMISSIONS.ACCESS_POS,
-          STAFF_PERMISSIONS.MANAGE_POS,
-          STAFF_PERMISSIONS.VIEW_ORDERS,
-          STAFF_PERMISSIONS.MANAGE_ORDERS,
-        ],
+        permissions: STAFF_NOTIFICATION_PERMISSIONS.payments,
         vendorIds: staffVendorIds,
         channels: staffChannels,
         type: NotificationType.PAYMENT_RECEIVED,
@@ -2071,6 +2516,53 @@ export async function notifyLowStock(
 }
 
 /**
+ * Tell admins one of the store's own products is running low (Settings →
+ * Notifications → Admins → Low stock). A vendor's product is that vendor's to
+ * restock; they and the staff who can see them hear of it instead.
+ */
+export async function notifyAdminsLowStock(
+  productName: string,
+  currentStock: number,
+  options: { productId?: string; settings?: ISettings } = {},
+) {
+  const settings = options.settings || (await getSettings());
+  const channels = normalizeNotificationSettings(settings.notifications).admin
+    .lowStock;
+  if (!hasAnyNotificationChannel(channels)) return;
+
+  const admins = await findAdminRecipients();
+  const link = options.productId
+    ? `/admin/products/${options.productId}/edit`
+    : "/admin/products";
+  await Promise.allSettled(
+    admins.map((recipient) =>
+      dispatchNotification({
+        recipient,
+        channels,
+        settings,
+        notification: {
+          type: NotificationType.PRODUCT_LOW_STOCK,
+          title: "Low Stock Alert",
+          message: `"${productName}" is running low with only ${currentStock} items left.`,
+          link,
+          data: {
+            productId: options.productId,
+            productName,
+            currentStock,
+            recipientRole: USER_ROLES.ADMIN,
+          },
+          dedupe: {
+            type: NotificationType.PRODUCT_LOW_STOCK,
+            "data.productId": options.productId,
+            "data.recipientRole": USER_ROLES.ADMIN,
+          },
+        },
+      }),
+    ),
+  );
+}
+
+/**
  * Notify staff with inventory access about a low-stock product.
  */
 export async function notifyStaffLowStock(
@@ -2091,11 +2583,7 @@ export async function notifyStaffLowStock(
     : "/staff/inventory";
 
   await notifyStaffUsers({
-    permissions: [
-      STAFF_PERMISSIONS.VIEW_INVENTORY,
-      STAFF_PERMISSIONS.MANAGE_INVENTORY,
-      STAFF_PERMISSIONS.EDIT_INVENTORY,
-    ],
+    permissions: STAFF_NOTIFICATION_PERMISSIONS.lowStock,
     vendorIds: options.vendorId ? [options.vendorId] : [],
     channels,
     type: NotificationType.PRODUCT_LOW_STOCK,
@@ -2113,6 +2601,63 @@ export async function notifyStaffLowStock(
     },
     settings,
   });
+}
+
+/**
+ * A product just dropped to the low-stock line (inventory.ts): everyone who
+ * looks after it hears once.
+ *
+ * - Staff who can see inventory, scoped to the product's seller.
+ * - Admins, for the store's own stock: a product with no seller, or the house
+ *   store every product falls back to. A vendor's product is that vendor's to
+ *   restock, so admins are not told of every seller's shelves.
+ * - The vendor's owner, under their own "Low stock alerts" switch — which was
+ *   saved and never read, so switching it off changed nothing. An admin who
+ *   owns the house store has just heard as an admin, under the switch the
+ *   store set for admins, and is not told twice.
+ */
+export async function notifyLowStockCrossing(product: {
+  productId: string;
+  productName: string;
+  stock: number;
+  vendorId?: string;
+}) {
+  const { productId, productName, stock, vendorId } = product;
+  await notifyStaffLowStock(productName, stock, { productId, vendorId }).catch(
+    (error) => console.error("Failed to notify staff low stock:", error),
+  );
+
+  await connectDB();
+  const vendor = vendorId && isValidObjectId(vendorId)
+    ? await Vendor.findById(vendorId)
+        .select("userId isDefault slug notificationPreferences.lowStock")
+        .lean<{
+          userId?: unknown;
+          isDefault?: boolean;
+          slug?: string;
+          notificationPreferences?: { lowStock?: boolean };
+        } | null>()
+    : null;
+  const { isDefaultVendorRecord } = await import("@/lib/vendors/multi-vendor");
+  const storeOwned = !vendorId || isDefaultVendorRecord(vendor);
+
+  if (storeOwned) {
+    await notifyAdminsLowStock(productName, stock, { productId }).catch(
+      (error) => console.error("Failed to notify admins low stock:", error),
+    );
+  }
+
+  const ownerId = getIdString(vendor?.userId);
+  if (!ownerId || vendor?.notificationPreferences?.lowStock === false) return;
+  if (storeOwned) {
+    const owner = await User.findById(ownerId)
+      .select("role roles")
+      .lean<{ role?: string; roles?: string[] } | null>();
+    if (owner && isAdmin(owner)) return;
+  }
+  await notifyLowStock(ownerId, productName, stock).catch((error) =>
+    console.error("Failed to notify vendor low stock:", error),
+  );
 }
 
 type ReturnRequestLikeForNotification = {
@@ -2764,11 +3309,7 @@ export async function notifyReturnRequestSubmitted(
         ),
       ),
       notifyStaffUsers({
-        permissions: [
-          STAFF_PERMISSIONS.VIEW_ORDERS,
-          STAFF_PERMISSIONS.MANAGE_ORDERS,
-          STAFF_PERMISSIONS.EDIT_ORDERS,
-        ],
+        permissions: STAFF_NOTIFICATION_PERMISSIONS.returns,
         // A store-owned return is the store's, whoever else sold on the order.
         vendorIds:
           returnRequest.ownerType === "vendor" &&
@@ -2827,6 +3368,9 @@ export async function notifyReturnRequestCustomer(
   const channels = normalizeNotificationSettings(resolvedSettings.notifications)
     .customer.returnUpdates;
   if (!hasAnyNotificationChannel(channels)) return null;
+  // A return on a walk-in POS sale is filed under the cashier, who rang the
+  // sale up and is not its buyer: there is no shopper to tell.
+  if (await isWalkInOrder(returnRequest.orderId)) return null;
 
   const returnNumber = returnRequest.returnNumber || "return request";
   const orderNumber = returnRequest.orderNumber || "your order";
@@ -3145,6 +3689,7 @@ export async function notifyOrderCreatedParticipants(
      * its invoice), so the generic "Order Pending" email is not sent too.
      */
     customerEmailSent?: boolean;
+    requireOutbox?: boolean;
   } = {},
 ) {
   const orderNumber = order.orderNumber || "new order";
@@ -3187,6 +3732,7 @@ export async function notifyOrderCreatedParticipants(
     for (const recipient of admins) {
       jobs.push(
         dispatchNotification({
+          requireOutbox: options.requireOutbox,
           recipient,
           channels: adminChannels,
           settings,
@@ -3224,6 +3770,7 @@ export async function notifyOrderCreatedParticipants(
                 settings,
                 channels: customerChannels,
                 customerEmailSent: options.customerEmailSent,
+                requireOutbox: options.requireOutbox,
               },
             )
           : null,
@@ -3233,11 +3780,8 @@ export async function notifyOrderCreatedParticipants(
 
   jobs.push(
     notifyStaffUsers({
-      permissions: [
-        STAFF_PERMISSIONS.VIEW_ORDERS,
-        STAFF_PERMISSIONS.MANAGE_ORDERS,
-        STAFF_PERMISSIONS.EDIT_ORDERS,
-      ],
+      requireOutbox: options.requireOutbox,
+      permissions: STAFF_NOTIFICATION_PERMISSIONS.newOrders,
       vendorIds: vendorIdsOfOrder(order),
       channels: notificationSettings.staff.newOrders,
       type: NotificationType.ORDER_PLACED,
@@ -3283,6 +3827,7 @@ export async function notifyOrderCreatedParticipants(
 
       jobs.push(
         dispatchNotification({
+          requireOutbox: options.requireOutbox,
           recipient,
           channels: vendorChannels,
           settings,
@@ -3307,7 +3852,11 @@ export async function notifyOrderCreatedParticipants(
     }
   }
 
-  await Promise.allSettled(jobs);
+  const deliveries = await Promise.allSettled(jobs);
+  if (options.requireOutbox) {
+    const failures = deliveries.filter((result) => result.status === "rejected");
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason), "Order recipients were not durably notified");
+  }
 }
 
 /**
@@ -3402,6 +3951,148 @@ export async function notifyAdminsQuoteRequest(quote: {
     );
   } catch (error) {
     console.error("Failed to notify admins of quote request:", error);
+  }
+}
+
+/**
+ * The owner of the store a quote's product belongs to, to tell about it — or
+ * null when there is nobody to tell: a marketplace that is switched off, a
+ * vendor that is gone, an owner who is banned, or an owner who is an admin
+ * (the store's own products; the admins already heard).
+ *
+ * Decided by the owner's role, not the vendor's `isDefault` flag, as the
+ * low-stock alert does: a store can carry the flag on a vendor whose owner is
+ * an ordinary seller with a dashboard of their own, and that seller must hear
+ * of requests for their products.
+ */
+async function quoteVendorRecipient(
+  vendorId: unknown,
+  settings: ISettings,
+): Promise<NotificationRecipient | null> {
+  if (!settings.multiVendorMode?.enabled) return null;
+  const id = getIdString(vendorId);
+  if (!id || !isValidObjectId(id)) return null;
+  await connectDB();
+  const vendor = await Vendor.findById(id)
+    .select("userId address.phone address.country")
+    .populate("userId", `${USER_CONTACT_FIELDS} status`)
+    .lean<VendorContactDoc | null>();
+  if (!vendor) return null;
+  const owner = vendor.userId as
+    | { status?: string; role?: string; roles?: string[] }
+    | undefined;
+  if (owner?.status === USER_ACCOUNT_STATUS.BANNED) return null;
+  if (isAdmin(owner)) return null;
+  return vendorRecipient(vendor);
+}
+
+/**
+ * Tell a vendor a shopper has asked for a price on one of its products.
+ *
+ * Rides the vendor's "new orders" channels: a quote is the step before an
+ * order, and a vendor who switched order alerts off asked for quiet, not for a
+ * second switch. Names the shopper and the product and nothing else — the
+ * shopper's email and phone stay on the Quotes page, where the store decides
+ * whether a vendor may see them.
+ *
+ * Best-effort, like the admins' alert: the quote is already saved.
+ */
+export async function notifyVendorQuoteRequest(quote: {
+  quoteId: string;
+  vendorId: unknown;
+  productName: string;
+  customerName: string;
+  quantity: number;
+}) {
+  try {
+    const settings = await getSettings();
+    const channels = normalizeNotificationSettings(settings.notifications)
+      .vendor.newOrders;
+    if (!hasAnyNotificationChannel(channels)) return null;
+    const recipient = await quoteVendorRecipient(quote.vendorId, settings);
+    if (!recipient) return null;
+
+    return dispatchNotification({
+      recipient,
+      channels,
+      settings,
+      notification: {
+        type: NotificationType.QUOTE_REQUEST,
+        title: "New quote request",
+        message: `${quote.customerName} asked for a price on ${quote.productName} (qty ${quote.quantity}).`,
+        link: `/vendor/quotes?quote=${quote.quoteId}`,
+        data: { quoteId: quote.quoteId, recipientRole: USER_ROLES.VENDOR },
+        dedupe: {
+          type: NotificationType.QUOTE_REQUEST,
+          "data.quoteId": quote.quoteId,
+          "data.recipientRole": USER_ROLES.VENDOR,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to notify vendor of quote request:", error);
+    return null;
+  }
+}
+
+const VENDOR_QUOTE_CHANGE_COPY = {
+  replaced: {
+    title: "The store changed your quoted price",
+    message: (product: string) =>
+      `The store sent its own price for ${product}, replacing yours. The store now sets this quote's price.`,
+  },
+  withdrawn: {
+    title: "The store withdrew your quoted price",
+    message: (product: string) =>
+      `The store withdrew the price you sent for ${product}. The store now sets this quote's price.`,
+  },
+  closed: {
+    title: "The store closed a quote you priced",
+    message: (product: string) =>
+      `The store closed the quote for ${product} and withdrew the price you sent.`,
+  },
+} as const;
+
+/**
+ * Tell a vendor the store overrode the price it sent on a quote: replaced it
+ * with the store's own, pulled it back, or closed the quote under it. The
+ * store's price is final, so from here the vendor only reads the quote — and
+ * hears why, rather than finding the price changed under them.
+ */
+export async function notifyVendorQuotePriceChanged(change: {
+  quoteId: string;
+  vendorId: unknown;
+  productName: string;
+  kind: keyof typeof VENDOR_QUOTE_CHANGE_COPY;
+}) {
+  try {
+    const settings = await getSettings();
+    const channels = normalizeNotificationSettings(settings.notifications)
+      .vendor.newOrders;
+    if (!hasAnyNotificationChannel(channels)) return null;
+    const recipient = await quoteVendorRecipient(change.vendorId, settings);
+    if (!recipient) return null;
+
+    const copy = VENDOR_QUOTE_CHANGE_COPY[change.kind];
+    return dispatchNotification({
+      recipient,
+      channels,
+      settings,
+      notification: {
+        type: NotificationType.QUOTE_OFFER,
+        title: copy.title,
+        message: copy.message(change.productName || "a product"),
+        link: `/vendor/quotes?quote=${change.quoteId}`,
+        data: {
+          quoteId: change.quoteId,
+          quoteChange: change.kind,
+          recipientRole: USER_ROLES.VENDOR,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to tell a vendor the store changed its quote:", error);
+    return null;
   }
 }
 

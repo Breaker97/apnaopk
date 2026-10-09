@@ -17,9 +17,12 @@ import type {
 import {
   channelCapability,
   channelLabel,
+  conversationAttachmentPolicy,
   hasReplyWindow,
   supportsTemplates,
+  WEB_CHAT_ATTACHMENT_CEILING,
 } from "@/lib/conversations/channels";
+import type { MessageProduct } from "@/components/chat/chat-message-product";
 import { useLiveResource } from "@/hooks/use-live-resource";
 import { INBOX_UNREAD_CHANGED_EVENT } from "@/hooks/use-inbox-unread-count";
 import { ConversationDetails } from "./conversation-details";
@@ -27,12 +30,15 @@ import { ConversationList } from "./conversation-list";
 import { MessageComposer } from "./message-composer";
 import { MessageThread } from "./message-thread";
 import { ProductContextCard } from "./product-context-card";
+import { AttachedProduct, ProductPicker } from "./product-picker";
 import {
   conversationCursor,
   conversationStatusStyle,
   DELIVERY_STATUS_FALLBACKS,
+  formatFileSize,
   getInitials,
   isStatusFilter,
+  mergeMessages,
   mergeSnapshot,
   sortConversations,
   STATUS_FALLBACKS,
@@ -78,6 +84,38 @@ interface ConversationInboxProps {
  * side by side; from `xl` the details panel joins them permanently.
  */
 type Pane = "list" | "thread" | "details";
+
+/**
+ * A reply being written in one conversation: its text, the product put on
+ * it, and the id of its last send (kept while the same reply is sent again,
+ * so a retry after a lost answer is stored once).
+ */
+interface ReplyDraft {
+  text: string;
+  product?: MessageProduct;
+  clientMessageId?: string;
+  /** What the kept id was sent with: another text or product is another message. */
+  sentAs?: string;
+}
+
+/** Refusal reasons the inbox words itself, by the server's `details.reason`. */
+const REASON_KEYS: Record<string, [key: string, fallback: string]> = {
+  PRODUCT_NOT_AVAILABLE: [
+    "productNotAvailable",
+    "This product can't be shared in this conversation.",
+  ],
+  ATTACHMENT_NOT_ACCEPTED: [
+    "attachmentNotAccepted",
+    "This conversation doesn't take this kind of file.",
+  ],
+  CONVERSATION_CLOSED: [
+    "conversationClosedNotice",
+    "This conversation is closed, so no more messages can be sent.",
+  ],
+};
+
+/** The width (Tailwind's `lg`) from which the list and the thread show side by side. */
+const SIDE_BY_SIDE = "(min-width: 1024px)";
 
 export function ConversationInbox({
   locale,
@@ -130,14 +168,19 @@ export function ConversationInbox({
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string>();
-  const [reply, setReply] = useState("");
+  // One draft per conversation: what was typed for one customer never goes
+  // to the next one opened.
+  const [drafts, setDrafts] = useState<Record<string, ReplyDraft>>({});
   const [sending, setSending] = useState(false);
   const [draftOpen, setDraftOpen] = useState(Boolean(draftContext));
   const [draftBody, setDraftBody] = useState("");
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
-  const [pane, setPane] = useState<Pane>(draftContext ? "thread" : "list");
+  // A link to one conversation (a notification) opens it, not the list.
+  const [pane, setPane] = useState<Pane>(
+    draftContext || initialSelectedConversationId ? "thread" : "list",
+  );
   const [loadingOlderConversations, setLoadingOlderConversations] =
     useState(false);
   // The server pages at 100; a full first page is the signal that more exist.
@@ -169,8 +212,38 @@ export function ConversationInbox({
     }
   });
 
+  const draft = activeConversationId ? drafts[activeConversationId] : undefined;
+  const reply = draft?.text ?? "";
+  const updateDraft = useCallback(
+    (conversationId: string, change: (draft: ReplyDraft) => ReplyDraft) => {
+      setDrafts((current) => {
+        const next = change(current[conversationId] ?? { text: "" });
+        const rest = { ...current };
+        delete rest[conversationId];
+        return next.text || next.product
+          ? { ...rest, [conversationId]: next }
+          : rest;
+      });
+    },
+    [],
+  );
+  const setReply = (text: string) => {
+    if (activeConversationId) {
+      updateDraft(activeConversationId, (current) => ({ ...current, text }));
+    }
+  };
+
   const selectedCapability = selectedConversation
     ? channelCapability(selectedConversation.channel)
+    : undefined;
+  const conversationClosed =
+    selectedConversation?.status === "closed" ||
+    selectedConversation?.status === "spam";
+  const attachmentPolicy = selectedConversation
+    ? conversationAttachmentPolicy(
+        selectedConversation.channel,
+        WEB_CHAT_ATTACHMENT_CEILING,
+      )
     : undefined;
   const providerReplyExpired =
     viewerMode === "store" &&
@@ -218,13 +291,38 @@ export function ConversationInbox({
   }, [conversations, search, filter]);
 
   const replaceConversation = useCallback((next: ConversationDTO) => {
-    setConversations((current) =>
-      sortConversations([
+    setConversations((current) => {
+      const held = current.find((conversation) => conversation._id === next._id);
+      // An answer that left the server before a newer snapshot arrived (a slow
+      // read receipt, a send) must not put the older row back.
+      if (
+        held &&
+        new Date(held.updatedAt).getTime() > new Date(next.updatedAt).getTime()
+      ) {
+        return current;
+      }
+      return sortConversations([
         next,
         ...current.filter((conversation) => conversation._id !== next._id),
-      ]),
-    );
+      ]);
+    });
   }, []);
+
+  /** The server's refusal in the inbox's words where it has them, else the server's own. */
+  const errorText = useCallback(
+    (payload: unknown, fallback: string) => {
+      const body = payload as
+        | { message?: string; details?: { reason?: string } }
+        | null
+        | undefined;
+      const known = body?.details?.reason
+        ? REASON_KEYS[body.details.reason]
+        : undefined;
+      if (known) return tr(known[0], known[1]);
+      return body?.message || fallback;
+    },
+    [tr],
+  );
 
   const scrollToLatest = useCallback(() => {
     requestAnimationFrame(() => {
@@ -276,13 +374,19 @@ export function ConversationInbox({
           // A slow response for a thread the user has already navigated away
           // from must not overwrite the thread now on screen.
           if (signal.aborted) return;
-          setMessages(data.messages || []);
+          // Merged, not replaced: a message the feed delivered while this
+          // page was on its way is kept.
+          setMessages((current) =>
+            mergeMessages(
+              current.filter((message) => message.conversationId === conversationId),
+              data.messages || [],
+            ),
+          );
           setHasMore(Boolean(data.hasMore));
           setNextCursor(data.nextCursor);
           if (data.conversation) {
             replaceConversation(data.conversation);
           }
-          void markRead(conversationId);
           scrollToLatest();
         })
         .catch((error) => {
@@ -297,13 +401,55 @@ export function ConversationInbox({
           if (!signal.aborted) setLoadingMessages(false);
         });
     },
-    [markRead, replaceConversation, scrollToLatest, tr],
+    [replaceConversation, scrollToLatest, tr],
   );
 
+  // Another thread starts empty: the last one's messages, its cursor and
+  // "load older" never show under the new one's name while it loads.
   useApplyOnChange([activeConversationId], () => {
+    setMessages([]);
+    setHasMore(false);
+    setNextCursor(undefined);
     if (activeConversationId) setLoadingMessages(true);
-    else setMessages([]);
   });
+
+  /**
+   * Whether the open thread is in front of someone: the tab is visible and,
+   * on a narrow screen where one pane shows at a time, the thread is that
+   * pane. Only then are its messages marked read: a thread loaded behind the
+   * list, or in a background tab, keeps its unread badge (and the customer's
+   * channel sends no read receipt).
+   */
+  const paneRef = useRef(pane);
+  useEffect(() => {
+    paneRef.current = pane;
+  }, [pane]);
+  const threadInView = useCallback(
+    () =>
+      document.visibilityState === "visible" &&
+      (paneRef.current !== "list" || window.matchMedia(SIDE_BY_SIDE).matches),
+    [],
+  );
+  const activeUnread = selectedConversation?.unreadCount ?? 0;
+  useEffect(() => {
+    if (!activeConversationId || activeUnread === 0 || loadingMessages) return;
+    const markWhenSeen = () => {
+      if (threadInView()) void markRead(activeConversationId);
+    };
+    markWhenSeen();
+    document.addEventListener("visibilitychange", markWhenSeen);
+    window.addEventListener("resize", markWhenSeen);
+    return () => {
+      document.removeEventListener("visibilitychange", markWhenSeen);
+      window.removeEventListener("resize", markWhenSeen);
+    };
+  }, [activeConversationId, activeUnread, loadingMessages, pane, markRead, threadInView]);
+
+  // The ids on screen, for the feed to tell a genuine arrival from a message it re-reads.
+  const knownMessageIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    knownMessageIdsRef.current = new Set(messages.map((message) => message._id));
+  }, [messages]);
   useEffect(() => {
     if (!activeConversationId) return;
     // This effect also re-runs whenever `loadMessages` changes identity, not
@@ -367,39 +513,30 @@ export function ConversationInbox({
         (message) => message.conversationId === activeId,
       );
 
+      // The feed re-reads its last few seconds (another server may store a
+      // message a moment later under a lower id), so what is already on
+      // screen is not news.
+      const arrivals = created.filter(
+        (message) => !knownMessageIdsRef.current.has(message._id),
+      );
       if (created.length > 0 || updated.length > 0) {
         setMessages((current) => {
-          const byId = new Map(current.map((item) => [item._id, item]));
-          for (const message of [...created, ...updated]) {
-            byId.set(message._id, message);
-          }
-          // Appended in arrival order for anything genuinely new; an id already
-          // present keeps its position and only swaps its contents, so a
-          // delivery-status tick cannot reorder the thread under the reader.
-          const next = current.map((item) => byId.get(item._id) || item);
-          for (const message of [...created, ...updated]) {
-            if (!current.some((item) => item._id === message._id)) {
-              next.push(message);
-            }
-          }
-          return next;
+          // A status change for a message not loaded (further back) waits for
+          // its page; everything else lands in its place by time.
+          const held = new Set(current.map((item) => item._id));
+          return mergeMessages(current, [
+            ...created,
+            ...updated.filter((message) => held.has(message._id)),
+          ]);
         });
       }
-
-      // Only genuine arrivals mark the thread read and pull the view down — a
-      // status change on a message already on screen is not a new message.
-      const arrivals = created.filter(
-        (message) =>
-          (viewerMode === "store" && message.direction === "inbound") ||
-          (viewerMode === "customer" && message.direction === "outbound"),
-      );
-      if (arrivals.length > 0) void markRead(activeId as string);
-      if (created.length > 0) scrollToLatest();
+      // Reading it is the unread effect's job, once the thread is in view.
+      if (arrivals.length > 0) scrollToLatest();
 
       if (feed.cursor) feedCursorRef.current = feed.cursor;
       if (feed.statusSince) feedStatusSinceRef.current = feed.statusSince;
     },
-    [markRead, scrollToLatest, viewerMode],
+    [scrollToLatest],
   );
 
   /**
@@ -458,10 +595,11 @@ export function ConversationInbox({
 
   const loadOlder = async () => {
     if (!selectedConversation || !nextCursor || loadingOlder) return;
+    const conversationId = selectedConversation._id;
     setLoadingOlder(true);
     try {
       const response = await fetch(
-        `/api/chat/conversations/${selectedConversation._id}/messages?limit=30&before=${encodeURIComponent(nextCursor)}`,
+        `/api/chat/conversations/${conversationId}/messages?limit=30&before=${encodeURIComponent(nextCursor)}`,
       );
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) {
@@ -470,10 +608,13 @@ export function ConversationInbox({
             tr("errors.loadOlderMessages", "Unable to load older messages"),
         );
       }
-      setMessages((current) => [...(payload.data.messages || []), ...current]);
+      // Another thread was opened meanwhile: this page is not its history.
+      if (activeConversationIdRef.current !== conversationId) return;
+      setMessages((current) => mergeMessages(current, payload.data.messages || []));
       setHasMore(Boolean(payload.data.hasMore));
       setNextCursor(payload.data.nextCursor);
     } catch (error) {
+      if (activeConversationIdRef.current !== conversationId) return;
       toast.error(
         error instanceof Error
           ? error.message
@@ -536,34 +677,53 @@ export function ConversationInbox({
   };
 
   const sendReply = async () => {
-    if (!selectedConversation || !reply.trim() || sending) return;
-    const body = reply.trim();
-    const clientMessageId = crypto.randomUUID();
+    if (!selectedConversation || sending || conversationClosed) return;
+    const conversationId = selectedConversation._id;
+    const current = drafts[conversationId] ?? { text: "" };
+    const body = current.text.trim();
+    const product = current.product;
+    if (!body && !product) return;
+    // The same reply sent again (its answer was lost) keeps its id, so the
+    // server stores it once; anything else is a new message.
+    const sentAs = JSON.stringify([body, product?.productId ?? null]);
+    const clientMessageId =
+      current.sentAs === sentAs && current.clientMessageId
+        ? current.clientMessageId
+        : crypto.randomUUID();
+    updateDraft(conversationId, (draft) => ({ ...draft, clientMessageId, sentAs }));
     setSending(true);
     try {
       const response = await fetch(
-        `/api/chat/conversations/${selectedConversation._id}/messages`,
+        `/api/chat/conversations/${conversationId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: body, clientMessageId }),
+          body: JSON.stringify({
+            message: body,
+            ...(product ? { productId: product.productId } : {}),
+            clientMessageId,
+          }),
         },
       );
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) {
         throw new Error(
-          payload?.message || tr("errors.sendMessage", "Unable to send message"),
+          errorText(payload, tr("errors.sendMessage", "Unable to send message")),
         );
       }
       const message = payload.data.message as ConversationMessageDTO;
-      setMessages((current) =>
-        current.some((item) => item._id === message._id)
-          ? current
-          : [...current, message],
-      );
+      // The operator may have opened another thread while this was on its way.
+      if (activeConversationIdRef.current === conversationId) {
+        setMessages((messages) => mergeMessages(messages, [message]));
+        scrollToLatest();
+      }
       replaceConversation(payload.data.conversation);
-      setReply("");
-      scrollToLatest();
+      // Only what was sent is cleared: words typed meanwhile stay.
+      updateDraft(conversationId, (draft) => ({
+        text: draft.text.trim() === body ? "" : draft.text,
+        product:
+          draft.product?.productId === product?.productId ? undefined : draft.product,
+      }));
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -576,39 +736,69 @@ export function ConversationInbox({
   };
 
   const sendAttachment = async (file: File) => {
-    if (!selectedConversation || uploading || providerReplyExpired) return;
-    if (file.size > 16 * 1024 * 1024) {
+    if (
+      !selectedConversation ||
+      !attachmentPolicy ||
+      uploading ||
+      providerReplyExpired ||
+      conversationClosed
+    ) {
+      return;
+    }
+    // Held to the channel's own types and sizes before anything is uploaded
+    // (the server checks again).
+    const allowed = attachmentPolicy.types.find(
+      (type) => type.mimeType === file.type.split(";")[0]?.trim().toLowerCase(),
+    );
+    if (!allowed) {
       toast.error(
-        tr("attachmentTooLarge", "Chat attachments cannot exceed 16MB"),
+        tr("attachmentNotAccepted", "This conversation doesn't take this kind of file."),
       );
       return;
     }
+    if (file.size > allowed.maxBytes) {
+      toast.error(
+        tr("attachmentTooLargeFor", "This file is larger than {size}, the most this conversation takes.", {
+          size: formatFileSize(allowed.maxBytes),
+        }),
+      );
+      return;
+    }
+    const conversationId = selectedConversation._id;
+    // A channel whose files take no caption (Messenger, Instagram) gets the
+    // file alone; the text stays in the composer to send after it.
+    const caption = selectedCapability?.captionsWithMedia ? reply.trim() : "";
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      if (reply.trim()) formData.append("message", reply.trim());
+      if (caption) formData.append("message", caption);
       formData.append("clientMessageId", crypto.randomUUID());
       const response = await fetch(
-        `/api/chat/conversations/${selectedConversation._id}/attachments`,
+        `/api/chat/conversations/${conversationId}/attachments`,
         { method: "POST", body: formData },
       );
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) {
         throw new Error(
-          payload?.message ||
+          errorText(
+            payload,
             tr("errors.sendAttachment", "Unable to send attachment"),
+          ),
         );
       }
       const message = payload.data.message as ConversationMessageDTO;
-      setMessages((current) =>
-        current.some((item) => item._id === message._id)
-          ? current
-          : [...current, message],
-      );
+      if (activeConversationIdRef.current === conversationId) {
+        setMessages((messages) => mergeMessages(messages, [message]));
+        scrollToLatest();
+      }
       replaceConversation(payload.data.conversation);
-      setReply("");
-      scrollToLatest();
+      if (caption) {
+        updateDraft(conversationId, (draft) => ({
+          ...draft,
+          text: draft.text.trim() === caption ? "" : draft.text,
+        }));
+      }
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -634,8 +824,10 @@ export function ConversationInbox({
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.success) {
         throw new Error(
-          payload?.message ||
+          errorText(
+            payload,
             tr("errors.updateConversation", "Unable to update conversation"),
+          ),
         );
       }
       replaceConversation(payload.data.conversation);
@@ -736,6 +928,7 @@ export function ConversationInbox({
             empty: tr("noMatchingConversations", "No matching conversations."),
             loadMore: tr("loadOlderConversations", "Load older conversations"),
             storeSupport: tr("storeSupport", "Store support"),
+            unread: (count) => tr("unreadCount", "{count} unread", { count }),
             count:
               conversations.length === 1
                 ? tr("conversationCountOne", "{count} conversation", {
@@ -767,7 +960,7 @@ export function ConversationInbox({
                 onClick={() => setPane("list")}
                 aria-label={tr("backToList", "Back to conversations")}
               >
-                <ArrowLeft />
+                <ArrowLeft className="rtl:rotate-180" />
               </Button>
               {draftPreview ? (
                 // Laid out like the thread header that replaces it once the
@@ -862,7 +1055,7 @@ export function ConversationInbox({
                 onClick={() => setPane("list")}
                 aria-label={tr("backToList", "Back to conversations")}
               >
-                <ArrowLeft />
+                <ArrowLeft className="rtl:rotate-180" />
               </Button>
 
               <Avatar className="size-9 shrink-0">
@@ -925,6 +1118,7 @@ export function ConversationInbox({
                 today: tr("today", "Today"),
                 yesterday: tr("yesterday", "Yesterday"),
                 whatsappTemplate: tr("whatsappTemplate", "WhatsApp template"),
+                internalNote: tr("internalNote", "Internal note · only your team sees this"),
               }}
             />
 
@@ -932,14 +1126,73 @@ export function ConversationInbox({
               value={reply}
               onChange={setReply}
               onSubmit={() => void sendReply()}
-              onAttach={(file) => void sendAttachment(file)}
+              onAttach={
+                attachmentPolicy?.types.length
+                  ? (file) => void sendAttachment(file)
+                  : undefined
+              }
+              attachAccept={attachmentPolicy?.types
+                .map((type) => type.mimeType)
+                .join(",")}
               sending={sending}
               uploading={uploading}
-              disabled={providerReplyExpired}
+              disabled={providerReplyExpired || conversationClosed}
               placeholder={tr("writeReply", "Write a reply…")}
               sendLabel={tr("sendMessage", "Send message")}
               attachLabel={tr("attachFile", "Attach file")}
-              warning={windowClosedMessage}
+              actions={
+                <ProductPicker
+                  conversationId={selectedConversation._id}
+                  disabled={providerReplyExpired || conversationClosed}
+                  onPick={(product) =>
+                    updateDraft(selectedConversation._id, (current) => ({
+                      ...current,
+                      product,
+                    }))
+                  }
+                  labels={{
+                    button: tr("shareProduct", "Share a product"),
+                    search: tr("searchProducts", "Search products by name or SKU"),
+                    empty: tr("noProductsFound", "No products found"),
+                    error: tr("productsUnavailable", "Products could not be loaded"),
+                    share: (name) =>
+                      tr("shareProductNamed", "Share {name}", { name }),
+                    priceOnRequest: tr(
+                      "messageProduct.priceOnRequest",
+                      "Price on request",
+                    ),
+                  }}
+                />
+              }
+              hasAttachment={Boolean(draft?.product)}
+              attachment={
+                draft?.product ? (
+                  <AttachedProduct
+                    product={draft.product}
+                    onRemove={() =>
+                      updateDraft(selectedConversation._id, (current) => ({
+                        ...current,
+                        product: undefined,
+                      }))
+                    }
+                    removeLabel={tr("removeProduct", "Remove {name}", {
+                      name: draft.product.name,
+                    })}
+                    priceOnRequest={tr(
+                      "messageProduct.priceOnRequest",
+                      "Price on request",
+                    )}
+                  />
+                ) : null
+              }
+              warning={
+                conversationClosed
+                  ? tr(
+                      "conversationClosedNotice",
+                      "This conversation is closed, so no more messages can be sent.",
+                    )
+                  : windowClosedMessage
+              }
               notice={
                 viewerMode === "store" &&
                 supportsTemplates(selectedConversation.channel) ? (
@@ -948,13 +1201,11 @@ export function ConversationInbox({
                       conversationId={selectedConversation._id}
                       required={providerReplyExpired}
                       onSent={({ conversation, message }) => {
-                        setMessages((current) =>
-                          current.some((item) => item._id === message._id)
-                            ? current
-                            : [...current, message],
-                        );
+                        if (activeConversationIdRef.current === conversation._id) {
+                          setMessages((current) => mergeMessages(current, [message]));
+                          scrollToLatest();
+                        }
                         replaceConversation(conversation);
-                        scrollToLatest();
                       }}
                     />
                   </div>
@@ -985,7 +1236,7 @@ export function ConversationInbox({
               onClick={() => setPane("thread")}
               aria-label={tr("backToConversation", "Back to conversation")}
             >
-              <ArrowLeft />
+              <ArrowLeft className="rtl:rotate-180" />
             </Button>
             <h3 className="text-sm font-semibold">
               {tr("conversationDetails", "Conversation details")}

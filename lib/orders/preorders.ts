@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { markForMetaCatalog } from "@/lib/meta-catalog/mark-later";
 import { Order, Product } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
@@ -548,6 +549,8 @@ async function invalidatePreorderProductCache(
       err,
     );
   }
+  // The places left decide whether Meta is sent the item at all.
+  await markForMetaCatalog(lines.map((line) => line.productId));
 }
 
 export async function releasePreorderQuantity(lines: PreorderReservationLine[]) {
@@ -640,6 +643,9 @@ export async function releasePreorderQuantity(lines: PreorderReservationLine[]) 
     );
   }
 
+  // The places left decide whether Meta is sent the item at all.
+  await markForMetaCatalog(lines.map((line) => line.productId));
+
   // A freed place is somebody's turn. Invited after the response, so a cancel
   // or an expiry is never slowed by the list, and best-effort, because an
   // invitation missed here is picked up by the daily sweep rather than by a
@@ -655,127 +661,13 @@ export async function releasePreorderQuantity(lines: PreorderReservationLine[]) 
 }
 
 /**
- * Consume physical stock for a pre-order transitioning to READY/fulfilment.
- *
- * When the supplier intake arrives, admins restock via the inventory screen
- * and mark preorders "ready". Without this step nothing ever decremented the
- * received stock or freed the `preorder.reservedQuantity` counter, so the
- * received units stayed sellable online while also being committed to
- * preorder customers — a guaranteed oversell.
- *
- * Flow (idempotent via the per-sub-order `preorderReserved` claim):
- *   claim reservation → decrement stock → release reservation counter →
- *   mark the claimed sub-orders `inventoryReserved` (so a later cancel
- *   restores stock through the normal claim-based restore path).
- * On insufficient stock the claim is rolled back and `consumed: false` is
- * returned so the caller can skip the status transition and surface it.
+ * Pre-order stock is allocated by `lib/orders/preorder-allocation.ts` alone —
+ * in one transaction with the reservation counter and durable evidence on the
+ * order. The old `consumePreorderStockOnReady` cleared the reservation flag
+ * before moving any stock and read "no flag" as "already allocated", which
+ * let a concurrent request release an order whose stock never moved; it is
+ * gone rather than kept beside the new path.
  */
-export async function consumePreorderStockOnReady(
-  orderId: string,
-  opts?: {
-    /** Restrict the claim to ONE vendor's sub-order (vendor "ready" action).
-     *  Omitted = claim every still-reserved sub-order (admin actions). */
-    vendorId?: string;
-  },
-): Promise<{ consumed: boolean; alreadyConsumed?: boolean; error?: string }> {
-  if (!Types.ObjectId.isValid(orderId)) {
-    return { consumed: false, error: "Invalid order id" };
-  }
-  const vendorScope =
-    opts?.vendorId && Types.ObjectId.isValid(opts.vendorId)
-      ? new Types.ObjectId(opts.vendorId)
-      : undefined;
-
-  const order = await Order.findOneAndUpdate(
-    {
-      _id: orderId,
-      subOrders: {
-        $elemMatch: {
-          preorderReserved: true,
-          ...(vendorScope ? { vendorId: vendorScope } : {}),
-        },
-      },
-    },
-    { $set: { "subOrders.$[sub].preorderReserved": false } },
-    {
-      returnDocument: "before",
-      arrayFilters: [
-        {
-          "sub.preorderReserved": true,
-          ...(vendorScope ? { "sub.vendorId": vendorScope } : {}),
-        },
-      ],
-    },
-  ).lean();
-
-  // No reserved sub-orders left: either already consumed/released — treat as
-  // done so re-running "ready" stays idempotent.
-  if (!order) return { consumed: false, alreadyConsumed: true };
-
-  const claimedSubs = ((order.subOrders || []) as Array<{
-    vendorId?: unknown;
-    preorderReserved?: boolean;
-    items?: Array<{
-      productId: unknown;
-      variantId?: unknown;
-      quantity: number;
-      purchaseType?: string;
-    }>;
-  }>).filter(
-    (sub) =>
-      sub.preorderReserved === true &&
-      (!vendorScope || String(sub.vendorId) === String(vendorScope)),
-  );
-  const claimedVendorIds = claimedSubs.map((sub) => String(sub.vendorId));
-  const lines = claimedSubs.flatMap((sub) =>
-    getOrderPreorderLines(sub.items || []),
-  );
-  if (lines.length === 0) return { consumed: false, alreadyConsumed: true };
-
-  const { decrementInventory, InsufficientStockError } = await import(
-    "@/lib/inventory/inventory"
-  );
-  try {
-    await decrementInventory(lines);
-  } catch (err) {
-    // Revert exactly the sub-orders we claimed so the action can be retried
-    // once the intake stock is actually recorded.
-    await Order.updateOne(
-      { _id: orderId },
-      { $set: { "subOrders.$[sub].preorderReserved": true } },
-      {
-        arrayFilters: [
-          { "sub.vendorId": { $in: claimedVendorIds.map((id) => new Types.ObjectId(id)) } },
-        ],
-      },
-    ).catch((revertErr) =>
-      console.error("Failed to revert preorder claim:", revertErr),
-    );
-    if (err instanceof InsufficientStockError) {
-      return {
-        consumed: false,
-        error:
-          "Insufficient stock to fulfil this pre-order — restock the received units first",
-      };
-    }
-    throw err;
-  }
-
-  await releasePreorderQuantity(lines);
-  await Order.updateOne(
-    { _id: orderId },
-    { $set: { "subOrders.$[sub].inventoryReserved": true } },
-    {
-      arrayFilters: [
-        { "sub.vendorId": { $in: claimedVendorIds.map((id) => new Types.ObjectId(id)) } },
-      ],
-    },
-  ).catch((markErr) =>
-    console.error("Failed to mark preorder inventory reserved:", markErr),
-  );
-
-  return { consumed: true };
-}
 
 export async function markOrderPreorderReserved(orderId: string) {
   if (!Types.ObjectId.isValid(orderId)) return;
@@ -791,6 +683,25 @@ export async function markOrderPreorderReserved(orderId: string) {
     },
     { arrayFilters: [{ "live.status": { $ne: ORDER_STATUS.CANCELLED } }] },
   );
+  // A new order's lines carry the terms its checkout saw. If a product's date
+  // moved in between — while a propagation of that move was already running,
+  // say — the order is brought up to the product's current terms now. Best
+  // effort: the catch-up pass reconciles any order this misses.
+  const { reconcileOrderPreorderTerms } = await import(
+    "@/lib/orders/preorder-terms-sync"
+  );
+  await reconcileOrderPreorderTerms(orderId)
+    .then(async (result) => {
+      if (result.status === "unchanged") {
+        await Order.updateOne(
+          { _id: orderId, preorderTermsCheckedAt: null },
+          { $set: { preorderTermsCheckedAt: new Date() } },
+        );
+      }
+    })
+    .catch((err) =>
+      console.error("Failed to reconcile a new pre-order's terms:", err),
+    );
 }
 
 export async function releaseOrderPreorders(orderId: string) {

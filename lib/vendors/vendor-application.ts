@@ -4,7 +4,9 @@ import {
   VENDOR_APPLICATION_PAYMENT_STATUS,
   VENDOR_APPLICATION_STATUS,
   VENDOR_BILLING_INTERVAL,
+  VENDOR_STATUS,
   type VendorApplicationPaymentStatus,
+  type VendorApplicationStatus,
   type VendorBillingInterval,
 } from "@/config/app.config";
 import { ValidationError } from "@/lib/api/errors";
@@ -166,6 +168,14 @@ export function vendorApplicationLookupQuery(input: {
 
 /** Newest-first ordering; every application lookup must apply it. */
 export const VENDOR_APPLICATION_LATEST_SORT = { createdAt: -1 } as const;
+
+/**
+ * Why an admin or staff account may not apply or save an application draft
+ * (holdsTeamRole). The wizard says so in the visitor's language before they
+ * start; this is the API's answer to anything that skips the wizard.
+ */
+export const TEAM_ACCOUNT_APPLICATION_REFUSAL =
+  "Admin and staff accounts cannot apply as a vendor. Apply with a customer account instead.";
 
 /**
  * The one way to resolve "this vendor's current application". Returns a
@@ -411,6 +421,38 @@ export function canEditVendorApplication(status?: string | null): boolean {
     status === VENDOR_APPLICATION_STATUS.PAID_PENDING_SUBMIT ||
     status === VENDOR_APPLICATION_STATUS.REJECTED
   );
+}
+
+/**
+ * Application statuses that mean the applicant has not finished applying.
+ * Only reachable for a seller whose application row predates today's
+ * become-vendor flow, which creates the vendor at submission.
+ */
+const NOT_SUBMITTED_APPLICATION_STATUSES: readonly VendorApplicationStatus[] = [
+  VENDOR_APPLICATION_STATUS.DRAFT,
+  VENDOR_APPLICATION_STATUS.PAYMENT_PENDING,
+  VENDOR_APPLICATION_STATUS.PAID_PENDING_SUBMIT,
+];
+
+/**
+ * Why a seller's application cannot be decided now, or null when it can: it
+ * is waiting (`pending`) and was submitted. Internal reasons, the business
+ * app's `VENDOR_APPLICATION_REASONS`.
+ */
+export function vendorDecisionBlocker(
+  vendor: { status?: string },
+  application: { status?: string } | null,
+): "ALREADY_DECIDED" | "NOT_SUBMITTED" | null {
+  if (vendor.status !== VENDOR_STATUS.PENDING) return "ALREADY_DECIDED";
+  if (
+    application &&
+    (NOT_SUBMITTED_APPLICATION_STATUSES as readonly string[]).includes(
+      String(application.status),
+    )
+  ) {
+    return "NOT_SUBMITTED";
+  }
+  return null;
 }
 
 /**

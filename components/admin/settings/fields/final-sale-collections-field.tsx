@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { MAX_FINAL_SALE_COLLECTIONS } from "@/lib/returns/final-sale";
+import { SettingBlock } from "./setting-row";
 
 type CollectionOption = { _id: string; title: string };
 
@@ -71,23 +70,56 @@ export function FinalSaleCollectionsField({
   const full = value.length >= MAX_FINAL_SALE_COLLECTIONS;
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="finalSaleCollections">
-        {t("admin.settings.orders.finalSaleCollections")}
-      </Label>
+    <SettingBlock
+      inputId="finalSaleCollections"
+      label={t("admin.settings.orders.finalSaleCollections")}
+      hint={t("admin.settings.orders.finalSaleCollectionsHint")}
+    >
+      {value.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {value.map((id) => {
+            const title =
+              titles[id] ||
+              (listComplete
+                ? t("admin.settings.orders.finalSaleCollectionMissing")
+                : t("admin.settings.orders.finalSaleCollectionUnnamed"));
+            return (
+              <span
+                key={id}
+                className="bg-muted inline-flex h-8 items-center gap-1 rounded-full border ps-3 pe-1 text-sm font-medium"
+              >
+                {title}
+                <button
+                  type="button"
+                  aria-label={`${t("admin.settings.orders.windowOverrideRemove")}: ${title}`}
+                  className="text-muted-foreground hover:bg-background hover:text-foreground flex size-6 items-center justify-center rounded-full transition-colors"
+                  onClick={() => onChange(value.filter((entry) => entry !== id))}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
       <div
-        className="relative"
+        className="relative w-full @md:w-72"
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
             window.setTimeout(() => setOpen(false), 150);
           }
         }}
       >
+        <Plus
+          aria-hidden
+          className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
+        />
         <Input
           id="finalSaleCollections"
+          className="ps-9"
           value={query}
           disabled={full}
-          placeholder={t("admin.settings.orders.finalSaleCollectionsSearch")}
+          placeholder={t("admin.settings.orders.windowOverridesSearch")}
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
@@ -119,27 +151,6 @@ export function FinalSaleCollectionsField({
           </div>
         ) : null}
       </div>
-      {value.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {value.map((id) => (
-            <Badge
-              key={id}
-              variant="secondary"
-              className="cursor-pointer"
-              onClick={() => onChange(value.filter((entry) => entry !== id))}
-            >
-              {titles[id] ||
-                (listComplete
-                  ? t("admin.settings.orders.finalSaleCollectionMissing")
-                  : t("admin.settings.orders.finalSaleCollectionUnnamed"))}
-              <X className="ml-1 h-3 w-3" />
-            </Badge>
-          ))}
-        </div>
-      ) : null}
-      <p className="text-sm text-muted-foreground">
-        {t("admin.settings.orders.finalSaleCollectionsHint")}
-      </p>
-    </div>
+    </SettingBlock>
   );
 }

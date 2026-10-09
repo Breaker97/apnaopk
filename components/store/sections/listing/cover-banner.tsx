@@ -1,7 +1,7 @@
 import { SavedSliderLazy as SavedSlider } from "@/components/store/saved-slider-lazy";
 import { buildRenderSlides } from "@/lib/sliders/render";
 import { readSliderCell } from "@/lib/storefront/sections/slider-grids";
-import { resolveCellData } from "@/lib/storefront/sections/section-grid";
+import { resolveCellData } from "@/lib/storefront/section-data/slider-cells";
 import type { ProductsListingLayout } from "@/lib/storefront/sections/products-listing-layout";
 import type { Locale } from "@/config/i18n.config";
 

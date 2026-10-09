@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +41,12 @@ type CommonProps = {
   valueFormat?: CountryValueFormat;
   /** The policy editor needs the full catalog so excluded countries can return. */
   restrictToAvailableCountries?: boolean;
+  /**
+   * Set inside a Dialog. The list is portaled outside the dialog, whose scroll
+   * lock then swallows the wheel over it — the country list could not be
+   * scrolled. A modal popover takes the lock over for itself.
+   */
+  modal?: boolean;
 };
 
 type ClearableProps = {
@@ -59,6 +65,20 @@ type CountrySelectSingleProps = CommonProps &
     multiple?: false;
     value: string;
     onChange: (value: string) => void;
+    /**
+     * When the field is locked to the store's one country, a line under it
+     * says the store delivers there only, so a fixed field doesn't read as a
+     * broken one. Pass `false` where that would be wrong (a seller's own
+     * address, a billing address) or where the caller explains it itself.
+     */
+    lockedHint?: boolean;
+    /**
+     * The saved country the store's country policy replaced when the record
+     * loaded (see `settleCountryForPolicy`). The field then says what saving
+     * will change, in place of the hint, so a country never changes behind
+     * anyone's back.
+     */
+    replacedCountry?: string;
   };
 
 type CountrySelectMultiProps = CommonProps & {
@@ -92,11 +112,15 @@ export function CountrySelect(props: CountrySelectProps) {
     disabled = false,
     valueFormat = "name",
     restrictToAvailableCountries = true,
+    modal = false,
   } = props;
   const isMulti = props.multiple === true;
   const clearable = !isMulti && props.clearable === true;
   const clearLabel = (!isMulti && props.clearLabel) || t("clear");
+  const showLockedHint = !isMulti && props.lockedHint !== false;
+  const replacedCountry = isMulti ? "" : (props.replacedCountry ?? "").trim();
   const { countryAvailability } = useAppSettings();
+  const noteId = useId();
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -236,27 +260,57 @@ export function CountrySelect(props: CountrySelectProps) {
   const showClear = clearable && !isPlaceholder && !disabled;
 
   if (isLockedToSoleCountry && soleCountry) {
+    // The plain name: in code format the option label carries the ISO code.
+    const soleName = countryNameForCode(soleCountry.value) ?? soleCountry.label;
+    const replaced =
+      replacedCountry &&
+      !areCountryValuesEquivalent(replacedCountry, soleCountry.value)
+        ? (countryNameForCode(replacedCountry) ?? replacedCountry)
+        : "";
+    const note = replaced
+      ? t("replaced", { previous: replaced, current: soleName })
+      : showLockedHint
+        ? t("lockedHint", { country: soleName })
+        : "";
+
     return (
-      <button
-        id={id}
-        type="button"
-        /* `aria-disabled` rather than `disabled`: a disabled button is skipped
-           in the tab order and passed over by screen readers, so the one
-           country the store delivers to would never be announced — the shopper
-           would just find a gap where the country field should be. This keeps
-           it reachable and readable while still saying it cannot be changed. */
-        aria-disabled
-        aria-label={
-          ariaLabel ? `${ariaLabel}: ${soleCountry.label}` : soleCountry.label
-        }
-        onClick={(event) => event.preventDefault()}
-        className={cn(
-          "flex h-9 w-full cursor-default items-center rounded-md border bg-muted/50 px-4 py-2 text-left text-sm font-normal shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30",
-          triggerClassName,
-        )}
-      >
-        <span className="min-w-0 truncate text-left">{soleCountry.label}</span>
-      </button>
+      <div className="space-y-1.5">
+        <button
+          id={id}
+          type="button"
+          /* `aria-disabled` rather than `disabled`: a disabled button is
+             skipped in the tab order and passed over by screen readers, so the
+             one country the store delivers to would never be announced — the
+             shopper would just find a gap where the country field should be.
+             This keeps it reachable and readable while still saying it cannot
+             be changed. */
+          aria-disabled
+          aria-label={
+            ariaLabel ? `${ariaLabel}: ${soleCountry.label}` : soleCountry.label
+          }
+          aria-describedby={note ? noteId : undefined}
+          onClick={(event) => event.preventDefault()}
+          className={cn(
+            "flex h-9 w-full cursor-default items-center rounded-md border bg-muted/50 px-4 py-2 text-left text-sm font-normal shadow-xs focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30",
+            triggerClassName,
+          )}
+        >
+          <span className="min-w-0 truncate text-left">{soleCountry.label}</span>
+        </button>
+        {note ? (
+          <p
+            id={noteId}
+            className={cn(
+              "text-xs",
+              replaced
+                ? "text-amber-600 dark:text-amber-500"
+                : "text-muted-foreground",
+            )}
+          >
+            {note}
+          </p>
+        ) : null}
+      </div>
     );
   }
 
@@ -264,6 +318,7 @@ export function CountrySelect(props: CountrySelectProps) {
     <div className="space-y-2">
       <Popover
         open={open}
+        modal={modal}
         onOpenChange={(nextOpen) => {
           setOpen(nextOpen);
           if (!nextOpen) setQuery("");

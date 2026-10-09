@@ -1,3 +1,4 @@
+import { ValidationError } from "@/lib/api/errors";
 /**
  * Reports, as groupings of the ledger.
  *
@@ -723,6 +724,7 @@ export async function getVendorLedgerBalances(
 }
 
 export interface VendorStatementLine {
+  id?: string;
   date: string;
   /** What happened, as an account pair the vendor can recognise. */
   kind:
@@ -742,6 +744,8 @@ export interface VendorStatementLine {
    * read as though every commission had been deducted from their money.
    */
   affects: "held" | "owed";
+  heldMovement?: number;
+  owedMovement?: number;
   /** Positive in the direction of the balance it affects. */
   amount: number;
 }
@@ -767,6 +771,9 @@ interface VendorStatement {
   closing: number;
   /** Commission owed on sales they collected themselves. */
   owed: number;
+  openingOwed: number;
+  owedMovement: number;
+  closingOwed: number;
   lines: VendorStatementLine[];
   /** Entries in the period, which may exceed the lines actually listed. */
   lineCount: number;
@@ -799,6 +806,7 @@ const STATEMENT_LINE_LIMIT = 500;
 export async function getVendorStatement(
   vendorId: string,
   period: FinancePeriod,
+  lineLimit = STATEMENT_LINE_LIMIT,
 ): Promise<VendorStatement[]> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
   const accounts = [
@@ -831,7 +839,7 @@ export async function getVendorStatement(
 
   const [openingRows, totalRows, entries] = await Promise.all([
     // Everything before the period, folded into one number per currency.
-    LedgerEntry.aggregate<{ _id: string; debits: number; credits: number }>([
+    LedgerEntry.aggregate<{ _id: string; debits: number; credits: number; owedDebits: number; owedCredits: number }>([
       {
         $match: {
           vendorId: vendorObjectId,
@@ -842,6 +850,8 @@ export async function getVendorStatement(
       {
         $group: {
           _id: "$currency",
+          owedDebits: { $sum: sumWhen({ $eq: ["$debit", LEDGER_ACCOUNT.COMMISSION_RECEIVABLE] }) },
+          owedCredits: { $sum: sumWhen({ $eq: ["$credit", LEDGER_ACCOUNT.COMMISSION_RECEIVABLE] }) },
           credits: {
             $sum: {
               $cond: [
@@ -962,10 +972,11 @@ export async function getVendorStatement(
       ...lineMatch,
     })
       .sort({ date: 1, _id: 1 })
-      .limit(STATEMENT_LINE_LIMIT)
+      .limit(lineLimit)
       .lean<
         Array<{
-          date: Date;
+          _id?: unknown;
+      date: Date;
           debit: LedgerAccount;
           credit: LedgerAccount;
           amount: number;
@@ -988,6 +999,9 @@ export async function getVendorStatement(
         adjustments: 0,
         closing: 0,
         owed: 0,
+        openingOwed: 0,
+        owedMovement: 0,
+        closingOwed: 0,
         lines: [],
         lineCount: 0,
         truncated: false,
@@ -997,7 +1011,9 @@ export async function getVendorStatement(
   };
 
   for (const row of openingRows) {
-    ensure(String(row._id)).opening = round(row.credits - row.debits);
+    const statement = ensure(String(row._id));
+    statement.opening = round(row.credits - row.debits);
+    statement.openingOwed = round((row.owedDebits ?? 0) - (row.owedCredits ?? 0));
   }
 
   for (const row of totalRows) {
@@ -1009,7 +1025,7 @@ export async function getVendorStatement(
     statement.refunded = round(row.payableOut - row.paidOut);
     statement.commission = round(row.commission);
     statement.adjustments = round(row.adjustmentsUp - row.adjustmentsDown);
-    statement.owed = round(row.owedUp - row.owedDown);
+    statement.owedMovement = round(row.owedUp - row.owedDown);
     statement.lineCount = row.lineCount;
   }
 
@@ -1057,10 +1073,13 @@ export async function getVendorStatement(
 
     if (held === 0 && owed === 0) continue;
     statement.lines.push({
+      id: String(entry._id),
       date: entry.date.toISOString(),
       kind,
       reference: entry.source?.ref || "",
       currency: entry.currency,
+      heldMovement: round(held),
+      owedMovement: round(owed),
       affects: owed !== 0 ? "owed" : "held",
       // Positive in its own column: a commission of 16 raises what is owed by
       // 16, and printing it as -16 beside a sale invited the reading that the
@@ -1081,6 +1100,8 @@ export async function getVendorStatement(
         statement.refunded -
         statement.paidOut,
     );
+    statement.closingOwed = round(statement.openingOwed + statement.owedMovement);
+    statement.owed = statement.closingOwed;
     statement.truncated = statement.lineCount > statement.lines.length;
   }
 
@@ -1384,10 +1405,12 @@ export async function getLedgerCurrencies(): Promise<string[]> {
 export function resolveRequestedPeriod(
   search: { period?: string; from?: string; to?: string },
   now = new Date(),
+  strict = false,
 ): FinancePeriod & { key: string } {
   const from = parseDayStart(search.from);
   const to = parseDayEnd(search.to);
   if (from && to && from <= to) return { key: "custom", from, to };
+  if (strict && (search.from !== undefined || search.to !== undefined || search.period === "custom")) throw new ValidationError({ from: ["Choose a valid start date"], to: ["Choose a valid end date on or after the start date"] });
   return resolvePeriod(search.period || "30d", now);
 }
 
@@ -1395,7 +1418,7 @@ export function resolveRequestedPeriod(
 function parseDayStart(value?: string): Date | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date;
 }
 
 /**

@@ -15,6 +15,7 @@ export const INTERVALS: RecurringInterval[] = [
 /** One expense as the list API returns it. */
 export interface ExpenseRow {
   _id: string;
+  version?: number;
   date: string;
   book: "own" | "marketplace";
   category: ExpenseCategory;

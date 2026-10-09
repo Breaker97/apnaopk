@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import { useStoreBuilderScope } from "@/components/admin/store-pages/builder-scope";
 import {
   normalizeSlideTemplate,
   resolveSlideLayout,
@@ -43,11 +44,16 @@ interface TemplateLabels {
 
 const SETTINGS_SECTION = "sliderTemplates";
 
-/** The saved shelf, loaded once and written back whole. */
-function useSavedSlideTemplates() {
+/**
+ * The saved shelf, loaded once and written back whole. `enabled` is false
+ * where the store's settings are out of reach (a vendor's sliders): nothing
+ * is fetched and only the built-in set is offered.
+ */
+function useSavedSlideTemplates(enabled: boolean) {
   const [items, setItems] = useState<SlideTemplate[] | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     apiClient
       .get<Record<string, unknown>>("/api/admin/settings")
@@ -63,7 +69,7 @@ function useSavedSlideTemplates() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   const persist = useCallback(async (next: SlideTemplate[]) => {
     await apiClient.put("/api/admin/settings", {
@@ -143,7 +149,8 @@ export function TemplatesFields({
   onApply: (preset: SlideTemplatePreset) => void;
   labels: TemplateLabels;
 }) {
-  const shelf = useSavedSlideTemplates();
+  const { sliders } = useStoreBuilderScope();
+  const shelf = useSavedSlideTemplates(sliders.savedTemplates);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -193,6 +200,8 @@ export function TemplatesFields({
         <div className="grid grid-cols-3 gap-1">
           {SLIDE_TEMPLATES.map((template) => card(template, false))}
         </div>
+        {sliders.savedTemplates ? (
+        <>
         <p className="text-[11px] font-medium text-muted-foreground">{labels.saved}</p>
         {shelf.items.length > 0 ? (
           <div className="grid grid-cols-3 gap-1">
@@ -220,6 +229,8 @@ export function TemplatesFields({
             {labels.save}
           </Button>
         </div>
+        </>
+        ) : null}
     </div>
   );
 }

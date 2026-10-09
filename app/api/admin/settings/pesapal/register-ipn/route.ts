@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Settings, getSettings } from "@/models/settings.model";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
+import { audit, createAuditContext } from "@/lib/audit";
 import { resolvePesapalCredentials } from "@/lib/settings/credentials";
 import {
   getPesapalCredentials,
@@ -15,7 +16,7 @@ export const POST = withApi(
     rateLimit: { action: "admin:settings:pesapal-register-ipn", preset: "strict" },
     demo: "block-mutations",
   },
-  async () => {
+  async ({ request, session }) => {
     const settings = await getSettings();
     const resolved = resolvePesapalCredentials(settings.payment?.pesapal);
     const creds = getPesapalCredentials(resolved);
@@ -55,6 +56,21 @@ export const POST = withApi(
       { _id: settings._id },
       { $set: { "payment.pesapal.ipnId": registration.ipn_id } },
     );
+
+    // The address Pesapal now notifies, never the IPN id it handed back: that id
+    // is one of the stored credentials.
+    const registered = new URL(ipnUrl);
+    await audit(createAuditContext(request, session), {
+      action: "SETTINGS_CHANGE",
+      resource: "settings",
+      resourceId: "pesapal",
+      resourceName: "Settings: pesapal",
+      changes: {
+        summary: `Registered the Pesapal payment notification (IPN) address ${registered.origin}${registered.pathname}`,
+      },
+      metadata: { provider: "pesapal" },
+    });
+
     revalidateSettingsContent();
 
     return NextResponse.json({

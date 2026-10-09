@@ -137,6 +137,13 @@ function orderVisibilityFilter(scope: StaffAccessScope): Record<string, unknown>
   const locationClauses: Record<string, unknown>[] = [];
   if (scope.locationIds.length > 0) {
     locationClauses.push({ posLocationId: { $in: scope.locationIds } });
+    const objectIds = scope.locationIds
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    locationClauses.push(
+      { "subOrders.fulfillment.fulfillmentLocationId": { $in: objectIds } },
+      { "subOrders.fulfillment.pickup.pickupLocationId": { $in: scope.locationIds } },
+    );
   }
 
   const regionClauses: Record<string, unknown>[] = [];
@@ -169,6 +176,50 @@ export function buildStaffProductScopeFilter(
   }
 
   return combineScopeGroups([vendorClauses, locationClauses]);
+}
+
+/**
+ * The abandoned checkouts a scoped staff member may see: those with a line
+ * from one of their vendors, or a shipping address in one of their regions —
+ * each assignment a restriction, as it is for orders.
+ *
+ * A checkout has no location: it is a basket, not a sale from a shelf. So a
+ * location assignment narrows nothing here, and a staff member limited by
+ * locations alone sees no checkout rather than every one
+ * (`staffScopeReachesAbandonedCheckouts`).
+ */
+export function buildStaffAbandonedCheckoutScopeFilter(
+  scope?: StaffAccessScope | null,
+): Record<string, unknown> {
+  if (!hasStaffScope(scope)) return {};
+
+  const vendorClauses: Record<string, unknown>[] = [];
+  if (scope!.vendorIds.length > 0) {
+    vendorClauses.push({ vendorIds: { $in: vendorObjectIds(scope!) } });
+  }
+
+  const regionClauses: Record<string, unknown>[] = [];
+  if (scope!.fulfillmentRegions.length > 0) {
+    regionClauses.push(
+      { "shippingAddress.country": { $in: scope!.fulfillmentRegions } },
+      { "shippingAddress.state": { $in: scope!.fulfillmentRegions } },
+    );
+  }
+
+  return combineScopeGroups([vendorClauses, regionClauses]);
+}
+
+/**
+ * Whether a staff member's scope can be read against an abandoned checkout at
+ * all: unscoped, or limited by vendor or region. Limited by locations alone,
+ * there is nothing on a checkout to match, so the list is refused outright
+ * rather than shown empty.
+ */
+export function staffScopeReachesAbandonedCheckouts(
+  scope?: StaffAccessScope | null,
+): boolean {
+  if (!hasStaffScope(scope)) return true;
+  return scope!.vendorIds.length > 0 || scope!.fulfillmentRegions.length > 0;
 }
 
 export function buildStaffLocationScopeFilter(

@@ -1,71 +1,20 @@
 import { Fragment, Suspense } from "react";
-import { normalizeSectionInstance } from "@/lib/storefront/sections/normalize";
+import { drawnSections } from "@/lib/storefront/sections/drawn";
 import { sectionTitleVars } from "@/lib/storefront/sections/title-size";
-import {
-  getSectionDefinition,
-  resolveSectionVariant,
-} from "@/lib/storefront/sections/registry";
-import { getThemePreferredVariants } from "@/lib/storefront/themes/registry";
 import type {
   SectionDefinition,
   SectionInstance,
   SectionRenderContext,
 } from "@/lib/storefront/sections/types";
 
-/** A section the page will draw: normalized, in the design it resolved to. */
-interface DrawnSection {
-  instance: SectionInstance;
-  Render: SectionDefinition["Render"];
-  Skeleton: SectionDefinition["Skeleton"];
-  /** Its own configuration leaves it nothing to draw (`isEmpty`). */
-  empty: boolean;
-}
-
-/**
- * The sections a page will actually draw, in order. The visibility, feature
- * gate, per-page cap and design rules live here once, so a page and its
- * loading frame can never disagree about what is on it.
- */
-function drawnSections(
-  sections: SectionInstance[],
-  ctx: SectionRenderContext,
-): DrawnSection[] {
-  const renderedPerType = new Map<string, number>();
-  const preferredVariants = getThemePreferredVariants(ctx.themeId);
-  const drawn: DrawnSection[] = [];
-
-  for (const raw of sections) {
-    if (!raw.visible) continue;
-
-    const def = getSectionDefinition(raw.type);
-    if (!def) continue;
-    if (def.available && !def.available(ctx)) continue;
-
-    // maxPerPage is a policy cap (e.g. the paid sponsored rail must stay
-    // a singleton), enforced here so a hand-edited document can't bypass
-    // it — the editor enforcing it on write is UX, this is the invariant.
-    const count = renderedPerType.get(def.type) ?? 0;
-    if (def.maxPerPage !== undefined && count >= def.maxPerPage) continue;
-    renderedPerType.set(def.type, count + 1);
-
-    const instance = normalizeSectionInstance(def, raw);
-    const variant = resolveSectionVariant(
-      def,
-      instance.settings,
-      preferredVariants,
-    );
-    drawn.push({
-      instance,
-      Render: variant?.Render ?? def.Render,
-      Skeleton: variant?.Skeleton ?? def.Skeleton,
-      empty:
-        def.isEmpty?.({
-          settings: instance.settings,
-          blocks: instance.blocks ?? [],
-        }) ?? false,
-    });
-  }
-  return drawn;
+/** A drawn section with the components its design renders through. */
+function withRenderers(sections: SectionInstance[], ctx: SectionRenderContext) {
+  return drawnSections(sections, ctx).map(({ instance, definition, variant, empty }) => ({
+    instance,
+    Render: (variant?.Render ?? definition.Render) as SectionDefinition["Render"],
+    Skeleton: (variant?.Skeleton ?? definition.Skeleton) as SectionDefinition["Skeleton"],
+    empty,
+  }));
 }
 
 /**
@@ -119,7 +68,7 @@ export function StoreSections({
    */
   className?: string;
 }) {
-  const drawn = drawnSections(sections, ctx);
+  const drawn = withRenderers(sections, ctx);
   const pageCtx: SectionRenderContext = {
     ...ctx,
     pageSectionTypes: new Set(
@@ -193,7 +142,7 @@ export function StoreSectionSkeletons({
 }) {
   return (
     <>
-      {drawnSections(sections, ctx).map(({ instance, Skeleton, empty }) =>
+      {withRenderers(sections, ctx).map(({ instance, Skeleton, empty }) =>
         Skeleton && !empty ? (
           <Skeleton key={instance.id} settings={instance.settings} ctx={ctx} />
         ) : null,

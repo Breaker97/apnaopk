@@ -69,6 +69,7 @@ import type {
   SectionInstance,
 } from "@/lib/storefront/sections/types";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { useStoreBuilderScope } from "./builder-scope";
 
 interface SavedSectionSummary {
   _id: string;
@@ -104,6 +105,9 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   faq: HelpCircle,
   "vendor-list": Store,
   "become-vendor": Store,
+  // Vendor landing pages only.
+  "review-highlights": MessageSquareQuote,
+  "store-slider": GalleryHorizontalEnd,
 };
 
 const TABS: {
@@ -118,6 +122,11 @@ const TABS: {
   { key: "more", fallback: "More" },
   { key: "saved", fallback: "Saved" },
 ];
+
+/** The real categories, in tab order: what the Suggested tab groups by. */
+const CATEGORY_TABS = TABS.flatMap((tabDef) =>
+  tabDef.key === "suggested" || tabDef.key === "saved" ? [] : [tabDef],
+);
 
 const SLIDER_SETUP_STEPS: SliderSetupKind[] = ["grid", "width", "height"];
 
@@ -167,6 +176,8 @@ export function SectionPickerDialog({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  const scope = useStoreBuilderScope();
+  const { savedSectionsEndpoint } = scope;
   const [tab, setTab] = useState<string>("suggested");
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState<SavedSectionSummary[] | null>(null);
@@ -187,12 +198,13 @@ export function SectionPickerDialog({
     if (open) setQuery("");
   });
 
-  // The library is tiny; refresh it whenever the picker opens.
+  // The library is tiny; refresh it whenever the picker opens. A builder
+  // without one (the vendor's) never asks.
   useEffect(() => {
-    if (!open) return;
+    if (!open || !savedSectionsEndpoint) return;
     let cancelled = false;
     apiClient
-      .get<SavedSectionSummary[]>("/api/admin/store-pages/saved-sections")
+      .get<SavedSectionSummary[]>(savedSectionsEndpoint)
       .then((items) => {
         if (!cancelled) setSaved(Array.isArray(items) ? items : []);
       })
@@ -202,7 +214,7 @@ export function SectionPickerDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, savedSectionsEndpoint]);
 
   const entriesFor = (key: string) =>
     key === "suggested"
@@ -306,8 +318,43 @@ export function SectionPickerDialog({
   };
 
   const visibleEntries = searchResults ?? entriesFor(tab);
+
+  // Suggested is the whole catalog: the flagged blocks first, then each
+  // category's remaining ones, so no block shows twice in the one scroll.
+  const suggestedGroups = (() => {
+    const suggested = entriesFor("suggested");
+    const shown = new Set(suggested.map((entry) => entry.type));
+    return [
+      {
+        key: "suggested",
+        fallback: TABS[0].fallback,
+        entries: suggested,
+      },
+      ...CATEGORY_TABS.map((tabDef) => ({
+        key: tabDef.key,
+        fallback: tabDef.fallback,
+        entries: entriesFor(tabDef.key).filter(
+          (entry) => !shown.has(entry.type),
+        ),
+      })),
+    ].filter((group) => group.entries.length > 0);
+  })();
+
   const tabCount = (key: string) =>
-    key === "saved" ? (saved?.length ?? 0) : entriesFor(key).length;
+    key === "saved"
+      ? (saved?.length ?? 0)
+      : key === "suggested"
+        ? suggestedGroups.reduce((sum, group) => sum + group.entries.length, 0)
+        : entriesFor(key).length;
+  // No library, no Saved tab. The vendor's short catalogue also drops the
+  // categories it has nothing in; the admin's strip is unchanged.
+  const visibleTabs = TABS.filter((tabDef) => {
+    if (tabDef.key === "saved") return Boolean(savedSectionsEndpoint);
+    if (scope.kind === "vendor") {
+      return tabDef.key === "suggested" || entriesFor(tabDef.key).length > 0;
+    }
+    return true;
+  });
 
   if (sliderSetup) {
     const kind = SLIDER_SETUP_STEPS[sliderSetup.step] as SliderSetupKind;
@@ -379,7 +426,7 @@ export function SectionPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[88vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
+      <DialogContent className="flex h-[min(88vh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="shrink-0 gap-3 border-b bg-card px-6 pb-4 pt-5 pr-14 text-left">
           <div className="space-y-1">
             <DialogTitle className="flex items-center gap-2">
@@ -416,7 +463,7 @@ export function SectionPickerDialog({
               aria-label={tSafe("admin.storeBuilder.addSection", "Add section")}
               className="flex flex-wrap gap-1.5"
             >
-              {TABS.map((tabDef) => {
+              {visibleTabs.map((tabDef) => {
                 const active = tab === tabDef.key;
                 const count = tabCount(tabDef.key);
                 return (
@@ -454,7 +501,10 @@ export function SectionPickerDialog({
           )}
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5">
+        <div
+          key={searchResults ? "search" : tab}
+          className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5"
+        >
         {searchResults ? (
           searchResults.length === 0 ? (
             <p className="rounded-[12px] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -517,7 +567,7 @@ export function SectionPickerDialog({
                           if (onDeleteRefused?.()) return;
                           void apiClient
                             .delete(
-                              `/api/admin/store-pages/saved-sections/${item._id}`,
+                              `${savedSectionsEndpoint}/${item._id}`,
                             )
                             .then(() =>
                               setSaved(
@@ -544,6 +594,22 @@ export function SectionPickerDialog({
                 </div>
               )}
           </>
+        ) : tab === "suggested" && suggestedGroups.length > 0 ? (
+          <div className="space-y-6">
+            {suggestedGroups.map((group) => (
+              <section key={group.key} className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {tSafe(
+                    `admin.storeBuilder.categories.${group.key}`,
+                    group.fallback,
+                  )}
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.entries.map(sectionTile)}
+                </div>
+              </section>
+            ))}
+          </div>
         ) : visibleEntries.length === 0 ? (
           <p className="rounded-[12px] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             {tSafe(

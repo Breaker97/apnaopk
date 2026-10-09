@@ -26,6 +26,7 @@ import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
 import { DetailFormSkeleton } from "@/components/admin/detail-form-skeleton";
 import { CustomerDetailHeader } from "./customer-detail-header";
+import { AccountEmailButton } from "./account-email-button";
 import { ProfileTab } from "./tabs/profile-tab";
 import { OrdersTab } from "./tabs/orders-tab";
 import { ActivityTab } from "./tabs/activity-tab";
@@ -43,6 +44,13 @@ import {
   type LoyaltyTier,
 } from "./customer-detail-types";
 import { USER_ACCOUNT_STATUS } from "@/config/app.config";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
+import {
+  areCountryValuesEquivalent,
+  settleCountryForPolicy,
+  soleAllowedCountry,
+} from "@/lib/intl/country-availability";
+import { useAppSettings } from "@/providers/app-settings-provider";
 
 interface CustomerDetailShellProps {
   locale: string;
@@ -51,6 +59,11 @@ interface CustomerDetailShellProps {
   area?: "admin" | "staff";
   /** Set for staff viewers — see `CustomerTabProps.emailLocked`. */
   emailLocked?: boolean;
+  /**
+   * May send this customer a password reset or account invite: an admin, or
+   * staff who may edit customers.
+   */
+  canSendAccountEmail?: boolean;
 }
 
 interface CustomerDetailsResponse {
@@ -127,7 +140,10 @@ function getUser(profile: CustomerDetailsResponse) {
   return null;
 }
 
-function buildShippingAddressPayload(form: CustomerFormValues) {
+function buildShippingAddressPayload(
+  form: CustomerFormValues,
+  countryAvailability: unknown,
+) {
   const address = {
     firstName: form.shippingFirstName.trim(),
     lastName: form.shippingLastName.trim(),
@@ -140,7 +156,16 @@ function buildShippingAddressPayload(form: CustomerFormValues) {
     phone: form.shippingPhone.trim(),
   };
 
-  const hasAnyAddressValue = Object.values(address).some(Boolean);
+  // A store with one country fills that country in by itself, so on its own
+  // it is no address. Counting it would demand a street from an admin who only
+  // came to change a note on a customer who has none.
+  const sole = soleAllowedCountry(countryAvailability);
+  const countryFilledByPolicy =
+    sole !== undefined && areCountryValuesEquivalent(address.country, sole.value);
+  const hasAnyAddressValue = Object.entries(address).some(
+    ([key, value]) =>
+      Boolean(value) && !(key === "country" && countryFilledByPolicy),
+  );
   if (!hasAnyAddressValue)
     return { value: undefined as undefined, error: null as string | null };
 
@@ -183,6 +208,7 @@ export function CustomerDetailShell({
   readOnly,
   area = "admin",
   emailLocked,
+  canSendAccountEmail = false,
 }: CustomerDetailShellProps) {
   const router = useRouter();
   const { confirm } = useConfirmation();
@@ -206,6 +232,16 @@ export function CustomerDetailShell({
    */
   const [isGuestProfile, setIsGuestProfile] = useState(false);
   const [lifetimePoints, setLifetimePoints] = useState(0);
+  /** The saved country the store's country policy replaced on load, if any. */
+  const [replacedShippingCountry, setReplacedShippingCountry] = useState("");
+
+  const { countryAvailability } = useAppSettings();
+  // Read when the customer loads rather than a dependency of that load: a
+  // settings refresh must never reload the record over unsaved edits.
+  const countryAvailabilityRef = useRef(countryAvailability);
+  useEffect(() => {
+    countryAvailabilityRef.current = countryAvailability;
+  }, [countryAvailability]);
 
   const isDirty = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(savedForm),
@@ -230,7 +266,19 @@ export function CustomerDetailShell({
 
         if (!active) return;
         const profile: CustomerDetailsResponse = data.data?.profile;
+        const accountEmail: CustomerHeaderData["accountEmail"] =
+          data.data?.accountEmail ?? null;
         const user = getUser(profile);
+        // An editable form opens on the country the locked picker will hold,
+        // so the record doesn't read as changed the moment it opens. A
+        // read-only view reports what is saved.
+        const savedCountry = profile.shippingAddress?.country || "";
+        const country = readOnly
+          ? { value: savedCountry, replaced: "" }
+          : settleCountryForPolicy(
+              savedCountry,
+              countryAvailabilityRef.current,
+            );
 
         const loaded: CustomerFormValues = {
           // Guest profiles have no user behind them; the identity the guest
@@ -257,12 +305,13 @@ export function CustomerDetailShell({
           shippingCity: profile.shippingAddress?.city || "",
           shippingState: profile.shippingAddress?.state || "",
           shippingPostalCode: profile.shippingAddress?.postalCode || "",
-          shippingCountry: profile.shippingAddress?.country || "",
+          shippingCountry: country.value,
           shippingPhone: profile.shippingAddress?.phone || "",
         };
 
         setForm(loaded);
         setSavedForm(loaded);
+        setReplacedShippingCountry(country.replaced);
         setIsGuestProfile(Boolean(profile.isGuest) || !user);
         // Rows written before consent became a record carry only the boolean;
         // read them as the state they mean rather than as "never asked".
@@ -295,6 +344,7 @@ export function CustomerDetailShell({
           stats: profile.stats || {},
           lastActiveAt: profile.lastActiveAt,
           createdAt: profile.createdAt,
+          accountEmail,
         });
       } catch (error) {
         if (!active) return;
@@ -309,7 +359,7 @@ export function CustomerDetailShell({
     return () => {
       active = false;
     };
-  }, [customerId]);
+  }, [customerId, readOnly]);
 
   // Warn on hard navigation / tab close while there are unsaved changes.
   useEffect(() => {
@@ -362,7 +412,10 @@ export function CustomerDetailShell({
       return;
     }
 
-    const shippingAddressPayload = buildShippingAddressPayload(form);
+    const shippingAddressPayload = buildShippingAddressPayload(
+      form,
+      countryAvailability,
+    );
     if (shippingAddressPayload.error) {
       toast.error(shippingAddressPayload.error);
       setActiveTab("profile");
@@ -410,6 +463,7 @@ export function CustomerDetailShell({
 
       toast.success("Customer updated successfully");
       setSavedForm(form);
+      setReplacedShippingCountry("");
       setHeader((prev) =>
         prev
           ? {
@@ -432,7 +486,7 @@ export function CustomerDetailShell({
     } finally {
       setIsSaving(false);
     }
-  }, [customerId, form, isGuestProfile, readOnly, router]);
+  }, [countryAvailability, customerId, form, isGuestProfile, readOnly, router]);
 
   const handleDelete = useCallback(async () => {
     if (!customerId || readOnly) return;
@@ -471,12 +525,19 @@ export function CustomerDetailShell({
     }
   }, [basePath, confirm, customerId, form, readOnly, router]);
 
+  // The Loyalty tab hides with the rest of loyalty (see `isLoyaltyEnabled`).
+  const loyaltyEnabled = isLoyaltyEnabled();
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <AdminFormStickyHeader
         className="!mx-0 -mt-2 border-b-0 px-0 shadow-none md:px-0"
         title="Customer Details"
-        description="View and update customer profile, loyalty, and internal notes"
+        description={
+          loyaltyEnabled
+            ? "View and update customer profile, loyalty, and internal notes"
+            : "View and update customer profile and internal notes"
+        }
         status={
           isDirty && !readOnly ? (
             <span className="text-xs font-medium text-amber-600">
@@ -509,7 +570,19 @@ export function CustomerDetailShell({
         }
       />
 
-      <CustomerDetailHeader data={header ?? LOADING_HEADER} loading={isFetching} />
+      <CustomerDetailHeader
+        data={header ?? LOADING_HEADER}
+        loading={isFetching}
+        actions={
+          canSendAccountEmail && header?.accountEmail && header.email ? (
+            <AccountEmailButton
+              customerId={customerId}
+              kind={header.accountEmail}
+              email={header.email}
+            />
+          ) : null
+        }
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6">
         <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-transparent p-0">
@@ -517,7 +590,9 @@ export function CustomerDetailShell({
             { value: "profile", label: "Profile", icon: User },
             { value: "orders", label: "Orders", icon: ShoppingBag },
             { value: "activity", label: "Activity", icon: Activity },
-            { value: "loyalty", label: "Loyalty", icon: Award },
+            ...(loyaltyEnabled
+              ? [{ value: "loyalty", label: "Loyalty", icon: Award }]
+              : []),
             { value: "store-credit", label: "Store credit", icon: Wallet },
             { value: "notes", label: "Notes", icon: StickyNote },
           ].map((tab) => (
@@ -542,6 +617,7 @@ export function CustomerDetailShell({
               readOnly={readOnly}
               consent={consent}
               emailLocked={emailLocked}
+              replacedShippingCountry={replacedShippingCountry}
             />
           )}
         </TabsContent>
@@ -564,18 +640,20 @@ export function CustomerDetailShell({
           />
         </TabsContent>
 
-        <TabsContent value="loyalty">
-          {isFetching ? (
-            <DetailFormSkeleton />
-          ) : (
-            <LoyaltyTab
-              form={form}
-              setField={setField}
-              readOnly={readOnly}
-              lifetimePoints={lifetimePoints}
-            />
-          )}
-        </TabsContent>
+        {loyaltyEnabled && (
+          <TabsContent value="loyalty">
+            {isFetching ? (
+              <DetailFormSkeleton />
+            ) : (
+              <LoyaltyTab
+                form={form}
+                setField={setField}
+                readOnly={readOnly}
+                lifetimePoints={lifetimePoints}
+              />
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="store-credit">
           <StoreCreditTab customerId={customerId} />

@@ -6,6 +6,8 @@ import {
 } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { isAdmin } from "@/lib/access/rbac";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogCreate, BRAND_AUDIT } from "@/lib/catalog/catalog-audit";
 import {
   slugifyBrand,
   getRequestedBrandSlug,
@@ -64,7 +66,7 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
  * POST /api/brands
  * Create a new brand (Admin only)
  */
-export const POST = withApi({ auth: "admin" }, async ({ request }) => {
+export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
   const body = await validateBody(request, BrandCreateSchema);
 
   const requestedSlug = getRequestedBrandSlug(body);
@@ -87,6 +89,8 @@ export const POST = withApi({ auth: "admin" }, async ({ request }) => {
     ownerVendorId: null,
     approvalStatus: BRAND_APPROVAL_STATUS.APPROVED,
   });
+
+  await auditCatalogCreate(createAuditContext(request, session), BRAND_AUDIT, brand);
 
   revalidateBrandContent({ slugs: [brand.slug] });
 

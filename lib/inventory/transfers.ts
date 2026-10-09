@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/access/rbac";
 import { revalidateProductStock } from "@/lib/cache-invalidation";
+import { markForMetaCatalog } from "@/lib/meta-catalog/mark-later";
 import { stockMovementChangesAvailability } from "@/lib/inventory/inventory";
 import { postTransferWriteOff } from "@/lib/finance/transfer-postings";
 import {
@@ -537,6 +538,9 @@ async function moveLines(
   const done: StockLine[] = [];
 
   const rollback = async () => {
+    // A failed undo leaves stock moved with no refresh after it; the live
+    // sync's mark at least sends what it really is now.
+    await markForMetaCatalog(done.map((line) => line.productId));
     for (const line of done.reverse()) {
       const undone = await undo(line).catch((err) => {
         console.error("Transfer stock rollback failed for line:", line, err);
@@ -567,6 +571,7 @@ async function moveLines(
   }
 
   await refreshStorefrontStock(lines, direction);
+  await markForMetaCatalog(lines.map((line) => line.productId));
 }
 
 /**

@@ -1,12 +1,14 @@
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import { resolvePayPalCredentials } from "@/lib/settings/credentials";
 import { systemActor } from "@/lib/orders/audit-order";
 import { getSettings } from "@/models/settings.model";
 import { NextResponse } from "next/server";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
-import { finalizePayPalOrder } from "@/lib/payments/paypal-orders";
+import {
+  payPalCheckoutCredentials,
+  settlePayPalCheckout,
+} from "@/lib/payments/paypal-verify";
 import { settlePreorderBalanceFromPayPal } from "@/lib/payments/preorder-balance-paypal";
 import { settleOrderPayFromPayPal } from "@/lib/payments/order-pay";
 import {
@@ -42,12 +44,7 @@ export const POST = withApi(
 
     const settings = await getSettings();
 
-    const paypal = settings.payment?.paypal;
-    if (!paypal?.enabled) throw new ValidationError("PayPal is disabled");
-    const paypalCreds = resolvePayPalCredentials(paypal);
-    if (!paypalCreds.clientId || !paypalCreds.clientSecret) {
-      throw new ValidationError("PayPal is not configured");
-    }
+    const paypalCreds = payPalCheckoutCredentials(settings);
 
     // Vendor→platform payments (boosts, subscriptions) share this capture
     // route. PayPal's reference_id never round-trips, so the dispatch key is
@@ -114,14 +111,10 @@ export const POST = withApi(
 
     // Money is taken inside the finalizer, only for an order that is still
     // pending and not cancelled; a replayed capture answers with the order
-    // number and takes nothing twice.
-    const result = await finalizePayPalOrder({
+    // number and takes nothing twice. See lib/payments/paypal-verify.ts.
+    const result = await settlePayPalCheckout({
       paypalOrderId: orderId,
-      creds: {
-        clientId: paypalCreds.clientId,
-        clientSecret: paypalCreds.clientSecret,
-        mode: paypalCreds.mode,
-      },
+      creds: paypalCreds,
       settings,
       sessionUserId: session?.user?.id,
       cartSessionId,

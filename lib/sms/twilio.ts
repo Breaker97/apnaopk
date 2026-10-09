@@ -1,5 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { ResolvedTwilioConfig } from "@/lib/settings/credentials";
+import { TWILIO_MAX_BODY_LENGTH } from "@/lib/sms/sms-text";
+
+export { TWILIO_MAX_BODY_LENGTH };
 
 /**
  * Twilio's Programmable Messaging API, spoken directly over `fetch`.
@@ -13,8 +16,6 @@ import type { ResolvedTwilioConfig } from "@/lib/settings/credentials";
 const TWILIO_API_BASE = "https://api.twilio.com/2010-04-01";
 /** One send may not hold a cron batch or a request's `after()` hostage. */
 const REQUEST_TIMEOUT_MS = 15_000;
-/** Twilio refuses longer bodies outright (error 21617). */
-export const TWILIO_MAX_BODY_LENGTH = 1600;
 
 /**
  * Error codes whose plain meaning an admin needs, in the words they need it.

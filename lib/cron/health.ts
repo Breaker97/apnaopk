@@ -26,6 +26,8 @@ import { CronRun } from "@/models/cron-run.model";
 export const CRON_STALE_AFTER_MS: Record<string, number> = {
   "messaging-outbox": 15 * 60 * 1000, // every minute
   "carrier-shipments": 15 * 60 * 1000, // every minute
+  "account-emails": 15 * 60 * 1000, // every minute
+  "meta-catalog": 15 * 60 * 1000, // every minute
   "email-deliveries": 30 * 60 * 1000, // every 5 minutes
   "messaging-escalations": 30 * 60 * 1000, // every 5 minutes
   boosts: 30 * 60 * 1000, // every 5 minutes
@@ -36,6 +38,7 @@ export const CRON_STALE_AFTER_MS: Record<string, number> = {
   "gateway-disputes": 6 * 60 * 60 * 1000, // hourly
   finance: 36 * 60 * 60 * 1000, // daily
   preorders: 36 * 60 * 60 * 1000, // daily
+  "preorder-jobs": 90 * 60 * 1000, // every 15 minutes
   "abandoned-checkouts": 90 * 60 * 1000, // every 15 minutes
   "checkout-expiry": 3 * 60 * 60 * 1000, // every 30 minutes
   "store-credit": 6 * 60 * 60 * 1000, // hourly

@@ -5,9 +5,11 @@ import { NextRequest } from "next/server";
 import {
   handleApiError,
   AuthenticationError,
+  AuthorizationError,
   NotFoundError,
   ValidationError,
 } from "@/lib/api/errors";
+import { holdsTeamRole } from "@/lib/access/staff-role";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import {
@@ -22,6 +24,7 @@ import { createdResponse } from "@/lib/api/response";
 import { getSettings } from "@/models/settings.model";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validateBody } from "@/lib/api/validate";
+import { slugify } from "@/lib/strings";
 import { buildSubscriptionForPlan } from "@/lib/vendors/vendor-subscriptions";
 import {
   sendAdminNewVendorApplicationEmail,
@@ -35,6 +38,7 @@ import {
   canEditVendorApplication,
   initialApplicationPaymentStatus,
   prepareVendorApplication,
+  TEAM_ACCOUNT_APPLICATION_REFUSAL,
   VENDOR_APPLICATION_LATEST_SORT,
   VendorApplicationPayloadSchema,
 } from "@/lib/vendors/vendor-application";
@@ -54,6 +58,11 @@ export async function POST(request: NextRequest) {
       session.user.emailVerificationAudience !== USER_ROLES.VENDOR
     ) {
       throw new AuthenticationError();
+    }
+    // Approval never makes an admin or staff account a vendor, so the store
+    // it applied for would be one it could never open.
+    if (holdsTeamRole(session.user)) {
+      throw new AuthorizationError(TEAM_ACCOUNT_APPLICATION_REFUSAL);
     }
 
     await rateLimitByUser(
@@ -101,10 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate slug from store name
-    const slug = appData.storeName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    const slug = slugify(appData.storeName);
 
     // Check for existing slug and make it unique. A re-applicant's own row is
     // not a collision — a store keeping its name keeps its slug.

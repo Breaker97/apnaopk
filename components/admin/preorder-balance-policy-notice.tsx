@@ -22,9 +22,13 @@ import { CalendarCheck, HandCoins } from "lucide-react";
 export function PreorderBalancePolicyNotice(props: {
   autoRelease: boolean;
   autoReleaseDelayDays: number;
+  /** Hours between the delivered notice and the earliest card charge. */
+  noticeHours?: number;
   /** Admins get the way to change it; vendors get the fact. */
   settingsHref?: string;
 }) {
+  const hours = props.noticeHours ?? 24;
+  const noticeText = `${hours} hour${hours === 1 ? "" : "s"}`;
   const when =
     props.autoReleaseDelayDays > 0
       ? `${props.autoReleaseDelayDays} day${
@@ -44,13 +48,13 @@ export function PreorderBalancePolicyNotice(props: {
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-sm font-medium">
           {props.autoRelease
-            ? `Balances are requested automatically, ${when}`
-            : "Balances are only requested when you ask for them"}
+            ? `Balances are requested automatically, ${when}, once the stock is recorded`
+            : "Balances are requested once every seller marks their goods available"}
         </p>
         <p className="text-muted-foreground text-xs">
           {props.autoRelease
-            ? "A saved card is charged on the spot; anyone without one is emailed a link to pay. Pre-orders already paid in full are released for fulfilment as soon as their stock is recorded. You can still ask earlier with Request balance."
-            : "Use Request balance on a pre-order, or mark it ready, once its stock is in. Nothing is collected and nothing moves until then."}
+            ? `The customer is emailed the amount and a payment link first. A saved card is charged on or after ${noticeText} after that email is delivered — never sooner — and only once every consignment's stock is allocated. Pre-orders already paid in full are released as soon as their stock is recorded. You can still ask earlier with Request balance.`
+            : `Mark the goods available once their stock is in — each seller marks their own. When every consignment on an order is available its stock is allocated and the balance requested; a saved card is charged on or after ${noticeText} after the customer's notice is delivered, never on the spot.`}
           {props.settingsHref ? (
             <>
               {" "}

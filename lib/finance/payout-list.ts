@@ -1,3 +1,4 @@
+import { vendorPayoutDto } from "@/lib/finance/payout-dto";
 import type { Types } from "mongoose";
 import { Payout } from "@/models";
 import { connectDB } from "@/lib/db";
@@ -78,7 +79,7 @@ export async function fetchPayoutList(
     allowed: SORT_FIELDS,
     // `payoutNumber` is unique per payout; the rest (status, amounts, period
     // bounds) tie constantly and need the `_id` tiebreaker to page cleanly.
-    unique: ["createdAt", "payoutNumber"],
+    unique: ["payoutNumber"],
   });
 
   const [rows, total] = await Promise.all([
@@ -91,5 +92,5 @@ export async function fetchPayoutList(
     countForQuery(Payout, query),
   ]);
 
-  return listResult(rows as unknown[], page, limit, total);
+  return listResult(context.vendorId ? rows.map((row) => vendorPayoutDto(row)) : rows as unknown[], page, limit, total);
 }

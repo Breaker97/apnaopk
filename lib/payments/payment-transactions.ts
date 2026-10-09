@@ -237,6 +237,8 @@ export async function ensureChargeTransaction(orderInput: OrderLike) {
     return;
   }
   const order = await withStoreCredit(orderInput);
+  const { recordOrderCollections } = await import("@/lib/finance/collections");
+  await recordOrderCollections(order._id);
 
   const existing = await PaymentTransaction.findOne({
     orderId: order._id,

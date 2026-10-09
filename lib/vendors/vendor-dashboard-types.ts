@@ -1,4 +1,4 @@
-import type { OrderChartPoint } from "@/lib/admin/dashboard-types";
+import type { OrderChartSeries } from "@/lib/admin/dashboard-types";
 
 /**
  * Shapes exchanged between `GET /api/vendor/analytics` and the vendor
@@ -31,6 +31,8 @@ export interface VendorRecentOrder {
   _id: string;
   orderNumber: string;
   customerName?: string;
+  /** A walk-in POS sale: no customer, the card prints its own label. */
+  walkIn?: boolean;
   paymentMethod?: string;
   /** The consignment's status — the list's Fulfillment column. */
   status: string;
@@ -46,6 +48,7 @@ export interface VendorRecentOrder {
 
 export interface VendorDashboardData {
   stats: VendorOrderTotals & { activeProducts: number };
-  chart: OrderChartPoint[];
+  /** The orders chart for the dashboard's selected period, as the admin's. */
+  chart: OrderChartSeries;
   recentOrders: VendorRecentOrder[];
 }

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { StoreProfileNotice } from "@/components/admin/store-profile-notice";
 import type { StaffFormValues, StaffScopeOption } from "../staff-detail-types";
 
 interface ScopeTabProps {
@@ -24,6 +25,8 @@ interface ScopeTabProps {
   ) => void;
   vendors: StaffScopeOption[];
   locations: StaffScopeOption[];
+  /** The store profile the locations belong to is missing (its API code). */
+  locationsProblem?: string | null;
   optionsLoading?: boolean;
   readOnly?: boolean;
 }
@@ -33,6 +36,7 @@ export function ScopeTab({
   setField,
   vendors,
   locations,
+  locationsProblem = null,
   optionsLoading = false,
   readOnly = false,
 }: ScopeTabProps) {
@@ -85,6 +89,8 @@ export function ScopeTab({
               <p className="text-sm text-muted-foreground">
                 Loading locations…
               </p>
+            ) : locations.length === 0 && locationsProblem ? (
+              <StoreProfileNotice code={locationsProblem} compact />
             ) : locations.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No inventory locations yet.

@@ -96,21 +96,7 @@ export const getStorefrontOutOfStockDisplay = unstable_cache(
  */
 const getApprovedVendorIds = unstable_cache(
   shareInFlight(async (): Promise<string[]> => {
-    const [{ Vendor }, { VENDOR_STATUS }] = await Promise.all([
-      import("@/models"),
-      import("@/config/app.config"),
-    ]);
-
-    const approvedVendors = await Vendor.find({
-      status: VENDOR_STATUS.APPROVED,
-      // Deactivated stores (e.g. after a paid plan lapsed) are hidden from the
-      // storefront even while their vendor stays `approved`. $ne:false keeps
-      // legacy vendors whose field predates this flag.
-      storeActive: { $ne: false },
-    })
-      .select("_id")
-      .lean();
-
+    const approvedVendors = await findStorefrontVendors("_id");
     return approvedVendors.map((vendor) => String(vendor._id));
   }),
   ["storefront-approved-vendor-ids"],
@@ -119,6 +105,48 @@ const getApprovedVendorIds = unstable_cache(
     tags: [CACHE_TAGS.products],
   },
 );
+
+/**
+ * The vendors whose products the storefront shows, read straight from the
+ * database with the fields asked for.
+ *
+ * Uncached on purpose: the reader above caches it for pages, and this is what
+ * runs where there is no request cache to hang one off (a background sync, a
+ * script, `after()`), or where a minute-old answer would be wrong.
+ */
+export async function findStorefrontVendors(
+  select: string,
+): Promise<Array<{ _id: unknown } & Record<string, unknown>>> {
+  const [{ Vendor }, filter] = await Promise.all([
+    import("@/models"),
+    storefrontVendorFilter(),
+  ]);
+
+  return Vendor.find(filter)
+    .select(select)
+    .lean<Array<{ _id: unknown } & Record<string, unknown>>>();
+}
+
+/** {@link findStorefrontVendors} for one vendor: is its store on show? */
+export async function isStorefrontVendor(vendorId: unknown): Promise<boolean> {
+  if (!mongoose.isValidObjectId(vendorId)) return false;
+  const [{ Vendor }, filter] = await Promise.all([
+    import("@/models"),
+    storefrontVendorFilter(),
+  ]);
+  return Boolean(await Vendor.exists({ _id: vendorId, ...filter }));
+}
+
+async function storefrontVendorFilter() {
+  const { VENDOR_STATUS } = await import("@/config/app.config");
+  return {
+    status: VENDOR_STATUS.APPROVED,
+    // Deactivated stores (e.g. after a paid plan lapsed) are hidden from the
+    // storefront even while their vendor stays `approved`. $ne:false keeps
+    // legacy vendors whose field predates this flag.
+    storeActive: { $ne: false },
+  };
+}
 
 export async function getStorefrontProductConstraint(): Promise<
   Record<string, unknown>
@@ -129,7 +157,17 @@ export async function getStorefrontProductConstraint(): Promise<
   // linger after a multi-vendor -> single-vendor switch. The single-element
   // $in in single-vendor mode is cheap and selective, so the only real cost
   // (the repeated vendor lookup) is removed by the reader above.
-  const ids = await getApprovedVendorIds();
+  return storefrontProductConstraintFor(await getApprovedVendorIds());
+}
+
+/**
+ * {@link getStorefrontProductConstraint} for a vendor list the caller already
+ * read — with {@link findStorefrontVendors} when it must not be cached.
+ */
+export function storefrontProductConstraintFor(
+  vendorIds: readonly unknown[],
+): Record<string, unknown> {
+  const ids = vendorIds.map((id) => String(id));
 
   // find() would auto-cast string ids inside $in, but aggregation $match (used
   // for brand/collection product counts) does not, so cast to ObjectId here so

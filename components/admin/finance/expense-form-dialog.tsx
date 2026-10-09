@@ -1,4 +1,5 @@
 "use client";
+import { useFinanceRequest, type FinanceOutcome } from "@/hooks/use-finance-request";
 
 import { useCallback, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -233,6 +234,7 @@ export function ExpenseFormDialog({
   hasProductCosts: boolean;
   onSaved: () => void;
 }) {
+  const financeRequest = useFinanceRequest();
   const t = useTranslations();
   const text = useFallbackTranslator(t);
   const locale = useLocale();
@@ -506,11 +508,11 @@ export function ExpenseFormDialog({
         note: form.note.trim(),
       };
       if (editing) {
-        await apiClient.put(`${API}/${editing._id}`, payload);
-        toast.success(text("finance.expenses.updated", "Expense updated"));
+        const outcome = await apiClient.put<FinanceOutcome>(`${API}/${editing._id}`, payload, { headers: { "if-match": String(editing.version ?? 0), "idempotency-key": financeRequest.key(editing._id, { payload, version: editing.version }) } });
+        financeRequest.completed(outcome, text("finance.expenses.updated", "Expense updated"));
       } else {
-        await apiClient.post(API, payload);
-        toast.success(text("finance.expenses.created", "Expense recorded"));
+        const outcome = await apiClient.post<FinanceOutcome>(API, payload, { headers: { "idempotency-key": financeRequest.key("create", payload) } });
+        financeRequest.completed(outcome, text("finance.expenses.created", "Expense recorded"));
       }
       onOpenChange(false);
       onSaved();

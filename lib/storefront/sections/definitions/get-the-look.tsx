@@ -124,8 +124,12 @@ export const getTheLook: SectionDefinition = {
         }}
         emptyState={sectionEmptyState(ctx, {
           title: "Get the Look",
-          hint: "Pick a Look — a collection with its kind set to Look — that is active and published to the online store.",
+          hint: ctx.vendor
+            ? "Pick a Look or collection your products are in. It shows your pieces from it only."
+            : "Pick a Look — a collection with its kind set to Look — that is active and published to the online store.",
         })}
+        // A vendor's landing page: the store's own pieces in the Look only.
+        vendor={ctx.vendor}
       />
     );
   },

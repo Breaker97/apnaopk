@@ -1,7 +1,7 @@
 import { withApi } from "@/lib/api/handler";
 import { successResponse } from "@/lib/api/response";
 import { rateLimitByIP } from "@/lib/api/rate-limit-middleware";
-import { fetchCollectionShelf } from "@/components/store/sections/featured-collection";
+import { fetchCollectionShelf } from "@/lib/storefront/section-data/collection-shelf";
 import { MAX_SEARCH_DRAWER_COLLECTIONS } from "@/lib/site-config/header-layout";
 
 /** Enough to fill a row on the widest screen, and a little past it to scroll. */

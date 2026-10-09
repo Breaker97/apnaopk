@@ -2,11 +2,23 @@ import { isKnownPushEndpoint } from "@/lib/notifications/push-endpoint";
 import * as webpush from "web-push";
 import type { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
-import { PushSubscription } from "@/models";
-import { getSettings } from "@/models/settings.model";
+import { PushSubscription, PushTicket } from "@/models";
+import { getSettings, type ISettings } from "@/models/settings.model";
 import { resolveFaviconUrl } from "@/config/branding.config";
-import { locales, defaultLocale, type Locale } from "@/config/i18n.config";
-import { sendNativePush, type NativePushMessage } from "@/lib/notifications/push-native";
+import { resolveExpoAccessToken } from "@/lib/settings/credentials";
+import { isAppPushMuted } from "@/lib/customers/notification-preferences";
+import { notificationAppFor } from "@/lib/notifications/notification-app";
+import { withLocalePrefix } from "@/lib/notifications/notification-link";
+import {
+  EXPO_RECEIPT_BATCH_SIZE,
+  fetchNativePushReceipts,
+  sendNativePush,
+  type NativePushMessage,
+} from "@/lib/notifications/push-native";
+import {
+  getVapidPrivateKey,
+  getVapidPublicKey,
+} from "@/lib/notifications/web-push-keys";
 
 interface BrowserPushPayload {
   title: string;
@@ -22,6 +34,8 @@ interface BrowserPushPayload {
 type StoredPushSubscription = {
   _id: Types.ObjectId | string;
   platform?: "web" | "ios" | "android";
+  /** Native only; missing on an install registered before the field existed: the shopper app's. */
+  app?: "shop" | "biz";
   endpoint?: string;
   deviceToken?: string;
   expirationTime?: number | null;
@@ -33,18 +47,6 @@ type StoredPushSubscription = {
 };
 
 let vapidInitialized = false;
-
-function getVapidPublicKey() {
-  return (
-    process.env.WEB_PUSH_PUBLIC_KEY ||
-    process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY ||
-    ""
-  ).trim();
-}
-
-function getVapidPrivateKey() {
-  return (process.env.WEB_PUSH_PRIVATE_KEY || "").trim();
-}
 
 function normalizeVapidSubject(value: string | undefined) {
   const subject = (value || "").trim();
@@ -84,23 +86,6 @@ function configureWebPush() {
   return true;
 }
 
-function isLocale(value: string | undefined): value is Locale {
-  return Boolean(value && locales.includes(value as Locale));
-}
-
-function withLocalePrefix(url: string | undefined, locale: string | undefined) {
-  const fallbackLocale = isLocale(locale) ? locale : defaultLocale;
-  const target = url && url.trim() ? url.trim() : `/${fallbackLocale}`;
-
-  if (/^https?:\/\//i.test(target)) return target;
-  if (!target.startsWith("/")) return `/${fallbackLocale}/${target}`;
-
-  const firstSegment = target.split("/").filter(Boolean)[0];
-  if (isLocale(firstSegment)) return target;
-
-  return `/${fallbackLocale}${target === "/" ? "" : target}`;
-}
-
 function toWebPushSubscription(subscription: StoredPushSubscription) {
   // `endpoint`/`keys` are optional on the model now that native registrations
   // share the collection, so a web row missing either is unusable.
@@ -125,13 +110,18 @@ function toWebPushSubscription(subscription: StoredPushSubscription) {
  * PWA installs with. No bundled icon backs this up: when a store has no
  * favicon the payload carries no `icon` and the browser draws its own default.
  */
-async function getStoreNotificationIcon() {
-  try {
-    const settings = await getSettings();
-    return resolveFaviconUrl(settings.general?.faviconUrl);
-  } catch {
-    return undefined;
-  }
+async function getStoreNotificationIcon(settings: Promise<ISettings | null>) {
+  return resolveFaviconUrl((await settings)?.general?.faviconUrl);
+}
+
+/**
+ * The settings a send needs (the web icon, the Expo token), read once and only
+ * when a device needs them. A failed read sends without them rather than not
+ * at all.
+ */
+function lazySettings(): () => Promise<ISettings | null> {
+  let read: Promise<ISettings | null> | undefined;
+  return () => (read ??= getSettings().catch(() => null));
 }
 
 async function deactivateSubscription(
@@ -157,6 +147,11 @@ async function deactivateSubscription(
  * push service. The two are independent: a store with no VAPID keys still
  * reaches its mobile users, and a web-only store is unaffected by any of the
  * native code below.
+ *
+ * A native install belongs to one app, and a notification to one audience
+ * (notification-app.ts): the shopper app hears what a customer hears, never
+ * the store's own news, which waits for the business app. The website serves
+ * both, so every browser subscription gets everything.
  */
 export async function sendPushToUser(
   userId: string,
@@ -168,21 +163,30 @@ export async function sendPushToUser(
     userId,
     isActive: true,
   })
-    .select("_id platform endpoint deviceToken expirationTime keys locale")
+    .select("_id platform app endpoint deviceToken expirationTime keys locale")
     .lean()) as StoredPushSubscription[];
 
-  const nativeSubscriptions = subscriptions.filter(
-    (item) => item.platform === "ios" || item.platform === "android",
+  const app = notificationAppFor(payload.url);
+  let nativeSubscriptions = subscriptions.filter(
+    (item) =>
+      (item.platform === "ios" || item.platform === "android") &&
+      (item.app ?? "shop") === app,
   );
+  // The shopper's own push topics (the app's Preferences): a topic switched
+  // off reaches none of their shopper-app devices. The in-app row stays.
+  if (app === "shop" && nativeSubscriptions.length > 0 && (await isAppPushMuted(userId, payload.type))) {
+    nativeSubscriptions = [];
+  }
   const webSubscriptions = subscriptions.filter(
     (item) => item.platform !== "ios" && item.platform !== "android",
   );
 
+  const settings = lazySettings();
   const webPushReady = configureWebPush();
   let sent = 0;
   let failed = 0;
 
-  const native = await sendToNativeDevices(nativeSubscriptions, payload);
+  const native = await sendToNativeDevices(nativeSubscriptions, payload, settings);
   sent += native.sent;
   failed += native.failed;
 
@@ -190,7 +194,9 @@ export async function sendPushToUser(
     return { sent, failed, skipped: webSubscriptions.length > 0 };
   }
 
-  const notificationIcon = payload.icon || (await getStoreNotificationIcon());
+  const notificationIcon =
+    payload.icon ||
+    (webSubscriptions.length > 0 ? await getStoreNotificationIcon(settings()) : undefined);
 
   await Promise.all(
     webSubscriptions.map(async (subscription) => {
@@ -249,6 +255,7 @@ export async function sendPushToUser(
 async function sendToNativeDevices(
   subscriptions: StoredPushSubscription[],
   payload: BrowserPushPayload,
+  settings: () => Promise<ISettings | null>,
 ) {
   const messages: NativePushMessage[] = [];
   const byToken = new Map<string, StoredPushSubscription>();
@@ -270,9 +277,23 @@ async function sendToNativeDevices(
 
   if (messages.length === 0) return { sent: 0, failed: 0 };
 
-  const tickets = await sendNativePush(messages);
+  const tickets = await sendNativePush(messages, {
+    accessToken: resolveExpoAccessToken((await settings())?.mobileApp?.shop),
+  });
   let sent = 0;
   let failed = 0;
+
+  // Accepted is not delivered: Apple or Google answer later, in the receipt
+  // (processPushReceipts). Kept apart from the send's own outcome — a
+  // bookkeeping write must not turn a delivered push into a failed one.
+  const accepted = tickets.flatMap((ticket) =>
+    ticket.ok && ticket.id ? [{ ticketId: ticket.id, deviceToken: ticket.token }] : [],
+  );
+  if (accepted.length > 0) {
+    await PushTicket.insertMany(accepted, { ordered: false }).catch((error) => {
+      console.error("Failed to keep push tickets for their receipts:", error);
+    });
+  }
 
   await Promise.all(
     tickets.map(async (ticket) => {
@@ -307,4 +328,75 @@ async function sendToNativeDevices(
   );
 
   return { sent, failed };
+}
+
+/** Expo has a receipt ready for most messages within 15 minutes. */
+const RECEIPT_DELAY_MS = 15 * 60 * 1000;
+
+/**
+ * Read the receipts of native pushes sent at least 15 minutes ago, and retire
+ * the installs Apple or Google say are gone (DeviceNotRegistered). Without
+ * this an uninstalled app was sent to for ever: the ticket of a send almost
+ * always says "ok", and only the receipt tells.
+ *
+ * Runs with the notification outboxes (/api/cron/email-deliveries). A ticket
+ * whose receipt is not ready yet waits for the next run; Expo keeps receipts
+ * for a day, and so does the ticket's TTL. Costs one indexed read when there
+ * is nothing to do.
+ */
+export async function processPushReceipts(limit = EXPO_RECEIPT_BATCH_SIZE) {
+  await connectDB();
+  const due = await PushTicket.find({
+    createdAt: { $lte: new Date(Date.now() - RECEIPT_DELAY_MS) },
+  })
+    .sort({ createdAt: 1 })
+    .limit(limit)
+    .select("_id ticketId deviceToken")
+    .lean<Array<{ _id: Types.ObjectId; ticketId: string; deviceToken: string }>>();
+  if (due.length === 0) return { checked: 0, unregistered: 0, failed: 0 };
+
+  const settings = await getSettings().catch(() => null);
+  const receipts = await fetchNativePushReceipts(
+    due.map((ticket) => ticket.ticketId),
+    { accessToken: resolveExpoAccessToken(settings?.mobileApp?.shop) },
+  );
+  // Expo could not be asked: every ticket waits for the next run.
+  if (!receipts) return { checked: 0, unregistered: 0, failed: 0, unavailable: true };
+
+  let unregistered = 0;
+  let failed = 0;
+  const answered: Types.ObjectId[] = [];
+  for (const ticket of due) {
+    const receipt = receipts.get(ticket.ticketId);
+    if (!receipt) continue;
+    answered.push(ticket._id);
+    if (receipt.ok) continue;
+    if (receipt.unregistered) {
+      unregistered += 1;
+      await PushSubscription.updateMany(
+        { deviceToken: ticket.deviceToken, isActive: true },
+        {
+          $set: {
+            isActive: false,
+            failedAt: new Date(),
+            failureReason: receipt.error || "Device not registered",
+          },
+        },
+      );
+      continue;
+    }
+    failed += 1;
+    await PushSubscription.updateOne(
+      { deviceToken: ticket.deviceToken },
+      {
+        $set: {
+          failedAt: new Date(),
+          failureReason: (receipt.error || "Push not delivered").slice(0, 500),
+        },
+      },
+    );
+  }
+  if (answered.length > 0) await PushTicket.deleteMany({ _id: { $in: answered } });
+
+  return { checked: answered.length, unregistered, failed };
 }

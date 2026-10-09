@@ -39,7 +39,9 @@ interface PricingPlanCardProps {
 /**
  * One plan as a vendor weighs it. The choose button sits right under the
  * price, so every card's button lines up whatever the length of its list, and
- * the list below only carries what differs from the plans beside it.
+ * the list below only carries what differs from the plans beside it. The whole
+ * card is the click target; the button stays for keyboard and screen-reader
+ * users and shows the chosen state.
  */
 export function PricingPlanCard({
   plan,
@@ -54,15 +56,24 @@ export function PricingPlanCard({
   const paid = plan.billingInterval !== "none" && plan.price > 0;
   const trialDays = paid ? Math.max(0, Math.floor(plan.trialDays ?? 0)) : 0;
   const lines = plan.lines ?? [];
+  const selectable = Boolean(onSelect) && !disabled;
 
   return (
     <div
       data-selected={selected || undefined}
+      // The button below does not handle the click itself: it bubbles up to
+      // here, so a click anywhere on the card (button included) selects once.
+      // Re-clicking the chosen card does nothing, so a wide target cannot
+      // fire a draft save per stray click.
+      onClick={selectable && !selected ? onSelect : undefined}
       className={cn(
         "relative flex h-full flex-col gap-4 rounded-2xl border bg-card p-5 pt-6 text-left text-card-foreground shadow-xs transition-[border-color,box-shadow]",
         selected
           ? "border-primary shadow-md shadow-primary/10 ring-1 ring-primary"
           : "border-border",
+        selectable &&
+          !selected &&
+          "cursor-pointer hover:border-primary/50 hover:shadow-md",
         className,
       )}
     >
@@ -102,7 +113,6 @@ export function PricingPlanCard({
           variant={selected ? "default" : "outline"}
           aria-pressed={selected}
           disabled={disabled}
-          onClick={onSelect}
           className="h-10 w-full font-semibold"
         >
           {selected ? (

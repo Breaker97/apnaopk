@@ -1,4 +1,4 @@
-import { cartResponse } from "@/lib/cart/cart-response";
+import { cartResponse, cartViewResponse } from "@/lib/cart/cart-response";
 import { cartSessionCookie } from "@/lib/cart/cart-session-cookie";
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db";
@@ -19,6 +19,13 @@ import {
 } from "@/lib/api/rate-limit-middleware";
 import { validateBody } from "@/lib/api/validate";
 import { setCartItemQuantity } from "@/lib/cart/cart-item-quantity";
+import {
+  clearCart,
+  getCartView,
+  mergeGuestCart,
+  removeCartLine,
+  resolveCartIdentity,
+} from "@/lib/cart/cart-service";
 import { PURCHASE_TYPE, resolvePurchaseType } from "@/lib/orders/preorders";
 import { CartAddItemSchema, CartUpdateItemSchema } from "@/lib/validations";
 import { PRODUCT_STATUS } from "@/config/app.config";
@@ -28,18 +35,6 @@ import {
 } from "@/lib/catalog/product-visibility";
 import { getPurchasableQuantity } from "@/lib/products/stock-policy";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
-import {
-  loadShopperOffers,
-  matchOffersToLines,
-  quoteOfferLineKey,
-} from "@/lib/quotes/quote-offer";
-import {
-  anySellerOffersPickup,
-  cartLineKey,
-  cartProductFacts,
-  countCartSellers,
-  readCartProducts,
-} from "@/lib/cart/cart-products";
 
 // Cart item type for type annotations
 interface CartItem {
@@ -50,8 +45,6 @@ interface CartItem {
   name: string;
   image: string;
 }
-
-type StoredCartItem = CartItem & Record<string, unknown>;
 
 type LeanVariant = {
   _id: { toString: () => string };
@@ -77,104 +70,6 @@ type LeanProduct = {
 };
 
 /**
- * Merge a lingering guest cart (keyed by the cart_session cookie) into the
- * logged-in user's cart. Without this, items added before login silently
- * disappear from view — and on a shared browser the stale cookie can surface
- * a previous guest's cart to the next visitor. Item identity is
- * (productId, variantId): quantities are combined for matching lines; guest
- * lines whose product already exists with a different purchaseType are
- * dropped (standard vs preorder for one product is mutually exclusive).
- */
-async function mergeGuestCartIntoUserCart(
-  userId: string,
-  sessionId: string,
-): Promise<void> {
-  // Delete-first claim: right after login the header and the page often BOTH
-  // fetch the cart, so two requests can reach here concurrently. Only the one
-  // that wins the delete performs the merge — otherwise each would add the
-  // guest quantities on top of the other's merge (doubled lines).
-  const guestCart = await Cart.findOneAndDelete({
-    sessionId,
-    userId: { $exists: false },
-  }).lean();
-  if (!guestCart) return;
-
-  const guestItems = (guestCart.items || []) as StoredCartItem[];
-  if (guestItems.length === 0) return;
-
-  const userCart = await Cart.findOne({ userId });
-  if (!userCart) {
-    // No user cart yet — recreate the claimed guest cart as the user's cart
-    // (create() runs the sliding-TTL pre-save hook).
-    const {
-      _id: _guestId,
-      sessionId: _guestSessionId,
-      __v: _v,
-      createdAt: _createdAt,
-      updatedAt: _updatedAt,
-      ...guestFields
-    } = guestCart as Record<string, unknown>;
-    await Cart.create({ ...guestFields, userId });
-    return;
-  }
-
-  const keyOf = (item: StoredCartItem) =>
-    `${item.productId?.toString()}::${item.variantId?.toString() || ""}`;
-  const merged = [...(userCart.items as StoredCartItem[])];
-  const byKey = new Map(merged.map((item) => [keyOf(item), item]));
-  const productPurchaseTypes = new Map(
-    merged.map((item) => [
-      item.productId?.toString(),
-      (item as { purchaseType?: string }).purchaseType || "standard",
-    ]),
-  );
-
-  for (const guestItem of guestItems) {
-    const existing = byKey.get(keyOf(guestItem));
-    if (existing) {
-      const combined =
-        Number(existing.quantity || 0) + Number(guestItem.quantity || 0);
-      if (
-        ((existing as { purchaseType?: string }).purchaseType ||
-          PURCHASE_TYPE.STANDARD) === PURCHASE_TYPE.PREORDER
-      ) {
-        // A pre-order line's deposit and balance are worked out for its
-        // quantity. Adding the guest's units without working them out again
-        // left the terms of the smaller line on the larger one — a pay-later
-        // line of one merged to two owed its whole second unit today. Through
-        // the one path that recomputes them; a merge the quota or the window
-        // no longer allows keeps the account's line as it was.
-        await setCartItemQuantity(
-          { items: merged as unknown as Parameters<typeof setCartItemQuantity>[0]["items"] },
-          {
-            productId: String(existing.productId),
-            variantId: existing.variantId ? String(existing.variantId) : undefined,
-            quantity: combined,
-          },
-        ).catch(() => false);
-        continue;
-      }
-      existing.quantity = combined;
-      continue;
-    }
-    const productKey = guestItem.productId?.toString();
-    const existingType = productPurchaseTypes.get(productKey);
-    const guestType =
-      (guestItem as { purchaseType?: string }).purchaseType || "standard";
-    if (existingType && existingType !== guestType) continue;
-    merged.push(guestItem);
-    byKey.set(keyOf(guestItem), guestItem);
-    productPurchaseTypes.set(productKey, guestType);
-  }
-
-  // save() (not updateOne) so the sliding-TTL pre-save hook also pushes
-  // expiresAt out — a near-expiry cart that just received merged items must
-  // not get TTL-deleted moments later.
-  userCart.items = merged as typeof userCart.items;
-  await userCart.save();
-}
-
-/**
  * GET /api/cart
  * Get current user's cart
  */
@@ -189,12 +84,12 @@ export async function GET(request: NextRequest) {
 
     const userId = session?.user?.id;
     const sessionId = request.cookies.get("cart_session")?.value;
+    const identity = resolveCartIdentity({ userId, sessionId });
 
-    // Every page load asks for the cart, so its reads are overlapped wherever
-    // one does not need another's answer: the limit check with the cart read,
-    // the shopper's quote offers with the products. A request over its limit
-    // still gets its 429 — the read it started alongside is only a wasted
-    // lookup by an indexed key, and nothing heavier starts before the check.
+    // Every page load asks for the cart, so the limit check is overlapped
+    // with the cart read. A request over its limit still gets its 429 — the
+    // read it started alongside is only a wasted lookup by an indexed key,
+    // and nothing heavier starts before the check.
     const rateLimited = userId
       ? rateLimitByUser(
           request,
@@ -205,7 +100,7 @@ export async function GET(request: NextRequest) {
         )
       : rateLimitByIP(request, "browse");
 
-    if (!userId && !sessionId) {
+    if (!identity) {
       await rateLimited;
       return successResponse({ items: [], totalItems: 0, subtotal: 0 });
     }
@@ -214,151 +109,18 @@ export async function GET(request: NextRequest) {
     const clearGuestCookie = Boolean(userId && sessionId);
     if (userId && sessionId) {
       await rateLimited;
-      await mergeGuestCartIntoUserCart(userId, sessionId).catch((err) =>
+      await mergeGuestCart(userId, sessionId).catch((err) =>
         console.error("Failed to merge guest cart on login:", err),
       );
     }
 
-    const query = userId ? { userId } : { sessionId };
-    const [, cart] = await Promise.all([
-      rateLimited,
-      Cart.findOne(query).lean(),
-    ]);
-
+    const view = await getCartView(identity, { alongside: rateLimited });
+    const response = successResponse(cartViewResponse(view));
     // The guest cart (if any) has been merged into the user cart above, so
     // the stale cookie must not resurface it — especially on a shared browser
     // where it may belong to a previous visitor.
-    const withCookieCleanup = (response: ReturnType<typeof successResponse>) => {
-      if (clearGuestCookie) response.cookies.delete("cart_session");
-      return response;
-    };
-
-    if (!cart) {
-      return withCookieCleanup(
-        successResponse({
-          items: [],
-          totalItems: 0,
-          subtotal: 0,
-          sellerCount: 0,
-          anySellerOffersPickup: false,
-        }),
-      );
-    }
-
-    const storedItems = cart.items as StoredCartItem[];
-    // A quote-priced line is only in this cart because the shopper holds a
-    // live offer for it, so the offers are resolved before anything else:
-    // they decide both whether the line survives the visibility filter below
-    // and what it is worth right now. A signed-out shopper has none, and the
-    // lookup costs nothing.
-    const [shopperOffers, productRows] = await Promise.all([
-      loadShopperOffers(userId, {
-        productIds: storedItems
-          .map((item) => item.productId?.toString())
-          .filter((id): id is string => Boolean(id)),
-      }),
-      readCartProducts(storedItems),
-    ]);
-    const quoteOffers = matchOffersToLines(storedItems, shopperOffers);
-    const productFacts = cartProductFacts(storedItems, productRows, {
-      quotedLineKeys: new Set(quoteOffers.keys()),
-    });
-    const visibleItems = storedItems.filter(
-      (item) => productFacts.get(cartLineKey(item))?.visible,
-    );
-    if (visibleItems.length !== cart.items.length) {
-      // Optimistic guard: this read-endpoint write must not clobber an item a
-      // concurrent add just pushed — only apply if the cart is unchanged since
-      // we read it. On interference the next GET re-filters anyway.
-      await Cart.updateOne(
-        { ...query, updatedAt: (cart as { updatedAt?: Date }).updatedAt },
-        { $set: { items: visibleItems } },
-      );
-    }
-
-    // The merchant can re-quote while the line sits in the cart, so what the
-    // shopper is shown comes from the offer rather than from the price stored
-    // when they accepted it. Not persisted: checkout re-reads the offer too,
-    // and a cart document is not the record of what was agreed.
-    for (const item of visibleItems) {
-      const offer = quoteOffers.get(
-        quoteOfferLineKey(item.productId, item.variantId),
-      );
-      if (offer) item.price = offer.unitPrice;
-    }
-
-    // Calculate totals
-    const totalItems = visibleItems.reduce(
-      (sum: number, item: { quantity: number }) => sum + item.quantity,
-      0
-    );
-    const subtotal = visibleItems.reduce(
-      (sum: number, item: { price: number; quantity: number }) =>
-        sum + item.price * item.quantity,
-      0
-    );
-
-    // What the rate engine actually prices: digital lines carry no weight and
-    // are excluded from shipping thresholds server-side, so the cart reports
-    // both figures rather than letting checkout re-derive them from a subtotal
-    // it cannot tell apart.
-    let shippableSubtotal = 0;
-    let totalWeight = 0;
-    for (const item of visibleItems) {
-      const fact = productFacts.get(cartLineKey(item));
-      if (!(fact?.requiresShipping ?? true)) continue;
-      shippableSubtotal += item.price * item.quantity;
-      totalWeight += (fact?.unitWeight ?? 0) * item.quantity;
-    }
-
-    return withCookieCleanup(
-      successResponse({
-        ...cartResponse(cart),
-        // Seller identity is attached per line rather than stored on it: a cart
-        // can outlive a vendor rename by weeks, and the name a shopper sees
-        // should be the one on the store today.
-        items: visibleItems.map((item) => {
-          const fact = productFacts.get(cartLineKey(item));
-          return {
-            ...item,
-            vendorId: fact?.vendorId,
-            vendorName: fact?.vendorName,
-            variantOptions: fact?.variantOptions,
-            finalSale: fact?.finalSale || undefined,
-          };
-        }),
-        totalItems,
-        subtotal,
-        shippableSubtotal,
-        // In the unit every shipping call site aggregates in; the rate engine
-        // converts from it into whatever unit the store's rates are written in.
-        totalWeight,
-        // Digital-only carts (ebooks, downloads) skip the shipping address
-        // and shipping method steps at checkout — same rule the order/payment
-        // routes apply server-side via resolveItemShipping.
-        // An empty cart counts as shippable so checkout never flashes its
-        // digital-only mode while the cart is still loading.
-        hasShippableItems:
-          visibleItems.length === 0 ||
-          visibleItems.some(
-            (item) => productFacts.get(cartLineKey(item))?.requiresShipping ?? true,
-          ),
-        // Any digital line — not just a digital-only cart — takes COD off the
-        // table at checkout: the files release off the order before any cash
-        // could be collected. Same rule the order/payment routes enforce.
-        hasDigitalItems: visibleItems.some(
-          (item) =>
-            !(productFacts.get(cartLineKey(item))?.requiresShipping ?? true),
-        ),
-        // What decides whether collection is on the table at all. Derived from
-        // the same visible, physical lines the shopper is looking at, so the
-        // cart can never claim a different number of sellers than it displays.
-        sellerCount: countCartSellers(visibleItems, productFacts),
-        // Whether the seller mix is genuinely what costs this bag its
-        // collection option, rather than the store simply never offering one.
-        anySellerOffersPickup: anySellerOffersPickup(visibleItems, productFacts),
-      }),
-    );
+    if (clearGuestCookie) response.cookies.delete("cart_session");
+    return response;
   } catch (error) {
     return handleApiError(error);
   }
@@ -689,35 +451,27 @@ export async function DELETE(request: NextRequest) {
       await rateLimitByIP(request, "moderate");
     }
 
-    if (!userId && !sessionId) {
+    const identity = resolveCartIdentity({ userId, sessionId });
+    if (!identity) {
       return notFoundResponse("Cart");
     }
 
-    const query = userId ? { userId } : { sessionId };
-
     if (shouldClearAll) {
-      await Cart.deleteOne(query);
+      await clearCart(identity);
       return successResponse({ message: "Cart cleared" });
     }
 
-    const cart = await Cart.findOne(query);
-
-    if (!cart) {
+    // Without a variant named, every line of the product goes.
+    const removed = await removeCartLine(
+      identity,
+      { productId: productId!, variantId: variantId || undefined },
+      { anyVariant: true },
+    );
+    if (removed.status !== "saved" && removed.status !== "no-line") {
       return notFoundResponse("Cart");
     }
 
-    // Remove specific item
-    cart.items = cart.items.filter(
-      (item: CartItem) =>
-        !(
-          item.productId.toString() === productId &&
-          (!variantId || item.variantId?.toString() === variantId)
-        )
-    );
-
-    await cart.save();
-
-    return successResponse(cartResponse(cart));
+    return successResponse(cartResponse(removed.cart));
   } catch (error) {
     return handleApiError(error);
   }

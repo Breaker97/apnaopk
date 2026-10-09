@@ -32,6 +32,8 @@ import { faq } from "./definitions/faq";
 import { sponsoredRail } from "./definitions/sponsored-rail";
 import { vendorList } from "./definitions/vendor-list";
 import { becomeVendor } from "./definitions/become-vendor";
+import { reviewHighlights } from "./definitions/review-highlights";
+import { storeSlider } from "./definitions/store-slider";
 import { blogPosts } from "./definitions/blog-posts";
 import { imageGallery } from "./definitions/image-gallery";
 import { productMain } from "./definitions/product-main";
@@ -86,6 +88,10 @@ const DEFINITIONS: SectionDefinition[] = [
   faq,
   vendorList,
   becomeVendor,
+  // Vendor landing pages only (`vendorOnly`) — absent from the admin's
+  // catalogue, refused by its write gate.
+  reviewHighlights,
+  storeSlider,
   // Template-bound sections (P6/P7) — their `templates` lists keep them off
   // every other surface.
   productMain,

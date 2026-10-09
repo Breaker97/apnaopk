@@ -18,6 +18,8 @@ import {
   BRAND_APPROVAL_STATUS,
 } from "@/lib/catalog/brands";
 import { revalidateBrandContent } from "@/lib/cache-invalidation";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogUpdate, BRAND_AUDIT } from "@/lib/catalog/catalog-audit";
 import { withApi } from "@/lib/api/handler";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
@@ -173,6 +175,16 @@ export const PUT = withApi<{ id: string }>(
     );
 
     if (!brand) return notFoundResponse("Brand");
+
+    // `current` is the brand as it was read: the update returns a new document
+    // and leaves it alone. A name or logo edit that sent an approved brand back
+    // to review shows here as the status change it is.
+    await auditCatalogUpdate(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      BRAND_AUDIT,
+      current,
+      brand,
+    );
 
     // If the brand was live on the storefront before this edit, refresh the
     // brand pages/labels: either its visible fields changed, or a name/logo edit

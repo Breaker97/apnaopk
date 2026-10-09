@@ -11,6 +11,7 @@ import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models";
 import { reattributeChargeback } from "@/lib/orders/order-refund-sync";
+import { createAuditContext } from "@/lib/audit";
 
 const AttributeChargebackSchema = z.object({
   subOrderIds: z
@@ -66,6 +67,7 @@ export const POST = withApi<{ id: string; transactionId: string }>(
       subOrderIds: body.subOrderIds,
       actorId: session.user.id,
       actorLabel: session.user.email || session.user.id,
+      auditContext: createAuditContext(request, session),
     });
 
     return successResponse(result);

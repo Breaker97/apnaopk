@@ -104,7 +104,6 @@ export function useRegisterForm({
 
       const signUpData = result.data as unknown as {
         token?: string | null;
-        user?: { id?: string };
       };
       // Server-rendered flag, with the sign-up response as a cross-check —
       // better-auth returns a null token when it deferred the session until
@@ -118,6 +117,10 @@ export function useRegisterForm({
           ? `/${locale}/verify-email?email=${encodeURIComponent(data.email)}`
           : (redirectTo ?? `/${locale}/role-redirect`),
       );
+      // Signed in now: drop the router's cached pages, as sign-in does. Back
+      // would otherwise restore this form from the cache without asking the
+      // server, which sends a signed-in visitor on.
+      if (!verificationRequired) router.refresh();
     } catch {
       setError(t("common.error"));
     } finally {

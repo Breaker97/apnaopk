@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +12,9 @@ import { cn } from "@/lib/utils";
 import type { Category } from "@/components/admin/product-form/schema";
 
 // Searchable category picker with breadcrumb path. Modeled on Shopify's
-// product category combobox: type to filter, only leaf categories are
-// selectable, parents are visible only as path context.
+// product category combobox: type to filter, every level is selectable — a
+// charger can sit on "Chargers" as well as on "Chargers › iPhone Chargers",
+// and a parent's storefront page rolls up everything under it.
 export function CategoryPicker({
   categories,
   value,
@@ -37,20 +38,15 @@ export function CategoryPicker({
   const selected = categories.find((c) => c._id === value);
   const selectedPath = selected?.path ?? [];
 
-  // Show only leaf categories (the ones a product can actually belong to).
-  // If `isLeaf` is missing (older API response), fall back to assuming leaf
-  // so we don't accidentally hide everything.
-  const leafCategories = categories.filter((c) =>
-    c.isLeaf === undefined ? true : c.isLeaf,
-  );
+  const ordered = useMemo(() => depthFirst(categories), [categories]);
 
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? leafCategories.filter((c) => {
+    ? ordered.filter((c) => {
         const haystack = (c.path?.join(" › ") ?? c.name).toLowerCase();
         return haystack.includes(q);
       })
-    : leafCategories;
+    : ordered;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -113,7 +109,7 @@ export function CategoryPicker({
         </div>
 
         <div className="max-h-72 overflow-y-auto p-1">
-          {leafCategories.length === 0 ? (
+          {ordered.length === 0 ? (
             <div className="px-3 py-6 text-center text-sm text-muted-foreground">
               {labels.noCategories}
             </div>
@@ -125,7 +121,7 @@ export function CategoryPicker({
             filtered.map((cat) => {
               const path = cat.path ?? [cat.name];
               const isSelected = cat._id === value;
-              const leaf = path[path.length - 1];
+              const own = path[path.length - 1];
               const ancestors = path.slice(0, -1);
               return (
                 <button
@@ -148,7 +144,7 @@ export function CategoryPicker({
                     )}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{leaf}</div>
+                    <div className="truncate font-medium">{own}</div>
                     {ancestors.length > 0 && (
                       <div className="truncate text-xs text-muted-foreground">
                         {ancestors.join(" › ")}
@@ -163,4 +159,36 @@ export function CategoryPicker({
       </PopoverContent>
     </Popover>
   );
+}
+
+/**
+ * Each parent followed by its own sub-categories, siblings in the order they
+ * came (the store's category order). The flat list interleaves the levels, which
+ * read fine while only the deepest ones were offered.
+ */
+function depthFirst(categories: Category[]): Category[] {
+  const ids = new Set(categories.map((c) => c._id));
+  const childrenOf = new Map<string, Category[]>();
+  const roots: Category[] = [];
+  for (const category of categories) {
+    const parentId = category.parentId;
+    if (parentId && ids.has(parentId)) {
+      childrenOf.set(parentId, [...(childrenOf.get(parentId) ?? []), category]);
+    } else {
+      roots.push(category);
+    }
+  }
+
+  const ordered: Category[] = [];
+  const seen = new Set<string>();
+  const visit = (category: Category) => {
+    if (seen.has(category._id)) return;
+    seen.add(category._id);
+    ordered.push(category);
+    for (const child of childrenOf.get(category._id) ?? []) visit(child);
+  };
+  roots.forEach(visit);
+  // A parentId loop has no root; list those rather than hide them.
+  categories.forEach(visit);
+  return ordered;
 }

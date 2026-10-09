@@ -137,7 +137,8 @@ async function getVendorCategoryStats(vendorId: string): Promise<CategoryStats> 
     },
   ]);
 
-  const stats = result?.[0] || {};
+  // `[result]` already took the one grouped row: indexing it again read nothing, and the cards showed zeros.
+  const stats = result ?? {};
   return {
     totalCategories: stats.totalCategories ?? 0,
     activeCategories: stats.activeCategories ?? 0,

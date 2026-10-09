@@ -4,11 +4,14 @@ import { Expense } from "@/models/expense.model";
 import { withApi } from "@/lib/api/handler";
 import { validateQuery } from "@/lib/api/validate";
 import { buildCsv, csvResponse } from "@/lib/finance/csv";
-import { resolveRequestedPeriod } from "@/lib/finance/reports";
+import { resolveFinanceDashboardPeriod } from "@/lib/finance/dashboard-finance-period";
 
 const ExportQuerySchema = z.object({
   type: z.enum(["ledger", "expenses"]).default("ledger"),
-  period: z.string().default("ytd"),
+  // The dashboard's period — `today|yesterday|week|month|all` — so the file
+  // covers the days the Reports screen it was downloaded from is showing. No
+  // period is the month, which is what that screen opens on.
+  period: z.string().optional(),
   // A picked range, so the file matches the screen it was downloaded from
   // rather than the nearest named period to it.
   from: z.string().optional(),
@@ -55,7 +58,7 @@ export const GET = withApi(
   },
   async ({ request }) => {
     const query = validateQuery(request, ExportQuerySchema);
-    const period = resolveRequestedPeriod(query);
+    const period = resolveFinanceDashboardPeriod(query);
     const stamp = new Date().toISOString().slice(0, 10);
 
     if (query.type === "expenses") {

@@ -66,6 +66,13 @@ import {
 } from "./media-library-picker";
 import { ModelViewer } from "./model-viewer";
 
+/**
+ * Files from one pick or drop that upload at the same time. A product takes
+ * hundreds of files, and opening one request per file at once would spend the
+ * per-user upload limit in a burst and load the server with them all.
+ */
+const UPLOAD_CONCURRENCY = 4;
+
 export type UploadedMedia = {
   _id: string;
   url: string;
@@ -489,10 +496,15 @@ export function MediaUploader({
       if (accepted.length === 0) return;
 
       setPendingUploads((prev) => [...prev, ...accepted]);
-      // Fire all uploads in parallel — each manages its own state.
-      accepted.forEach((p) => {
-        uploadOne(p);
-      });
+      // A few at a time; each upload manages its own state and never throws.
+      const queue = [...accepted];
+      const drain = async () => {
+        for (let next = queue.shift(); next; next = queue.shift()) {
+          await uploadOne(next);
+        }
+      };
+      const workers = Math.min(UPLOAD_CONCURRENCY, queue.length);
+      for (let i = 0; i < workers; i++) void drain();
     },
     [disabled, maxFiles, remainingSlots, uploadOne, validate, t],
   );

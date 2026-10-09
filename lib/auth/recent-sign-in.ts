@@ -1,7 +1,23 @@
 import { AuthorizationError } from "@/lib/api/errors";
 
-/** How recent a sign-in has to be. */
-const RECENT_SIGN_IN_MS = 10 * 60 * 1000;
+/**
+ * How recent a sign-in has to be. Better Auth's own "fresh session" window
+ * (`session.freshAge` in lib/auth/auth.ts, which guards its /delete-user) is
+ * this same ten minutes.
+ */
+export const RECENT_SIGN_IN_MS = 10 * 60 * 1000;
+
+export const RECENT_SIGN_IN_MESSAGE =
+  "For your account's safety, sign out and sign in again, then make this change within ten minutes.";
+
+/** Whether `signedInAt` is within the last ten minutes. No time is no proof. */
+export function isRecentSignIn(
+  signedInAt: Date | string | undefined | null,
+  now: number = Date.now(),
+): boolean {
+  const at = new Date(signedInAt ?? Number.NaN).getTime();
+  return Number.isFinite(at) && now - at <= RECENT_SIGN_IN_MS;
+}
 
 /**
  * Refuses unless this session signed in within the last ten minutes.
@@ -16,11 +32,7 @@ export function assertRecentSignIn(
   session: { session: { createdAt?: Date | string } },
   now: number = Date.now(),
 ): void {
-  // No sign-in time is no proof of a recent one.
-  const signedInAt = new Date(session.session.createdAt ?? Number.NaN).getTime();
-  if (!Number.isFinite(signedInAt) || now - signedInAt > RECENT_SIGN_IN_MS) {
-    throw new AuthorizationError(
-      "For your account's safety, sign out and sign in again, then make this change within ten minutes.",
-    );
+  if (!isRecentSignIn(session.session.createdAt, now)) {
+    throw new AuthorizationError(RECENT_SIGN_IN_MESSAGE);
   }
 }

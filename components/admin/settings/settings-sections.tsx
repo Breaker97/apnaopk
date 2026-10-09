@@ -7,6 +7,7 @@ import {
   Boxes,
   CreditCard,
   HardDrive,
+  History,
   KeyRound,
   Link2,
   Lock,
@@ -17,9 +18,11 @@ import {
   Package,
   Palette,
   Rocket,
+  Rss,
   Search,
   Shield,
   ShoppingBag,
+  Smartphone,
   Sparkles,
   Store,
   Truck,
@@ -36,6 +39,7 @@ import {
   type StorageReadinessField,
 } from "@/lib/storage/storage-readiness";
 import {
+  countChannelNotifications,
   hasAnySmsNotification,
   type NotificationSettings,
 } from "@/lib/notifications/notification-settings";
@@ -44,9 +48,11 @@ export type AdminSettingsSectionId =
   | "general"
   | "appearance"
   | "marketplace"
+  | "activityLog"
   | "products"
   | "boosting"
   | "pos"
+  | "mobileApp"
   | "twoFactor"
   | "oauth"
   | "security"
@@ -60,6 +66,7 @@ export type AdminSettingsSectionId =
   | "seo"
   | "social"
   | "analytics"
+  | "metaCatalog"
   | "maintenance"
   | "storage"
   | "aiAuthoring";
@@ -153,6 +160,18 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
     defaultLabel: "Multi-Vendor Management",
     icon: ShoppingBag,
   },
+  // Not a form: a read-only page, like Shopify's "Store activity log" under
+  // Settings. It sits here and not under Staff because the log is the whole
+  // store's — vendors, shoppers' security events and the system as well as the
+  // team. Admin only; the settings layout admits nobody else.
+  {
+    id: "activityLog",
+    path: "activity-log",
+    group: "store",
+    labelKey: "admin.sidebar.activityLog",
+    defaultLabel: "Activity log",
+    icon: History,
+  },
   {
     id: "products",
     path: "products",
@@ -202,11 +221,19 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
     icon: Monitor,
   },
   {
+    id: "mobileApp",
+    path: "mobile-app",
+    group: "salesTools",
+    labelKey: "admin.settings.mobileApp.title",
+    defaultLabel: "Mobile App",
+    icon: Smartphone,
+  },
+  {
     id: "email",
     path: "email",
     group: "communication",
     labelKey: "admin.settings.email.title",
-    defaultLabel: "Email Configuration (SMTP)",
+    defaultLabel: "Email",
     icon: Mail,
   },
   {
@@ -222,7 +249,7 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
     path: "notifications",
     group: "communication",
     labelKey: "admin.settings.notifications.title",
-    defaultLabel: "Notification Settings",
+    defaultLabel: "Notifications",
     icon: Bell,
   },
   {
@@ -280,6 +307,14 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
     labelKey: "admin.settings.analytics.title",
     defaultLabel: "Analytics",
     icon: BarChart3,
+  },
+  {
+    id: "metaCatalog",
+    path: "meta-catalog",
+    group: "growth",
+    labelKey: "admin.settings.metaCatalog.title",
+    defaultLabel: "Meta catalog",
+    icon: Rss,
   },
   {
     id: "aiAuthoring",
@@ -360,6 +395,7 @@ type StorageBlockForStatus = {
 
 type SettingsForStatus = {
   maintenance?: { enabled?: boolean };
+  mobileApp?: { shop?: { enabled?: boolean; scheme?: string } };
   boosting?: { enabled?: boolean };
   payment?: {
     stripe?: { enabled?: boolean };
@@ -465,6 +501,32 @@ export function isSmsConfigured(settings: SettingsForStatus): boolean {
 }
 
 /**
+ * Whether email goes out at all, as resolveSmtpConfig decides: the switch is
+ * on, or the environment supplies a login.
+ */
+function isEmailSwitchedOn(settings: SettingsForStatus): boolean {
+  const env = settings._meta?.envSources?.email;
+  return Boolean(settings.email?.enabled) || Boolean(env?.user && env?.password);
+}
+
+/**
+ * Whether email can go out, from what the browser can see: switched on (or a
+ * login in `.env`), with a login and a password from the settings or the
+ * environment. The host has a default, so it is not asked for. The server's
+ * own check is `resolveSmtpConfig`.
+ */
+export function isEmailConfigured(settings: SettingsForStatus): boolean {
+  if (!isEmailSwitchedOn(settings)) return false;
+  const email = settings.email;
+  const env = settings._meta?.envSources?.email;
+  const user = Boolean(email?.smtp?.user?.trim()) || Boolean(env?.user);
+  const password =
+    hasSecret(settings, email?.smtp?.password, "email.smtp.password") ||
+    Boolean(env?.password);
+  return user && password;
+}
+
+/**
  * A secret the save would leave stored: typed into the form and not yet
  * saved, or already stored and not removed (a Remove sets the value to null
  * and drops the stored flag).
@@ -488,6 +550,13 @@ export function getSectionStatus(
 
   if (sectionId === "boosting") {
     return settings.boosting?.enabled ? "ok" : "disabled";
+  }
+  if (sectionId === "mobileApp") {
+    // An app signs in and returns from payments through its scheme; an API
+    // switched on without one serves an app that cannot finish either.
+    const shop = settings.mobileApp?.shop;
+    if (!shop?.enabled) return "disabled";
+    return shop.scheme?.trim() ? "ok" : "warning";
   }
 
   if (sectionId === "payment") {
@@ -516,18 +585,8 @@ export function getSectionStatus(
   }
 
   if (sectionId === "email") {
-    // As resolveSmtpConfig decides: mail goes out when the switch is on or the
-    // environment supplies a login, with a login and a password from the
-    // settings or the environment. The host has a default, so it is not asked
-    // for; the password was, and was never checked here.
-    const email = settings.email;
-    const env = settings._meta?.envSources?.email;
-    if (!email?.enabled && !(env?.user && env?.password)) return "disabled";
-    const user = Boolean(email?.smtp?.user?.trim()) || Boolean(env?.user);
-    const password =
-      hasSecret(settings, email?.smtp?.password, "email.smtp.password") ||
-      Boolean(env?.password);
-    return user && password ? "ok" : "warning";
+    if (!isEmailSwitchedOn(settings)) return "disabled";
+    return isEmailConfigured(settings) ? "ok" : "warning";
   }
 
   if (sectionId === "sms") {
@@ -536,12 +595,17 @@ export function getSectionStatus(
   }
 
   if (sectionId === "notifications") {
-    // An event set to text while texts cannot go out sends nothing, silently.
-    return settings.notifications &&
-      hasAnySmsNotification(settings.notifications) &&
-      !isSmsConfigured(settings)
-      ? "warning"
-      : "ok";
+    // An event set to text or email while that channel cannot send sends
+    // nothing, silently. Push is left out: its keys are an optional server
+    // setting, and the page itself says when they are missing.
+    const notifications = settings.notifications;
+    if (!notifications) return "ok";
+    const smsUnsent =
+      hasAnySmsNotification(notifications) && !isSmsConfigured(settings);
+    const emailUnsent =
+      countChannelNotifications(notifications, "email") > 0 &&
+      !isEmailConfigured(settings);
+    return smsUnsent || emailUnsent ? "warning" : "ok";
   }
 
   if (sectionId === "storage") {

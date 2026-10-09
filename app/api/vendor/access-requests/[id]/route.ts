@@ -9,6 +9,8 @@ import {
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
+import { audit, createAuditContext } from "@/lib/audit";
+import { VENDOR_PACK_LABELS } from "@/config/permissions.config";
 
 /**
  * DELETE /api/vendor/access-requests/[id]
@@ -26,7 +28,9 @@ export const DELETE = withApi<{ id: string }>(
     auth: "user",
     rateLimit: { action: "vendor:accessRequests:withdraw", preset: "moderate" },
   },
-  async ({ params, session }) => {
+  // `request` is taken under another name: the access request found below is
+  // the one this file is about, and owns the plain one.
+  async ({ request: httpRequest, params, session }) => {
     const { id } = params;
     if (!isValidObjectId(id)) return notFoundResponse("Access request");
 
@@ -35,8 +39,8 @@ export const DELETE = withApi<{ id: string }>(
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
 
     const vendor = await Vendor.findOne({ userId: session!.user.id })
-      .select("_id")
-      .lean<{ _id: Types.ObjectId } | null>();
+      .select("_id storeName")
+      .lean<{ _id: Types.ObjectId; storeName?: string } | null>();
     if (!vendor) throw new NotFoundError("Vendor");
 
     // Scoped to the caller's own vendor, so one store cannot withdraw another's.
@@ -56,6 +60,24 @@ export const DELETE = withApi<{ id: string }>(
     request.decidedBy = session!.user.id;
     request.decidedAt = new Date();
     await request.save();
+
+    // `DELETE` because the request is gone from the admin's queue, though the
+    // document stays (see the header).
+    await audit(
+      createAuditContext(httpRequest, session!, { vendorId: vendor._id }),
+      {
+        action: "DELETE",
+        resource: "vendor",
+        resourceId: String(vendor._id),
+        resourceName: vendor.storeName,
+        changes: {
+          summary: `Withdrew the request for ${VENDOR_PACK_LABELS[request.pack]} access`,
+        },
+        // Not `requestId`: `audit()` lets metadata overwrite that key, and it is
+        // the id that groups the rows one HTTP request wrote.
+        metadata: { accessRequestId: String(request._id), pack: request.pack },
+      },
+    );
 
     return successResponse(request.toObject(), "Request withdrawn");
   },

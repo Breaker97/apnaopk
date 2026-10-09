@@ -7,10 +7,15 @@
  */
 export const SECTION_PREVIEW_SEGMENT = "section-preview";
 
+/** The Vendor CMS builder's per-section frames — the same kind of document. */
+export const VENDOR_SECTION_PREVIEW_SEGMENT = "vendor-section-preview";
+
 export function isSectionPreviewPath(
   pathname: string | null | undefined,
 ): boolean {
   if (!pathname) return false;
   const path = pathname.split("?", 1)[0];
-  return new RegExp(`^/[A-Za-z-]+/${SECTION_PREVIEW_SEGMENT}(/|$)`).test(path);
+  return new RegExp(
+    `^/[A-Za-z-]+/(?:${SECTION_PREVIEW_SEGMENT}|${VENDOR_SECTION_PREVIEW_SEGMENT})(/|$)`,
+  ).test(path);
 }

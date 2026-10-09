@@ -14,9 +14,14 @@ import {
   finalizeCapturedOrder,
   refundLatePayment,
   settleCapturedOrder,
+  SOLD_OUT_AFTER_CAPTURE,
   type FinalizeCapturedOrderParams,
   type PendingOrderDocument,
 } from "@/lib/payments/finalize-order";
+
+/** The refusal of a payment that arrived after its checkout closed: it is sent back. */
+export const CHECKOUT_CLOSED_BEFORE_PAYMENT =
+  "This checkout was closed before the payment arrived, so the payment is being refunded.";
 
 /**
  * Settle a payment against a checkout attempt — and, when there is no attempt,
@@ -124,9 +129,7 @@ export async function finalizeCapturedAttempt(
     if (!provider.capturesOnVerify) {
       await refundClosedAttemptPayment(params, attempt, orderShape);
     }
-    throw new ValidationError(
-      "This checkout was closed before the payment arrived, so the payment is being refunded.",
-    );
+    throw new ValidationError(CHECKOUT_CLOSED_BEFORE_PAYMENT);
   }
 
   const claim = await claimAttemptForFinalize(attempt._id);
@@ -187,9 +190,7 @@ export async function finalizeCapturedAttempt(
       customerEmail: params.customerEmail || verification.customerEmail,
     });
     if (!settled.ok) {
-      throw new ValidationError(
-        "The items sold out before your payment was confirmed, so the order was cancelled and the payment is being refunded.",
-      );
+      throw new ValidationError(SOLD_OUT_AFTER_CAPTURE);
     }
   } catch (error) {
     if (error instanceof AttemptAlreadyOrderedError) {

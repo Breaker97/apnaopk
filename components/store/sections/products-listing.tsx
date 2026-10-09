@@ -15,8 +15,8 @@ import { listingCoverBanner } from "@/components/store/sections/listing/cover-ba
 import {
   LISTING_GRID_COLUMNS_CLASS,
   LISTING_PREVIEW_ROW,
-  ListingShell,
-} from "@/components/products/listing-view";
+} from "@/components/products/listing-view-constants";
+import { ListingShell } from "@/components/products/listing-view";
 import { ListingFeaturedProductsLazy as ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products-lazy";
 import {
   FilterSectionLazy,

@@ -14,6 +14,8 @@ import {
 import { headers } from "next/headers";
 import type { SortOrder } from "mongoose";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogExport, auditCatalogImport } from "@/lib/catalog/catalog-audit";
 
 function buildCollectionQuery(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -77,12 +79,13 @@ async function assertAdmin(request: NextRequest, scope: string) {
     "moderate",
     session.user.role,
   );
+  return session;
 }
 
 export const GET = withApi(
   {},
   async ({ request }) => {
-    await assertAdmin(request, "admin:collections:export");
+    const session = await assertAdmin(request, "admin:collections:export");
     await connectDB();
 
     const collections = await Collection.find(buildCollectionQuery(request))
@@ -90,14 +93,27 @@ export const GET = withApi(
       .limit(5000)
       .lean();
 
-    return collectionsCsvResponse(collections, "collections");
+    const response = await collectionsCsvResponse(collections, "collections");
+    // Recorded once the file is built: the row is the only trace that a copy of
+    // the catalog was taken, and it says how much and what narrowed it.
+    const searchParams = request.nextUrl.searchParams;
+    await auditCatalogExport(createAuditContext(request, session), "collection", {
+      rowCount: collections.length,
+      filters: {
+        search: searchParams.get("search")?.trim() || undefined,
+        status: searchParams.get("status") || undefined,
+        type: searchParams.get("type") || undefined,
+        channel: searchParams.get("channel") || undefined,
+      },
+    });
+    return response;
   },
 );
 
 export const POST = withApi(
   {},
   async ({ request }) => {
-    await assertAdmin(request, "admin:collections:import");
+    const session = await assertAdmin(request, "admin:collections:import");
     await connectDB();
 
     const formData = await request.formData();
@@ -107,6 +123,12 @@ export const POST = withApi(
     }
 
     const result = await importCollectionsCsv(await file.text());
+    await auditCatalogImport(
+      createAuditContext(request, session),
+      "collection",
+      file.name,
+      result,
+    );
     return successResponse(result);
   },
 );

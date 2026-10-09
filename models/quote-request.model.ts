@@ -1,6 +1,8 @@
 import { mongoose } from "@/lib/db";
 import {
+  QUOTE_ACTOR_ROLES,
   QUOTE_REQUEST_STATUSES,
+  type QuoteActorRole,
   type QuoteRequestStatus,
 } from "@/lib/quotes/quote-status";
 
@@ -12,7 +14,8 @@ const { Schema, models, model } = mongoose;
  * Products the merchant marks `priceOnRequest` (see
  * lib/products/quote-pricing.ts) show a "Request a quote" button instead of a
  * price and a cart. Pressing it writes one of these rows, which is what the
- * admin Quotes page lists and works through.
+ * admin Quotes page lists and works through — and, for a vendor's product,
+ * the vendor's own Quotes page too (`vendorId`, copied from the product).
  *
  * Deliberately NOT an order and not a draft order: nothing here is priced,
  * reserved or payable. The row is a lead — who asked, for what, how many, and
@@ -47,10 +50,18 @@ interface IQuoteOffer {
   /** After this moment the offer stops resolving. Optional: no date, no expiry. */
   expiresAt?: Date;
   offeredAt: Date;
-  /** The admin or staff member who sent it. */
+  /** The admin, staff member or vendor who sent it. */
   offeredBy?: mongoose.Types.ObjectId;
+  /**
+   * Whether the store or the product's vendor sent it. Absent on every offer
+   * written before vendors could answer quotes, and read as `admin`. The
+   * store's price is final — see `quotePricedByAdmin`.
+   */
+  offeredByRole?: QuoteActorRole;
   /** Set when the merchant pulled the offer back; clears on the next one. */
   withdrawnAt?: Date;
+  /** Who pulled it back. Absent with `withdrawnAt` reads as `admin`. */
+  withdrawnByRole?: QuoteActorRole;
 }
 
 interface IQuoteRequest {
@@ -77,8 +88,22 @@ interface IQuoteRequest {
   /** The inbox thread opened for this request, when one could be created. */
   conversationId?: mongoose.Types.ObjectId;
   status: QuoteRequestStatus;
-  /** Internal note the merchant writes on the row; never shown to the shopper. */
+  /**
+   * Who closed it as lost, while it is. Absent reads as `admin`. A quote the
+   * store closed stays closed to the vendor; one the vendor closed, the vendor
+   * may reopen.
+   */
+  lostByRole?: QuoteActorRole;
+  /**
+   * The store's own note. Never shown to the shopper, and never to the
+   * vendor either.
+   */
   adminNote?: string;
+  /**
+   * The vendor's own note on a quote for its product. The store can read it
+   * but not change it; the shopper never sees it.
+   */
+  vendorNote?: string;
   /** The price the merchant sent back, when they have sent one. */
   offer?: IQuoteOffer;
   /**
@@ -106,7 +131,9 @@ const QuoteOfferSchema = new Schema<IQuoteOffer>(
     expiresAt: { type: Date },
     offeredAt: { type: Date, required: true, default: Date.now },
     offeredBy: { type: Schema.Types.ObjectId, ref: "User" },
+    offeredByRole: { type: String, enum: QUOTE_ACTOR_ROLES },
     withdrawnAt: { type: Date },
+    withdrawnByRole: { type: String, enum: QUOTE_ACTOR_ROLES },
   },
   { _id: false },
 );
@@ -144,7 +171,9 @@ const QuoteRequestSchema = new Schema<IQuoteRequest>(
       default: "new",
       index: true,
     },
+    lostByRole: { type: String, enum: QUOTE_ACTOR_ROLES },
     adminNote: { type: String, trim: true, maxlength: 2000 },
+    vendorNote: { type: String, trim: true, maxlength: 2000 },
     offer: { type: QuoteOfferSchema },
     offerHistory: { type: [QuoteOfferSchema], default: undefined },
     orderId: { type: Schema.Types.ObjectId, ref: "Order" },

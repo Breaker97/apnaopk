@@ -5,82 +5,14 @@
 
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
-/**
- * Types of actions that can be audited
- */
-export type AuditAction =
-  | "CREATE"
-  | "UPDATE"
-  | "DELETE"
-  | "LOGIN"
-  | "LOGOUT"
-  | "LOGIN_FAILED"
-  | "PASSWORD_CHANGE"
-  | "PASSWORD_RESET"
-  | "SETTINGS_CHANGE"
-  | "STATUS_CHANGE"
-  /**
-   * A status moved somewhere the workflow does not allow — an admin correcting
-   * a misclick. Deliberately its own action rather than a `STATUS_CHANGE` with
-   * a note: "who has been overriding the state machine, and why" is a question
-   * a compliance reviewer asks directly, and it should be a filter, not a
-   * search through the summaries of every ordinary transition.
-   */
-  | "STATUS_OVERRIDE"
-  | "ROLE_CHANGE"
-  | "PERMISSION_CHANGE"
-  | "APPROVAL"
-  | "REJECTION"
-  | "SUSPENSION"
-  | "PAYMENT"
-  | "REFUND"
-  | "EXPORT"
-  | "BULK_ACTION";
+import { AUDIT_ACTIONS, AUDIT_RESOURCES } from "@/config/audit.config";
+import type { AuditAction, AuditResource } from "@/config/audit.config";
 
-/**
- * Types of resources that can be audited
- */
-/**
- * The resource list, exported so a test can hold the mongoose enum against the
- * TypeScript union. They are two separate declarations of the same fact, and
- * only one of them is enforced at write time.
- */
-export const AUDIT_RESOURCES = [
-  "user",
-  "vendor",
-  "product",
-  "order",
-  "coupon",
-  "category",
-  "settings",
-  "session",
-  "payment",
-  "refund",
-  "inventory",
-  "location",
-  /** A stock transfer between two locations — created, shipped, received. */
-  "transfer",
-  "collection",
-  "review",
-  "vendorPlan",
-  "vendorOnboardingTemplate",
-  "boostPosition",
-  "boostCampaign",
-  "vendorSubscription",
-  "expense",
-  "fiscalPeriod",
-  "storePage",
-  /** A stored file deleted from the Media Library, by its storage key. */
-  "media",
-  /**
-   * A hand-entered ledger correction. The only write in finance with no source
-   * document standing behind it, which is exactly why it has to be auditable:
-   * the audit row is the record of who decided a balance was wrong.
-   */
-  "ledgerAdjustment",
-] as const;
-
-export type AuditResource = (typeof AUDIT_RESOURCES)[number];
+// The lists live in config/ so a client bundle can name an action without
+// pulling mongoose in; they are re-exported here, where tests and the write
+// path have always imported them from.
+export { AUDIT_ACTIONS, AUDIT_RESOURCES };
+export type { AuditAction, AuditResource };
 
 /**
  * Audit log document interface
@@ -106,6 +38,15 @@ export interface IAuditLog extends Document {
 
   /** Role of the user at the time of action */
   userRole?: string;
+
+  /**
+   * The store this actor was acting for: a vendor owner's own Vendor, or the one
+   * vendor a vendor-owned staff member works for. Empty for admins, platform
+   * staff, customers and the system. It is the only field a vendor's log is
+   * scoped on, so an admin's change to a vendor's store never reaches that
+   * vendor.
+   */
+  actorVendorId?: Types.ObjectId;
 
   /** Details of what changed */
   changes?: {
@@ -150,28 +91,8 @@ const AuditLogSchema = new Schema<IAuditLog>(
     action: {
       type: String,
       required: true,
-      enum: [
-        "CREATE",
-        "UPDATE",
-        "DELETE",
-        "LOGIN",
-        "LOGOUT",
-        "LOGIN_FAILED",
-        "PASSWORD_CHANGE",
-        "PASSWORD_RESET",
-        "SETTINGS_CHANGE",
-        "STATUS_CHANGE",
-        "STATUS_OVERRIDE",
-        "ROLE_CHANGE",
-        "PERMISSION_CHANGE",
-        "APPROVAL",
-        "REJECTION",
-        "SUSPENSION",
-        "PAYMENT",
-        "REFUND",
-        "EXPORT",
-        "BULK_ACTION",
-      ],
+      // The exported list, for the same reason as `resource` below.
+      enum: AUDIT_ACTIONS,
     },
     resource: {
       type: String,
@@ -195,6 +116,10 @@ const AuditLogSchema = new Schema<IAuditLog>(
     },
     userRole: {
       type: String,
+    },
+    actorVendorId: {
+      type: Schema.Types.ObjectId,
+      ref: "Vendor",
     },
     changes: {
       before: {
@@ -230,6 +155,58 @@ AuditLogSchema.index({ resource: 1, resourceId: 1, createdAt: -1 });
 AuditLogSchema.index({ action: 1, createdAt: -1 });
 AuditLogSchema.index({ resource: 1, action: 1, createdAt: -1 });
 AuditLogSchema.index({ success: 1, createdAt: -1 });
+
+// The Activity Log lists sort `createdAt` descending, then `_id`. Ties are the
+// rule here, not the exception — one request often writes several rows in the
+// same millisecond — so both indexes end in `_id`: a tiebreaker the index does
+// not carry would turn every page into an in-memory sort of the whole window.
+// The first serves a vendor's own log, the second the admin view with no other
+// filter (the TTL index below holds `createdAt` alone, so it cannot).
+AuditLogSchema.index({ actorVendorId: 1, createdAt: -1, _id: -1 });
+AuditLogSchema.index({ createdAt: -1, _id: -1 });
+
+/**
+ * Rows are write-once. Nothing in the app edits or removes an audit row — the
+ * TTL index below expires them inside MongoDB, which these hooks never see — so
+ * any such call is a bug, or someone rewriting history. It fails loudly instead
+ * of quietly working.
+ *
+ * Covers the Mongoose paths only. The migration backfill writes through the
+ * native collection, and a database user without update/delete rights on
+ * `audit_logs` is the stronger guard where the host allows it.
+ */
+const WRITE_ONCE_QUERY_OPERATIONS = [
+  "updateOne",
+  "updateMany",
+  "findOneAndUpdate",
+  "findOneAndReplace",
+  "replaceOne",
+  "deleteOne",
+  "deleteMany",
+  "findOneAndDelete",
+] as const;
+
+function refuseToChangeAuditRow(operation: string): never {
+  throw new Error(
+    `Audit log rows are write-once: ${operation} is not allowed on audit_logs.`,
+  );
+}
+
+for (const operation of WRITE_ONCE_QUERY_OPERATIONS) {
+  AuditLogSchema.pre(operation, { document: false, query: true }, () =>
+    refuseToChangeAuditRow(operation),
+  );
+}
+// `doc.updateOne()` and `doc.deleteOne()` are separate hooks from the query forms.
+for (const operation of ["updateOne", "deleteOne"] as const) {
+  AuditLogSchema.pre(operation, { document: true, query: false }, () =>
+    refuseToChangeAuditRow(`document.${operation}`),
+  );
+}
+AuditLogSchema.pre("bulkWrite", () => refuseToChangeAuditRow("bulkWrite"));
+AuditLogSchema.pre("save", function () {
+  if (!this.isNew) refuseToChangeAuditRow("save() on an existing row");
+});
 
 /**
  * TTL index — auto-delete logs after the retention window.

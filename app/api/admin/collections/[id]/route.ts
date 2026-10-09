@@ -9,14 +9,7 @@ import { normalizeCollectionConditions, updateCollectionProductCount, syncCollec
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
 import { revalidateCollectionContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
-
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { slugify } from "@/lib/strings";
 
 /**
  * GET /api/admin/collections/[id]
@@ -88,7 +81,7 @@ export const PUT = withApi<{ id: string }>(
           : undefined;
 
     if (rawHandle) {
-      const nextSlug = toHandle(rawHandle);
+      const nextSlug = slugify(rawHandle);
       if (nextSlug && nextSlug !== existing.slug) {
         const conflict = await Collection.exists({
           slug: nextSlug,
@@ -101,7 +94,7 @@ export const PUT = withApi<{ id: string }>(
         }
       }
 
-      updateSet.handle = updateSet.slug || toHandle(rawHandle);
+      updateSet.handle = updateSet.slug || slugify(rawHandle);
       updateSet.seo = { ...(body.seo || {}), handle: updateSet.handle };
     }
 

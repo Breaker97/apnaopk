@@ -14,6 +14,8 @@ import {
 import { headers } from "next/headers";
 import type { SortOrder } from "mongoose";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogExport, auditCatalogImport } from "@/lib/catalog/catalog-audit";
 
 function buildCategoryQuery(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -66,12 +68,13 @@ async function assertAdmin(request: NextRequest, scope: string) {
     "moderate",
     session.user.role,
   );
+  return session;
 }
 
 export const GET = withApi(
   {},
   async ({ request }) => {
-    await assertAdmin(request, "admin:categories:export");
+    const session = await assertAdmin(request, "admin:categories:export");
     await connectDB();
 
     const categories = await Category.find(buildCategoryQuery(request))
@@ -79,14 +82,25 @@ export const GET = withApi(
       .limit(5000)
       .lean();
 
-    return categoriesCsvResponse(categories, "categories");
+    const response = await categoriesCsvResponse(categories, "categories");
+    // Recorded once the file is built: the row is the only trace that a copy of
+    // the catalog was taken, and it says how much and what narrowed it.
+    const searchParams = request.nextUrl.searchParams;
+    await auditCatalogExport(createAuditContext(request, session), "category", {
+      rowCount: categories.length,
+      filters: {
+        search: searchParams.get("search")?.trim() || undefined,
+        status: searchParams.get("status") || undefined,
+      },
+    });
+    return response;
   },
 );
 
 export const POST = withApi(
   {},
   async ({ request }) => {
-    await assertAdmin(request, "admin:categories:import");
+    const session = await assertAdmin(request, "admin:categories:import");
     await connectDB();
 
     const formData = await request.formData();
@@ -96,6 +110,12 @@ export const POST = withApi(
     }
 
     const result = await importCategoriesCsv(await file.text());
+    await auditCatalogImport(
+      createAuditContext(request, session),
+      "category",
+      file.name,
+      result,
+    );
     return successResponse(result);
   },
 );

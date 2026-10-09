@@ -306,8 +306,11 @@ export function SendToCourierDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      {/* A column with a pinned header and footer: only the step in between
+          scrolls. A lane with a dozen services pushed the dialog past the
+          screen, and "Buy label" with it. */}
+      <DialogContent className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-3">
           <DialogTitle>
             {tSafe("admin.orderDetails.courier.sendToCourier", "Send to courier")}
           </DialogTitle>
@@ -316,272 +319,274 @@ export function SendToCourierDialog(props: {
           </DialogDescription>
         </DialogHeader>
 
-        {step === "package" ? (
-          <div className="space-y-4">
-            {/* Only when there is genuinely a choice. One consignment is not a
-                decision, and asking for it would put a form in front of every
-                single-seller order. */}
-            {!props.subOrderId && choices.length > 1 ? (
-              <div className="space-y-2">
-                <Label htmlFor="courier-consignment">
-                  {tSafe(
-                    "admin.orderDetails.courier.selectConsignment",
-                    "Consignment",
-                  )}
-                </Label>
-                <Select
-                  value={subOrderId || ""}
-                  onValueChange={(value) => {
-                    setConsignmentId(value);
-                    // Another seller's parcel holds other goods, so neither the
-                    // worked-out box nor the last refusal describes it.
-                    setParcel(null);
-                    setError(null);
-                  }}
-                >
-                  <SelectTrigger id="courier-consignment">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {choices.map((consignment) => (
-                      <SelectItem key={consignment.id} value={consignment.id}>
-                        {consignment.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
+        <div className="scrollbar-visible min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pt-1 pb-4">
+          {step === "package" ? (
+            <div className="space-y-4">
+              {/* Only when there is genuinely a choice. One consignment is not a
+                  decision, and asking for it would put a form in front of every
+                  single-seller order. */}
+              {!props.subOrderId && choices.length > 1 ? (
+                <div className="space-y-2">
+                  <Label htmlFor="courier-consignment">
+                    {tSafe(
+                      "admin.orderDetails.courier.selectConsignment",
+                      "Consignment",
+                    )}
+                  </Label>
+                  <Select
+                    value={subOrderId || ""}
+                    onValueChange={(value) => {
+                      setConsignmentId(value);
+                      // Another seller's parcel holds other goods, so neither the
+                      // worked-out box nor the last refusal describes it.
+                      setParcel(null);
+                      setError(null);
+                    }}
+                  >
+                    <SelectTrigger id="courier-consignment">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {choices.map((consignment) => (
+                        <SelectItem key={consignment.id} value={consignment.id}>
+                          {consignment.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
 
-            {activePackages.length > 0 ? (
-              <div className="space-y-2">
-                <Label htmlFor="courier-package">
-                  {tSafe(
-                    "admin.orderDetails.courier.selectPackage",
-                    "Package",
-                  )}
-                </Label>
-                <Select
-                  value={packageId || AUTO_PACKAGE}
-                  onValueChange={(value) => {
-                    setPackageId(value === AUTO_PACKAGE ? "" : value);
-                    // A different box means the previous parcel no longer
-                    // describes what is being shipped.
-                    setParcel(null);
-                    // ...nor does the last refusal necessarily still apply.
-                    setError(null);
-                  }}
-                >
-                  <SelectTrigger id="courier-package">
-                    <SelectValue
-                      placeholder={tSafe(
-                        "admin.orderDetails.courier.autoPackage",
-                        "Choose automatically",
-                      )}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AUTO_PACKAGE}>
-                      {tSafe(
-                        "admin.orderDetails.courier.autoPackage",
-                        "Choose automatically",
-                      )}
-                    </SelectItem>
-                    {activePackages.map((preset) => (
-                      <SelectItem key={preset.id} value={preset.id}>
-                        {preset.name} — {preset.length}×{preset.width}×
-                        {preset.height} {preset.dimensionUnit}
+              {activePackages.length > 0 ? (
+                <div className="space-y-2">
+                  <Label htmlFor="courier-package">
+                    {tSafe(
+                      "admin.orderDetails.courier.selectPackage",
+                      "Package",
+                    )}
+                  </Label>
+                  <Select
+                    value={packageId || AUTO_PACKAGE}
+                    onValueChange={(value) => {
+                      setPackageId(value === AUTO_PACKAGE ? "" : value);
+                      // A different box means the previous parcel no longer
+                      // describes what is being shipped.
+                      setParcel(null);
+                      // ...nor does the last refusal necessarily still apply.
+                      setError(null);
+                    }}
+                  >
+                    <SelectTrigger id="courier-package">
+                      <SelectValue
+                        placeholder={tSafe(
+                          "admin.orderDetails.courier.autoPackage",
+                          "Choose automatically",
+                        )}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={AUTO_PACKAGE}>
+                        {tSafe(
+                          "admin.orderDetails.courier.autoPackage",
+                          "Choose automatically",
+                        )}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : null}
+                      {activePackages.map((preset) => (
+                        <SelectItem key={preset.id} value={preset.id}>
+                          {preset.name} — {preset.length}×{preset.width}×
+                          {preset.height} {preset.dimensionUnit}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
 
-            {parcel ? (
-              <div className="grid grid-cols-2 gap-3">
-                {PARCEL_FIELDS.map((field) => (
-                  <div key={field} className="space-y-2">
-                    <Label htmlFor={`courier-${field}`} className="capitalize">
-                      {field}{" "}
-                      <span className="text-muted-foreground">
-                        (
-                        {field === "weight"
-                          ? parcel.weightUnit
-                          : parcel.dimensionUnit}
-                        )
+              {parcel ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {PARCEL_FIELDS.map((field) => (
+                    <div key={field} className="space-y-2">
+                      <Label htmlFor={`courier-${field}`} className="capitalize">
+                        {field}{" "}
+                        <span className="text-muted-foreground">
+                          (
+                          {field === "weight"
+                            ? parcel.weightUnit
+                            : parcel.dimensionUnit}
+                          )
+                        </span>
+                      </Label>
+                      <NumberInput
+                        id={`courier-${field}`}
+                        min={0}
+                        step="0.01"
+                        value={parcel[field]}
+                        whenEmpty={0}
+                        aria-invalid={invalidParcelFields.includes(field)}
+                        aria-describedby={
+                          invalidParcelFields.includes(field)
+                            ? `courier-${field}-error`
+                            : undefined
+                        }
+                        onValueChange={(next) => updateParcel({ [field]: next ?? 0 })}
+                      />
+                      {invalidParcelFields.includes(field) ? (
+                        <p
+                          id={`courier-${field}-error`}
+                          className="text-xs text-destructive"
+                        >
+                          {tSafe(
+                            "admin.orderDetails.courier.mustBePositive",
+                            "Must be more than 0",
+                          )}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {tSafe(
+                    "admin.orderDetails.courier.packageHint",
+                    "The parcel is worked out from the items' weight and size. Fetch rates to see it, then adjust if you know better.",
+                  )}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {step === "quotes" && rates ? (
+            <div className="space-y-4">
+              {rates.packing.warnings.length > 0 ? (
+                <WarningBanner>
+                  {rates.packing.warnings.map((warning) => (
+                    <p key={warning}>{WARNING_COPY[warning] || warning}</p>
+                  ))}
+                </WarningBanner>
+              ) : null}
+
+              <RadioGroup value={selectedRateId} onValueChange={setSelectedRateId}>
+                <div className="space-y-2">
+                  {rates.quotes.map((quote) => (
+                    <Label
+                      key={quote.rateId}
+                      htmlFor={`rate-${quote.rateId}`}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary"
+                    >
+                      <RadioGroupItem id={`rate-${quote.rateId}`} value={quote.rateId} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {quote.carrierName} · {quote.serviceName}
+                          </span>
+                          {(quote.attributes || []).map((attribute) => (
+                            <Badge key={attribute} variant="secondary" className="text-[10px]">
+                              {attribute}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {quote.estimatedDays
+                            ? `${quote.estimatedDays} ${tSafe("checkout.days", "days")}`
+                            : tSafe(
+                                "admin.orderDetails.courier.noEta",
+                                "No estimate",
+                              )}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold">
+                        {formatCurrency(quote.amount, quote.currency)}
                       </span>
                     </Label>
-                    <NumberInput
-                      id={`courier-${field}`}
-                      min={0}
-                      step="0.01"
-                      value={parcel[field]}
-                      whenEmpty={0}
-                      aria-invalid={invalidParcelFields.includes(field)}
-                      aria-describedby={
-                        invalidParcelFields.includes(field)
-                          ? `courier-${field}-error`
-                          : undefined
-                      }
-                      onValueChange={(next) => updateParcel({ [field]: next ?? 0 })}
-                    />
-                    {invalidParcelFields.includes(field) ? (
-                      <p
-                        id={`courier-${field}-error`}
-                        className="text-xs text-destructive"
-                      >
-                        {tSafe(
-                          "admin.orderDetails.courier.mustBePositive",
-                          "Must be more than 0",
-                        )}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {tSafe(
-                  "admin.orderDetails.courier.packageHint",
-                  "The parcel is worked out from the items' weight and size. Fetch rates to see it, then adjust if you know better.",
-                )}
-              </p>
-            )}
-          </div>
-        ) : null}
+                  ))}
+                </div>
+              </RadioGroup>
 
-        {step === "quotes" && rates ? (
-          <div className="space-y-4">
-            {rates.packing.warnings.length > 0 ? (
-              <WarningBanner>
-                {rates.packing.warnings.map((warning) => (
-                  <p key={warning}>{WARNING_COPY[warning] || warning}</p>
-                ))}
-              </WarningBanner>
-            ) : null}
+              {rates.quotes.some(
+                (quote) =>
+                  props.storeCurrency &&
+                  quote.currency !== props.storeCurrency.toUpperCase(),
+              ) ? (
+                <p className="text-xs text-muted-foreground">
+                  {tSafe(
+                    "admin.orderDetails.courier.currencyMismatch",
+                    "Carrier rates are billed to your carrier account in its own currency, not the store's. They are not added to the order total.",
+                  )}
+                </p>
+              ) : null}
 
-            <RadioGroup value={selectedRateId} onValueChange={setSelectedRateId}>
-              <div className="space-y-2">
-                {rates.quotes.map((quote) => (
-                  <Label
-                    key={quote.rateId}
-                    htmlFor={`rate-${quote.rateId}`}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary"
-                  >
-                    <RadioGroupItem id={`rate-${quote.rateId}`} value={quote.rateId} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {quote.carrierName} · {quote.serviceName}
-                        </span>
-                        {(quote.attributes || []).map((attribute) => (
-                          <Badge key={attribute} variant="secondary" className="text-[10px]">
-                            {attribute}
-                          </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {quote.estimatedDays
-                          ? `${quote.estimatedDays} ${tSafe("checkout.days", "days")}`
-                          : tSafe(
-                              "admin.orderDetails.courier.noEta",
-                              "No estimate",
-                            )}
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold">
-                      {formatCurrency(quote.amount, quote.currency)}
-                    </span>
-                  </Label>
-                ))}
-              </div>
-            </RadioGroup>
-
-            {rates.quotes.some(
-              (quote) =>
-                props.storeCurrency &&
-                quote.currency !== props.storeCurrency.toUpperCase(),
-            ) ? (
-              <p className="text-xs text-muted-foreground">
-                {tSafe(
-                  "admin.orderDetails.courier.currencyMismatch",
-                  "Carrier rates are billed to your carrier account in its own currency, not the store's. They are not added to the order total.",
-                )}
-              </p>
-            ) : null}
-
-            {rates.mode === "test" ? (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                {tSafe(
-                  "admin.orderDetails.courier.testMode",
-                  "Test mode — this label is not real and cannot be used to ship.",
-                )}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {step === "done" && purchased ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">
-                {tSafe("admin.orderDetails.trackingNumber", "Tracking number")}
-              </p>
-              <p className="font-mono text-sm font-semibold">
-                {purchased.trackingNumber}
-              </p>
-              <p className="text-xs text-muted-foreground">{purchased.carrier}</p>
+              {rates.mode === "test" ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {tSafe(
+                    "admin.orderDetails.courier.testMode",
+                    "Test mode — this label is not real and cannot be used to ship.",
+                  )}
+                </p>
+              ) : null}
             </div>
-            <Separator />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                disabled={isBusy}
-                onClick={() =>
-                  void withLabel((blob) =>
-                    downloadBlob(blob, `shipping-label-${props.orderNumber}.pdf`),
-                  )
-                }
-              >
-                {tSafe("admin.orderDetails.shippingLabelDownload", "Download label")}
-              </Button>
-              <Button
-                variant="outline"
-                disabled={isBusy}
-                onClick={() => void withLabel(printLabelBlob)}
-              >
-                <Printer className="h-4 w-4" />
-                {tSafe("admin.orderDetails.printThermalLabel", "Print label")}
-              </Button>
+          ) : null}
+
+          {step === "done" && purchased ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">
+                  {tSafe("admin.orderDetails.trackingNumber", "Tracking number")}
+                </p>
+                <p className="font-mono text-sm font-semibold">
+                  {purchased.trackingNumber}
+                </p>
+                <p className="text-xs text-muted-foreground">{purchased.carrier}</p>
+              </div>
+              <Separator />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  disabled={isBusy}
+                  onClick={() =>
+                    void withLabel((blob) =>
+                      downloadBlob(blob, `shipping-label-${props.orderNumber}.pdf`),
+                    )
+                  }
+                >
+                  {tSafe("admin.orderDetails.shippingLabelDownload", "Download label")}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={isBusy}
+                  onClick={() => void withLabel(printLabelBlob)}
+                >
+                  <Printer className="h-4 w-4" />
+                  {tSafe("admin.orderDetails.printThermalLabel", "Print label")}
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {error ? (
-          <div
-            role="alert"
-            // Capped and scrollable rather than clamped: a carrier's reason can
-            // run to a paragraph, and truncating it would hide the one sentence
-            // that names the problem.
-            className="max-h-40 overflow-y-auto rounded-md border border-red-500/40 bg-red-500/5 p-3"
-          >
-            <p className="flex items-start gap-2 text-xs leading-relaxed text-red-700 dark:text-red-400">
-              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-              <span className="min-w-0 break-words">{error}</span>
-            </p>
-            {props.addressHoldOpen ? (
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                {tSafe(
-                  "admin.orderDetails.courier.nowOnHold",
-                  "Shipping for this order is now on hold. The customer has been asked to correct the address — or correct it yourself from the banner on this order.",
-                )}
+          {error ? (
+            <div
+              role="alert"
+              // Capped and scrollable rather than clamped: a carrier's reason can
+              // run to a paragraph, and truncating it would hide the one sentence
+              // that names the problem.
+              className="max-h-40 overflow-y-auto rounded-md border border-red-500/40 bg-red-500/5 p-3"
+            >
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-red-700 dark:text-red-400">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                <span className="min-w-0 break-words">{error}</span>
               </p>
-            ) : null}
-          </div>
-        ) : null}
+              {props.addressHoldOpen ? (
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {tSafe(
+                    "admin.orderDetails.courier.nowOnHold",
+                    "Shipping for this order is now on hold. The customer has been asked to correct the address — or correct it yourself from the banner on this order.",
+                  )}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 border-t px-6 py-4">
           {step === "package" ? (
             <Button
               disabled={isBusy || invalidParcelFields.length > 0}

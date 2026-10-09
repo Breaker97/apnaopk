@@ -82,11 +82,15 @@ export async function generateMetadata({
       ),
       160,
     ) || appConfig.description;
+  // The first ten, like the JSON-LD: a product holds up to 250 pictures, and
+  // each one would be an og:image and a twitter:image tag in the page head.
   const productImages: string[] = Array.isArray(product.images)
-    ? product.images.filter(
-        (image: unknown): image is string =>
-          typeof image === "string" && image.trim().length > 0,
-      )
+    ? product.images
+        .filter(
+          (image: unknown): image is string =>
+            typeof image === "string" && image.trim().length > 0,
+        )
+        .slice(0, 10)
     : [];
   // Product images, then the store's OG image. There is no bundled fallback:
   // a link with no preview image beats one showing this app's own artwork.

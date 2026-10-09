@@ -1,12 +1,17 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { Package, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -14,10 +19,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FeatureGroup } from "@/components/admin/settings/fields/feature-row";
 import type { Settings } from "@/components/admin/settings/types";
+import {
+  DIMENSION_UNITS,
+  PARCEL_WEIGHT_UNITS,
+} from "@/lib/shipping/carrier-config";
+import {
+  EditDialogFooter,
+  EditDialogHeader,
+  FieldLine,
+  SwitchRow,
+  Unit,
+  useDraft,
+} from "./dialog-fields";
+import { ItemRow } from "./item-row";
 
 type PackagePreset = NonNullable<Settings["shipping"]["packages"]>[number];
-type TSafe = (key: string, fallback: string) => string;
 
 function newId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -27,222 +45,313 @@ function newId() {
 }
 
 /**
- * The box catalogue a carrier quote is priced against.
+ * Exactly one default, and one there is whenever there is a box at all:
+ * removing or un-defaulting the default would leave the packer with nothing to
+ * fall back to, so the first box inherits the flag.
+ */
+export function withOneDefault(
+  packages: PackagePreset[],
+  preferredId?: string,
+): PackagePreset[] {
+  const defaultId =
+    preferredId ?? packages.find((preset) => preset.isDefault)?.id ?? packages[0]?.id;
+  // Only the boxes whose flag moves are rebuilt: an untouched one keeps its
+  // stored shape, so it never counts as an unsaved change.
+  return packages.map((preset) => {
+    const isDefault = preset.id === defaultId;
+    return Boolean(preset.isDefault) === isDefault ? preset : { ...preset, isDefault };
+  });
+}
+
+/**
+ * The box catalogue a carrier quote is priced against, one row per box with
+ * its size and an Edit button.
  *
  * Carriers charge by volume as well as weight, and products carry no
  * dimensions by default, so without at least one saved box there is nothing to
  * quote. The schema seeds one, which is why this list is never empty on a
  * fresh install.
  */
-export function PackagesCard(props: {
+export function PackagesSection(props: {
   packages: PackagePreset[];
-  tSafe: TSafe;
+  /** The store's weight unit: a new box starts in it, and a box's limit is in it. */
+  weightUnit: "kg" | "lb";
   updateField: (path: string, value: unknown) => void;
 }) {
-  const { packages, tSafe, updateField } = props;
+  const t = useTranslations("admin.settings.shipping.packages");
+  const { packages } = props;
+  const [editing, setEditing] = useState<{ preset: PackagePreset; isNew: boolean } | null>(
+    null,
+  );
 
-  const write = (next: PackagePreset[]) =>
-    updateField("shipping.packages", next);
+  const write = (next: PackagePreset[]) => props.updateField("shipping.packages", next);
 
-  const patch = (index: number, changes: Partial<PackagePreset>) => {
-    write(
-      packages.map((preset, i) =>
-        i === index ? { ...preset, ...changes } : preset,
-      ),
-    );
-  };
+  const summary = (preset: PackagePreset) =>
+    [
+      t("dimensions", {
+        length: preset.length ?? 0,
+        width: preset.width ?? 0,
+        height: preset.height ?? 0,
+        unit: preset.dimensionUnit || "cm",
+      }),
+      Number(preset.emptyWeight) > 0
+        ? t("emptyWeightShort", {
+            weight: Number(preset.emptyWeight),
+            unit: preset.weightUnit || "kg",
+          })
+        : null,
+      Number(preset.maxWeight) > 0
+        ? t("maxWeightShort", { weight: Number(preset.maxWeight), unit: props.weightUnit })
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
-  /** Exactly one default, enforced here so the packer never has to choose. */
-  const setDefault = (index: number) => {
-    write(packages.map((preset, i) => ({ ...preset, isDefault: i === index })));
-  };
-
-  const add = () => {
-    write([
-      ...packages,
-      {
-        id: newId(),
-        name: tSafe("admin.settings.shipping.packages.newName", "New box"),
-        length: 30,
-        width: 20,
-        height: 15,
-        dimensionUnit: "cm",
-        emptyWeight: 0,
-        weightUnit: "kg",
-        isDefault: packages.length === 0,
-        active: true,
-      },
-    ]);
-  };
-
-  const remove = (index: number) => {
-    const next = packages.filter((_, i) => i !== index);
-    // Removing the default would leave the packer with no fallback, so the
-    // first surviving box inherits the flag.
-    if (next.length > 0 && !next.some((preset) => preset.isDefault)) {
-      next[0] = { ...next[0], isDefault: true };
-    }
-    write(next);
-  };
+  const imperial = props.weightUnit === "lb";
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold">
-            {tSafe("admin.settings.shipping.packages.title", "Saved packages")}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {tSafe(
-              "admin.settings.shipping.packages.description",
-              "Boxes a carrier quote can be priced against. The default is used whenever an order's items have no dimensions of their own.",
-            )}
-          </p>
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={add}>
+    <FeatureGroup title={t("title")} hint={t("description")}>
+      {packages.length === 0 ? (
+        <p className="text-muted-foreground p-4 text-sm">{t("empty")}</p>
+      ) : null}
+
+      {packages.map((preset) => (
+        <ItemRow
+          key={preset.id}
+          icon={
+            <span
+              aria-hidden
+              className="bg-muted text-muted-foreground flex h-9 w-9 items-center justify-center rounded-md"
+            >
+              <Package className="h-4 w-4" />
+            </span>
+          }
+          title={preset.name || t("newName")}
+          badges={
+            <>
+              {preset.isDefault ? (
+                <Badge variant="secondary" className="bg-primary/10 text-primary">
+                  {t("defaultBadge")}
+                </Badge>
+              ) : null}
+              {preset.active === false ? (
+                <Badge variant="outline" className="text-muted-foreground">
+                  {t("off")}
+                </Badge>
+              ) : null}
+            </>
+          }
+          description={summary(preset)}
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label={t("editNamed", { name: preset.name || t("newName") })}
+              onClick={() => setEditing({ preset, isNew: false })}
+            >
+              {t("edit")}
+            </Button>
+          }
+        />
+      ))}
+
+      <div className="px-2 py-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-primary"
+          onClick={() =>
+            setEditing({
+              isNew: true,
+              preset: {
+                id: newId(),
+                name: t("newName"),
+                length: imperial ? 12 : 30,
+                width: imperial ? 8 : 20,
+                height: imperial ? 6 : 15,
+                dimensionUnit: imperial ? "in" : "cm",
+                emptyWeight: 0,
+                weightUnit: props.weightUnit,
+                isDefault: packages.length === 0,
+                active: true,
+              },
+            })
+          }
+        >
           <Plus className="h-4 w-4" />
-          {tSafe("admin.settings.shipping.packages.add", "Add package")}
+          {t("add")}
         </Button>
       </div>
 
-      {packages.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-          {tSafe(
-            "admin.settings.shipping.packages.empty",
-            "No packages yet. Carrier rates need at least one box.",
-          )}
-        </p>
+      {editing ? (
+        <PackageDialog
+          key={editing.preset.id}
+          initial={editing.preset}
+          isNew={editing.isNew}
+          // The only box is the default whatever its switch says.
+          canChangeDefault={!editing.preset.isDefault || editing.isNew}
+          storeWeightUnit={props.weightUnit}
+          onClose={() => setEditing(null)}
+          onDone={(preset) => {
+            const next = editing.isNew
+              ? [...packages, preset]
+              : packages.map((p) => (p.id === preset.id ? preset : p));
+            write(withOneDefault(next, preset.isDefault ? preset.id : undefined));
+            setEditing(null);
+          }}
+          onRemove={
+            editing.isNew
+              ? undefined
+              : () => {
+                  write(withOneDefault(packages.filter((p) => p.id !== editing.preset.id)));
+                  setEditing(null);
+                }
+          }
+        />
       ) : null}
+    </FeatureGroup>
+  );
+}
 
-      <div className="space-y-4">
-        {packages.map((preset, index) => (
-          <div key={preset.id} className="rounded-lg border p-4 space-y-4">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-0 flex-1 space-y-2">
-                <Label htmlFor={`package-name-${preset.id}`}>
-                  {tSafe("admin.settings.shipping.packages.name", "Name")}
-                </Label>
-                <Input
-                  id={`package-name-${preset.id}`}
-                  value={preset.name}
-                  onChange={(e) => patch(index, { name: e.target.value })}
-                />
-              </div>
-              <div className="flex items-center gap-2 pb-2">
-                <Switch
-                  id={`package-active-${preset.id}`}
-                  checked={preset.active !== false}
-                  onCheckedChange={(checked) => patch(index, { active: checked })}
-                />
-                <Label htmlFor={`package-active-${preset.id}`} className="text-xs">
-                  {tSafe("admin.settings.shipping.packages.active", "Active")}
-                </Label>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(index)}
-                aria-label={tSafe(
-                  "admin.settings.shipping.packages.remove",
-                  "Remove package",
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+/** One box, edited on a copy: Done hands it back, Cancel drops it. */
+function PackageDialog(props: {
+  initial: PackagePreset;
+  isNew: boolean;
+  canChangeDefault: boolean;
+  storeWeightUnit: "kg" | "lb";
+  onClose: () => void;
+  onDone: (preset: PackagePreset) => void;
+  onRemove?: () => void;
+}) {
+  const t = useTranslations("admin.settings.shipping.packages");
+  const { draft, set, changed } = useDraft<PackagePreset>(props.initial);
 
-            <div className="grid gap-3 sm:grid-cols-4">
-              {(["length", "width", "height"] as const).map((axis) => (
-                <div key={axis} className="space-y-2">
-                  <Label htmlFor={`package-${axis}-${preset.id}`} className="capitalize">
-                    {tSafe(`admin.settings.shipping.packages.${axis}`, axis)}
-                  </Label>
-                  <NumberInput
-                    id={`package-${axis}-${preset.id}`}
-                    min={0}
-                    value={preset[axis] ?? 0}
-                    whenEmpty={0}
-                    onValueChange={(next) =>
-                      patch(index, { [axis]: next ?? 0 } as Partial<PackagePreset>)
-                    }
-                  />
-                </div>
-              ))}
-              <div className="space-y-2">
-                <Label htmlFor={`package-unit-${preset.id}`}>
-                  {tSafe("admin.settings.shipping.packages.unit", "Unit")}
-                </Label>
-                <Select
-                  value={preset.dimensionUnit || "cm"}
-                  onValueChange={(value) =>
-                    patch(index, {
-                      dimensionUnit: value as PackagePreset["dimensionUnit"],
-                    })
-                  }
-                >
-                  <SelectTrigger id={`package-unit-${preset.id}`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cm">cm</SelectItem>
-                    <SelectItem value="in">in</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+  const size = (axis: "length" | "width" | "height", id?: string) => (
+    <NumberInput
+      id={id}
+      aria-label={t(axis)}
+      className="w-20"
+      min={0}
+      value={draft[axis] ?? 0}
+      whenEmpty={0}
+      onValueChange={(next) => set({ [axis]: next ?? 0 } as Partial<PackagePreset>)}
+    />
+  );
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor={`package-tare-${preset.id}`}>
-                  {tSafe(
-                    "admin.settings.shipping.packages.emptyWeight",
-                    "Empty weight",
-                  )}
-                </Label>
-                <NumberInput
-                  id={`package-tare-${preset.id}`}
-                  min={0}
-                  step="0.01"
-                  value={preset.emptyWeight ?? 0}
-                  whenEmpty={0}
-                  onValueChange={(next) => patch(index, { emptyWeight: next ?? 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor={`package-max-${preset.id}`}>
-                  {tSafe("admin.settings.shipping.packages.maxWeight", "Max weight")}
-                </Label>
-                <NumberInput
-                  id={`package-max-${preset.id}`}
-                  min={0}
-                  step="0.01"
-                  value={preset.maxWeight}
-                  placeholder={tSafe(
-                    "admin.settings.shipping.packages.noLimit",
-                    "No limit",
-                  )}
-                  onValueChange={(next) => patch(index, { maxWeight: next })}
-                />
-              </div>
-              <div className="flex items-end gap-2 pb-2">
-                <Switch
-                  id={`package-default-${preset.id}`}
-                  checked={preset.isDefault === true}
-                  onCheckedChange={(checked) => {
-                    if (checked) setDefault(index);
-                  }}
-                />
-                <Label htmlFor={`package-default-${preset.id}`} className="text-xs">
-                  {tSafe("admin.settings.shipping.packages.default", "Default box")}
-                </Label>
-              </div>
-            </div>
+  return (
+    <Dialog open onOpenChange={(open) => (open ? null : props.onClose())}>
+      {/* A title is all this dialog needs; say so, or Radix warns that a description is missing. */}
+      <DialogContent aria-describedby={undefined} className="grid-cols-1 gap-0 p-0 sm:max-w-xl">
+        <EditDialogHeader>
+          <DialogTitle>{props.isNew ? t("dialogTitleNew") : t("dialogTitleEdit")}</DialogTitle>
+        </EditDialogHeader>
+
+        <div className="max-h-[70vh] min-w-0 space-y-5 overflow-y-auto px-6 py-5">
+          <div className="space-y-1.5">
+            <label htmlFor="package-name" className="text-sm font-medium">
+              {t("name")}
+            </label>
+            <Input
+              id="package-name"
+              value={draft.name}
+              onChange={(event) => set({ name: event.target.value })}
+            />
           </div>
-        ))}
-      </div>
 
-      <Separator />
-    </div>
+          <FieldLine compact label={t("size")} htmlFor="package-length">
+            {size("length", "package-length")}
+            <Unit>×</Unit>
+            {size("width")}
+            <Unit>×</Unit>
+            {size("height")}
+            <Select
+              value={draft.dimensionUnit || "cm"}
+              onValueChange={(value) =>
+                set({ dimensionUnit: value as PackagePreset["dimensionUnit"] })
+              }
+            >
+              <SelectTrigger aria-label={t("unit")} className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DIMENSION_UNITS.map((unit) => (
+                  <SelectItem key={unit} value={unit}>
+                    {unit}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldLine>
+
+          <FieldLine compact label={t("emptyWeight")} htmlFor="package-tare">
+            <NumberInput
+              id="package-tare"
+              className="w-24"
+              min={0}
+              step="0.01"
+              value={draft.emptyWeight ?? 0}
+              whenEmpty={0}
+              onValueChange={(next) => set({ emptyWeight: next ?? 0 })}
+            />
+            <Select
+              value={draft.weightUnit || "kg"}
+              onValueChange={(value) =>
+                set({ weightUnit: value as PackagePreset["weightUnit"] })
+              }
+            >
+              <SelectTrigger aria-label={t("weightUnit")} className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PARCEL_WEIGHT_UNITS.map((unit) => (
+                  <SelectItem key={unit} value={unit}>
+                    {unit}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldLine>
+
+          <div className="space-y-1.5">
+            <FieldLine compact label={t("maxWeight")} htmlFor="package-max">
+              <NumberInput
+                id="package-max"
+                className="w-28"
+                min={0}
+                step="0.01"
+                value={draft.maxWeight}
+                placeholder={t("noLimit")}
+                onValueChange={(next) => set({ maxWeight: next })}
+              />
+              <Unit>{props.storeWeightUnit}</Unit>
+            </FieldLine>
+            <p className="text-muted-foreground text-xs">{t("maxWeightHint")}</p>
+          </div>
+
+          <SwitchRow
+            title={t("default")}
+            hint={t("defaultHint")}
+            checked={draft.isDefault === true}
+            disabled={!props.canChangeDefault}
+            onCheckedChange={(checked) => set({ isDefault: checked })}
+          />
+          <SwitchRow
+            title={t("active")}
+            hint={t("activeHint")}
+            checked={draft.active !== false}
+            onCheckedChange={(checked) => set({ active: checked })}
+          />
+        </div>
+
+        <EditDialogFooter
+          removeLabel={t("remove")}
+          onRemove={props.onRemove}
+          onCancel={props.onClose}
+          onDone={() => (changed || props.isNew ? props.onDone(draft) : props.onClose())}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

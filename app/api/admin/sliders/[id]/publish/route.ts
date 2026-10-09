@@ -2,6 +2,7 @@ import { Slider } from "@/models";
 import { successResponse } from "@/lib/api/response";
 import { NotFoundError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
+import { audit, createAuditContext } from "@/lib/audit";
 import { normalizeSliderDocument, SLIDER_DOCUMENT_VERSION } from "@/lib/sliders/types";
 import { publishSlider } from "@/lib/sliders/document-ops";
 import { revalidateSliderContent } from "@/lib/cache-invalidation";
@@ -14,7 +15,7 @@ import { getSliderLookup } from "../route";
  */
 export const POST = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ request, params, session }) => {
     const lookup = getSliderLookup(params.id);
     const stored = await Slider.findOne(lookup).lean();
     if (!stored) throw new NotFoundError("Slider");
@@ -35,6 +36,16 @@ export const POST = withApi<{ id: string }>(
       { returnDocument: "after" },
     ).lean();
     if (!updated) throw new NotFoundError("Slider");
+    // Written only when a draft went live: with none, the route changed nothing.
+    await audit(createAuditContext(request, session), {
+      action: "STATUS_CHANGE",
+      resource: "slider",
+      resourceId: String(updated._id),
+      resourceName: updated.name,
+      changes: {
+        summary: `Published the draft of slider "${updated.name}"; it replaced the live version`,
+      },
+    });
     revalidateSliderContent();
     return successResponse(normalizeSliderDocument(updated));
   },

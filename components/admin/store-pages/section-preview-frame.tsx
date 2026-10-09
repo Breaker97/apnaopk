@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { PREVIEW_HEIGHT_MESSAGE } from "@/components/store/section-preview-sizer";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { cn } from "@/lib/utils";
+import { useStoreBuilderScope } from "./builder-scope";
 
 /** Where the frame starts and how tall it may grow before it scrolls. */
 const MIN_HEIGHT = 120;
@@ -50,6 +51,7 @@ export function SectionPreviewFrame({
   emptyLabel: string;
   className?: string;
 }) {
+  const { previewEndpoint } = useStoreBuilderScope();
   const frame = useRef<HTMLIFrameElement | null>(null);
   const [height, setHeight] = useState(MIN_HEIGHT);
   const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
@@ -79,7 +81,7 @@ export function SectionPreviewFrame({
   useApplyOnChange([nonce], () => setState("loading"));
 
   const src =
-    `/api/admin/store-pages/preview?locale=${encodeURIComponent(locale)}&handle=${encodeURIComponent(handle)}&section=${encodeURIComponent(sectionId)}` +
+    `${previewEndpoint}?locale=${encodeURIComponent(locale)}&handle=${encodeURIComponent(handle)}&section=${encodeURIComponent(sectionId)}` +
     (blockId ? `&block=${encodeURIComponent(blockId)}` : "") +
     `&r=${nonce}`;
 

@@ -29,7 +29,7 @@ export function ChatMessageAttachments({
               src={attachment.url}
               alt={attachment.name || tr("attachments.alt", "Chat attachment")}
               loading="lazy"
-              className="max-h-64 w-auto rounded-lg object-contain"
+              className="max-h-64 w-auto max-w-full rounded-lg object-contain"
             />
           );
         }

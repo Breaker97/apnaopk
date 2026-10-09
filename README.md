@@ -62,6 +62,10 @@ deploying Storify.
 - **Omnichannel messaging** — SSE live chat plus vendor/platform WhatsApp and
   Messenger connections with unified inboxes. See
   [`docs/OMNICHANNEL_MESSAGING.md`](docs/OMNICHANNEL_MESSAGING.md).
+- **Shopping app API** — a REST API at `/api/mobile/shop/v1` for the store's
+  shopping app: catalogue, home page, cart, checkout (cash on delivery and
+  Stripe cards), orders, account, push. Off by default. See
+  [`docs/MOBILE_API.md`](docs/MOBILE_API.md).
 - **Internationalization** — 17 languages with RTL support.
 - **3D product media** — `@google/model-viewer` for `.glb`/`.gltf` models.
 
@@ -320,6 +324,7 @@ toggling it on in the Admin panel.
 | `NEXT_PUBLIC_SUPPORT_EMAIL`     | `support@example.com`    | Support contact email.                            |
 | `DEMO_MODE`                     | `false`                  | Set to `true` on public demos. Creates, updates and image uploads still work; deletes, settings/profile edits and test actions are refused. |
 | `NEXT_PUBLIC_ENABLE_PWA_IN_DEV` | `false`                  | Enable the PWA/service worker in local dev.       |
+| `NEXT_PUBLIC_LOYALTY_ENABLED`   | `false`                  | Loyalty points are unfinished and hidden. Exactly `true` shows them in the admin, POS and customer account, and lets paid orders earn points again. Inlined at build time: rebuild after a change. |
 | `TRUSTED_PROXIES`               | `203.0.113.0/24`         | Optional. Set it when a CDN other than Cloudflare proxies the store (IPs or CIDR ranges), or every visitor arriving through the same CDN address shares one rate limit. Cloudflare, a proxy on the same machine or private network, and Vercel need nothing. |
 
 > Multi-vendor marketplace mode is toggled at runtime from **Admin → Settings
@@ -362,6 +367,12 @@ Generate the key pair with `pnpm push:keys`, then set:
 | `SMTP_USER` | `your-smtp-username`                 | SMTP username.             |
 | `SMTP_PASS` | `your-smtp-password`                 | SMTP password.             |
 | `SMTP_FROM` | `"Storify <no-reply@example.com>"`   | Default "From" address.    |
+
+With the **Email** switch in Settings → Email off, the store sends with these
+alone (`SMTP_USER` and `SMTP_PASS` both set). Switched on, the values saved
+there take precedence and these fill any left blank.
+Provider settings (Gmail, Zoho, cPanel, Brevo, SendGrid, Amazon SES), the test
+email and the retry job are covered in [`docs/EMAIL_SETUP.md`](docs/EMAIL_SETUP.md).
 
 ### Payment gateways (optional)
 
@@ -747,7 +758,7 @@ Routes are locale-prefixed (e.g. `/en/admin`, `/ar/admin`).
 | Script                 | Description                                       |
 | ---------------------- | ------------------------------------------------- |
 | `pnpm dev`             | Start the Next.js dev server.                     |
-| `pnpm build`           | Production build.                                 |
+| `pnpm build`           | Production build (then corrects Turbopack's missing-chunk preloads, see `check:chunks`). |
 | `pnpm start`           | Start the production server (after `build`).      |
 | `pnpm lint`            | Run ESLint.                                       |
 | `pnpm typecheck`       | Run the TypeScript compiler (no emit).            |

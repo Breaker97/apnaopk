@@ -22,6 +22,8 @@ import {
   loadTeamChangeContext,
 } from "@/lib/access/team-roles";
 import { revokeAllSessions } from "@/lib/auth/session-revocation";
+import { notifyAccountStatusChange } from "@/lib/notifications/notifications";
+import { afterResponse } from "@/lib/after-response";
 
 /**
  * This screen changes shoppers and sellers. An administrator's role is
@@ -163,6 +165,16 @@ export const PUT = withApi<{ id: string }>(
 
     if (!user) {
       return notFoundResponse("User");
+    }
+
+    if (statusChange) {
+      afterResponse(() =>
+        notifyAccountStatusChange({
+          userId: id,
+          from: userBefore.status,
+          to: statusChange,
+        }),
+      );
     }
 
     // Audit logging

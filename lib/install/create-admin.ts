@@ -18,6 +18,12 @@ import { DEMO_PASSWORDS } from "@/lib/install/demo-seed-guard";
  * No transaction on purpose — standalone MongoDB (no replica set) must
  * install too, and the wizard's lock makes a concurrent duplicate run
  * impossible in practice (the first successful User.create locks it).
+ *
+ * Without a transaction the three writes are undone by hand instead: the
+ * User row alone already locks the wizard, so a profile or credential write
+ * that fails after it would leave a store nobody can sign in to and nobody
+ * can install. On such a failure the rows this call made are removed and the
+ * error is rethrown, which reopens the wizard for another attempt.
  */
 export async function createInstallAdmin(input: {
   name: string;
@@ -50,19 +56,48 @@ export async function createInstallAdmin(input: {
     status: "active",
   });
 
-  await AdminProfile.create({
-    userId: admin._id,
-    isSuperAdmin: true,
-    permissions: Object.values(ADMIN_PERMISSIONS),
-    department: "Operations",
-  });
+  try {
+    await AdminProfile.create({
+      userId: admin._id,
+      isSuperAdmin: true,
+      permissions: Object.values(ADMIN_PERMISSIONS),
+      department: "Operations",
+    });
 
-  await ctx.internalAdapter.createAccount({
-    userId: String(admin._id),
-    providerId: "credential",
-    accountId: String(admin._id),
-    password: passwordHash,
-  });
+    await ctx.internalAdapter.createAccount({
+      userId: String(admin._id),
+      providerId: "credential",
+      accountId: String(admin._id),
+      password: passwordHash,
+    });
+  } catch (error) {
+    await undoAdmin(ctx, String(admin._id));
+    throw error;
+  }
 
   return { userId: String(admin._id) };
+}
+
+/**
+ * Remove what a failed `createInstallAdmin` wrote. Each removal is attempted
+ * even when another fails; a leftover is logged, because only someone with
+ * database access can then clear it.
+ */
+async function undoAdmin(
+  ctx: Awaited<ReturnType<typeof getAuthContext>>,
+  userId: string,
+) {
+  const results = await Promise.allSettled([
+    ctx.internalAdapter.deleteAccounts(userId),
+    AdminProfile.deleteMany({ userId }),
+    User.deleteOne({ _id: userId }),
+  ]);
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error(
+        "[install] A half-created admin could not be removed; the installer stays locked until it is:",
+        result.reason,
+      );
+    }
+  }
 }

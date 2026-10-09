@@ -1,4 +1,4 @@
-import { connectDB } from "@/lib/db";
+import { connectDB, mongoose } from "@/lib/db";
 import { Product } from "@/models";
 import { paginatedResponse, createdResponse } from "@/lib/api/response";
 import {
@@ -22,10 +22,7 @@ import { validateBody, validateQuery } from "@/lib/api/validate";
 import { AdminListQuerySchema, CreateProductSchema } from "@/lib/validations";
 import { auditCreate, createAuditContext } from "@/lib/audit";
 import { syncProductCollections } from "@/lib/catalog/collections";
-import {
-  assertCategoryAcceptsProducts,
-  syncProductCategory,
-} from "@/lib/catalog/categories";
+import { syncProductCategory } from "@/lib/catalog/categories";
 import {
   assignMissingProductBarcodes,
   extractClearedProductFields,
@@ -39,6 +36,7 @@ import {
 } from "@/lib/products/barcode-validation";
 import { assignProductLookupCodes } from "@/lib/products/barcode-normalization";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
+import { markProductsForCatalogSync } from "@/lib/meta-catalog/sync-marks";
 import { withApi } from "@/lib/api/handler";
 import { assertOwnDigitalAssetKeys } from "@/lib/products/digital-assets";
 import { fetchVendorProductList } from "@/lib/vendors/vendor-product-list";
@@ -51,14 +49,7 @@ import {
   allowedLocationIds,
   vendorLocationScope,
 } from "@/lib/inventory/inventory-location-scope";
-
-function toHandle(input: string) {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { productSlugBase, uniqueProductSlug } from "@/lib/products/product-slug";
 
 /**
  * GET /api/vendor/products
@@ -157,7 +148,11 @@ export const POST = withApi(
     }
 
     const body = await validateBody(request, CreateProductSchema);
-    await assertCategoryAcceptsProducts(body.category);
+    // Not the vendor's to set, exactly as on the update route: `featured` is
+    // the platform's to grant, and the owner is this vendor whatever the body
+    // says.
+    delete (body as Record<string, unknown>).featured;
+    delete (body as Record<string, unknown>).vendorId;
     // `shipping.countryOfOrigin` is deliberately unrestricted: it records
     // where the goods were made, not a country the store sells or ships to.
 
@@ -168,13 +163,6 @@ export const POST = withApi(
       typeof body.title === "string" && body.title.trim().length
         ? body.title.trim()
         : String(body.name || "").trim();
-
-    const baseHandle =
-      typeof body?.seo?.handle === "string" && body.seo.handle.trim()
-        ? body.seo.handle.trim()
-        : title;
-
-    const slug = toHandle(baseHandle);
 
     // Sanitize embedded arrays — same helper used by admin POST/PUT.
     // Stock may only be recorded at one of this vendor's own locations.
@@ -223,8 +211,10 @@ export const POST = withApi(
 
     // Global slug uniqueness — the storefront resolves products by slug alone,
     // so a slug shared across vendors makes one product unreachable.
-    const existingProduct = await Product.findOne({ slug });
-    const finalSlug = existingProduct ? `${slug}-${Date.now()}` : slug;
+    const productId = new mongoose.Types.ObjectId();
+    const finalSlug = await uniqueProductSlug(
+      productSlugBase({ handle: body.seo?.handle, title, sku: body.sku, productId }),
+    );
     const normalizedProductData = {
       ...(body as unknown as Record<string, unknown>),
       variants: cleanedVariants,
@@ -247,6 +237,7 @@ export const POST = withApi(
 
     const product = new Product({
       ...normalizedProductData,
+      _id: productId,
       name: title,
       title,
       vendorId: vendor._id,
@@ -296,6 +287,7 @@ export const POST = withApi(
     );
 
     revalidateProductContent({ slugs: [product.slug] });
+    await markProductsForCatalogSync([product._id]);
 
     return createdResponse(product);
   },

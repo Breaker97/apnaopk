@@ -42,13 +42,11 @@ import {
   getNiceCountMax,
   getNiceMax,
 } from "@/lib/admin/dashboard-chart-scale";
-import type { OrderChartPoint } from "@/lib/admin/dashboard-types";
-import {
-  DateRangePicker,
-  formatAppliedDateRange,
-  startOfDay,
-  type AppliedDateRange,
-} from "@/components/ui/date-range-picker";
+import type {
+  OrderChartGranularity,
+  OrderChartSeries,
+} from "@/lib/admin/dashboard-types";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 
 type OrdersChartView = "orders" | "sales";
 
@@ -95,45 +93,69 @@ const AREA_LINKS: Record<"admin" | "vendor", ChartAreaLinks> = {
   },
 };
 
-function getInitialDateRange(data: OrderChartPoint[]): AppliedDateRange {
-  if (data.length === 0) {
-    const now = startOfDay(new Date());
-    return { from: now, to: now };
-  }
+/** Axis tick and table-row formats per bucket size. Buckets are UTC, so are these. */
+const BUCKET_FORMATS: Record<
+  OrderChartGranularity,
+  { axis: Intl.DateTimeFormatOptions; row: Intl.DateTimeFormatOptions }
+> = {
+  hour: {
+    axis: { hour: "2-digit", minute: "2-digit" },
+    row: { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
+  },
+  day: {
+    axis: { day: "numeric", month: "short" },
+    row: { day: "numeric", month: "short", year: "numeric" },
+  },
+  week: {
+    axis: { day: "numeric", month: "short" },
+    row: { day: "numeric", month: "short", year: "numeric" },
+  },
+  month: {
+    axis: { month: "short" },
+    row: { month: "short", year: "numeric" },
+  },
+  year: { axis: { year: "numeric" }, row: { year: "numeric" } },
+};
 
-  const first = data[0];
-  const last = data[data.length - 1];
-  return {
-    from: startOfDay(new Date(first.year, first.monthIndex, 1)),
-    to: startOfDay(new Date(last.year, last.monthIndex + 1, 0)),
-  };
+const GRANULARITY_FALLBACK: Record<OrderChartGranularity, string> = {
+  hour: "Hourly",
+  day: "Daily",
+  week: "Weekly",
+  month: "Monthly",
+  year: "Yearly",
+};
+
+interface DashboardOrdersChartProps {
+  /**
+   * The series for the dashboard's one period filter. The chart draws it as
+   * given and shows no picker of its own — a second date control beside the
+   * page's would let the cards and the chart describe two different periods at
+   * once.
+   */
+  series: OrderChartSeries;
+  area?: "admin" | "vendor";
 }
 
 /**
- * Trailing-12-month orders/sales chart with its side panel and drill-down
- * dialogs. Filtering and the totals below it are derived from the same server
- * payload, so switching the range or the orders/sales tab never refetches.
+ * Orders/sales chart with its side panel and drill-down dialogs. The totals
+ * below it are derived from the same payload, so switching the orders/sales
+ * tab never refetches.
  *
  * Rendered by the admin and the vendor dashboards; `area` only picks where its
  * links lead.
  */
 export function DashboardOrdersChart({
-  data,
+  series,
   area = "admin",
-}: {
-  data: OrderChartPoint[];
-  area?: "admin" | "vendor";
-}) {
+}: DashboardOrdersChartProps) {
   const t = useTranslations();
+  const label = useFallbackTranslator(t);
   const intlLocale = useLocale();
   const params = useParams<{ locale: string }>();
   const locale = params?.locale || intlLocale || "en";
   const { formatPrice } = useCurrency();
   const links = AREA_LINKS[area];
   const [view, setView] = React.useState<OrdersChartView>("orders");
-  const [dateRange, setDateRange] = React.useState<AppliedDateRange>(() =>
-    getInitialDateRange(data),
-  );
   const [highlightsOpen, setHighlightsOpen] = React.useState(false);
   const [salesDataOpen, setSalesDataOpen] = React.useState(false);
 
@@ -142,31 +164,30 @@ export function DashboardOrdersChart({
     notation: "compact",
     maximumFractionDigits: 1,
   });
-  const monthFormatter = new Intl.DateTimeFormat(locale, {
-    month: "short",
+  const { granularity } = series;
+  const axisFormatter = new Intl.DateTimeFormat(locale, {
+    ...BUCKET_FORMATS[granularity].axis,
     timeZone: "UTC",
   });
-  const monthYearFormatter = new Intl.DateTimeFormat(locale, {
+  const rowFormatter = new Intl.DateTimeFormat(locale, {
+    ...BUCKET_FORMATS[granularity].row,
+    timeZone: "UTC",
+  });
+
+  const periodLabel = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
     month: "short",
     year: "numeric",
     timeZone: "UTC",
-  });
+  }).formatRange(new Date(series.from), new Date(series.to));
 
-  // A month is in the range when any day of it is, so a range starting on the
-  // 15th still shows that month instead of silently dropping it.
-  const filteredData = data.filter((entry) => {
-    const monthStart = startOfDay(new Date(entry.year, entry.monthIndex, 1));
-    const monthEnd = startOfDay(new Date(entry.year, entry.monthIndex + 1, 0));
-    return monthStart <= dateRange.to && monthEnd >= dateRange.from;
-  });
-
-  const chartData = filteredData.map((entry) => ({
-    month: monthFormatter.format(new Date(Date.UTC(entry.year, entry.monthIndex, 1))),
+  const chartData = series.points.map((entry) => ({
+    month: axisFormatter.format(new Date(entry.start)),
     inStore: view === "orders" ? entry.inStoreOrders : entry.inStoreSales,
     online: view === "orders" ? entry.onlineOrders : entry.onlineSales,
   }));
 
-  const totals = filteredData.reduce(
+  const totals = series.points.reduce(
     (acc, entry) => {
       acc.orders += entry.inStoreOrders + entry.onlineOrders;
       acc.sales += entry.inStoreSales + entry.onlineSales;
@@ -210,19 +231,23 @@ export function DashboardOrdersChart({
     <>
       <section className="overflow-hidden rounded-sm border-none bg-card shadow-sm">
         <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
-            {view === "orders"
-              ? t("admin.dashboardPage.ordersTitle")
-              : t("admin.dashboardPage.sales")}
-          </h2>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              {view === "orders"
+                ? t("admin.dashboardPage.ordersTitle")
+                : t("admin.dashboardPage.sales")}
+            </h2>
+            {/* The period is chosen at the top of the page; this only says
+                what the bars are, so nobody has to guess what one bar means. */}
+            <p className="truncate text-xs text-muted-foreground">
+              {label(
+                `admin.dashboardPage.granularity.${granularity}`,
+                GRANULARITY_FALLBACK[granularity],
+              )}{" "}
+              · {periodLabel}
+            </p>
+          </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <DateRangePicker
-              value={dateRange}
-              onApply={setDateRange}
-              locale={locale}
-              cancelLabel={t("common.cancel")}
-              applyLabel={t("common.apply")}
-            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -478,15 +503,17 @@ export function DashboardOrdersChart({
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t("admin.dashboardPage.showSalesData")}</DialogTitle>
-            <DialogDescription>
-              {formatAppliedDateRange(dateRange, locale)}
-            </DialogDescription>
+            <DialogDescription>{periodLabel}</DialogDescription>
           </DialogHeader>
           <div className="max-h-[420px] overflow-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-muted/70">
                 <tr className="border-b text-left">
-                  <th className="px-3 py-2 font-medium">{t("common.month")}</th>
+                  <th className="px-3 py-2 font-medium">
+                    {granularity === "month"
+                      ? t("common.month")
+                      : label("admin.dashboardPage.period.title", "Period")}
+                  </th>
                   <th className="px-3 py-2 font-medium">
                     {t("admin.dashboardPage.stats.inStore")}{" "}
                     {t("admin.dashboardPage.ordersTitle")}
@@ -506,12 +533,10 @@ export function DashboardOrdersChart({
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((entry) => (
-                  <tr key={`${entry.year}-${entry.monthIndex}`} className="border-b">
+                {series.points.map((entry) => (
+                  <tr key={entry.start} className="border-b">
                     <td className="px-3 py-2">
-                      {monthYearFormatter.format(
-                        new Date(Date.UTC(entry.year, entry.monthIndex, 1)),
-                      )}
+                      {rowFormatter.format(new Date(entry.start))}
                     </td>
                     <td className="px-3 py-2">
                       {numberFormatter.format(entry.inStoreOrders)}

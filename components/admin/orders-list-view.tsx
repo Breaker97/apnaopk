@@ -83,6 +83,7 @@ function parseOrderListParams(searchParams: SearchParams) {
     status: read("status") ?? "all",
     paymentStatus: read("paymentStatus") ?? "all",
     channel: read("channel") ?? "all",
+    date: read("date"),
     sortBy: read("sortBy") ?? "createdAt",
     sortOrder: read("sortOrder") === "asc" ? ("asc" as const) : ("desc" as const),
   };

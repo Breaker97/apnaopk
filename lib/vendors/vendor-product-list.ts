@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import { Product } from "@/models";
 import { connectDB } from "@/lib/db";
+import { lowStockProductMatch } from "@/lib/inventory/low-stock";
 import {
   countForQuery,
   listResult,
@@ -45,6 +46,10 @@ interface VendorProductListParams {
   limit: number;
   search?: string;
   status?: string;
+  /** Only products low on stock (lib/inventory/low-stock.ts): the business app's list. */
+  lowStock?: boolean;
+  /** Further conditions every product must meet: the business app's category, brand and collection filters. */
+  narrowing?: Record<string, unknown>[];
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -55,7 +60,7 @@ export async function fetchVendorProductList(
 ): Promise<ListResult<unknown>> {
   await connectDB();
 
-  const { page, limit, search, status, sortBy, sortOrder } = params;
+  const { page, limit, search, status, lowStock, narrowing, sortBy, sortOrder } = params;
   const query: Record<string, unknown> = { vendorId };
 
   // `search` arrives regex-escaped from SafeSearchSchema.
@@ -66,6 +71,8 @@ export async function fetchVendorProductList(
     ];
   }
   if (status && status !== "all") query.status = status;
+  const and = [...(lowStock ? [lowStockProductMatch()] : []), ...(narrowing ?? [])];
+  if (and.length) query.$and = and;
 
   const sort = resolveListSort({
     sortBy,

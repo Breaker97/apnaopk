@@ -1,6 +1,11 @@
 import type { Settings } from "./types";
 import { isPlainObject } from "@/lib/utils";
 import { CREDENTIAL_FIELD_PATHS } from "@/lib/settings/credential-fields";
+import {
+  pickPreorderRules,
+  STORE_PREORDER_KEYS,
+  VENDOR_PREORDER_KEYS,
+} from "./preorder-rule-keys";
 
 /**
  * Dirty tracking for the settings form: a section counts as changed when its
@@ -77,8 +82,24 @@ export function getComparableSection(section: string, settings: Settings): unkno
       physicalProducts: settings.catalog?.physicalProducts,
       digitalProducts: settings.catalog?.digitalProducts,
       priceOnRequest: settings.catalog?.priceOnRequest,
-      preorders: settings.preorder?.enabled,
+      preorder: pickPreorderRules(settings.preorder, STORE_PREORDER_KEYS),
     };
+  }
+
+  // Multi-Vendor Mode edits the vendor half of `preorder`; the other half is
+  // Settings → Products' (preorder-rule-keys.ts).
+  if (section === "preorder") {
+    return pickPreorderRules(settings.preorder, VENDOR_PREORDER_KEYS);
+  }
+
+  // `orders.commission` is edited in Vendors → Configuration only; Order
+  // Settings shows it and links there. Each page watches its own half.
+  if (section === "orders") {
+    const { commission, ...orders } = settings.orders ?? {};
+    return orders;
+  }
+  if (section === "vendorCommission") {
+    return settings.orders?.commission;
   }
 
   if (section === "security") {

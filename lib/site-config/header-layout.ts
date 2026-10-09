@@ -1,3 +1,4 @@
+import { normalizeLocalizedSetting, type LocalizedSetting } from "@/lib/i18n/localized-setting";
 /**
  * The Header Studio layout tree — the Figma "row / column / item" model.
  *
@@ -332,6 +333,7 @@ export interface HeaderNavItem extends HeaderItemBase {
 export interface HeaderSearchBarItem extends HeaderItemBase {
   type: "searchBar";
   placeholder: string;
+  placeholderTranslations?: LocalizedSetting;
   roundness: number;
   borderThickness: number;
   height: number;
@@ -919,7 +921,8 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         id,
         type,
         padding: padding(0),
-        placeholder: "Search products...",
+        placeholder: "",
+        placeholderTranslations: {},
         roundness: 999,
         borderThickness: 1,
         height: 40,
@@ -1152,6 +1155,7 @@ function normalizeItem(value: unknown): HeaderLayoutItem | null {
         type: "searchBar",
         padding: pad,
         placeholder: readString(value.placeholder, base.placeholder).slice(0, 120),
+        placeholderTranslations: normalizeLocalizedSetting(value.placeholderTranslations),
         roundness: readNumber(value.roundness, base.roundness, 0, 999, 2),
         borderThickness: readNumber(value.borderThickness, base.borderThickness, 0, 8, 2),
         height: readNumber(value.height, base.height, 24, 96, 2),

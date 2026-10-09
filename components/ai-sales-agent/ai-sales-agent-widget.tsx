@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/toast-notification";
 import { useCartActions } from "@/hooks/use-cart";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
-import { trackAddToCart } from "@/lib/analytics/events";
+import { metaContentId, trackAddToCart } from "@/lib/analytics/events";
 import type {
   AISalesChatAction,
   AISalesChatMessage,
@@ -273,6 +273,7 @@ export function AISalesAgentWidget({
         items: [
           {
             item_id: action.productId,
+            meta_id: metaContentId(action.productId, action.variantId),
             item_name: product?.name ?? action.label,
             item_variant: action.variantId,
             price: product?.price ?? 0,

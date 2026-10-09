@@ -66,6 +66,7 @@ import {
 import { ImageUploadField } from "@/components/admin/settings/fields/image-upload-field";
 import { MegaPromoSlots } from "@/components/admin/menus/menu-form/promo-slot-field";
 import { cn } from "@/lib/utils";
+import { foldForSlug } from "@/lib/strings";
 import {
   LOCATION_OPTIONS,
   MEGA_PROMO_MODES,
@@ -295,8 +296,7 @@ export function MenuSettingsPanel({
           onChange={(event) =>
             setForm((previous) => ({
               ...previous,
-              handle: event.target.value
-                .toLowerCase()
+              handle: foldForSlug(event.target.value)
                 .replace(/\s+/g, "-")
                 .replace(/[^a-z0-9-]/g, ""),
             }))

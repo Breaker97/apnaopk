@@ -73,6 +73,11 @@ interface PreorderBalanceOrder {
   preorderPaidSoFar?: number;
   /** ISO day the unpaid balance is cancelled and refunded on. */
   preorderBalanceDeadline?: string;
+  /**
+   * The earliest moment the saved card may be charged automatically, once the
+   * advance notice window has passed. Absent when no charge is scheduled.
+   */
+  preorderAutoChargeAt?: string;
   /** How the order was meant to be paid — the pay-link card offers its retry. */
   paymentMethod?: string;
   total: number;
@@ -133,6 +138,20 @@ export function PreorderBalanceCard({
           // `formatPreorderReleaseDate`.
           timeZone: "UTC",
         }).format(deadline)
+      : null;
+
+  const autoChargeAt = order.preorderAutoChargeAt
+    ? new Date(order.preorderAutoChargeAt)
+    : null;
+  const autoChargeLabel =
+    autoChargeAt && !Number.isNaN(autoChargeAt.getTime())
+      ? new Intl.DateTimeFormat(locale, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(autoChargeAt)
       : null;
 
   // Everything that differs between the two flows, in one place. The routes
@@ -567,6 +586,17 @@ export function PreorderBalanceCard({
                 "orders.preorderBalance.deadline",
                 "Pay by {date}, or we will cancel the pre-order and refund what you have paid.",
                 { date: deadlineLabel },
+              )}
+            </p>
+          ) : null}
+          {/* The saved card is charged on or after the end of the notice the
+              shopper was sent — the daily job may run later, never earlier. */}
+          {autoChargeLabel && !payingWholeOrder ? (
+            <p className="text-xs text-muted-foreground">
+              {tf(
+                "orders.preorderBalance.autoCharge",
+                "As you authorised, we will charge your saved card on or after {date} unless you pay first.",
+                { date: autoChargeLabel },
               )}
             </p>
           ) : null}

@@ -2,16 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { NumberInput } from "@/components/ui/number-input";
 import {
   MAX_RETURN_WINDOW_DAYS,
   MIN_RETURN_WINDOW_DAYS,
 } from "@/lib/returns/return-policy";
 import { MAX_RETURN_WINDOW_OVERRIDES } from "@/lib/returns/return-window";
+import { SettingBlock } from "./setting-row";
 
 type CollectionOption = { _id: string; title: string };
 type Override = { collectionId: string; windowDays: number };
@@ -77,26 +77,29 @@ export function ReturnWindowOverridesField({
   const full = value.length >= MAX_RETURN_WINDOW_OVERRIDES;
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="returnWindowOverrides">
-        {t("admin.settings.orders.windowOverrides")}
-      </Label>
+    <SettingBlock
+      inputId="returnWindowOverrides"
+      label={t("admin.settings.orders.windowOverrides")}
+      hint={t("admin.settings.orders.windowOverridesHint")}
+    >
       {value.length > 0 ? (
-        <div className="divide-y rounded-md border">
-          {value.map((entry) => (
-            <div
-              key={entry.collectionId}
-              className="flex items-center justify-between gap-3 px-3 py-2"
-            >
-              <span className="min-w-0 truncate text-sm">
-                {titles[entry.collectionId] ||
-                  (listComplete
-                    ? t("admin.settings.orders.finalSaleCollectionMissing")
-                    : t("admin.settings.orders.finalSaleCollectionUnnamed"))}
-              </span>
-              <div className="flex shrink-0 items-center gap-2">
+        <div className="space-y-2">
+          {value.map((entry) => {
+            const title =
+              titles[entry.collectionId] ||
+              (listComplete
+                ? t("admin.settings.orders.finalSaleCollectionMissing")
+                : t("admin.settings.orders.finalSaleCollectionUnnamed"));
+            return (
+              <div
+                key={entry.collectionId}
+                className="bg-muted/30 flex items-center gap-2 rounded-lg border py-1.5 ps-3.5 pe-1.5"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {title}
+                </span>
                 <NumberInput
-                  aria-label={t("admin.settings.orders.windowOverrideDays")}
+                  aria-label={`${title}: ${t("admin.settings.orders.windowOverrideDays")}`}
                   className="h-8 w-20"
                   min={MIN_RETURN_WINDOW_DAYS}
                   max={MAX_RETURN_WINDOW_DAYS}
@@ -113,15 +116,15 @@ export function ReturnWindowOverridesField({
                     )
                   }
                 />
-                <span className="text-sm text-muted-foreground">
+                <span className="text-muted-foreground text-sm">
                   {t("admin.settings.orders.windowOverrideDaysUnit")}
                 </span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
-                  aria-label={t("admin.settings.orders.windowOverrideRemove")}
+                  className="size-8"
+                  aria-label={`${t("admin.settings.orders.windowOverrideRemove")}: ${title}`}
                   onClick={() =>
                     onChange(value.filter((row) => row.collectionId !== entry.collectionId))
                   }
@@ -129,20 +132,25 @@ export function ReturnWindowOverridesField({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
       <div
-        className="relative"
+        className="relative w-full @md:w-72"
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
             window.setTimeout(() => setOpen(false), 150);
           }
         }}
       >
+        <Plus
+          aria-hidden
+          className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
+        />
         <Input
           id="returnWindowOverrides"
+          className="ps-9"
           value={query}
           disabled={full}
           placeholder={t("admin.settings.orders.windowOverridesSearch")}
@@ -180,9 +188,6 @@ export function ReturnWindowOverridesField({
           </div>
         ) : null}
       </div>
-      <p className="text-sm text-muted-foreground">
-        {t("admin.settings.orders.windowOverridesHint")}
-      </p>
-    </div>
+    </SettingBlock>
   );
 }

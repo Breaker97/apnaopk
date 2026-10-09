@@ -1,5 +1,7 @@
 import type { CredentialEnvSources } from "@/lib/settings/credentials";
 import type { CredentialMetaMap } from "@/lib/settings/credential-fields";
+import type { SettingsSaveWarning } from "@/lib/settings/save-warnings";
+import type { StoreProfileProblem } from "@/lib/inventory/store-profile";
 import type { CountryAvailability } from "@/lib/intl/country-availability";
 import type { NotificationSettings } from "@/lib/notifications/notification-settings";
 import type {
@@ -183,6 +185,25 @@ export interface Settings {
      * into Google/Meta is the one the server will actually send.
      */
     authBaseUrl?: string;
+    /** Whether the server holds the VAPID keys browser push needs (env only). */
+    webPush?: { configured: boolean };
+    /**
+     * On a save's answer only: what the save could not do although the
+     * settings were stored (lib/settings/save-warnings.ts).
+     */
+    saveWarnings?: SettingsSaveWarning[];
+    /**
+     * The house store profile does not exist (a store installed without demo
+     * data before 2.4.1). Saving General creates it; see
+     * lib/settings/store-profile-status.ts.
+     */
+    storeProfileMissing?: boolean;
+    /**
+     * Why it is missing, when it is: `missing` (Save makes it), `no_owner`
+     * (every admin owns a store) or `needs_review` (an older profile probably
+     * exists; the house-profile migration picks it).
+     */
+    storeProfileProblem?: StoreProfileProblem;
   };
   email: {
     enabled: boolean;
@@ -415,6 +436,47 @@ export interface Settings {
     countdownEndsAt?: string;
     allowedIPs?: string[];
   };
+  /** Settings → Mobile app. `biz` is reserved and never written. */
+  mobileApp?: {
+    shop?: {
+      enabled?: boolean;
+      scheme?: string;
+      ios?: {
+        bundleId?: string;
+        teamId?: string;
+        appStoreUrl?: string;
+        minVersion?: string;
+        latestVersion?: string;
+      };
+      android?: {
+        packageName?: string;
+        sha256CertFingerprints?: string[];
+        playStoreUrl?: string;
+        minVersion?: string;
+        latestVersion?: string;
+      };
+      allowDigitalPurchases?: boolean;
+      // A secret: typed here, never received; what is stored shows through
+      // `_meta.credentials`. null = Remove.
+      expoAccessToken?: string | null;
+    };
+    biz?: {
+      enabled?: boolean;
+      scheme?: string;
+      ios?: {
+        bundleId?: string;
+        appStoreUrl?: string;
+        minVersion?: string;
+        latestVersion?: string;
+      };
+      android?: {
+        packageName?: string;
+        playStoreUrl?: string;
+        minVersion?: string;
+        latestVersion?: string;
+      };
+    };
+  };
   security: {
     emailVerificationRequired: boolean;
     emailVerificationForVendors: boolean;
@@ -467,7 +529,6 @@ export interface Settings {
     };
     checkout?: {
       paymentMethods: ("cash" | "card" | "manual" | "bank")[];
-      offlinePaymentsEnabled: boolean;
     };
     orders?: {
       orderNumberPrefix: string;
@@ -499,6 +560,8 @@ export interface Settings {
     expiryGraceDays: number;
     autoRelease: boolean;
     autoReleaseDelayDays: number;
+    /** Advance notice before an automatic balance charge, in hours (1–168). */
+    balanceChargeNoticeHours: number;
     reservePercent: number;
     reserveDays: number;
   };
@@ -509,6 +572,18 @@ export interface Settings {
     requiredDocuments: string[];
     defaultPlanId?: string;
     paymentMethods?: PlatformPaymentMethodToggles;
+    /** Absent on a store saved before the switch existed; reads as on. */
+    showQuoteContactToVendors?: boolean;
+    /** Absent on a store saved before the switch existed; reads as on. */
+    showAbandonedCheckoutsToVendors?: boolean;
+    /** Vendors' own offers on abandoned checkouts; absent reads as off. */
+    abandonedOffers?: {
+      enabled?: boolean;
+      automatic?: boolean;
+      maxPercent?: number;
+      maxPerVendorPerDay?: number;
+      maxValidDays?: number;
+    };
   };
   boosting: {
     enabled: boolean;

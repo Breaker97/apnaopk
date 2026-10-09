@@ -195,4 +195,9 @@ export interface VendorTabProps {
   form: VendorFormValues;
   setField: SetVendorField;
   readOnly?: boolean;
+  /**
+   * The saved address country the store's country policy replaced when the
+   * vendor loaded. The country field says what saving will change.
+   */
+  replacedAddressCountry?: string;
 }

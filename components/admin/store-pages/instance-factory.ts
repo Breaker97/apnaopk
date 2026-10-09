@@ -22,6 +22,8 @@ function fieldDefault(field: Field): unknown {
     case "image":
     case "url":
     case "collection":
+    case "category":
+    case "brand":
     case "product":
     case "color":
     case "slider":
@@ -29,6 +31,8 @@ function fieldDefault(field: Field): unknown {
       return field.default ?? "";
     case "productList":
     case "categoryList":
+    case "vendorList":
+    case "reviewList":
     case "slides":
       return [];
     case "background":

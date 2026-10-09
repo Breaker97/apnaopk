@@ -93,17 +93,11 @@ export const GET = withApi<{ id: string }>(
     }
 
     const settings = await getSettingsLean();
-    const customer =
-      order.customerId && typeof order.customerId === "object"
-        ? (order.customerId as { name?: string })
-        : null;
-    const customerName =
-      customer?.name || order.shippingAddress?.fullName || "Customer";
-    const pdfBuffer = await generateOrderInvoicePdf(
-      order,
-      settings,
-      customerName,
-    );
+    // Bill to is the invoice builder's: the customer, the delivery name, or
+    // for a walk-in (filed under its cashier) nobody. Naming the populated
+    // customer here printed the cashier's name and email on the invoice the
+    // terminal opens right after every walk-in sale.
+    const pdfBuffer = await generateOrderInvoicePdf(order, settings);
     const disposition =
       request.nextUrl.searchParams.get("disposition") === "inline"
         ? "inline"

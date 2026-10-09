@@ -12,7 +12,6 @@ import { resolveVendorCommission } from "@/lib/vendors/vendor-commission";
 import {
   VENDOR_APPLICATION_PAYMENT_STATUS,
   VENDOR_APPLICATION_STATUS,
-  VENDOR_BILLING_INTERVAL,
   VENDOR_PAYMENT_INVITATION,
   VENDOR_STATUS,
   VENDOR_SUBSCRIPTION_STATUS,
@@ -23,7 +22,10 @@ import {
   supersededStripeAssignmentFilter,
   supersededStripeAssignmentPatch,
 } from "@/lib/vendors/vendor-subscriptions";
-import { draftExcessProducts } from "@/lib/vendors/vendor-limits";
+import {
+  assignFreeVendorPlan,
+  isPaidVendorPlan,
+} from "@/lib/vendors/vendor-plan-assignment";
 import {
   assertVendorBillingReady,
   resolveVendorBillingProviders,
@@ -62,13 +64,6 @@ async function assertPlansEnabled() {
     throw new NotFoundError("Vendor plans");
   }
   return settings;
-}
-
-function paidPlan(plan: { billingInterval?: string; price?: number }) {
-  return (
-    plan.billingInterval !== VENDOR_BILLING_INTERVAL.NONE &&
-    Number(plan.price ?? 0) > 0
-  );
 }
 
 /** A plan as `toObject()` hands it over, possibly merged with synced Stripe fields. */
@@ -381,7 +376,7 @@ export const POST = withApi<RouteParams>(
       );
     }
 
-    if (paidPlan(plan)) {
+    if (isPaidVendorPlan(plan)) {
       // Any enabled subscription gateway may collect the first period.
       assertVendorBillingReady(settings);
       const staged = await stageInitialPaidAssignment({
@@ -409,31 +404,18 @@ export const POST = withApi<RouteParams>(
       );
     }
 
-    if (current) {
-      current.status = VENDOR_SUBSCRIPTION_STATUS.CANCELLED;
-      current.occupiesActiveSlot = false;
-      await current.save();
-    }
     const before = vendor.toObject();
-    vendor.commission = resolveVendorCommission(vendor, plan, settings);
-    // The plan states the rate now; a store-default sweep must not touch it.
-    vendor.commissionSource = "plan";
-    vendor.planId = plan._id;
-    vendor.storeActive = true;
-    await vendor.save();
-    const subscription = await VendorSubscription.create(
-      buildSubscriptionForPlan(vendor._id, plan, session.user.id, {
-        activationMode:
-          body.activationMode === "auto" || body.activationMode === "manual"
-            ? body.activationMode
-            : undefined,
-        storeCurrency: settings.general?.defaultCurrency,
-      }),
-    );
-    const draftResult = await draftExcessProducts(
-      vendor._id,
-      plan.limits?.products ?? null,
-    );
+    const { subscription, draftedProducts } = await assignFreeVendorPlan({
+      vendor,
+      plan,
+      current,
+      actorId: session.user.id,
+      settings,
+      activationMode:
+        body.activationMode === "auto" || body.activationMode === "manual"
+          ? body.activationMode
+          : undefined,
+    });
     await auditUpdate(
       createAuditContext(request, session),
       "vendor",
@@ -445,7 +427,7 @@ export const POST = withApi<RouteParams>(
       {
         subscription,
         vendor: vendor.toObject(),
-        draftedProducts: draftResult.drafted,
+        draftedProducts,
       },
       "Free plan assigned",
       201,

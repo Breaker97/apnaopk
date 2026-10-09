@@ -12,6 +12,7 @@ import {
   buildStaffOrderScopeFilter,
   mergeScopeFilter,
 } from "@/lib/access/staff-scope";
+import { audit, createAuditContext } from "@/lib/audit";
 import { sendOrderPaymentFailedEmail } from "@/lib/orders/order-payment-failed-email";
 import { orderContactEmail } from "@/lib/orders/order-contact-email";
 import {
@@ -42,7 +43,7 @@ export const POST = withApi<{ id: string }>(
     // dedupe — so the only brake on a held-down button is this.
     rateLimit: { action: "admin:order-payment-link", preset: "moderate" },
   },
-  async ({ params, session }) => {
+  async ({ request, params, session }) => {
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.EDIT_ORDERS, STAFF_PERMISSIONS.MANAGE_ORDERS],
@@ -56,7 +57,7 @@ export const POST = withApi<{ id: string }>(
       ),
     )
       .select(
-        "status paymentStatus paymentMethod channel currency total preorderOutstandingAmount storeCredit customerId guestEmail customerLocale items.vendorId subOrders.vendorId",
+        "orderNumber status paymentStatus paymentMethod channel currency total preorderOutstandingAmount storeCredit customerId guestEmail customerLocale items.vendorId subOrders.vendorId",
       )
       .lean<
         | (PayableOrder & {
@@ -75,7 +76,8 @@ export const POST = withApi<{ id: string }>(
         "This order has nothing left to pay, so there is no payment link to send.",
       );
     }
-    if (!(await orderContactEmail(order))) {
+    const recipient = await orderContactEmail(order);
+    if (!recipient) {
       throw new ValidationError(
         "This order has no email address to send a payment link to.",
       );
@@ -95,6 +97,27 @@ export const POST = withApi<{ id: string }>(
         "The payment link could not be sent. Check the store's email settings.",
       );
     }
+
+    // Who it went to and for how much — never the link itself, which pays the
+    // order for whoever holds it.
+    const amountDue = getOrderPayAmountDue(order);
+    await audit(createAuditContext(request, session), {
+      action: "UPDATE",
+      resource: "order",
+      resourceId: params.id,
+      resourceName: order.orderNumber ? `Order #${order.orderNumber}` : undefined,
+      changes: {
+        summary: `Payment link emailed to ${recipient} for ${amountDue.toFixed(2)}${
+          order.currency ? ` ${order.currency.toUpperCase()}` : ""
+        } due`,
+      },
+      metadata: {
+        channel: "email",
+        recipient,
+        amountDue,
+        currency: order.currency,
+      },
+    });
 
     return successResponse(
       { sent: true },

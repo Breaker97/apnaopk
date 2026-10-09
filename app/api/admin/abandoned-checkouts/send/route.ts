@@ -11,6 +11,13 @@ import {
 import { withApi } from "@/lib/api/handler";
 import * as z from "zod";
 import { validateOptionalBody } from "@/lib/api/validate";
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import { mergeScopeFilter } from "@/lib/access/staff-scope";
+import {
+  abandonedCheckoutScopeFilter,
+  abandonedCheckoutViewerForStaff,
+  type AbandonedCheckoutViewer,
+} from "@/lib/orders/abandoned-checkout-list";
 
 type CheckoutMailTarget = {
   _id: unknown;
@@ -59,19 +66,50 @@ async function findCheckoutMailTarget(checkoutId: string) {
   return null;
 }
 
+/**
+ * Whether the reader's list shows this checkout. A scoped staff member reaches
+ * only the snapshots in their scope; a live cart abandoned before snapshots
+ * existed carries no seller or scope to match, so it stays the store's.
+ */
+async function isWithinScope(
+  resolved: NonNullable<Awaited<ReturnType<typeof findCheckoutMailTarget>>>,
+  viewer: AbandonedCheckoutViewer,
+) {
+  const scopeFilter = abandonedCheckoutScopeFilter(viewer);
+  if (!scopeFilter) return true;
+  if (resolved.source === "cart") return false;
+  const id = (resolved.target as { _id?: unknown })._id;
+  return Boolean(
+    await AbandonedCheckout.exists(mergeScopeFilter({ _id: id }, scopeFilter)),
+  );
+}
+
 const SendCheckoutRecoverySchema = z.object({
   checkoutId: z.string().max(64).optional(),
   locale: z.string().max(10).optional(),
 });
 
+/**
+ * POST /api/admin/abandoned-checkouts/send — email a shopper their recovery
+ * link now. Staff need `manage_abandoned_checkouts`, and reach only the
+ * checkouts their own list shows: anything outside their scope answers as
+ * missing, not as forbidden, so an id cannot be used to probe for one.
+ */
 export const POST = withApi(
-  { auth: "admin" },
-  async ({ request }) => {
+  {
+    auth: "admin-or-staff",
+    staffPermissions: [STAFF_PERMISSIONS.MANAGE_ABANDONED_CHECKOUTS],
+  },
+  async ({ request, staff }) => {
+    const viewer = abandonedCheckoutViewerForStaff(staff);
     const body = await validateOptionalBody(request, SendCheckoutRecoverySchema);
     if (!body.checkoutId) throw new ValidationError("checkoutId is required");
 
     const resolved = await findCheckoutMailTarget(body.checkoutId);
     if (!resolved) return notFoundResponse("Checkout");
+    if (!(await isWithinScope(resolved, viewer))) {
+      return notFoundResponse("Checkout");
+    }
 
     const target = resolved.target as CheckoutMailTarget;
     const settings = await getSettings();

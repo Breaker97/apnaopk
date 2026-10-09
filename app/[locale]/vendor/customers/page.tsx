@@ -7,6 +7,7 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { serializeRows } from "@/lib/api/list-query";
 import { parsePageQuery } from "@/lib/api/validate";
 import { fetchVendorCustomerList } from "@/lib/customers/customer-list";
+import { customerListQueryParams } from "@/lib/customers/customer-list-query";
 import { CustomerListQuerySchema } from "@/lib/validations";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -44,7 +45,10 @@ export default async function VendorCustomersPage({
   if (!settings.multiVendorMode?.enabled) notFound();
 
   const vendor = await requireApprovedVendorByUserId(access.session.user.id);
-  const query = parsePageQuery(search, CustomerListQuerySchema);
+  const query = parsePageQuery(
+    customerListQueryParams(search),
+    CustomerListQuerySchema,
+  );
 
   return (
     <Suspense
@@ -68,7 +72,10 @@ async function VendorCustomersTable({
   vendorId: string;
   query: ReturnType<typeof parsePageQuery<typeof CustomerListQuerySchema>>;
 }) {
-  const list = await fetchVendorCustomerList(vendorId, query);
+  const list = await fetchVendorCustomerList(vendorId, {
+    ...query,
+    subscription: query.emailSubscription,
+  });
 
   return (
     <CustomersDataTable

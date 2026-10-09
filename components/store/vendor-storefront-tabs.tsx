@@ -1,23 +1,77 @@
 import Link from "@/components/language/link";
 import { cn } from "@/lib/utils";
 
-const VENDOR_TABS = ["products", "about", "shipping", "reviews"] as const;
+/**
+ * "home" is the vendor's own landing page (Vendor CMS). It exists only once
+ * the vendor has published one; until then the strip is the four tabs it
+ * always was, and Products opens first.
+ */
+const VENDOR_TABS = ["home", "products", "about", "shipping", "reviews"] as const;
 
-type VendorTab = (typeof VENDOR_TABS)[number];
+export type VendorTab = (typeof VENDOR_TABS)[number];
 
-export function normalizeVendorTab(value: unknown): VendorTab {
-  return VENDOR_TABS.includes(value as VendorTab)
-    ? (value as VendorTab)
-    : "products";
+/** The vendor may hide these from their store; never Products or Reviews. */
+export const HIDEABLE_VENDOR_TABS = ["about", "shipping"] as const;
+export type HideableVendorTab = (typeof HIDEABLE_VENDOR_TABS)[number];
+
+/**
+ * The tab the bare store URL opens on: Home when there is one and the
+ * vendor has not chosen Products, else Products.
+ */
+export function vendorLandingTab(
+  hasHome: boolean,
+  defaultTab: "home" | "products" = "home",
+): VendorTab {
+  return hasHome && defaultTab === "home" ? "home" : "products";
+}
+
+export function normalizeVendorTab(
+  value: unknown,
+  options: {
+    /** The vendor has a published landing page. */
+    hasHome?: boolean;
+    /**
+     * The URL carries product-grid params (filters, sort, page). An old link
+     * like `?category=gaming` predates the Home tab and must still land on the
+     * products it filters.
+     */
+    hasProductQuery?: boolean;
+    /** The vendor's choice of opening tab (page settings); Home by default. */
+    defaultTab?: "home" | "products";
+    /** Tabs the vendor hid; a link to one opens the landing tab instead. */
+    hidden?: readonly HideableVendorTab[];
+  } = {},
+): VendorTab {
+  const hasHome = Boolean(options.hasHome);
+  const hidden = options.hidden ?? [];
+  if (
+    VENDOR_TABS.includes(value as VendorTab) &&
+    (value !== "home" || hasHome) &&
+    !hidden.includes(value as HideableVendorTab)
+  ) {
+    return value as VendorTab;
+  }
+  return options.hasProductQuery
+    ? "products"
+    : vendorLandingTab(hasHome, options.defaultTab);
 }
 
 interface VendorStorefrontTabsProps {
   active: VendorTab;
   /** Base path for the store, e.g. `/en/vendors/haier-angie`. */
   basePath: string;
-  labels: Record<VendorTab, string>;
+  labels: Record<Exclude<VendorTab, "home">, string> & { home?: string };
   counts?: Partial<Record<VendorTab, number>>;
   locale: string;
+  /** Show the vendor's landing page as the first tab, at the bare store URL. */
+  showHome?: boolean;
+  /**
+   * The tab that owns the bare store URL; by default Home when shown, else
+   * Products, as before the vendor could choose.
+   */
+  landingTab?: VendorTab;
+  /** Tabs the vendor hid from their store. */
+  hidden?: readonly HideableVendorTab[];
 }
 
 /**
@@ -37,17 +91,29 @@ export function VendorStorefrontTabs({
   labels,
   counts,
   locale,
+  showHome = false,
+  landingTab: landingTabProp,
+  hidden = [],
 }: VendorStorefrontTabsProps) {
+  const tabs = VENDOR_TABS.filter(
+    (tab) =>
+      (tab !== "home" || showHome) &&
+      !hidden.includes(tab as HideableVendorTab),
+  );
+  // One tab owns the bare store URL: Home when there is one, else Products,
+  // exactly as before the Vendor CMS — unless the vendor chose Products.
+  const landingTab: VendorTab = landingTabProp ?? (showHome ? "home" : "products");
+
   return (
     <nav
       aria-label={labels.products}
       className="-mb-px flex gap-1 overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {VENDOR_TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = tab === active;
         const count = counts?.[tab];
-        const href =
-          tab === "products" ? basePath : `${basePath}?tab=${tab}`;
+        const href = tab === landingTab ? basePath : `${basePath}?tab=${tab}`;
+        const label = tab === "home" ? (labels.home ?? "Home") : labels[tab];
 
         return (
           <Link
@@ -62,7 +128,7 @@ export function VendorStorefrontTabs({
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
             )}
           >
-            {labels[tab]}
+            {label}
             {typeof count === "number" && count > 0 ? (
               <span
                 className={cn(

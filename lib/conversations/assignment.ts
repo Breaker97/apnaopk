@@ -5,6 +5,7 @@ import {
 import { USER_ACCOUNT_STATUS, USER_ROLES } from "@/config/app.config";
 import {
   AuthorizationError,
+  ConflictError,
   NotFoundError,
   ValidationError,
 } from "@/lib/api/errors";
@@ -229,7 +230,11 @@ export async function updateConversationAssignment(params: {
       ownerVendorId,
     });
     if (!assignees.some((candidate) => candidate.userId === targetUserId)) {
-      throw new NotFoundError("Eligible assignee");
+      // Not on the team that answers this thread, without the inbox, or no
+      // longer active. The business app hands the reason on (INBOX_REASONS).
+      throw new ConflictError("That person cannot take this conversation", {
+        reason: "ASSIGNEE_NOT_AVAILABLE",
+      });
     }
   }
 

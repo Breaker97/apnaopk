@@ -1,12 +1,7 @@
 import { PromotionBanner } from "@/components/store/sections/promotion-banner";
 import { SavedSliderLazy as SavedSlider } from "@/components/store/saved-slider-lazy";
 import { sectionEmptyState } from "@/components/store/sections/section-empty-state";
-import {
-  buildRenderSlides,
-  collectSlideProductIds,
-  type RenderSliderSlide,
-  type SlideProductInfo,
-} from "@/lib/sliders/render";
+import { loadPromotionBannerSlides } from "@/lib/storefront/section-data/promotion-banner";
 import {
   clampAutoplaySeconds,
   DEFAULT_AUTOPLAY_SECONDS,
@@ -16,11 +11,6 @@ import {
   type SliderSlide,
   type SliderTransition,
 } from "@/lib/sliders/types";
-import {
-  getProductCompareAtRange,
-  getProductPriceRange,
-} from "@/lib/products/price-display";
-import { getStorefrontProductCards } from "@/lib/products/storefront-product-cards";
 import { cn } from "@/lib/utils";
 import { lt } from "../localized";
 import type {
@@ -40,54 +30,13 @@ import type {
  * legacy path until the studio seeds their content into a first slide.
  */
 
-/** Resolve every bound product once — the same lookup section-grid runs. */
-async function resolveSlideProducts(
-  slides: SliderSlide[],
-): Promise<Map<string, SlideProductInfo>> {
-  const products = new Map<string, SlideProductInfo>();
-  const ids = collectSlideProductIds(slides);
-  if (ids.length === 0) return products;
-  try {
-    const cards = await getStorefrontProductCards({ ids, limit: ids.length });
-    for (const card of cards) {
-      if (!card.slug) continue;
-      const priceMin = getProductPriceRange(card).min;
-      const compareAtMax = getProductCompareAtRange(card)?.max;
-      products.set(String(card._id), {
-        slug: card.slug,
-        priceMin,
-        ...(compareAtMax !== undefined ? { compareAtMax } : {}),
-      });
-    }
-  } catch {
-    // Price is decoration on a promo slide; a failed lookup must not take
-    // the section — or the page — down with it.
-  }
-  return products;
-}
-
-/** Whether a slide would put anything visible on screen. */
-function slideShowsSomething(slide: RenderSliderSlide): boolean {
-  const { elements, texts } = slide;
-  return Boolean(
-    (elements.heading && texts.heading) ||
-      (elements.description && texts.description) ||
-      (elements.tagline && texts.tagline) ||
-      (elements.cta && texts.cta) ||
-      slide.price ||
-      (elements.countdown && slide.countdownEndsAt) ||
-      slide.background.type !== "solid" ||
-      slide.productImage,
-  );
-}
-
 async function RenderSlides({ settings, ctx }: SectionRenderProps) {
-  // One slide: the banner is a single placement, not a carousel. Extras a
-  // merchant saved before that rule stay in storage, unrendered.
-  const slides = (settings.slides as SliderSlide[]).slice(0, 1);
-  const products = await resolveSlideProducts(slides);
-  const renderSlides = buildRenderSlides(slides, products, { locale: ctx.locale }).filter(
-    slideShowsSomething,
+  const renderSlides = await loadPromotionBannerSlides(
+    settings.slides as SliderSlide[],
+    ctx.locale,
+    "page",
+    // On a vendor's landing page only that store's products price a slide.
+    ctx.vendor ? { vendorId: ctx.vendor.id } : {},
   );
   if (renderSlides.length === 0) {
     return sectionEmptyState(ctx, {

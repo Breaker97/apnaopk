@@ -14,6 +14,8 @@ import {
   BRAND_APPROVAL_STATUS,
 } from "@/lib/catalog/brands";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import { auditCatalogCreate, BRAND_AUDIT } from "@/lib/catalog/catalog-audit";
 import { fetchVendorBrandList } from "@/lib/vendors/vendor-brand-list";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
@@ -142,6 +144,12 @@ export const POST = withApi(
       isActive: false,
       featured: false,
     });
+
+    await auditCatalogCreate(
+      createAuditContext(request, session, { vendorId: vendor._id }),
+      BRAND_AUDIT,
+      brand,
+    );
 
     return createdResponse(brand);
   },

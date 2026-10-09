@@ -3,6 +3,8 @@ import {
   ORDER_STATUS,
   type CodCollectedBy,
 } from "@/config/app.config";
+import { ServiceUnavailableError } from "@/lib/api/errors";
+import { STORE_NOT_READY } from "@/lib/inventory/store-profile";
 import { resolveCodCollector } from "@/lib/payments/cod-collection";
 import {
   resolveShippingRevenueTo,
@@ -13,6 +15,24 @@ import { resolveDefaultVendorId } from "@/lib/vendors/multi-vendor";
 import { Vendor } from "@/models";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { quantizeToCurrency } from "@/lib/intl/money";
+
+/**
+ * An order that needs the store's own profile (every line of a single-vendor
+ * store, a vendor-less line of a marketplace) when there is none and none may
+ * be made — see `ensureDefaultVendorId`. A shopper is told the store cannot
+ * take orders right now, not shown a 500; the admin screens say why.
+ */
+export class StoreNotReadyError extends ServiceUnavailableError {
+  constructor() {
+    super(
+      "This store can't take orders right now. Please try again later.",
+      undefined,
+      STORE_NOT_READY,
+    );
+    this.name = "StoreNotReadyError";
+    this.details = { reason: STORE_NOT_READY };
+  }
+}
 
 type OrderVendorContext = {
   isMultiVendorEnabled: boolean;
@@ -131,6 +151,7 @@ export async function resolveOrderVendorContext(params: {
   const defaultVendorId = await resolveDefaultVendorId(
     params.defaultVendorOwnerUserId,
   );
+  if (!defaultVendorId) throw new StoreNotReadyError();
 
   return {
     isMultiVendorEnabled: false,
@@ -160,6 +181,7 @@ export async function resolveOrderVendorContextForItems<T>(params: {
   const defaultVendorId = await resolveDefaultVendorId(
     params.defaultVendorOwnerUserId,
   );
+  if (!defaultVendorId) throw new StoreNotReadyError();
 
   return {
     isMultiVendorEnabled: params.isMultiVendorEnabled,

@@ -58,6 +58,8 @@ function ResetPasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [isValidToken, setIsValidToken] = useState(false);
+  // An invitation sets a first password: "Set your password", not "Reset".
+  const [isInvite, setIsInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -79,9 +81,16 @@ function ResetPasswordContent() {
       }
 
       try {
-        const response = await fetch(`/api/auth/reset-password?token=${token}`);
+        // In the body, not the query string: an address is written to every
+        // access log the request passes, and the token opens the account.
+        const response = await fetch("/api/auth/reset-password/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
         const result = await response.json();
-        setIsValidToken(result.valid);
+        setIsValidToken(Boolean(result.valid));
+        setIsInvite(result.purpose === "invite");
       } catch {
         setIsValidToken(false);
       } finally {
@@ -183,10 +192,12 @@ function ResetPasswordContent() {
             <CheckCircle className="h-12 w-12 text-green-500" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            {t("auth.passwordResetSuccess")}
+            {isInvite ? t("auth.passwordSetSuccess") : t("auth.passwordResetSuccess")}
           </CardTitle>
           <CardDescription>
-            {t("auth.passwordResetSuccessDescription")}
+            {isInvite
+              ? t("auth.passwordSetSuccessDescription")
+              : t("auth.passwordResetSuccessDescription")}
           </CardDescription>
         </CardHeader>
         <CardFooter>
@@ -204,10 +215,12 @@ function ResetPasswordContent() {
     <Card className="shadow-lg">
       <CardHeader className="space-y-1 text-center">
         <CardTitle className="text-2xl font-bold">
-          {t("auth.resetPassword")}
+          {isInvite ? t("auth.setYourPassword") : t("auth.resetPassword")}
         </CardTitle>
         <CardDescription>
-          {t("auth.resetPasswordDescription")}
+          {isInvite
+            ? t("auth.setYourPasswordDescription")
+            : t("auth.resetPasswordDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -275,6 +288,8 @@ function ResetPasswordContent() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {t("common.loading")}
                 </>
+              ) : isInvite ? (
+                t("auth.setPassword")
               ) : (
                 t("auth.resetPassword")
               )}

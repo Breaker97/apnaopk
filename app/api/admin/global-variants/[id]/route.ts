@@ -9,6 +9,12 @@ import {
   normalizeGlobalVariantInput,
 } from "@/lib/catalog/global-variants";
 import { assertUnscopedStaff } from "@/lib/access/staff-authz";
+import { createAuditContext } from "@/lib/audit";
+import {
+  auditCatalogDelete,
+  auditCatalogUpdate,
+  GLOBAL_VARIANT_AUDIT,
+} from "@/lib/catalog/catalog-audit";
 
 type RouteParams = { id: string };
 
@@ -45,7 +51,7 @@ export const PUT = withApi<RouteParams>(
       STAFF_PERMISSIONS.EDIT_PRODUCTS,
     ],
   },
-  async ({ request, params, staff }) => {
+  async ({ request, params, staff, session }) => {
     assertUnscopedStaff(staff?.scope, GLOBAL_VARIANTS_PLATFORM_ONLY);
 
     const { id } = params;
@@ -54,6 +60,8 @@ export const PUT = withApi<RouteParams>(
     }
 
     const body = await request.json();
+    // As stored, for the Activity Log to compare the saved variant against.
+    const before = await GlobalVariant.findById(id).lean();
 
     // Reorder-only payload: `{ position }` without other fields.
     if (
@@ -67,6 +75,12 @@ export const PUT = withApi<RouteParams>(
         { returnDocument: "after" }
       );
       if (!reordered) return notFoundResponse("Global variant");
+      await auditCatalogUpdate(
+        createAuditContext(request, session),
+        GLOBAL_VARIANT_AUDIT,
+        before,
+        reordered,
+      );
       return successResponse(reordered);
     }
 
@@ -81,6 +95,12 @@ export const PUT = withApi<RouteParams>(
       { returnDocument: "after", runValidators: true }
     );
     if (!variant) return notFoundResponse("Global variant");
+    await auditCatalogUpdate(
+      createAuditContext(request, session),
+      GLOBAL_VARIANT_AUDIT,
+      before,
+      variant,
+    );
     return successResponse(variant);
   }
 );
@@ -98,7 +118,7 @@ export const DELETE = withApi<RouteParams>(
       STAFF_PERMISSIONS.DELETE_PRODUCTS,
     ],
   },
-  async ({ params, staff }) => {
+  async ({ request, params, staff, session }) => {
     assertUnscopedStaff(staff?.scope, GLOBAL_VARIANTS_PLATFORM_ONLY);
 
     const { id } = params;
@@ -107,6 +127,11 @@ export const DELETE = withApi<RouteParams>(
     }
     const variant = await GlobalVariant.findByIdAndDelete(id);
     if (!variant) return notFoundResponse("Global variant");
+    await auditCatalogDelete(
+      createAuditContext(request, session),
+      GLOBAL_VARIANT_AUDIT,
+      variant,
+    );
     return successResponse({ message: "Global variant deleted" });
   }
 );

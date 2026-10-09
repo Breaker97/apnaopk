@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -13,11 +18,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  SettingList,
+  SettingRow,
+  SettingSwitchItem,
+  SettingUnit,
+} from "@/components/admin/settings/fields/setting-row";
 import type { Settings } from "@/components/admin/settings/types";
 import { resolveAddressHoldSettings } from "@/lib/orders/address-hold-policy";
 
 type AddressHoldSettings = NonNullable<Settings["shipping"]["addressHold"]>;
-type TSafe = (key: string, fallback: string) => string;
+
+/** "3, 1, 3" → [1, 3]: whole days from 1, each once, in order. */
+export function parseReminderDays(text: string): number[] {
+  const days = text
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((day) => Number.isInteger(day) && day >= 1);
+  return [...new Set(days)].sort((a, b) => a - b);
+}
 
 /**
  * What happens when an order's delivery address can't be delivered to.
@@ -26,167 +45,113 @@ type TSafe = (key: string, fallback: string) => string;
  * reminded, and at the deadline the store is told or the order is cancelled
  * and refunded. Checks at checkout and after the order catch it before a
  * courier ever refuses a label.
+ *
+ * The reminders and the deadline show whatever "Ask the customer
+ * automatically" says: staff can send the request by hand from the order, and
+ * it runs on the same clock.
  */
 export function AddressHoldCard(props: {
   addressHold?: AddressHoldSettings;
-  tSafe: TSafe;
   updateField: (path: string, value: unknown) => void;
 }) {
-  const { tSafe, updateField } = props;
+  const t = useTranslations("admin.settings.shipping.addressHold");
+  const tUnits = useTranslations("admin.settings.shipping.units");
   const value = resolveAddressHoldSettings(props.addressHold);
   const set = (key: keyof AddressHoldSettings, next: unknown) =>
-    updateField(`shipping.addressHold.${key}`, next);
+    props.updateField(`shipping.addressHold.${key}`, next);
   const [reminderDraft, setReminderDraft] = useState(value.reminderDays.join(", "));
-
-  const toggle = (
-    id: keyof AddressHoldSettings,
-    label: string,
-    hint: string,
-    checked: boolean,
-  ) => (
-    <div className="flex items-start justify-between gap-4">
-      <div className="space-y-1">
-        <Label htmlFor={`address-hold-${id}`}>{label}</Label>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      </div>
-      <Switch
-        id={`address-hold-${id}`}
-        checked={checked}
-        onCheckedChange={(next) => set(id, next)}
-      />
-    </div>
-  );
+  // The text being typed shows only while it still says what the form holds,
+  // so a Discard is not hidden behind old text. Compared with the days as
+  // typed, not as resolved: a reminder past the deadline is dropped from
+  // `value`, and the box must keep showing it for the admin to correct.
+  const heldDays = props.addressHold?.reminderDays;
+  const reminderText =
+    Array.isArray(heldDays) && parseReminderDays(reminderDraft).join() === heldDays.join()
+      ? reminderDraft
+      : value.reminderDays.join(", ");
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold">
-          {tSafe("admin.settings.shipping.addressHold.title", "Undeliverable addresses")}
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          {tSafe(
-            "admin.settings.shipping.addressHold.description",
-            "When a courier can't deliver to an order's address, shipping pauses and the customer is asked to correct it.",
-          )}
-        </p>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <SettingList>
+          <SettingSwitchItem
+            title={t("suggestAtCheckout")}
+            description={t("suggestAtCheckoutHint")}
+            checked={value.suggestAtCheckout}
+            onCheckedChange={(next) => set("suggestAtCheckout", next)}
+          />
+          <SettingSwitchItem
+            title={t("checkAfterOrder")}
+            description={t("checkAfterOrderHint")}
+            checked={value.checkAfterOrder}
+            onCheckedChange={(next) => set("checkAfterOrder", next)}
+          />
+          <SettingSwitchItem
+            title={t("autoRequest")}
+            description={t("autoRequestHint")}
+            checked={value.autoRequest}
+            onCheckedChange={(next) => set("autoRequest", next)}
+          />
 
-      <div className="space-y-5 rounded-lg border p-4">
-        {toggle(
-          "suggestAtCheckout",
-          tSafe("admin.settings.shipping.addressHold.suggestAtCheckout", "Check the address at checkout"),
-          tSafe(
-            "admin.settings.shipping.addressHold.suggestAtCheckoutHint",
-            "Suggest a correction before the order is placed. The shopper can still keep what they typed. Needs a connected Shippo account.",
-          ),
-          value.suggestAtCheckout,
-        )}
-        {toggle(
-          "checkAfterOrder",
-          tSafe("admin.settings.shipping.addressHold.checkAfterOrder", "Check new orders' addresses"),
-          tSafe(
-            "admin.settings.shipping.addressHold.checkAfterOrderHint",
-            "Put an order on hold as soon as its address fails the check, instead of waiting for a courier to refuse the label.",
-          ),
-          value.checkAfterOrder,
-        )}
-        {toggle(
-          "autoRequest",
-          tSafe("admin.settings.shipping.addressHold.autoRequest", "Ask the customer automatically"),
-          tSafe(
-            "admin.settings.shipping.addressHold.autoRequestHint",
-            "Email the customer a link to correct the address the moment an order goes on hold. Off leaves it to staff.",
-          ),
-          value.autoRequest,
-        )}
-
-        <Separator />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="address-hold-reminders">
-              {tSafe("admin.settings.shipping.addressHold.reminderDays", "Remind after (days)")}
-            </Label>
+          <SettingRow
+            inputId="address-hold-reminders"
+            label={t("reminderDays")}
+            hint={t("reminderDaysHint")}
+          >
             <Input
               id="address-hold-reminders"
-              value={reminderDraft}
+              className="w-28"
+              value={reminderText}
               placeholder="1, 3"
               onChange={(event) => {
                 setReminderDraft(event.target.value);
-                const days = event.target.value
-                  .split(",")
-                  .map((part) => Number(part.trim()))
-                  .filter((day) => Number.isInteger(day) && day >= 1);
-                set("reminderDays", [...new Set(days)].sort((a, b) => a - b));
+                set("reminderDays", parseReminderDays(event.target.value));
               }}
             />
-            <p className="text-xs text-muted-foreground">
-              {tSafe(
-                "admin.settings.shipping.addressHold.reminderDaysHint",
-                "Days after the first request, separated by commas. Leave empty for no reminders.",
-              )}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="address-hold-deadline">
-              {tSafe("admin.settings.shipping.addressHold.deadlineDays", "Deadline (days)")}
-            </Label>
+            <SettingUnit>{tUnits("days")}</SettingUnit>
+          </SettingRow>
+          <SettingRow
+            inputId="address-hold-deadline"
+            label={t("deadlineDays")}
+            hint={t("deadlineDaysHint")}
+          >
             <NumberInput
               id="address-hold-deadline"
+              className="w-20"
               min={1}
               max={60}
+              step={1}
+              normalize={Math.trunc}
+              whenEmpty="keep"
               value={value.deadlineDays}
               onValueChange={(next) => set("deadlineDays", next)}
             />
-            <p className="text-xs text-muted-foreground">
-              {tSafe(
-                "admin.settings.shipping.addressHold.deadlineDaysHint",
-                "How long the customer has to answer, from the first request.",
-              )}
-            </p>
-          </div>
-        </div>
+            <SettingUnit>{tUnits("days")}</SettingUnit>
+          </SettingRow>
+          <SettingRow inputId="address-hold-on-deadline" label={t("onDeadline")}>
+            <Select value={value.onDeadline} onValueChange={(next) => set("onDeadline", next)}>
+              <SelectTrigger id="address-hold-on-deadline" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="notify">{t("onDeadlineNotify")}</SelectItem>
+                <SelectItem value="cancel">{t("onDeadlineCancel")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
 
-        <div className="space-y-2">
-          <Label htmlFor="address-hold-on-deadline">
-            {tSafe("admin.settings.shipping.addressHold.onDeadline", "When the deadline passes")}
-          </Label>
-          <Select value={value.onDeadline} onValueChange={(next) => set("onDeadline", next)}>
-            <SelectTrigger id="address-hold-on-deadline">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="notify">
-                {tSafe(
-                  "admin.settings.shipping.addressHold.onDeadlineNotify",
-                  "Tell the store and keep the order on hold",
-                )}
-              </SelectItem>
-              <SelectItem value="cancel">
-                {tSafe(
-                  "admin.settings.shipping.addressHold.onDeadlineCancel",
-                  "Cancel the order and refund it in full",
-                )}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Separator />
-
-        {toggle(
-          "keepReturnShipping",
-          tSafe(
-            "admin.settings.shipping.addressHold.keepReturnShipping",
-            "Keep return shipping when a parcel comes back",
-          ),
-          tSafe(
-            "admin.settings.shipping.addressHold.keepReturnShippingHint",
-            "When a parcel is returned to sender for a bad address, the refund offered deducts the label cost. Orders on hold never shipped, so they are always refunded in full.",
-          ),
-          value.keepReturnShipping,
-        )}
-      </div>
-    </div>
+          <SettingSwitchItem
+            title={t("keepReturnShipping")}
+            description={t("keepReturnShippingHint")}
+            checked={value.keepReturnShipping}
+            onCheckedChange={(next) => set("keepReturnShipping", next)}
+          />
+        </SettingList>
+      </CardContent>
+    </Card>
   );
 }

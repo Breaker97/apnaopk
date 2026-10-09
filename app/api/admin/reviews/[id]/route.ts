@@ -85,7 +85,11 @@ export const PATCH = withApi<{ id: string }>(
     const set: Record<string, unknown> = {};
     const unset: Record<string, ""> = {};
 
-    if (body.isApproved !== undefined) set.isApproved = body.isApproved;
+    if (body.isApproved !== undefined) {
+      set.isApproved = body.isApproved;
+      // Its author's app tells an unpublished review from one still waiting.
+      if (body.isApproved !== before.isApproved) set.moderatedAt = new Date();
+    }
     if (body.rating !== undefined) set.rating = body.rating;
     if (body.title !== undefined) set.title = body.title;
     if (body.comment !== undefined) set.comment = body.comment;

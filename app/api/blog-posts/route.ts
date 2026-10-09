@@ -11,6 +11,11 @@ import { sanitizeSearchString } from "@/lib/api/validate";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { CreateBlogPostSchema } from "@/lib/validations";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  BLOG_POST_CONTENT,
+  auditContentCreated,
+} from "@/lib/site-config/audit-content";
 import { slugify } from "@/lib/strings";
 import {
   PUBLIC_BLOG_FILTER,
@@ -126,6 +131,19 @@ export const POST = withApi(
       publishedAt,
       scheduledFor,
     });
+
+    await auditContentCreated(
+      createAuditContext(request, session),
+      BLOG_POST_CONTENT,
+      { id: String(post._id), name: post.title },
+      {
+        title: post.title,
+        slug: post.slug,
+        status: post.status,
+        visibility: post.visibility,
+      },
+      `with status ${post.status}`,
+    );
 
     revalidateBlogContent({ slugs: [post.slug] });
 

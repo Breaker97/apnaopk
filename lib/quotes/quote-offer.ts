@@ -38,7 +38,7 @@ import "server-only";
 import { connectDB } from "@/lib/db";
 import { Order, QuoteRequest } from "@/models";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
-import type { QuoteOfferState } from "@/lib/quotes/quote-status";
+import type { QuoteActorRole, QuoteOfferState } from "@/lib/quotes/quote-status";
 
 /** What a caller needs to price and attribute one quoted line. */
 export type LiveQuoteOffer = {
@@ -416,23 +416,61 @@ export async function markQuotesWon(
  * withdraws every other live offer the same shopper — by account or by the
  * email they asked with — holds for that product and variant.
  *
- * Returns how many it withdrew.
+ * Returns how many it withdrew. `by` records who sent the price that
+ * replaced them — the store or the vendor — as who withdrew them.
  */
 export async function withdrawSupersededOffers(
-  quote: {
-    _id: unknown;
-    productId?: unknown;
-    variantId?: unknown;
-    userId?: unknown;
-    email?: string | null;
-  },
+  quote: SiblingQuote,
   now: Date = new Date(),
+  by: QuoteActorRole = "admin",
 ): Promise<number> {
+  const live = await liveSiblingOffers(quote);
+  if (live.length === 0) return 0;
+
+  const result = await QuoteRequest.updateMany(
+    {
+      _id: { $in: live.map((candidate) => candidate._id) },
+      "offer.withdrawnAt": { $exists: false },
+    },
+    { $set: { "offer.withdrawnAt": now, "offer.withdrawnByRole": by } },
+  );
+  return result.modifiedCount ?? 0;
+}
+
+/**
+ * Whether the same shopper holds a live price the store sent for this
+ * product and variant on another of their quotes.
+ *
+ * A vendor's price would replace it (withdrawSupersededOffers), and the cart
+ * takes the newest price anyway — so a vendor answering a second request from
+ * the same shopper could undo a price the store set. The store's price is
+ * final, so the vendor's route refuses instead.
+ */
+export async function holdsLiveStorePrice(quote: SiblingQuote): Promise<boolean> {
+  const live = await liveSiblingOffers(quote);
+  return live.some((candidate) => candidate.offer?.offeredByRole !== "vendor");
+}
+
+type SiblingQuote = {
+  _id: unknown;
+  productId?: unknown;
+  variantId?: unknown;
+  userId?: unknown;
+  email?: string | null;
+};
+
+/**
+ * The shopper's other quotes — by account or by the email they asked with —
+ * whose price for this product and variant is live right now.
+ */
+async function liveSiblingOffers(
+  quote: SiblingQuote,
+): Promise<Array<QuoteShape & { offer?: OfferShape & { offeredByRole?: string } | null }>> {
   const owners = [
     ...(quote.userId ? [{ userId: quote.userId }] : []),
     ...(quote.email ? [{ email: quote.email }] : []),
   ];
-  if (owners.length === 0 || !quote.productId) return 0;
+  if (owners.length === 0 || !quote.productId) return [];
   await connectDB();
 
   const candidates = await QuoteRequest.find({
@@ -445,18 +483,11 @@ export async function withdrawSupersededOffers(
     "offer.withdrawnAt": { $exists: false },
   })
     .select("offer orderId")
-    .lean<QuoteShape[]>();
-  if (candidates.length === 0) return 0;
+    .lean<Array<QuoteShape & { offer?: OfferShape & { offeredByRole?: string } | null }>>();
+  if (candidates.length === 0) return [];
 
   const states = await resolveOfferStates(candidates);
-  const live = candidates
-    .filter((candidate) => states.get(String(candidate._id)) === "live")
-    .map((candidate) => candidate._id);
-  if (live.length === 0) return 0;
-
-  const result = await QuoteRequest.updateMany(
-    { _id: { $in: live }, "offer.withdrawnAt": { $exists: false } },
-    { $set: { "offer.withdrawnAt": now } },
+  return candidates.filter(
+    (candidate) => states.get(String(candidate._id)) === "live",
   );
-  return result.modifiedCount ?? 0;
 }

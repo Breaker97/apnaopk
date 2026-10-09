@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/errors";
 import { createdResponse, successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
+import { audit, createAuditContext } from "@/lib/audit";
 import {
   VENDOR_ACCESS_FIELDS,
   loadVendorAccess,
@@ -34,6 +35,13 @@ const AccessRequestSchema = z.object({
   reason: z.string().max(2000).optional(),
   duration: z.union([z.string().max(40), z.number()]).optional(),
 });
+
+/** How long the vendor asked for the access, as the audit sentence says it. */
+const ASKED_FOR: Record<VendorAccessRequestDuration, string> = {
+  permanent: "with no expiry",
+  "30d": "for 30 days",
+  "90d": "for 90 days",
+};
 
 export const GET = withApi(
   { auth: "user", rateLimit: { action: "vendor:accessRequests:list", preset: "lenient" } },
@@ -149,6 +157,26 @@ export const POST = withApi(
       reason,
       duration,
       requestedBy: session!.user.id,
+    });
+
+    // The request is about this store's permissions, so the row is about the
+    // store; the request itself (and the vendor's reason) is one id away.
+    await audit(createAuditContext(request, session!, { vendorId: vendor._id }), {
+      action: "CREATE",
+      resource: "vendor",
+      resourceId: String(vendor._id),
+      resourceName: vendor.storeName,
+      changes: {
+        summary: `Requested ${VENDOR_PACK_LABELS[pack]} access ${ASKED_FOR[duration]}`,
+      },
+      metadata: {
+        // Not `requestId`: `audit()` lets metadata overwrite that key, and it is
+        // the id that groups the rows one HTTP request wrote.
+        accessRequestId: String(created._id),
+        pack,
+        duration,
+        requestReason: reason,
+      },
     });
 
     await notifyAdminsOfAccessRequest({

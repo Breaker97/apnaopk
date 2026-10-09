@@ -16,17 +16,8 @@ import { getSettings } from "@/models/settings.model";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { validateBody, isValidObjectId } from "@/lib/api/validate";
 import { AdminUpdateOrderSchema } from "@/lib/validations";
-import {
-  ADDRESS_HOLD_SHIPPING_BLOCK,
-  isAddressHoldOpen,
-} from "@/lib/orders/address-hold-policy";
 import { auditDelete, auditUpdate, createAuditContext } from "@/lib/audit";
-import {
-  auditOrderCancelled,
-  auditOrderRefunded,
-  auditOrderStatus,
-  auditOrderStatusOverride,
-} from "@/lib/orders/audit-order";
+import { auditOrderRefunded } from "@/lib/orders/audit-order";
 import {
   reserveCancelledOrderInventory,
   restoreOrderInventory,
@@ -83,10 +74,7 @@ import {
 import { refundOrderPayment } from "@/lib/orders/order-refund";
 import { assertManualPaymentStatusChange } from "@/lib/orders/manual-payment-status";
 import { getPreorderCollectedAmount } from "@/lib/orders/order-payment-status";
-import {
-  getOrderRefundCeiling,
-  refundOrderCancellation,
-} from "@/lib/orders/preorder-cancel-refund";
+import { getOrderRefundCeiling } from "@/lib/orders/preorder-cancel-refund";
 import {
   logRefundInFlightReleaseError,
   releaseRefundInFlightWrite,
@@ -96,10 +84,6 @@ import {
   refundReconciledByWebhook,
 } from "@/lib/orders/order-refund-sync";
 import { settleRefundRecordedLate } from "@/lib/orders/refund-recorded-late";
-import {
-  getFulfillmentPaymentBlock,
-  isFulfillmentTransition,
-} from "@/lib/orders/fulfillment-payment-gate";
 import {
   DISPUTE_GATEWAY_LABEL,
   disputeGatewayForMethod,
@@ -111,11 +95,6 @@ import {
 } from "@/lib/catalog/coupons";
 import { PaymentTransaction } from "@/models/payment-transaction.model";
 import {
-  DISPATCHED_ORDER_STATUSES,
-  getOrderStatusActionByTarget,
-  shouldRestoreInventoryForStatusTransition,
-} from "@/lib/orders/order-status-workflow";
-import {
   buildOrderStatusUpdates,
   buildRollbackUnsets,
   subOrderOverrideFilter,
@@ -123,13 +102,19 @@ import {
   subOrderUpdateOptions,
   usesSubOrderArrayFilter,
 } from "@/lib/orders/order-status-apply";
-import { reconcileOrderStatus } from "@/lib/orders/order-status-reconcile";
 import type { StaffPermission } from "@/config/permissions.config";
-import { notifyOrderStatus } from "@/lib/notifications/notifications";
 import { withApi } from "@/lib/api/handler";
-import { afterResponse } from "@/lib/after-response";
-import { queueAutoShipForOrder } from "@/lib/shipping/carriers/shipment-worker";
 import { getPendingPaymentLock } from "@/lib/orders/pending-payment-lock";
+import { resolvePosSoldByName } from "@/lib/orders/pos-sold-by";
+import {
+  completeWholeOrderChange,
+  prepareWholeOrderChange,
+  settleWholeOrderChange,
+  type CancellationRefund,
+  type OrderActor,
+  type OrderRecord,
+  type WholeOrderPlan,
+} from "@/lib/orders/order-actions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -187,8 +172,9 @@ export const GET = withApi<{ id: string }>(
         .lean<{ name?: string } | null>();
       posLocationName = location?.name;
     }
+    const soldByName = await resolvePosSoldByName(order);
 
-    return successResponse({ ...order, posLocationName });
+    return successResponse({ ...order, posLocationName, soldByName });
   },
 );
 
@@ -420,6 +406,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
     assertVendorStaffMayChangeOrder(access, before);
+    const actor: OrderActor = {
+      userId: session.user.id,
+      email: session.user.email,
+      staffScope: access.staffScope,
+      vendorOwned: access.vendorOwned,
+    };
 
     // A payment status written by hand is a statement that money arrived, and
     // everything downstream believes it: the ledger posts the sale, loyalty is
@@ -468,45 +460,33 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       currentStatus === ORDER_STATUS.CANCELLED &&
       body.status !== ORDER_STATUS.CANCELLED;
 
-    if (body.status && !isOverride) {
-      const transition = getOrderStatusActionByTarget(currentStatus, body.status);
-      if (!transition) {
-        throw new ValidationError(
-          `Cannot transition order from "${currentStatus}" to "${body.status}". An admin can override this.`,
-        );
-      }
-
-      // The same payment gate a vendor meets. An order whose card payment never
-      // arrived — or that a chargeback has since refunded in full — could still
-      // be packed and shipped from here, because only the vendor route asked.
-      // An admin who knows better says so with an override.
-      if (isFulfillmentTransition(body.status)) {
-        const liveSubOrders = (before.subOrders || []).filter(
-          (sub: { status?: string }) => sub?.status !== ORDER_STATUS.CANCELLED,
-        );
-        const blocked = (liveSubOrders.length > 0 ? liveSubOrders : [null])
-          .map((sub: unknown) =>
-            getFulfillmentPaymentBlock(
-              before as Parameters<typeof getFulfillmentPaymentBlock>[0],
-              sub as Parameters<typeof getFulfillmentPaymentBlock>[1],
-            ),
-          )
-          .find(Boolean);
-        if (blocked) {
-          throw new ValidationError(`${blocked} An admin can override this.`);
+    // The status change itself — the workflow, the payment gate, the address
+    // hold, a waiting pre-order's release — is the shared order-actions
+    // module's (lib/orders/order-actions.ts), which the vendor route and the
+    // business app take too. An override skips its checks: who may override
+    // was decided above. Everything else this request writes rides in the
+    // same update below.
+    const statusChange = body.status
+      ? {
+          status: body.status,
+          trackingNumber: body.trackingNumber,
+          carrier: body.carrier,
+          cancelReason: body.cancelReason,
         }
+      : null;
+    let statusPlan: Extract<WholeOrderPlan, { kind: "write" }> | null = null;
+    if (statusChange) {
+      const plan = await prepareWholeOrderChange({
+        order: before as unknown as OrderRecord,
+        change: statusChange,
+        actor,
+        override: isOverride,
+        hasOtherChanges: hasNonStatusUpdate,
+      });
+      if (plan.kind === "released") {
+        return successResponse({ ...plan.order, outcome: plan.outcome.kind });
       }
-
-      // A courier could not deliver to the address. Marking the order shipped
-      // by hand would skip the one step that fixes that.
-      if (
-        (body.status === ORDER_STATUS.SHIPPED || body.status === ORDER_STATUS.DELIVERED) &&
-        isAddressHoldOpen(before as Parameters<typeof isAddressHoldOpen>[0])
-      ) {
-        throw new ValidationError(
-          `${ADDRESS_HOLD_SHIPPING_BLOCK} Correct or confirm it first, or an admin can override this.`,
-        );
-      }
+      statusPlan = plan;
     }
 
     if (isResurrection) {
@@ -530,12 +510,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // builder so the vendor route and carrier tracking write the same shape.
     Object.assign(
       updates,
-      buildOrderStatusUpdates({
-        status: body.status,
-        changedBy: session.user.id,
-        trackingNumber: body.trackingNumber,
-        carrier: body.carrier,
-      }),
+      statusPlan
+        ? statusPlan.updates
+        : buildOrderStatusUpdates({
+            changedBy: session.user.id,
+            trackingNumber: body.trackingNumber,
+            carrier: body.carrier,
+          }),
     );
 
     // An admin setting the order's payment state is speaking for the whole
@@ -1137,7 +1118,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // already moved money at this point, and losing the refund record would be
     // worse than the (already validated) status write.
     const statusGuard =
-      updates.status && refundAmount === 0 ? { status: before.status } : {};
+      statusPlan && refundAmount === 0 ? statusPlan.statusGuard : {};
 
     // An override replaces the protective cascade with one that reaches the
     // consignments it is correcting, and clears the timestamps of a future
@@ -1206,28 +1187,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       order.paymentStatus = PAYMENT_STATUS.REFUNDED;
     }
 
-    // The cascade above spares consignments that have shipped or overtaken the
-    // target, so on a split order the write may have landed only in part —
-    // cancelling an order in which one vendor already delivered cancels the
-    // other vendor and leaves a delivered order behind. Re-derive rather than
-    // let the order-level badge claim something its goods never did.
-    if (updates.status) {
-      const reconciled = await reconcileOrderStatus(order);
-      if (reconciled) order.status = reconciled;
-    }
-
-    // Cash on delivery is collected AT the delivery, so the order that has
-    // just been marked delivered is paid — see `settleCodOnDelivery`, which
-    // does nothing unless this really is an unpaid COD order. Ahead of the
-    // side effects below because it writes the payment status they read.
-    if (order.status === ORDER_STATUS.DELIVERED) {
-      const { settleCodOnDelivery } = await import(
-        "@/lib/orders/cod-collection"
-      );
-      if (await settleCodOnDelivery(order._id)) {
-        order.paymentStatus = PAYMENT_STATUS.PAID;
-      }
-    }
+    // The order's status re-derived from what the cascade actually left
+    // behind, and cash on delivery collected the moment it is delivered —
+    // ahead of the side effects below, which read them.
+    await settleWholeOrderChange(order as unknown as OrderRecord, {
+      statusChanged: Boolean(statusPlan),
+    });
 
     let settingsForSideEffects: Awaited<ReturnType<typeof getSettings>> | null =
       null;
@@ -1486,151 +1451,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Restore inventory when order is cancelled. The helper claims the
-    // restore atomically per sub-order, so abandoned-pending orders (no
-    // decrement ever happened) are no-ops, and orders already partly
-    // restored by a vendor cancel only restore the remaining sub-orders.
-    if (
-      body.status &&
-      shouldRestoreInventoryForStatusTransition(before.status as string, body.status)
-    ) {
-      // An override reaches consignments that had already shipped or been
-      // delivered, and by now they read `cancelled` — so the restore can no
-      // longer tell them from goods still on the shelf. Named from the order as
-      // it stood before the write: those goods are with a courier or a
-      // customer, and only a return puts them back in stock.
-      const dispatchedBefore = (
-        (before.subOrders || []) as Array<{ _id?: unknown; status?: string }>
-      )
-        .filter((sub) =>
-          DISPATCHED_ORDER_STATUSES.includes(String(sub.status || "")),
-        )
-        .map((sub) => sub._id);
-      await restoreOrderInventory(id, {
-        excludeSubOrderIds: dispatchedBefore,
-      }).catch((err) =>
-        console.error("Failed to restore inventory on admin cancel:", err),
-      );
-      await releaseOrderPreorders(id).catch((err) =>
-        console.error("Failed to release preorder quota on admin cancel:", err),
-      );
-      // Labels bought for goods that are staying put. Only ones never handed
-      // to the carrier; a parcel already on its way is beyond voiding.
-      const { voidLabelsForCancellation } = await import(
-        "@/lib/shipping/cancel-labels"
-      );
-      await voidLabelsForCancellation({ orderId: order._id }).catch((err) =>
-        console.error("Failed to void labels on admin cancel:", err),
-      );
-    }
-
-    // Cancel means refund. An admin cancelling a paid order restocked it and
-    // kept the money; only the pre-order screen ever sent anything back. The
-    // consignments this write actually cancelled are the ones owed their
-    // share — a shipped sibling survives the cascade and keeps its sale.
-    //
-    // An override included. It is the admin stating that the order did not
-    // happen the way the record says — a parcel marked delivered that never
-    // arrived — and skipping the refund there left the shopper with neither
-    // the goods nor the money.
-    let cancellationRefund:
-      | Awaited<ReturnType<typeof refundOrderCancellation>>
-      | { refunded: false; reason: string }
-      | undefined;
-    if (isCancelTransition) {
-      const wasCancelled = new Set(
-        ((before.subOrders || []) as Array<{ _id?: unknown; status?: string }>)
-          .filter((sub) => sub.status === ORDER_STATUS.CANCELLED)
-          .map((sub) => String(sub._id)),
-      );
-      cancellationRefund = await refundOrderCancellation({
-        orderId: id,
-        cancelledSubOrderIds: (
-          (order.subOrders || []) as Array<{ _id?: unknown; status?: string }>
-        )
-          .filter(
-            (sub) =>
-              sub.status === ORDER_STATUS.CANCELLED &&
-              !wasCancelled.has(String(sub._id)),
-          )
-          .map((sub) => sub._id),
-        reason: body.cancelReason?.trim() || "Order cancelled by the store",
-        actor: session.user.email || session.user.id,
-        createdBy: session.user.id,
-        auditContext: createAuditContext(request, session),
-      }).catch((err: unknown) => {
-        console.error("Failed to refund cancelled order:", err);
-        return {
-          refunded: false as const,
-          failed: true,
-          reason: "The refund could not be issued",
-        };
-      });
-    }
-
-    // Reverse coupon usage on cancellation or full refund. Read from the
-    // RECONCILED status, not from what was asked for: a cancellation that only
-    // took the un-shipped half of a split order leaves goods the customer is
-    // keeping, and the discount they used to buy them stands.
-    const movedToCancelled =
-      order.status === ORDER_STATUS.CANCELLED &&
-      before.status !== ORDER_STATUS.CANCELLED;
+    // The rest of the status change — the restock and the pre-order release
+    // on a cancel, the labels voided, the cancellation's refund, the coupon's
+    // use handed back, the shopper told, auto-shipping kicked, the status
+    // audit row — is the shared module's. A full refund hands the coupon's
+    // use back as well, whether or not the status moved: idempotent on the
+    // order's own flag, so a second pass releases nothing.
     const movedToFullyRefunded =
       (updates.paymentStatus === PAYMENT_STATUS.REFUNDED &&
         before.paymentStatus !== PAYMENT_STATUS.REFUNDED) ||
-      // Idempotent on the order's own flag, so a second pass releases nothing.
       refundCoversGoods;
-    if (movedToCancelled || movedToFullyRefunded) {
+    const auditContext = createAuditContext(request, session);
+    let cancellationRefund: CancellationRefund | undefined;
+    if (statusPlan && statusChange) {
+      ({ cancellationRefund } = await completeWholeOrderChange({
+        before: before as unknown as OrderRecord,
+        order: order as unknown as OrderRecord,
+        change: statusChange,
+        actor,
+        audit: auditContext,
+        override: isOverride ? { reason: overrideReason } : null,
+        alsoReverseCoupon: movedToFullyRefunded,
+      }));
+    } else if (movedToFullyRefunded) {
       await reverseCouponUsageForOrder(id).catch((err) =>
         console.error("Failed to reverse coupon usage:", err),
       );
-    }
-
-    // Send customer notification and matching email if status changed. Keyed
-    // by the order rather than its populated customer, which is null on a
-    // guest order — the reason guests used to hear nothing from here at all.
-    if (body.status) {
-      await notifyOrderStatus({
-        orderId: String(order._id),
-        status: body.status,
-      }).catch((err) =>
-        console.error("Failed to create order status notification:", err),
-      );
-    }
-
-    // Kick auto-shipping the moment a merchant moves an order to processing,
-    // so they see a label appear rather than waiting for the next sweep. The
-    // sweep is still what guarantees it happens — this only makes it prompt.
-    if (body.status === ORDER_STATUS.PROCESSING) {
-      afterResponse(() => queueAutoShipForOrder(id, session.user.id));
-    }
-
-    const auditContext = createAuditContext(request, session);
-
-    // Emit the meaningful events FIRST, so the timeline reads as a story
-    // ("Status changed from pending to processing", "Partial refund of 40.00
-    // issued") rather than the field-name dump auditUpdate produces.
-    if (body.status && body.status !== before.status) {
-      if (isOverride) {
-        // Its own action, never folded into an ordinary STATUS_CHANGE: the
-        // whole point of the hatch is that using it is visible afterwards.
-        await auditOrderStatusOverride(auditContext, order, {
-          from: currentStatus,
-          to: body.status,
-          reason: overrideReason,
-        });
-      } else if (body.status === ORDER_STATUS.CANCELLED) {
-        await auditOrderCancelled(auditContext, order, {
-          from: String(before.status),
-          by: "admin",
-          reason: body.cancelReason?.trim() || undefined,
-        });
-      } else {
-        await auditOrderStatus(auditContext, order, {
-          from: String(before.status),
-          to: body.status,
-        });
-      }
     }
 
     if (refundAmount > 0) {

@@ -9,6 +9,12 @@ import { CreateSliderSchema } from "@/lib/validations";
 import { normalizeSlides } from "@/lib/sliders/types";
 import { revalidateSliderContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  SLIDER_CONTENT,
+  auditContentCreated,
+  plural,
+} from "@/lib/site-config/audit-content";
 import { slugify } from "@/lib/strings";
 
 /**
@@ -29,7 +35,7 @@ export const GET = withApi({ auth: "admin" }, async ({ request }) => {
   return successResponse(items);
 });
 
-export const POST = withApi({ auth: "admin" }, async ({ request }) => {
+export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
   const body = await request.json();
   const parsed = CreateSliderSchema.safeParse(body);
   if (!parsed.success) {
@@ -45,6 +51,18 @@ export const POST = withApi({ auth: "admin" }, async ({ request }) => {
     handle,
     slides: normalizeSlides(data.slides),
   });
+  await auditContentCreated(
+    createAuditContext(request, session),
+    SLIDER_CONTENT,
+    { id: String(slider._id), name: slider.name },
+    {
+      name: slider.name,
+      handle: slider.handle,
+      isActive: slider.isActive,
+      slideCount: slider.slides.length,
+    },
+    `with ${plural(slider.slides.length, "slide")}`,
+  );
   revalidateSliderContent();
   return createdResponse(slider);
 });

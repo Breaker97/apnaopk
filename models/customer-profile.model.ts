@@ -36,6 +36,18 @@ const SmsNotificationsSchema = new Schema(
   { _id: false },
 );
 
+/**
+ * The shopper app's push topics. On by default: the phone's own permission is
+ * the first switch; these are the shopper's way out of one topic.
+ */
+const PushNotificationsSchema = new Schema(
+  {
+    orderUpdates: { type: Boolean, default: true },
+    messages: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
 const CustomerShippingAddressSchema = new Schema(
   {
     firstName: { type: String },
@@ -44,7 +56,10 @@ const CustomerShippingAddressSchema = new Schema(
     city: { type: String, required: true },
     state: { type: String },
     apartment: { type: String },
-    postalCode: { type: String, required: true },
+    // Not required, as on the account's own addresses: a country without
+    // postal codes has none, and an imported customer from one keeps their
+    // address. The forms still ask for it wherever the store requires it.
+    postalCode: { type: String },
     country: { type: String, required: true },
     phone: { type: String },
     isDefault: { type: Boolean, default: true },
@@ -235,6 +250,10 @@ const CustomerProfileSchema = new Schema<ICustomerProfile>(
     },
     smsNotifications: {
       type: SmsNotificationsSchema,
+      default: () => ({}),
+    },
+    pushNotifications: {
+      type: PushNotificationsSchema,
       default: () => ({}),
     },
 

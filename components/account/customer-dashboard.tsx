@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { signOutAndReload } from "@/lib/auth/auth-client";
 import { useCurrency } from "@/providers/currency-provider";
 import type { LoyaltyTier } from "@/types";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import type { PendingReview } from "@/lib/catalog/review-eligibility";
 import { PendingReviewsCard } from "./pending-reviews-card";
 
@@ -196,7 +197,8 @@ export function CustomerDashboard({
             {t("account.overviewDesc")}
           </p>
         </div>
-        {stats.loyaltyTier && (
+        {/* Hidden with the rest of loyalty (see `isLoyaltyEnabled`). */}
+        {isLoyaltyEnabled() && stats.loyaltyTier && (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className={tierColors[stats.loyaltyTier]}>
               <Star className="h-3 w-3 mr-1" />

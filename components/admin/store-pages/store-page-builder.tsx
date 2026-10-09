@@ -105,6 +105,11 @@ import {
   type DraftSaveResponse,
   type SaveState,
 } from "./use-draft-autosave";
+import {
+  STORE_BUILDER_SCOPES,
+  StoreBuilderScopeProvider,
+  type StoreBuilderScopeKey,
+} from "./builder-scope";
 
 /**
  * The Customize page switcher: templates, landing pages, and the chrome
@@ -130,6 +135,8 @@ export function StorePageBuilder({
   languages,
   defaultLanguage,
   demoMode,
+  scope = "admin",
+  actions,
 }: {
   locale: string;
   /** Page ref — "home", "template:<type>", or a landing page handle. */
@@ -149,9 +156,21 @@ export function StorePageBuilder({
    * refuses the writes, so the builder must not pretend otherwise.
    */
   demoMode: DemoModeState;
+  /**
+   * Whose page this builder edits — the admin's Customize screen (default)
+   * or a vendor's landing page. Picks the routes and the admin-only tools;
+   * see builder-scope.tsx.
+   */
+  scope?: StoreBuilderScopeKey;
+  /** Extra controls for the page bar, before the save state. */
+  actions?: React.ReactNode;
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  const builderScope = STORE_BUILDER_SCOPES[scope];
+  const isVendorPage = builderScope.kind === "vendor";
+  const pageEndpoint = builderScope.pageEndpoint(handle);
+  const hasLibrary = Boolean(builderScope.savedSectionsEndpoint);
 
   const isHome = handle === "home";
   const isGroup = handle.startsWith("group:");
@@ -206,6 +225,7 @@ export function StorePageBuilder({
   // lives in its own hook so its concurrency rules are unit-testable.
   const { saveState, flush, adoptServerSections } = useDraftAutosave({
     handle,
+    endpoint: pageEndpoint,
     sections,
     onSaved: (result) => {
       setIsPublished(result.isPublished);
@@ -224,7 +244,7 @@ export function StorePageBuilder({
   // ---- embedded preview ---------------------------------------------------
   // The iframe hits the preview route (sets the draft cookie, redirects to
   // the page); the bridge on the storefront side posts clicks back here.
-  const previewSrc = `/api/admin/store-pages/preview?locale=${locale}&handle=${handle}&r=${previewNonce}`;
+  const previewSrc = `${builderScope.previewEndpoint}?locale=${locale}&handle=${handle}&r=${previewNonce}`;
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -341,7 +361,13 @@ export function StorePageBuilder({
           // alone under the preview it needs no heading over it — the panel
           // already has a Content group, and a second one read as a repeat.
           compact.length > 0 &&
-          wide.every((field) => field.type === "productList" || field.type === "categoryList") ? (
+          wide.every(
+            (field) =>
+              field.type === "productList" ||
+              field.type === "categoryList" ||
+              field.type === "vendorList" ||
+              field.type === "reviewList",
+          ) ? (
             renderFields(wide, "grid")
           ) : (
             <EditorGroup
@@ -521,17 +547,19 @@ export function StorePageBuilder({
 
       if (action === "publish") {
         const result = await apiClient.post<DraftSaveResponse>(
-          `/api/admin/store-pages/${handle}/publish`,
+          `${pageEndpoint}/publish`,
         );
         setIsPublished(true);
         setHasUnpublishedChanges(result.hasUnpublishedChanges);
         toast.success(
-          tSafe("admin.storeBuilder.published", "Home page published"),
+          isVendorPage
+            ? tSafe("vendor.landingPage.published", "Landing page published")
+            : tSafe("admin.storeBuilder.published", "Home page published"),
         );
       } else {
         const result = await apiClient.post<
           DraftSaveResponse & { sections: SectionInstance[] }
-        >(`/api/admin/store-pages/${handle}/discard`);
+        >(`${pageEndpoint}/discard`);
         adoptServerSections(); // restoring is not a new edit
         setSections(result.sections);
         setHasUnpublishedChanges(false);
@@ -569,6 +597,7 @@ export function StorePageBuilder({
 
   // ---- render -------------------------------------------------------------
   return (
+    <StoreBuilderScopeProvider value={builderScope}>
     <div className="space-y-4">
       {/* The page bar — title left, page switcher / save state / preview /
           discard / publish right — one compact row pinned under the
@@ -593,6 +622,7 @@ export function StorePageBuilder({
         )}
 
         <div className="flex flex-wrap items-center gap-2">
+          {actions}
           <SaveStateBadge state={saveState} tSafe={tSafe} />
           <Button
             type="button"
@@ -620,7 +650,7 @@ export function StorePageBuilder({
             className="gap-1.5"
             onClick={() =>
               window.open(
-                `/api/admin/store-pages/preview?locale=${locale}&handle=${handle}`,
+                `${builderScope.previewEndpoint}?locale=${locale}&handle=${handle}`,
                 "_blank",
                 "noopener",
               )
@@ -679,7 +709,12 @@ export function StorePageBuilder({
 
       {!isPublished ? (
         <WarningBanner icon={AlertCircle}>
-          {isHome
+          {isVendorPage
+            ? tSafe(
+                "vendor.landingPage.unpublishedNote",
+                "Your landing page is not live yet. Shoppers see your store as it is today until you publish.",
+              )
+            : isHome
             ? tSafe(
                 "admin.storeBuilder.cutoverNote",
                 "The storefront still shows the previous home page configuration. Your first publish switches it to this builder for good.",
@@ -776,7 +811,9 @@ export function StorePageBuilder({
                       : undefined
                   }
                   duplicateDisabled={isPageFull}
-                  onSaveToLibrary={() => setSaveToLibrary(section)}
+                  onSaveToLibrary={
+                    hasLibrary ? () => setSaveToLibrary(section) : undefined
+                  }
                   onToggleVisible={() =>
                     updateSection(section.id, { visible: !section.visible })
                   }
@@ -788,7 +825,11 @@ export function StorePageBuilder({
                     )
                   }
                 >
-                  {entry?.type === "header-bar" ||
+                  {entry && builderScope.genericEditorTypes.has(entry.type) ? (
+                    /* This builder cannot run the section's own studio (it
+                       talks to routes the scope has no access to). */
+                    genericEditor(section, entry)
+                  ) : entry?.type === "header-bar" ||
                   entry?.type === "footer-bar" ? (
                     /* The bars' own settings (layout, colors, menus, widgets)
                        stay with the classic forms — deep-link instead of
@@ -1053,14 +1094,16 @@ export function StorePageBuilder({
         onDeleteRefused={refusedByDemo}
       />
 
-      <SaveSectionDialog
-        section={saveToLibrary}
-        onOpenChange={(open) => {
-          if (!open) setSaveToLibrary(null);
-        }}
-        tSafe={tSafe}
-        onSaveRefused={refusedByDemo}
-      />
+      {hasLibrary ? (
+        <SaveSectionDialog
+          section={saveToLibrary}
+          onOpenChange={(open) => {
+            if (!open) setSaveToLibrary(null);
+          }}
+          tSafe={tSafe}
+          onSaveRefused={refusedByDemo}
+        />
+      ) : null}
 
       <HistoryDialog
         open={historyOpen}
@@ -1088,12 +1131,17 @@ export function StorePageBuilder({
         title={
           confirmAction === "discard"
             ? tSafe("admin.storeBuilder.discardTitle", "Discard draft changes?")
-            : isHome
-              ? tSafe("admin.storeBuilder.publishTitle", "Publish home page?")
-              : tSafe(
-                  "admin.storeBuilder.publishPageTitle",
-                  "Publish this page?",
+            : isVendorPage
+              ? tSafe(
+                  "vendor.landingPage.publishTitle",
+                  "Publish your landing page?",
                 )
+              : isHome
+                ? tSafe("admin.storeBuilder.publishTitle", "Publish home page?")
+                : tSafe(
+                    "admin.storeBuilder.publishPageTitle",
+                    "Publish this page?",
+                  )
         }
         description={
           confirmAction === "discard"
@@ -1101,10 +1149,15 @@ export function StorePageBuilder({
                 "admin.storeBuilder.discardDescription",
                 "Your draft goes back to the last published version. This cannot be undone.",
               )
-            : tSafe(
-                "admin.storeBuilder.publishDescription",
-                "The current draft replaces what shoppers see on the storefront.",
-              )
+            : isVendorPage
+              ? tSafe(
+                  "vendor.landingPage.publishDescription",
+                  "Shoppers see it as your store's Home tab right away.",
+                )
+              : tSafe(
+                  "admin.storeBuilder.publishDescription",
+                  "The current draft replaces what shoppers see on the storefront.",
+                )
         }
         confirmText={
           confirmAction === "discard"
@@ -1118,6 +1171,7 @@ export function StorePageBuilder({
         }}
       />
     </div>
+    </StoreBuilderScopeProvider>
   );
 }
 
@@ -1236,7 +1290,8 @@ function SortableSectionRow({
   onDuplicate?: () => void;
   /** The page is at its section cap. */
   duplicateDisabled?: boolean;
-  onSaveToLibrary: () => void;
+  /** Absent when this builder has no saved-section library. */
+  onSaveToLibrary?: () => void;
   /**
    * The section's whole editor, in the row: a control given here sits
    * beside the name and the row does not open — a spacer's one number
@@ -1350,7 +1405,7 @@ function SortableSectionRow({
         ) : null}
         {/* Core sections stay: no library copies, no visibility toggle, no
             delete — the write gate refuses all three server-side anyway. */}
-        {!entry?.locked ? (
+        {!entry?.locked && onSaveToLibrary ? (
           <Button
             type="button"
             variant="ghost"

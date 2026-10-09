@@ -2,7 +2,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FinancePeriodPicker } from "@/components/admin/finance/finance-period-picker";
+import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
+import { dashboardPickerBounds } from "@/lib/finance/dashboard-finance-period";
 import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
 import { loadVendorFinance } from "@/lib/finance/vendor-page-data";
 
@@ -28,11 +29,25 @@ export default async function VendorStatementsPage({
   const { period, statements } = await loadVendorFinance({
     locale,
     searchParams: search,
+    // The dashboard's period and picker, opening on the month like the overview.
+    periods: "dashboard",
   });
+  const pickerBounds = dashboardPickerBounds(period);
 
   const t = await getTranslations({ locale });
   const label = (key: string, fallback: string) =>
     t.has(key) ? t(key) : fallback;
+
+  // A named period travels as its key and a picked one as its two days, so the
+  // file covers what the screen is showing. Days, not instants: the export
+  // route only reads `YYYY-MM-DD`.
+  const exportParams = new URLSearchParams({ type: "statement" });
+  if (period.key === "custom") {
+    exportParams.set("from", pickerBounds.from);
+    exportParams.set("to", pickerBounds.to);
+  } else {
+    exportParams.set("period", period.key);
+  }
 
   return (
     <div className="space-y-6">
@@ -54,16 +69,17 @@ export default async function VendorStatementsPage({
               dispute. Opening and closing ride in the file as rows of their
               own, so it reconciles without the screen beside it. */}
           <Button asChild variant="outline" size="sm">
-            <a
-              href={`/api/vendor/finance/export?type=statement&period=${period.key}`}
-            >
+            <a href={`/api/vendor/finance/export?${exportParams.toString()}`}>
               <Download className="h-4 w-4" />
-              {label("finance.statement.download", "Download")}
+              {label("finance.statement.export", "Export")}
             </a>
           </Button>
-          <FinancePeriodPicker period={period.key}
-          from={period.from.toISOString()}
-          to={period.to.toISOString()} book="all" showBookFilter={false} />
+          <DashboardPeriodPicker
+            period={period.key}
+            from={pickerBounds.from}
+            to={pickerBounds.to}
+            defaultPeriod="month"
+          />
         </div>
       </div>
 

@@ -7,6 +7,8 @@ import {
   GalleryHorizontalEnd,
   ImageIcon,
   ImagePlus,
+  ListOrdered,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -29,12 +31,18 @@ import type {
   BlockInstance,
   SectionCatalogEntry,
 } from "@/lib/storefront/sections/types";
+import type { CollectionProductsResult } from "@/types/product-list";
 import { BlockEditor } from "./block-editor";
+import { useStoreBuilderScope } from "./builder-scope";
+import {
+  CollectionPicksDialog,
+} from "./collection-picks-dialog";
 import {
   COLLECTION_ROW_CORNERS,
   COLLECTION_ROW_GAP_MODES,
   COLLECTION_ROW_LIMITS,
 } from "@/lib/storefront/sections/collection-rows-spacing";
+import { CollectionSelect } from "./collection-select";
 import { EditorGroup, FieldLabel } from "./field-renderer";
 import { PanelGroup } from "./editor-shell";
 import { SliderRow } from "./product-main-editor";
@@ -45,11 +53,83 @@ interface CollectionOption {
   title: string;
 }
 
+/** A row's hand-placed products, in slot order, as stored. */
+function readPicks(block: BlockInstance): string[] {
+  const value = block.settings.products;
+  return Array.isArray(value)
+    ? value.filter(
+        (id): id is string => typeof id === "string" && id.length > 0,
+      )
+    : [];
+}
+
+/** A row's card count — how many products it can have placed. */
+function readLimit(block: BlockInstance): number {
+  return typeof block.settings.limit === "number" ? block.settings.limit : 4;
+}
+
+function readCollection(block: BlockInstance): string {
+  return typeof block.settings.collection === "string"
+    ? block.settings.collection
+    : "";
+}
+
+/** Order is not part of it: moving a pick changes nothing about what exists. */
+function picksKey(collection: string, picks: string[]): string {
+  return `${collection}|${[...picks].sort().join(",")}`;
+}
+
+/**
+ * How many of a row's hand-placed products its collection no longer offers —
+ * taken out of it, no longer matching its rules, or off the online store. The
+ * store skips those and lets the collection fill the slot, so the row says so
+ * at rest instead of waiting for someone to open the dialog and notice.
+ *
+ * One small request per distinct set of picks. The row being edited in the
+ * dialog is left out until it closes: the dialog shows its own.
+ */
+function useUnavailablePicks(
+  blocks: BlockInstance[],
+  editingId: string | null,
+): (block: BlockInstance) => number {
+  const { collectionProductsEndpoint } = useStoreBuilderScope();
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const asked = useRef(new Set<string>());
+
+  useEffect(() => {
+    for (const block of blocks) {
+      if (block.id === editingId) continue;
+      const collection = readCollection(block);
+      const picks = readPicks(block);
+      if (!collection || picks.length === 0) continue;
+      const key = picksKey(collection, picks);
+      if (asked.current.has(key)) continue;
+      asked.current.add(key);
+      apiClient
+        .get<CollectionProductsResult>(collectionProductsEndpoint(collection), {
+          query: { limit: 0, picked: picks.join(",") },
+        })
+        .then((payload) => {
+          const missing = picks.length - payload.picked.length;
+          if (missing > 0) {
+            setCounts((current) => ({ ...current, [key]: missing }));
+          }
+        })
+        // Unanswered is not unavailable: the row keeps its plain count.
+        .catch(() => undefined);
+    }
+  }, [blocks, editingId, collectionProductsEndpoint]);
+
+  return (block) =>
+    counts[picksKey(readCollection(block), readPicks(block))] ?? 0;
+}
+
 /**
  * The Featured Collection ("Top Collections") inspector. The generic block
  * list stays (drag, hide, remove, Add Collection) — this editor supplies
  * what the generated fields cannot: rows labeled with the PICKED
- * collection's name, and the feature slot as one control that takes either
+ * collection's name, the products placed on the row by hand (that
+ * collection's only), and the feature slot as one control that takes either
  * an image upload or a saved slider, like a hero grid cell.
  */
 export function FeaturedCollectionEditor({
@@ -84,6 +164,10 @@ export function FeaturedCollectionEditor({
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  // The admin's collections and sliders by default; a vendor's builder
+  // offers the collections its products are in and its own sliders.
+  const scope = useStoreBuilderScope();
+  const { collectionsEndpoint, slidersEndpoint } = scope;
 
   // ---- data the rows need: collection names, saved sliders ----------------
   const [collections, setCollections] = useState<CollectionOption[] | null>(
@@ -94,13 +178,16 @@ export function FeaturedCollectionEditor({
     blockId: string;
     mode: "choose" | "sliders" | "image";
   } | null>(null);
+  // The row whose products are being placed by hand, if any.
+  const [picksDialog, setPicksDialog] = useState<string | null>(null);
+  const unavailablePicks = useUnavailablePicks(blocks, picksDialog);
 
   useEffect(() => {
     let cancelled = false;
     apiClient
       // paginatedResponse nests the rows: { data, pagination }, NOT an array.
       .get<{ data?: CollectionOption[] } | CollectionOption[]>(
-        "/api/admin/collections?page=1&limit=100&status=active",
+        collectionsEndpoint,
       )
       .then((payload) => {
         if (cancelled) return;
@@ -113,11 +200,11 @@ export function FeaturedCollectionEditor({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [collectionsEndpoint]);
 
   const loadSliders = () => {
     apiClient
-      .get<SliderDocument[]>("/api/admin/sliders")
+      .get<SliderDocument[]>(slidersEndpoint)
       .then((list) => {
         if (!Array.isArray(list)) return setSliders([]);
         setSliders(list.map(normalizeSliderDocument));
@@ -140,6 +227,9 @@ export function FeaturedCollectionEditor({
   const requestedIds = useRef(new Set<string>());
   useEffect(() => {
     if (collections === null) return;
+    // The lookup reads the admin's collection route; a vendor's list already
+    // carries every collection its rows can show.
+    if (scope.kind !== "admin") return;
     const known = new Set(collections.map((option) => option._id));
     const missing = blocks
       .map((block) =>
@@ -172,7 +262,7 @@ export function FeaturedCollectionEditor({
       if (Object.keys(resolved).length === 0) return;
       setExtraTitles((current) => ({ ...current, ...resolved }));
     });
-  }, [collections, blocks]);
+  }, [collections, blocks, scope.kind]);
 
   const collectionTitle = useMemo(() => {
     const byId = new Map((collections ?? []).map((c) => [c._id, c.title]));
@@ -196,6 +286,9 @@ export function FeaturedCollectionEditor({
   const str = (value: unknown) => (typeof value === "string" ? value : "");
   const dialogBlock = featureDialog
     ? blocks.find((block) => block.id === featureDialog.blockId)
+    : undefined;
+  const picksBlock = picksDialog
+    ? blocks.find((block) => block.id === picksDialog)
     : undefined;
 
   return (
@@ -302,41 +395,26 @@ export function FeaturedCollectionEditor({
                       "Collection",
                     )}
                   </FieldLabel>
-                  <NativeSelect
+                  <CollectionSelect
                     value={str(block.settings.collection)}
-                    onChange={(event) =>
-                      patchBlock(block.id, { collection: event.target.value })
-                    }
-                    disabled={collections === null}
-                    className="w-full"
-                  >
-                    <option value="">
-                      {tSafe(
-                        "admin.storeBuilder.selectCollection",
-                        "Select a collection…",
-                      )}
-                    </option>
-                    {(collections ?? []).map((option) => (
-                      <option key={option._id} value={option._id}>
-                        {option.title}
-                      </option>
-                    ))}
-                    {/* Keep a stored id selectable even off the first page,
-                        under its own name once resolved. */}
-                    {str(block.settings.collection) &&
-                    collections &&
-                    !collections.some(
-                      (option) => option._id === block.settings.collection,
-                    ) ? (
-                      <option value={str(block.settings.collection)}>
-                        {extraTitles[str(block.settings.collection)] ??
-                          str(block.settings.collection)}
-                      </option>
-                    ) : null}
-                  </NativeSelect>
+                    onChange={(collection) => {
+                      if (collection === str(block.settings.collection)) return;
+                      // Hand-placed products belong to the collection they
+                      // were picked from — another collection starts clean.
+                      patchBlock(block.id, { collection, products: [] });
+                    }}
+                    ariaLabel={tSafe(
+                      "admin.storeBuilder.fields.collection",
+                      "Collection",
+                    )}
+                    placeholder={tSafe(
+                      "admin.storeBuilder.selectCollection",
+                      "Select a collection…",
+                    )}
+                  />
                 </div>
 
-                <div className="flex items-end gap-3">
+                <div className="flex flex-wrap items-end gap-3">
                 <div className="w-24 space-y-1.5">
                   <FieldLabel>
                     {tSafe(
@@ -361,12 +439,39 @@ export function FeaturedCollectionEditor({
                     whenEmpty="keep"
                     normalize={Math.floor}
                     onValueChange={(next) => {
-                      if (next !== undefined) patchBlock(block.id, { limit: next });
+                      if (next === undefined) return;
+                      // A shelf holds no more placed products than it has
+                      // cards: the ones past the new count go, last first.
+                      const picks = readPicks(block);
+                      patchBlock(
+                        block.id,
+                        picks.length > next
+                          ? { limit: next, products: picks.slice(0, next) }
+                          : { limit: next },
+                      );
                     }}
                   />
                 </div>
 
-                <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="w-44 min-w-0 space-y-1.5">
+                  <FieldLabel>
+                    {tSafe(
+                      "admin.storeBuilder.featuredCollection.products",
+                      "Products",
+                    )}
+                  </FieldLabel>
+                  <PicksSlot
+                    picked={readPicks(block).length}
+                    limit={readLimit(block)}
+                    unavailable={unavailablePicks(block)}
+                    disabled={!readCollection(block)}
+                    tSafe={tSafe}
+                    onOpen={() => setPicksDialog(block.id)}
+                    onClear={() => patchBlock(block.id, { products: [] })}
+                  />
+                </div>
+
+                <div className="min-w-36 flex-1 space-y-1.5">
                   <FieldLabel>
                     {tSafe(
                       "admin.storeBuilder.fields.featureImage",
@@ -411,6 +516,115 @@ export function FeaturedCollectionEditor({
           onPatch={(patch) => patchBlock(dialogBlock.id, patch)}
           tSafe={tSafe}
         />
+      ) : null}
+
+      {picksBlock && readCollection(picksBlock) ? (
+        <CollectionPicksDialog
+          key={picksBlock.id}
+          collectionId={readCollection(picksBlock)}
+          collectionTitle={
+            collectionTitle(picksBlock.settings.collection) ??
+            tSafe("admin.storeBuilder.fields.collection", "Collection")
+          }
+          limit={readLimit(picksBlock)}
+          picks={readPicks(picksBlock)}
+          onChange={(products) => patchBlock(picksBlock.id, { products })}
+          onClose={() => setPicksDialog(null)}
+          tSafe={tSafe}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The products slot at rest: whether the row's cards are the collection's
+ * own, or how many were placed by hand. Like the feature slot beside it, it
+ * names the choice and opens the dialog — the row preview underneath shows
+ * the products themselves, so repeating them here would say it twice.
+ */
+function PicksSlot({
+  picked,
+  limit,
+  unavailable,
+  disabled,
+  tSafe,
+  onOpen,
+  onClear,
+}: {
+  picked: number;
+  limit: number;
+  /** Placed products the collection no longer offers — skipped by the store. */
+  unavailable: number;
+  /** No collection yet: nothing to pick from. */
+  disabled: boolean;
+  tSafe: ReturnType<typeof createTSafe>;
+  onOpen: () => void;
+  onClear: () => void;
+}) {
+  const filled = picked > 0;
+  const warn = unavailable > 0;
+  const label = warn
+    ? tSafe(
+        "admin.storeBuilder.featuredCollection.unavailable",
+        `${unavailable} not available`,
+        { count: unavailable },
+      )
+    : filled
+      ? tSafe(
+          "admin.storeBuilder.featuredCollection.chosen",
+          `${picked} of ${limit} chosen`,
+          { count: picked, total: limit },
+        )
+      : tSafe("admin.storeBuilder.featuredCollection.automatic", "Automatic");
+  const Icon = warn ? TriangleAlert : ListOrdered;
+  const tone = warn
+    ? "text-amber-600 dark:text-amber-400"
+    : filled
+      ? ""
+      : "text-muted-foreground";
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={disabled}
+        title={label}
+        aria-label={`${tSafe(
+          "admin.storeBuilder.featuredCollection.choosePicks",
+          "Choose products",
+        )}: ${label}`}
+        className={cn(
+          "flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[4px] border bg-background px-2.5 text-left text-xs transition-colors",
+          disabled
+            ? "cursor-not-allowed opacity-50"
+            : "hover:border-primary/60 hover:bg-muted/50",
+          !filled && "border-dashed",
+        )}
+      >
+        <Icon
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            warn ? tone : "text-muted-foreground",
+          )}
+        />
+        <span className={cn("min-w-0 flex-1 truncate", tone)}>{label}</span>
+      </button>
+      {filled ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClear}
+          aria-label={tSafe(
+            "admin.storeBuilder.featuredCollection.clearPicks",
+            "Back to automatic",
+          )}
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       ) : null}
     </div>
   );
@@ -551,7 +765,7 @@ function FeatureContentDialog({
 }) {
   const str = (value: unknown) => (typeof value === "string" ? value : "");
   const currentSlider = str(block.settings.slider);
-  const slidersHref = "/admin/online-store/sliders";
+  const slidersHref = useStoreBuilderScope().manageSlidersHref;
   const title =
     state.mode === "sliders"
       ? tSafe("admin.storeBuilder.sliderBlock.pickSlider", "Pick a slider")

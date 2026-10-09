@@ -17,6 +17,12 @@ import { formatMenuValidationErrors } from "@/lib/site-config/menu-validation-er
 import { MAX_MEGA_MENU_DEPTH, trimMenuTreeDepth } from "@/lib/site-config/menu-depth";
 import { revalidateMenuContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
+import { createAuditContext } from "@/lib/audit";
+import {
+  MENU_CONTENT,
+  auditContentCreated,
+  plural,
+} from "@/lib/site-config/audit-content";
 import { slugify } from "@/lib/strings";
 
 export async function GET(request: NextRequest) {
@@ -70,7 +76,7 @@ export async function GET(request: NextRequest) {
 
 export const POST = withApi(
   { auth: "admin" },
-  async ({ request }) => {
+  async ({ request, session }) => {
     const body = await request.json();
     const parsed = CreateMenuSchema.safeParse(body);
     if (!parsed.success) {
@@ -84,6 +90,20 @@ export const POST = withApi(
     const exists = await Menu.findOne({ handle });
     if (exists) handle = `${handle}-${Date.now()}`;
     const menu = await Menu.create({ ...data, handle });
+    const topLevel = Array.isArray(menu.items) ? menu.items.length : 0;
+    await auditContentCreated(
+      createAuditContext(request, session),
+      MENU_CONTENT,
+      { id: String(menu._id), name: menu.name },
+      {
+        name: menu.name,
+        handle: menu.handle,
+        location: menu.location,
+        isActive: menu.isActive,
+        topLevelLinks: topLevel,
+      },
+      `for the ${menu.location} location with ${plural(topLevel, "top-level link")}`,
+    );
     revalidateMenuContent();
     return createdResponse(menu);
   },

@@ -134,6 +134,7 @@ export default async function VendorPreordersPage({
       <PreorderBalancePolicyNotice
         autoRelease={preorderPolicy.autoRelease}
         autoReleaseDelayDays={preorderPolicy.autoReleaseDelayDays}
+        noticeHours={preorderPolicy.balanceChargeNoticeHours}
       />
       <Suspense
         fallback={

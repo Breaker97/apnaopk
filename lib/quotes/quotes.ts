@@ -18,6 +18,9 @@ import {
   isQuoteListTab,
   QUOTE_TAB_STAGES,
   QUOTE_WON_PAYMENT_STATUSES,
+  quoteOfferRole,
+  quoteOfferWithdrawnRole,
+  type QuoteActorRole,
   type QuoteOfferState,
   type QuoteRequestStatus,
   type QuoteStage,
@@ -31,9 +34,16 @@ import {
 
 /**
  * Reading side of the quote inbox: the admin Quotes page (a server component
- * that calls these directly), `/api/admin/quotes`, and the shopper's own list.
- * Filtering, scoping, the derived stage and pagination all live here rather
- * than being restated at each boundary.
+ * that calls these directly), `/api/admin/quotes`, the vendor's own Quotes
+ * page and `/api/vendor/quotes`, and the shopper's own list. Filtering,
+ * scoping, the derived stage and pagination all live here rather than being
+ * restated at each boundary.
+ *
+ * The admin and vendor readers are separate functions on purpose. The admin
+ * ones take an optional staff scope, and no scope means "every quote" — right
+ * for an admin, and exactly the leak a vendor page would cause by forgetting
+ * to pass one. The vendor ones take the vendor as a required argument and
+ * match on it before anything else runs.
  */
 
 /** The price the merchant sent back, as the tables read it. */
@@ -44,6 +54,10 @@ export type QuoteOfferRow = {
   expiresAt?: string;
   offeredAt: string;
   withdrawnAt?: string;
+  /** Whether the store or the vendor sent it; `admin` for every older offer. */
+  offeredByRole: QuoteActorRole;
+  /** Who pulled it back, when it was; `admin` for every older withdrawal. */
+  withdrawnByRole?: QuoteActorRole;
 };
 
 /** A row of the shopper's own list at /account/quotes. */
@@ -85,10 +99,15 @@ export type AdminQuoteOrder = {
   createdAt?: string;
 };
 
-/** A row of the admin Quotes table. */
+/**
+ * A row of the Quotes table — the admin's, and the vendor's, which is the same
+ * row with what the vendor may not see left out by the query itself.
+ */
 export type AdminQuoteRow = {
   _id: string;
   productId: string;
+  /** The seller whose product it is, as the quote recorded it. */
+  vendorId?: string;
   productName: string;
   productSlug?: string;
   variantId?: string;
@@ -96,15 +115,29 @@ export type AdminQuoteRow = {
   /** What the shopper asked for. */
   quantity: number;
   name: string;
-  email: string;
+  /** Absent on a vendor's row while the store hides contact details. */
+  email?: string;
   phone?: string;
+  /**
+   * True on a vendor's row when the store hides the shopper's email and phone
+   * from vendors (Vendors → Configuration). The fields are not in the row at
+   * all — they never left the database.
+   */
+  contactHidden?: boolean;
   company?: string;
   message?: string;
   /** Set when the request belongs to an account; guests leave it empty. */
   userId?: string;
   /** The stored status. Only `lost` still means anything to the page. */
   status: QuoteRequestStatus;
+  /** Who closed it as lost, while it is; `admin` when not recorded. */
+  lostByRole?: QuoteActorRole;
   stage: QuoteStage;
+  /**
+   * The store has priced this quote at some point, so its price is the
+   * store's — see `quotePricedByAdmin`.
+   */
+  pricedByAdmin: boolean;
   offer?: QuoteOfferRow;
   /** Unit price × quantity of the current offer; null without one. */
   offerTotal: number | null;
@@ -129,7 +162,10 @@ export type AdminQuoteDetail = AdminQuoteRow & {
    * shopper held for this product and variant, now withdrawn in its favour.
    */
   replacedOffers?: number;
+  /** The store's own note. Never in the vendor's copy. */
   adminNote?: string;
+  /** The vendor's own note; the store reads it, only the vendor writes it. */
+  vendorNote?: string;
   /** Earlier offers, oldest first. */
   offerHistory: QuoteOfferRow[];
   productInfo: {
@@ -180,8 +216,66 @@ function aggregateScopeFilter(
   };
 }
 
+/**
+ * The one vendor's quotes, and nothing else — the filter every vendor read
+ * and write starts from. An id that is not an ObjectId matches nothing rather
+ * than falling through to an unfiltered query.
+ */
+export function buildVendorQuoteFilter(
+  vendorId: string | Types.ObjectId,
+): Record<string, unknown> {
+  const id = String(vendorId);
+  return Types.ObjectId.isValid(id)
+    ? { vendorId: new Types.ObjectId(id) }
+    : { _id: { $exists: false } };
+}
+
+/** What a vendor's view of its quotes is allowed to carry. */
+export type VendorQuoteView = {
+  vendorId: string | Types.ObjectId;
+  /** The store's switch: may vendors see the shopper's email and phone? */
+  showContact: boolean;
+};
+
 const NUMBER_TYPES = ["double", "int", "long", "decimal"];
 const HAS_OFFER = { $in: [{ $type: "$offer.unitPrice" }, NUMBER_TYPES] };
+
+/** An offer the store sent, or pulled back (absent roles read as the store). */
+function storeActedOn(path: string) {
+  return {
+    $or: [
+      { $ne: [`${path}.offeredByRole`, "vendor"] },
+      {
+        $and: [
+          { $ne: [{ $ifNull: [`${path}.withdrawnAt`, null] }, null] },
+          { $ne: [`${path}.withdrawnByRole`, "vendor"] },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * `quotePricedByAdmin`, in the database: any offer, current or earlier, the
+ * store sent or withdrew. The list drops `offerHistory` from what it returns,
+ * so the answer is worked out before that.
+ */
+const PRICED_BY_ADMIN = {
+  $or: [
+    { $and: [HAS_OFFER, storeActedOn("$offer")] },
+    {
+      $anyElementTrue: [
+        {
+          $map: {
+            input: { $ifNull: ["$offerHistory", []] },
+            as: "earlier",
+            in: storeActedOn("$$earlier"),
+          },
+        },
+      ],
+    },
+  ],
+};
 
 /**
  * The order an offer was spent on, joined as `boundOrder` with only the
@@ -281,6 +375,7 @@ function deriveStages(now: Date): PipelineStage[] {
       $addFields: {
         stage: quoteStageExpression(now),
         offerTotal: OFFER_TOTAL,
+        pricedByAdmin: PRICED_BY_ADMIN,
       },
     },
   ];
@@ -290,9 +385,29 @@ function deriveStages(now: Date): PipelineStage[] {
 const LIST_PROJECTION = {
   offerHistory: 0,
   adminNote: 0,
+  vendorNote: 0,
   conversationId: 0,
   "offer.offeredBy": 0,
 };
+
+/** What no reader of one quote is handed: who on the team sent each price. */
+const DETAIL_PROJECTION = {
+  conversationId: 0,
+  "offer.offeredBy": 0,
+  "offerHistory.offeredBy": 0,
+};
+
+/**
+ * What a vendor never receives: the store's own note, and — while the store
+ * hides them — the shopper's email and phone. Projected out in the query, so
+ * no serializer downstream can hand them on.
+ */
+function vendorHiddenFields(showContact: boolean): Record<string, 0> {
+  return {
+    adminNote: 0,
+    ...(showContact ? {} : { email: 0, phone: 0 }),
+  };
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -303,10 +418,19 @@ const REQUESTED_WINDOWS: Record<string, number> = {
   "90d": 90,
 };
 
+/**
+ * The list's filters, ANDed with whose quotes they are (`owner`: a staff
+ * scope's vendors, or the one vendor).
+ *
+ * `searchContact` is off for a vendor the store hides contact details from:
+ * a search that still matched on email or phone would let them confirm an
+ * address one guess at a time, without ever being shown it.
+ */
 function buildQuoteMatch(
   searchParams: URLSearchParams,
-  scope: StaffAccessScope | null | undefined,
+  owner: Record<string, unknown>,
   now: Date,
+  options: { searchContact: boolean } = { searchContact: true },
 ): Record<string, unknown> {
   const conditions: Record<string, unknown>[] = [];
 
@@ -316,9 +440,8 @@ function buildQuoteMatch(
     conditions.push({
       $or: [
         { name: term },
-        { email: term },
+        ...(options.searchContact ? [{ email: term }, { phone: term }] : []),
         { company: term },
-        { phone: term },
         { productName: term },
         { variantName: term },
       ],
@@ -339,7 +462,7 @@ function buildQuoteMatch(
   if (customer === "guest") conditions.push({ userId: null });
 
   const match = conditions.length > 0 ? { $and: conditions } : {};
-  return mergeScopeFilter(match, aggregateScopeFilter(scope));
+  return mergeScopeFilter(match, owner);
 }
 
 type LeanQuoteVariant = {
@@ -422,17 +545,62 @@ async function loadQuoteProducts(
   return new Map(products.map((product) => [String(product._id), product]));
 }
 
+/** An offer as the tables read it, with who sent it spelled out. */
+function toOfferRow(offer: unknown): QuoteOfferRow | undefined {
+  if (!offer || typeof offer !== "object") return undefined;
+  const raw = offer as Parameters<typeof quoteOfferWithdrawnRole>[0];
+  const withdrawnBy = quoteOfferWithdrawnRole(raw);
+  return {
+    ...serializeRows<Omit<QuoteOfferRow, "offeredByRole" | "withdrawnByRole">>(raw),
+    offeredByRole: quoteOfferRole(raw) ?? "admin",
+    ...(withdrawnBy ? { withdrawnByRole: withdrawnBy } : {}),
+  };
+}
+
 function toAdminRow(
   row: RawQuoteRow,
   product: LeanQuoteProduct | undefined,
+  options: { contactHidden?: boolean } = {},
 ): AdminQuoteRow {
   const variantId = row.variantId ? String(row.variantId) : undefined;
-  const { boundOrder, ...rest } = row;
+  const { boundOrder, offer, lostByRole, ...rest } = row;
   return {
-    ...serializeRows<Omit<AdminQuoteRow, "order" | "lot" | "productImage">>(rest),
+    ...serializeRows<
+      Omit<
+        AdminQuoteRow,
+        "order" | "lot" | "productImage" | "offer" | "lostByRole" | "pricedByAdmin"
+      >
+    >(rest),
+    offer: toOfferRow(offer),
+    pricedByAdmin: row.pricedByAdmin === true,
+    ...(row.status === "lost"
+      ? { lostByRole: lostByRole === "vendor" ? "vendor" : "admin" }
+      : {}),
+    ...(options.contactHidden ? { contactHidden: true } : {}),
     order: toOrderSummary(boundOrder),
     productImage: quoteProductImage(product, variantId),
     lot: quoteLotLimit(product ?? null, variantId),
+  };
+}
+
+/** Who a list or a detail read is for, and what it may carry. */
+type QuoteReader = {
+  /** Whose quotes: a staff scope's vendors, the one vendor, or `{}` for all. */
+  owner: Record<string, unknown>;
+  /** Fields projected out on top of the reader's usual ones. */
+  hidden: Record<string, 0>;
+  contactHidden: boolean;
+};
+
+function adminReader(scope?: StaffAccessScope | null): QuoteReader {
+  return { owner: aggregateScopeFilter(scope), hidden: {}, contactHidden: false };
+}
+
+function vendorReader(view: VendorQuoteView): QuoteReader {
+  return {
+    owner: buildVendorQuoteFilter(view.vendorId),
+    hidden: vendorHiddenFields(view.showContact),
+    contactHidden: !view.showContact,
   };
 }
 
@@ -448,6 +616,25 @@ export async function fetchAdminQuoteList(
   searchParams: URLSearchParams,
   context: { staffScope?: StaffAccessScope | null } = {},
 ): Promise<ListResult<AdminQuoteRow>> {
+  return listQuotes(searchParams, adminReader(context.staffScope));
+}
+
+/**
+ * The vendor's Quotes table: the same list, of this vendor's quotes only,
+ * without the store's note and — while the store hides them — without the
+ * shopper's email and phone, which the search then does not match on either.
+ */
+export async function fetchVendorQuoteList(
+  searchParams: URLSearchParams,
+  view: VendorQuoteView,
+): Promise<ListResult<AdminQuoteRow>> {
+  return listQuotes(searchParams, vendorReader(view));
+}
+
+async function listQuotes(
+  searchParams: URLSearchParams,
+  reader: QuoteReader,
+): Promise<ListResult<AdminQuoteRow>> {
   await connectDB();
 
   const now = new Date();
@@ -461,7 +648,10 @@ export async function fetchAdminQuoteList(
     searchParams.get("sortBy") === "offerTotal" ? "offerTotal" : "createdAt";
   const direction = searchParams.get("sortOrder") === "asc" ? 1 : -1;
   const sort: Record<string, 1 | -1> = { [sortField]: direction, _id: direction };
-  const match = buildQuoteMatch(searchParams, context.staffScope, now);
+  const match = buildQuoteMatch(searchParams, reader.owner, now, {
+    searchContact: !reader.contactHidden,
+  });
+  const projection = { ...LIST_PROJECTION, ...reader.hidden };
 
   let rows: RawQuoteRow[];
   let total: number;
@@ -476,7 +666,7 @@ export async function fetchAdminQuoteList(
         { $skip: skip },
         { $limit: limit },
         ...deriveStages(now),
-        { $project: LIST_PROJECTION },
+        { $project: projection },
       ]),
       QuoteRequest.countDocuments(match),
     ]);
@@ -496,7 +686,7 @@ export async function fetchAdminQuoteList(
             { $sort: sort },
             { $skip: skip },
             { $limit: limit },
-            { $project: LIST_PROJECTION },
+            { $project: projection },
           ],
           total: [{ $count: "n" }],
         },
@@ -508,7 +698,9 @@ export async function fetchAdminQuoteList(
 
   const products = await loadQuoteProducts(rows);
   const items = rows.map((row) =>
-    toAdminRow(row, products.get(String(row.productId ?? ""))),
+    toAdminRow(row, products.get(String(row.productId ?? "")), {
+      contactHidden: reader.contactHidden,
+    }),
   );
 
   return listResult(items, page, limit, total);
@@ -518,9 +710,21 @@ export async function fetchAdminQuoteList(
 export async function fetchAdminQuoteStats(
   scope?: StaffAccessScope | null,
 ): Promise<AdminQuoteStats> {
+  return quoteStats(aggregateScopeFilter(scope));
+}
+
+/** The same counters, over one vendor's quotes. */
+export async function fetchVendorQuoteStats(
+  vendorId: string | Types.ObjectId,
+): Promise<AdminQuoteStats> {
+  return quoteStats(buildVendorQuoteFilter(vendorId));
+}
+
+async function quoteStats(
+  scopeFilter: Record<string, unknown>,
+): Promise<AdminQuoteStats> {
   await connectDB();
 
-  const scopeFilter = aggregateScopeFilter(scope);
   const groups = await QuoteRequest.aggregate<{
     _id: QuoteStage;
     count: number;
@@ -560,38 +764,53 @@ export async function fetchAdminQuoteDetail(
   id: string,
   scope?: StaffAccessScope | null,
 ): Promise<AdminQuoteDetail | null> {
+  return quoteDetail(id, adminReader(scope));
+}
+
+/**
+ * One of this vendor's quotes. Another vendor's id reads as no quote at all —
+ * null, which the routes answer with a 404 — exactly as a made-up one does.
+ */
+export async function fetchVendorQuoteDetail(
+  id: string,
+  view: VendorQuoteView,
+): Promise<AdminQuoteDetail | null> {
+  return quoteDetail(id, vendorReader(view));
+}
+
+async function quoteDetail(
+  id: string,
+  reader: QuoteReader,
+): Promise<AdminQuoteDetail | null> {
   if (!Types.ObjectId.isValid(id)) return null;
   await connectDB();
 
-  const match = mergeScopeFilter(
-    { _id: new Types.ObjectId(id) },
-    aggregateScopeFilter(scope),
-  );
+  const match = mergeScopeFilter({ _id: new Types.ObjectId(id) }, reader.owner);
   const [row] = await QuoteRequest.aggregate<RawQuoteRow>([
     { $match: match },
     ...deriveStages(new Date()),
-    {
-      $project: {
-        conversationId: 0,
-        "offer.offeredBy": 0,
-        "offerHistory.offeredBy": 0,
-      },
-    },
+    { $project: { ...DETAIL_PROJECTION, ...reader.hidden } },
   ]);
   if (!row) return null;
 
   const products = await loadQuoteProducts([row]);
   const product = products.get(String(row.productId ?? ""));
-  const base = toAdminRow(row, product);
-  const extras = serializeRows<{
-    adminNote?: string;
-    offerHistory?: QuoteOfferRow[];
-  }>({ adminNote: row.adminNote, offerHistory: row.offerHistory });
+  const { adminNote, vendorNote, offerHistory, ...rest } = row;
+  const base = toAdminRow(rest as RawQuoteRow, product, {
+    contactHidden: reader.contactHidden,
+  });
+  const notes = serializeRows<{ adminNote?: string; vendorNote?: string }>({
+    adminNote,
+    vendorNote,
+  });
 
   return {
     ...base,
-    adminNote: extras.adminNote,
-    offerHistory: extras.offerHistory ?? [],
+    adminNote: notes.adminNote,
+    vendorNote: notes.vendorNote,
+    offerHistory: Array.isArray(offerHistory)
+      ? offerHistory.flatMap((offer) => toOfferRow(offer) ?? [])
+      : [],
     productInfo: {
       exists: Boolean(product),
       status: product?.status,
@@ -612,22 +831,27 @@ export async function fetchAdminQuoteDetail(
  * Same rows the merchant works from, minus the parts that are none of the
  * shopper's business: the internal note is never selected, so it cannot leak
  * through a serializer that spreads whatever it was handed. Capped rather than
- * paginated — a shopper with more than fifty open quotes is not a page-two
- * problem, and the list is a follow-up tool, not a report.
+ * paginated on the website — a shopper with more than fifty open quotes is
+ * not a page-two problem, and the list is a follow-up tool, not a report. The
+ * shopper app pages it by `after`, a condition on `createdAt` and `_id` (the
+ * order it is sorted in).
  */
 export async function fetchCustomerQuotes(
   userId: string,
   limit = 50,
+  options: { after?: Record<string, unknown> } = {},
 ): Promise<QuoteRequestRow[]> {
   await connectDB();
 
   // The offer's fields one by one, so who on the store's team sent it
   // (`offer.offeredBy`) stays off the shopper's page.
-  const items = await QuoteRequest.find({ userId })
+  const items = await QuoteRequest.find(
+    options.after ? { $and: [{ userId }, options.after] } : { userId },
+  )
     .select(
       "productId productName productSlug variantId variantName quantity name email phone company message status offer.unitPrice offer.quantity offer.note offer.expiresAt offer.offeredAt offer.withdrawnAt orderId createdAt updatedAt",
     )
-    .sort({ createdAt: -1 })
+    .sort({ createdAt: -1, _id: -1 })
     .limit(limit)
     .lean();
 

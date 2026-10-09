@@ -1,10 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
+import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import type {
   CustomerHeaderData,
   CustomerStatus,
@@ -17,6 +19,8 @@ interface CustomerDetailHeaderProps {
   loading?: boolean;
   /** Skeletonize only the KPI values. Defaults to `loading`. */
   statsLoading?: boolean;
+  /** Buttons for the right of the identity row — the account email, today. */
+  actions?: ReactNode;
 }
 
 function getInitials(name?: string) {
@@ -97,10 +101,14 @@ export function CustomerDetailHeader({
   data,
   loading = false,
   statsLoading,
+  actions,
 }: CustomerDetailHeaderProps) {
   const { formatPrice } = useCurrency();
   const status = STATUS_META[data.status] ?? STATUS_META.active;
   const tier = TIER_META[data.loyaltyTier] ?? TIER_META.bronze;
+  // The tier badge and the points cell hide with the rest of loyalty (see
+  // `isLoyaltyEnabled`), and the KPI row closes up to four cells.
+  const loyaltyEnabled = isLoyaltyEnabled();
   const stats = data.stats || {};
   const kpiLoading = statsLoading ?? loading;
 
@@ -128,12 +136,14 @@ export function CustomerDetailHeader({
                   <h2 className="truncate text-xl font-semibold">
                     {data.name || "Unknown customer"}
                   </h2>
-                  <Badge
-                    variant="secondary"
-                    className={cn("font-medium", tier.className)}
-                  >
-                    {tier.label}
-                  </Badge>
+                  {loyaltyEnabled && (
+                    <Badge
+                      variant="secondary"
+                      className={cn("font-medium", tier.className)}
+                    >
+                      {tier.label}
+                    </Badge>
+                  )}
                   <Badge variant={status.variant} className="gap-1.5">
                     <span
                       className={cn("h-1.5 w-1.5 rounded-full", status.dot)}
@@ -148,9 +158,17 @@ export function CustomerDetailHeader({
             )}
           </div>
         </div>
+        {actions && !loading ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-2 divide-x divide-y border-t sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0">
+      <div
+        className={cn(
+          "grid grid-cols-2 divide-x divide-y border-t lg:divide-y-0",
+          loyaltyEnabled ? "sm:grid-cols-3 lg:grid-cols-5" : "lg:grid-cols-4",
+        )}
+      >
         <KpiCell
           label="Total spent"
           value={formatPrice(stats.totalSpent ?? 0)}
@@ -171,11 +189,13 @@ export function CustomerDetailHeader({
           value={formatRelative(stats.lastOrderDate)}
           loading={kpiLoading}
         />
-        <KpiCell
-          label="Loyalty points"
-          value={(data.loyaltyPoints ?? 0).toLocaleString()}
-          loading={kpiLoading}
-        />
+        {loyaltyEnabled && (
+          <KpiCell
+            label="Loyalty points"
+            value={(data.loyaltyPoints ?? 0).toLocaleString()}
+            loading={kpiLoading}
+          />
+        )}
       </div>
     </div>
   );

@@ -275,8 +275,8 @@ export async function importSampleCatalog(
   );
 
   // Products carry `productSource: "admin"` because the house vendor now owns
-  // them: `findDefaultVendorCandidate` reads that provenance to identify the
-  // house store when the `isDefault` flag is ever lost.
+  // them: the house-profile migration reads that provenance to point out an
+  // admin-owned store that is probably the house, should its flag be lost.
   //
   // Country of origin is checked against THIS store's policy rather than
   // trusted from the snapshot. The wizard never narrows it, so on a fresh

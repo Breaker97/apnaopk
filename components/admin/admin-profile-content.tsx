@@ -234,7 +234,11 @@ export function AdminProfileContent({
             ...(allowEmailEdit ? { email } : {}),
             phone: data.phone,
             birthday: data.birthday,
-            gender: data.gender,
+            // "No answer" is null: the profile route takes male, female, other
+            // or null, and refused the empty string, so an admin who left
+            // gender unpicked could not save their phone or birthday (the
+            // storefront's profile form had the same fix, 959389d5).
+            gender: data.gender || null,
           },
         );
       } catch (error) {

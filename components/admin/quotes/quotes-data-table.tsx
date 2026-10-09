@@ -41,9 +41,12 @@ import { QuoteOfferDialog } from "./quote-offer-dialog";
 import {
   formatQuoteDate,
   GuestChip,
+  QuoteOfferBy,
   QuoteProductThumb,
   QuoteStageBadge,
+  quoteMovesFor,
   useLotMessage,
+  type QuoteScope,
 } from "./quote-ui";
 import { useQuoteActions } from "./use-quote-actions";
 
@@ -56,6 +59,11 @@ import { useQuoteActions } from "./use-quote-actions";
  *
  * This table does not fetch: the page's server component reads the query
  * string, and every control here is a navigation (see useListNavigation).
+ *
+ * The vendor's Quotes page draws the same table over its own quotes
+ * (`scope="vendor"`): its sheet and dialog talk to the vendor's routes, its
+ * links go to the vendor's orders, and its moves are the ones the store has
+ * left the vendor (see `quoteMovesFor`).
  */
 
 interface QuotesDataTableProps {
@@ -66,8 +74,12 @@ interface QuotesDataTableProps {
     total: number;
     totalPages: number;
   };
-  /** False for staff who may look but not answer (no manage-orders grant). */
+  /**
+   * False for staff who may look but not answer (no manage-orders grant), and
+   * for a vendor's seat that may view orders but not change them.
+   */
   canManage: boolean;
+  scope?: QuoteScope;
 }
 
 const FILTER_IDS = ["requested", "customer"];
@@ -89,6 +101,7 @@ export function QuotesDataTable({
   data,
   pagination,
   canManage,
+  scope = "admin",
 }: QuotesDataTableProps) {
   const t = useTranslations("admin.quotesPage");
   const tRoot = useTranslations();
@@ -132,7 +145,10 @@ export function QuotesDataTable({
     setSheetVersion((version) => version + 1);
   }, [refetch]);
 
-  const { markLost, reopen, withdraw, remove } = useQuoteActions(afterWrite);
+  const { markLost, reopen, withdraw, remove } = useQuoteActions(
+    afterWrite,
+    scope,
+  );
 
   const openSheet = useCallback((row: AdminQuoteRow) => {
     setSheet({ id: row._id, open: true });
@@ -190,7 +206,7 @@ export function QuotesDataTable({
           return row.order ? (
             <>
               <Link
-                href={`/admin/orders/${row.order._id}`}
+                href={`/${scope}/orders/${row.order._id}`}
                 className="font-medium text-primary hover:underline"
                 onClick={(event) => event.stopPropagation()}
               >
@@ -210,7 +226,7 @@ export function QuotesDataTable({
           return null;
       }
     },
-    [t, tRoot],
+    [scope, t, tRoot],
   );
 
   const columns = useMemo<DataTableColumn<AdminQuoteRow>[]>(
@@ -245,9 +261,15 @@ export function QuotesDataTable({
               </span>
               {row.userId ? null : <GuestChip />}
             </div>
-            <div className="truncate text-muted-foreground" title={row.email}>
-              {row.email}
-            </div>
+            {row.contactHidden ? (
+              <div className="truncate italic text-muted-foreground">
+                {t("table.contactHidden")}
+              </div>
+            ) : (
+              <div className="truncate text-muted-foreground" title={row.email}>
+                {row.email}
+              </div>
+            )}
             <div className="text-muted-foreground min-[1400px]:hidden">
               <DateCell date={row.createdAt} format="relative" />
             </div>
@@ -310,8 +332,11 @@ export function QuotesDataTable({
               >
                 {formatPrice(row.offerTotal ?? 0)}
               </div>
-              <div className="text-muted-foreground tabular-nums">
-                {row.offer.quantity} × {formatPrice(row.offer.unitPrice)}
+              <div className="flex items-center justify-end gap-1.5 text-muted-foreground tabular-nums">
+                <QuoteOfferBy role={row.offer.offeredByRole} />
+                <span>
+                  {row.offer.quantity} × {formatPrice(row.offer.unitPrice)}
+                </span>
               </div>
               {lotProblem ? (
                 <div
@@ -353,12 +378,7 @@ export function QuotesDataTable({
   const rowActions = useCallback(
     (row: AdminQuoteRow): DataTableAction[] => {
       const onOrder = row.stage === "ordered" || row.stage === "won";
-      const open =
-        row.stage === "needs_reply" ||
-        row.stage === "offer_sent" ||
-        row.stage === "expired";
-      const canReopen =
-        row.stage === "closed" && row.status === "lost" && !row.offer?.withdrawnAt;
+      const moves = quoteMovesFor(scope, row);
       const actions: DataTableAction[] = [
         {
           id: "view",
@@ -368,7 +388,7 @@ export function QuotesDataTable({
         },
       ];
 
-      if (canManage && (open || (row.stage === "closed" && row.offer && !canReopen))) {
+      if (canManage && moves.canSendPrice) {
         actions.push({
           id: "send-price",
           label: row.offer ? t("actions.sendNewPrice") : t("actions.sendPrice"),
@@ -376,7 +396,7 @@ export function QuotesDataTable({
           onClick: () => openOffer(row._id),
         });
       }
-      if (canManage && canReopen) {
+      if (canManage && moves.canReopen) {
         actions.push({
           id: "reopen",
           label: t("actions.reopen"),
@@ -384,7 +404,7 @@ export function QuotesDataTable({
           onClick: () => void reopen(row),
         });
       }
-      if (canManage && row.stage === "offer_sent") {
+      if (canManage && moves.canWithdraw) {
         actions.push({
           id: "withdraw",
           label: t("actions.withdraw"),
@@ -397,17 +417,19 @@ export function QuotesDataTable({
           id: "open-order",
           label: t("actions.openOrder"),
           icon: <ExternalLink className="h-4 w-4" />,
-          href: `/admin/orders/${row.order._id}`,
+          href: `/${scope}/orders/${row.order._id}`,
         });
       }
-      actions.push({
-        id: "email",
-        label: t("actions.email"),
-        icon: <Mail className="h-4 w-4" />,
-        onClick: () => {
-          window.location.href = `mailto:${row.email}`;
-        },
-      });
+      if (row.email) {
+        actions.push({
+          id: "email",
+          label: t("actions.email"),
+          icon: <Mail className="h-4 w-4" />,
+          onClick: () => {
+            window.location.href = `mailto:${row.email}`;
+          },
+        });
+      }
       if (row.phone) {
         actions.push({
           id: "call",
@@ -418,7 +440,7 @@ export function QuotesDataTable({
           },
         });
       }
-      if (canManage && open) {
+      if (canManage && moves.canMarkLost) {
         actions.push({
           id: "mark-lost",
           label: t("actions.markLost"),
@@ -426,7 +448,7 @@ export function QuotesDataTable({
           onClick: () => void markLost(row),
         });
       }
-      if (canManage) {
+      if (canManage && moves.canDelete) {
         actions.push({
           id: "delete",
           label: tRoot("common.delete"),
@@ -439,7 +461,18 @@ export function QuotesDataTable({
       }
       return actions;
     },
-    [canManage, markLost, openOffer, openSheet, remove, reopen, t, tRoot, withdraw],
+    [
+      canManage,
+      markLost,
+      openOffer,
+      openSheet,
+      remove,
+      reopen,
+      scope,
+      t,
+      tRoot,
+      withdraw,
+    ],
   );
 
   const tabs = useMemo<DataTableTab[]>(
@@ -604,6 +637,7 @@ export function QuotesDataTable({
         open={Boolean(sheet?.open)}
         onOpenChange={handleSheetOpenChange}
         canManage={canManage}
+        scope={scope}
         version={sheetVersion}
         onAction={handleSheetAction}
       />
@@ -616,6 +650,7 @@ export function QuotesDataTable({
           open={offer.open}
           onOpenChange={handleOfferOpenChange}
           onSaved={afterWrite}
+          scope={scope}
         />
       ) : null}
     </>

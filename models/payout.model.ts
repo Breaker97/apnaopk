@@ -90,7 +90,7 @@ const PayoutSchema = new Schema(
      */
     overpaymentRecovered: {
       type: Number,
-      min: 0,
+      validate: Number.isFinite,
     },
     /**
      * Commission the vendor owed on sales they took the money for themselves —
@@ -210,6 +210,20 @@ const PayoutSchema = new Schema(
      * so "when did this go to processing, and who moved it?" had no answer at
      * all — which is the question asked whenever a vendor's money is late.
      */
+    version: { type: Number, default: 0, min: 0 },
+    calculationVersion: { type: String },
+    calculatedAt: { type: Date },
+    periodBoundary: { type: String, enum: ["calendar", "timestamp"] },
+    eligibleEarnings: { type: Number },
+    breakdown: { type: Schema.Types.Mixed },
+    allocations: { type: [Schema.Types.Mixed], default: undefined },
+    settlementSnapshot: { type: Schema.Types.Mixed },
+    settlementPostings: { type: [Schema.Types.Mixed], default: undefined },
+    reserveSourceIds: { type: [Schema.Types.ObjectId], default: undefined },
+    preorderReserveReleased: { type: Number, min: 0 },
+    preorderReserveReservedAt: { type: Date },
+    reserveCreditRecovered: { type: Number, validate: Number.isFinite },
+    requiresRequote: { type: Boolean, default: false },
     statusHistory: {
       type: [
         new Schema(
@@ -239,6 +253,8 @@ const PayoutSchema = new Schema(
 );
 
 PayoutSchema.index({ vendorId: 1, status: 1, createdAt: -1 });
+PayoutSchema.index({ vendorId: 1, status: 1, createdAt: -1, _id: -1 });
+PayoutSchema.index({ vendorId: 1, currency: 1, status: 1, preorderReserveReleaseAt: 1, preorderReserveReleasedInPayoutId: 1 });
 PayoutSchema.index({ periodStart: 1, periodEnd: 1 });
 
 export const Payout = models.Payout || model("Payout", PayoutSchema);

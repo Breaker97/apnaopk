@@ -3,6 +3,11 @@
 import { MapPin, Star } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { CardBrandLogo } from "@/components/products/card-brand-logo";
+import {
+  CARD_SWAP_IN_CLASS,
+  CARD_SWAP_OUT_CLASS,
+  CardStageLayer,
+} from "@/components/products/card-stage-layer";
 import { cn } from "@/lib/utils";
 import {
   cardButtonCss,
@@ -106,19 +111,9 @@ export function ProductCardPreview({
   const renderElement = (key: ProductCardElement): React.ReactNode => {
     switch (key) {
       case "preview": {
-        const image = (
-          <AppImage
-            src="/product-card-shoe.png"
-            alt={MOCK.name}
-            fill
-            sizes="360px"
-            className={cn(
-              contained ? "object-contain" : "object-cover",
-              style.previewHover === "zoom" &&
-                "transition-transform duration-500 group-hover:scale-105",
-            )}
-          />
-        );
+        // The mock's gallery has a second shot (the other side of the shoe),
+        // so "Second image" swaps on hover here exactly as on the storefront.
+        const secondImage = style.previewHover === "second-image";
         return (
           <div
             key={key}
@@ -132,16 +127,38 @@ export function ProductCardPreview({
               ...cardPreviewBorderCss(style),
             }}
           >
-            {contained ? (
-              <div
-                className="absolute inset-0"
-                style={{ padding: style.previewPadding }}
+            <CardStageLayer
+              contained={contained}
+              padding={style.previewPadding}
+              className={secondImage ? CARD_SWAP_OUT_CLASS : undefined}
+            >
+              <AppImage
+                src="/product-card-shoe.png"
+                alt={MOCK.name}
+                fill
+                sizes="360px"
+                className={cn(
+                  contained ? "object-contain" : "object-cover",
+                  style.previewHover === "zoom" &&
+                    "transition-transform duration-500 group-hover:scale-105",
+                )}
+              />
+            </CardStageLayer>
+            {secondImage ? (
+              <CardStageLayer
+                contained={contained}
+                padding={style.previewPadding}
+                className={CARD_SWAP_IN_CLASS}
               >
-                <div className="relative h-full w-full">{image}</div>
-              </div>
-            ) : (
-              image
-            )}
+                <AppImage
+                  src="/product-card-shoe-2.webp"
+                  alt=""
+                  fill
+                  sizes="360px"
+                  className={contained ? "object-contain" : "object-cover"}
+                />
+              </CardStageLayer>
+            ) : null}
             {vis.discountChipOnImage && (
               <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-white px-2 py-1 text-xs font-semibold text-destructive shadow-sm ring-1 ring-black/5 dark:bg-muted dark:font-bold dark:text-red-400 dark:ring-white/10">
                 -{MOCK.discount}%

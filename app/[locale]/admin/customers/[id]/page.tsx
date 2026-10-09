@@ -24,12 +24,21 @@ export default async function CustomerDetailsPage({ params }: PageProps) {
     access.staffPermissions?.includes(STAFF_PERMISSIONS.DELETE_CUSTOMERS) ||
     false;
 
+  // The account email reaches the shopper's login, so it is an edit of the
+  // customer — the permission the route itself asks for.
+  const canSendAccountEmail =
+    access.session.user.role === USER_ROLES.ADMIN ||
+    access.staffPermissions?.includes(STAFF_PERMISSIONS.MANAGE_CUSTOMERS) ||
+    access.staffPermissions?.includes(STAFF_PERMISSIONS.EDIT_CUSTOMERS) ||
+    false;
+
   return (
     <CustomerDetailShell
       locale={locale}
       customerId={id}
       readOnly={!canManageCustomers}
       emailLocked={access.session.user.role !== USER_ROLES.ADMIN}
+      canSendAccountEmail={canSendAccountEmail}
     />
   );
 }

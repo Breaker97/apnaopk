@@ -350,6 +350,11 @@ export async function listPaystackRefunds(params: {
   });
 }
 
+/** Read the existing provider refund rather than issuing another refund. */
+export async function fetchPaystackRefund(params: { creds: PaystackCredentials; refundId: string }): Promise<PaystackRefund> {
+  return (await getPaystack<PaystackRefund>(params.creds, `/refund/${encodeURIComponent(params.refundId)}`, "fetch refund")).data;
+}
+
 /**
  * Refunds on the integration, a page at a time. `from` and `to` bound when the
  * refund was created. For the hourly refund sync — see `listPaystackRefunds`
