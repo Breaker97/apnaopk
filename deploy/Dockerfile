@@ -15,7 +15,10 @@ FROM node:24-bookworm-slim
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # corepack picks up the pinned pnpm version from package.json's packageManager
-RUN corepack enable
+RUN corepack enable \
+  && apt-get update \
+  && apt-get install --yes --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
