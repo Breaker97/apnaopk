@@ -1,5 +1,5 @@
 export const DEFAULT_STORE_NAME = "Storify";
-export const DEFAULT_CURRENCY = "USD";
+export const DEFAULT_CURRENCY = "PKR";
 export const DEFAULT_LANGUAGE = "en";
 
 export const DEFAULT_PRIMARY_COLOR = "#2065D1";
