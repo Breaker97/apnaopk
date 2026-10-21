@@ -286,7 +286,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
       <div className="flex flex-col gap-4 border-t border-border pt-4 md:flex-row md:flex-wrap md:items-center md:gap-x-5 md:gap-y-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <span className="flex items-center gap-2">
-            <Star className="h-5 w-5 fill-amber-500 text-amber-500" aria-hidden />
+            <Star className="h-5 w-5 fill-current text-(--store-rating,#a86500)" aria-hidden />
             <span className="text-2xl font-bold tracking-tight text-foreground">
               {average.toFixed(2)}
             </span>
@@ -405,7 +405,7 @@ export function ReviewsList({ productId, locale }: ReviewsListProps) {
                         className={cn(
                           "h-4 w-4",
                           index < review.rating
-                            ? "fill-amber-500 text-amber-500"
+                            ? "fill-current text-(--store-rating,#a86500)"
                             : "text-muted-foreground/30",
                         )}
                       />

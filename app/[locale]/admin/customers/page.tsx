@@ -3,6 +3,7 @@ import { CustomersListView } from "@/components/admin/customers-list-view";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { USER_ROLES } from "@/config/app.config";
+import { customerImportAccess } from "@/lib/customers/customer-import-access";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -29,12 +30,19 @@ export default async function AdminCustomersPage({
     access.staffPermissions?.includes(STAFF_PERMISSIONS.MANAGE_CUSTOMERS) ||
     access.staffPermissions?.includes(STAFF_PERMISSIONS.EDIT_CUSTOMERS) ||
     false;
+  const { canImportCustomers, canUpdateOnImport } = customerImportAccess({
+    role: access.session.user.role,
+    staffPermissions: access.staffPermissions,
+    staffScope: access.staffScope,
+  });
 
   return (
     <CustomersListView
       locale={locale}
       area="admin"
       canSendAccountEmail={canSendAccountEmail}
+      canImportCustomers={canImportCustomers}
+      canUpdateOnImport={canUpdateOnImport}
       staffScope={access?.staffScope}
       searchParams={search}
     />

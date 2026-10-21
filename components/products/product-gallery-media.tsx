@@ -25,7 +25,8 @@ const ExternalVideoPlayer = dynamic(
 export type MediaKind = "image" | "video" | "model" | "external_video";
 
 /** Neutral backdrop shared by every media surface (main frame, thumbs, viewer). */
-export const MEDIA_SURFACE_CLASS = "bg-[#f0f0f0] dark:bg-muted";
+/** The theme's Bands & chips colour ("image backgrounds"), in both modes. */
+export const MEDIA_SURFACE_CLASS = "bg-muted";
 
 /**
  * Thumbnail selection is carried by the tile surface, not a border or ring.
@@ -34,8 +35,10 @@ export const MEDIA_SURFACE_CLASS = "bg-[#f0f0f0] dark:bg-muted";
  * encode colour variants. The surface step is independent of photo content, so
  * it holds up in both themes.
  */
-export const THUMB_SURFACE_ACTIVE_CLASS = "bg-[#e2e2e2] dark:bg-white/14";
-export const THUMB_SURFACE_IDLE_CLASS = "bg-[#f4f4f4] dark:bg-white/5";
+// One step from the same colour toward the text, so the step reads in either
+// mode and on any theme's Bands & chips colour.
+export const THUMB_SURFACE_ACTIVE_CLASS = "bg-[color-mix(in_oklab,var(--muted),var(--foreground)_10%)]";
+export const THUMB_SURFACE_IDLE_CLASS = "bg-muted";
 
 
 export type GalleryMedia = {

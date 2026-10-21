@@ -28,7 +28,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 19,
+    "viewCount": 34,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 3,
@@ -40,7 +40,7 @@
       "$date": "2026-08-27T17:51:26.617Z"
     },
     "updatedAt": {
-      "$date": "2026-09-07T01:31:59.472Z"
+      "$date": "2026-10-17T09:33:53.419Z"
     },
     "__v": 0,
     "scheduledFor": null
@@ -74,7 +74,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 13,
+    "viewCount": 26,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 3,
@@ -86,7 +86,7 @@
       "$date": "2026-08-27T17:51:26.964Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T21:23:34.274Z"
+      "$date": "2026-10-14T22:10:58.499Z"
     },
     "__v": 0,
     "scheduledFor": null
@@ -120,7 +120,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 17,
+    "viewCount": 39,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 3,
@@ -132,7 +132,7 @@
       "$date": "2026-08-27T17:51:27.306Z"
     },
     "updatedAt": {
-      "$date": "2026-09-07T01:14:12.685Z"
+      "$date": "2026-10-17T20:29:37.798Z"
     },
     "__v": 0,
     "scheduledFor": null
@@ -166,7 +166,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 6,
+    "viewCount": 52,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 3,
@@ -179,7 +179,7 @@
       "$date": "2026-08-30T10:51:31.846Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T17:21:19.089Z"
+      "$date": "2026-10-16T03:04:53.934Z"
     },
     "__v": 0
   },
@@ -208,7 +208,7 @@
     },
     "allowComments": true,
     "isFeatured": false,
-    "viewCount": 23,
+    "viewCount": 42,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 3,
@@ -220,7 +220,7 @@
       "$date": "2026-08-30T12:12:31.649Z"
     },
     "updatedAt": {
-      "$date": "2026-09-06T23:41:27.403Z"
+      "$date": "2026-10-17T14:46:01.548Z"
     },
     "__v": 0,
     "scheduledFor": null
@@ -246,21 +246,20 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 23,
-    "likeCount": 0,
-    "commentCount": 0,
     "readingTime": 3,
     "seo": {
-      "pageTitle": "",
-      "metaDescription": "",
-      "noIndex": false
+      "pageTitle": "Essential Gadgets for Your Home Office",
+      "metaDescription": "Discover must-have gadgets that boost productivity and comfort in your home office, from ergonomic accessories to smart devices for any remote worker."
     },
     "createdAt": {
       "$date": "2026-08-30T12:42:17.820Z"
     },
+    "scheduledFor": null,
+    "viewCount": 69,
+    "likeCount": 0,
+    "commentCount": 0,
     "updatedAt": {
-      "$date": "2026-09-06T20:20:56.386Z"
-    },
-    "__v": 0
+      "$date": "2026-10-17T16:48:35.388Z"
+    }
   }
 ]

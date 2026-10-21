@@ -59,7 +59,7 @@
     "subtotal": "Subtotal",
     "shipping": "Nnyefe",
     "tax": "Eke",
-    "discount": "Mpempe",
+    "discount": "Mbelata",
     "free": "N'efu",
     "new": "Ọhụrụ",
     "sale": "Nrabata",
@@ -229,6 +229,18 @@
   "account": {
     "welcome": "Nnoo, {name}!",
     "overviewDesc": "Akaụntụ gị n'otu n'aka",
+    "overview": {
+      "needsAttention": "Ọ chọrọ nlebara anya gị",
+      "actionNeeded": "Ọ dị mkpa ime ihe",
+      "addressTitle": "Anyị enweghị ike iziga ihe na adreesị gị",
+      "addressDeadline": "Akwụsịla nnyefe, biko dozie adreesị tupu {date}",
+      "addressPaused": "Akwụsịla nnyefe ruo mgbe a ga-edozi adreesị",
+      "fixAddress": "Dozie adreesị",
+      "paymentDue": "Ịkwụ ụgwọ ruru",
+      "payBy": "Kwụọ tupu {date}",
+      "moreInProgress": "{count} ndị ọzọ na-aga",
+      "plusMore": "+{count} ọzọ"
+    },
     "totalOrders": "Usoro niile",
     "pendingOrders": "Usoro dị n'aka",
     "wishlistItems": "Ihe ịchọrọ",
@@ -348,6 +360,10 @@
     "marketingPreferences": "Nhọrọ Marketing",
     "marketingOptIn": "Email Marketing",
     "marketingOptInDesc": "Nwetara mgbasa ozi pụrụiche",
+    "groupOrders": "Iwu gị",
+    "groupWishlist": "Ndepụta ihe ị chọrọ",
+    "groupNews": "Akụkọ na onyinye",
+    "marketingOptInHint": "Gbanyụọ nke a iji kwụsị inweta ozi ịntanetị ahịa niile.",
     "totalSpent": "Total dị",
     "avgOrderValue": "Ọnụ ahịa. Usoro",
     "memberSince": "Onye otu site na",
@@ -417,7 +433,8 @@
     "blog": "Blog",
     "getHelp": "Nwetara enyemaka",
     "vendors": "Ndị na-ere ahịa",
-    "contact": "Nkọwa"
+    "contact": "Nkọwa",
+    "inbox": "Igbe ozi"
   },
   "productsPage": {
     "empty": "Enweghị ngwaahịa",
@@ -452,7 +469,10 @@
     "featuredProducts": "Ngwaahịa pụrụ iche"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "Search categories..."
+    "searchPlaceholder": "Search categories...",
+    "count": "{count, plural, other {Ngalaba: #}}",
+    "perRowGroup": "Ngalaba n'ahịrị ọ bụla",
+    "perRow": "{count} n'ahịrị ọ bụla"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# ngwaahịa} other {# ngwaahịa}}",
@@ -557,6 +577,7 @@
     "heroSubtitle": "Chọpụta ngwaahịa amaala site na ndị na-ere ahịa. Zụta n'uche ma nweta nnyefe.",
     "shopByCategory": "Zụta site na Ngalaba",
     "shopByCategoryDescription": "Chọpụta ngwaahịa anyị niile",
+    "shopAllInCategory": "Lelọ anya ihe niile na {name}",
     "viewAllCategories": "Lelọ anya ngalaba niile",
     "whyChooseUs": "Gịnị mere anyị dị?",
     "whyChooseUsDescription": "Anyị na-enye ahụmahụ ahịa kacha mma",
@@ -705,7 +726,8 @@
     "quoteMessageOptional": "Ozi (nhọrọ)",
     "quoteMessagePlaceholder": "Ọnụọgụgụ, ụbọchị nnyefe, nkọwapụta…",
     "overview": "Nchịkọta",
-    "itemsSold": "{count} ere"
+    "itemsSold": "{count} ere",
+    "percentOff": "Mbelata {percent}%"
   },
   "reviews": {
     "basedOn": "Basing na {count} nyocha",
@@ -1583,7 +1605,7 @@
       "stats": {
         "inStoreSales": "Ahịa n'ụlọ ahịa",
         "websiteSales": "Ahịa weebụ",
-        "discount": "Mpempe",
+        "discount": "Mbelata",
         "affiliate": "Affiliate",
         "marketplace": "Ahịa",
         "refunds": "Mmelite",
@@ -1643,7 +1665,6 @@
       "themes": "Isiokwu",
       "pages": "Peepụ",
       "pos": "Ebe ire ahịa",
-      "posStaff": "Ndị ọrụ POS",
       "posLocations": "Ebe POS",
       "addPage": "Tinye Peepụ",
       "navigation": "Menu nchọgharị",
@@ -1661,6 +1682,7 @@
       "customize": "Hazie",
       "finance": "Ego",
       "financeOverview": "Nchịkọta",
+      "inventoryLedger": "Nchekwa na akwụkwọ ndekọ",
       "expenses": "Mmefu ego",
       "receivables": "Ụgwọ a ga-akwụ gị",
       "financeReports": "Akụkọ",
@@ -1679,6 +1701,7 @@
       "searchInsights": "Nghọta ọchụchọ",
       "shipping": "Mbupu",
       "sliders": "Slaịda",
+      "campaignBanners": "Ọkọlọtọ mkpọsa",
       "staff": "Otu",
       "toggle": "Gosi ma ọ bụ zoo menu n'akụkụ",
       "traffic": "Ndị ọbịa",
@@ -1690,7 +1713,6 @@
     },
     "pos": "Apee n'ebe a",
     "posLocations": "Ebe POS",
-    "posStaff": "Ndị ọrụ POS",
     "dashboardSubtitle": "Nnoo! Nke a bụ ihe na-eme.",
     "editProduct": "Dezie ngwaahịa",
     "updateProductInfo": "Melite ozi ngwaahịa",
@@ -2174,7 +2196,7 @@
             "ses": "Amazon SES",
             "other": "Ọzọ"
           },
-          "docs": "Nkọwa zuru ezu: docs/EMAIL_SETUP.md",
+          "docs": "Nkọwa zuru ezu: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "Gbanye 2-Step Verification na akaụntụ Google ị ga-esi na ya ziga.",
             "step2": "Mepụta paswọọdụ ngwa aha ya bụ {storeName}, wee detuo paswọọdụ mkpụrụ akwụkwọ 16 ahụ. Google na-egosi ya naanị otu ugboro.",
@@ -2298,9 +2320,8 @@
       },
       "orders": {
         "title": "Njirimara Usoro",
-        "description": "Nọmba ọda, ụtụ isi na nlọghachi.",
+        "description": "Nọmba ọda, nnyefe na nlọghachi.",
         "prefix": "Mmalite nọmba ọda",
-        "taxRate": "Ọnụego ụtụ isi",
         "shippingCost": "Mbupu nkịtị",
         "freeShippingThreshold": "Mbupu n'efu ma ọda ruru",
         "shippingHandledByZones": "Ọnụahịa na-esi na mpaghara mbupu gị.",
@@ -2348,7 +2369,6 @@
         "shippingRefundNever": "Ọ dịghị mgbe",
         "ordersHeading": "Ọda",
         "prefixExample": "Nọmba ọda ga-adị ka <strong>{example}</strong>.",
-        "taxRateHint": "A na-agbakwunye ya n'ọda n'oge ịkwụ ụgwọ na na POS.",
         "shipping": "Mbupu",
         "shippingLink": "Nnyefe",
         "shippingCostHint": "Ihe ọda na-akwụ maka nnyefe mgbe mpaghara mbupu gbanyụrụ.",
@@ -2364,7 +2384,18 @@
         "commissionSummaryLabel": "Kọmịshọn na ịkwụ ụgwọ kacha ala",
         "commissionSummary": "Kọmịshọn {rate}%, ịkwụ ụgwọ kacha ala {amount}.",
         "vendorConfigLink": "Nhazi ndị na-ere ahịa",
-        "refundAdminFeeUpTo": "%, oke ya bụ"
+        "refundAdminFeeUpTo": "%, oke ya bụ",
+        "tax": "Ụtụ isi",
+        "taxMoved": "Ọnụego ụtụ isi, ụdị ụtụ isi na ndebanye aha gị dị ugbu a na Njirimara Ụtụ Isi.",
+        "taxLink": "Mepee Njirimara Ụtụ Isi"
+      },
+      "invoices": {
+        "title": "Njirimara Invoice",
+        "entry": {
+          "title": "Invoice, risịtị na stika",
+          "description": "Deziga ihe ụlọ ahịa gị na-ebipụta, họrọ ụdị ndabere maka ụdị ọ bụla.",
+          "action": "Mepee Njirimara Invoice"
+        }
       },
       "seo": {
         "title": "Njirimara SEO",
@@ -2932,7 +2963,20 @@
         "soundPayment": "A nabatara ịkwụ ụgwọ",
         "soundOrderComplete": "Ahịa emechaala",
         "soundError": "Njehie ma ọ bụ ịdọ aka ná ntị ngwaahịa",
-        "soundPlay": "Kpọọ ụda: {sound}"
+        "soundPlay": "Kpọọ ụda: {sound}",
+        "offlineWindow": "Oge ire ahịa na-enweghị ịntanetị",
+        "offlineWindowHint": "Ogologo oge ihuenyo ire ahịa ga-aga n'ihu na-ere ahịa na-enweghị njikọ mgbe o rutere sava nke ikpeazụ. Mgbe nke ahụ gasịrị, ọ ga-akpọchi ruo mgbe ọ ga-enwe ike ịbanye ọzọ. N'etiti awa {min} na {max}.",
+        "offlineWindowUnit": "awa",
+        "allowDeposits": "Kwe ka a nara ego mbụ",
+        "allowDepositsDesc": "Ihuenyo ire ahịa nwere ike ịnara akụkụ nke ahịa ugbu a na ndị fọdụrụ mgbe e mesịrị, maka ahịa e jikọtara onye ahịa. A na-edowe ngwaahịa n'akụkụ, a na-edekọkwa ahịa ahụ ozugbo a kwụchara ụgwọ ya.",
+        "requireOpenRegister": "A ga-emeghe drọwa tupu ire ahịa",
+        "requireOpenRegisterDesc": "Ihuenyo ire ahịa ọ bụla ga-emeghe drọwa ya na ego mmalite tupu ọ nara ahịa, ka ahịa ọ bụla banye n'oge a na-agụ mgbe a na-emechi.",
+        "pricesIncludeTax": "Ọnụahịa gụnyere ụtụ isi",
+        "openCashDrawer": "Mepee drọwa ego",
+        "openCashDrawerDesc": "Mepee drọwa ego mgbe ego aka na-agbanwe aka n'ebe ire ahịa. Ọ chọrọ QZ Tray na printa nnata nwere ọdụ drọwa; ihuenyo ire ahịa ọ bụla na-ahọrọ printa ya na menu drọwa.",
+        "pricesIncludeTaxMovedOn": "Gbanyere: ọnụahịa dị na shelf gụnyelarị ụtụ isi. Ọgbanwe a dị ugbu a na Njirimara Ụtụ Isi.",
+        "pricesIncludeTaxMovedOff": "Gbanyụrụ: a na-agbakwunye ụtụ isi n'ọnụahịa dị na shelf. Ọgbanwe a dị ugbu a na Njirimara Ụtụ Isi.",
+        "pricesIncludeTaxLink": "Mepee Njirimara Ụtụ Isi"
       },
       "vendorPermissions": {
         "title": "Iwu ahịa",
@@ -2992,7 +3036,7 @@
         },
         "setup": {
           "title": "Ntuziaka nhazi {provider}",
-          "docs": "Nkọwa zuru ezu: docs/STORAGE_SETUP.md",
+          "docs": "Nkọwa zuru ezu: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "Detuo",
           "copyFailed": "Enweghị ike ịdetu",
           "console": {
@@ -3146,7 +3190,7 @@
           "step6": "Mgbe iweta mbụ gasịrị, Catalog → Issues na-edepụta ngwaahịa ọ bụla Meta jụrụ.",
           "caution": "Mgbe ị mepụtachara URL ọhụrụ, gbanwee URL nke isi data dị adị. Isi data nke abụọ ga-edepụta ngwaahịa ọ bụla ugboro abụọ.",
           "link": "Mepee Commerce Manager",
-          "docs": "Nkọwa zuru ezu: docs/META_CATALOG.md"
+          "docs": "Nkọwa zuru ezu: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook na Instagram na-enweta mgbanwe ngwaahịa gị n'ime nkeji ole na ole site na Catalog API nke Meta.",
         "source": {
@@ -3226,7 +3270,7 @@
             "caution": "Lekọta token ahụ dị ka paswọọdụ. Ọ bụrụ na a kagbuo ya ma ọ bụ oge ya agwụ, ndakọrịta ozugbo na-akwụsịtụ, a na-agwakwa ndị nchịkwa.",
             "off": "Ịgbanyụ ndakọrịta ozugbo na-ahapụ ngwaahịa nọbu na Meta otú ha dị. Wepụ ha na Commerce Manager ma ọ bụrụ na ịchọghịzi ha.",
             "link": "Mepee Business settings",
-            "docs": "Nkọwa zuru ezu: docs/META_CATALOG.md"
+            "docs": "Nkọwa zuru ezu: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -3407,11 +3451,13 @@
           "byCurrencyLabel": "Oke kacha ala n'ego ndị ọzọ",
           "byCurrencyRemove": "Wepụ oke kacha ala nke {currency}",
           "description": "A na-etinye ya maka ndị na-ere ahịa na-enweghị atụmatụ. A nwekwara ike idezi ya n'okpuru Ntọala Ọda.",
-          "minWithdrawalDescription": "Ego kacha nta onye na-ere ahịa nwere ike ịrịọ dị ka ịkwụ ụgwọ, n'ego ụlọ ahịa gị.",
+          "minWithdrawalDescription": "Ego fọdụrụ kacha nta a na-akwụ ụgwọ maka ya, n'ego ụlọ ahịa gị.",
           "minWithdrawalLabel": "Ego mwepụ kacha ala",
           "rateDescription": "Pasentị ikpo okwu na-edebe n'ahịa ọ bụla onye na-ere ahịa rere.",
           "rateLabel": "Ọnụego kọmịshọn",
-          "title": "Kọmịshọn ndabara"
+          "title": "Kọmịshọn ndabara",
+          "autoPayoutDraftsLabel": "Kwado ịkwụ ụgwọ dịka usoro oge onye na-ere ahịa ọ bụla si dị",
+          "autoPayoutDraftsDescription": "N'ụbọchị ịkwụ ụgwọ onye na-ere ahịa (kwa izu, kwa izu abụọ ma ọ bụ kwa ọnwa, dịka ọ họọrọ) a na-akwado ịkwụ ụgwọ mgbe o nwere ezu ịkwụ. Ọ ka bụ gị na-eziga ego ahụ ma kaa ya akara na akwụọla."
         },
         "description": "Iwu ndebanye aha, nkwado na atụmatụ ndenye aha maka ndị na-ere ahịa.",
         "documents": {
@@ -3714,6 +3760,10 @@
             "preorderAccess": {
               "title": "Ikike ọda tupu oge",
               "hint": "Akwadoro, jụrụ ma ọ bụ wepụrụ"
+            },
+            "payouts": {
+              "title": "Ịkwụ ụgwọ",
+              "hint": "Akwadoro, ezigara, laghachiri ma ọ bụ akagburu"
             }
           },
           "customer": {
@@ -3879,6 +3929,221 @@
       "saveBar": {
         "unsaved": "Mgbanwe enweghị echekwa",
         "discard": "Hichapụ"
+      },
+      "tax": {
+        "title": "Njirimara Ụtụ Isi",
+        "description": "Ihe ị na-ana, ebe i debanyere aha, na otú e si agbakọ ụtụ isi.",
+        "tabsLabel": "Akụkụ njirimara ụtụ isi",
+        "moreOptions": "Nhọrọ ndị ọzọ",
+        "tabs": {
+          "rates": "Ọnụego",
+          "registration": "Ndebanye aha",
+          "calculation": "Ngụkọ",
+          "vendors": "Ndị na-ere ahịa"
+        },
+        "links": {
+          "report": "Akụkọ ụtụ isi",
+          "invoices": "Ntọala invoyisi"
+        },
+        "registrationMissingLabel": "Enweghị nọmba ndebanye aha",
+        "rates": {
+          "description": "Ihe a na-ana ụdị ọ bụla. A na-ana ngwaahịa na-enweghị ụdị ọnụego nkịtị.",
+          "notCharging": "Anaghị ana ụtụ isi",
+          "notChargingHint": "Ọnụego niile bụ 0%, ya mere a naghị ana ahịa ọ bụla ụtụ isi. Tọọ ọnụego nkịtị n'okpuru iji malite ịna ụtụ isi.",
+          "removedClass": "Ụfọdụ ngwaahịa na-eji ụdị na-adịkwaghị",
+          "removedClassHint": "{products, plural, one {# ngwaahịa} other {# ngwaahịa}} na {categories, plural, one {# ngalaba} other {# ngalaba}} dị n'okpuru ụdị e wepụrụ, ya mere a na-ana ha ọnụego nkịtị. Họrọ ụdị maka ha n'onye ndezi nke ọ bụla n'ime ha.",
+          "default": "Ndabara",
+          "partsBadge": "{count, plural, one {# akụkụ} other {# akụkụ}}",
+          "neverCharged": "A naghị ana ya mgbe ọ bụla",
+          "noRate": "Enwebeghị ọnụego. A na-ana ọnụego nkịtị ruo mgbe ị tọrọ otu.",
+          "rateLabel": "Ọnụego {name}",
+          "rateTotalLabel": "Ọnụego {name}, ngụkọta akụkụ ya",
+          "expandLabel": "Nhọrọ maka {name}",
+          "usageProducts": "{count, plural, one {# ngwaahịa} other {# ngwaahịa}}",
+          "usageCategories": "{count, plural, one {# ngalaba} other {# ngalaba}}",
+          "next": "Ọ ga-agbanwe ghọọ {rate} na {date}",
+          "name": "Aha",
+          "note": "Ndetu",
+          "optional": "nhọrọ",
+          "notePlaceholder": "Ihe na-abanye n'ụdị a",
+          "partsTitle": "Akụkụ ọnụego",
+          "total": "Ngụkọta {rate}",
+          "partName": "Aha akụkụ",
+          "partRate": "Ọnụego akụkụ",
+          "partPlaceholder1": "Steeti",
+          "partPlaceholder2": "Kaụntị",
+          "partPlaceholder3": "Obodo",
+          "compound": "A na-ana ya n'elu akụkụ ndị dị n'elu",
+          "compoundHint": "Akụkụ na-agbakọ ọnụ, dịka ụtụ isi ire ere nke steeti, kaụntị na obodo si agbakọ ọnụ. A na-agbakọ akụkụ a na-ana n'elu n'ọnụahịa gbakwunyere akụkụ ndị dị n'elu ya.",
+          "addPart": "Tinye akụkụ",
+          "splitIntoParts": "Kewaa ya n'akụkụ",
+          "removePart": "Wepụ akụkụ a",
+          "scheduleTitle": "Mgbanwe ahaziri",
+          "scheduleAdd": "Hazie mgbanwe",
+          "startsOn": "Ọ na-amalite na",
+          "newRate": "Ọnụego ọhụrụ",
+          "removeScheduled": "Wepụ mgbanwe ahaziri a",
+          "earlierTitle": "Ọnụego gara aga",
+          "earlierLine": "{rate} site na {date}",
+          "fromStart": "Site na mmalite",
+          "removeEarlier": "Wepụ ọnụego gara aga a",
+          "removeClass": "Wepụ ụdị",
+          "removeClassInUse": "{products, plural, one {# ngwaahịa} other {# ngwaahịa}} na {categories, plural, one {# ngalaba} other {# ngalaba}} na-eji ụdị a. Ozugbo e wepụrụ ya, a ga-ana ha ọnụego nkịtị.",
+          "removeClassHint": "A ga-ewepụ ọnụego ya na ya.",
+          "addClass": "Tinye ụdị",
+          "newName": "Aha ụdị",
+          "newNamePlaceholder": "Akwụkwọ",
+          "classRate": "Ọnụego",
+          "add": "Tinye ụdị",
+          "cancel": "Kagbuo",
+          "full": "Ị nwere ike itinye ihe ruru ụdị {count}.",
+          "untaxedNote": "{count, plural, one {# ngwaahịa} other {# ngwaahịa}} e tọrọ ka a ghara ịna ya ụtụ isi.",
+          "customNote": "{products, plural, one {# ngwaahịa} other {# ngwaahịa}} na {categories, plural, one {# ngalaba} other {# ngalaba}} nwere ọnụego pụrụ iche nke ha. Ọ naghị eso ọnụego ndị dị ebe a; ịtinye ha n'okpuru ụdị na-eme ka ha na-eso."
+        },
+        "registration": {
+          "description": "Ebe ụlọ ahịa gị debanyere aha maka ụtụ isi. A na-ana ahịa ọ bụla ụtụ isi n'ọnụego mpaghara a.",
+          "missing": "Enweghị nọmba ndebanye aha",
+          "missingHint": "Ị na-ana ụtụ isi mana ị tinyebeghị ndebanye aha ụtụ isi gị, dịka nọmba ikike ụtụ isi ire ere gị.",
+          "country": "Mba",
+          "name": "Aha mpaghara",
+          "optional": "nhọrọ",
+          "nameHint": "A na-egosi aha mba ahụ mgbe nke a tọgbọ chakoo.",
+          "registrationLabel": "Aha ndebanye",
+          "registrationLabelPlaceholder": "Ikike ụtụ isi ire ere",
+          "registrationLabelHint": "Ihe ụlọ ọrụ ụtụ isi gị na-akpọ ya: Ikike ụtụ isi ire ere, Ikike onye na-ere ahịa.",
+          "registrationNumber": "Nọmba ndebanye aha",
+          "registrationNumberHint": "Nọmba ụlọ ọrụ ụtụ isi gị nyere gị."
+        },
+        "calculation": {
+          "posTitle": "Ebe ire ahịa",
+          "posDescription": "Otú a si agụ ọnụahịa dị na shelf na kaụnta.",
+          "posPricesIncludeTax": "Ọnụahịa dị na shelf gụnyere ụtụ isi",
+          "posPricesIncludeTaxDesc": "Kaụnta na-ana ọnụahịa dị na shelf ma gosi ụtụ isi dị n'ime ya, kama ịgbakwunye ụtụ isi n'elu ya.",
+          "rulesTitle": "Otú e si agbakọ ụtụ isi",
+          "rulesDescription": "Iwu ndị a na-emetụta ahịa ọ bụla. Ọ dịghị ihe ị ga-atọ ebe a.",
+          "chainTitle": "A na-ana ngwaahịa nke mbụ n'ime ndị a e tọrọ",
+          "chain": {
+            "own": "Ọnụego pụrụ iche nke ya",
+            "class": "Ụdị ụtụ isi ya",
+            "category": "Ọnụego ngalaba ya",
+            "standard": "Ọnụego nkịtị"
+          },
+          "facts": {
+            "online": {
+              "label": "Ụlọ ahịa ịntanetị",
+              "text": "N'ụlọ ahịa ịntanetị, a na-egosi ọnụahịa na-enweghị ụtụ isi; a na-agbakwunye ụtụ isi mgbe a na-akwụ ụgwọ."
+            },
+            "discounts": {
+              "label": "Mbelata",
+              "text": "A na-ana ụtụ isi n'ihe onye na-azụ ahịa na-akwụ, mgbe e wepụsịrị mbelata na coupon."
+            },
+            "shipping": {
+              "label": "Nnyefe",
+              "text": "A naghị ana ụtụ isi na nnyefe na ụtụ kọstọm."
+            },
+            "region": {
+              "label": "Mpaghara",
+              "text": "A na-ana ahịa ọ bụla ụtụ isi n'ọnụego mpaghara gị, n'agbanyeghị adreesị onye na-azụ ahịa."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "Nkịtị",
+            "description": "Ọtụtụ ngwaahịa. Ọnụego ya bụ ọnụego ụtụ isi ụlọ ahịa gị."
+          },
+          "reduced": {
+            "name": "Ebelatara",
+            "description": "Ngwaahịa iwu gị na-ana ụtụ isi n'ọnụego dị ala."
+          },
+          "zero": {
+            "name": "Ọnụego efu",
+            "description": "Ngwaahịa ụtụ isi metụtara, mana a na-ana ha na 0%."
+          },
+          "exempt": {
+            "name": "Ewepụrụ",
+            "description": "Ngwaahịa ụtụ isi anaghị emetụta kpamkpam."
+          }
+        },
+        "picker": {
+          "label": "Ụtụ isi",
+          "inheritCategory": "Dịka ngalaba ya",
+          "inheritParent": "Dịka ngalaba nne ya",
+          "custom": "Ọnụego pụrụ iche",
+          "customRate": "Ọnụego ụtụ isi pụrụ iche",
+          "customHint": "Ọnụego pụrụ iche na-ebute ụzọ karịa ụdị ọ bụla, anaghịkwa agbaso mgbanwe ọnụego na Njirimara Ụtụ Isi.",
+          "hint": "Ụdị ahụ na-ekpebi ọnụego, nke a na-atọ na Ntọala → Njirimara Ụtụ Isi.",
+          "removedClass": "{key} (ewepụrụ: ọnụego nkịtị)"
+        },
+        "vendors": {
+          "policyTitle": "Ụtụ isi ngwaahịa ndị na-ere ahịa",
+          "policyDescription": "Ụlọ ahịa gị na-aza maka ụtụ isi ahịa ya na-anakọta. Họrọ onye nwere ike ịgbanwe ụtụ isi ngwaahịa onye na-ere ahịa: Nara ụtụ isi, ụdị ụtụ isi na ọnụego pụrụ iche.",
+          "policy": {
+            "approval": "Site na nkwado gị",
+            "approvalHint": "Ndị na-ere ahịa na-ezipu arịrịọ, ị na-akwado ma ọ bụ jụ ya n'okpuru. Ruo mgbe ahụ, ngwaahịa ha na-ejigide ụtụ isi ha.",
+            "never": "Naanị gị",
+            "neverHint": "Ndị na-ere ahịa na-ahụ ụtụ isi ngwaahịa ha mana ha enweghị ike ịgbanwe ya ma ọ bụ rịọ ka a gbanwee ya.",
+            "free": "Ndị na-ere ahịa n'onwe ha",
+            "freeHint": "Ndị na-ere ahịa na-agbanwe ụtụ isi ngwaahịa nke ha na-arịọghị onye ọ bụla."
+          },
+          "requestsTitle": "Arịrịọ mgbanwe ụtụ isi",
+          "requestsDescription": "Ịkwado na-etinye ụtụ isi a rịọrọ na ngwaahịa ọ bụla dị n'arịrịọ ahụ. Ịjụ na-ahapụ ụtụ isi ha otu ọ dị ma gwa onye na-ere ahịa ihe kpatara ya.",
+          "pendingTab": "Na-echere",
+          "decidedTab": "Azara",
+          "loading": "Na-ebu arịrịọ…",
+          "empty": "Ọ nweghị arịrịọ na-echere.",
+          "emptyDecided": "Ọ nwebeghị arịrịọ a zara.",
+          "loadFailed": "Enweghị ike ibu arịrịọ ndị ahụ",
+          "unknownStore": "Ụlọ ahịa a na-amaghị",
+          "requestedOn": "A rịọrọ na {date}",
+          "asksFor": "Na-arịọ",
+          "now": "ugbu a {tax}",
+          "moreProducts": "{count, plural, one {na ngwaahịa # ọzọ} other {na ngwaahịa # ọzọ}}",
+          "reason": "Ihe kpatara ya",
+          "noteLabel": "Ndetu nye onye na-ere ahịa",
+          "noteRequiredHint": "achọrọ iji jụ",
+          "optional": "nhọrọ",
+          "notePlaceholder": "Obere ndetu maka onye na-ere ahịa",
+          "addNote": "Tinye ndetu",
+          "noteRequired": "Dee ndetu ka onye na-ere ahịa mara ihe kpatara ya",
+          "approve": "Kwado",
+          "decline": "Jụ",
+          "cancel": "Kagbuo",
+          "sendDecline": "Zipu ịjụ",
+          "approvedToast": "Akwadola mgbanwe ụtụ isi",
+          "declinedToast": "Ajụla arịrịọ ahụ",
+          "decisionFailed": "Enweghị ike ịchekwa mkpebi ahụ",
+          "pending": "Na-echere",
+          "approved": "Akwadoro",
+          "declined": "Ajụrụ",
+          "withdrawn": "A dọghachiri azụ",
+          "decisionNote": "Ndetu: {note}"
+        },
+        "request": {
+          "notCharged": "Anaghị ana ụtụ isi",
+          "inherit": "Dịka ngalaba ya",
+          "customRate": "Ọnụego pụrụ iche {rate}%",
+          "lockedLabel": "Ụtụ isi",
+          "lockedApproval": "Ụlọ ahịa na-akwado mgbanwe ụtụ isi ngwaahịa a.",
+          "lockedNever": "Ụlọ ahịa na-ahazi ụtụ isi ngwaahịa a.",
+          "newProductApproval": "A na-ana ngwaahịa ọhụrụ ụtụ isi dịka ngalaba ya. Ozugbo echekwara ya, ị nwere ike ịrịọ maka ụtụ isi dị iche.",
+          "requestChange": "Rịọ mgbanwe",
+          "pending": "A rịọrọ mgbanwe: {tax}. Na-echere ụlọ ahịa.",
+          "withdraw": "Dọghachi azụ",
+          "withdrawn": "A dọghachiri arịrịọ ahụ azụ",
+          "withdrawFailed": "Enweghị ike ịdọghachi arịrịọ ahụ azụ",
+          "dialogTitle": "Rịọ mgbanwe ụtụ isi",
+          "dialogDescription": "{count, plural, =1 {Ụlọ ahịa ga-enyocha arịrịọ gị. Ruo mgbe ọ kwadoro, ngwaahịa ahụ ga-ejigide ụtụ isi ya ugbu a.} other {Ụlọ ahịa ga-enyocha arịrịọ gị maka ngwaahịa #. Ruo mgbe ọ kwadoro, ha ga-ejigide ụtụ isi ha ugbu a.}}",
+          "chargeTax": "Nara ụtụ isi",
+          "reason": "Gịnị mere ụtụ isi ga-eji gbanwee?",
+          "reasonPlaceholder": "Ọmụmaatụ: e wepụrụ ngwaahịa ndị a n'ụtụ isi ire ere na steeti anyị.",
+          "reasonTooShort": "Tinye otu ahịrịokwu banyere ihe mere ụtụ isi ga-eji gbanwee.",
+          "send": "Zipu arịrịọ",
+          "cancel": "Kagbuo",
+          "sent": "Ezigala arịrịọ ahụ na ụlọ ahịa",
+          "sendFailed": "Enweghị ike izipu arịrịọ ahụ",
+          "bulkAction": "Rịọ mgbanwe ụtụ isi"
+        }
       }
     },
     "addToCart": "Tinye n'akpa",
@@ -4026,6 +4291,19 @@
       },
       "seo": {
         "untitledProduct": "Ngwaahịa Enweghị Aha"
+      },
+      "leave": {
+        "title": "Ị ga-apụ na-echekwaghị?",
+        "descriptionNew": "Echekwabeghị ngwaahịa a. Ọ bụrụ na ị pụọ ugbu a, ihe ị tinyere ga-efu ebe a; ihe nchọgharị a na-edebe otu ngwa nke ị nwere ike iweghachite mgbe ọzọ ị ga-agbakwunye ngwaahịa.",
+        "descriptionEdit": "Echekwabeghị mgbanwe ị mere na ngwaahịa a. Ọ bụrụ na ị pụọ ugbu a, ha ga-efu.",
+        "confirm": "Pụọ",
+        "cancel": "Nọrọ"
+      },
+      "draft": {
+        "title": "Achọtala ngwaahịa echekwabeghị",
+        "body": "Ihe nchọgharị a debere otu ngwaahịa site na {time} nke echekwabeghị ma ọlị.",
+        "restore": "Weghachite ya",
+        "discard": "Hapụ ya"
       }
     },
     "onlineStorePage": {
@@ -5141,16 +5419,31 @@
         "settings": "Ntọala isiokwu",
         "css": "CSS nke gị"
       },
-      "customCss": {
-        "title": "CSS nke gị"
-      },
       "preview": {
         "pages": {
+          "product": "Ibe ngwaahịa",
+          "home": "Ibe mbụ",
           "products": "Ngwaahịa",
-          "search": "Chọọ"
-        }
+          "cart": "Keria",
+          "search": "Ọchụchọ"
+        },
+        "desktop": "Kọmputa",
+        "mobile": "Ekwentị",
+        "hint": "Nlele ozugbo — na-egosi mgbanwe a na-echekwabeghị.",
+        "open": "Mepee ụlọ ahịa",
+        "title": "Nlele ụlọ ahịa",
+        "page": "Ibe nlele"
       },
-      "launchTitle": "Ntọala isiokwu"
+      "customCss": {
+        "title": "CSS nke gị",
+        "description": "Iwu e tinyere n'azụ ụdị nke isiokwu n'onwe ya, n'ibe ọ bụla nke ụlọ ahịa. Isiokwu ọ bụla na-ejigide CSS nke ya — ịgbanwe isiokwu na-eweta CSS nke isiokwu ahụ. Maka agba, mkpụrụedemede na ọdịdị, ka mma iji Ntọala isiokwu; jiri nke a maka obere ihe ndị enweghị ike ịgbanwe n'ebe ahụ.",
+        "hint": "Debe iwu n'ime .store-surface ka ha ghara iru ebe nchịkwa ma ọlị.",
+        "save": "Chekwaa CSS",
+        "saved": "Echekwara CSS nke gị"
+      },
+      "launchTitle": "Ntọala isiokwu",
+      "launchDescription": "Agba, mkpụrụedemede, nhazi, ọdịdị na bọtịnụ nke isiokwu na-arụ ọrụ, ndị ị na-edezi n'akụkụ nlele ozugbo nke ụlọ ahịa gị. Isiokwu ọ bụla na-ejigide ntọala nke ya — ịgbanwe isiokwu na-eweta ntọala nke isiokwu ahụ.",
+      "launch": "Mepee onye ndezi isiokwu"
     },
     "phrases": {
       "guest": "Ọbịa",
@@ -5211,10 +5504,170 @@
       "team_members_exported": "E bupụla ndị otu",
       "team_members_could_not_be_exported": "Enweghị ike ibupụ ndị otu",
       "vendors_exported": "E bupụla ndị na-ere ahịa",
-      "vendors_could_not_be_exported": "Enweghị ike ibupụ ndị na-ere ahịa"
+      "vendors_could_not_be_exported": "Enweghị ike ibupụ ndị na-ere ahịa",
+      "area": "Mpaghara",
+      "view": "Lee",
+      "manage": "Jikwaa",
+      "failed_to_load_the_role": "Enweghị ike ibunye ọrụ",
+      "name_is_required": "Achọrọ aha",
+      "failed_to_save_the_role": "Enweghị ike ịchekwa ọrụ",
+      "role_updated": "Emelitere ọrụ",
+      "role_created": "Emepụtara ọrụ",
+      "failed_to_delete_the_role": "Enweghị ike ihichapụ ọrụ",
+      "role_deleted": "Ehichapụla ọrụ",
+      "edit_role": "Dezie ọrụ",
+      "new_role": "Ọrụ ọhụrụ",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "Ọrụ bụ ihe ndị otu ya nwere ike ime. Ịgbanwe ya na-agbanwe onye otu ọ bụla nọ na ya.",
+      "save_role": "Chekwaa ọrụ",
+      "role_details": "Nkọwa ọrụ",
+      "name": "Aha",
+      "dashboard": "Dashboard",
+      "admin_dashboard": "Dashboard nchịkwa",
+      "staff_area": "Mpaghara ndị ọrụ",
+      "any_permission_in_the_admin_dashboard": "Ikike ọ bụla, na dashboard nchịkwa",
+      "store_records_and_the_till_in_the_staff_area": "Ndekọ ụlọ ahịa na POS, na mpaghara ndị ọrụ",
+      "every_permission": "Ikike niile",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "Onye nchịkwa na-enwe ikike niile mgbe niile, gụnyere ndị a ga-agbakwunye ma emechaa. Iji kpachie onye nchịkwa, nye ya ọrụ ọzọ.",
+      "delete_this_role": "Hichapụ ọrụ a?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "Enweghị ike ihichapụ ọrụ nwere ndị otu; buru ụzọ nye ha ọrụ ọzọ.",
+      "roles": "Ọrụ",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "Ihe ụdị onye otu ọ bụla nwere ike ime. Nye onye otu ọrụ na peeji ya.",
+      "create_role": "Mepụta ọrụ",
+      "built_in": "Ewuru n'ime",
+      "members": "ndị otu",
+      "view_role": "Lee ọrụ",
+      "the_store_owner_always_holds_every_permission": "Onye nwe ụlọ ahịa na-enwe ikike niile mgbe niile.",
+      "the_home_screen_s_figures": "Ọnụ ọgụgụ ihuenyo mbụ",
+      "returns_refunds": "Nlọghachi na nkwụghachi ego",
+      "quotes": "Ọnụahịa",
+      "price_requests_and_offers": "Arịrịọ ọnụahịa na onyinye",
+      "applications_stores_plans_and_commissions": "Arịrịọ, ụlọ ahịa, atụmatụ na kọmịshọn",
+      "payouts": "Ịkwụ ndị na-ere ahịa",
+      "manage_sends_vendors_their_money": "Jikwaa na-ezigara ndị na-ere ahịa ego ha",
+      "payments": "Ịkwụ ụgwọ",
+      "transactions_and_chargebacks": "Azụmahịa na nchụghachi ego",
+      "finance": "Ego",
+      "ledger_expenses_periods_and_reports": "Akwụkwọ ego, mmefu, oge na akụkọ",
+      "marketing": "Ahịa",
+      "boosts": "Mkwalite",
+      "sponsored_products": "Ngwaahịa akwadoro",
+      "online_store": "Ụlọ ahịa ịntanetị",
+      "theme_pages_menus_sliders_checkout": "Isiokwu, peeji, menu, slider, ịkwụ ụgwọ",
+      "blog": "Blọgụ",
+      "posts_categories_comments": "Edemede, ụdị, nkọwa",
+      "ai_sales_agent": "Onye nnọchi ahịa AI",
+      "its_settings_and_conversations": "Ntọala ya na mkparịta ụka ya",
+      "ai_studio": "Ụlọ ọrụ AI",
+      "all_accounts": "Akaụntụ niile",
+      "every_sign_in_on_the_store": "Nbanye ọ bụla n'ụlọ ahịa",
+      "settings": "Ntọala",
+      "store_settings": "Ntọala ụlọ ahịa",
+      "sensitive_settings": "Ntọala dị nro",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "Ọnụ ụzọ ịkwụ ụgwọ, nchekwa, ndị na-enye ozi-e/SMS, nbanye, nchekwa, ndị na-ebu ngwongwo",
+      "activity_log": "Ndekọ ihe omume",
+      "who_did_what": "Onye mere gịnị",
+      "team": "Otu",
+      "manage_adds_and_edits_members_within_your_own_permissions": "Jikwaa na-agbakwunye ma dezie ndị otu, n'ime ikike gị",
+      "create_and_change_roles": "Mepụta ma gbanwee ọrụ",
+      "member": "onye otu",
+      "permission": "ikike",
+      "role": "Ọrụ",
+      "staff": "Ndị ọrụ",
+      "abandoned_checkouts": "Ịkwụ ụgwọ a hapụrụ",
+      "added_for_this_member": "Agbakwunyere maka onye otu a",
+      "all": "Niile",
+      "all_vendors_and_locations_including_ones_added_later": "Ndị na-ere ahịa na ebe niile, gụnyere ndị a ga-agbakwunye emesịa",
+      "also_catalogues_for_ads": "Gụnyekwara katalọgụ maka mgbasa ozi",
+      "analytics": "Nyocha",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "Na-aza igbe ozi ma na-elele ọda na ndị ahịa",
+      "brands": "Akara azụmahịa",
+      "campaign_banners": "Bana mkpọsa",
+      "can": "Nwere ike",
+      "can_sign_in_and_work": "Nwere ike ịbanye ma rụọ ọrụ.",
+      "can_t": "Enweghị ike",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "Enweghị ike ịbanye ma ọ bụ tọgharịa paswọọdụ ya. Maka onye hapụrụ n'esemokwu.",
+      "can_t_sign_in_turn_back_on_any_time": "Enweghị ike ịbanye. Gbanye ya ọzọ mgbe ọ bụla.",
+      "cashier": "Onye nnata ego",
+      "catalog": "Katalọgụ",
+      "categories": "Ngalaba",
+      "changed": "Agbanwere",
+      "changed_from_the_role": "Dị iche na ọrụ ahụ",
+      "create": "Mepụta",
+      "creating_and_cancelling_orders_stays_with_the_store": "Ịmepụta na ịkagbu ọda bụ ọrụ ụlọ ahịa",
+      "customer_accounts_are_changed_by_the_store": "Ụlọ ahịa na-agbanwe akaụntụ ndị ahịa",
+      "discounts_gift_cards": "Mbelata na kaadị onyinye",
+      "every_staff_permission": "Ikike ndị ọrụ niile",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "Ihe niile enwere ike inye onye otu dashboard nchịkwa, dị ka mpaghara.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "Ihe niile enwere ike inye onye otu mpaghara ndị ọrụ, dị ka mpaghara.",
+      "everything_except_deleting_records": "Ihe niile ma e wezụga ihichapụ ndekọ",
+      "everything_in_the_staff_area_deleting_included": "Ihe niile dị na mpaghara ndị ọrụ, gụnyere ihichapụ",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "Ihe niile enwere ike inye ọrụ a, dị ka mpaghara. Igbe nwere ahịrị kpụkọrọ dị iche na ọrụ ahụ.",
+      "everywhere": "Ebe niile",
+      "gives_access": "Na-enye ohere",
+      "inbox": "Igbe ozi",
+      "invite": "Òkù",
+      "manage_the_till": "Jikwaa POS",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "Ijikwa POS gụnyere mbelata, akụkọ POS na kaụnta",
+      "moderate": "Nyochaa",
+      "money": "Ego",
+      "moves_money": "Na-ebugharị ego",
+      "new_team_member": "Onye otu ọhụrụ",
+      "nothing_yet": "Ọ dịbeghị ihe",
+      "online_store_reports": "Ụlọ ahịa ịntanetị na akụkọ",
+      "only_in_the_admin_dashboard": "Naanị na dashboard nchịkwa",
+      "only_these": "Naanị ndị a",
+      "open_past_the_return_window": "Mepee mgbe oge nlọghachi gafere",
+      "orders": "Ọda",
+      "pause": "Kwụsịtụ",
+      "paused": "Akwụsịtụrụ",
+      "permissions": "Ikike",
+      "permissions_given": "Ikike e nyere",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "Họrọ Manager ma ọ bụ Administrator iji nye nke ọ bụla n'ime ha. Ndị ọrụ na-arụ ọrụ na mpaghara ndị ọrụ na POS.",
+      "pick_vendors_locations_or_regions_below": "Họrọ ndị na-ere ahịa, ebe ma ọ bụ mpaghara n'okpuru",
+      "point_of_sale": "Ebe ire ahịa (POS)",
+      "popups_and_bars_on_the_home_page": "Mpụta na eriri na ibe ụlọ",
+      "refund": "Weghachi ego",
+      "refund_sends_money_back_to_the_customer": "Iweghachi ego na-ezighachi onye ahịa ego ya",
+      "reply": "Zaa",
+      "reviews": "Nyocha ndị ahịa",
+      "rings_up_sales_at_the_register": "Na-anabata ego ahịa na rejista",
+      "role_name": "Aha ọrụ",
+      "role_name_e_g_floor_lead": "Aha ọrụ, dịka Onye isi ala ahịa",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "Ọrụ ị mepụtara na ihuenyo Ọrụ na-apụta ebe a dị ka kaadị ndị ọzọ.",
+      "sales_associate": "Onye inyeaka ire ahịa",
+      "save_as_a_role": "Chekwaa dị ka ọrụ",
+      "scope": "Oke",
+      "secrets": "Ihe nzuzo",
+      "selling": "Ire ahịa",
+      "send_recovery_emails": "Zipu ozi email nnwetaghachi",
+      "shift_lead": "Onye isi ọrụ",
+      "staff_area_pos": "Mpaghara ndị ọrụ na POS",
+      "start_from": "Malite na",
+      "store_admin": "Nchịkwa ụlọ ahịa",
+      "summary": "Nchịkọta",
+      "support_agent": "Onye nkwado",
+      "taken_away_for_this_member": "Ewepụrụ maka onye otu a",
+      "the_books": "Akwụkwọ ego",
+      "the_register_orders_customers_and_the_inbox": "Rejista, ọda, ndị ahịa na igbe ozi",
+      "use": "Jiri",
+      "use_the_register": "Jiri rejista",
+      "watch": "Lelee",
+      "what_this_staff_member_can_do_by_area": "Ihe onye ọrụ a nwere ike ime, dị ka mpaghara.",
+      "where_they_work": "Ebe ha na-arụ ọrụ",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "Ebe ha na-arụ ọrụ na ihe ha ji amalite. Ị nwere ike ịgbanwe ikike ọ bụla n'okpuru maka onye otu a.",
+      "works_in_the_admin_dashboard": "Na-arụ ọrụ na dashboard nchịkwa",
+      "works_in_the_staff_area_and_at_the_till": "Na-arụ ọrụ na mpaghara ndị ọrụ na POS",
+      "writes_copy_and_images_with_the_store_s_ai_key": "Na-ede ederede na foto site na igodo AI nke ụlọ ahịa",
+      "anything_only_in_the_admin_dashboard": "ihe ọ bụla dị naanị na dashboard nchịkwa",
+      "this_member": "onye otu a",
+      "by_role": "Site n'ọrụ"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "Nloghachi (ụbọchị 30)",
+          "description": "{count} ka na-aga n'ihu"
+        },
         "needsReview": {
           "title": "Na-achọ nyocha",
           "description": "Kwado ma ọ bụ jụ"
@@ -5275,7 +5728,7 @@
       "enterFullscreen": "Ihuenyo zuru ezu",
       "exitFullscreen": "Pụọ n'ihuenyo zuru ezu",
       "reset": "Tọgharịa na ndabara",
-      "personalNote": "Maka naanị gị, na ihe nchọgharị a. A na-edozi logo, agba na ọdịdị ndabara ụlọ ahịa gị na Ahịa n'ịntanetị → Isiokwu → Akara azụmahịa.",
+      "personalNote": "Maka naanị gị, na ihe nchọgharị a. A na-edozi logo na ọdịdị ndabara ụlọ ahịa gị na Ahịa n'ịntanetị → Isiokwu → Akara azụmahịa, agba ya na Ntọala isiokwu.",
       "darkMode": "Ọnọdụ ọchịchịrị",
       "contrast": "Ọdịiche agba",
       "rtl": "Site n'aka nri gaa n'aka ekpe",
@@ -5283,7 +5736,12 @@
       "sidebar": "Mmanya akụkụ",
       "sidebarColor": "Agba",
       "sidebarIntegrate": "Jikọtara",
-      "sidebarApparent": "Pụtara ìhè"
+      "sidebarApparent": "Pụtara ìhè",
+      "sidebarPaint": "Tee mpaghara akụkụ agba",
+      "sidebarPaintPrimary": "Isi",
+      "sidebarPaintSecondary": "Nke abụọ",
+      "sidebarPaintHint": "Na-eji agba isiokwu gị na-arụ ọrụ.",
+      "sidebarPaintChange": "Gbanwee ha"
     },
     "preorderAccess": {
       "vendorFallback": "Onye na-ere ahịa",
@@ -5443,7 +5901,10 @@
           "countryOfOrigin": "Aha mba ma ọ bụ koodu mkpụrụ akwụkwọ abụọ, dịka BD.",
           "hsCode": "Koodu ụtụ kọstọm.",
           "barcode": "EAN-13, UPC-A, GTIN-14 ma ọ bụ Code 128. A na-emepụta ya mgbe ọ tọgbọrọ chakoo.",
-          "vendorId": "Onye na-ere ahịa nwe ngwaahịa ahụ, dịka ọ dị na faịlụ ndị na-ere ahịa e bupụtara. Ndabara: ụlọ ahịa gị."
+          "vendorId": "Onye na-ere ahịa nwe ngwaahịa ahụ, dịka ọ dị na faịlụ ndị na-ere ahịa e bupụtara. Ndabara: ụlọ ahịa gị.",
+          "chargeTax": "true ma ọ bụ false: na-ana ụtụ isi na ngwaahịa a. Ndabara: true.",
+          "taxClass": "Ụdị ụtụ isi sitere na Njirimara Ụtụ Isi: standard, reduced, zero, exempt ma ọ bụ nke ị gbakwụnyere. Dee inherit iji jiri ụtụ isi nke ngalaba ya ọzọ.",
+          "taxRate": "Ọnụego ụtụ isi pụrụ iche na pasentị, dịka 7.5. Ọ na-anọchi ụdị ụtụ isi, ya mere jupụta taxClass ma ọ bụ taxRate, ọ bụghị ha abụọ."
         },
         "title": "Bubata ngwaahịa",
         "description": "Tinye ngwaahịa ọhụrụ ma ọ bụ melite ndị dị adị n'otu oge site na faịlụ CSV ma ọ bụ JSON.",
@@ -5773,7 +6234,10 @@
       },
       "actions": {
         "import": "Bubata",
-        "addCollection": "Tinye nchịkọta"
+        "addCollection": "Tinye nchịkọta",
+        "export": "Bupụ",
+        "importExport": "Bubata / Bupụ",
+        "downloadSample": "Budata faịlụ ihe atụ"
       },
       "bulkActions": {
         "delete": "Hichapụ"
@@ -5800,6 +6264,67 @@
       "toasts": {
         "deleteSingleSuccess": "E hiichapụla",
         "deleteSingleError": "Enweghị ike hichapụ"
+      },
+      "importDialog": {
+        "title": "Bubata nchịkọta",
+        "description": "Tinye nchịkọta ọhụrụ ma ọ bụ melite ndị dị adị n'otu oge site na faịlụ CSV.",
+        "sampleTitle": "Malite site na faịlụ ihe atụ",
+        "sampleDescription": "O nwere kọlụm ndị mbubata na-agụ na nchịkọta abụọ e ji atụ, otu manual na otu automated. Jiri nke gị dochie ihe atụ ndị ahụ, hapụ ahịrị mbụ ka ọ dị, ma bulite faịlụ ahụ ebe a.",
+        "sampleCsv": "CSV ihe atụ",
+        "sampleFailed": "Enweghị ike ibudata faịlụ ihe atụ ahụ",
+        "dropTitle": "Họrọ faịlụ ma ọ bụ dọkpụrụ ya ebe a",
+        "dropHint": "CSV · ruo nchịkọta {rows} · {size} MB",
+        "removeFile": "Wepụ faịlụ",
+        "fileTooLarge": "Faịlụ a karịrị {size} MB. Kewaa ya ka ọ bụrụ faịlụ ndị pere mpe.",
+        "wrongType": "Họrọ faịlụ .csv.",
+        "rulesTitle": "Otu e si ebubata ahịrị",
+        "rules": {
+          "match": "Ahịrị nwere id ma ọ bụ slug nke nchịkọta dị adị na-emelite nchịkọta ahụ. A na-eji title tụnyere ahịrị na-enweghị otu n'ime ha, ọ na-emepụtakwa nchịkọta ọhụrụ mgbe ọ dịghị nke kwekọrọ.",
+          "blank": "Sel tọgbọrọ chakoo na-edobe ihe nchịkọta ahụ nwere ugbu a. Nchịkọta ọhụrụ na-amalite dị ka manual draft.",
+          "products": "Nchịkọta manual na-edepụta ngwaahịa ya site na slug, SKU ma ọ bụ aha, nke | kewara. Ngwaahịa ahụ ga-adịrịrị adị; a na-agabiga aha na-adịghị ekwekọ n'ihe ọ bụla, ma kọọrọ ya n'akụkọ. Sel ngwaahịa tọgbọrọ chakoo na-edobe ngwaahịa dị ugbu a.",
+          "conditions": "Nchịkọta automated chọrọ opekata mpe otu iwu na kọlụm conditions, e dere dị ka JSON dị ka ihe atụ dị na ntuziaka kọlụm."
+        },
+        "columnsTitle": "Ntuziaka kọlụm",
+        "required": "Achọrọ maka nchịkọta ọhụrụ",
+        "columns": {
+          "title": "Aha nchịkọta.",
+          "slug": "Adreesị weebụ nke nchịkọta. A na-eji title mepụta ya mgbe ọ tọgbọrọ chakoo. Ọ na-achọtakwa nchịkọta a ga-emelite.",
+          "id": "Naanị na faịlụ ndị e wepụtara. Ọ na-achọta nchịkọta ahụ a ga-emelite kpọmkwem.",
+          "description": "Nkọwa dị mkpirikpi n'ederede dị mfe.",
+          "descriptionHtml": "Nkọwa zuru ezu. A na-anabata HTML.",
+          "imageUrl": "Njikọ onyonyo ọha (https://…) maka mkpuchi nchịkọta.",
+          "imageAlt": "Ederede nnọchi anya maka onyonyo mkpuchi. Ọ na-eji title mgbe ọ tọgbọrọ chakoo.",
+          "collectionType": "manual ma ọ bụ automated. Nchịkọta ọhụrụ bụ manual belụsọ faịlụ ekwuo ọzọ.",
+          "status": "active ma ọ bụ draft. Nchịkọta ọhụrụ bụ draft belụsọ faịlụ ekwuo ọzọ.",
+          "products": "Maka nchịkọta manual: slug, SKU ma ọ bụ aha ngwaahịa nke | kewara, dịka blue-shirt|red-shirt.",
+          "productIds": "Naanị na faịlụ ndị e wepụtara: id ngwaahịa nke | kewara. A na-eji ya na products.",
+          "conditions": "Maka nchịkọta automated: iwu ndị ahụ dị ka ndepụta JSON. Mpaghara: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all ma ọ bụ any: ma ngwaahịa ga-emezu iwu niile ma ọ bụ naanị otu. Ndabara: all.",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc ma ọ bụ created-desc.",
+          "position": "Nọmba na-ahazi nchịkọta a na ndepụta. Nke pere mpe na-abịa nke mbụ.",
+          "onlineStore": "true ma ọ bụ false: gosi nchịkọta na ụlọ ahịa n'ịntanetị. Ndabara: true.",
+          "pointOfSale": "true ma ọ bụ false: gosi ya n'ebe a na-ere ahịa. Ndabara: false.",
+          "seoPageTitle": "Aha peeji ndị ngwa nchọta na-egosi maka peeji nchịkọta.",
+          "seoMetaDescription": "Nkọwa ndị ngwa nchọta na-egosi maka peeji nchịkọta."
+        },
+        "cancel": "Kagbuo",
+        "submit": "Bubata nchịkọta",
+        "importing": "A na-ebubata… faịlụ buru ibu nwere ike iwe otu nkeji. Hapụ windo a ka ọ ghere oghe.",
+        "requestFailed": "Enweghị ike ibubata faịlụ ahụ. Nwaa ọzọ.",
+        "resultTitle": "Mbubata agwụla",
+        "resultFailedTitle": "Enweghị ike ibubata faịlụ ahụ",
+        "created": "Emepụtara",
+        "updated": "Emelitere",
+        "failed": "Dara",
+        "warnings": "Ndetu",
+        "errorsTitle": "Ahịrị a na-ebubataghị",
+        "errorsHint": "Dozie ahịrị ndị a na faịlụ gị ma bubata ya ọzọ. Ahịrị ndị e buputaralarị na-emelite otu nchịkọta ndị ahụ kama ịgbakwunye oyiri.",
+        "rowLabel": "Ahịrị {row}",
+        "fileLabel": "Faịlụ",
+        "moreErrors": "…na {count} ọzọ na ndepụta ị nwere ike ibudata.",
+        "downloadErrors": "Budata ndepụta njehie",
+        "importAnother": "Bubata faịlụ ọzọ",
+        "done": "Emechara"
       }
     },
     "categoriesDataTable": {
@@ -6014,6 +6539,7 @@
         "genericError": "Njehie mere"
       },
       "mega": {
+        "shopAll": "Lelọ anya ihe niile na {name}",
         "links": "Njikọ",
         "addLink": "Tinye njikọ",
         "viewAllCategories": "Lelọ anya ngalaba niile"
@@ -6177,7 +6703,26 @@
     },
     "payoutsPage": {
       "createSection": {
-        "selectVendor": "Họrọ onye na-ere ahịa"
+        "selectVendor": "Họrọ onye na-ere ahịa",
+        "title": "Mepụta ịkwụ ụgwọ",
+        "periodStart": "Mmalite oge (nhọrọ)",
+        "periodEnd": "Njedebe oge",
+        "creating": "Na-emepụta...",
+        "create": "Mepụta",
+        "optionalNote": "Ndetu (nhọrọ)",
+        "description": "Na-akwụ onye na-ere ahịa ego enwere ike ịkwụ ugbu a: ahịa e nyefere nke oge nlọghachi ya gafere, wepụ ihe ọ bụla o ji.",
+        "searchVendor": "Chọọ ndị na-ere ahịa",
+        "noVendor": "Ahụghị onye na-ere ahịa",
+        "searching": "Na-achọ…",
+        "vendorMissing": "Onye na-ere ahịa a adịkwaghị",
+        "suspended": "Ajụpụ — a kpọchiri ịkwụ ụgwọ",
+        "startHint": "Hapụ ya efu ka itinye ahịa niile enwere ike ịkwụ ruo ụbọchị njedebe.",
+        "frozen": "Ajụpụla onye na-ere ahịa a, ya mere a kpọchiri ịkwụ ụgwọ. A na-aga n'ihu na-agụ ahịa ya ruo mgbe eweghachiri ya.",
+        "belowMinimum": "{amount} dị ala karịa ịkwụ ụgwọ kacha ala nke {minimum}.",
+        "orderCount": "{count, plural, one {Ọda #} other {Ọda #}} n'ime ịkwụ ụgwọ a.",
+        "moreThanMax": "Naanị ọda {count} kacha ochie enwere ike ịkwụ na-abanye n'otu ịkwụ ụgwọ; ndị fọdụrụ ga-aba na nke na-esote.",
+        "sellerConfirmed": "{count, plural, one {Nnyefe # bụ onye na-ere ahịa kwadoro ya} other {Nnyefe # bụ onye na-ere ahịa kwadoro ha}}, ọ bụghị ụlọ ọrụ mbupu.",
+        "commissionLeft": "Kọmịshọn {amount} onye na-ere ahịa ji ezughị n'ịkwụ ụgwọ a, ọ ka bụ ụgwọ."
       },
       "listSection": {
         "columns": {
@@ -6185,8 +6730,42 @@
           "status": "Ọnọdụ",
           "amount": "Ego",
           "period": "Oge",
-          "details": "Nkọwa"
-        }
+          "details": "Nkọwa",
+          "payout": "Ịkwụ ụgwọ"
+        },
+        "title": "Ịkwụ ụgwọ emere",
+        "searchPlaceholder": "Chọọ nọmba ịkwụ ụgwọ ma ọ bụ onye na-ere ahịa",
+        "allStatuses": "Ọnọdụ niile",
+        "open": "Mepee",
+        "empty": "Ahụghị ịkwụ ụgwọ ọ bụla."
+      },
+      "title": "Ego a na-akwụ ndị na-ere ahịa",
+      "subtitle": "Mepụta ịkwụ ndị na-ere ahịa ụgwọ ma soro ọnọdụ ịkwụ ụgwọ ọ bụla.",
+      "statuses": {
+        "pending": "Na-eche",
+        "processing": "Na-arụ ọrụ na ya",
+        "paid": "Akwụọla",
+        "failed": "Dara",
+        "cancelled": "Akagburu"
+      },
+      "pagination": {
+        "pageOf": "Peeji {page} n'ime {totalPages}"
+      },
+      "toast": {
+        "requiredFields": "Họrọ onye na-ere ahịa na ụbọchị njedebe.",
+        "createSuccess": "Emepụtala ịkwụ ụgwọ.",
+        "createError": "Enweghị ike ịmepụta ịkwụ ụgwọ"
+      },
+      "sendTo": {
+        "title": "Ziga na",
+        "missing": "Enweghị akaụntụ ụlọ akụ edebanyere. Rịọ onye na-ere ahịa ka ọ tinye otu na ntọala ya, ma ọ bụ kwụọ site n'ego aka ma ọ bụ ọnụ ụzọ ịkwụ ụgwọ.",
+        "accountName": "Aha akaụntụ",
+        "accountNumber": "Nọmba akaụntụ",
+        "bankName": "Ụlọ akụ",
+        "routingNumber": "Nọmba routing",
+        "swiftCode": "SWIFT",
+        "show": "Gosi nọmba akaụntụ",
+        "copy": "Detuo {field}"
       }
     },
     "paymentTransactionsPage": {
@@ -6320,24 +6899,255 @@
         "title": "Ala Ibe"
       }
     },
+    "customizeHub": {
+      "title": "Hazie",
+      "description": "Họrọ ibe ụlọ ahịa ị ga-ahazi."
+    },
     "themeEditor": {
+      "presets": {
+        "default": "Anụnụ anụnụ",
+        "cyan": "Anụnụ mmiri",
+        "purple": "Ododo",
+        "blue": "Ojii",
+        "orange": "Oroma",
+        "red": "Uhie"
+      },
+      "colorMode": "Ọnọdụ agba",
+      "darkFollows": "Oji na-eso agba ọkụ gị n'onwe ya. Pịa otu agba ka ịtọọ ya naanị maka oji.",
+      "advancedColors": "Ọkwa Elu",
+      "advancedLowContrast": "Agba dị ebe a siri ike ịgụ",
+      "sections": {
+        "page": "Ibe",
+        "text": "Ederede",
+        "sales": "Mbelata na ntụle",
+        "lines": "Ahịrị",
+        "states": "Ọnọdụ",
+        "soft": "Ndabere dị nro"
+      },
+      "sourceDefault": "Ndabara isiokwu",
+      "sourceAuto": "Akpaaka",
+      "sourceCustom": "Nke onwe",
+      "colorSource": "Ebe agba si",
+      "autoDarkHint": "Na-eso agba ọkụ gị, edoziri ka o wee pụta ìhè n'ibe gbara ọchịchịrị.",
+      "defaultHint": "Agba nke isiokwu n'onwe ya, ahọpụtara ka ọ dabara na ndị ọzọ.",
+      "usedFor": "Ejiri maka",
+      "useReadable": "Jiri {color}",
+      "backToAuto": "Laghachi na akpaaka",
+      "resetToDefault": "Weghachi na ndabara isiokwu",
+      "textAuto": "Agba ederede akpaaka",
+      "accentUse": "Akara Pụrụ iche na nke menu",
+      "saleUse": "Mbelata na ọnụahịa mbelata",
+      "lowContrastOn": "O siri ike ịhụ na {surface} ({ratio}:1). Chọọ {minimum}:1.",
+      "groups": {
+        "colors": {
+          "description": "Naanị {theme} na-eji agba ndị a. Isiokwu gị ndị ọzọ na-edebe nke ha.",
+          "label": "Agba"
+        },
+        "type": {
+          "label": "Mkpụrụedemede",
+          "description": "Ụdị mkpụrụedemede na ọdịdị ha maka aha isi, ederede ahụ na bọtịnụ."
+        },
+        "layout": {
+          "label": "Nhazi",
+          "description": "Obosara ibe, na ndabara izugbe ngalaba hero na banner na-eso."
+        },
+        "shape": {
+          "label": "Ọdịdị",
+          "description": "Akụkụ, oke na ndò. Ọnụọgụ kpọmkwem, na pixel."
+        },
+        "buttons": {
+          "label": "Bọtịnụ",
+          "description": "Nha na omume bọtịnụ ime ihe."
+        }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "Ndabere",
+          "hint": "N'azụ ibe ọ bụla."
+        },
+        "surface": {
+          "label": "Kaadị na menu",
+          "hint": "Paneelu, windo popup, dropdown na menu."
+        },
+        "surfaceAlt": {
+          "label": "Eriri na chip",
+          "hint": "Ngalaba nwere eriri, ndabere onyonyo na chip nkịtị."
+        },
+        "text": {
+          "label": "Ederede",
+          "hint": "Aha isi na ederede ahụ."
+        },
+        "textMuted": {
+          "label": "Ederede nke abụọ",
+          "hint": "Nkọwa foto, ụdị, ihe nnọchi."
+        },
+        "border": {
+          "label": "Ahịrị nkewa",
+          "hint": "Ahịrị n'etiti ngalaba na gburugburu kaadị."
+        },
+        "primary": {
+          "label": "Bọtịnụ isi",
+          "hint": "Bọtịnụ ndị isi, ọnụ ọgụgụ keria na ahịrị taabụ na-arụ ọrụ."
+        },
+        "onPrimary": {
+          "label": "Ederede n'elu isi",
+          "hint": "Akara na bọtịnụ isi."
+        },
+        "secondary": {
+          "label": "Bọtịnụ nke abụọ",
+          "hint": "“Tinye n'akpa” na bọtịnụ ndị ọzọ nke abụọ."
+        },
+        "onSecondary": {
+          "label": "Ederede n'elu nke abụọ",
+          "hint": "Akara dị na “Tinye n'akpa”."
+        },
+        "accent": {
+          "label": "Nkwusi ike",
+          "hint": "Akara Pụrụ iche na kaadị ngwaahịa na baajị na menu ụlọ ahịa."
+        },
+        "sale": {
+          "label": "Mbelata",
+          "hint": "Baajị mbelata na ọnụahịa mbelata."
+        },
+        "rating": {
+          "label": "Kpakpando ntụle",
+          "hint": "Kpakpando nyocha."
+        },
+        "link": {
+          "label": "Njikọ",
+          "hint": "Njikọ, “Lelọ anya” na ihe menu na-arụ ọrụ: ederede n'agba isi, nke a na-eme ka ọ dị mfe ịgụ."
+        },
+        "onAccent": {
+          "label": "Ederede n'elu nkwusi ike",
+          "hint": "Akara n'elu agba nkwusi ike."
+        },
+        "accentSurface": {
+          "label": "Ndabere nkwusi ike",
+          "hint": "Ụcha dị nro nke nkwusi ike n'azụ ederede nkwalite."
+        },
+        "onAccentSurface": {
+          "label": "Ederede n'elu ndabere nkwusi ike",
+          "hint": "Ederede n'elu ụcha nkwusi ike."
+        },
+        "hoverSurface": {
+          "label": "Ndabere hover",
+          "hint": "Menu na bọtịnụ dị n'okpuru ihe nrụtụ aka."
+        },
+        "onHover": {
+          "label": "Ederede n'elu hover",
+          "hint": "Akara n'elu ndabere hover."
+        },
+        "selectedSurface": {
+          "label": "Ndabere ahọrọ",
+          "hint": "Ihe e tinyere akara nlele na dropdown na ahịrị na-arụ ọrụ na menu."
+        },
+        "onSelected": {
+          "label": "Ederede n'elu nhọrọ",
+          "hint": "Akara n'elu ndabere ahọrọ."
+        },
+        "focusRing": {
+          "label": "Gburugburu focus",
+          "hint": "Ahịrị ndị na-eji keyboard na-eso."
+        },
+        "fieldBorder": {
+          "label": "Oke ubi ntinye",
+          "hint": "Ubi checkout, fọm na dropdown. Igbe ọchụchọ dị n'isi ibe nwere oke nke ya na Studio Isi Ibe."
+        },
+        "onSale": {
+          "label": "Ederede n'elu mbelata",
+          "hint": "Akara na baajị mbelata nwere agba zuru oke."
+        },
+        "saleText": {
+          "label": "Ederede mbelata",
+          "hint": "Ọnụahịa mbelata na ego echekwara n'ibe."
+        },
+        "saleSurface": {
+          "label": "Ndabere mbelata",
+          "hint": "N'azụ chip mbelata dị n'akụkụ ọnụahịa."
+        },
+        "onSaleSurface": {
+          "label": "Ederede n'elu ndabere mbelata",
+          "hint": "Ederede n'elu ụcha mbelata."
+        },
+        "skeleton": {
+          "label": "Ihe nnọchi ibudata",
+          "hint": "Igbe isi awọ a na-egosi mgbe ibe na-ebudata."
+        }
+      },
       "title": "Ntọala isiokwu",
       "back": "Isiokwu",
+      "unsaved": "Mgbanwe ndị a na-echekwabeghị",
+      "allSaved": "Echekwara mgbanwe niile",
+      "discard": "Hichapụ",
       "save": "Chekwaa",
       "saved": "Echekwara ntọala isiokwu",
       "saveFailed": "Nchekwa dara",
+      "resetGroup": "Tọgharịa otu a",
+      "resetAll": "Tọgharịa ihe niile na ndabara isiokwu",
+      "resetAllTitle": "Tọgharịa ntọala niile?",
       "preview": "Nlele",
-      "brandRef": "Akara ahịa",
+      "controls": "Ntọala",
+      "setCustom": "Tọọ agba nke onwe",
+      "contrastHint": "Ọdịiche agba megide ndabere ya",
       "modeLight": "Ọkụ",
       "modeDark": "Oji",
-      "groups": {
-        "colors": {
-          "label": "Agba"
+      "leaveGuard": "Ị nwere mgbanwe isiokwu a na-echekwabeghị.",
+      "fonts": {
+        "inter": "Nkịtị, teknụzụ, ndabara",
+        "manrope": "Jiometrị, ahịa ọgbara ọhụrụ",
+        "dm-sans": "Gbara gburugburu, enyi",
+        "plus-jakarta-sans": "Jiometrị dị nro, ndụ kwa ụbọchị",
+        "nunito": "Nsọtụ gbara gburugburu, egwuregwu",
+        "source-sans-3": "Ụdị aka mmadụ, ọgụgụ ogologo",
+        "space-grotesk": "Grotesk pụrụ iche, teknụzụ",
+        "playfair-display": "Ọdịiche dị elu, akwụkwọ akụkọ",
+        "lora": "Serif dị jụụ, dị mfe ịgụ",
+        "fraunces": "Dị nro, dị ọkụ, ahụike",
+        "cormorant-garamond": "Okomoko, ejiji",
+        "dm-serif-display": "Naanị aha isi (otu ịdị arọ)",
+        "noto-sans-bengali": "Bengali + Latịn, sans",
+        "noto-serif-bengali": "Bengali + Latịn, serif"
+      },
+      "resetColors": "Tọgharịa agba isiokwu",
+      "invalidColor": "Tinye agba hex ma ọ bụ RGB ziri ezi. Nlele na-ejigide agba ikpeazụ ziri ezi.",
+      "contrastPass": "Ọ gafere",
+      "contrastLow": "Dị ala",
+      "previewLoading": "Na-ejikọ nlele ozugbo…",
+      "previewOutdated": "Mee nlele ọhụrụ ka o budata igwe agba kacha ọhụrụ.",
+      "refreshPreview": "Mee nlele ọhụrụ",
+      "cannotVerifyColor": "Enweghị ike inyocha nkọwa agba nke onwe a. Lelee nlele n'ọnọdụ abụọ ahụ.",
+      "themeChanged": "Agbanyela isiokwu ọzọ mgbe ị na-edezi. Mepeghachi onye ndezi maka isiokwu ahụ.",
+      "conflictKeepDraft": "Onye ọzọ chekwara ntọala ndị a mgbe ị na-edezi. Pịa Chekwaa ọzọ ka mgbanwe gị dochie nke ha, ma ọ bụ Hichapụ iji bubata nke ha.",
+      "darkOwnHint": "Ọnọdụ oji nwere agba nke ya ebe a ({color}), ya mere ọ naghị eso nke a. Gbanwee ya na taabụ Oji.",
+      "keyColorsTitle": "Agba ndị bụ isi",
+      "keyColorsHint": "Tụọ aka n'otu ka ịhụ ya na nlele",
+      "keyColors": {
+        "primary": {
+          "label": "Isi",
+          "sample": "Zụta ugbu a"
         },
-        "layout": {
-          "label": "Nhazi"
+        "secondary": {
+          "label": "Nke abụọ",
+          "sample": "Tinye n'akpa"
+        },
+        "accent": {
+          "label": "Nkwusi ike",
+          "sample": "Pụrụ iche"
+        },
+        "skeleton": {
+          "label": "Ibudata"
         }
-      }
+      },
+      "themeDefaultNamed": "Ndabara {theme}",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "Paleti agba",
+      "saveAsPalette": "Chekwaa dị ka paleti agba",
+      "resetToNamed": "Laghachi na {name}",
+      "themeOnly": "Naanị {theme}",
+      "moreColors": "Agba ndị ọzọ",
+      "advancedHintStates": "Hover, nhọrọ, focus, ndabere mbelata",
+      "resetAllDescriptionTheme": "Otu ọ bụla, gụnyere agba, na-alaghachi na ndabara nke {theme} n'onwe ya. Isiokwu gị ndị ọzọ agaghị agbanwe. Ọ dịghị ihe a na-echekwa ruo mgbe ị pịrị Chekwaa.",
+      "previewShowing": "Na-egosi ebe a na-eji {color}"
     },
     "searchInsights": {
       "title": "Nghọta ọchụchọ",
@@ -6377,7 +7187,8 @@
         "location": "Ebe",
         "collection": "Nchịkọta",
         "brand": "Akara ahịa",
-        "slider": "Ngosipụta Slaịdị"
+        "slider": "Ngosipụta Slaịdị",
+        "teamRole": "Ọrụ otu"
       },
       "empty": {
         "clearFilters": "Hichapụ nyocha"
@@ -6394,6 +7205,124 @@
         "title": "Ndekọ ọrụ",
         "filterTitle": "Nyocha"
       }
+    },
+    "categoryForm": {
+      "taxRate": "Ụtụ isi"
+    },
+    "themeColors": {
+      "title": "Agba isiokwu",
+      "refs": {
+        "primary": "Isi",
+        "secondary": "Nke abụọ",
+        "accent": "Nkwusi ike",
+        "background": "Ndabere",
+        "surface": "Kaadị",
+        "surfaceAlt": "Eriri na chip",
+        "text": "Ederede",
+        "textMuted": "Ederede nke abụọ",
+        "border": "Ahịrị nkewa"
+      },
+      "following": "Na-eso {name} nke isiokwu. Gbanwee ya na Ntọala isiokwu → Agba.",
+      "followingShort": "Isiokwu · {name}",
+      "hint": "Họrọ agba isiokwu ka o soro Ntọala isiokwu → Agba.",
+      "pick": "Jiri agba isiokwu"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "Enweghị ike ibudata nchịkọta ịkwụ ụgwọ",
+      "loadPayoutsError": "Enweghị ike ibudata ịkwụ ụgwọ",
+      "columns": {
+        "payout": "Ịkwụ ụgwọ",
+        "period": "Oge",
+        "status": "Ọnọdụ",
+        "netAmount": "Ego mgbe e wepụsịrị"
+      },
+      "bankMissingTitle": "Enweghị akaụntụ ịnata ụgwọ edebanyere",
+      "bankMissing": "Ihe na-efu: {fields}. Enwere ike ịkwụ ụgwọ naanị site n'ego aka ma ọ bụ ọnụ ụzọ ịkwụ ụgwọ ruo mgbe etinyere nkọwa ndị ahụ na taabụ Business.",
+      "frozenTitle": "A kpọchiri ịkwụ ụgwọ",
+      "frozen": "Ajụpụla onye na-ere ahịa a. A na-aga n'ihu na-agụ ahịa ya, mana a gaghị akwụ ihe ọ bụla ruo mgbe eweghachiri ya.",
+      "owedNow": "Ihe a ga-akwụ ugbu a",
+      "owedNowHint": "Ihe ịkwụ ụgwọ e mepụtara ugbu a ga-ebu: ahịa e nyefere ma kwụọ ụgwọ ya nke oge nlọghachi ya gafere, wepụ ihe onye na-ere ahịa ji.",
+      "createPayout": "Mepụta ịkwụ ụgwọ",
+      "noneAwaiting": "Ọ dịghị ọda e nyefere ma kwụọ ụgwọ ya na-eche ịkwụ ụgwọ.",
+      "nothingPayable": "{count, plural, one {Ọda # tozuru oke} other {Ọda # tozuru oke}}, mana nkwụghachi ego na mbelata ahapụghị ihe ọ bụla a ga-akwụ.",
+      "across": "N'ofe {count, plural, one {ọda #} other {ọda #}} · ngụkọta {gross} wepụ kọmịshọn {commission}. E wepụlarị nkwụghachi ego na mbelata.",
+      "belowMinimumTitle": "N'okpuru mwepụ kacha ala",
+      "belowMinimum": "Ịkwụ ụgwọ ga-abụrịrị opekata mpe {minimum}. A ga-ajụ nke e mepụtara ugbu a.",
+      "commissionLeft": "Kọmịshọn {amount} onye na-ere ahịa ji n'ahịa ego aka anaghị abanye n'ịkwụ ụgwọ na-esote, ọ ka bụ ụgwọ.",
+      "overpaidTitle": "Akwụrụ {amount} maka ahịa e mesịrị kwụghachi ego ya",
+      "overpaidRecovered": "E wepụlarị {amount} n'ime ya na ọnụọgụ dị n'elu. Ihe ọ bụla fọdụrụ ga-esi n'ịkwụ ụgwọ ndị ga-esote pụta.",
+      "overpaidLater": "A ga-ewepụ ya n'ịkwụ ụgwọ na-esote nke onye na-ere ahịa, ma ọ bụ dekọọ nkwụghachi ụgwọ ma ọ bụrụ na ọ kwụghachiri ya.",
+      "otherCurrenciesTitle": "Ego fọdụrụ na {currencies}",
+      "otherCurrencies": "Onye na-ere ahịa a rekwara ahịa na {currencies}. Ego ndị ahụ fọdụrụ adịghị n'ọnụọgụ dị n'elu, ha chọkwara ịkwụ ụgwọ nke ha — a naghị agbakọta ego dị iche iche ọnụ.",
+      "trade": "Azụmahịa",
+      "tradeHint": "Ihe onye na-ere ahịa a rere, n'ọda niile akagbughị, na {currency}",
+      "grossSales": "Ngụkọta ahịa",
+      "vendorEarnings": "Ego onye na-ere ahịa nwetara",
+      "vendorEarningsHint": "ngụkọta wepụ kọmịshọn",
+      "paidOut": "Akwụọla",
+      "pendingAmount": "{amount} na-eche",
+      "platformRevenue": "Ego ikpo okwu nwetara n'aka onye na-ere ahịa a",
+      "platformRevenueHint": "Kọmịshọn na ego mbupu e debere site n'ahịa ya, gbakwunyere ụgwọ ndenye aha ọ kwụrụ. Ego enwetara tupu mmefu ikpo okwu.",
+      "commission": "Kọmịshọn",
+      "commissionHint": "n'ahịa e nyefere ma kwụọ ụgwọ ya, mgbe e wepụsịrị nkwụghachi ego",
+      "subscriptions": "Ndenye aha",
+      "invoicesPaid": "Akwụọla invoice {paid} n'ime {total}",
+      "noInvoices": "enweghị invoice",
+      "shipping": "Mbupu",
+      "shippingHint": "e debere ya, akwụghị ya",
+      "total": "Ngụkọta",
+      "history": "Akụkọ ịkwụ ụgwọ",
+      "historyHint": "Ịkwụ ụgwọ edekọrọ maka onye na-ere ahịa a, nke ọhụrụ na mbụ",
+      "historyEmpty": "E mepụtabeghị ịkwụ ụgwọ ọ bụla maka onye na-ere ahịa a",
+      "repayment": {
+        "open": "Dekọọ nkwụghachi ụgwọ",
+        "listTitle": "Akwụghachiri n'aka",
+        "undo": "Weghachi",
+        "voidReason": "Gịnị kpatara a na-akagbu nkwụghachi ụgwọ a?",
+        "voided": "Akagbuola nkwụghachi ụgwọ",
+        "failed": "Enweghị ike ịchekwa nkwụghachi ụgwọ",
+        "title": "Dekọọ nkwụghachi ụgwọ",
+        "description": "Ego onye na-ere ahịa kwụghachiri maka ahịa a kwụghachiri ego ya mgbe akwụsịrị ya ụgwọ. A na-ewepụ ya n'ihe o ji, ya mere ịkwụ ụgwọ ndị ga-esote agaghị anarakwa ya.",
+        "amount": "Ego ({currency})",
+        "receivedInto": "Anatara ya na",
+        "receivedAt": "Ụbọchị o rutere",
+        "reference": "Ntụaka",
+        "note": "Ndetu",
+        "cancel": "Kagbuo",
+        "save": "Dekọọ nkwụghachi ụgwọ",
+        "saving": "Na-echekwa…",
+        "recorded": "Edekọla nkwụghachi ụgwọ"
+      }
+    },
+    "colorPicker": {
+      "format": "Ụdị agba",
+      "opacity": "Ọhụụ agba",
+      "value": "Uru agba",
+      "saved": "Agba ndị echekwara",
+      "save": "Chekwaa agba a",
+      "use": "Jiri {color}",
+      "remove": "Wepụ {color}"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {mgbanwe # site na ọrụ ahụ} other {mgbanwe # site na ọrụ ahụ}}",
+      "changesFromRole": "{count, plural, one {mgbanwe # site na {role}} other {mgbanwe # site na {role}}} naanị maka onye otu a",
+      "resetTo": "Laghachi na {role}",
+      "matchesRole": "Dabara na {role}. Kaa akara ma ọ bụ wepụ akara n'ihe ọ bụla iji gbanwee ya naanị maka {name}.",
+      "roleSaved": "\"{name}\" bụ ọrụ ugbu a, onye otu a nọkwa na ya."
+    },
+    "tagInput": {
+      "placeholder": "Tinye akara",
+      "selected": "Ahọrọla {tag}. Pịa Backspace iji wepụ ya.",
+      "duplicate": "Etinyela {tag} ugbu a",
+      "tooLong": "Akara nwere ike inwe mkpụrụedemede ruo {max}",
+      "tooMany": "Ị nwere ike itinye akara ruo {max}",
+      "added": "Etinyere {tag}",
+      "removed": "Wepụrụ {tag}",
+      "remove": "Wepụ {tag}"
+    },
+    "accountMenu": {
+      "myAccount": "Akaụntụ m",
+      "version": "Mbipụta {version}"
     }
   },
   "vendor": {
@@ -6487,7 +7416,6 @@
       "teamAccountTitle": "Akaụntụ a bụ nke otu ụlọ ahịa",
       "teamAccountDesc": "Akaụntụ onye nchịkwa na onye ọrụ enweghị ike itinye akwụkwọ ka ọ bụrụ onye na-ere ahịa. Iji mepee ụlọ ahịa, pụọ ma tinye akwụkwọ site na akaụntụ onye ahịa."
     },
-    "viewStore": "Lọ Ụlọ ahịa",
     "viewOrders": "Usoro",
     "productSummary": "Ọnọdụ Ngwaahịa",
     "active": "Na-arụ ọrụ",
@@ -6632,7 +7560,17 @@
       "socialUrl": "Njikọ",
       "socialAdd": "Tinye njikọ",
       "socialRemove": "Wepụ njikọ",
-      "shareButtons": "Bọtịnụ Nkekọrịta"
+      "shareButtons": "Bọtịnụ Nkekọrịta",
+      "changeEmail": "Gbanwee",
+      "changeEmailTitle": "Gbanwee ozi-e gị",
+      "changeEmailDescription": "Ị ga-eji ozi-e ọhụrụ banye. Anyị ga-agwa ozi-e gị ugbu a gbasara mgbanwe a.",
+      "newEmail": "Ozi-e ọhụrụ",
+      "currentPasswordForEmail": "Paswọọdụ ugbu a",
+      "updateEmail": "Melite ozi-e",
+      "emailChanged": "Emelitere ozi-e. Site ugbu a gaa n'ihu, jiri ozi-e ọhụrụ gị banye.",
+      "emailChangeFailed": "Enweghị ike imelite ozi-e",
+      "phoneInvalid": "Tinye nọmba ekwentị dị irè",
+      "payoutScheduleHint": "N'ụbọchị ịkwụ ụgwọ gị, ụlọ ahịa na-akwado ịkwụ ụgwọ nke ihe dị njikere, ozugbo o ruru oke kacha ala gị na nke ụlọ ahịa. Ụlọ ahịa na-ezigakwa ya na akaụntụ dị n'elu."
     },
     "untitledProduct": "Ngwaahịa Enweghị Aha",
     "dashboardWidgets": {
@@ -6800,6 +7738,78 @@
     },
     "activityLog": {
       "title": "Ndekọ ọrụ"
+    },
+    "payoutDetail": {
+      "back": "Ego a na-akwụ gị",
+      "period": "Ahịa e nyere ọda {start} – {end}",
+      "noteFromStore": "Ndetu sitere n'ụlọ ahịa",
+      "grossSales": "Ngụkọta ahịa",
+      "grossSalesHint": "òkè gị n'ọda ndị dị n'okpuru",
+      "commission": "Kọmịshọn",
+      "shipping": "Ụgwọ nnyefe",
+      "shippingHint": "a nara ndị zụrụ ihe maka ngwugwu i nyefere",
+      "adjustment": {
+        "recoveryDeducted": "Nnwetaghachi nkwụghachi ego",
+        "recoveryDeductedHint": "akwụrụ gị na mbụ n'ọda a kwụghachiri ego ya kemgbe",
+        "recoveryReturned": "Eweghachiri ihe e nwetaghachiri",
+        "recoveryReturnedHint": "akagburu nkwụghachi e nwetaghachiri na mbụ",
+        "reserveHeld": "E jidere nchekwa ọda tupu oge",
+        "reserveHeldHint": "e jidere ya maka chargeback nwere ike ịbịa mgbe e mesịrị",
+        "reserveReleased": "Atọhapụrụ nchekwa ọda tupu oge",
+        "reserveReleasedHint": "e jidere ya n'ịkwụ ụgwọ gara aga, atọhapụla ya ugbu a",
+        "reserveCreditDeducted": "E nwetaghachiri nchekwa",
+        "reserveCreditDeductedHint": "nchekwa atọhapụrụ nke ịkwụ ụgwọ ya laghachiri",
+        "reserveCreditReturned": "Eweghachiri nnwetaghachi nchekwa",
+        "reserveCreditReturnedHint": "eweghachiri ya mgbe akwụgharịrị ịkwụ ụgwọ ya ọzọ",
+        "commissionOffset": "Kọmịshọn n'ahịa ego aka",
+        "commissionOffsetHint": "ị ji ya n'ahịa ị natara ego ya n'onwe gị, a kwụrụ ya ebe a kama invoice",
+        "commissionCredit": "Mbelata ụlọ ahịa n'ahịa ego aka",
+        "commissionCreditHint": "mbelata ụlọ ahịa kwụrụ karịa kọmịshọn ị ji"
+      },
+      "reserveUntil": "a ga-atọhapụ ya na {date}",
+      "otherAdjustments": "Mgbanwe ndị ọzọ",
+      "otherAdjustmentsHint": "nnwetaghachi nkwụghachi ego na mmegharị nchekwa ọda tupu oge",
+      "netPayout": "Ịkwụ ụgwọ mgbe e wepụsịrị",
+      "sentOn": "Ezigara {date}",
+      "reference": "ntụaka {reference}",
+      "returnedOn": "Ọ laghachiri {date} — ahịa dị n'ime ya alaghachila n'ego gị fọdụrụ",
+      "history": "Ihe mere",
+      "returnedStep": "Ego laghachiri",
+      "orders": "Ọda dị n'ịkwụ ụgwọ a",
+      "order": "Ọda",
+      "placed": "Ụbọchị ọda",
+      "yourShare": "Òkè gị",
+      "afterCommission": "Mgbe kọmịshọn gasịrị",
+      "noOrders": "Ọ dịghị ọda ejikọtara na ịkwụ ụgwọ a."
+    },
+    "suspendedMoney": {
+      "title": "Ego gị",
+      "frozen": "Akwụsịtụla ịkwụ ụgwọ mgbe a ka ajụpụrụ akaụntụ gị. A na-aga n'ihu na-agụ ahịa gị, a ga-akwụkwa ha ozugbo eweghachiri ohere gị.",
+      "ready": "Dị njikere maka ịkwụ ụgwọ",
+      "held": "Ọ ka nọ n'ụzọ ma ọ bụ n'oge nlọghachi",
+      "payouts": "Ịkwụ ụgwọ kacha ọhụrụ",
+      "status": {
+        "pending": "Na-eche",
+        "processing": "Na-arụ ọrụ na ya",
+        "paid": "Akwụọla",
+        "failed": "Dara",
+        "cancelled": "Akagburu"
+      }
+    },
+    "commissionCard": {
+      "canceled": "Akagburu ịkwụ ụgwọ. Invoice ahụ ka meghere.",
+      "settled": "Akwụchala invoice kọmịshọn.",
+      "pendingInfo": "A ka na-arụ ọrụ n'ịkwụ ụgwọ — invoice ahụ ga-emechi n'onwe ya ozugbo akwadoro ya.",
+      "verifyFailed": "Anyị enwebeghị ike ịkwado ịkwụ ụgwọ ahụ.",
+      "pollTimeout": "Anyị enwebeghị ike ịkwado ịkwụ ụgwọ. Invoice ahụ ga-emechi n'onwe ya ozugbo akwadoro ya.",
+      "checkPhone": "Lelee ekwentị gị ma kwado arịrịọ ịkwụ ụgwọ.",
+      "failed": "Enweghị ike ịmalite ịkwụ ụgwọ",
+      "title": "Kọmịshọn ị ji",
+      "subtitle": "Kọmịshọn n'ahịa ị natara ego ya n'onwe gị — ego aka, COD ma ọ bụ igwe ịkwụ ụgwọ nke gị — ya mere enweghị ike iwepụ ya n'ịkwụ ụgwọ.",
+      "payNow": "Kwụọ ugbu a",
+      "noMethods": "Ọ dịghị ụzọ ịkwụ ụgwọ dị maka nke a. Kpọtụrụ onye nlekọta ahịa ka ekwụọ ya n'ụzọ ọzọ.",
+      "dialogTitle": "Kwụọ kọmịshọn",
+      "continue": "Gaa n'ihu na ịkwụ ụgwọ"
     }
   },
   "footer": {
@@ -6856,7 +7866,19 @@
     "searchCustomers": "Chọọ site na aha, email, ma ọ bụ ekwentị...",
     "addNote": "Tinye note...",
     "subtotal": "Subtotal",
-    "tax": "Eke",
+    "tax": {
+      "label": "Ụtụ isi",
+      "included": "Ụtụ isi (gụnyere)",
+      "exempt": "Enweghị ụtụ isi",
+      "exemptWith": "Enweghị ụtụ isi · {reason}",
+      "exemptTitle": "Ahịa na-enweghị ụtụ isi",
+      "exemptIntro": "Mee ahịa a na-enweghị ụtụ isi. A na-echekwa ihe kpatara ya n'usoro ahịa ma bipụta ya na nnata.",
+      "exemptReason": "Ihe kpatara ya (achọrọ)",
+      "exemptReference": "Nọmba asambodo mwepụ (nhọrọ)",
+      "exemptApply": "Ree na-enweghị ụtụ isi",
+      "exemptRemove": "Nara ụtụ isi",
+      "close": "Mechie"
+    },
     "total": "Ngụghe",
     "charge": "Kwụọ ịgwụ",
     "billAndPayment": "Bill & Ịkwụ ịgwụ",
@@ -6893,10 +7915,463 @@
       "emailPlaceholder": "ọbịa@example.com",
       "phone": "Ekwentị",
       "phonePlaceholder": "Dee nomba ekwentị",
-      "nameEmailRequired": "Aha na email dị mkpa",
       "created": "E mepụtala ọbịa",
       "createError": "Enweghị ike mepụta",
-      "save": "Chekwaa Ọbịa"
+      "save": "Chekwaa Ọbịa",
+      "nameContactRequired": "Tinye aha onye ahịa, na email ma ọ bụ nọmba ekwentị",
+      "contactHint": "Email ma ọ bụ nọmba ekwentị zuru. A na-echekwa onye ahịa nwere naanị nọmba ekwentị na-enweghị akaụntụ.",
+      "marketingOptIn": "Onye ahịa kwetara ịnata akụkọ na onyinye site na email"
+    },
+    "offline": {
+      "bannerOffline": "Enweghị ịntanetị — a na-edobe ahịa n'ahịrị",
+      "bannerStockAge": "Ngwaahịa egosiri sitere na {age}",
+      "bannerSignedOut": "Ịpụla — banye ọzọ ka ịmekọrịta",
+      "bannerSignedOutNote": "Ahịa dị n'ahịrị ka chekwara na ngwaọrụ a.",
+      "bannerBackOnline": "Ịlaghachila n'ịntanetị",
+      "waitingToSync": "{count, plural, other {Ahịa # na-eche mmekọrịta}}",
+      "needsReview": "{count, plural, other {# chọrọ nlele}}",
+      "review": "Lelee",
+      "signIn": "Banye",
+      "syncNow": "Mekọrịta ugbu a",
+      "lockedTitle": "Jikọọ ọzọ ka ị gaa n'ihu na-ere ahịa",
+      "lockedLastSeen": "Ihuenyo ire ahịa a rutere sava nke ikpeazụ {time}. Maka nchekwa, ọ ga-anọgide na-akpọchi ruo mgbe ọ ga-enwe ike ịbanye ọzọ.",
+      "lockedNever": "Ihuenyo ire ahịa a erubeghị sava na ngwaọrụ a, ya mere a pụghị iji ya mgbe enweghị ịntanetị.",
+      "lockedQueued": "{count, plural, other {Ahịa <strong>#</strong> e mere na-enweghị ịntanetị ka chekwara na ngwaọrụ a, a ga-emekọrịta ha onwe ha ozugbo ị laghachiri n'ịntanetị.}} Ehichapụla data ihe nchọgharị.",
+      "waitingForConnection": "Na-eche njikọ…",
+      "reviewTitle": "Ahịa sava jụrụ",
+      "reviewDescription": "A kwụrụ ụgwọ nke ọ bụla n'ime ha na kaụnta. Dozie ihe kpatara ya wee zigharịa ya, ma ọ bụ tụfuo ya ozugbo e dekọrọ ya n'aka.",
+      "reviewLabel": "Ahịa na-enweghị ịntanetị chọrọ nlele",
+      "reviewEmpty": "Ọ dịghị ihe fọdụrụ ilele.",
+      "reviewReceipt": "Nnata {number}",
+      "reviewTaken": "E mere ya {time}",
+      "reviewAttempts": "{count, plural, other {Mbọ #}}",
+      "reviewServerSaid": "Sava kwuru: {message}",
+      "reviewDiscard": "Tụfuo",
+      "reviewSendAgain": "Zigharịa",
+      "close": "Mechie",
+      "anotherCounter": "Kaụnta ọzọ",
+      "discardTitle": "Tụfuo ahịa a n'ahịrị?",
+      "discardDescription": "A gaghị eziga nnata {number} na sava ma ọlị. Mee nke a naanị mgbe e dekọrọ ahịa ahụ n'ụzọ ọzọ — onye ahịa jidere nnata ahụ.",
+      "savedOffline": "Echekwara na-enweghị ịntanetị — nnata {number}",
+      "savedOfflineNote": "A ga-emekọrịta ya onwe ya mgbe njikọ laghachiri.",
+      "outboxFull": "Ihuenyo ire ahịa a nwere ọtụtụ ahịa a na-emekọrịtabeghị. Jikọọ ọzọ ka ịmekọrịta tupu ị nara ndị ọzọ.",
+      "noStorage": "Ihe nchọgharị a enweghị ike ichekwa ahịa na-enweghị ịntanetị, ya mere a naraghị ahịa ahụ.",
+      "readerOnly": "Naanị igwe ọgụgụ kaadị",
+      "touchOrStripe": "Mmetụ ma ọ bụ Stripe"
+    },
+    "counter": {
+      "unavailable": "Kaụnta adịghị",
+      "sharedStock": "Ngwaahịa nkekọrịta",
+      "finishSaleFirst": "Buru ụzọ mechaa ma ọ bụ kagbuo ahịa dị ugbu a",
+      "changeCounter": "Na-ere site na {name}. Gbanwee kaụnta",
+      "sellingFrom": "Na-ere site na",
+      "sellingAt": "Na-ere na {name}",
+      "findCounter": "Chọọ kaụnta...",
+      "noMatch": "Ọ dịghị kaụnta dabara na nke ahụ.",
+      "heldCount": "{count} ejidere",
+      "activeCount": "{count} na-arụ ọrụ",
+      "deactivated": "Agbanyụọla kaụnta dị ugbu a",
+      "pickerTitle": "Kaụnta olee ka ị nọ?",
+      "pickerNote": "Ngwaahịa, ahịa ejidere na nnata ọ bụla e biri na ihuenyo ire ahịa a na-eso nhọrọ a.",
+      "findYourCounter": "Chọọ kaụnta gị...",
+      "recentOnDevice": "Nke na-adịbeghị anya na ngwaọrụ a",
+      "otherCounters": "Kaụnta ndị ọzọ",
+      "defaultLocation": "Ebe ndabara",
+      "startSellingAt": "Malite ire ahịa na {name}",
+      "pickCounter": "Họrọ kaụnta",
+      "signedInAs": "Abanyela dị ka {name}",
+      "signedIn": "Abanyela",
+      "shortcutsMany": "<key>1</key>–<key>9</key> maka itoolu mbụ, pịnye ka ịchọta ndị fọdụrụ,",
+      "shortcutsFew": "Pịa <key>1</key>–<key>{last}</key> ka ịhọrọ,",
+      "shortcutEnter": "<key>Enter</key> ka ịmalite",
+      "sellFromShared": "Kama nke ahụ, ree site na ngwaahịa nkekọrịta",
+      "switchLabel": "Gbanwee kaụnta",
+      "switchTitle": "Gbanwee kaụnta mgbe ahịa ka meghere?",
+      "switchUnits": "{count, plural, other {Ngwa # dị na kaụnta}}, ọnụahịa na ngwaahịa nke {from}.",
+      "switchChecking": "Na-elele ihe {to} nwere ike inye…",
+      "switchRemovedOne": "<b>{name}</b> <b>enweghị ngwaahịa na {to}</b> — a ga-ewepụ ya n'ahịa ahụ.",
+      "switchRemovedMany": "<b>{name}</b> na {others} ndị ọzọ <b>enweghị ngwaahịa na {to}</b> — a ga-ewepụ ha n'ahịa ahụ.",
+      "switchReduced": "{count, plural, other {A ga-ebelata ahịrị # ruo ngwaahịa {to} nwere n'ezie.}}",
+      "switchAllAvailable": "Ahịrị ọ bụla n'ahịa a dị na {to}.",
+      "switchHeldStay": "{count, plural, other {Ahịa # ejidere ebe a ga-anọ na {from}. Ị gaghị ahụ ha site na {to}.}}",
+      "switchHeldStayNone": "Ahịa ejidere ebe a ga-anọ na {from}. Ị gaghị ahụ ha site na {to}.",
+      "switchReceiptChanges": "Ọnụọgụ ngwaahịa na ala nnata ga-agbanwe gaa na {to} site n'ahịrị na-esote.",
+      "switchHold": "Jide ahịa a, wee gbanwee",
+      "switchRecheck": "Gbanwee wee lelee ngwaahịa ọzọ",
+      "switchRemovesAll": "Ọ ga-ewepụ ha niile {total}",
+      "switchKeeps": "Ọ ga-edebe {kept} n'ime ahịrị {total}",
+      "switchStay": "Nọgide na {from}",
+      "nowSellingFrom": "Ugbu a na-ere site na {name}",
+      "nowSellingShared": "Ugbu a na-ere site na ngwaahịa nkekọrịta",
+      "probeFailed": "Enweghị ike ilele ngwaahịa na kaụnta ahụ. Ihuenyo ire ahịa ahụ agbanwebeghị.",
+      "holdFailed": "Enweghị ike ijide ahịa ahụ. Ihuenyo ire ahịa ahụ agbanwebeghị.",
+      "rechecked": "Elelere ahịa ọzọ · {changes}",
+      "holdLabel": "Mgbanwe kaụnta → {name}",
+      "heldBehind": "{count, plural, other {<b>Ahịa #</b> ka ejidere na {name}}}",
+      "goBackTo": "Laghachi na {name}",
+      "dismiss": "Mechie",
+      "saleBlocked": "Kaụnta a adịghịzi. Họrọ nke ọzọ tupu ị nara ụgwọ."
+    },
+    "scan": {
+      "closeDialogFirst": "Mechie mkparịta ụka meghere, wee nyochaa ọzọ.",
+      "multipleMatches": "Ọtụtụ ngwaahịa dabara na koodu a. Biko dozie SKU ma ọ bụ barcode ndị a megharịrị.",
+      "noMatch": "Achọtaghị ngwaahịa maka koodu enyochara.",
+      "lookupFailed": "Enweghị ike ịchọ koodu enyochara."
+    },
+    "held": {
+      "removed": "{count, plural, other {Ewepụrụ ahịrị #}}",
+      "repriced": "{count} nwetara ọnụahịa ọhụrụ",
+      "reduced": "{count} ebelatara ruo ngwaahịa dị",
+      "resumed": "Amaliteghachila ọda ejidere",
+      "resumedWithChanges": "Amaliteghachila ọda ejidere · {changes}",
+      "nothingAvailable": "Ọ dịghị nke ọ bụla n'ime ihe dị n'ọda ejidere a dịkwa. A hapụrụ ya na ihuenyo ire ahịa.",
+      "recheckFailed": "Enweghị ike ilele ọnụahịa na ngwaahịa ugbu a. Ọda ejidere ka nọ na ihuenyo ire ahịa.",
+      "finishFirst": "Mechaa ma ọ bụ jide ahịa dị ugbu a tupu ịmaliteghachi nke ọzọ.",
+      "holdFailed": "Enweghị ike ijide ọda a. Ahịa ahụ ka nọ n'ụgbọ ahịa.",
+      "holdFull": "Ihuenyo ire ahịa a enweelarị ọda {max} ejidere. Buru ụzọ maliteghachi ma ọ bụ hichapụ otu.",
+      "orderHeld": "Ejidere ọda",
+      "orderHeldLabel": "Ejidere ọda · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "Naanị onye na-ahụ maka POS nwere ike inye mbelata",
+      "cashMustCover": "Ego enyere ga-ekpuchi ngụkọta ọda ahụ",
+      "noReceipt": "Enweghị data nnata",
+      "printPreviewFailed": "Enweghị ike imepe nlele mbipụta",
+      "noInvoice": "Enweghị akwụkwọ ụgwọ maka ọda a",
+      "invoicePopupBlocked": "Enweghị ike imepe akwụkwọ ụgwọ. Biko kwe ka windo popup pụta."
+    },
+    "complete": {
+      "title": "Ahịa agwụla",
+      "items": "{count, plural, one {ngwaahịa #} other {ngwaahịa #}}",
+      "soldAt": "E rere ya na {name}",
+      "viewReceipt": "Lee nnata",
+      "printReceipt": "Bipụta nnata",
+      "newSale": "Ahịa ọhụrụ",
+      "emailReceipt": "Zipu nnata site na email",
+      "textReceipt": "Zipu nnata site na SMS",
+      "send": "Zipu",
+      "cancel": "Kagbuo",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "Nọmba ekwentị onye ahịa",
+      "sentEmail": "E zigara nnata site na email na {to}",
+      "sentSms": "E zigara nnata site na SMS na {to}",
+      "alreadySent": "E zigalarị ya na {to} obere oge gara aga",
+      "sendFailed": "Enweghị ike iziga nnata",
+      "offlineHint": "Enwere ike iziga ma lee nnata ozugbo e mekọrịtara ahịa a."
+    },
+    "pay": {
+      "title": "Nara ụgwọ",
+      "balanceTitle": "Nara ego fọdụrụ",
+      "draftItems": "{count, plural, one {Draft · ngwaahịa #} other {Draft · ngwaahịa #}}",
+      "close": "Mechie",
+      "totalDue": "Mkpokọta a ga-akwụ",
+      "remaining": "Ihe fọdụrụ ịkwụ",
+      "ofTotal": "E kwụrụ {paid} n'ime {total}",
+      "payments": "Ụgwọ",
+      "remove": "Wepụ",
+      "discountPercent": "E tinyere mbelata {value}%",
+      "discountAmount": "E tinyere mbelata {amount}",
+      "cashDesc": "Na mgbanwe",
+      "bank": "Mbufe ụlọ akụ",
+      "bankDesc": "Na ntụaka",
+      "manualDesc": "Ụzọ nke gị",
+      "storeCredit": "Kredit ụlọ ahịa",
+      "storeCreditDesc": "{amount} dị",
+      "split": "Kewaa",
+      "cashGiven": "Ego aka e nyere",
+      "amount": "Ego",
+      "changeDue": "Mgbanwe",
+      "stillOwed": "A ga-akwụ ihe fọdụrụ n'ụzọ ọzọ",
+      "tooMuch": "Ihe fọdụrụ ịkwụ agafeghị {amount}",
+      "tooMuchCredit": "Naanị {amount} nke kredit ụlọ ahịa dị",
+      "touch": "Mmetụ",
+      "touchDesc": "Metụ ma ọ bụ tinye kaadị na ngwa ọgụgụ",
+      "stripe": "Stripe",
+      "stripeDesc": "Fọm nkọwa kaadị",
+      "readyForTap": "Dị njikere maka mmetụ ma ọ bụ ntinye",
+      "readyForTapNote": "Onye ahịa na-emetụ ma ọ bụ tinye kaadị ya na ngwa ọgụgụ.",
+      "referenceOptional": "Ntụaka (nhọrọ)",
+      "referencePlaceholder": "ID azụmahịa, koodu nkwado, wdg.",
+      "stripePaysRest": "Kaadị ga-akwụ ihe fọdụrụ: {amount}",
+      "cardNumber": "Nọmba kaadị",
+      "expiry": "Mgbe ọ ga-agwụ",
+      "cvc": "CVC",
+      "stripeNotConfigured": "Ahazibeghị Stripe na ntọala ịkwụ ụgwọ.",
+      "stripeLoading": "Na-ebugo oghere kaadị echekwara…",
+      "stripeSecured": "Stripe na-echekwa ya — a na-eme nkọwa kaadị ka ọ bụrụ token mgbe a na-eziga.",
+      "stripeFailed": "Ịkwụ ụgwọ kaadị agaghị",
+      "processing": "Na-arụ ọrụ…",
+      "acceptCash": "Nara ego aka",
+      "charge": "Nara {amount}",
+      "chargeOnReader": "Nara {amount} na ngwa ọgụgụ",
+      "useCredit": "Kwụọ {amount} site na kredit ụlọ ahịa",
+      "addPayment": "Tinye ụgwọ {method} nke {amount}",
+      "takeDeposit": "Nara {amount} dịka ego mbụ, {due} ga-abịa mgbe e mesịrị",
+      "takePart": "Nara {amount} ugbu a, {due} ka fọdụrụ",
+      "depositNeedsCustomer": "Jikọta onye ahịa iji nara ego mbụ",
+      "depositTaken": "A nara ego mbụ maka {number}. {due} ka fọdụrụ ịkwụ.",
+      "completeSale": "Mezue ahịa"
+    },
+    "sales": {
+      "title": "Ahịa",
+      "close": "Mechie",
+      "back": "Laghachi",
+      "searchPlaceholder": "Nọmba nnata ma ọ bụ nọmba ekwentị",
+      "dueOnly": "Naanị ndị nwere ụgwọ",
+      "empty": "Ahụghị ahịa ọ bụla.",
+      "recentHint": "Ahịa kachasị ọhụrụ n'ebe ire ahịa a",
+      "selectHint": "Họrọ ahịa iji hụ ya.",
+      "offline": "Ịchọ ahịa chọrọ njikọ.",
+      "loadFailed": "Enweghị ike ibugo ahịa",
+      "balanceDue": "Ụgwọ {amount}",
+      "balanceDueLabel": "Ego fọdụrụ",
+      "items": "Ngwaahịa",
+      "payments": "Ụgwọ",
+      "total": "Mkpokọta",
+      "refunded": "E weghachiri",
+      "split": "Kewaa",
+      "collectBalance": "Nara ego fọdụrụ · {amount}",
+      "collectFailed": "Enweghị ike ịnara ụgwọ",
+      "balancePaid": "E kwụọla ego fọdụrụ. Ahịa agwụla.",
+      "balancePart": "A nara ụgwọ. {due} ka fọdụrụ ịkwụ.",
+      "print": "Bipụta nnata",
+      "viewInvoice": "Lee akwụkwọ ụgwọ"
+    },
+    "register": {
+      "title": "Drọwa ego",
+      "openChip": "Drọwa meghere",
+      "closedChip": "Drọwa mechiri",
+      "openToSell": "Mepee drọwa ego tupu ị nara ahịa.",
+      "close": "Mechie",
+      "failed": "Enweghị ike imelite drọwa",
+      "offline": "Imeghe, imechi na ibugharị ego chọrọ njikọ. Ahịa na-aga n'ihu ịbanye na drọwa meghere.",
+      "openIntro": "Gụọ ego dị na drọwa tupu ahịa mbụ ma tinye ya dịka ego mmalite.",
+      "openingFloat": "Ego mmalite",
+      "openRegister": "Mepee drọwa",
+      "opened": "E mepere drọwa",
+      "openedAt": "E mepere ya {time}",
+      "salesCount": "Ahịa",
+      "grossSales": "Mkpokọta ahịa",
+      "cashSales": "Ahịa ego aka",
+      "cashIn": "Ego e tinyere",
+      "cashOut": "Ego e wepụrụ",
+      "cashRefunds": "Nweghachi ego aka",
+      "expectedCash": "Ihe kwesịrị ịdị na drọwa",
+      "countedCash": "Ego a gụrụ",
+      "variance": "Ọdịiche",
+      "balanced": "Ọ kwekọrọ",
+      "over": "Karịrị",
+      "short": "Erughị",
+      "cashInIntro": "Ego e tinyere na drọwa nke na-abụghị ahịa, dịka mgbanwe e si n'igbe nchekwa wepụta.",
+      "cashOutIntro": "Ego e wepụrụ nke na-abụghị nweghachi, dịka itinye n'igbe nchekwa ma ọ bụ mmefu a kwụrụ.",
+      "amount": "Ego",
+      "reason": "Ihe kpatara ya",
+      "reasonPlaceholder": "Ihe kpatara ya (achọrọ)",
+      "cashAdded": "E tinyere ego na drọwa",
+      "cashRemoved": "E wepụrụ ego na drọwa",
+      "back": "Laghachi",
+      "note": "Ndetu mmechi",
+      "notePlaceholder": "Ndetu maka akụkọ mmechi (nhọrọ)",
+      "queuedFirst": "{count, plural, one {Ahịa # ka na-eche} other {Ahịa # ka na-eche}} mmekọrịta. Mechie drọwa ozugbo ha mekọrịtara.",
+      "closeRegister": "Mechie drọwa",
+      "closed": "E mechiri drọwa",
+      "xReport": "Akụkọ X",
+      "zReport": "Akụkọ Z",
+      "printX": "Bipụta akụkọ X",
+      "printZ": "Bipụta akụkọ Z",
+      "printBlocked": "E gbochiri windo akụkọ. Kwe ka windo popup maka saịtị a iji bipụta.",
+      "reportOpened": "E mepere",
+      "reportClosed": "E mechiri",
+      "tender": {
+        "cash": "Ego aka",
+        "card": "Kaadị",
+        "bank": "Mbufe ụlọ akụ",
+        "manual": "Ndị ọzọ",
+        "store_credit": "Kredit ụlọ ahịa"
+      },
+      "noSale": "Enweghị ahịa",
+      "noSaleIntro": "Mepee drọwa na-enweghị ahịa, maka mgbanwe ma ọ bụ nlele. A na-echekwa ihe kpatara ya n'akụkọ drọwa.",
+      "noSaleDone": "E mepere drọwa",
+      "printer": "Printa drọwa",
+      "printerIntro": "Drọwa ego na-emeghe site na printa nnata ejikọrọ ya, na-eji QZ Tray na kọmputa a. Họrọ printa ahụ.",
+      "printerFind": "Chọta printa",
+      "printerQzMissing": "QZ Tray anaghị arụ ọrụ na kọmputa a",
+      "printerNone": "Enweghị drọwa n'ihuenyo ire ahịa a",
+      "printerPin": "Pin drọwa",
+      "printerTest": "Nwalee",
+      "printerTestFailed": "Drọwa emegheghị. Lelee printa na QZ Tray.",
+      "printerSave": "Chekwaa",
+      "printerSaved": "E chekwara printa drọwa maka ihuenyo ire ahịa a",
+      "printerNotSet": "Buru ụzọ hazie printa drọwa",
+      "printerCurrent": "Drọwa: {name}",
+      "printerSetUp": "Hazie printa drọwa"
+    },
+    "returns": {
+      "action": "Nara ngwaahịa a laghachiri",
+      "title": "Nara ngwaahịa a laghachiri",
+      "close": "Mechie",
+      "offline": "Nlaghachi chọrọ njikọ. Nara nlaghachi ozugbo ihuenyo ire ahịa laghachiri n'ịntanetị.",
+      "loadFailed": "Enweghị ike ibugo ngwaahịa nke ahịa a",
+      "previewFailed": "Enweghị ike ịgbakọ nweghachi",
+      "failed": "Enweghị ike ịnara nlaghachi",
+      "nothingReturnable": "Ọ dịghị ihe n'ahịa a enwere ike ịlaghachi.",
+      "returnable": "{count} enwere ike ịlaghachi",
+      "blockedFinalSale": "Ahịa ikpeazụ",
+      "blockedWindow": "Oge nlaghachi agafeela",
+      "blockedOther": "Enweghị ike ịlaghachi",
+      "less": "Otu belata",
+      "more": "Otu gbakwunye",
+      "condition": "Ọnọdụ",
+      "conditions": {
+        "new": "Emegheghị ya",
+        "opened": "E mepere ya, a ka nwere ike ire ya",
+        "damaged": "Mebiri emebi",
+        "missing_parts": "Akụkụ na-efu",
+        "unusable": "Enweghị ike iji ya"
+      },
+      "restockHint": "Ngwaahịa emegheghị na ndị e mepere na-alaghachi na ngwaahịa ebe ire ahịa a.",
+      "reason": "Ihe kpatara ya",
+      "reasons": {
+        "wrong_size_or_variant": "Nha ma ọ bụ ụdị ezighi ezi",
+        "damaged_or_defective": "Mebiri emebi ma ọ bụ nwere ntụpọ",
+        "not_as_described": "Ọ dịghị ka a kọwara ya",
+        "wrong_item_received": "Ngwaahịa ezighi ezi",
+        "arrived_late": "Ọ bịarutere n'oge",
+        "changed_mind": "Gbanwere obi",
+        "other": "Ndị ọzọ"
+      },
+      "note": "Ndetu",
+      "notePlaceholder": "Ndetu (nhọrọ)",
+      "noteRequired": "Kwuo ihe na-adịghị mma (achọrọ)",
+      "refundTo": "Weghachi na",
+      "methods": {
+        "cash": "Ego aka si na drọwa",
+        "card": "Kaadị, site n'aka",
+        "bank": "Mbufe ụlọ akụ",
+        "original": "Laghachi na kaadị",
+        "store_credit": "Kredit ụlọ ahịa",
+        "exchange": "Mgbanwe",
+        "later": "Weghachi mgbe e mesịrị"
+      },
+      "adminOnly": "Onye nchịkwa na-eme nweghachi. A na-edekọ nlaghachi ugbu a ma nweghachi na-echere ha n'okpuru Nlaghachi.",
+      "exchangeHint": "Nweghachi ahụ na-akwụ maka ahịa ọhụrụ a ga-eme ọzọ.",
+      "laterHint": "A na-edekọ nlaghachi ugbu a. Weghachi ego mgbe e mesịrị site na Nlaghachi.",
+      "refundTotal": "Nweghachi",
+      "restockingFee": "Gụnyere ụgwọ nlaghachi n'ụlọ nkwakọba nke {amount}",
+      "submit": "Nara nlaghachi",
+      "done": "A nara nlaghachi {numbers}",
+      "doneRefunded": "E weghachiri {amount}.",
+      "doneCash": "Nye onye ahịa {amount} si na drọwa.",
+      "doneCredit": "E tinyere {amount} na kredit ụlọ ahịa onye ahịa.",
+      "creditBack": "{amount} laghachiri na kredit ụlọ ahịa onye ahịa, nke kwụrụ akụkụ nke ire ahịa ahụ.",
+      "doneLater": "Nweghachi na-eche onye nchịkwa.",
+      "doneExchange": "{amount} na-aga n'ahịa ọhụrụ.",
+      "print": "Bipụta akwụkwọ nlaghachi",
+      "printBlocked": "E gbochiri windo akwụkwọ. Kwe ka windo popup maka saịtị a iji bipụta.",
+      "slipTitle": "Nlaghachi",
+      "slipSale": "Ahịa",
+      "exchangeReference": "Mgbanwe {numbers}",
+      "exchangeBanner": "Kredit mgbanwe {amount}",
+      "exchangeDismiss": "Hapụ kredit mgbanwe",
+      "exchangeDismissHint": "Ejibeghị ya: nye onye ahịa ego aka {amount} si na drọwa."
+    },
+    "operator": {
+      "title": "Onye na-anara ego",
+      "close": "Mechie",
+      "offline": "Ịgbanwe onye na-anara ego chọrọ njikọ. Ebe ire ahịa na-anọ n'aka onye na-arụ ya.",
+      "loadFailed": "Enweghị ike ibugo ndị na-anara ego",
+      "failed": "Nke ahụ arụghị ọrụ. Nwaa ọzọ.",
+      "workingNow": "Na-arụ ọrụ n'ebe ire ahịa",
+      "switchBack": "Laghachi na {name}",
+      "takeOver": "Weghara ebe ire ahịa",
+      "nobody": "Ọ dịbeghị onye ọrụ ibe tọọrọ PIN ihuenyo ire ahịa. Onye ọ bụla na-etọ nke ya mgbe ọ banyere.",
+      "pin": "PIN",
+      "switch": "Gbanwee onye na-anara ego",
+      "switched": "{name} na-arụ ọrụ n'ebe ire ahịa",
+      "setPin": "Tọọ PIN ihuenyo ire ahịa m",
+      "changePin": "Gbanwee PIN ihuenyo ire ahịa m",
+      "pinIntro": "{name}, họrọ PIN nwere ọnụọgụ 4 ruo 8. Ndị ọrụ ibe na-eji nke ha weghara ebe ire ahịa a.",
+      "newPin": "PIN ọhụrụ",
+      "confirmPin": "PIN ọzọ",
+      "pinMismatch": "PIN abụọ ahụ adịghị otu",
+      "savePin": "Chekwaa PIN",
+      "pinSaved": "E tọọrọ PIN ihuenyo ire ahịa gị",
+      "back": "Laghachi"
+    },
+    "reports": {
+      "navLabel": "Akụkọ POS",
+      "title": "Akụkọ ebe ire ahịa",
+      "subtitle": "Ahịa site n'onye na-anara ego na ebe ire ahịa, ego a nara site n'ụzọ ịkwụ ụgwọ, na nsonaazụ ọgụgụ drọwa ọ bụla.",
+      "loadFailed": "Enweghị ike ibugo akụkọ",
+      "period": "Oge",
+      "presets": {
+        "today": "Taa",
+        "yesterday": "Ụnyaahụ",
+        "week": "Ụbọchị 7 gara aga",
+        "month": "Ụbọchị 30 gara aga",
+        "thisMonth": "Ọnwa a"
+      },
+      "counter": "Ebe ire ahịa",
+      "allCounters": "Ebe ire ahịa niile",
+      "refresh": "Mee ọhụrụ",
+      "export": "Bupụ CSV",
+      "empty": "Enweghị ahịa n'oge a.",
+      "noSessions": "E megheghị drọwa ọ bụla n'oge a.",
+      "stats": {
+        "sales": "Ahịa",
+        "items": "{count, plural, one {ngwaahịa # e rere} other {ngwaahịa # e rere}}",
+        "gross": "Mkpokọta ahịa",
+        "discounts": "{amount} na mbelata",
+        "net": "Mgbe e wepụsịrị nweghachi",
+        "refunds": "E weghachiri {amount}",
+        "average": "Nkezi ahịa",
+        "balanceDue": "{amount} ka fọdụrụ n'ego mbụ"
+      },
+      "byCashier": "Site n'onye na-anara ego",
+      "byCounter": "Site n'ebe ire ahịa",
+      "byTender": "Ego batara site n'ụzọ ịkwụ ụgwọ",
+      "sessions": "Oge drọwa",
+      "unknownCashier": "Onye na-anara ego amaghị",
+      "noCounter": "Enweghị ebe ire ahịa",
+      "open": "Meghere",
+      "payments": "{count, plural, one {ụgwọ #} other {ụgwọ #}}",
+      "tenders": {
+        "cash": "Ego aka",
+        "card": "Kaadị",
+        "bank": "Mbufe ụlọ akụ",
+        "manual": "Ndị ọzọ",
+        "store_credit": "Kredit ụlọ ahịa"
+      },
+      "columns": {
+        "name": "Aha",
+        "sales": "Ahịa",
+        "items": "Ngwaahịa",
+        "gross": "Mkpokọta ahịa",
+        "discounts": "Mbelata",
+        "refunds": "Nweghachi",
+        "net": "Netị",
+        "average": "Nkezi",
+        "tender": "Ụzọ ịkwụ ụgwọ",
+        "payments": "Ụgwọ",
+        "amount": "Ego",
+        "session": "Oge",
+        "counter": "Ebe ire ahịa",
+        "openedBy": "Onye mepere",
+        "opened": "E mepere",
+        "closed": "E mechiri",
+        "expected": "Ego a tụrụ anya",
+        "counted": "A gụrụ",
+        "variance": "Ọdịiche"
+      }
+    },
+    "quickKeys": {
+      "tab": "Ọkacha mmasị",
+      "empty": "Enweghị igodo ngwa ngwa ka",
+      "emptyManager": "Tinye kpakpando na ngwaahịa dị na grid iji tinye ya ebe a maka ebe ire ahịa niile.",
+      "emptyCashier": "Onye na-elekọta POS nwere ike itinye kpakpando na ngwaahịa iji tinye ha ebe a.",
+      "add": "Tinye na ọkacha mmasị",
+      "remove": "Wepụ na ọkacha mmasị",
+      "failed": "Echekwaghị ọkacha mmasị"
     }
   },
   "locations": {
@@ -6937,7 +8412,17 @@
     "deleteError": "Enweghị ike hichapụ",
     "updateError": "Enweghị ike melite",
     "saveError": "Enweghị ike chekwaa",
-    "actions": "Omume"
+    "actions": "Omume",
+    "deliveryOrder": "Usoro nnyefe",
+    "deliveryOrderHint": "A na-eziga iwu ịntanetị site n'ebe nke mbụ nwere ngwa ahịa, ọzọ nke abụọ, wdg.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "Enweghị nnyefe",
+    "services": "Ọrụ",
+    "pickup": "Ịbute",
+    "returns": "Nlaghachi",
+    "noTill": "Enweghị ebe ịkwụ ụgwọ",
+    "shipSooner": "Zipụ site ebe a ngwa ngwa",
+    "shipLater": "Zipụ site ebe a mgbe e mesịrị"
   },
   "toast": {
     "createdSuccess": "{resource} mepụtala",
@@ -7240,7 +8725,10 @@
     "loadOlderConversations": "Budata mkparịta ụka ochie",
     "attachments": {
       "alt": "Ihe nkwakọ nkata",
-      "open": "Meghee ihe nkwakọ"
+      "open": "Meghee ihe nkwakọ",
+      "view": "Lee foto zuru oke",
+      "openNewTab": "Mepee na taabụ ọhụrụ",
+      "download": "Budata"
     },
     "assignment": {
       "label": "Onye ọrụ e kenyere",
@@ -7288,7 +8776,7 @@
       "webhookUrlNotPublic": "Meta na-anabata naanị nzaghachi HTTPS ọha. Mepee ibe a na ngalaba gị dị ndụ — ma ọ bụ site na tunnel — tupu ị debanye ya.",
       "setup": {
         "title": "Ntuziaka nhazi {provider}",
-        "docs": "Nkọwa zuru ezu: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "Nkọwa zuru ezu: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Mepụta ngwa Meta ma tinye ya ngwaahịa WhatsApp.",
           "config": "Mepụta nhazi Facebook Login for Business nke na-enye ikike ndị a, ma tinye ID ya na META_WHATSAPP_CONFIGURATION_ID.",
@@ -7426,6 +8914,7 @@
     "noLinks": "Ekekọrịtabeghị njikọ ọ bụla",
     "subject": "Isiokwu",
     "viewProduct": "Lelee ngwaahịa",
+    "removeAttachment": "Wepụ ihe e jikọtara",
     "messageProduct": {
       "open": "Mepee {name}",
       "priceOnRequest": "Ọnụahịa ma arịọ"
@@ -7858,7 +9347,10 @@
     },
     "paidFrom": {
       "cash": "Ego",
-      "other": "Ọzọ"
+      "other": "Ọzọ",
+      "bank": "Ụlọ akụ",
+      "gateway": "Ego dị n'ọnụ ụzọ ịkwụ ụgwọ",
+      "unpaid": "Akwụbeghị"
     },
     "expenses": {
       "title": "Mmefu ego",
@@ -7883,7 +9375,21 @@
       "orders": "{count} usoro"
     },
     "receivables": {
-      "vendor": "Onye na-ere ahịa"
+      "vendor": "Onye na-ere ahịa",
+      "title": "Ụgwọ a ji ndị na-ere ahịa na nke ha ji",
+      "subtitle": "Ego e jidere n'aha onye na-ere ahịa, megide kọmịshọn o ji n'ahịa ọ natara ego ya n'onwe ya.",
+      "net": "Ego a ga-edozi",
+      "emptyTitle": "Ọ dịghị ihe fọdụrụ",
+      "emptyBody": "Ego fọdụrụ na-apụta ka a na-akwụ ụgwọ ọda: ikpo okwu na-ejide òkè onye na-ere ahịa ruo mgbe ịkwụ ụgwọ mechara, onye na-ere ahịa natara ego aka n'onwe ya na-ejikwa kọmịshọn na ya.",
+      "collectNote": "E si n'akwụkwọ ndekọ gụọ ya, ya mere a na-agụ ahịa site n'oge ego ya rutere. Ịkwụ ụgwọ na-egosi ihe enwere ike ịkwụ taa.",
+      "overpaidTitle": "Akwụrụ karịa ihe e jidere mgbe ọ bụla",
+      "overpaidHint": "Otu ịkwụ ụgwọ kwụrụ ahịa onye na-ere ahịa natara ego ya n'onwe ya. Ịkwụ ụgwọ ọhụrụ enweghịzi ike ime nke a; a na-eji mgbanwe na nchịkọta Ego ekpochapụ ego fọdụrụ edekọlarị.",
+      "owedBackTitle": "Ndị na-ere ahịa ji ụgwọ ha ga-akwụghachi",
+      "owedBackHint": "Ọ na-abụkarị nkwụghachi ego mgbe akwụlarị onye na-ere ahịa. A na-ewepụ ya n'ịkwụ ụgwọ ya na-esote n'onwe ya, ma ọ bụ dekọọ nkwụghachi ụgwọ na taabụ Payouts nke onye na-ere ahịa ma ọ bụrụ na ọ kwụghachiri ya. Etinyekwala mgbanwe — nke ahụ ga-enweta ya ugboro abụọ.",
+      "heldForVendors": "Ị na-edebere ndị na-ere ahịa",
+      "commissionTheyOwe": "Kọmịshọn ha ji gị",
+      "netToSettle": "Ego fọdụrụ a ga-edozi",
+      "netHint": "Ihe akwụkwọ ndekọ ji n'ozuzu — ịkwụ ụgwọ na-eziga naanị akụkụ e nyefere"
     },
     "statement": {
       "date": "Ụbọchị",
@@ -7891,14 +9397,146 @@
       "amount": "Ego",
       "kind": {
         "sale": "Nrabata",
-        "commission": "Kọmisin"
+        "commission": "Kọmisin",
+        "payout": "Akwụọla",
+        "refund": "Nkwụghachi ego",
+        "boost": "Nkwalite",
+        "subscription": "Ndenye aha",
+        "other": "Mgbanwe",
+        "payout_returned": "Ịkwụ ụgwọ laghachiri",
+        "refund_reversed": "Akagburu nkwụghachi ego",
+        "commission_settled": "E si n'ịkwụ ụgwọ kwụọ kọmịshọn",
+        "promotion_credit": "Kredit mbelata",
+        "delivery_label": "Akara nnyefe",
+        "repayment": "Ị kwụghachiri"
       },
-      "statements": "Nkwupụta akaụntụ"
+      "statements": "Nkwupụta akaụntụ",
+      "title": "Ego gị",
+      "subtitle": "Ihe i nwetara, ihe akwụrụ, na ihe ahịa a na-edebere gị.",
+      "opening": "Ego mmalite",
+      "openingHint": "E si na tupu oge a bubata ya",
+      "earned": "Enwetara",
+      "earnedHint": "Òkè gị n'ahịa, mgbe kọmịshọn gasịrị",
+      "paidOut": "Akwụọla",
+      "closing": "A na-edebere gị",
+      "closingHint": "Ego gị fọdụrụ n'akwụkwọ ndekọ — kaadị dị n'elu na-egosi ihe ịkwụ ụgwọ nwere ike iziga",
+      "owed": "Ị ji ụgwọ",
+      "owedHint": "Kọmịshọn n'ọda ị natara ego ya n'onwe gị",
+      "activity": "Ihe omume",
+      "reference": "Ntụaka",
+      "empty": "Ọ dịghị ihe gbanwere n'oge a. Ahịa, nkwụghachi ego na ịkwụ ụgwọ na-apụta ebe a ka ha na-eme.",
+      "emptyTitle": "Ọ dịbeghị ihe a ga-egosi",
+      "emptyBody": "Nkwupụta akaụntụ gị na-ejupụta ka a na-akwụ ụgwọ ọda. Ahịa ọ bụla na-agbakwunye ihe i nwetara; ịkwụ ụgwọ ọ bụla na-ewepụ ya.",
+      "heldChange": "A na-edebere gị",
+      "owedChange": "Ị ji ụgwọ",
+      "statementsSubtitle": "Ahịa, nkwụghachi ego na ịkwụ ụgwọ ọ bụla gbanwere ego gị fọdụrụ.",
+      "seeAll": "Hụ nkwupụta akaụntụ zuru ezu",
+      "export": "Bupụ",
+      "truncated": "Na-egosi ndenye {shown} mbụ n'ime {total}. Họrọ oge dị mkpụmkpụ ka ịhụ ndị fọdụrụ — ego fọdụrụ dị n'elu na-agụnye oge niile n'agbanyeghị.",
+      "owedTitle": "Ụgwọ ị ji ahịa",
+      "owedSubtitle": "Kọmịshọn n'ọda ị natara ego ya n'onwe gị. Ego ahụ bụlarị nke gị; nke a bụ ihe ị ji na ya.",
+      "owedEmpty": "Ị jighị ụgwọ ọ bụla n'oge a.",
+      "owedOrders": "Ọda"
     },
     "periods": {
       "month": "Ọnwa",
       "closedAt": "Emechila",
       "reopen": "Meghee ọzọ"
+    },
+    "balance": {
+      "title": "Ego a ji gị",
+      "ready": "Dị njikere maka ịkwụ ụgwọ na-esote",
+      "readyHint": "Site n'ọda {count} e nyefere, gafere oge nlọghachi",
+      "belowMinimum": "A na-akwụ ụgwọ ozugbo nke a ruru {amount}",
+      "held": "Na-eche ka oge nlọghachi gafee",
+      "heldHint": "E nyefere ya, enwere ike ịkwụ ya ụbọchị {days} mgbe nnyefe gasịrị",
+      "reserve": "E jidere maka ọda tupu oge",
+      "reserveHint": "A ga-atọhapụ ya site na {date}",
+      "reserveUndated": "A ga-atọhapụ ya n'ịkwụ ụgwọ ọzọ e mesịrị",
+      "owedBack": "Ụgwọ ị ji ụlọ ahịa",
+      "owedBackHint": "Akwụrụ gị n'ọda a kwụghachiri ego ya kemgbe; a ga-ewepụ ya n'ịkwụ ụgwọ gị na-esote",
+      "tooManyOrders": "Ọda karịrị 500 dị njikere: ụlọ ahịa na-akwụ ha n'akụkụ n'akụkụ, nke kacha ochie na mbụ",
+      "frozen": "Akwụsịtụla ịkwụ ụgwọ mgbe a ka ajụpụrụ akaụntụ gị. A na-aga n'ihu na-agụ ahịa gị.",
+      "inPayout": "N'ịkwụ ụgwọ a na-akwado",
+      "inPayoutHint": "{numbers} — ọ na-abịa n'aka gị",
+      "notDelivered": "E nyefebeghị ya",
+      "notDeliveredHint": "Ọda {count} akwụrụ ụgwọ ya nọ n'ụzọ; oge nlọghachi na-amalite mgbe nnyefe",
+      "awaitingBalance": "Ọda tupu oge na-eche ego fọdụrụ",
+      "awaitingBalanceHint": "Enwere ike ịkwụ ya ozugbo onye zụrụ ihe kwụchara nke fọdụrụ ma nyefee ngwaahịa",
+      "commissionLeft": "Kọmịshọn a ka ga-akwụ",
+      "commissionLeftHint": "N'ahịa ị natara ego ya n'onwe gị; a ga-ewepụ ya n'ịkwụ ụgwọ ọzọ ma ọ bụ site na invoice",
+      "owedBackLater": "Ụgwọ ị ka ji ụlọ ahịa",
+      "owedBackLaterHint": "Akwụrụ gị n'ọda a kwụghachiri ego ya kemgbe; ọ karịrị ihe ịkwụ ụgwọ na-esote nwere ike iburu, ya mere a ga-ewepụ ya n'ndị ga-esote"
+    },
+    "payout": {
+      "changedElsewhere": "Ịkwụ ụgwọ a agbanweela. E bugharịala ya.",
+      "updated": "Emelitela ịkwụ ụgwọ.",
+      "notFound": "Ahụghị ịkwụ ụgwọ.",
+      "backToPayouts": "Ego a na-akwụ ndị na-ere ahịa",
+      "ordersUpTo": "Ọda ruo {date}",
+      "orderCount": "Ọda {count}",
+      "requote": "Ọda dị n'ịkwụ ụgwọ a gbanwere mgbe e mechara ya. Kagbuo ya ma mepụta nke ọhụrụ.",
+      "frozen": "Ajụpụla onye na-ere ahịa a, ya mere enweghị ike iziga ịkwụ ụgwọ a. Weghachi onye na-ere ahịa ahụ, ma ọ bụ kagbuo ịkwụ ụgwọ ahụ.",
+      "howItWasWorkedOut": "Otú e si gụkọọ ịkwụ ụgwọ a",
+      "grossSales": "Ngụkọta ahịa",
+      "grossSalesHint": "òkè onye na-ere ahịa n'ọda ndị dị n'okpuru",
+      "commission": "Kọmịshọn",
+      "ofGross": "nke ngụkọta",
+      "shippingAmount": "Ụgwọ nnyefe",
+      "shippingAmountHint": "a nara ndị zụrụ ihe maka ngwugwu onye na-ere ahịa nyefere",
+      "reserveUntil": "a ga-atọhapụ ya na {date}",
+      "commissionOffset": "Kọmịshọn n'ahịa ego aka",
+      "commissionOffsetHint": "o ji ya n'ahịa onye na-ere ahịa natara ego ya, e wepụrụ ya ebe a kama invoice",
+      "commissionCredit": "Mbelata ụlọ ahịa n'ahịa ego aka",
+      "commissionCreditHint": "mbelata ụlọ ahịa kwụrụ n'ahịa onye na-ere ahịa natara ego ya, karịa kọmịshọn o ji",
+      "otherAdjustments": "Mgbanwe ndị ọzọ",
+      "otherAdjustmentsHint": "nnwetaghachi nkwụghachi ego na mmegharị nchekwa ọda tupu oge",
+      "netPayout": "Ịkwụ ụgwọ mgbe e wepụsịrị",
+      "paidOn": "Akwụrụ {date}",
+      "reference": "Ntụaka ịkwụ ụgwọ",
+      "noReference": "Edekọghị ntụaka ịkwụ ụgwọ",
+      "returnedOn": "Ọ laghachiri {date} — a ji onye na-ere ahịa ya ọzọ",
+      "statusTitle": "Ọnọdụ",
+      "returnedStep": "Ego laghachiri",
+      "notRecorded": "Edekọghị",
+      "notYet": "Ọ bụbeghị",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "Edekọghị",
+      "note": "Ndetu",
+      "noteReturnedHint": "— achọrọ: ihe mere ego ji laghachi",
+      "noteHint": "— e debere ya n'ịkwụ ụgwọ ma onye na-ere ahịa na-ahụ ya",
+      "returnedOnLabel": "Ụbọchị ego laghachiri",
+      "returnedWarning": "Jiri nke a naanị mgbe ụlọ akụ zighachiri ego ahụ. A na-agbanwe ndenye n'akwụkwọ ndekọ, a na-eji onye na-ere ahịa ya ọzọ, ahịa ndị a na-alaghachikwa n'ịkwụ ụgwọ na-esote.",
+      "saveWarning": "Ịka ịkwụ ụgwọ akara na akwụọla na-etinye ndenye n'akwụkwọ ndekọ ma mechie ọda dị n'azụ ya. Enweghị ike iwepụ ya — a na-eji mgbanwe edozi njehie.",
+      "noChanges": "Enweghị mgbanwe ọ bụla ugbu a",
+      "ordersTitle": "Ọda dị n'ịkwụ ụgwọ a",
+      "ordersHint": "Ihe niile e nyefere ma akwụbeghị ruo {date}",
+      "order": "Ọda",
+      "placed": "Ụbọchị ọda",
+      "orderStatus": "Ọnọdụ ọda",
+      "payment": "Ịkwụ ụgwọ",
+      "vendorShare": "Òkè onye na-ere ahịa",
+      "vendorEarnings": "Mgbe kọmịshọn gasịrị",
+      "noOrders": "Ọ dịghị ọda ejikọtara na ịkwụ ụgwọ a.",
+      "sellerShareNote": "Òkè onye na-ere ahịa n'ngwaahịa dị n'ọda ọ bụla na-agbakọ ghọọ ngụkọta ahịa; mgbe kọmịshọn gasịrị ọ na-aghọ ịkwụ ụgwọ mgbe e wepụsịrị. Mbupu na ụtụ isi ụlọ ahịa natara esoghị na ya.",
+      "adjustment": {
+        "recoveryDeducted": "Nnwetaghachi nkwụghachi ego",
+        "recoveryDeductedHint": "akwụrụ na mbụ n'ọda a kwụghachiri ego ya kemgbe",
+        "recoveryReturned": "Eweghachiri ihe e nwetaghachiri",
+        "recoveryReturnedHint": "akagburu nkwụghachi e nwetaghachiri na mbụ",
+        "reserveHeld": "E jidere nchekwa ọda tupu oge",
+        "reserveHeldHint": "e jidere ya maka chargeback nwere ike ịbịa mgbe e mesịrị",
+        "reserveReleased": "Atọhapụrụ nchekwa ọda tupu oge",
+        "reserveReleasedHint": "e jidere ya n'ịkwụ ụgwọ gara aga, oge ya eruola ugbu a",
+        "reserveCreditDeducted": "E nwetaghachiri nchekwa",
+        "reserveCreditDeductedHint": "nchekwa atọhapụrụ nke ịkwụ ụgwọ ya laghachiri",
+        "reserveCreditReturned": "Eweghachiri nnwetaghachi nchekwa",
+        "reserveCreditReturnedHint": "eweghachiri ya mgbe akwụgharịrị ịkwụ ụgwọ ya ọzọ",
+        "commissionOffset": "Kọmịshọn n'ahịa ego aka",
+        "commissionOffsetHint": "o ji ya n'ahịa onye na-ere ahịa natara ego ya",
+        "commissionCredit": "Mbelata ụlọ ahịa n'ahịa ego aka",
+        "commissionCreditHint": "mbelata ụlọ ahịa kwụrụ karịa kọmịshọn a ji"
+      }
     }
   },
   "storeBrandsPage": {

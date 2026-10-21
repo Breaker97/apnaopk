@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Order } from "@/models";
+import { Order, Shipment } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { ORDER_STATUS, PAYMENT_STATUS } from "@/config/app.config";
 import type { StaffAccessScope } from "@/lib/access/staff-scope";
@@ -77,6 +77,11 @@ import {
 import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
 import { queueAutoShipForOrder } from "@/lib/shipping/carriers/shipment-worker";
 import { voidLabelsForCancellation } from "@/lib/shipping/cancel-labels";
+import {
+  CARRIER_DELIVERS_MESSAGE,
+  DELIVERY_ATTESTED_BY,
+  liveCarrierShipmentFilter,
+} from "@/lib/orders/delivery-attestation";
 
 /**
  * Moving an order along its workflow — processing, shipped, delivered,
@@ -139,6 +144,8 @@ export const ORDER_ACTION_REASONS = {
   orderStateChanged: "order_state_changed",
   /** A seller's staff may change only an order that is wholly their seller's. */
   otherSellersItems: "other_sellers_items",
+  /** A carrier is tracking the parcel: its scan marks it delivered, not the seller. */
+  carrierDelivers: "carrier_delivers",
 } as const;
 
 export type OrderActionReason = (typeof ORDER_ACTION_REASONS)[keyof typeof ORDER_ACTION_REASONS];
@@ -194,6 +201,35 @@ const GATE_REASONS: Record<FulfillmentPaymentBlockKind, OrderActionReason> = {
 /** The website's wording for a consignment that moved between the read and the save. */
 export const ORDER_CHANGED_MESSAGE =
   "This order changed while you were updating it. Refresh the page and try again.";
+
+/**
+ * Refuses a seller's own "delivered" on a parcel a carrier is tracking: the
+ * carrier reports that delivery itself, and the payout hold counts from it.
+ * `subOrderIds` limits the check to those consignments; omitted, every live
+ * consignment on the order is checked.
+ */
+async function assertNoCarrierTracking(
+  order: { _id?: unknown; subOrders?: Array<{ _id?: unknown; status?: string | null } | null> | null },
+  subOrderIds?: unknown[],
+): Promise<void> {
+  const ids =
+    subOrderIds ??
+    (order.subOrders || [])
+      .filter((sub) => sub && sub.status !== ORDER_STATUS.CANCELLED)
+      .map((sub) => sub!._id);
+  for (const subOrderId of ids) {
+    if (!subOrderId) continue;
+    const tracked = await Shipment.exists(
+      liveCarrierShipmentFilter({ orderId: order._id, subOrderId }),
+    );
+    if (tracked) {
+      throw new OrderActionRefusedError(
+        ORDER_ACTION_REASONS.carrierDelivers,
+        CARRIER_DELIVERS_MESSAGE,
+      );
+    }
+  }
+}
 
 function assertNotLocked(order: { paymentMethod?: string | null; paymentStatus?: string | null; channel?: string | null }): void {
   const lock = getPendingPaymentLock(order);
@@ -397,6 +433,11 @@ export async function prepareWholeOrderChange(params: {
         `${ADDRESS_HOLD_SHIPPING_BLOCK} Correct or confirm it first, or an admin can override this.`,
       );
     }
+    // A seller's staff do not say a carrier-tracked parcel arrived: the
+    // payout hold counts from that moment, so the carrier's scan sets it.
+    if (change.status === ORDER_STATUS.DELIVERED && actor.vendorOwned) {
+      await assertNoCarrierTracking(order);
+    }
   }
 
   // Status, timestamps and the sub-order cascade all come from one shared
@@ -406,6 +447,9 @@ export async function prepareWholeOrderChange(params: {
     changedBy: actor.userId,
     trackingNumber: change.trackingNumber,
     carrier: change.carrier,
+    deliveryAttestedBy: actor.vendorOwned
+      ? DELIVERY_ATTESTED_BY.VENDOR
+      : DELIVERY_ATTESTED_BY.ADMIN,
   });
   if (change.cancelReason) updates.cancelReason = change.cancelReason.trim();
 
@@ -686,6 +730,7 @@ type ConsignmentSubDocument = {
   carrier?: string;
   shippedAt?: Date;
   deliveredAt?: Date;
+  deliveryAttestedBy?: string;
 };
 
 /** The order as the consignment path moves it: a hydrated document. */
@@ -830,9 +875,19 @@ export async function prepareConsignmentChange(params: {
       throw new OrderActionRefusedError(ORDER_ACTION_REASONS.addressOnHold, ADDRESS_HOLD_SHIPPING_BLOCK);
     }
 
+    // The seller saying their own parcel arrived starts their payout clock,
+    // so a parcel a carrier is tracking waits for the carrier's scan, and
+    // one that isn't is recorded as resting on the seller's word.
+    if (status === ORDER_STATUS.DELIVERED) {
+      await assertNoCarrierTracking(order, [sub._id]);
+    }
+
     sub.status = status;
     if (status === ORDER_STATUS.SHIPPED) sub.shippedAt = new Date();
-    if (status === ORDER_STATUS.DELIVERED) sub.deliveredAt = new Date();
+    if (status === ORDER_STATUS.DELIVERED) {
+      sub.deliveredAt = new Date();
+      sub.deliveryAttestedBy = DELIVERY_ATTESTED_BY.VENDOR;
+    }
   }
 
   // Outside the status branch: a vendor may add the AWB, or correct the

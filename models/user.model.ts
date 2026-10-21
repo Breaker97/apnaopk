@@ -5,8 +5,22 @@ import type { Model } from "mongoose";
 
 const { Schema, models, model } = mongoose;
 
+/**
+ * A register PIN (lib/pos/operator.ts): the way a colleague takes over the
+ * till without signing the device out. Hashed (scrypt) and never selected
+ * unless asked for by name.
+ */
+export interface UserPosPin {
+  hash: string;
+  salt: string;
+  setAt: Date;
+  failedAttempts?: number;
+  lockedUntil?: Date | null;
+}
+
 type UserDoc = IUser & {
   password?: string;
+  posPin?: UserPosPin;
 };
 
 /**
@@ -166,6 +180,19 @@ const UserSchema = new Schema<UserDoc>(
     },
     vendorOnboarding: {
       type: VendorOnboardingSchema,
+    },
+    posPin: {
+      type: new Schema<UserPosPin>(
+        {
+          hash: { type: String, required: true },
+          salt: { type: String, required: true },
+          setAt: { type: Date, required: true },
+          failedAttempts: { type: Number, default: 0 },
+          lockedUntil: { type: Date, default: null },
+        },
+        { _id: false },
+      ),
+      select: false,
     },
   },
   {

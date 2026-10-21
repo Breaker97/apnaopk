@@ -1,3 +1,5 @@
+import { isThemeColorRef } from "@/lib/theme-colors/theme-refs";
+
 /**
  * Value readers shared by the slider normalizer and the background contract
  * (lib/sliders/background.ts).
@@ -14,8 +16,22 @@ export function str(value: unknown, max = 2000): string {
   return typeof value === "string" ? value.slice(0, max) : "";
 }
 
+/**
+ * A hex colour, or a theme colour reference (`var(--theme-primary)`, see
+ * lib/theme-colors/theme-refs.ts) — the one non-hex value a background may
+ * hold, so a header button or a banner can follow Theme settings → Colors.
+ */
 export function color(value: unknown): string | undefined {
-  return typeof value === "string" && HEX_COLOR.test(value) ? value : undefined;
+  if (typeof value !== "string") return undefined;
+  if (HEX_COLOR.test(value)) return value;
+  return isThemeColorRef(value) ? value.trim() : undefined;
+}
+
+/** A parseable date string as stored, or nothing. */
+export function isoDate(value: unknown): string | undefined {
+  return typeof value === "string" && value && !Number.isNaN(Date.parse(value))
+    ? value
+    : undefined;
 }
 
 export function oneOf<T extends string>(

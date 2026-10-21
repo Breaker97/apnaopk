@@ -43,6 +43,7 @@ import {
   type CourierTrackingLink,
 } from "@/lib/shipping/tracking-urls";
 import { ScanHistory, type ScanEvent } from "./scan-history";
+import { isInternalLabel, useOrderPrint } from "@/components/invoice-templates/print";
 import {
   SendToCourierDialog,
   type CourierPackagePreset,
@@ -177,6 +178,10 @@ export function OrderShipmentsCard(props: {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [courierOpen, setCourierOpen] = useState(false);
   const [voidTarget, setVoidTarget] = useState<ShipmentRow | null>(null);
+  // Invoice templates (Phase 6, D-09): with a sticker default, an internal
+  // label's Print draws the sticker; carrier labels always print as issued.
+  const templatePrint = useOrderPrint({ base: props.apiBase, orderId: props.orderId });
+  const printsSticker = (shipment: ShipmentRow) => templatePrint.stickerLabel !== null && isInternalLabel(shipment);
 
   const load = useCallback(
     () =>
@@ -518,11 +523,19 @@ export function OrderShipmentsCard(props: {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={busyId === shipment._id}
-                      onClick={() => void withLabel(shipment, printLabelBlob)}
+                      disabled={busyId === shipment._id || templatePrint.busy !== null}
+                      onClick={() =>
+                        void (printsSticker(shipment)
+                          ? templatePrint
+                              .printSticker({ consignmentId: shipment.subOrderId })
+                              .then((printed) => (printed ? undefined : withLabel(shipment, printLabelBlob)))
+                          : withLabel(shipment, printLabelBlob))
+                      }
                     >
                       <Printer className="h-4 w-4" />
-                      {tSafe("admin.orderDetails.printThermalLabel", "Print")}
+                      {printsSticker(shipment)
+                        ? templatePrint.stickerLabel
+                        : tSafe("admin.orderDetails.printThermalLabel", "Print")}
                     </Button>
                   </>
                 ) : null}

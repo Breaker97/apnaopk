@@ -2,7 +2,7 @@ import { AdminFormSkeleton } from "@/components/admin/admin-form-skeleton";
 
 interface BrandFormSkeletonProps {
   /** Vendors get a "Review status" copy card where admins get the controls. */
-  area?: "admin" | "vendor";
+  area?: "admin" | "vendor" | "staff";
 }
 
 /**

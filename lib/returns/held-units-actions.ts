@@ -1,4 +1,7 @@
 import "server-only";
+import { withInventoryWrite } from "@/lib/inventory/finance-context";
+import { financialSourceTransitionActive, withFinancialOrderTransaction } from "@/lib/inventory/finance-source-transaction";
+import { financeSession } from "@/lib/finance/transaction";
 
 import { Types } from "mongoose";
 import { Order, ReturnRequest } from "@/models";
@@ -37,7 +40,7 @@ type HeldReturnDoc = HeldReturnSource & {
 };
 
 const HELD_RETURN_SELECT =
-  "returnNumber orderId orderNumber status itemsCountedAt items.productId items.variantId items.vendorId items.quantityReceived items.condition unsellableDispositions";
+  "returnNumber orderId orderNumber status itemsCountedAt items.orderItemIndex items.productId items.variantId items.vendorId items.quantityReceived items.condition unsellableDispositions";
 
 /** At most this many returns list for one row; older ones stay on their returns. */
 const HELD_ENTRY_LIMIT = 200;
@@ -148,6 +151,10 @@ export async function resolveHeldReturnUnits(params: {
   assertProduct?: (productId: string) => Promise<void>;
 }): Promise<HeldUnitResolution> {
   const returnId = requireObjectId(params.returnId, "returnId");
+  if (!financialSourceTransitionActive()) {
+    const source = await ReturnRequest.findById(returnId).select("orderId").lean();
+    if (source?.orderId) return withFinancialOrderTransaction(String(source.orderId), () => resolveHeldReturnUnits(params));
+  }
   const itemIndex = Number(params.itemIndex);
   if (!Number.isInteger(itemIndex) || itemIndex < 0) {
     throw new ValidationError({ itemIndex: ["itemIndex is invalid"] });
@@ -179,7 +186,7 @@ export async function resolveHeldReturnUnits(params: {
     const order =
       action === "restocked"
         ? await Order.findById(request.orderId)
-            .select("channel posLocationId subOrders.vendorId subOrders.fulfillment")
+            .select("channel posLocationId items.inventoryLineId subOrders.vendorId subOrders.fulfillment")
             .lean<Parameters<typeof restockUnitsToSoldBranch>[0]["order"]>()
         : null;
     if (action === "restocked" && params.allowedLocationIds?.length) {
@@ -196,6 +203,9 @@ export async function resolveHeldReturnUnits(params: {
     const appended = await ReturnRequest.updateOne(
       {
         _id: returnId,
+        // Not onto a return rejected or cancelled since it was read: its units
+        // were released, and putting them on the shelf as well counts them twice.
+        status: { $nin: [RETURN_STATUS.REJECTED, RETURN_STATUS.CANCELLED] },
         $expr: {
           $eq: [{ $size: { $ifNull: ["$unsellableDispositions", []] } }, decided],
         },
@@ -229,12 +239,16 @@ export async function resolveHeldReturnUnits(params: {
     };
     if (action === "restocked") {
       try {
-        await restockUnitsToSoldBranch({
+        await withInventoryWrite({
+          reason: "return_restock", sourceKind: "held_return", sourceId: String(returnId), actorId: params.actorId,
+          requestKey: `held-restock:${returnId}:${dispositionId}`, restock: { orderId: String(request.orderId), lineId: (order as { items?: Array<{ inventoryLineId?: string }> } | null)?.items?.[(request.items?.[itemIndex] as { orderItemIndex?: number } | undefined)?.orderItemIndex ?? -1]?.inventoryLineId },
+        }, () => restockUnitsToSoldBranch({
           order,
           vendorId: line.vendorId || "",
           lines: [units],
-        });
+        }));
       } catch (error) {
+        if (financeSession()) throw error;
         await ReturnRequest.updateOne(
           { _id: returnId },
           { $pull: { unsellableDispositions: { _id: dispositionId } } },

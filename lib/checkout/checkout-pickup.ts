@@ -1,4 +1,5 @@
 import { Cart, Vendor } from "@/models";
+import { vendorAllowsDelivery, vendorAllowsPickup } from "@/lib/vendors/vendor-fulfillment";
 import { ConflictError, ValidationError } from "@/lib/api/errors";
 import { resolveItemShipping, type ProductShippingData, type VariantShippingData } from "@/lib/catalog/product-shipping";
 import { CANONICAL_CART_WEIGHT_UNIT } from "@/lib/shipping/shipping";
@@ -183,14 +184,17 @@ function pickupOwnerKey(owner: PickupCartOwnership): string | null {
 type PickupEligibility =
   | {
       eligible: false;
+      deliveryAvailable?: boolean;
       reason:
         | "cart_empty"
         | "digital_only"
         | "multi_vendor"
+        | "disabled"
         | "not_configured";
     }
   | {
       eligible: true;
+      deliveryAvailable?: boolean;
       cartId: string;
       ownerKey: string;
       vendorId: string;
@@ -310,23 +314,31 @@ export async function resolvePickupEligibility(
   }
 
   const fulfillmentVendor = pickupVendorIdForCartItems(physicalLines);
+  if ("reason" in fulfillmentVendor && fulfillmentVendor.reason === "digital_only") {
+    return { eligible: false, reason: "digital_only", deliveryAvailable: true };
+  }
+  const physicalVendorIds = [...new Set(physicalLines.filter((line) => line.requiresShipping).map((line) => line.vendorId))];
+  const vendors = await Vendor.find({ _id: { $in: physicalVendorIds } })
+    .select("storeName shipping.fulfillmentMode")
+    .lean<Array<{ _id: { toString(): string }; storeName?: string; shipping?: { fulfillmentMode?: unknown } }>>();
+  const deliveryAvailable = vendors.every((vendor) => vendorAllowsDelivery(vendor.shipping?.fulfillmentMode));
   if ("reason" in fulfillmentVendor) {
-    return { eligible: false, reason: fulfillmentVendor.reason };
+    return { eligible: false, reason: fulfillmentVendor.reason, deliveryAvailable };
   }
   const vendorId = fulfillmentVendor.vendorId;
 
-  const [vendor, locations] = await Promise.all([
-    Vendor.findById(vendorId)
-      .select("storeName")
-      .lean<{ storeName?: string } | null>(),
-    pickupLocationsForVendor({ vendorId }),
-  ]);
+  const vendor = vendors.find((candidate) => candidate._id.toString() === vendorId);
+  if (vendor && !vendorAllowsPickup(vendor.shipping?.fulfillmentMode)) {
+    return { eligible: false, reason: "disabled", deliveryAvailable };
+  }
+  const locations = vendor ? await pickupLocationsForVendor({ vendorId }) : [];
   if (!vendor || locations.length === 0) {
-    return { eligible: false, reason: "not_configured" };
+    return { eligible: false, reason: "not_configured", deliveryAvailable };
   }
 
   return {
     eligible: true,
+    deliveryAvailable,
     cartId: cart._id.toString(),
     ownerKey,
     vendorId,

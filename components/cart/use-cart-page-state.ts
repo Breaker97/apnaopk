@@ -9,6 +9,7 @@
  * their skins; parsing/formatting helpers both need are exported below.
  */
 
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import { useCart } from "@/hooks/use-cart";
 import { groupCartItemsBySeller } from "@/lib/cart/cart-sellers";
 import { useTranslations } from "next-intl";
@@ -18,6 +19,7 @@ import { useRouter } from "@/hooks/use-locale-navigation";
 import { toast } from "@/components/ui/toast-notification";
 import { refusalMessage } from "@/lib/api/client";
 import { useCurrency } from "@/providers/currency-provider";
+import { cartTaxLines } from "@/lib/tax/tax-engine";
 import {
   calculateCheckoutTotals,
   isFreeShippingCouponType,
@@ -170,7 +172,19 @@ export function useCartPageState() {
 
   const handleRemoveItem = async (productId: string, variantId?: string) => {
     try {
+      const removedItem = items.find(
+        (item) =>
+          String(item.productId) === productId &&
+          item.variantId?.toString() === variantId,
+      );
       await removeItem(productId, variantId);
+      posthogClient.capture("cart_item_removed", {
+        product_id: productId,
+        product_name: removedItem?.name,
+        variant_id: variantId,
+        price: removedItem?.price,
+        quantity: removedItem?.quantity,
+      });
       toast.success(t("cart.itemRemoved"));
     } catch (error) {
       toast.error(refusalMessage(error) ?? t("common.error"));
@@ -178,6 +192,12 @@ export function useCartPageState() {
   };
 
   const handleCheckout = () => {
+    posthogClient.capture("checkout_started", {
+      item_count: items.length,
+      subtotal,
+      coupon_code: appliedCoupon?.code,
+      currency: currency.code,
+    });
     const couponQuery = appliedCoupon?.code
       ? `?coupon=${encodeURIComponent(appliedCoupon.code)}`
       : "";
@@ -227,16 +247,21 @@ export function useCartPageState() {
     sellerCount > 1 && sellerGroups.length > 1 && anySellerOffersPickup;
 
   const taxRate = Math.max(0, Number(orderConfig.taxRate || 0));
-  const isTaxConfigured = taxRate > 0;
+  // A product or category with its own rate makes tax apply even when the
+  // store's own rate is 0.
+  const isTaxConfigured = taxRate > 0 || items.some((item) => typeof item.taxRate === "number" && item.taxRate > 0);
   // Once the shopper has estimated shipping, the total includes it — a row
   // showing 70 above a total that ignores it would contradict itself.
   const summaryShippingCost = estimatedShipping ?? CART_SUMMARY_SHIPPING_COST;
+  // Lines with a rate of their own are taxed at it, as checkout will tax them.
+  const taxLines = taxRequested ? cartTaxLines(items, taxRate) : null;
   const totals = calculateCheckoutTotals({
     subtotal,
     shippingCost: summaryShippingCost,
     taxRate: taxRequested && isTaxConfigured ? taxRate : 0,
     coupon: appliedCoupon,
     currency: currency.code,
+    taxLines,
   });
   const discount = totals.subtotalDiscount;
   const shippingDiscount = totals.shippingDiscount;

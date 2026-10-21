@@ -14,7 +14,10 @@ import { ProductGrid } from "@/components/products/product-grid";
 import { ProductSkeleton } from "@/components/products/product-skeleton";
 import { ProductsSortLazy as ProductsSort } from "@/components/products/products-sort-lazy";
 import { PRODUCTS_MOBILE_TOOLBAR_SORT_CLASS } from "@/components/products/products-mobile-toolbar";
-import { LISTING_GRID_COLUMNS_CLASS } from "@/components/products/listing-view-constants";
+import {
+  LISTING_GRID_COLUMNS_CLASS,
+  LISTING_SKELETON_COLUMNS_CLASS,
+} from "@/components/products/listing-view-constants";
 import { ListingShell } from "@/components/products/listing-view";
 import { ListingFeaturedProductsLazy as ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products-lazy";
 import {
@@ -33,6 +36,7 @@ import type {
 import type { ListingDesign } from "@/lib/storefront/sections/products-listing-layout";
 import type { CategoryTemplateResource } from "@/lib/storefront/sections/types";
 import { fetchListingFeaturedProducts } from "@/lib/storefront/listing-featured";
+import { readListingView } from "@/lib/storefront/read-listing-view";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { cn } from "@/lib/utils";
 
@@ -243,15 +247,22 @@ export async function CategoryDetailMain({
   // No sub-category selection means the whole branch, exactly as before.
   const categoryFilter = selectedCategories || category.slug;
 
-  const [{ priceRange, brands }, featured, { headerSettings }, outOfStockDisplay] =
-    await Promise.all([
-      getStorefrontCategoryFacets(category.slug),
-      layout.featured
-        ? fetchListingFeaturedProducts(category.slug)
-        : Promise.resolve([]),
-      getStorefrontSettings(),
-      getStorefrontOutOfStockDisplay(),
-    ]);
+  const [
+    { priceRange, brands },
+    featured,
+    { headerSettings },
+    outOfStockDisplay,
+    // The shopper's saved view, shared with the products listing.
+    initialView,
+  ] = await Promise.all([
+    getStorefrontCategoryFacets(category.slug),
+    layout.featured
+      ? fetchListingFeaturedProducts(category.slug)
+      : Promise.resolve([]),
+    getStorefrontSettings(),
+    getStorefrontOutOfStockDisplay(),
+    readListingView(),
+  ]);
 
   const { showStockFacet, stockParam, stockSet } = resolveStockFacet(
     layout.filters ? search.stock : undefined,
@@ -315,7 +326,14 @@ export async function CategoryDetailMain({
   const toolbar = layout.sort || layout.filters;
 
   const grid = (
-    <Suspense fallback={<ProductSkeleton count={12} />}>
+    <Suspense
+      fallback={
+        <ProductSkeleton
+          count={12}
+          className={toolbar ? LISTING_SKELETON_COLUMNS_CLASS : undefined}
+        />
+      }
+    >
       {/* Spread from the same object the rail counts with, so the two cannot
           drift into querying different product sets. */}
       <ProductGrid
@@ -338,6 +356,7 @@ export async function CategoryDetailMain({
     <ListingShell
       viewLabel={t("common.view")}
       listLabel={t.has("productsPage.listView") ? t("productsPage.listView") : "List"}
+      initialView={initialView}
       sort={
         layout.sort ? (
           electronics ? (

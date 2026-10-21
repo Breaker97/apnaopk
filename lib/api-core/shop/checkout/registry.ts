@@ -1,5 +1,6 @@
 import type { RouteEntry } from "@/lib/api-core/registry";
 import { placeOrderRoute } from "./place-order";
+import { checkoutFulfillmentRoute } from "./fulfillment";
 import { pushStartRoute } from "./push";
 import { pushVerifyRoute } from "./push-verify";
 import { checkoutQuoteRoute } from "./quote";
@@ -16,6 +17,7 @@ import { stripeIntentRoute } from "./stripe-intent";
  * here for the registry.
  */
 export const checkoutRoutes: readonly RouteEntry[] = [
+  checkoutFulfillmentRoute,
   checkoutQuoteRoute,
   placeOrderRoute,
   stripeIntentRoute,

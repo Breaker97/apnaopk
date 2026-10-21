@@ -19,6 +19,7 @@ import { postOrderPaid } from "@/lib/finance/post-events";
 import { withStrictLedger } from "@/lib/finance/ledger";
 import { allocateSubOrderShipping } from "@/lib/checkout/checkout-shipping";
 import { buildVendorSubOrders } from "@/lib/orders/order-vendors";
+import { orderLineVariantSnapshot } from "@/lib/orders/order-line-variant";
 import { getNextOnlineOrderNumber } from "@/lib/orders/order-number";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { auditOrderPlaced } from "@/lib/orders/audit-order";
@@ -33,6 +34,7 @@ import { InventoryLocation } from "@/models/inventory-location.model";
 import { PaymentTransaction } from "@/models/payment-transaction.model";
 import { prepareManualOrder, draftQuoteBinding } from "@/lib/api-core/biz/order-creation/quote";
 import { creationRefusal, type CreationContext } from "@/lib/api-core/biz/order-creation/policy";
+import { manualOrderLineTaxes } from "@/lib/orders/manual-order-tax";
 
 export function manualDraftReceipt(context: CreationContext, draftId: string) {
   return `biz-manual:${context.actorId}:${context.workspace.workspace === "vendor" ? context.workspace.vendor.id : "platform"}:${draftId}`;
@@ -91,13 +93,19 @@ export async function commitBizManualOrder(context: CreationContext, request: Ma
       for (const line of current.lines) {
         const id = String(line.owner._id); groups.set(id, [...(groups.get(id) || []), line]);
       }
+      // The variant as it was sold, on the order line and its consignment's line alike.
+      const variantSnapshotOf = new Map(current.lines.map((line) => [line, orderLineVariantSnapshot(line.product, line.variantId)]));
+      // Each line's rate and tax, when the order was taxed line by line.
+      const lineTaxes = await manualOrderLineTaxes(current.lines, { plan: current.taxPlan, line: (line) => line,
+        discount: current.totals.discount, tax: current.totals.tax, currency: current.options.currency });
       const subOrders = await buildVendorSubOrders(groups, {
         currency: current.options.currency, vendors: Promise.resolve(current.vendors),
         codCollectedByDefault: current.settings.shipping?.codCollectedBy,
         fallbackCommissionPercent: current.settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
         getProductId: (line) => new Types.ObjectId(line.productId), getVariantId: (line) => line.variantId ? new Types.ObjectId(line.variantId) : undefined,
         getName: (line) => line.name, getSku: (line) => line.sku, getPrice: (line) => line.price,
-        getCost: (line) => line.cost, getQuantity: (line) => line.quantity, getImage: (line) => line.image, status: "pending",
+        getCost: (line) => line.cost, getQuantity: (line) => line.quantity, getImage: (line) => line.image,
+        getVariantSnapshot: (line) => variantSnapshotOf.get(line) ?? {}, status: "pending", ...lineTaxes,
       });
       allocateSubOrderShipping(subOrders, { vendorShippingCosts: new Map(), orderShippingCost: current.totals.shippingCost, currency: current.options.currency });
       const paidAt = request.recordPayment ? new Date(placedAt) : undefined;
@@ -115,7 +123,9 @@ export async function commitBizManualOrder(context: CreationContext, request: Ma
         bizQuoteHash: createHash("sha256").update(request.quoteToken).digest("hex"), currency: current.options.currency,
         customerId, ...(current.customer.guestEmail ? { guestEmail: current.customer.guestEmail } : {}),
         items: current.lines.map((line) => ({ productId: line.productId, variantId: line.variantId, vendorId: line.owner._id,
-          name: line.name, sku: line.sku, quantity: line.quantity, price: line.price, cost: line.cost, image: line.image })),
+          name: line.name, sku: line.sku, quantity: line.quantity, price: line.price, cost: line.cost, image: line.image,
+          taxRate: lineTaxes.getTaxRate?.(line), tax: lineTaxes.getTax?.(line), taxParts: lineTaxes.getTaxParts?.(line),
+          ...variantSnapshotOf.get(line) })),
         subOrders: savedSubs, shippingAddress: current.shippingAddress, billingAddress: current.billingAddress,
         paymentMethod: current.payment.id, paymentStatus, ...(current.payment.custody === "platform" ? { paymentCustody: "platform" } : {}),
         ...(paidAt ? { paidAt } : {}), ...current.totals, status: "pending", channel: "online", staffId: context.actorId,

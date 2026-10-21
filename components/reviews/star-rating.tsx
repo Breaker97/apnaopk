@@ -44,7 +44,7 @@ export function InteractiveStarRating({
             className={cn(
               sizeClasses[size],
               star <= shown
-                ? "fill-yellow-400 text-yellow-400"
+                ? "fill-current text-(--store-rating,#a86500)"
                 : "text-muted-foreground/30"
             )}
           />
@@ -75,7 +75,7 @@ export function StarRatingDisplay({
           className={cn(
             "h-3.5 w-3.5",
             star <= Math.round(rating)
-              ? "fill-yellow-400 text-yellow-400"
+              ? "fill-current text-(--store-rating,#a86500)"
               : "text-muted-foreground/30",
           )}
         />

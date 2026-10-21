@@ -351,7 +351,7 @@ export function StoreBottomNav({
             const tabClassName = cn(
               tabClass,
               active
-                ? "text-primary"
+                ? "text-store-link"
                 : "text-muted-foreground hover:text-foreground",
             );
             const face = (

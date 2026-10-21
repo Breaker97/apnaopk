@@ -98,9 +98,10 @@
       "$date": "2026-09-26T17:21:48.664Z"
     },
     "updatedAt": {
-      "$date": "2026-09-26T17:21:48.664Z"
+      "$date": "2026-09-30T07:57:46.203Z"
     },
-    "__v": 0
+    "__v": 0,
+    "permissionOverrides": []
   },
   {
     "_id": {
@@ -521,8 +522,148 @@
       "$date": "2026-09-28T15:02:45.217Z"
     },
     "updatedAt": {
-      "$date": "2026-09-28T15:02:45.217Z"
+      "$date": "2026-10-01T06:33:39.510Z"
     },
-    "__v": 0
+    "__v": 0,
+    "description": "New store on Storify",
+    "shipping": {
+      "codCollectedBy": "inherit"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6ac352181af76d6eae5e0031"
+    },
+    "isDefault": false,
+    "storeName": "UrbanNest",
+    "slug": "urbannest-furniture",
+    "description": "Modern furniture and home décor designed for stylish, comfortable living spaces.",
+    "status": "approved",
+    "storeActive": true,
+    "verified": false,
+    "commission": 10,
+    "commissionSource": "default",
+    "rating": 0,
+    "totalSales": 0,
+    "permissions": [
+      "view_products",
+      "manage_products",
+      "create_products",
+      "edit_products",
+      "delete_products",
+      "view_orders",
+      "manage_orders",
+      "create_orders",
+      "edit_orders",
+      "delete_orders",
+      "view_store_settings",
+      "manage_store_settings",
+      "edit_store_settings",
+      "view_staff",
+      "manage_staff",
+      "create_staff",
+      "edit_staff",
+      "delete_staff",
+      "view_analytics",
+      "view_brands",
+      "create_brands",
+      "edit_brands",
+      "view_discounts",
+      "manage_discounts",
+      "create_discounts",
+      "edit_discounts",
+      "delete_discounts",
+      "view_boosts",
+      "manage_boosts",
+      "view_payouts",
+      "manage_payouts",
+      "view_inbox",
+      "reply_inbox",
+      "manage_inbox",
+      "manage_channels",
+      "access_pos",
+      "access_ai_studio"
+    ],
+    "permissionOverrides": [],
+    "address": {
+      "street": "742 Evergreen Ave, Los Angeles, CA",
+      "city": "Los Angeles",
+      "state": "CA",
+      "postalCode": "90001",
+      "country": "US",
+      "phone": "+12135550148",
+      "coordinates": {
+        "lat": 33.9614911,
+        "lng": -118.2171038,
+        "formatted": "Evergreen Avenue, South Gate, Los Angeles County, California, 90280, United States",
+        "geocodedAt": "2026-10-07T05:03:35.431Z"
+      },
+      "geo": {
+        "type": "Point",
+        "coordinates": [
+          -118.2171038,
+          33.9614911
+        ]
+      }
+    },
+    "documents": {
+      "businessLicense": "",
+      "taxId": "94-1234567",
+      "taxCertificate": "",
+      "governmentId": ""
+    },
+    "shareSettings": {
+      "enabled": true,
+      "copyLink": true,
+      "facebook": true,
+      "twitter": true,
+      "whatsapp": true,
+      "telegram": false,
+      "pinterest": false,
+      "linkedin": false,
+      "email": true,
+      "custom": []
+    },
+    "notificationPreferences": {
+      "newOrders": true,
+      "orderUpdates": true,
+      "lowStock": true,
+      "marketing": false
+    },
+    "payoutSettings": {
+      "schedule": "weekly",
+      "minimumAmount": 0
+    },
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    },
+    "messaging": {
+      "liveChatEnabled": true,
+      "whatsapp": {
+        "enabled": false
+      },
+      "messenger": {
+        "enabled": false
+      },
+      "instagram": {
+        "enabled": false
+      },
+      "telegram": {
+        "enabled": false
+      }
+    },
+    "createdAt": {
+      "$date": "2026-10-05T07:30:32.091Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-07T06:03:19.989Z"
+    },
+    "__v": 0,
+    "shipping": {
+      "codCollectedBy": "inherit"
+    },
+    "banner": "https://storify-furniture.neurolight.studio/uploads/vendor/6ac352181af76d6eae5e0031/2026/10/1791352904764-c2dd72a948456d8afbeb92c01146e116/e3b91c76-77a3-47be-b955-0ec42b0558f7.png",
+    "logo": "https://storify-furniture.neurolight.studio/uploads/vendor/6ac352181af76d6eae5e0031/2026/10/1791350245401-68e30a58625d775d66f7b1b800a171c5/918c5f41-c85c-42ca-977e-120f0a853519.png"
   }
 ]

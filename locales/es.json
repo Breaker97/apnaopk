@@ -193,6 +193,18 @@
   "account": {
     "welcome": "Hola de nuevo, {name}!",
     "overviewDesc": "Tu cuenta en un vistazo",
+    "overview": {
+      "needsAttention": "Requiere tu atención",
+      "actionNeeded": "Acción necesaria",
+      "addressTitle": "No podemos entregar en tu dirección",
+      "addressDeadline": "El envío está en pausa, corrige la dirección antes del {date}",
+      "addressPaused": "El envío está en pausa hasta que se corrija la dirección",
+      "fixAddress": "Corregir dirección",
+      "paymentDue": "Pago pendiente",
+      "payBy": "Paga antes del {date}",
+      "moreInProgress": "{count} más en curso",
+      "plusMore": "+{count} más"
+    },
     "totalOrders": "Total Pedidos",
     "pendingOrders": "Pedidos pendientes",
     "wishlistItems": "Artículos deseados",
@@ -308,6 +320,10 @@
     "marketingPreferences": "Preferencias de marketing",
     "marketingOptIn": "Correos de marketing",
     "marketingOptInDesc": "Recibir comunicaciones de marketing y ofertas especiales",
+    "groupOrders": "Tus pedidos",
+    "groupWishlist": "Tu lista de deseos",
+    "groupNews": "Novedades y ofertas",
+    "marketingOptInHint": "Desactívalo para darte de baja de todos los correos de marketing.",
     "totalSpent": "Total gastado",
     "avgOrderValue": "Valor promedio del pedido",
     "memberSince": "Miembro desde",
@@ -375,7 +391,8 @@
     "getHelp": "Obtener ayuda",
     "brands": "Marcas",
     "vendors": "Vendedores",
-    "compare": "Comparar"
+    "compare": "Comparar",
+    "inbox": "Bandeja de entrada"
   },
   "productsPage": {
     "empty": "No se encontraron productos",
@@ -411,7 +428,10 @@
     "featuredProducts": "Productos destacados"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "Buscar categorias..."
+    "searchPlaceholder": "Buscar categorias...",
+    "count": "{count, plural, one {# categoría} other {# categorías}}",
+    "perRowGroup": "Categorías por fila",
+    "perRow": "{count} por fila"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# producto} other {# productos}}",
@@ -499,6 +519,7 @@
     "heroSubtitle": "Descubre productos increíbles de vendedores verificados. Compra con confianza y disfruta de una entrega sin complicaciones hasta tu puerta.",
     "shopByCategory": "Comprar por categoría",
     "shopByCategoryDescription": "Explora nuestra amplia selección de productos organizados por categoría",
+    "shopAllInCategory": "Ver todo en {name}",
     "viewAllCategories": "Ver todas las categorías",
     "whyChooseUs": "¿Por qué elegir {storeName}?",
     "whyChooseUsDescription": "Ofrecemos la mejor experiencia de compra con funciones diseñadas para ti",
@@ -606,7 +627,8 @@
     "addToBag": "Añadir al carrito",
     "sortBy": "Ordenar por",
     "colors": "Colores",
-    "itemsSold": "{count} vendidos"
+    "itemsSold": "{count} vendidos",
+    "percentOff": "{percent}% DTO"
   },
   "reviews": {
     "basedOn": "Basado en {count} reseñas",
@@ -922,7 +944,6 @@
     "notificationSettingsDesc": "Administra tus notificaciones por correo y push",
     "accountSettings": "Configuración de la cuenta",
     "accountSettingsDesc": "Administra los detalles de tu cuenta personal",
-    "viewStore": "View Store",
     "viewOrders": "Pedidos",
     "productSummary": "Estado de productos",
     "active": "Activo",
@@ -1132,7 +1153,17 @@
       "socialUrl": "Enlace",
       "socialAdd": "Añadir enlace",
       "socialRemove": "Quitar enlace",
-      "shareButtons": "Botones para compartir"
+      "shareButtons": "Botones para compartir",
+      "changeEmail": "Cambiar",
+      "changeEmailTitle": "Cambia tu correo electrónico",
+      "changeEmailDescription": "Iniciarás sesión con el nuevo correo electrónico. Avisaremos del cambio a tu correo actual.",
+      "newEmail": "Nuevo correo electrónico",
+      "currentPasswordForEmail": "Contraseña actual",
+      "updateEmail": "Actualizar correo electrónico",
+      "emailChanged": "Correo electrónico actualizado. A partir de ahora, inicia sesión con tu nuevo correo.",
+      "emailChangeFailed": "No se pudo actualizar el correo electrónico",
+      "phoneInvalid": "Introduce un número de teléfono válido",
+      "payoutScheduleHint": "En tu día de pago, la tienda prepara un pago con lo que esté listo, cuando alcance tu mínimo y el de la tienda. Después, la tienda lo envía a la cuenta de arriba."
     },
     "untitledProduct": "Producto sin título",
     "dashboardWidgets": {
@@ -1305,6 +1336,78 @@
     },
     "activityLog": {
       "title": "Registro de actividad"
+    },
+    "payoutDetail": {
+      "back": "Cobros",
+      "period": "Pedidos del {start} al {end}",
+      "noteFromStore": "Nota de la tienda",
+      "grossSales": "Ventas brutas",
+      "grossSalesHint": "tu parte de los pedidos de abajo",
+      "commission": "Comisión",
+      "shipping": "Gastos de envío",
+      "shippingHint": "cobrados a los compradores por los paquetes que entregaste",
+      "adjustment": {
+        "recoveryDeducted": "Recuperación por reembolso",
+        "recoveryDeductedHint": "se te pagó antes por pedidos reembolsados desde entonces",
+        "recoveryReturned": "Recuperación devuelta",
+        "recoveryReturnedHint": "se anuló un reembolso recuperado antes",
+        "reserveHeld": "Reserva de preventa retenida",
+        "reserveHeldHint": "retenida por si llega un contracargo tardío",
+        "reserveReleased": "Reserva de preventa liberada",
+        "reserveReleasedHint": "retenida en un pago anterior, ahora liberada",
+        "reserveCreditDeducted": "Reserva recuperada",
+        "reserveCreditDeductedHint": "una reserva liberada cuyo pago fue devuelto",
+        "reserveCreditReturned": "Recuperación de reserva devuelta",
+        "reserveCreditReturnedHint": "devuelta después de que su pago se volviera a pagar",
+        "commissionOffset": "Comisión por ventas en efectivo",
+        "commissionOffsetHint": "adeudada por ventas que cobraste tú mismo, liquidada aquí en lugar de facturarse",
+        "commissionCredit": "Promociones de la tienda en ventas en efectivo",
+        "commissionCreditHint": "descuentos que pagó la tienda por encima de la comisión que debías"
+      },
+      "reserveUntil": "se libera el {date}",
+      "otherAdjustments": "Otros ajustes",
+      "otherAdjustmentsHint": "recuperaciones por reembolsos y movimientos de la reserva de preventa",
+      "netPayout": "Pago neto",
+      "sentOn": "Enviado el {date}",
+      "reference": "referencia {reference}",
+      "returnedOn": "Devuelto el {date}: las ventas que incluía vuelven a tu saldo",
+      "history": "Qué pasó",
+      "returnedStep": "El dinero fue devuelto",
+      "orders": "Pedidos en este pago",
+      "order": "Pedido",
+      "placed": "Realizado",
+      "yourShare": "Tu parte",
+      "afterCommission": "Tras la comisión",
+      "noOrders": "No hay pedidos vinculados a este pago."
+    },
+    "suspendedMoney": {
+      "title": "Tu dinero",
+      "frozen": "Los pagos están en pausa mientras tu cuenta esté suspendida. Tus ventas siguen contando y se pagarán cuando se restablezca el acceso.",
+      "ready": "Listo para un pago",
+      "held": "Aún en camino o en el plazo de devolución",
+      "payouts": "Últimos pagos",
+      "status": {
+        "pending": "Pendiente",
+        "processing": "En proceso",
+        "paid": "Pagado",
+        "failed": "Fallido",
+        "cancelled": "Cancelado"
+      }
+    },
+    "commissionCard": {
+      "canceled": "Se canceló el pago. La factura sigue abierta.",
+      "settled": "Factura de comisión liquidada.",
+      "pendingInfo": "El pago aún se está procesando; la factura se liquida automáticamente cuando se confirme.",
+      "verifyFailed": "Aún no pudimos confirmar ese pago.",
+      "pollTimeout": "Aún no pudimos confirmar el pago. La factura se liquida automáticamente cuando se confirme.",
+      "checkPhone": "Revisa tu teléfono y aprueba la solicitud de pago.",
+      "failed": "No se pudo iniciar el pago",
+      "title": "Comisión que debes",
+      "subtitle": "Comisión por ventas que cobraste tú mismo (en efectivo, contra reembolso o con tu propio terminal), por lo que no se pudo descontar de un pago.",
+      "payNow": "Pagar ahora",
+      "noMethods": "No hay ningún método de pago disponible para esto. Contacta con el administrador del marketplace para liquidarlo de otra forma.",
+      "dialogTitle": "Liquidar comisión",
+      "continue": "Continuar al pago"
     }
   },
   "adminProfile": {
@@ -1922,7 +2025,6 @@
       "themes": "Temas",
       "pages": "Páginas",
       "pos": "Punto de venta",
-      "posStaff": "Personal",
       "posLocations": "Ubicaciones",
       "addPage": "Agregar página",
       "dashboard": "Panel",
@@ -1941,6 +2043,7 @@
       "customize": "Personalizar",
       "finance": "Finanzas",
       "financeOverview": "Resumen",
+      "inventoryLedger": "Inventario y libro mayor",
       "expenses": "Gastos",
       "receivables": "Cuentas por cobrar",
       "financeReports": "Informes",
@@ -1961,6 +2064,7 @@
       "returns": "Devoluciones",
       "shipping": "Envíos",
       "sliders": "Carruseles",
+      "campaignBanners": "Banners de campaña",
       "staff": "Equipo",
       "toggle": "Mostrar u ocultar la barra lateral",
       "vendorConfiguration": "Configuración",
@@ -2433,7 +2537,7 @@
             "ses": "Amazon SES",
             "other": "Otro"
           },
-          "docs": "Guía completa: docs/EMAIL_SETUP.md",
+          "docs": "Guía completa: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "Activa la 2-Step Verification en la cuenta de Google desde la que vas a enviar.",
             "step2": "Crea una contraseña de aplicación llamada {storeName} y copia la contraseña de 16 letras. Google solo la muestra una vez.",
@@ -2785,7 +2889,20 @@
         "soundPayment": "Pago aceptado",
         "soundOrderComplete": "Venta completada",
         "soundError": "Error o aviso de stock",
-        "soundPlay": "Reproducir el sonido: {sound}"
+        "soundPlay": "Reproducir el sonido: {sound}",
+        "offlineWindow": "Periodo de venta sin conexión",
+        "offlineWindowHint": "Cuánto tiempo sigue vendiendo una caja sin conexión después de haber contactado con el servidor por última vez. Después se bloquea hasta que pueda volver a iniciar sesión. Entre {min} y {max} horas.",
+        "offlineWindowUnit": "horas",
+        "allowDeposits": "Permitir anticipos",
+        "allowDepositsDesc": "La caja puede cobrar ahora una parte de una venta y el resto más tarde, en una venta con un cliente asociado. Los artículos se apartan y la venta se contabiliza cuando se paga por completo.",
+        "requireOpenRegister": "Exigir el cajón abierto para vender",
+        "requireOpenRegisterDesc": "Cada caja debe abrir su cajón con un fondo inicial antes de cobrar una venta, para que cada venta quede en una sesión que se cuenta al cerrar.",
+        "pricesIncludeTax": "Precios con impuestos incluidos",
+        "openCashDrawer": "Abrir el cajón de efectivo",
+        "openCashDrawerDesc": "Abre el cajón de efectivo cuando se cobra o entrega efectivo en la caja. Requiere QZ Tray y una impresora de recibos con puerto para cajón; cada caja elige su impresora desde el menú del cajón.",
+        "pricesIncludeTaxMovedOn": "Activado: los precios de estantería ya incluyen impuestos. Este interruptor ahora está en Configuración de impuestos.",
+        "pricesIncludeTaxMovedOff": "Desactivado: los impuestos se suman a los precios de estantería. Este interruptor ahora está en Configuración de impuestos.",
+        "pricesIncludeTaxLink": "Abrir Configuración de impuestos"
       },
       "vendorPermissions": {
         "title": "Política del marketplace",
@@ -2811,9 +2928,8 @@
       },
       "orders": {
         "title": "Configuración de pedidos",
-        "description": "Números de pedido, impuestos y devoluciones.",
+        "description": "Números de pedido, envío y devoluciones.",
         "prefix": "Prefijo del número de pedido",
-        "taxRate": "Tasa de impuestos",
         "shippingCost": "Envío estándar",
         "freeShippingThreshold": "Envío gratis a partir de",
         "shippingHandledByZones": "Las tarifas provienen de tus zonas de envío.",
@@ -2861,7 +2977,6 @@
         "shippingRefundNever": "Nunca",
         "ordersHeading": "Pedidos",
         "prefixExample": "Los pedidos se numerarán así: <strong>{example}</strong>.",
-        "taxRateHint": "Se suma a los pedidos al pagar y en el punto de venta.",
         "shipping": "Envío",
         "shippingLink": "Envío y entrega",
         "shippingCostHint": "Lo que paga un pedido por la entrega mientras las zonas de envío están desactivadas.",
@@ -2877,7 +2992,18 @@
         "commissionSummaryLabel": "Comisión y pago mínimo",
         "commissionSummary": "{rate}% de comisión, pago mínimo de {amount}.",
         "vendorConfigLink": "Configuración de vendedores",
-        "refundAdminFeeUpTo": "%, máximo"
+        "refundAdminFeeUpTo": "%, máximo",
+        "tax": "Impuestos",
+        "taxMoved": "Las tasas y clases de impuesto y tu registro ahora están en Configuración de impuestos.",
+        "taxLink": "Abrir Configuración de impuestos"
+      },
+      "invoices": {
+        "title": "Configuración de facturas",
+        "entry": {
+          "title": "Facturas, recibos y etiquetas",
+          "description": "Diseña lo que imprime tu tienda y elige la plantilla predeterminada de cada tipo.",
+          "action": "Abrir configuración de facturas"
+        }
       },
       "storage": {
         "title": "Configuración de almacenamiento",
@@ -2939,7 +3065,7 @@
         },
         "setup": {
           "title": "Guía de configuración de {provider}",
-          "docs": "Guía completa: docs/STORAGE_SETUP.md",
+          "docs": "Guía completa: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "Copiar",
           "copyFailed": "No se pudo copiar",
           "console": {
@@ -3069,7 +3195,7 @@
           "step6": "Tras la primera obtención, Catalog → Issues muestra cualquier artículo que Meta haya rechazado.",
           "caution": "Después de generar una nueva URL, cambia la URL de la fuente de datos existente. Una segunda fuente de datos mostraría cada producto dos veces.",
           "link": "Abrir Commerce Manager",
-          "docs": "Guía completa: docs/META_CATALOG.md"
+          "docs": "Guía completa: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook e Instagram reciben los cambios de tus productos en minutos a través de la Catalog API de Meta.",
         "source": {
@@ -3149,7 +3275,7 @@
             "caution": "Trata el token como una contraseña. Si se revoca o caduca, la sincronización en vivo se pausa y se avisa a los administradores.",
             "off": "Al desactivar la sincronización en vivo, los artículos que ya están en Meta se quedan como están. Elimínalos en Commerce Manager si ya no los quieres.",
             "link": "Abrir Business settings",
-            "docs": "Guía completa: docs/META_CATALOG.md"
+            "docs": "Guía completa: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -3668,11 +3794,13 @@
           "byCurrencyLabel": "Mínimo en otras monedas",
           "byCurrencyRemove": "Quitar el mínimo de {currency}",
           "description": "Se aplica a los vendedores sin plan. También se puede editar en Ajustes de pedidos.",
-          "minWithdrawalDescription": "El saldo más pequeño que un vendedor puede pedir como pago, en la moneda de tu tienda.",
+          "minWithdrawalDescription": "El saldo mínimo por el que se hace un pago, en la moneda de tu tienda.",
           "minWithdrawalLabel": "Importe mínimo de retiro",
           "rateDescription": "Porcentaje que la plataforma se queda de cada venta de un vendedor.",
           "rateLabel": "Tasa de comisión",
-          "title": "Comisión predeterminada"
+          "title": "Comisión predeterminada",
+          "autoPayoutDraftsLabel": "Preparar pagos según el calendario de cada vendedor",
+          "autoPayoutDraftsDescription": "En el día de pago de un vendedor (semanal, quincenal o mensual, según haya elegido), se prepara un pago si tiene suficiente para cobrar. Tú sigues enviando el dinero y marcándolo como pagado."
         },
         "description": "Política de registro, aprobación y planes de suscripción de los vendedores.",
         "documents": {
@@ -3975,6 +4103,10 @@
             "preorderAccess": {
               "title": "Acceso a preventas",
               "hint": "Aprobado, rechazado o retirado"
+            },
+            "payouts": {
+              "title": "Pagos",
+              "hint": "Preparado, enviado, devuelto o cancelado"
             }
           },
           "customer": {
@@ -4140,6 +4272,221 @@
       "saveBar": {
         "unsaved": "Cambios sin guardar",
         "discard": "Descartar"
+      },
+      "tax": {
+        "title": "Configuración de impuestos",
+        "description": "Lo que cobras, dónde estás registrado y cómo se calculan los impuestos.",
+        "tabsLabel": "Secciones de la configuración de impuestos",
+        "moreOptions": "Más opciones",
+        "tabs": {
+          "rates": "Tasas",
+          "registration": "Registro",
+          "calculation": "Cálculo",
+          "vendors": "Vendedores"
+        },
+        "links": {
+          "report": "Informe de impuestos",
+          "invoices": "Configuración de facturas"
+        },
+        "registrationMissingLabel": "Falta el número de registro",
+        "rates": {
+          "description": "Lo que se cobra a cada clase. A los productos sin clase se les cobra la tasa estándar.",
+          "notCharging": "No se cobran impuestos",
+          "notChargingHint": "Todas las tasas están en 0 %, así que ninguna venta paga impuestos. Establece la tasa estándar abajo para empezar a cobrar impuestos.",
+          "removedClass": "Algunos productos usan una clase que ya no existe",
+          "removedClassHint": "{products, plural, one {# producto} other {# productos}} y {categories, plural, one {# categoría} other {# categorías}} están asignados a una clase eliminada, por lo que se les cobra la tasa estándar. Elige una clase para ellos en sus editores.",
+          "default": "Predeterminada",
+          "partsBadge": "{count, plural, one {# componente} other {# componentes}}",
+          "neverCharged": "Nunca se cobra",
+          "noRate": "Aún no hay tasa. Se cobra la tasa estándar hasta que establezcas una.",
+          "rateLabel": "Tasa de {name}",
+          "rateTotalLabel": "Tasa de {name}, el total de sus componentes",
+          "expandLabel": "Opciones de {name}",
+          "usageProducts": "{count, plural, one {# producto} other {# productos}}",
+          "usageCategories": "{count, plural, one {# categoría} other {# categorías}}",
+          "next": "Cambia a {rate} el {date}",
+          "name": "Nombre",
+          "note": "Nota",
+          "optional": "opcional",
+          "notePlaceholder": "Qué incluye esta clase",
+          "partsTitle": "Componentes de la tasa",
+          "total": "Total {rate}",
+          "partName": "Nombre del componente",
+          "partRate": "Tasa del componente",
+          "partPlaceholder1": "Estado",
+          "partPlaceholder2": "Condado",
+          "partPlaceholder3": "Ciudad",
+          "compound": "Se cobra sobre los componentes anteriores",
+          "compoundHint": "Los componentes se suman, como los impuestos sobre las ventas de un estado, un condado y una ciudad. Un componente que se cobra encima se calcula sobre el precio más los componentes anteriores.",
+          "addPart": "Añadir un componente",
+          "splitIntoParts": "Dividir en componentes",
+          "removePart": "Eliminar este componente",
+          "scheduleTitle": "Cambio programado",
+          "scheduleAdd": "Programar un cambio",
+          "startsOn": "Entra en vigor el",
+          "newRate": "Nueva tasa",
+          "removeScheduled": "Eliminar este cambio programado",
+          "earlierTitle": "Tasas anteriores",
+          "earlierLine": "{rate} desde el {date}",
+          "fromStart": "Desde el inicio",
+          "removeEarlier": "Eliminar esta tasa anterior",
+          "removeClass": "Eliminar clase",
+          "removeClassInUse": "{products, plural, one {# producto} other {# productos}} y {categories, plural, one {# categoría} other {# categorías}} usan esta clase. Cuando se elimine, se les cobrará la tasa estándar.",
+          "removeClassHint": "Sus tasas se eliminan con ella.",
+          "addClass": "Añadir una clase",
+          "newName": "Nombre de la clase",
+          "newNamePlaceholder": "Libros",
+          "classRate": "Tasa",
+          "add": "Añadir clase",
+          "cancel": "Cancelar",
+          "full": "Puedes añadir hasta {count} clases.",
+          "untaxedNote": "{count, plural, one {# producto está configurado} other {# productos están configurados}} para no cobrar impuestos.",
+          "customNote": "{products, plural, one {# producto} other {# productos}} y {categories, plural, one {# categoría} other {# categorías}} tienen su propia tasa personalizada. No sigue las tasas de aquí; asignarlos a una clase los mantiene al día."
+        },
+        "registration": {
+          "description": "Donde tu tienda está registrada a efectos fiscales. Cada venta tributa a las tasas de esta región.",
+          "missing": "Sin número de registro",
+          "missingHint": "Cobras impuestos, pero no has añadido tu registro fiscal, como el número de tu permiso de impuesto sobre las ventas.",
+          "country": "País",
+          "name": "Nombre de la región",
+          "optional": "opcional",
+          "nameHint": "Si se deja vacío, se muestra el nombre del país.",
+          "registrationLabel": "Nombre del registro",
+          "registrationLabelPlaceholder": "Permiso de impuesto sobre las ventas",
+          "registrationLabelHint": "Cómo lo llama tu autoridad tributaria: permiso de impuesto sobre las ventas, permiso de vendedor.",
+          "registrationNumber": "Número de registro",
+          "registrationNumberHint": "El número que te asignó tu autoridad tributaria."
+        },
+        "calculation": {
+          "posTitle": "Punto de venta",
+          "posDescription": "Cómo se interpretan los precios de estantería en la caja.",
+          "posPricesIncludeTax": "Precios de estantería con impuestos incluidos",
+          "posPricesIncludeTaxDesc": "La caja cobra el precio de la estantería y muestra los impuestos incluidos en él, en lugar de sumarlos aparte.",
+          "rulesTitle": "Cómo se calculan los impuestos",
+          "rulesDescription": "Estas reglas se aplican a todas las ventas. Aquí no hay nada que configurar.",
+          "chainTitle": "A un producto se le cobra la primera de estas tasas que esté definida",
+          "chain": {
+            "own": "Su propia tasa personalizada",
+            "class": "Su clase de impuesto",
+            "category": "La tasa de su categoría",
+            "standard": "La tasa estándar"
+          },
+          "facts": {
+            "online": {
+              "label": "Tienda online",
+              "text": "En la tienda online, los precios se muestran sin impuestos; los impuestos se añaden al finalizar la compra."
+            },
+            "discounts": {
+              "label": "Descuentos",
+              "text": "Los impuestos se cobran sobre lo que paga el cliente, después de descuentos y cupones."
+            },
+            "shipping": {
+              "label": "Envío",
+              "text": "El envío y los aranceles aduaneros no pagan impuestos."
+            },
+            "region": {
+              "label": "Región",
+              "text": "Cada venta tributa a las tasas de tu región, sea cual sea la dirección del cliente."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "Estándar",
+            "description": "La mayoría de los productos. Su tasa es la tasa de impuesto de tu tienda."
+          },
+          "reduced": {
+            "name": "Reducida",
+            "description": "Productos que tu legislación grava a una tasa menor."
+          },
+          "zero": {
+            "name": "Tasa cero",
+            "description": "Productos sujetos a impuesto que se gravan al 0 %."
+          },
+          "exempt": {
+            "name": "Exenta",
+            "description": "Productos que quedan totalmente fuera del impuesto."
+          }
+        },
+        "picker": {
+          "label": "Impuesto",
+          "inheritCategory": "Igual que su categoría",
+          "inheritParent": "Igual que su categoría superior",
+          "custom": "Tasa personalizada",
+          "customRate": "Tasa de impuesto personalizada",
+          "customHint": "Una tasa personalizada prevalece sobre todas las clases y no sigue los cambios de tasa de Configuración de impuestos.",
+          "hint": "La clase determina la tasa, que se establece en Configuración → Configuración de impuestos.",
+          "removedClass": "{key} (eliminada: tasa estándar)"
+        },
+        "vendors": {
+          "policyTitle": "Impuesto de los productos de vendedores",
+          "policyDescription": "Tu tienda responde por los impuestos que cobra su mercado. Elige quién puede cambiar el impuesto de los productos de un vendedor: Cobrar impuestos, la clase de impuesto y las tasas personalizadas.",
+          "policy": {
+            "approval": "Con tu aprobación",
+            "approvalHint": "Los vendedores envían una solicitud y tú la apruebas o rechazas aquí abajo. Mientras tanto, sus productos conservan su impuesto.",
+            "never": "Solo tú",
+            "neverHint": "Los vendedores ven el impuesto de sus productos, pero no pueden cambiarlo ni solicitar un cambio.",
+            "free": "Los propios vendedores",
+            "freeHint": "Los vendedores cambian el impuesto de sus propios productos sin pedir permiso."
+          },
+          "requestsTitle": "Solicitudes de cambio de impuesto",
+          "requestsDescription": "Al aprobar, se aplica el impuesto solicitado a todos los productos de la solicitud. Al rechazar, se mantiene su impuesto y se le explica el motivo al vendedor.",
+          "pendingTab": "Pendientes",
+          "decidedTab": "Respondidas",
+          "loading": "Cargando solicitudes…",
+          "empty": "No hay solicitudes pendientes.",
+          "emptyDecided": "Aún no se ha respondido ninguna solicitud.",
+          "loadFailed": "No se pudieron cargar las solicitudes",
+          "unknownStore": "Tienda desconocida",
+          "requestedOn": "Solicitado el {date}",
+          "asksFor": "Solicita",
+          "now": "ahora {tax}",
+          "moreProducts": "{count, plural, one {y # producto más} other {y # productos más}}",
+          "reason": "Motivo",
+          "noteLabel": "Nota para el vendedor",
+          "noteRequiredHint": "obligatoria para rechazar",
+          "optional": "opcional",
+          "notePlaceholder": "Una nota breve para el vendedor",
+          "addNote": "Añadir una nota",
+          "noteRequired": "Escribe una nota para que el vendedor sepa el motivo",
+          "approve": "Aprobar",
+          "decline": "Rechazar",
+          "cancel": "Cancelar",
+          "sendDecline": "Enviar rechazo",
+          "approvedToast": "Cambio de impuesto aprobado",
+          "declinedToast": "Solicitud rechazada",
+          "decisionFailed": "No se pudo guardar la decisión",
+          "pending": "Pendiente",
+          "approved": "Aprobada",
+          "declined": "Rechazada",
+          "withdrawn": "Retirada",
+          "decisionNote": "Nota: {note}"
+        },
+        "request": {
+          "notCharged": "No se cobra",
+          "inherit": "Igual que su categoría",
+          "customRate": "Tasa personalizada {rate}%",
+          "lockedLabel": "Impuesto",
+          "lockedApproval": "La tienda aprueba los cambios en el impuesto de este producto.",
+          "lockedNever": "La tienda gestiona el impuesto de este producto.",
+          "newProductApproval": "Un producto nuevo tributa según su categoría. Una vez guardado, puedes solicitar otro impuesto.",
+          "requestChange": "Solicitar un cambio",
+          "pending": "Cambio solicitado: {tax}. A la espera de la tienda.",
+          "withdraw": "Retirar",
+          "withdrawn": "Solicitud retirada",
+          "withdrawFailed": "No se pudo retirar la solicitud",
+          "dialogTitle": "Solicitar un cambio de impuesto",
+          "dialogDescription": "{count, plural, one {La tienda revisará tu solicitud. Hasta que la apruebe, el producto conserva su impuesto actual.} other {La tienda revisará tu solicitud para # productos. Hasta que la apruebe, conservan su impuesto actual.}}",
+          "chargeTax": "Cobrar impuestos",
+          "reason": "¿Por qué debería cambiar el impuesto?",
+          "reasonPlaceholder": "Por ejemplo: estos artículos están exentos del impuesto sobre las ventas en nuestro estado.",
+          "reasonTooShort": "Añade una frase sobre por qué debería cambiar el impuesto.",
+          "send": "Enviar solicitud",
+          "cancel": "Cancelar",
+          "sent": "Solicitud enviada a la tienda",
+          "sendFailed": "No se pudo enviar la solicitud",
+          "bulkAction": "Solicitar cambio de impuesto"
+        }
       }
     },
     "reports": "Informes",
@@ -4147,7 +4494,6 @@
     "approveVendor": "Aprobar vendedor",
     "rejectVendor": "Rechazar vendedor",
     "pos": "Punto de venta",
-    "posStaff": "Staff",
     "posLocations": "Locations",
     "productsPage": {
       "stats": {
@@ -4356,7 +4702,10 @@
           "countryOfOrigin": "Nombre del país o código de dos letras, p. ej. BD.",
           "hsCode": "Código arancelario de aduanas.",
           "barcode": "EAN-13, UPC-A, GTIN-14 o Code 128. Se genera automáticamente si está vacío.",
-          "vendorId": "El vendedor al que pertenece el producto, como en una exportación de vendedores. Predeterminado: tu propia tienda."
+          "vendorId": "El vendedor al que pertenece el producto, como en una exportación de vendedores. Predeterminado: tu propia tienda.",
+          "chargeTax": "true o false: cobrar impuestos por este producto. Predeterminado: true.",
+          "taxClass": "Una clase de impuesto de Configuración de impuestos: standard, reduced, zero, exempt o una que hayas añadido. Escribe inherit para volver a usar el impuesto de la categoría.",
+          "taxRate": "Una tasa de impuesto personalizada en porcentaje, p. ej. 7.5. Sustituye a la clase de impuesto, así que rellena taxClass o taxRate, no ambos."
         },
         "title": "Importar productos",
         "description": "Añade productos nuevos o actualiza los existentes de forma masiva desde un archivo CSV o JSON.",
@@ -4437,7 +4786,9 @@
       "actions": {
         "export": "Exportar",
         "import": "Importar",
-        "addCollection": "Agregar coleccion"
+        "addCollection": "Agregar coleccion",
+        "importExport": "Importar / Exportar",
+        "downloadSample": "Descargar archivo de muestra"
       },
       "bulkActions": {
         "setActive": "Establecer active",
@@ -4476,6 +4827,67 @@
         "deleteBulkError": "Error a eliminar algunos colecciones",
         "updateSuccess": "{count} colecciones actualizada",
         "updateError": "Error a actualizar {count} colecciones"
+      },
+      "importDialog": {
+        "title": "Importar colecciones",
+        "description": "Añade colecciones nuevas o actualiza las existentes de forma masiva desde un archivo CSV.",
+        "sampleTitle": "Empieza con el archivo de ejemplo",
+        "sampleDescription": "Incluye las columnas que lee la importación y dos colecciones de ejemplo, una manual y otra automated. Sustituye los ejemplos por los tuyos, deja la primera fila tal como está y sube el archivo aquí.",
+        "sampleCsv": "CSV de ejemplo",
+        "sampleFailed": "No se pudo descargar el archivo de ejemplo",
+        "dropTitle": "Elige un archivo o arrástralo aquí",
+        "dropHint": "CSV · hasta {rows} colecciones · {size} MB",
+        "removeFile": "Quitar archivo",
+        "fileTooLarge": "Este archivo supera los {size} MB. Divídelo en archivos más pequeños.",
+        "wrongType": "Elige un archivo .csv.",
+        "rulesTitle": "Cómo se importan las filas",
+        "rules": {
+          "match": "Una fila con el id o el slug de una colección existente actualiza esa colección. Una fila sin ninguno de los dos se busca por su título y crea una colección nueva si no hay coincidencias.",
+          "blank": "Una celda vacía conserva el valor actual de la colección. Una colección nueva empieza como manual y en draft.",
+          "products": "Una colección manual indica sus productos por slug, SKU o nombre, separados por |. Los productos ya deben existir; un nombre sin coincidencias se omite y se notifica. Una celda de productos vacía conserva los productos actuales.",
+          "conditions": "Una colección automated necesita al menos una regla en la columna conditions, escrita como JSON igual que el ejemplo de la guía de columnas."
+        },
+        "columnsTitle": "Guía de columnas",
+        "required": "Obligatoria para colecciones nuevas",
+        "columns": {
+          "title": "Nombre de la colección.",
+          "slug": "La dirección web de la colección. Si está vacía, se crea a partir del título. También identifica la colección que se actualiza.",
+          "id": "Solo en archivos exportados. Identifica exactamente la colección que se actualiza.",
+          "description": "Descripción corta en texto plano.",
+          "descriptionHtml": "Descripción completa. Se admite HTML.",
+          "imageUrl": "Un enlace público de imagen (https://…) para la portada de la colección.",
+          "imageAlt": "Texto alternativo de la imagen de portada. Si está vacío, se usa el título.",
+          "collectionType": "manual o automated. Las colecciones nuevas son manual, salvo que el archivo indique otra cosa.",
+          "status": "active o draft. Las colecciones nuevas son draft, salvo que el archivo indique otra cosa.",
+          "products": "Para colecciones manual: slugs, SKU o nombres de productos separados por |, p. ej. blue-shirt|red-shirt.",
+          "productIds": "Solo en archivos exportados: ids de productos separados por |. Se usa junto con products.",
+          "conditions": "Para colecciones automated: las reglas como una lista JSON. Campos: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all o any: si un producto debe cumplir todas las reglas o solo una. Predeterminado: all.",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc o created-desc.",
+          "position": "Un número que ordena esta colección en las listas. El menor va primero.",
+          "onlineStore": "true o false: mostrar la colección en la tienda online. Predeterminado: true.",
+          "pointOfSale": "true o false: mostrarla en el punto de venta. Predeterminado: false.",
+          "seoPageTitle": "El título que muestran los buscadores para la página de la colección.",
+          "seoMetaDescription": "La descripción que muestran los buscadores para la página de la colección."
+        },
+        "cancel": "Cancelar",
+        "submit": "Importar colecciones",
+        "importing": "Importando… Los archivos grandes pueden tardar un minuto. Mantén esta ventana abierta.",
+        "requestFailed": "No se pudo importar el archivo. Inténtalo de nuevo.",
+        "resultTitle": "Importación terminada",
+        "resultFailedTitle": "No se pudo importar el archivo",
+        "created": "Creados",
+        "updated": "Actualizados",
+        "failed": "Fallidos",
+        "warnings": "Avisos",
+        "errorsTitle": "Filas que no se importaron",
+        "errorsHint": "Corrige estas filas en tu archivo y vuelve a importarlo. Las filas que ya se importaron actualizan las mismas colecciones en lugar de crear copias.",
+        "rowLabel": "Fila {row}",
+        "fileLabel": "Archivo",
+        "moreErrors": "…y {count} más en la lista descargable.",
+        "downloadErrors": "Descargar lista de errores",
+        "importAnother": "Importar otro archivo",
+        "done": "Hecho"
       }
     },
     "categoriesDataTable": {
@@ -4683,7 +5095,7 @@
       }
     },
     "phrases": {
-      "all": "All",
+      "all": "Todo",
       "failed_to_fetch_customers": "Failed to fetch customers",
       "delete_customer": "Delete customer",
       "delete": "Eliminar",
@@ -4697,7 +5109,7 @@
       "customer": "Cliente",
       "unknown": "Desconocido",
       "account": "Cuenta",
-      "active": "Active",
+      "active": "Activo",
       "inactive": "Inactivo",
       "banned": "Banned",
       "loyalty_tier": "Loyalty tier",
@@ -4728,8 +5140,8 @@
       "remove": "Remove",
       "remove_all": "Remove all",
       "department": "Department",
-      "permissions": "Permissions",
-      "none": "None",
+      "permissions": "Permisos",
+      "none": "Ninguno",
       "joined": "Joined",
       "failed_to_fetch_vendors": "Failed to fetch vendors",
       "failed_to_update_vendor": "Failed to update vendor",
@@ -4745,7 +5157,7 @@
       "vendor_status": "Vendor Status",
       "approved": "Approved",
       "pending": "Pendiente",
-      "suspended": "Suspended",
+      "suspended": "Suspendido",
       "rejected": "Rejected",
       "commission": "Comisión",
       "sales": "Ventas",
@@ -4822,7 +5234,7 @@
       "create_orders": "Create Orders",
       "edit_orders": "Edit Orders",
       "delete_orders": "Delete Orders",
-      "products": "Products",
+      "products": "Productos",
       "manage_products": "Manage Products",
       "create_products": "Create Products",
       "edit_products": "Edit Products",
@@ -4856,7 +5268,158 @@
       "team_members_exported": "Miembros del equipo exportados",
       "team_members_could_not_be_exported": "No se pudieron exportar los miembros del equipo",
       "vendors_exported": "Vendedores exportados",
-      "vendors_could_not_be_exported": "No se pudieron exportar los vendedores"
+      "vendors_could_not_be_exported": "No se pudieron exportar los vendedores",
+      "area": "Área",
+      "view": "Ver",
+      "manage": "Gestionar",
+      "failed_to_load_the_role": "No se pudo cargar el rol",
+      "name_is_required": "El nombre es obligatorio",
+      "failed_to_save_the_role": "No se pudo guardar el rol",
+      "role_updated": "Rol actualizado",
+      "role_created": "Rol creado",
+      "failed_to_delete_the_role": "No se pudo eliminar el rol",
+      "role_deleted": "Rol eliminado",
+      "edit_role": "Editar rol",
+      "new_role": "Nuevo rol",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "Un rol es lo que sus miembros pueden hacer. Cambiarlo cambia a todos sus miembros.",
+      "save_role": "Guardar rol",
+      "role_details": "Detalles del rol",
+      "name": "Nombre",
+      "dashboard": "Panel",
+      "admin_dashboard": "Panel de administración",
+      "staff_area": "Área de personal",
+      "any_permission_in_the_admin_dashboard": "Cualquier permiso, en el panel de administración",
+      "store_records_and_the_till_in_the_staff_area": "Registros de la tienda y la caja, en el área de personal",
+      "every_permission": "Todos los permisos",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "El Administrador siempre tiene todos los permisos, incluidos los que se añadan después. Para limitar a un administrador, dale otro rol.",
+      "delete_this_role": "¿Eliminar este rol?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "No se puede eliminar un rol con miembros; dales otro rol primero.",
+      "roles": "Roles",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "Lo que puede hacer cada tipo de miembro del equipo. Asigna un rol a un miembro en su página.",
+      "create_role": "Crear rol",
+      "built_in": "Predefinido",
+      "members": "miembros",
+      "view_role": "Ver rol",
+      "the_store_owner_always_holds_every_permission": "El propietario de la tienda siempre tiene todos los permisos.",
+      "the_home_screen_s_figures": "Las cifras de la pantalla de inicio",
+      "returns_refunds": "Devoluciones y reembolsos",
+      "quotes": "Presupuestos",
+      "price_requests_and_offers": "Solicitudes de precio y ofertas",
+      "applications_stores_plans_and_commissions": "Solicitudes, tiendas, planes y comisiones",
+      "payouts": "Pagos a vendedores",
+      "manage_sends_vendors_their_money": "Gestionar envía a los vendedores su dinero",
+      "payments": "Pagos",
+      "transactions_and_chargebacks": "Transacciones y contracargos",
+      "finance": "Finanzas",
+      "ledger_expenses_periods_and_reports": "Libro mayor, gastos, periodos e informes",
+      "marketing": "Marketing",
+      "boosts": "Impulsos",
+      "sponsored_products": "Productos patrocinados",
+      "online_store": "Tienda online",
+      "theme_pages_menus_sliders_checkout": "Tema, páginas, menús, sliders, checkout",
+      "blog": "Blog",
+      "posts_categories_comments": "Entradas, categorías, comentarios",
+      "ai_sales_agent": "Agente de ventas IA",
+      "its_settings_and_conversations": "Su configuración y conversaciones",
+      "ai_studio": "Estudio IA",
+      "all_accounts": "Todas las cuentas",
+      "every_sign_in_on_the_store": "Cada inicio de sesión en la tienda",
+      "settings": "Configuración",
+      "store_settings": "Configuración de la tienda",
+      "sensitive_settings": "Configuración sensible",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "Pasarelas de pago, almacenamiento, proveedores de correo/SMS, inicio de sesión, seguridad, transportistas",
+      "activity_log": "Registro de actividad",
+      "who_did_what": "Quién hizo qué",
+      "team": "Equipo",
+      "manage_adds_and_edits_members_within_your_own_permissions": "Gestionar añade y edita miembros, dentro de tus propios permisos",
+      "create_and_change_roles": "Crear y cambiar roles",
+      "member": "miembro",
+      "permission": "permiso",
+      "role": "Rol",
+      "abandoned_checkouts": "Pagos abandonados",
+      "added_for_this_member": "Añadido para este miembro",
+      "all_vendors_and_locations_including_ones_added_later": "Todos los vendedores y ubicaciones, incluidos los que se añadan después",
+      "also_catalogues_for_ads": "También catálogos para anuncios",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "Responde la bandeja de entrada y consulta pedidos y clientes",
+      "brands": "Marcas",
+      "campaign_banners": "Banners de campaña",
+      "can": "Puede",
+      "can_sign_in_and_work": "Puede iniciar sesión y trabajar.",
+      "can_t": "No puede",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "No puede iniciar sesión ni restablecer su contraseña. Para quien se fue en malos términos.",
+      "can_t_sign_in_turn_back_on_any_time": "No puede iniciar sesión. Reactívalo cuando quieras.",
+      "cashier": "Cajero",
+      "catalog": "Catálogo",
+      "categories": "Categorías",
+      "changed": "Cambiado",
+      "changed_from_the_role": "Distinto del rol",
+      "create": "Crear",
+      "creating_and_cancelling_orders_stays_with_the_store": "Crear y cancelar pedidos queda en manos de la tienda",
+      "customer_accounts_are_changed_by_the_store": "Las cuentas de clientes las cambia la tienda",
+      "discounts_gift_cards": "Descuentos y tarjetas regalo",
+      "every_staff_permission": "Todos los permisos de personal",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "Todo lo que se puede dar a un miembro del panel de administración, por área.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "Todo lo que se puede dar a un miembro del área de personal, por área.",
+      "everything_except_deleting_records": "Todo excepto eliminar registros",
+      "everything_in_the_staff_area_deleting_included": "Todo en el área de personal, incluido eliminar",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "Todo lo que se puede dar a este rol, por área. Las casillas discontinuas difieren del rol.",
+      "everywhere": "En todas partes",
+      "gives_access": "Da acceso",
+      "inbox": "Bandeja de entrada",
+      "invite": "Invitación",
+      "manage_the_till": "Gestionar la caja",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "Gestionar la caja incluye descuentos, informes de caja y mostradores",
+      "moderate": "Moderar",
+      "money": "Dinero",
+      "moves_money": "Mueve dinero",
+      "new_team_member": "Nuevo miembro del equipo",
+      "nothing_yet": "Nada todavía",
+      "online_store_reports": "Tienda online e informes",
+      "only_in_the_admin_dashboard": "Solo en el panel de administración",
+      "only_these": "Solo estos",
+      "open_past_the_return_window": "Abrir pasado el plazo de devolución",
+      "pause": "Pausar",
+      "paused": "En pausa",
+      "permissions_given": "Permisos dados",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "Elige Manager o Administrator para dar cualquiera de estos. El personal trabaja en el área de personal y en la caja.",
+      "pick_vendors_locations_or_regions_below": "Elige vendedores, ubicaciones o regiones abajo",
+      "point_of_sale": "Punto de venta",
+      "popups_and_bars_on_the_home_page": "Ventanas emergentes y barras en la página de inicio",
+      "refund": "Reembolsar",
+      "refund_sends_money_back_to_the_customer": "Reembolsar devuelve el dinero al cliente",
+      "reply": "Responder",
+      "reviews": "Reseñas",
+      "rings_up_sales_at_the_register": "Cobra ventas en la caja",
+      "role_name": "Nombre del rol",
+      "role_name_e_g_floor_lead": "Nombre del rol, p. ej. Encargado de sala",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "Los roles que crees en la pantalla Roles aparecen aquí como más tarjetas.",
+      "sales_associate": "Asociado de ventas",
+      "save_as_a_role": "Guardar como rol",
+      "scope": "Alcance",
+      "secrets": "Secretos",
+      "selling": "Ventas",
+      "send_recovery_emails": "Enviar correos de recuperación",
+      "shift_lead": "Jefe de turno",
+      "staff_area_pos": "Área de personal y caja",
+      "start_from": "Empezar desde",
+      "store_admin": "Administración de la tienda",
+      "summary": "Resumen",
+      "support_agent": "Agente de soporte",
+      "taken_away_for_this_member": "Quitado para este miembro",
+      "the_books": "La contabilidad",
+      "the_register_orders_customers_and_the_inbox": "La caja, los pedidos, los clientes y la bandeja de entrada",
+      "use": "Usar",
+      "use_the_register": "Usar la caja",
+      "watch": "Atención",
+      "what_this_staff_member_can_do_by_area": "Lo que este miembro del personal puede hacer, por área.",
+      "where_they_work": "Dónde trabaja",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "Dónde trabaja y con qué empieza. Puedes cambiar cualquier permiso de abajo para este miembro.",
+      "works_in_the_admin_dashboard": "Trabaja en el panel de administración",
+      "works_in_the_staff_area_and_at_the_till": "Trabaja en el área de personal y en la caja",
+      "writes_copy_and_images_with_the_store_s_ai_key": "Escribe textos e imágenes con la clave de IA de la tienda",
+      "anything_only_in_the_admin_dashboard": "cualquier cosa solo del panel de administración",
+      "this_member": "este miembro",
+      "by_role": "Por rol"
     },
     "customersPage": {
       "stats": {
@@ -5325,15 +5888,28 @@
       "createSection": {
         "title": "Crear pago",
         "selectVendor": "Seleccionar vendedor",
-        "periodStart": "Inicio del período",
+        "periodStart": "Inicio del período (opcional)",
         "periodEnd": "Fin del período",
         "creating": "Creando...",
         "create": "Crear",
-        "optionalNote": "Nota opcional"
+        "optionalNote": "Nota opcional",
+        "description": "Paga a un vendedor lo que se le puede pagar ahora: ventas entregadas con el plazo de devolución vencido, menos lo que deba.",
+        "searchVendor": "Buscar vendedores",
+        "noVendor": "No se encontró ningún vendedor",
+        "searching": "Buscando…",
+        "vendorMissing": "Este vendedor ya no existe",
+        "suspended": "Suspendido — los pagos están congelados",
+        "startHint": "Déjalo vacío para incluir todas las ventas pagaderas hasta la fecha de fin.",
+        "frozen": "Este vendedor está suspendido, así que sus pagos están congelados. Sus ventas siguen contando hasta que se restablezca.",
+        "belowMinimum": "{amount} está por debajo del pago mínimo de {minimum}.",
+        "orderCount": "{count, plural, one {# pedido} other {# pedidos}} en este pago.",
+        "moreThanMax": "Solo caben en un pago los {count} pedidos pagaderos más antiguos; el resto irá en el siguiente.",
+        "sellerConfirmed": "{count, plural, one {# entrega fue confirmada} other {# entregas fueron confirmadas}} por el vendedor, no por un transportista.",
+        "commissionLeft": "{amount} de comisión que debe el vendedor no cupo en este pago y sigue pendiente."
       },
       "listSection": {
         "title": "Ciclos de pago",
-        "searchPlaceholder": "Buscar número de pago",
+        "searchPlaceholder": "Buscar número de pago o vendedor",
         "allStatuses": "Todos los estados",
         "columns": {
           "payout": "Pago",
@@ -5357,9 +5933,20 @@
         "pageOf": "Página {page} de {totalPages}"
       },
       "toast": {
-        "requiredFields": "Vendedor, fecha de inicio y fecha de fin son obligatorios.",
+        "requiredFields": "Elige un vendedor y una fecha de fin.",
         "createSuccess": "Pago creado.",
         "createError": "No se pudo crear el pago"
+      },
+      "sendTo": {
+        "title": "Enviar a",
+        "missing": "No hay cuenta bancaria registrada. Pide al vendedor que añada una en su configuración, o paga en efectivo o por pasarela.",
+        "accountName": "Nombre de la cuenta",
+        "accountNumber": "Número de cuenta",
+        "bankName": "Banco",
+        "routingNumber": "Número de ruta",
+        "swiftCode": "SWIFT",
+        "show": "Mostrar número de cuenta",
+        "copy": "Copiar {field}"
       }
     },
     "paymentTransactionsPage": {
@@ -5520,6 +6107,19 @@
       },
       "seo": {
         "untitledProduct": "Producto sin título"
+      },
+      "leave": {
+        "title": "¿Salir sin guardar?",
+        "descriptionNew": "Este producto aún no está guardado. Si sales ahora, lo que escribiste se perderá aquí; este navegador guarda una copia que puedes restaurar la próxima vez que agregues un producto.",
+        "descriptionEdit": "Tus cambios en este producto no están guardados. Si sales ahora, se perderán.",
+        "confirm": "Salir",
+        "cancel": "Quedarme"
+      },
+      "draft": {
+        "title": "Se encontró un producto sin guardar",
+        "body": "Este navegador conservó un producto del {time} que nunca se guardó.",
+        "restore": "Restaurarlo",
+        "discard": "Descartar"
       }
     },
     "onlineStorePage": {
@@ -6632,20 +7232,38 @@
         "settings": "Ajustes del tema",
         "css": "CSS personalizado"
       },
-      "customCss": {
-        "title": "CSS personalizado"
-      },
       "preview": {
         "pages": {
+          "product": "Página de producto",
           "home": "Inicio",
+          "products": "Productos",
           "cart": "Carrito",
-          "search": "Buscar"
-        }
+          "search": "Búsqueda"
+        },
+        "desktop": "Escritorio",
+        "mobile": "Móvil",
+        "hint": "Vista previa en vivo — refleja los cambios sin guardar.",
+        "open": "Abrir tienda",
+        "title": "Vista previa de la tienda",
+        "page": "Página de vista previa"
       },
-      "launchTitle": "Ajustes del tema"
+      "customCss": {
+        "title": "CSS personalizado",
+        "description": "Reglas que se añaden después de los estilos propios del tema, en todas las páginas de la tienda. Se guarda por tema — al cambiar de tema, se usa la hoja de estilos propia de ese tema. Para colores, tipografía y formas, mejor usa Ajustes del tema; usa esto para los detalles que esos ajustes no cubren.",
+        "hint": "Limita las reglas a .store-surface para que nunca afecten al panel de administración.",
+        "save": "Guardar CSS",
+        "saved": "CSS personalizado guardado"
+      },
+      "launchTitle": "Ajustes del tema",
+      "launchDescription": "Colores, tipografía, diseño, formas y botones del tema activo, editados junto a una vista previa en vivo de tu tienda. Se guardan por tema — al cambiar de tema, se usan los ajustes propios de ese tema.",
+      "launch": "Abrir editor de temas"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "Devoluciones (30 días)",
+          "description": "{count} aún abiertas"
+        },
         "needsReview": {
           "title": "Por revisar",
           "description": "Aprueba o rechaza"
@@ -6706,7 +7324,7 @@
       "enterFullscreen": "Pantalla completa",
       "exitFullscreen": "Salir de pantalla completa",
       "reset": "Restablecer valores predeterminados",
-      "personalNote": "Solo para ti, en este navegador. Los logos, colores y aspecto predeterminado de tu tienda se configuran en Tienda online → Temas → Marca.",
+      "personalNote": "Solo para ti, en este navegador. Los logos y el aspecto predeterminado de tu tienda se configuran en Tienda online → Temas → Marca; sus colores, en Ajustes del tema.",
       "darkMode": "Modo oscuro",
       "contrast": "Contraste",
       "rtl": "De derecha a izquierda",
@@ -6714,7 +7332,12 @@
       "sidebar": "Barra lateral",
       "sidebarColor": "Color",
       "sidebarIntegrate": "Integrada",
-      "sidebarApparent": "Destacada"
+      "sidebarApparent": "Destacada",
+      "sidebarPaint": "Pintar la barra lateral con",
+      "sidebarPaintPrimary": "Principal",
+      "sidebarPaintSecondary": "Secundario",
+      "sidebarPaintHint": "Usa los colores de tu tema activo.",
+      "sidebarPaintChange": "Cambiarlos"
     },
     "preorderAccess": {
       "vendorFallback": "Vendedor",
@@ -7116,6 +7739,7 @@
         "links": "Enlaces",
         "addCategory": "Agregar categoria",
         "addLink": "Añadir enlace",
+        "shopAll": "Ver todo en {name}",
         "viewAllCategories": "Ver todas las categorías",
         "viewAll": "Ver todo"
       },
@@ -7331,26 +7955,255 @@
         "title": "Pie de página"
       }
     },
+    "customizeHub": {
+      "title": "Personalizar",
+      "description": "Elige una página de la tienda para personalizarla."
+    },
     "themeEditor": {
+      "presets": {
+        "default": "Azul",
+        "cyan": "Cian",
+        "purple": "Morado",
+        "blue": "Negro",
+        "orange": "Naranja",
+        "red": "Rojo"
+      },
+      "colorMode": "Modo de color",
+      "darkFollows": "El modo oscuro sigue tus colores claros automáticamente. Haz clic en un color para definirlo solo para el modo oscuro.",
+      "advancedColors": "Avanzado",
+      "advancedLowContrast": "Un color de aquí es difícil de leer",
+      "sections": {
+        "page": "Página",
+        "text": "Texto",
+        "sales": "Ofertas y valoraciones",
+        "lines": "Líneas",
+        "states": "Estados",
+        "soft": "Fondos suaves"
+      },
+      "sourceDefault": "Predeterminado del tema",
+      "sourceAuto": "Auto",
+      "sourceCustom": "Personalizado",
+      "colorSource": "Origen del color",
+      "autoDarkHint": "Sigue tus colores claros, ajustado para que se vea en una página oscura.",
+      "defaultHint": "El color propio del tema, elegido para combinar bien con el resto.",
+      "usedFor": "Se usa para",
+      "useReadable": "Usar {color}",
+      "backToAuto": "Volver a auto",
+      "resetToDefault": "Restablecer al predeterminado del tema",
+      "textAuto": "Color de texto automático",
+      "accentUse": "Etiquetas de Destacado y del menú",
+      "saleUse": "Descuentos y precios de oferta",
+      "lowContrastOn": "Poco visible sobre {surface} ({ratio}:1). Busca {minimum}:1.",
+      "groups": {
+        "colors": {
+          "description": "Solo {theme} usa estos colores. Tus otros temas conservan los suyos.",
+          "label": "Colores"
+        },
+        "type": {
+          "label": "Tipografía",
+          "description": "Fuentes y estilo para títulos, texto principal y botones."
+        },
+        "layout": {
+          "label": "Diseño",
+          "description": "Ancho de página y los valores globales que heredan las secciones hero y banner."
+        },
+        "shape": {
+          "label": "Formas",
+          "description": "Esquinas, bordes y elevación. Valores exactos, en píxeles."
+        },
+        "buttons": {
+          "label": "Botones",
+          "description": "Tamaño y comportamiento de los botones de acción."
+        }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "Fondo",
+          "hint": "Detrás de cada página."
+        },
+        "surface": {
+          "label": "Tarjetas y menús",
+          "hint": "Paneles, ventanas emergentes, desplegables y menús."
+        },
+        "surfaceAlt": {
+          "label": "Franjas y chips",
+          "hint": "Secciones en franja, fondos de imagen y chips neutros."
+        },
+        "text": {
+          "label": "Texto",
+          "hint": "Títulos y texto principal."
+        },
+        "textMuted": {
+          "label": "Texto secundario",
+          "hint": "Pies de foto, categorías, marcadores de posición."
+        },
+        "border": {
+          "label": "Separadores",
+          "hint": "Líneas entre secciones y alrededor de tarjetas."
+        },
+        "primary": {
+          "label": "Botón principal",
+          "hint": "Botones principales, el contador del carrito y las líneas de la pestaña activa."
+        },
+        "onPrimary": {
+          "label": "Texto sobre principal",
+          "hint": "Etiquetas en los botones principales."
+        },
+        "secondary": {
+          "label": "Botón secundario",
+          "hint": "«Añadir al carrito» y los demás botones secundarios."
+        },
+        "onSecondary": {
+          "label": "Texto sobre secundario",
+          "hint": "La etiqueta del botón «Añadir al carrito»."
+        },
+        "accent": {
+          "label": "Acento",
+          "hint": "La etiqueta Destacado en las tarjetas de producto y las insignias del menú de la tienda."
+        },
+        "sale": {
+          "label": "Oferta",
+          "hint": "Insignias de descuento y precios de oferta."
+        },
+        "rating": {
+          "label": "Estrellas de valoración",
+          "hint": "Estrellas de las reseñas."
+        },
+        "link": {
+          "label": "Enlaces",
+          "hint": "Enlaces, «Ver todo» y el elemento activo del menú: texto en el color principal, ajustado para que se lea bien."
+        },
+        "onAccent": {
+          "label": "Texto sobre acento",
+          "hint": "Etiquetas sobre el color de acento."
+        },
+        "accentSurface": {
+          "label": "Fondo de acento",
+          "hint": "Un tono suave del acento detrás del texto promocional."
+        },
+        "onAccentSurface": {
+          "label": "Texto sobre fondo de acento",
+          "hint": "Texto sobre el tono de acento."
+        },
+        "hoverSurface": {
+          "label": "Fondo al pasar el cursor",
+          "hint": "Menús y botones bajo el puntero."
+        },
+        "onHover": {
+          "label": "Texto al pasar el cursor",
+          "hint": "Etiquetas sobre el fondo al pasar el cursor."
+        },
+        "selectedSurface": {
+          "label": "Fondo seleccionado",
+          "hint": "Elementos marcados en los desplegables y la fila activa de los menús."
+        },
+        "onSelected": {
+          "label": "Texto sobre seleccionado",
+          "hint": "Etiquetas sobre el fondo seleccionado."
+        },
+        "focusRing": {
+          "label": "Anillo de foco",
+          "hint": "El contorno que siguen quienes usan el teclado."
+        },
+        "fieldBorder": {
+          "label": "Bordes de campos",
+          "hint": "Campos del pago, formularios y desplegables. La caja de búsqueda de la cabecera tiene su propio borde en el Estudio de cabecera."
+        },
+        "onSale": {
+          "label": "Texto sobre oferta",
+          "hint": "Etiquetas en las insignias de descuento sólidas."
+        },
+        "saleText": {
+          "label": "Texto de oferta",
+          "hint": "Precios de oferta y ahorros en la página."
+        },
+        "saleSurface": {
+          "label": "Fondo de oferta",
+          "hint": "Detrás de los chips de descuento junto a los precios."
+        },
+        "onSaleSurface": {
+          "label": "Texto sobre fondo de oferta",
+          "hint": "Texto sobre el tono de oferta."
+        },
+        "skeleton": {
+          "label": "Marcador de carga",
+          "hint": "Los bloques grises que se ven mientras carga una página."
+        }
+      },
       "title": "Ajustes del tema",
       "back": "Temas",
       "unsaved": "Cambios sin guardar",
+      "allSaved": "Todos los cambios guardados",
       "discard": "Descartar",
       "save": "Guardar",
       "saved": "Ajustes del tema guardados",
       "saveFailed": "Error al guardar",
+      "resetGroup": "Restablecer grupo",
+      "resetAll": "Restablecer todo al predeterminado del tema",
+      "resetAllTitle": "¿Restablecer todos los ajustes?",
       "preview": "Vista previa",
-      "brandRef": "Marca",
+      "controls": "Ajustes",
+      "setCustom": "Definir un color personalizado",
+      "contrastHint": "Contraste con su fondo",
       "modeLight": "Claro",
       "modeDark": "Oscuro",
-      "groups": {
-        "colors": {
-          "label": "Colores"
+      "leaveGuard": "Tienes cambios del tema sin guardar.",
+      "fonts": {
+        "inter": "Neutra, técnica, la predeterminada",
+        "manrope": "Geométrica, comercio moderno",
+        "dm-sans": "Redondeada, amable",
+        "plus-jakarta-sans": "Geométrica suave, estilo de vida",
+        "nunito": "Terminales redondeados, divertida",
+        "source-sans-3": "Humanista, lecturas largas",
+        "space-grotesk": "Grotesca peculiar, tecnología",
+        "playfair-display": "Editorial de alto contraste",
+        "lora": "Serif tranquila y legible",
+        "fraunces": "Suave, cálida, bienestar",
+        "cormorant-garamond": "Lujo, moda",
+        "dm-serif-display": "Solo títulos (un peso)",
+        "noto-sans-bengali": "Bengalí + latín, sin serifa",
+        "noto-serif-bengali": "Bengalí + latín, con serifa"
+      },
+      "resetColors": "Restablecer colores del tema",
+      "invalidColor": "Introduce un color hex o RGB válido. La vista previa mantiene el último color válido.",
+      "contrastPass": "Correcto",
+      "contrastLow": "Bajo",
+      "previewLoading": "Conectando la vista previa en vivo…",
+      "previewOutdated": "Actualiza la vista previa para cargar el motor de color más reciente.",
+      "refreshPreview": "Actualizar vista previa",
+      "cannotVerifyColor": "No se puede verificar esta expresión de color personalizada. Revisa la vista previa en ambos modos.",
+      "themeChanged": "Se activó otro tema mientras editabas. Vuelve a abrir el editor para ese tema.",
+      "conflictKeepDraft": "Otra persona guardó estos ajustes mientras editabas. Pulsa Guardar de nuevo para reemplazar sus cambios por los tuyos, o Descartar para cargar los suyos.",
+      "darkOwnHint": "El modo oscuro tiene aquí su propio color ({color}), así que no sigue a este. Cámbialo en la pestaña Oscuro.",
+      "keyColorsTitle": "Colores clave",
+      "keyColorsHint": "Señala uno para verlo en la vista previa",
+      "keyColors": {
+        "primary": {
+          "label": "Principal",
+          "sample": "Comprar ahora"
         },
-        "layout": {
-          "label": "Diseño"
+        "secondary": {
+          "label": "Secundario",
+          "sample": "Añadir al carrito"
+        },
+        "accent": {
+          "label": "Acento",
+          "sample": "Destacado"
+        },
+        "skeleton": {
+          "label": "Carga"
         }
-      }
+      },
+      "themeDefaultNamed": "Predeterminado de {theme}",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "Paletas",
+      "saveAsPalette": "Guardar como paleta",
+      "resetToNamed": "Volver a {name}",
+      "themeOnly": "Solo {theme}",
+      "moreColors": "Más colores",
+      "advancedHintStates": "Hover, selección, foco, fondo de oferta",
+      "resetAllDescriptionTheme": "Cada grupo, colores incluidos, vuelve a los valores predeterminados de {theme}. Tus otros temas no cambian. No se guarda nada hasta que pulses Guardar.",
+      "previewShowing": "Marcando dónde se usa {color}"
     },
     "searchInsights": {
       "title": "Análisis de búsquedas",
@@ -7402,7 +8255,8 @@
         "payout": "Pago",
         "brand": "Marca",
         "slider": "Presentación",
-        "menu": "Menú"
+        "menu": "Menú",
+        "teamRole": "Rol de equipo"
       },
       "empty": {
         "clearFilters": "Borrar filtros"
@@ -7420,6 +8274,124 @@
         "title": "Registro de actividad",
         "filterTitle": "Filtrar"
       }
+    },
+    "categoryForm": {
+      "taxRate": "Impuesto"
+    },
+    "themeColors": {
+      "title": "Colores del tema",
+      "refs": {
+        "primary": "Principal",
+        "secondary": "Secundario",
+        "accent": "Acento",
+        "background": "Fondo",
+        "surface": "Tarjetas",
+        "surfaceAlt": "Franjas y chips",
+        "text": "Texto",
+        "textMuted": "Texto secundario",
+        "border": "Separadores"
+      },
+      "following": "Sigue el color {name} del tema. Cámbialo en Ajustes del tema → Colores.",
+      "followingShort": "Tema · {name}",
+      "hint": "Elige un color del tema para seguir Ajustes del tema → Colores.",
+      "pick": "Usar un color del tema"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "No se pudo cargar el resumen de pagos",
+      "loadPayoutsError": "No se pudieron cargar los pagos",
+      "columns": {
+        "payout": "Pago",
+        "period": "Período",
+        "status": "Estado",
+        "netAmount": "Importe neto"
+      },
+      "bankMissingTitle": "No hay cuenta de pago registrada",
+      "bankMissing": "Falta: {fields}. Un pago solo puede hacerse en efectivo o por pasarela hasta que se añadan los datos en la pestaña Empresa.",
+      "frozenTitle": "Los pagos están congelados",
+      "frozen": "Este vendedor está suspendido. Sus ventas siguen contando, pero no se le paga nada hasta que se restablezca.",
+      "owedNow": "Por pagar ahora",
+      "owedNowHint": "Lo que incluiría un pago creado ahora: ventas entregadas y pagadas con el plazo de devolución vencido, menos lo que debe el vendedor.",
+      "createPayout": "Crear pago",
+      "noneAwaiting": "No hay pedidos entregados y pagados pendientes de pago.",
+      "nothingPayable": "{count, plural, one {# pedido elegible} other {# pedidos elegibles}}, pero los reembolsos y descuentos no dejan nada por pagar.",
+      "across": "En {count, plural, one {# pedido} other {# pedidos}} · {gross} brutos menos {commission} de comisión. Los reembolsos y descuentos ya están descontados.",
+      "belowMinimumTitle": "Por debajo del retiro mínimo",
+      "belowMinimum": "Los pagos deben ser de al menos {minimum}. Si creas uno ahora, se rechazará.",
+      "commissionLeft": "{amount} de comisión que el vendedor debe por ventas en efectivo no cabe en el próximo pago y sigue pendiente.",
+      "overpaidTitle": "{amount} pagados por ventas reembolsadas después",
+      "overpaidRecovered": "{amount} ya se descontó de la cifra de arriba. Lo que quede se descontará de pagos posteriores.",
+      "overpaidLater": "Se descuenta del próximo pago del vendedor, o registra un reintegro si te lo devuelve.",
+      "otherCurrenciesTitle": "Saldos en {currencies}",
+      "otherCurrencies": "Este vendedor también ha vendido en {currencies}. Esos saldos no están en las cifras de arriba y necesitan su propio pago: las monedas nunca se suman entre sí.",
+      "trade": "Ventas",
+      "tradeHint": "Lo que vendió este vendedor en todos los pedidos no cancelados, en {currency}",
+      "grossSales": "Ventas brutas",
+      "vendorEarnings": "Ganancias del vendedor",
+      "vendorEarningsHint": "brutas menos comisión",
+      "paidOut": "Pagado",
+      "pendingAmount": "{amount} pendiente",
+      "platformRevenue": "Ingresos de la plataforma por este vendedor",
+      "platformRevenueHint": "Comisión y envío retenido de sus ventas, más las cuotas de suscripción que pagó. Ingresos antes de los costos de la plataforma.",
+      "commission": "Comisión",
+      "commissionHint": "sobre ventas entregadas y pagadas, sin reembolsos",
+      "subscriptions": "Suscripciones",
+      "invoicesPaid": "{paid} de {total} facturas pagadas",
+      "noInvoices": "sin facturas",
+      "shipping": "Envío",
+      "shippingHint": "retenido, no se paga al vendedor",
+      "total": "Total",
+      "history": "Historial de pagos",
+      "historyHint": "Pagos registrados para este vendedor, los más recientes primero",
+      "historyEmpty": "Aún no se ha creado ningún pago para este vendedor",
+      "repayment": {
+        "open": "Registrar un reintegro",
+        "listTitle": "Devuelto manualmente",
+        "undo": "Deshacer",
+        "voidReason": "¿Por qué se deshace este reintegro?",
+        "voided": "Reintegro deshecho",
+        "failed": "No se pudo guardar el reintegro",
+        "title": "Registrar un reintegro",
+        "description": "Dinero que el vendedor devolvió por ventas reembolsadas después de su pago. Se descuenta de lo que debe, así que los pagos posteriores dejan de recuperarlo.",
+        "amount": "Importe ({currency})",
+        "receivedInto": "Recibido en",
+        "receivedAt": "Día en que llegó",
+        "reference": "Referencia",
+        "note": "Nota",
+        "cancel": "Cancelar",
+        "save": "Registrar reintegro",
+        "saving": "Guardando…",
+        "recorded": "Reintegro registrado"
+      }
+    },
+    "colorPicker": {
+      "format": "Formato de color",
+      "opacity": "Opacidad",
+      "value": "Valor del color",
+      "saved": "Colores guardados",
+      "save": "Guardar este color",
+      "use": "Usar {color}",
+      "remove": "Quitar {color}"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {# cambio respecto al rol} other {# cambios respecto al rol}}",
+      "changesFromRole": "{count, plural, one {# cambio respecto a {role}} other {# cambios respecto a {role}}} solo para este miembro",
+      "resetTo": "Volver a {role}",
+      "matchesRole": "Coincide con {role}. Marca o desmarca lo que quieras para cambiarlo solo para {name}.",
+      "roleSaved": "\"{name}\" ya es un rol, y este miembro lo tiene."
+    },
+    "tagInput": {
+      "placeholder": "Añade una etiqueta",
+      "selected": "{tag} seleccionada. Pulsa Retroceso para quitarla.",
+      "duplicate": "{tag} ya está añadida",
+      "tooLong": "Una etiqueta puede tener hasta {max} caracteres",
+      "tooMany": "Puedes añadir hasta {max} etiquetas",
+      "added": "Se añadió {tag}",
+      "removed": "Se quitó {tag}",
+      "remove": "Quitar {tag}"
+    },
+    "accountMenu": {
+      "myAccount": "Mi cuenta",
+      "version": "Versión {version}"
     }
   },
   "footer": {
@@ -7468,7 +8440,19 @@
     "searchCustomers": "Buscar por nombre, correo o teléfono...",
     "addNote": "Agregar una nota a este pedido...",
     "subtotal": "Subtotal",
-    "tax": "Impuesto",
+    "tax": {
+      "label": "Impuesto",
+      "included": "Impuesto (incluido)",
+      "exempt": "Exento de impuestos",
+      "exemptWith": "Exento de impuestos · {reason}",
+      "exemptTitle": "Venta exenta de impuestos",
+      "exemptIntro": "Cobra esta venta sin impuestos. El motivo se guarda en el pedido y se imprime en el recibo.",
+      "exemptReason": "Motivo (obligatorio)",
+      "exemptReference": "Número de certificado de exención (opcional)",
+      "exemptApply": "Vender sin impuestos",
+      "exemptRemove": "Cobrar impuestos",
+      "close": "Cerrar"
+    },
     "total": "Total",
     "charge": "Cobrar",
     "billAndPayment": "Bill & Payment",
@@ -7505,10 +8489,463 @@
       "emailPlaceholder": "cliente@ejemplo.com",
       "phone": "Teléfono",
       "phonePlaceholder": "Ingrese el número de teléfono",
-      "nameEmailRequired": "El nombre y correo son obligatorios",
       "created": "Cliente creado exitosamente",
       "createError": "Error al crear el cliente",
-      "save": "Guardar Cliente"
+      "save": "Guardar Cliente",
+      "nameContactRequired": "Introduce el nombre del cliente y un correo o un teléfono",
+      "contactHint": "Basta con un correo o un teléfono. Un cliente con solo teléfono se guarda sin cuenta.",
+      "marketingOptIn": "El cliente acepta recibir novedades y ofertas por correo"
+    },
+    "offline": {
+      "bannerOffline": "Sin conexión: las ventas se guardan en cola",
+      "bannerStockAge": "El stock mostrado es de {age}",
+      "bannerSignedOut": "Sesión cerrada: vuelve a iniciar sesión para sincronizar",
+      "bannerSignedOutNote": "Las ventas en cola siguen guardadas en este dispositivo.",
+      "bannerBackOnline": "Conexión restablecida",
+      "waitingToSync": "{count, plural, one {# venta pendiente de sincronizar} other {# ventas pendientes de sincronizar}}",
+      "needsReview": "{count, plural, one {# requiere revisión} other {# requieren revisión}}",
+      "review": "Revisar",
+      "signIn": "Iniciar sesión",
+      "syncNow": "Sincronizar ahora",
+      "lockedTitle": "Vuelve a conectarte para seguir vendiendo",
+      "lockedLastSeen": "Esta caja contactó con el servidor por última vez {time}. Por seguridad, seguirá bloqueada hasta que pueda volver a iniciar sesión.",
+      "lockedNever": "Esta caja todavía no ha contactado con el servidor en este dispositivo, así que no se puede usar sin conexión.",
+      "lockedQueued": "{count, plural, one {<strong>#</strong> venta sin conexión sigue guardada en este dispositivo y se sincronizará automáticamente cuando vuelvas a estar en línea.} other {<strong>#</strong> ventas sin conexión siguen guardadas en este dispositivo y se sincronizarán automáticamente cuando vuelvas a estar en línea.}} No borres los datos del navegador.",
+      "waitingForConnection": "Esperando conexión…",
+      "reviewTitle": "Ventas rechazadas por el servidor",
+      "reviewDescription": "Cada una se cobró en el mostrador. Corrige la causa y envíala de nuevo, o descártala cuando se haya registrado a mano.",
+      "reviewLabel": "Ventas sin conexión que requieren revisión",
+      "reviewEmpty": "No queda nada por revisar.",
+      "reviewReceipt": "Recibo {number}",
+      "reviewTaken": "Registrada {time}",
+      "reviewAttempts": "{count, plural, one {# intento} other {# intentos}}",
+      "reviewServerSaid": "El servidor respondió: {message}",
+      "reviewDiscard": "Descartar",
+      "reviewSendAgain": "Enviar de nuevo",
+      "close": "Cerrar",
+      "anotherCounter": "Otro mostrador",
+      "discardTitle": "¿Descartar esta venta de la cola?",
+      "discardDescription": "El recibo {number} nunca se enviará al servidor. Hazlo solo cuando la venta se haya registrado de otra forma: el cliente tiene ese recibo.",
+      "savedOffline": "Guardada sin conexión: recibo {number}",
+      "savedOfflineNote": "Se sincronizará automáticamente cuando vuelva la conexión.",
+      "outboxFull": "Esta caja tiene demasiadas ventas sin sincronizar. Vuelve a conectarte para sincronizar antes de registrar más.",
+      "noStorage": "Este navegador no puede guardar ventas sin conexión, así que la venta no se registró.",
+      "readerOnly": "Solo lector de tarjetas",
+      "touchOrStripe": "Sin contacto o Stripe"
+    },
+    "counter": {
+      "unavailable": "Mostrador no disponible",
+      "sharedStock": "Stock compartido",
+      "finishSaleFirst": "Termina o cancela primero la venta actual",
+      "changeCounter": "Vendiendo desde {name}. Cambiar mostrador",
+      "sellingFrom": "Vendiendo desde",
+      "sellingAt": "Vendiendo en {name}",
+      "findCounter": "Buscar un mostrador...",
+      "noMatch": "Ningún mostrador coincide.",
+      "heldCount": "{count} en espera",
+      "activeCount": "{count} activos",
+      "deactivated": "El mostrador actual se desactivó",
+      "pickerTitle": "¿En qué mostrador estás?",
+      "pickerNote": "El stock, las ventas en espera y cada recibo impreso en esta caja siguen esta elección.",
+      "findYourCounter": "Busca tu mostrador...",
+      "recentOnDevice": "Recientes en este dispositivo",
+      "otherCounters": "Otros mostradores",
+      "defaultLocation": "Ubicación predeterminada",
+      "startSellingAt": "Empezar a vender en {name}",
+      "pickCounter": "Elige un mostrador",
+      "signedInAs": "Sesión iniciada como {name}",
+      "signedIn": "Sesión iniciada",
+      "shortcutsMany": "<key>1</key>–<key>9</key> para los nueve primeros, escribe para encontrar el resto,",
+      "shortcutsFew": "Pulsa <key>1</key>–<key>{last}</key> para elegir,",
+      "shortcutEnter": "<key>Enter</key> para empezar",
+      "sellFromShared": "Vender del stock compartido en su lugar",
+      "switchLabel": "Cambiar mostrador",
+      "switchTitle": "¿Cambiar de mostrador con una venta abierta?",
+      "switchUnits": "{count, plural, one {# unidad} other {# unidades}} en el mostrador, con precio y stock de {from}.",
+      "switchChecking": "Comprobando lo que {to} puede cubrir…",
+      "switchRemovedOne": "<b>{name}</b> <b>no tiene stock en {to}</b>: se quitaría de la venta.",
+      "switchRemovedMany": "<b>{name}</b> y {others} más <b>no tienen stock en {to}</b>: se quitarían de la venta.",
+      "switchReduced": "{count, plural, one {# línea se reduciría al stock que {to} tiene realmente.} other {# líneas se reducirían al stock que {to} tiene realmente.}}",
+      "switchAllAvailable": "Todas las líneas de esta venta están disponibles en {to}.",
+      "switchHeldStay": "{count, plural, one {# venta en espera aquí se queda en {from}. No la verás desde {to}.} other {# ventas en espera aquí se quedan en {from}. No las verás desde {to}.}}",
+      "switchHeldStayNone": "Las ventas en espera aquí se quedan en {from}. No las verás desde {to}.",
+      "switchReceiptChanges": "El stock y el pie del recibo pasan a {to} a partir de la siguiente línea.",
+      "switchHold": "Poner esta venta en espera y cambiar",
+      "switchRecheck": "Cambiar y volver a comprobar el stock",
+      "switchRemovesAll": "Quita las {total}",
+      "switchKeeps": "Conserva {kept} de {total} líneas",
+      "switchStay": "Quedarse en {from}",
+      "nowSellingFrom": "Ahora se vende desde {name}",
+      "nowSellingShared": "Ahora se vende del stock compartido",
+      "probeFailed": "No se pudo comprobar el stock de ese mostrador. La caja no se ha movido.",
+      "holdFailed": "No se pudo poner la venta en espera. La caja no se ha movido.",
+      "rechecked": "Venta comprobada de nuevo · {changes}",
+      "holdLabel": "Cambio de mostrador → {name}",
+      "heldBehind": "{count, plural, one {<b># venta</b> sigue en espera en {name}} other {<b># ventas</b> siguen en espera en {name}}}",
+      "goBackTo": "Volver a {name}",
+      "dismiss": "Cerrar",
+      "saleBlocked": "Este mostrador ya no está disponible. Elige otro antes de cobrar."
+    },
+    "scan": {
+      "closeDialogFirst": "Cierra el cuadro de diálogo abierto y vuelve a escanear.",
+      "multipleMatches": "Varios productos coinciden con este código. Corrige los valores de SKU o código de barras duplicados.",
+      "noMatch": "No se encontró ningún producto para el código escaneado.",
+      "lookupFailed": "No se pudo buscar el código escaneado."
+    },
+    "held": {
+      "removed": "{count, plural, one {# línea quitada} other {# líneas quitadas}}",
+      "repriced": "{count} con nuevo precio",
+      "reduced": "{count} reducidas al stock disponible",
+      "resumed": "Pedido en espera reanudado",
+      "resumedWithChanges": "Pedido en espera reanudado · {changes}",
+      "nothingAvailable": "Ninguno de los artículos de este pedido en espera sigue disponible. Se ha dejado en la caja.",
+      "recheckFailed": "No se pudieron comprobar los precios y el stock actuales. El pedido en espera sigue en la caja.",
+      "finishFirst": "Termina o pon en espera la venta actual antes de reanudar otra.",
+      "holdFailed": "No se pudo poner este pedido en espera. La venta sigue en el carrito.",
+      "holdFull": "Esta caja ya tiene {max} pedidos en espera. Reanuda o elimina uno primero.",
+      "orderHeld": "Pedido en espera",
+      "orderHeldLabel": "Pedido en espera · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "Solo quien gestiona el TPV puede aplicar un descuento",
+      "cashMustCover": "El efectivo entregado debe cubrir el total del pedido",
+      "noReceipt": "No hay datos del recibo",
+      "printPreviewFailed": "No se pudo abrir la vista previa de impresión",
+      "noInvoice": "No hay factura disponible para este pedido",
+      "invoicePopupBlocked": "No se pudo abrir la factura. Permite las ventanas emergentes."
+    },
+    "complete": {
+      "title": "Venta completada",
+      "items": "{count, plural, one {# artículo} other {# artículos}}",
+      "soldAt": "Vendido en {name}",
+      "viewReceipt": "Ver recibo",
+      "printReceipt": "Imprimir recibo",
+      "newSale": "Nueva venta",
+      "emailReceipt": "Enviar recibo por correo",
+      "textReceipt": "Enviar recibo por SMS",
+      "send": "Enviar",
+      "cancel": "Cancelar",
+      "emailPlaceholder": "cliente@example.com",
+      "phonePlaceholder": "Teléfono del cliente",
+      "sentEmail": "Recibo enviado por correo a {to}",
+      "sentSms": "Recibo enviado por SMS a {to}",
+      "alreadySent": "Ya se envió a {to} hace un momento",
+      "sendFailed": "No se pudo enviar el recibo",
+      "offlineHint": "Los recibos se pueden enviar y ver cuando esta venta se haya sincronizado."
+    },
+    "pay": {
+      "title": "Cobrar",
+      "balanceTitle": "Cobrar saldo",
+      "draftItems": "{count, plural, one {Borrador · # artículo} other {Borrador · # artículos}}",
+      "close": "Cerrar",
+      "totalDue": "Total a pagar",
+      "remaining": "Pendiente de pago",
+      "ofTotal": "{paid} pagado de {total}",
+      "payments": "Pagos",
+      "remove": "Quitar",
+      "discountPercent": "Descuento del {value}% aplicado",
+      "discountAmount": "Descuento de {amount} aplicado",
+      "cashDesc": "Con cambio",
+      "bank": "Transferencia bancaria",
+      "bankDesc": "Con referencia",
+      "manualDesc": "Método personalizado",
+      "storeCredit": "Crédito de tienda",
+      "storeCreditDesc": "{amount} disponible",
+      "split": "Dividido",
+      "cashGiven": "Efectivo entregado",
+      "amount": "Importe",
+      "changeDue": "Cambio a devolver",
+      "stillOwed": "El resto se paga de otra forma",
+      "tooMuch": "No quedan más de {amount} por pagar",
+      "tooMuchCredit": "Solo hay {amount} de crédito de tienda disponible",
+      "touch": "Contactless",
+      "touchDesc": "Acerca o inserta la tarjeta en el lector",
+      "stripe": "Stripe",
+      "stripeDesc": "Formulario de datos de tarjeta",
+      "readyForTap": "Listo para acercar o insertar",
+      "readyForTapNote": "El cliente acerca o inserta su tarjeta en el lector.",
+      "referenceOptional": "Referencia (opcional)",
+      "referencePlaceholder": "ID de transacción, código de autorización, etc.",
+      "stripePaysRest": "La tarjeta paga el resto: {amount}",
+      "cardNumber": "Número de tarjeta",
+      "expiry": "Caducidad",
+      "cvc": "CVC",
+      "stripeNotConfigured": "Stripe no está configurado en los ajustes de pago.",
+      "stripeLoading": "Cargando campos seguros de tarjeta…",
+      "stripeSecured": "Protegido por Stripe: los datos de la tarjeta se tokenizan al enviar.",
+      "stripeFailed": "El pago con tarjeta no se completó",
+      "processing": "Procesando…",
+      "acceptCash": "Aceptar efectivo",
+      "charge": "Cobrar {amount}",
+      "chargeOnReader": "Cobrar {amount} en el lector",
+      "useCredit": "Pagar {amount} con crédito de tienda",
+      "addPayment": "Añadir pago con {method} de {amount}",
+      "takeDeposit": "Cobrar {amount} como anticipo, {due} pendiente para después",
+      "takePart": "Cobrar {amount} ahora, {due} aún pendiente",
+      "depositNeedsCustomer": "Asigna un cliente para cobrar un anticipo",
+      "depositTaken": "Anticipo cobrado para {number}. Quedan {due} por pagar.",
+      "completeSale": "Completar venta"
+    },
+    "sales": {
+      "title": "Ventas",
+      "close": "Cerrar",
+      "back": "Atrás",
+      "searchPlaceholder": "Número de recibo o teléfono",
+      "dueOnly": "Solo con saldo pendiente",
+      "empty": "No se encontraron ventas.",
+      "recentHint": "Últimas ventas en esta caja",
+      "selectHint": "Elige una venta para verla.",
+      "offline": "Buscar una venta requiere conexión.",
+      "loadFailed": "No se pudieron cargar las ventas",
+      "balanceDue": "{amount} pendiente",
+      "balanceDueLabel": "Saldo pendiente",
+      "items": "Artículos",
+      "payments": "Pagos",
+      "total": "Total",
+      "refunded": "Reembolsado",
+      "split": "Dividido",
+      "collectBalance": "Cobrar saldo · {amount}",
+      "collectFailed": "No se pudo cobrar el pago",
+      "balancePaid": "Saldo pagado. La venta está completa.",
+      "balancePart": "Pago cobrado. Quedan {due} por pagar.",
+      "print": "Imprimir recibo",
+      "viewInvoice": "Ver factura"
+    },
+    "register": {
+      "title": "Cajón de efectivo",
+      "openChip": "Cajón abierto",
+      "closedChip": "Cajón cerrado",
+      "openToSell": "Abre el cajón de efectivo antes de cobrar una venta.",
+      "close": "Cerrar",
+      "failed": "No se pudo actualizar el cajón",
+      "offline": "Abrir, cerrar y mover efectivo requiere conexión. Las ventas siguen entrando en el cajón abierto.",
+      "openIntro": "Cuenta el efectivo del cajón antes de la primera venta e introdúcelo como fondo inicial.",
+      "openingFloat": "Fondo inicial",
+      "openRegister": "Abrir cajón",
+      "opened": "Cajón abierto",
+      "openedAt": "Abierto {time}",
+      "salesCount": "Ventas",
+      "grossSales": "Total de ventas",
+      "cashSales": "Ventas en efectivo",
+      "cashIn": "Entrada de efectivo",
+      "cashOut": "Salida de efectivo",
+      "cashRefunds": "Reembolsos en efectivo",
+      "expectedCash": "Esperado en el cajón",
+      "countedCash": "Efectivo contado",
+      "variance": "Diferencia",
+      "balanced": "Cuadrado",
+      "over": "Sobrante",
+      "short": "Faltante",
+      "cashInIntro": "Efectivo que entra en el cajón sin ser una venta, como cambio traído de la caja fuerte.",
+      "cashOutIntro": "Efectivo que sale sin ser un reembolso, como un depósito en la caja fuerte o un gasto pagado.",
+      "amount": "Importe",
+      "reason": "Motivo",
+      "reasonPlaceholder": "Motivo (obligatorio)",
+      "cashAdded": "Efectivo añadido al cajón",
+      "cashRemoved": "Efectivo retirado del cajón",
+      "back": "Atrás",
+      "note": "Nota de cierre",
+      "notePlaceholder": "Nota para el informe de cierre (opcional)",
+      "queuedFirst": "{count, plural, one {# venta sigue} other {# ventas siguen}} pendientes de sincronizar. Cierra el cajón cuando terminen.",
+      "closeRegister": "Cerrar cajón",
+      "closed": "Cajón cerrado",
+      "xReport": "Informe X",
+      "zReport": "Informe Z",
+      "printX": "Imprimir informe X",
+      "printZ": "Imprimir informe Z",
+      "printBlocked": "Se bloqueó la ventana del informe. Permite las ventanas emergentes de este sitio para imprimir.",
+      "reportOpened": "Abierto",
+      "reportClosed": "Cerrado",
+      "tender": {
+        "cash": "Efectivo",
+        "card": "Tarjeta",
+        "bank": "Transferencia bancaria",
+        "manual": "Otro",
+        "store_credit": "Crédito de tienda"
+      },
+      "noSale": "Sin venta",
+      "noSaleIntro": "Abre el cajón sin una venta, para dar cambio o revisar. El motivo se guarda en el informe del cajón.",
+      "noSaleDone": "Cajón abierto",
+      "printer": "Impresora del cajón",
+      "printerIntro": "El cajón de efectivo se abre a través de la impresora de recibos a la que está conectado, con QZ Tray en este equipo. Elige esa impresora.",
+      "printerFind": "Buscar impresoras",
+      "printerQzMissing": "QZ Tray no se está ejecutando en este equipo",
+      "printerNone": "Sin cajón en esta caja",
+      "printerPin": "Pin del cajón",
+      "printerTest": "Probar",
+      "printerTestFailed": "El cajón no se abrió. Revisa la impresora y QZ Tray.",
+      "printerSave": "Guardar",
+      "printerSaved": "Impresora del cajón guardada para esta caja",
+      "printerNotSet": "Configura primero la impresora del cajón",
+      "printerCurrent": "Cajón: {name}",
+      "printerSetUp": "Configurar impresora del cajón"
+    },
+    "returns": {
+      "action": "Devolver artículos",
+      "title": "Devolver artículos",
+      "close": "Cerrar",
+      "offline": "Las devoluciones requieren conexión. Registra la devolución cuando la caja vuelva a estar en línea.",
+      "loadFailed": "No se pudieron cargar los artículos de esta venta",
+      "previewFailed": "No se pudo calcular el reembolso",
+      "failed": "No se pudo registrar la devolución",
+      "nothingReturnable": "Nada de esta venta se puede devolver.",
+      "returnable": "{count} se pueden devolver",
+      "blockedFinalSale": "Venta final",
+      "blockedWindow": "Plazo de devolución vencido",
+      "blockedOther": "No se puede devolver",
+      "less": "Uno menos",
+      "more": "Uno más",
+      "condition": "Estado",
+      "conditions": {
+        "new": "Sin abrir",
+        "opened": "Abierto, vendible",
+        "damaged": "Dañado",
+        "missing_parts": "Faltan piezas",
+        "unusable": "Inutilizable"
+      },
+      "restockHint": "Los artículos sin abrir y abiertos vuelven al stock de esta caja.",
+      "reason": "Motivo",
+      "reasons": {
+        "wrong_size_or_variant": "Talla o variante incorrecta",
+        "damaged_or_defective": "Dañado o defectuoso",
+        "not_as_described": "No coincide con la descripción",
+        "wrong_item_received": "Artículo equivocado",
+        "arrived_late": "Llegó tarde",
+        "changed_mind": "Cambió de opinión",
+        "other": "Otro"
+      },
+      "note": "Nota",
+      "notePlaceholder": "Nota (opcional)",
+      "noteRequired": "Indica qué ocurre (obligatorio)",
+      "refundTo": "Reembolsar en",
+      "methods": {
+        "cash": "Efectivo del cajón",
+        "card": "Tarjeta, manual",
+        "bank": "Transferencia bancaria",
+        "original": "A la tarjeta",
+        "store_credit": "Crédito de tienda",
+        "exchange": "Cambio",
+        "later": "Reembolsar más tarde"
+      },
+      "adminOnly": "Los reembolsos los hace un administrador. La devolución se registra ahora y el reembolso le espera en Devoluciones.",
+      "exchangeHint": "El reembolso se aplica a una nueva venta que se cobra a continuación.",
+      "laterHint": "La devolución se registra ahora. Reembólsala más tarde desde Devoluciones.",
+      "refundTotal": "Reembolso",
+      "restockingFee": "Incluye una tarifa de reposición de {amount}",
+      "submit": "Registrar devolución",
+      "done": "Devolución {numbers} registrada",
+      "doneRefunded": "{amount} reembolsado.",
+      "doneCash": "Entrega al cliente {amount} del cajón.",
+      "doneCredit": "{amount} añadido al crédito de tienda del cliente.",
+      "creditBack": "{amount} volvió al crédito de tienda del cliente, con el que pagó parte de la venta.",
+      "doneLater": "El reembolso espera a un administrador.",
+      "doneExchange": "{amount} se aplica a la nueva venta.",
+      "print": "Imprimir comprobante de devolución",
+      "printBlocked": "Se bloqueó la ventana del comprobante. Permite las ventanas emergentes de este sitio para imprimir.",
+      "slipTitle": "Devolución",
+      "slipSale": "Venta",
+      "exchangeReference": "Cambio {numbers}",
+      "exchangeBanner": "Crédito de cambio {amount}",
+      "exchangeDismiss": "Descartar el crédito de cambio",
+      "exchangeDismissHint": "Sin usar: entrega al cliente {amount} en efectivo del cajón."
+    },
+    "operator": {
+      "title": "Cajero",
+      "close": "Cerrar",
+      "offline": "Cambiar de cajero requiere conexión. La caja sigue con quien la está usando.",
+      "loadFailed": "No se pudieron cargar los cajeros",
+      "failed": "No funcionó. Inténtalo de nuevo.",
+      "workingNow": "Atendiendo la caja",
+      "switchBack": "Volver a {name}",
+      "takeOver": "Tomar la caja",
+      "nobody": "Ningún compañero ha definido aún un PIN de caja. Cada persona define el suyo mientras tiene la sesión iniciada.",
+      "pin": "PIN",
+      "switch": "Cambiar de cajero",
+      "switched": "{name} está atendiendo la caja",
+      "setPin": "Definir mi PIN de caja",
+      "changePin": "Cambiar mi PIN de caja",
+      "pinIntro": "{name}, elige un PIN de 4 a 8 dígitos. Tus compañeros usan el suyo para tomar esta caja.",
+      "newPin": "PIN nuevo",
+      "confirmPin": "Repite el PIN",
+      "pinMismatch": "Los dos PIN no coinciden",
+      "savePin": "Guardar PIN",
+      "pinSaved": "Tu PIN de caja está definido",
+      "back": "Atrás"
+    },
+    "reports": {
+      "navLabel": "Informes del TPV",
+      "title": "Informes de caja",
+      "subtitle": "Ventas por cajero y por caja, dinero cobrado por medio de pago y cómo cuadró cada cajón.",
+      "loadFailed": "No se pudo cargar el informe",
+      "period": "Periodo",
+      "presets": {
+        "today": "Hoy",
+        "yesterday": "Ayer",
+        "week": "Últimos 7 días",
+        "month": "Últimos 30 días",
+        "thisMonth": "Este mes"
+      },
+      "counter": "Caja",
+      "allCounters": "Todas las cajas",
+      "refresh": "Actualizar",
+      "export": "Exportar CSV",
+      "empty": "No hay ventas en este periodo.",
+      "noSessions": "No se abrió ningún cajón en este periodo.",
+      "stats": {
+        "sales": "Ventas",
+        "items": "{count, plural, one {# artículo vendido} other {# artículos vendidos}}",
+        "gross": "Total de ventas",
+        "discounts": "{amount} en descuentos",
+        "net": "Neto de reembolsos",
+        "refunds": "{amount} reembolsado",
+        "average": "Venta media",
+        "balanceDue": "{amount} aún pendiente de anticipos"
+      },
+      "byCashier": "Por cajero",
+      "byCounter": "Por caja",
+      "byTender": "Cobrado por medio de pago",
+      "sessions": "Sesiones de cajón",
+      "unknownCashier": "Cajero desconocido",
+      "noCounter": "Sin caja",
+      "open": "Abierto",
+      "payments": "{count, plural, one {# pago} other {# pagos}}",
+      "tenders": {
+        "cash": "Efectivo",
+        "card": "Tarjeta",
+        "bank": "Transferencia bancaria",
+        "manual": "Otro",
+        "store_credit": "Crédito de tienda"
+      },
+      "columns": {
+        "name": "Nombre",
+        "sales": "Ventas",
+        "items": "Artículos",
+        "gross": "Total de ventas",
+        "discounts": "Descuentos",
+        "refunds": "Reembolsos",
+        "net": "Neto",
+        "average": "Media",
+        "tender": "Medio de pago",
+        "payments": "Pagos",
+        "amount": "Importe",
+        "session": "Sesión",
+        "counter": "Caja",
+        "openedBy": "Abierto por",
+        "opened": "Abierto",
+        "closed": "Cerrado",
+        "expected": "Efectivo esperado",
+        "counted": "Contado",
+        "variance": "Diferencia"
+      }
+    },
+    "quickKeys": {
+      "tab": "Favoritos",
+      "empty": "Aún no hay teclas rápidas",
+      "emptyManager": "Marca un producto con una estrella en la cuadrícula para ponerlo aquí en todas las cajas.",
+      "emptyCashier": "Quien gestiona el TPV puede marcar productos con una estrella para ponerlos aquí.",
+      "add": "Añadir a favoritos",
+      "remove": "Quitar de favoritos",
+      "failed": "No se guardaron los favoritos"
     }
   },
   "locations": {
@@ -7549,7 +8986,17 @@
     "deleteError": "Error al eliminar ubicación",
     "updateError": "Error al actualizar ubicación",
     "saveError": "Error al guardar ubicación",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "deliveryOrder": "Orden de envío",
+    "deliveryOrderHint": "Los pedidos en línea se envían desde la 1.ª ubicación con stock, luego la 2.ª, y así sucesivamente.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "Sin envío",
+    "services": "Servicios",
+    "pickup": "Recogida",
+    "returns": "Devoluciones",
+    "noTill": "Sin caja",
+    "shipSooner": "Enviar desde aquí antes",
+    "shipLater": "Enviar desde aquí después"
   },
   "toast": {
     "createdSuccess": "{resource} creado correctamente",
@@ -8177,7 +9624,10 @@
     "loadOlderConversations": "Cargar conversaciones anteriores",
     "attachments": {
       "alt": "Adjunto del chat",
-      "open": "Abrir el adjunto"
+      "open": "Abrir el adjunto",
+      "view": "Ver imagen completa",
+      "openNewTab": "Abrir en una pestaña nueva",
+      "download": "Descargar"
     },
     "assignment": {
       "label": "Agente asignado",
@@ -8225,7 +9675,7 @@
       "webhookUrlNotPublic": "Meta solo acepta una devolución de llamada HTTPS pública. Abre esta página en tu dominio real — o en un túnel — antes de registrarla.",
       "setup": {
         "title": "Guía de configuración de {provider}",
-        "docs": "Guía completa: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "Guía completa: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Crea una app de Meta y añádele el producto WhatsApp.",
           "config": "Crea una configuración de Facebook Login for Business que conceda estos permisos y pon su ID en META_WHATSAPP_CONFIGURATION_ID.",
@@ -8363,6 +9813,7 @@
     "noLinks": "Aún no se han compartido enlaces",
     "subject": "Asunto",
     "viewProduct": "Ver producto",
+    "removeAttachment": "Quitar archivo adjunto",
     "messageProduct": {
       "open": "Abrir {name}",
       "priceOnRequest": "Precio a consultar"
@@ -8797,7 +10248,10 @@
     },
     "paidFrom": {
       "cash": "Efectivo",
-      "other": "Otro"
+      "other": "Otro",
+      "bank": "Banco",
+      "gateway": "Saldo de la pasarela",
+      "unpaid": "Aún no pagado"
     },
     "expenses": {
       "title": "Gastos",
@@ -8825,7 +10279,21 @@
       "orders": "{count} pedidos"
     },
     "receivables": {
-      "vendor": "Vendedor"
+      "vendor": "Vendedor",
+      "title": "Saldos con los vendedores",
+      "subtitle": "Dinero retenido en nombre de un vendedor, frente a la comisión que debe por ventas que cobró él mismo.",
+      "net": "Neto por liquidar",
+      "emptyTitle": "Nada pendiente",
+      "emptyBody": "Los saldos aparecen a medida que se pagan los pedidos: la plataforma retiene la parte de un vendedor hasta que se liquida un pago, y un vendedor que cobra en efectivo él mismo debe la comisión sobre ese dinero.",
+      "collectNote": "Se lee del libro mayor, así que una venta cuenta desde el momento en que llega su dinero. Pagos a vendedores muestra lo que se puede pagar hoy.",
+      "overpaidTitle": "Se pagó más de lo que se retuvo",
+      "overpaidHint": "Un pago liquidó una venta cuyo dinero ya había cobrado el propio vendedor. Los pagos nuevos ya no pueden hacerlo; el saldo ya registrado se corrige con un ajuste en el Resumen financiero.",
+      "owedBackTitle": "Vendedores que deben devolver dinero",
+      "owedBackHint": "Suele ser un reembolso después de que ya se pagó al vendedor. Se descuenta solo de su próximo pago, o registra un reintegro en la pestaña Pagos del vendedor si te lo devuelve. No registres también un ajuste: se recuperaría dos veces.",
+      "heldForVendors": "Lo que retienes para los vendedores",
+      "commissionTheyOwe": "Comisión que te deben",
+      "netToSettle": "Neto aún por liquidar",
+      "netHint": "El saldo neto según los libros; un pago envía solo la parte entregada"
     },
     "statement": {
       "date": "Fecha",
@@ -8833,13 +10301,46 @@
       "reference": "Referencia",
       "amount": "Importe",
       "kind": {
-        "sale": "Oferta",
+        "sale": "Venta",
         "refund": "Reembolso",
         "commission": "Comisión",
-        "other": "Ajuste"
+        "other": "Ajuste",
+        "payout": "Pagado",
+        "boost": "Promoción",
+        "subscription": "Suscripción",
+        "payout_returned": "Pago devuelto",
+        "refund_reversed": "Reembolso revertido",
+        "commission_settled": "Comisión liquidada con el pago",
+        "promotion_credit": "Crédito por promoción",
+        "delivery_label": "Etiqueta de envío",
+        "repayment": "Devolviste"
       },
       "statements": "Estados de cuenta",
-      "owedOrders": "Pedidos"
+      "owedOrders": "Pedidos",
+      "title": "Tus finanzas",
+      "subtitle": "Lo que ganaste, lo que se te pagó y lo que el marketplace guarda para ti.",
+      "opening": "Saldo inicial",
+      "openingHint": "Arrastrado de antes de este período",
+      "earned": "Ganado",
+      "earnedHint": "Tu parte de las ventas, tras la comisión",
+      "paidOut": "Pagado",
+      "closing": "Guardado para ti",
+      "closingHint": "Tu saldo contable; la tarjeta de arriba muestra lo que puede enviar un pago",
+      "owed": "Debes",
+      "owedHint": "Comisión por pedidos que cobraste tú mismo",
+      "activity": "Actividad",
+      "empty": "No hubo movimientos en este período. Las ventas, reembolsos y pagos aparecen aquí a medida que ocurren.",
+      "emptyTitle": "Aún no hay nada que mostrar",
+      "emptyBody": "Tu estado de cuenta se completa a medida que se pagan los pedidos. Cada venta suma lo que ganaste; cada pago lo vuelve a restar.",
+      "heldChange": "Guardado para ti",
+      "owedChange": "Debes",
+      "statementsSubtitle": "Cada venta, reembolso y pago que movió tu saldo.",
+      "seeAll": "Ver el estado de cuenta completo",
+      "export": "Exportar",
+      "truncated": "Se muestran las primeras {shown} de {total} entradas. Elige un período más corto para ver el resto; los saldos de arriba cubren todo el período de todos modos.",
+      "owedTitle": "Lo que debes al marketplace",
+      "owedSubtitle": "Comisión por pedidos que cobraste tú mismo. El dinero ya es tuyo; esto es lo que debes por él.",
+      "owedEmpty": "No debes nada en este período."
     },
     "reports": {
       "title": "Informes"
@@ -8847,6 +10348,101 @@
     "periods": {
       "month": "Mes",
       "reopen": "Reabrir"
+    },
+    "balance": {
+      "title": "Lo que se te debe",
+      "ready": "Listo para el próximo pago",
+      "readyHint": "De {count} pedidos entregados, con el plazo de devolución vencido",
+      "belowMinimum": "Se hace un pago cuando esto llega a {amount}",
+      "held": "Esperando a que venza el plazo de devolución",
+      "heldHint": "Entregado, y pagadero {days} días después de la entrega",
+      "reserve": "Retenido por preventas",
+      "reserveHint": "Se libera a partir del {date}",
+      "reserveUndated": "Se libera con un pago posterior",
+      "owedBack": "Lo que debes devolver a la tienda",
+      "owedBackHint": "Se te pagó por pedidos reembolsados después; se descuenta de tu próximo pago",
+      "tooManyOrders": "Hay más de 500 pedidos listos: la tienda los paga por partes, empezando por los más antiguos",
+      "frozen": "Los pagos están en pausa mientras tu cuenta esté suspendida. Tus ventas siguen contando.",
+      "inPayout": "En un pago en preparación",
+      "inPayoutHint": "{numbers} — en camino hacia ti",
+      "notDelivered": "Aún no entregado",
+      "notDeliveredHint": "{count} pedidos pagados en camino; el plazo de devolución empieza con la entrega",
+      "awaitingBalance": "Preventas pendientes del saldo",
+      "awaitingBalanceHint": "Pagadero cuando el comprador pague el resto y se entreguen los productos",
+      "commissionLeft": "Comisión aún por liquidar",
+      "commissionLeftHint": "Por ventas que cobraste tú mismo; se descuenta de un pago posterior o se paga con una factura",
+      "owedBackLater": "Aún debes devolver a la tienda",
+      "owedBackLaterHint": "Se te pagó por pedidos reembolsados después; es más de lo que cubre el próximo pago, así que se descuenta de los siguientes"
+    },
+    "payout": {
+      "changedElsewhere": "Este pago cambió. Se ha vuelto a cargar.",
+      "updated": "Pago actualizado.",
+      "notFound": "Pago no encontrado.",
+      "backToPayouts": "Pagos",
+      "ordersUpTo": "Pedidos hasta el {date}",
+      "orderCount": "{count} pedidos",
+      "requote": "Los pedidos de este pago cambiaron después de crearlo. Cancélalo y crea uno nuevo.",
+      "frozen": "Este vendedor está suspendido, así que este pago no se puede enviar. Restablece al vendedor o cancela el pago.",
+      "howItWasWorkedOut": "Cómo se calculó este pago",
+      "grossSales": "Ventas brutas",
+      "grossSalesHint": "la parte del vendedor en los pedidos de abajo",
+      "commission": "Comisión",
+      "ofGross": "del bruto",
+      "shippingAmount": "Gastos de envío",
+      "shippingAmountHint": "cobrados a los compradores por los paquetes que entregó el vendedor",
+      "reserveUntil": "se libera el {date}",
+      "commissionOffset": "Comisión por ventas en efectivo",
+      "commissionOffsetHint": "adeudada por ventas cuyo dinero cobró el vendedor, descontada aquí en lugar de facturarse",
+      "commissionCredit": "Promociones de la tienda en ventas en efectivo",
+      "commissionCreditHint": "descuentos que pagó la tienda en ventas cobradas por el vendedor, por encima de la comisión que debía",
+      "otherAdjustments": "Otros ajustes",
+      "otherAdjustmentsHint": "recuperaciones por reembolsos y movimientos de la reserva de preventa",
+      "netPayout": "Pago neto",
+      "paidOn": "Pagado el {date}",
+      "reference": "Referencia del pago",
+      "noReference": "No se registró ninguna referencia de pago",
+      "returnedOn": "Devuelto el {date}: se le vuelve a deber al vendedor",
+      "statusTitle": "Estado",
+      "returnedStep": "El dinero fue devuelto",
+      "notRecorded": "No registrado",
+      "notYet": "Todavía no",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "No registrado",
+      "note": "Nota",
+      "noteReturnedHint": "— obligatorio: por qué se devolvió el dinero",
+      "noteHint": "— se guarda en el pago y el vendedor puede verla",
+      "returnedOnLabel": "Día en que se devolvió el dinero",
+      "returnedWarning": "Úsalo solo cuando el banco haya devuelto el dinero. El asiento del libro mayor se revierte, se le vuelve a deber al vendedor y estas ventas vuelven al próximo pago.",
+      "saveWarning": "Marcar un pago como pagado registra un asiento en el libro mayor y liquida los pedidos que incluye. No se puede deshacer: un error se corrige con un ajuste.",
+      "noChanges": "Aún no hay cambios",
+      "ordersTitle": "Pedidos en este pago",
+      "ordersHint": "Todo lo entregado y no pagado hasta el {date}",
+      "order": "Pedido",
+      "placed": "Realizado",
+      "orderStatus": "Estado del pedido",
+      "payment": "Pago",
+      "vendorShare": "Parte del vendedor",
+      "vendorEarnings": "Tras la comisión",
+      "noOrders": "No hay pedidos vinculados a este pago.",
+      "sellerShareNote": "La parte del vendedor en los productos de cada pedido suma las ventas brutas; tras la comisión, suma el pago neto. El envío y los impuestos que cobró la tienda no forman parte de ella.",
+      "adjustment": {
+        "recoveryDeducted": "Recuperación por reembolso",
+        "recoveryDeductedHint": "pagado antes por pedidos reembolsados desde entonces",
+        "recoveryReturned": "Recuperación devuelta",
+        "recoveryReturnedHint": "se anuló un reembolso recuperado antes",
+        "reserveHeld": "Reserva de preventa retenida",
+        "reserveHeldHint": "retenida por si llega un contracargo tardío",
+        "reserveReleased": "Reserva de preventa liberada",
+        "reserveReleasedHint": "retenida en un pago anterior, ahora vencida",
+        "reserveCreditDeducted": "Reserva recuperada",
+        "reserveCreditDeductedHint": "una reserva liberada cuyo pago fue devuelto",
+        "reserveCreditReturned": "Recuperación de reserva devuelta",
+        "reserveCreditReturnedHint": "devuelta después de que su pago se volviera a pagar",
+        "commissionOffset": "Comisión por ventas en efectivo",
+        "commissionOffsetHint": "adeudada por ventas cuyo dinero cobró el vendedor",
+        "commissionCredit": "Promociones de la tienda en ventas en efectivo",
+        "commissionCreditHint": "descuentos que pagó la tienda por encima de la comisión adeudada"
+      }
     }
   },
   "ui": {

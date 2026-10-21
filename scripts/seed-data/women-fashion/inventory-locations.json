@@ -1,1 +1,83 @@
-[]
+[
+  {
+    "_id": {
+      "$oid": "6aad90bbaf46cdbcc4e75fb2"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "name": "Warehouse",
+    "address": "",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 1,
+    "pickupArea": "",
+    "instructions": "",
+    "weeklyHours": [],
+    "mapsUrl": "",
+    "createdAt": {
+      "$date": "2026-09-18T19:27:55.137Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-24T01:36:35.132Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aad90bfaf46cdbcc4e75fb3"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "name": "Store Front",
+    "address": "",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 2,
+    "pickupArea": "",
+    "instructions": "",
+    "weeklyHours": [],
+    "mapsUrl": "",
+    "createdAt": {
+      "$date": "2026-09-18T19:27:59.710Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-24T01:36:29.483Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab0283eaf46cdbcc4e763fc"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "name": "Secondary Storage",
+    "address": "",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 0,
+    "pickupArea": "",
+    "instructions": "",
+    "weeklyHours": [],
+    "mapsUrl": "",
+    "createdAt": {
+      "$date": "2026-09-20T18:38:54.541Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-24T01:36:35.130Z"
+    },
+    "__v": 0
+  }
+]

@@ -10,6 +10,10 @@ import { decomposeOrder, isConsignmentCollected, type PostingOrder } from "./pos
 
 type CollectionOrder = PostingOrder & { preorderPaymentMode?: string; preorderBalancePaidAmount?: number; preorderBalancePaymentIntentId?: string };
 export function collectionReceipts(order: CollectionOrder) {
+  // A counter sale taken as a deposit records nothing until the till has the
+  // rest; it is then received whole, on the day it was paid off — the same
+  // rule the ledger books it by (`isConsignmentCollected`).
+  if (Number(order.posBalanceDue || 0) > 0) return [];
   const currency = String(order.currency || "USD").toUpperCase();
   const q = (amount: number) => quantizeToCurrency(Math.max(0, amount), currency);
   const firstAt = order.paidAt ?? order.createdAt;

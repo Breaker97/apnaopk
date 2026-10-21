@@ -5,25 +5,30 @@
     },
     "name": "Accessories",
     "slug": "accessories",
-    "description": "",
+    "description": "Explore charging essentials, cables, protective cases, and portable storage for your everyday electronics.",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788002791557-7oqcj0/ChatGPT_Image_Aug_29__2026__05_26_03_PM.webp",
     "icon": "",
     "parentId": null,
     "order": 0,
     "isActive": true,
-    "featured": true,
+    "featured": false,
     "seo": {
-      "tags": []
+      "pageTitle": "Accessories | Electronics",
+      "metaDescription": "Explore charging essentials, cables, protective cases, and portable storage for your everyday electronics.",
+      "tags": [
+        "accessories"
+      ]
     },
-    "productCount": 6,
+    "productCount": 7,
     "options": [],
     "createdAt": {
       "$date": "2026-08-28T11:28:29.815Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T19:45:27.515Z"
+      "$date": "2026-10-16T17:02:04.023Z"
     },
-    "__v": 0
+    "taxClass": null,
+    "taxRate": null
   },
   {
     "_id": {
@@ -47,7 +52,7 @@
       "$date": "2026-08-28T11:25:44.842Z"
     },
     "updatedAt": {
-      "$date": "2026-08-30T12:21:39.794Z"
+      "$date": "2026-09-11T06:01:22.324Z"
     },
     "__v": 0
   },
@@ -55,8 +60,8 @@
     "_id": {
       "$oid": "6a916ecf050bfb18a78dce42"
     },
-    "name": "Cameras & Smart Home",
-    "slug": "cameras-smart-home",
+    "name": "Cameras",
+    "slug": "cameras",
     "description": "",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915969832-qfjsj8/ChatGPT_Image_Aug_19__2026__11_12_01_AM.webp",
     "icon": "",
@@ -65,7 +70,7 @@
     "isActive": true,
     "featured": true,
     "seo": {
-      "tags": []
+      "pageTitle": "Cameras & Smart Home"
     },
     "productCount": 5,
     "options": [],
@@ -73,7 +78,37 @@
       "$date": "2026-08-28T11:19:43.681Z"
     },
     "updatedAt": {
-      "$date": "2026-08-29T15:54:10.774Z"
+      "$date": "2026-10-02T10:30:41.677Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a917179a98471c5da7515b0"
+    },
+    "name": "Desktop",
+    "slug": "desktop",
+    "description": "Explore desktop PCs, core components, monitors, and peripherals for home, office, and gaming setups.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916660319-f3morw/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+    "icon": "",
+    "parentId": null,
+    "order": 0,
+    "isActive": true,
+    "featured": true,
+    "seo": {
+      "pageTitle": "Desktop | Electronics",
+      "metaDescription": "Explore desktop PCs, core components, monitors, and peripherals for home, office, and gaming setups.",
+      "tags": [
+        "desktop"
+      ]
+    },
+    "productCount": 5,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T11:31:05.761Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-16T06:24:45.493Z"
     },
     "__v": 0
   },
@@ -83,7 +118,7 @@
     },
     "name": "Gaming",
     "slug": "gaming",
-    "description": "",
+    "description": "Explore gaming consoles and accessories for console play, portable gaming, and an everyday gaming setup.",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916056736-fqsi5u/ChatGPT_Image_Aug_20__2026__12_43_23_PM.webp",
     "icon": "",
     "parentId": null,
@@ -91,71 +126,21 @@
     "isActive": true,
     "featured": true,
     "seo": {
-      "tags": []
+      "pageTitle": "Gaming | Electronics",
+      "metaDescription": "Explore gaming consoles and accessories for console play, portable gaming, and an everyday gaming setup.",
+      "tags": [
+        "gaming",
+        "gaming",
+        "electronics"
+      ]
     },
-    "productCount": 4,
+    "productCount": 5,
     "options": [],
     "createdAt": {
       "$date": "2026-08-28T11:21:01.141Z"
     },
     "updatedAt": {
-      "$date": "2026-08-31T05:33:32.875Z"
-    },
-    "__v": 0
-  },
-  {
-    "_id": {
-      "$oid": "6a910bb4050bfb18a78dcd4f"
-    },
-    "name": "Google",
-    "slug": "google",
-    "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890599847-e2h880/ChatGPT_Image_Aug_28__2026__10_13_58_AM.webp",
-    "icon": "",
-    "parentId": {
-      "$oid": "6a9100e5050bfb18a78dcd49"
-    },
-    "order": 0,
-    "isActive": true,
-    "featured": false,
-    "seo": {
-      "tags": []
-    },
-    "productCount": 1,
-    "options": [],
-    "createdAt": {
-      "$date": "2026-08-28T04:16:52.046Z"
-    },
-    "updatedAt": {
-      "$date": "2026-08-28T11:03:59.167Z"
-    },
-    "__v": 0
-  },
-  {
-    "_id": {
-      "$oid": "6a91013c050bfb18a78dcd4a"
-    },
-    "name": "Iphone",
-    "slug": "iphone",
-    "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887922966-vtv546/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
-    "icon": "",
-    "parentId": {
-      "$oid": "6a9100e5050bfb18a78dcd49"
-    },
-    "order": 0,
-    "isActive": true,
-    "featured": false,
-    "seo": {
-      "tags": []
-    },
-    "productCount": 5,
-    "options": [],
-    "createdAt": {
-      "$date": "2026-08-28T03:32:12.729Z"
-    },
-    "updatedAt": {
-      "$date": "2026-08-29T06:17:07.304Z"
+      "$date": "2026-10-12T07:37:11.769Z"
     },
     "__v": 0
   },
@@ -163,9 +148,9 @@
     "_id": {
       "$oid": "6a916e40050bfb18a78dce41"
     },
-    "name": "Laptops. Tablets & PC",
-    "slug": "laptops-tablets-pc",
-    "description": "",
+    "name": "Laptops",
+    "slug": "laptops",
+    "description": "Explore laptops by brand, use, and form factor, with accessories for work, study, gaming, and creative projects.",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915882259-rqqaqq/ChatGPT_Image_Aug_19__2026__04_49_49_PM.webp",
     "icon": "",
     "parentId": null,
@@ -173,15 +158,19 @@
     "isActive": true,
     "featured": true,
     "seo": {
-      "pageTitle": "Laptops. Tablets & PC"
+      "pageTitle": "Laptops | Electronics",
+      "metaDescription": "Explore laptops by brand, use, and form factor, with accessories for work, study, gaming, and creative projects.",
+      "tags": [
+        "laptops"
+      ]
     },
-    "productCount": 10,
+    "productCount": 11,
     "options": [],
     "createdAt": {
       "$date": "2026-08-28T11:17:20.250Z"
     },
     "updatedAt": {
-      "$date": "2026-09-01T06:59:22.460Z"
+      "$date": "2026-10-12T09:20:30.484Z"
     },
     "__v": 0
   },
@@ -189,9 +178,9 @@
     "_id": {
       "$oid": "6a90ffda050bfb18a78dcd42"
     },
-    "name": "Mobile Phones",
-    "slug": "mobile-phones",
-    "description": "",
+    "name": "Phones",
+    "slug": "phones",
+    "description": "Explore iPhones, Android smartphones, feature phones, and mobile accessories for communication, work, and entertainment.",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887860046-pff58a/ChatGPT_Image_Aug_28__2026__08_44_21_AM.webp",
     "icon": "",
     "parentId": null,
@@ -199,7 +188,11 @@
     "isActive": true,
     "featured": true,
     "seo": {
-      "pageTitle": "Mobile Phones"
+      "pageTitle": "Phones | Electronics",
+      "metaDescription": "Explore iPhones, Android smartphones, feature phones, and mobile accessories for communication, work, and entertainment.",
+      "tags": [
+        "phones"
+      ]
     },
     "productCount": 0,
     "options": [],
@@ -207,117 +200,33 @@
       "$date": "2026-08-28T03:26:18.385Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T04:17:03.267Z"
+      "$date": "2026-10-12T07:37:19.288Z"
     },
     "__v": 0
   },
   {
     "_id": {
-      "$oid": "6a910e1f050bfb18a78dcd52"
+      "$oid": "6a91733da98471c5da7515b3"
     },
-    "name": "Oneplus",
-    "slug": "oneplus",
+    "name": "Smartwatch",
+    "slug": "smartwatch",
     "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787891457789-hv688h/ChatGPT_Image_Aug_28__2026__10_30_45_AM.webp",
-    "icon": "",
-    "parentId": {
-      "$oid": "6a9100e5050bfb18a78dcd49"
-    },
-    "order": 0,
-    "isActive": true,
-    "featured": false,
-    "seo": {
-      "pageTitle": "Oneplus"
-    },
-    "productCount": 1,
-    "options": [],
-    "createdAt": {
-      "$date": "2026-08-28T04:27:11.339Z"
-    },
-    "updatedAt": {
-      "$date": "2026-08-30T07:20:51.069Z"
-    },
-    "__v": 0
-  },
-  {
-    "_id": {
-      "$oid": "6a917179a98471c5da7515b0"
-    },
-    "name": "PC Parts",
-    "slug": "pc-parts",
-    "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916660319-f3morw/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917107300-70b8da/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
     "icon": "",
     "parentId": null,
     "order": 0,
     "isActive": true,
     "featured": true,
     "seo": {
-      "pageTitle": "PC Parts"
+      "pageTitle": "Wearable Technology"
     },
-    "productCount": 3,
+    "productCount": 8,
     "options": [],
     "createdAt": {
-      "$date": "2026-08-28T11:31:05.761Z"
+      "$date": "2026-08-28T11:38:37.748Z"
     },
     "updatedAt": {
-      "$date": "2026-08-31T11:26:51.381Z"
-    },
-    "__v": 0
-  },
-  {
-    "_id": {
-      "$oid": "6a9100e5050bfb18a78dcd49"
-    },
-    "name": "Phones",
-    "slug": "phones",
-    "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889242869-wg429y/ChatGPT_Image_Aug_28__2026__09_53_38_AM.webp",
-    "icon": "",
-    "parentId": {
-      "$oid": "6a90ffda050bfb18a78dcd42"
-    },
-    "order": 0,
-    "isActive": true,
-    "featured": true,
-    "seo": {
-      "pageTitle": "Phones"
-    },
-    "productCount": 1,
-    "options": [],
-    "createdAt": {
-      "$date": "2026-08-28T03:30:45.985Z"
-    },
-    "updatedAt": {
-      "$date": "2026-08-28T22:40:40.229Z"
-    },
-    "__v": 0
-  },
-  {
-    "_id": {
-      "$oid": "6a9107a3050bfb18a78dcd4b"
-    },
-    "name": "Samsung",
-    "slug": "samsung",
-    "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889553331-cgo8ig/ChatGPT_Image_Aug_28__2026__09_59_02_AM.webp",
-    "icon": "",
-    "parentId": {
-      "$oid": "6a9100e5050bfb18a78dcd49"
-    },
-    "order": 0,
-    "isActive": true,
-    "featured": false,
-    "seo": {
-      "tags": []
-    },
-    "productCount": 3,
-    "options": [],
-    "createdAt": {
-      "$date": "2026-08-28T03:59:31.561Z"
-    },
-    "updatedAt": {
-      "$date": "2026-08-31T07:14:06.184Z"
+      "$date": "2026-10-13T16:02:52.700Z"
     },
     "__v": 0
   },
@@ -327,7 +236,7 @@
     },
     "name": "TV & Audio",
     "slug": "tv-audio",
-    "description": "",
+    "description": "Explore televisions, home audio systems, headphones, and accessories for your entertainment setup.",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916110749-jhcbm7/ChatGPT_Image_Aug_19__2026__09_56_38_PM.webp",
     "icon": "",
     "parentId": null,
@@ -335,43 +244,1513 @@
     "isActive": true,
     "featured": true,
     "seo": {
-      "tags": []
+      "pageTitle": "TV & Audio | Electronics",
+      "metaDescription": "Explore televisions, home audio systems, headphones, and accessories for your entertainment setup.",
+      "tags": [
+        "tv audio",
+        "tv & audio"
+      ]
     },
-    "productCount": 3,
+    "productCount": 9,
     "options": [],
     "createdAt": {
       "$date": "2026-08-28T11:21:57.595Z"
     },
     "updatedAt": {
-      "$date": "2026-08-30T09:39:00.313Z"
+      "$date": "2026-10-13T16:00:07.133Z"
     },
     "__v": 0
   },
   {
     "_id": {
-      "$oid": "6a91733da98471c5da7515b3"
+      "$oid": "6aba09d947f7437981767b26"
     },
-    "name": "Wearable Technology",
-    "slug": "wearable-technology",
-    "description": "",
-    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917107300-70b8da/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
+    "name": "Adapters",
+    "slug": "adapters",
+    "description": "Browse adapters in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/09/1790577725821-ocsduj/ChatGPT_Image_Sep_28__2026__12_41_29_PM.png",
     "icon": "",
-    "parentId": null,
-    "order": 0,
+    "parentId": {
+      "$oid": "6acc873215490509fe8081e6"
+    },
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Adapters | Phones",
+      "metaDescription": "Browse adapters in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "adapters",
+        "phones",
+        "phone accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-09-28T06:31:53.085Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T07:37:31.371Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6acc874415490509fe8081fe"
+    },
+    "name": "Desktop PCs",
+    "slug": "desktop-pcs",
+    "description": "Ready-made desktop computers for home offices, gaming, and professional work.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791808287466-b14da8de9c4013ed828056177d6b9739/ASUS_ExpertCenter_Desktop_Workstation.png",
+    "parentId": {
+      "$oid": "6a917179a98471c5da7515b0"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Desktop PCs | Desktop",
+      "metaDescription": "Ready-made desktop computers for home offices, gaming, and professional work.",
+      "tags": [
+        "desktop pcs",
+        "desktop"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:48.905Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:31:31.273Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "name": "Gaming Consoles",
+    "slug": "gaming-consoles",
+    "description": "Explore home and handheld gaming consoles for different play styles and entertainment setups.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791887044889-53971d622e55f4ab12255bcfcd990b3d/Nintendo_Switch_Dock_and_Joy-Cons.png",
+    "parentId": {
+      "$oid": "6a916f1d050bfb18a78dce44"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Consoles | Gaming",
+      "metaDescription": "Explore home and handheld gaming consoles for different play styles and entertainment setups.",
+      "tags": [
+        "gaming consoles",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:12.468Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T10:24:09.259Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2c15490509fe80823e"
+    },
+    "name": "Gaming Controllers",
+    "slug": "gaming-controllers",
+    "description": "Browse gaming controllers for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791877896103-bf48d800622760bbbda69755ac885724/Black_and_Yellow_Brush-Stroke_Controller.png",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Controllers | Gaming",
+      "metaDescription": "Browse gaming controllers for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "gaming controllers",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:16.690Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T07:51:39.859Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874515490509fe8081ff"
+    },
+    "name": "Gaming Desktops",
+    "slug": "gaming-desktops",
+    "description": "Browse gaming desktops in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791792484062-b6ea0880482d33ffba607512827cf1d3/RGB_Gaming_PC_Tower_Showcase.png",
+    "parentId": {
+      "$oid": "6acc874415490509fe8081fe"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Desktops | Desktop",
+      "metaDescription": "Browse gaming desktops in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "gaming desktops",
+        "desktop",
+        "desktop pcs"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:49.602Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T08:08:08.383Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874c15490509fe808209"
+    },
+    "name": "Gaming Monitors",
+    "slug": "gaming-monitors",
+    "description": "Browse gaming monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791803609542-b5c4901e736f4d7eb0252b61c03dfe6a/ASUS_Monitor_Sci-Fi_Gaming_Showcase.png",
+    "parentId": {
+      "$oid": "6acc874b15490509fe808208"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Monitors | Desktop",
+      "metaDescription": "Browse gaming monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "gaming monitors",
+        "desktop",
+        "monitors"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:56.541Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T11:13:32.843Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6a91013c050bfb18a78dcd4a"
+    },
+    "name": "Iphone",
+    "slug": "iphone",
+    "description": "Browse iphone in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887922966-vtv546/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Iphone | Phones",
+      "metaDescription": "Browse iphone in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "iphone",
+        "phones",
+        "iphones"
+      ]
+    },
+    "productCount": 5,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T03:32:12.729Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-18T09:16:45.069Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acc875015490509fe80820e"
+    },
+    "name": "Keyboards",
+    "slug": "keyboards",
+    "description": "Browse keyboards in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791811978717-d1af3ff917b2f669975b6a87dbb65b20/RGB_Mechanical_Keyboard_with_Keycap_Puller.png",
+    "parentId": {
+      "$oid": "6acc874f15490509fe80820d"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Keyboards | Desktop",
+      "metaDescription": "Browse keyboards in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "keyboards",
+        "desktop",
+        "pc peripherals"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:08:00.008Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T13:33:02.709Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2915490509fe808239"
+    },
+    "name": "PlayStation Consoles",
+    "slug": "playstation-consoles",
+    "description": "Browse playstation consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791896737756-d9c641c157103e144c2aa1361fc543a4/PlayStation_4_Pro_and_DualShock_4.png",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "PlayStation Consoles | Gaming",
+      "metaDescription": "Browse playstation consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "playstation consoles",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:13.160Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T13:05:43.139Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874915490509fe808204"
+    },
+    "name": "Processors",
+    "slug": "processors",
+    "description": "Browse processors in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791809861639-29d335c90e1f573c9450a086291a704e/Intel_Xeon_Processor_Chip_Cutout.png",
+    "parentId": {
+      "$oid": "6acc874815490509fe808203"
+    },
+    "taxRate": null,
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Processors | Desktop",
+      "metaDescription": "Browse processors in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "processors",
+        "desktop",
+        "pc components"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:53.074Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:57:44.774Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6a9107a3050bfb18a78dcd4b"
+    },
+    "name": "Samsung",
+    "slug": "samsung",
+    "description": "Browse samsung in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889553331-cgo8ig/ChatGPT_Image_Aug_28__2026__09_59_02_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc872915490509fe8081e0"
+    },
+    "order": 1,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Samsung | Phones",
+      "metaDescription": "Browse samsung in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "samsung",
+        "phones",
+        "android phones"
+      ]
+    },
+    "productCount": 4,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T03:59:31.561Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T07:37:26.222Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "name": "iPhones",
+    "slug": "iphones",
+    "description": "Explore iPhone models and product families for everyday communication, photography, and work.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889242869-wg429y/ChatGPT_Image_Aug_28__2026__09_53_38_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6a90ffda050bfb18a78dcd42"
+    },
+    "order": 1,
     "isActive": true,
     "featured": true,
     "seo": {
-      "tags": []
+      "pageTitle": "iPhones | Phones",
+      "metaDescription": "Explore iPhone models and product families for everyday communication, photography, and work.",
+      "tags": [
+        "iphones",
+        "phones"
+      ]
     },
-    "productCount": 7,
+    "productCount": 1,
     "options": [],
     "createdAt": {
-      "$date": "2026-08-28T11:38:37.748Z"
+      "$date": "2026-08-28T03:30:45.985Z"
     },
     "updatedAt": {
-      "$date": "2026-09-07T10:39:23.187Z"
+      "$date": "2026-10-12T07:37:20.156Z"
     },
     "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acc872915490509fe8081e0"
+    },
+    "name": "Android Phones",
+    "slug": "android-phones",
+    "description": "Browse Android smartphones by brand for a choice of features, designs, and budgets.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791814787415-3b235d7bcec4c5daff367b3f714afb41/Mystic_Bronze_Samsung_Phone_Pair.png",
+    "parentId": {
+      "$oid": "6a90ffda050bfb18a78dcd42"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Android Phones | Phones",
+      "metaDescription": "Browse Android smartphones by brand for a choice of features, designs, and budgets.",
+      "tags": [
+        "android phones",
+        "phones"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:21.891Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:19:50.778Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc875015490509fe80820f"
+    },
+    "name": "Computer Mice",
+    "slug": "computer-mice",
+    "description": "Browse computer mice in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791811366597-bf88588529e86971dfcbbafb6e11ec36/Futuristic_Magenta_Gaming_Mouse.png",
+    "parentId": {
+      "$oid": "6acc874f15490509fe80820d"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Computer Mice | Desktop",
+      "metaDescription": "Browse computer mice in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "computer mice",
+        "desktop",
+        "pc peripherals"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:08:00.700Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T13:28:11.653Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "name": "Gaming Accessories",
+    "slug": "gaming-accessories",
+    "description": "Explore controllers, headsets, keyboards, and mice to complete your gaming setup.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791875941792-6b6bbd5a8976042363889bb698fc2945/Multi-Device_Gaming_Stand_with_Controllers_and_Headphones.png",
+    "parentId": {
+      "$oid": "6a916f1d050bfb18a78dce44"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Accessories | Gaming",
+      "metaDescription": "Explore controllers, headsets, keyboards, and mice to complete your gaming setup.",
+      "tags": [
+        "gaming accessories",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:15.998Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T09:51:39.417Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2d15490509fe80823f"
+    },
+    "name": "Gaming Headsets",
+    "slug": "gaming-headsets",
+    "description": "Browse gaming headsets for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791878594385-c1d8846a3f5ebea4ef2eca8f886c07c4/Neon_Blue_Gaming_Headset.png",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Headsets | Gaming",
+      "metaDescription": "Browse gaming headsets for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "gaming headsets",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:17.383Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T08:03:18.034Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6a910bb4050bfb18a78dcd4f"
+    },
+    "name": "Google",
+    "slug": "google",
+    "description": "Browse google in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890599847-e2h880/ChatGPT_Image_Aug_28__2026__10_13_58_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc872915490509fe8081e0"
+    },
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Google | Phones",
+      "metaDescription": "Browse google in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "google",
+        "phones",
+        "android phones"
+      ]
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T04:16:52.046Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T07:37:27.257Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acc874915490509fe808205"
+    },
+    "name": "Motherboards",
+    "slug": "motherboards",
+    "description": "Browse motherboards in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791809522402-ba743146c1d7b8ff705e2f2bcf8d77fa/Gigabyte_LGA1700_Motherboard_Cutout.png",
+    "parentId": {
+      "$oid": "6acc874815490509fe808203"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Motherboards | Desktop",
+      "metaDescription": "Browse motherboards in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "motherboards",
+        "desktop",
+        "pc components"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:53.770Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:52:06.591Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874615490509fe808200"
+    },
+    "name": "Office Desktops",
+    "slug": "office-desktops",
+    "description": "Browse office desktops in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791800891168-15de03360f2672952a16b3214cdb8fd0/Dell_Inspiron_Desktop_Setup_Isolated.png",
+    "parentId": {
+      "$oid": "6acc874415490509fe8081fe"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Office Desktops | Desktop",
+      "metaDescription": "Browse office desktops in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "office desktops",
+        "desktop",
+        "desktop pcs"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:50.295Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T10:30:39.186Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874d15490509fe80820a"
+    },
+    "name": "Office Monitors",
+    "slug": "office-monitors",
+    "description": "Browse office monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791806586267-c994af38ed2035120042ffa7140632ff/Lenovo_All-in-One_Windows_11_Display.png",
+    "parentId": {
+      "$oid": "6acc874b15490509fe808208"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Office Monitors | Desktop",
+      "metaDescription": "Browse office monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "office monitors",
+        "desktop",
+        "monitors"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:57.235Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:03:13.175Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874815490509fe808203"
+    },
+    "name": "PC Components",
+    "slug": "pc-components",
+    "description": "Core computer components for building, upgrading, and maintaining a desktop PC.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791808071326-51841fc2a7e9f9d951130e26d3799f1e/Staggered_G.SKILL_Trident_Z_RGB_RAM_Set.png",
+    "parentId": {
+      "$oid": "6a917179a98471c5da7515b0"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "PC Components | Desktop",
+      "metaDescription": "Core computer components for building, upgrading, and maintaining a desktop PC.",
+      "tags": [
+        "pc components",
+        "desktop"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:52.384Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:28:58.628Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc873315490509fe8081e7"
+    },
+    "name": "Phone Chargers",
+    "slug": "phone-chargers",
+    "description": "Browse phone chargers in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791817110329-c3dc188ef15acc47d8255c3d7cad7246/80W_SUPERVOOC_Charger_with_Red_Cable.png",
+    "parentId": {
+      "$oid": "6acc873215490509fe8081e6"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Phone Chargers | Phones",
+      "metaDescription": "Browse phone chargers in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "phone chargers",
+        "phones",
+        "phone accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:31.920Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:59:00.161Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2915490509fe80823a"
+    },
+    "name": "Xbox Consoles",
+    "slug": "xbox-consoles",
+    "description": "Browse xbox consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791902849488-f2c5e04286c1315bc103e5ec96dabc0c/Xbox_Series_X_Console_and_Controller_Cutout.png",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Xbox Consoles | Gaming",
+      "metaDescription": "Browse xbox consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "xbox consoles",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:13.904Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T14:47:35.044Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc872715490509fe8081dd"
+    },
+    "name": "iPhone Pro",
+    "slug": "iphone-pro",
+    "description": "Browse iphone pro in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791814145520-bf5b1b477b81d41a76a8d4fd3f3007a7/Transparent_iPhone_Lock_Screen_Product_Render.png",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "taxRate": null,
+    "order": 2,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "iPhone Pro | Phones",
+      "metaDescription": "Browse iphone pro in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "iphone pro",
+        "phones",
+        "iphones"
+      ]
+    },
+    "productCount": 1,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:19.820Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-18T09:16:45.074Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874d15490509fe80820b"
+    },
+    "name": "4K Monitors",
+    "slug": "4k-monitors",
+    "description": "Browse 4k monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791801999246-3e81b85c50c3015e531c56bdb5b0180b/Neon_Wave_Gaming_Monitor_Render.png",
+    "parentId": {
+      "$oid": "6acc874b15490509fe808208"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "4K Monitors | Desktop",
+      "metaDescription": "Browse 4k monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "4k monitors",
+        "desktop",
+        "monitors"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:57.929Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T10:51:28.046Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874615490509fe808201"
+    },
+    "name": "All-in-One PCs",
+    "slug": "all-in-one-pcs",
+    "description": "Browse all-in-one pcs in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791792118288-4336c96f798f45ef48e44c7ff63646fa/Lenovo_All-in-One_Windows_Desktop_Set.png",
+    "parentId": {
+      "$oid": "6acc874415490509fe8081fe"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "All-in-One PCs | Desktop",
+      "metaDescription": "Browse all-in-one pcs in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "all in one pcs",
+        "desktop",
+        "desktop pcs"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:50.989Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T08:02:09.291Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2e15490509fe808240"
+    },
+    "name": "Gaming Keyboards",
+    "slug": "gaming-keyboards",
+    "description": "Browse gaming keyboards for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791878997990-7453b3b1902ffc1dd1f664b66cb0b36a/Rainbow_RGB_Gaming_Keyboard_Cutout.png",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Keyboards | Gaming",
+      "metaDescription": "Browse gaming keyboards for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "gaming keyboards",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:18.073Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T08:10:02.668Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874a15490509fe808206"
+    },
+    "name": "Graphics Cards",
+    "slug": "graphics-cards",
+    "description": "Browse graphics cards in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791809228666-9993f657fa4ee449cb89cbc5d5d67a02/AMD_Radeon_Triple-Fan_Graphics_Card.png",
+    "parentId": {
+      "$oid": "6acc874815490509fe808203"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Graphics Cards | Desktop",
+      "metaDescription": "Browse graphics cards in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "graphics cards",
+        "desktop",
+        "pc components"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:54.466Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:47:12.010Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874b15490509fe808208"
+    },
+    "name": "Monitors",
+    "slug": "desktop-monitors",
+    "description": "Displays for gaming, everyday desktop use, creative work, and high-resolution viewing.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791801550749-d0ea34888c3d1e6d6fd2b857911258e0/Dell_Monitor_with_Vibrant_Blue-Purple_Display.png",
+    "parentId": {
+      "$oid": "6a917179a98471c5da7515b0"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Monitors | Desktop",
+      "metaDescription": "Displays for gaming, everyday desktop use, creative work, and high-resolution viewing.",
+      "tags": [
+        "desktop monitors",
+        "desktop"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:55.849Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T10:39:23.493Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2a15490509fe80823b"
+    },
+    "name": "Nintendo Consoles",
+    "slug": "nintendo-consoles",
+    "description": "Browse nintendo consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791896194977-96ee8c7af63e0f4dfa3d74bc8495a00e/Angled_Nintendo_Switch_Product_Render.png",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Nintendo Consoles | Gaming",
+      "metaDescription": "Browse nintendo consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "nintendo consoles",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:14.595Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T12:56:45.291Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6a910e1f050bfb18a78dcd52"
+    },
+    "name": "Oneplus",
+    "slug": "oneplus",
+    "description": "Browse oneplus in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787891457789-hv688h/ChatGPT_Image_Aug_28__2026__10_30_45_AM.webp",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc872915490509fe8081e0"
+    },
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Oneplus | Phones",
+      "metaDescription": "Browse oneplus in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "oneplus",
+        "phones",
+        "android phones"
+      ]
+    },
+    "productCount": 2,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-08-28T04:27:11.339Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T07:37:28.300Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acc873215490509fe8081e6"
+    },
+    "name": "Phone Accessories",
+    "slug": "phone-accessories",
+    "description": "Practical accessories for charging, connecting, protecting, and carrying your phone.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815401605-5678a18b258e2c0f0461b73abf528a25/ChatGPT_Image_Aug_28__2026__11_04_21_AM.webp",
+    "parentId": {
+      "$oid": "6a90ffda050bfb18a78dcd42"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Phone Accessories | Phones",
+      "metaDescription": "Practical accessories for charging, connecting, protecting, and carrying your phone.",
+      "tags": [
+        "phone accessories",
+        "phones"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:30.194Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:30:04.793Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc873415490509fe8081e8"
+    },
+    "name": "Phone Holders",
+    "slug": "phone-holders",
+    "description": "Browse phone holders in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815939441-320dbb9362d20c7fbd0faa3b11151a32/Mpow_Black_Car_Phone_Mount.png",
+    "parentId": {
+      "$oid": "6acc873215490509fe8081e6"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Phone Holders | Phones",
+      "metaDescription": "Browse phone holders in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "phone holders",
+        "phones",
+        "phone accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:32.612Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:39:04.636Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc875115490509fe808210"
+    },
+    "name": "Webcams",
+    "slug": "webcams",
+    "description": "Browse webcams in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791813645966-d015b559c85ac072be35467baefcd85f/EMEET_4K_UHD_Webcam_Render.png",
+    "parentId": {
+      "$oid": "6acc874f15490509fe80820d"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Webcams | Desktop",
+      "metaDescription": "Browse webcams in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "webcams",
+        "desktop",
+        "pc peripherals"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:08:01.393Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:00:52.425Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc872815490509fe8081de"
+    },
+    "name": "iPhone Pro Max",
+    "slug": "iphone-pro-max",
+    "description": "Browse iphone pro max in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815310087-ef34146a6a84485f127605c9417bc3a5/ChatGPT_Image_Sep_29__2026__06_27_11_PM-3.png",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "taxRate": null,
+    "order": 3,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "iPhone Pro Max | Phones",
+      "metaDescription": "Browse iphone pro max in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "iphone pro max",
+        "phones",
+        "iphones"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:20.508Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:28:42.150Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874b15490509fe808207"
+    },
+    "name": "Desktop RAM",
+    "slug": "desktop-ram",
+    "description": "Browse desktop ram in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791808366855-318cc47726a4a57ff80ff55c3066e6f2/Green_Samsung_DDR4_RAM_Modules.png",
+    "parentId": {
+      "$oid": "6acc874815490509fe808203"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Desktop RAM | Desktop",
+      "metaDescription": "Browse desktop ram in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "desktop ram",
+        "desktop",
+        "pc components"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:55.158Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:33:04.732Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2e15490509fe808241"
+    },
+    "name": "Gaming Mice",
+    "slug": "gaming-mice",
+    "description": "Browse gaming mice for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791879432583-b68ed23f3d77df5aa20d0781a84e4db6/Neon_RGB_Gaming_Mouse_Cutout.png",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Mice | Gaming",
+      "metaDescription": "Browse gaming mice for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "gaming mice",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:18.764Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T08:17:16.563Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc8e2b15490509fe80823c"
+    },
+    "name": "Handheld Gaming Consoles",
+    "slug": "handheld-gaming-consoles",
+    "description": "Browse handheld gaming consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791895507434-fd8e6640572d1142f7216f7c98386282/Handheld_Spielkonsole_2700_Spiele_7__Video_Game_Consoles_Spielkonsole_Xmas_16gb.jpeg",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Handheld Gaming Consoles | Gaming",
+      "metaDescription": "Browse handheld gaming consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+      "tags": [
+        "handheld gaming consoles",
+        "gaming",
+        "electronics"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:37:15.305Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T12:45:24.059Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874715490509fe808202"
+    },
+    "name": "Mini PCs",
+    "slug": "mini-pcs",
+    "description": "Browse mini pcs in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791800470975-980dbce1a493bf1f7e0309493d5754e0/Silver_Mac_Mini_Three-Quarter_Product_Render.png",
+    "parentId": {
+      "$oid": "6acc874415490509fe8081fe"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Mini PCs | Desktop",
+      "metaDescription": "Browse mini pcs in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "mini pcs",
+        "desktop",
+        "desktop pcs"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:51.684Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T10:21:17.127Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874f15490509fe80820d"
+    },
+    "name": "PC Peripherals",
+    "slug": "pc-peripherals",
+    "description": "Input devices, webcams, and power backup equipment for a complete desktop setup.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791810767637-632f34c1a8f26bf2c1d9a64fbe467b8a/RGB_Gaming_Setup_with_Fantasy_Display.png",
+    "parentId": {
+      "$oid": "6a917179a98471c5da7515b0"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "PC Peripherals | Desktop",
+      "metaDescription": "Input devices, webcams, and power backup equipment for a complete desktop setup.",
+      "tags": [
+        "pc peripherals",
+        "desktop"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:59.315Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T13:12:52.379Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc873515490509fe8081e9"
+    },
+    "name": "Phone Camera Accessories",
+    "slug": "phone-camera-accessories",
+    "description": "Browse phone camera accessories in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791816400248-32f7dafbd46199a5f0e28f89e7be4c6c/White_Smartphone_Camera_Protector_Product_Render.png",
+    "parentId": {
+      "$oid": "6acc873215490509fe8081e6"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Phone Camera Accessories | Phones",
+      "metaDescription": "Browse phone camera accessories in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "phone camera accessories",
+        "phones",
+        "phone accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:33.305Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:46:43.544Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc875215490509fe808211"
+    },
+    "name": "UPS & Power Backup",
+    "slug": "ups-power-backup",
+    "description": "Browse ups & power backup in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791812267731-c3b2b9231be11fe27c313326f6ea37a4/Dark_Gray_Four-Bay_NAS_Enclosure.png",
+    "parentId": {
+      "$oid": "6acc874f15490509fe80820d"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "UPS & Power Backup | Desktop",
+      "metaDescription": "Browse ups & power backup in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "ups power backup",
+        "desktop",
+        "pc peripherals"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:08:02.086Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T13:37:55.605Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acc874e15490509fe80820c"
+    },
+    "name": "Ultrawide Monitors",
+    "slug": "ultrawide-monitors",
+    "description": "Browse ultrawide monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791807113031-a858cd73ed3262c9a763cbf73161d493/Best_Acer_Nitro_34_Inch_Curved_Monitor_2026_-_WQHD_Home_Office.jpeg",
+    "parentId": {
+      "$oid": "6acc874b15490509fe808208"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Ultrawide Monitors | Desktop",
+      "metaDescription": "Browse ultrawide monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+      "tags": [
+        "ultrawide monitors",
+        "desktop",
+        "monitors"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:58.624Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T12:11:56.274Z"
+    },
+    "__v": 0,
+    "icon": ""
   },
   {
     "_id": {
@@ -379,25 +1758,381 @@
     },
     "name": "Xiaomi",
     "slug": "xiaomi",
-    "description": "",
+    "description": "Browse xiaomi in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
     "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890671683-gnui5s/ChatGPT_Image_Aug_28__2026__10_17_36_AM.webp",
     "icon": "",
     "parentId": {
-      "$oid": "6a9100e5050bfb18a78dcd49"
+      "$oid": "6acc872915490509fe8081e0"
     },
-    "order": 0,
+    "order": 4,
     "isActive": true,
     "featured": false,
     "seo": {
-      "pageTitle": "Xiaomi"
+      "pageTitle": "Xiaomi | Phones",
+      "metaDescription": "Browse xiaomi in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "xiaomi",
+        "phones",
+        "android phones"
+      ]
     },
-    "productCount": 1,
+    "productCount": 2,
     "options": [],
     "createdAt": {
       "$date": "2026-08-28T04:16:13Z"
     },
     "updatedAt": {
-      "$date": "2026-08-29T06:27:07.868Z"
+      "$date": "2026-10-12T07:37:29.339Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acc872915490509fe8081df"
+    },
+    "name": "iPhone Plus",
+    "slug": "iphone-plus",
+    "description": "Browse iphone plus in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815242743-6c9a6ca29a9cefd210244475e7f0fd5a/Overlapping_Pink_iPhones_Product_Render.png",
+    "parentId": {
+      "$oid": "6a9100e5050bfb18a78dcd49"
+    },
+    "taxRate": null,
+    "order": 4,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "iPhone Plus | Phones",
+      "metaDescription": "Browse iphone plus in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+      "tags": [
+        "iphone plus",
+        "phones",
+        "iphones"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-12T07:07:21.196Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T14:27:28.308Z"
+    },
+    "__v": 0,
+    "icon": ""
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d90"
+    },
+    "name": "Gaming Mouse Pads",
+    "slug": "gaming-mouse-pads",
+    "description": "Browse gaming mouse pads for a comfortable desk setup and smooth mouse movement.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791885987348-b7a9b5e390a4bbd46046146f663a85ea/Topographic_Contour_Desk_Mat_Set.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 5,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Mouse Pads | Gaming",
+      "metaDescription": "Browse gaming mouse pads for a comfortable desk setup and smooth mouse movement.",
+      "tags": [
+        "gaming mouse pads",
+        "gaming",
+        "gaming accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T10:06:44.246Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d8b"
+    },
+    "name": "Retro Gaming Consoles",
+    "slug": "retro-gaming-consoles",
+    "description": "Explore retro gaming consoles for classic games and familiar styles of play.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791897831960-2ec3c78dcd4fa81dd60cf1ee6dc8d5d5/White_Retro_Handheld_Racing_Console.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 5,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Retro Gaming Consoles | Gaming",
+      "metaDescription": "Explore retro gaming consoles for classic games and familiar styles of play.",
+      "tags": [
+        "retro gaming consoles",
+        "gaming",
+        "gaming consoles"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T13:23:56.232Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d91"
+    },
+    "name": "Racing Wheels",
+    "slug": "gaming-racing-wheels",
+    "description": "Explore racing wheels and driving accessories for racing games and simulation setups.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791886564959-13c5b6b35b62ae6986665716568f50af/PXN_Racing_Wheel_Gaming_Set.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 6,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Racing Wheels | Gaming",
+      "metaDescription": "Explore racing wheels and driving accessories for racing games and simulation setups.",
+      "tags": [
+        "gaming racing wheels",
+        "gaming",
+        "gaming accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T10:16:41.868Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d8c"
+    },
+    "name": "VR Gaming Systems",
+    "slug": "vr-gaming-systems",
+    "description": "Explore virtual reality gaming systems for immersive games and interactive entertainment.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791901718950-6eed3a81d835b385546f414900d55e41/White_VR_Headset_and_Controllers_Set.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 6,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "VR Gaming Systems | Gaming",
+      "metaDescription": "Explore virtual reality gaming systems for immersive games and interactive entertainment.",
+      "tags": [
+        "vr gaming systems",
+        "gaming",
+        "gaming consoles"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T14:28:46.358Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d92"
+    },
+    "name": "Gaming Microphones",
+    "slug": "gaming-microphones",
+    "description": "Browse gaming microphones for voice chat, streaming, and recording at your gaming desk.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791879648185-e87681dee1d82cc9d135381fe6faaf50/Fifine_RGB_Desktop_Microphone_Isolated.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 7,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Microphones | Gaming",
+      "metaDescription": "Browse gaming microphones for voice chat, streaming, and recording at your gaming desk.",
+      "tags": [
+        "gaming microphones",
+        "gaming",
+        "gaming accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T08:20:59.607Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d93"
+    },
+    "name": "Controller Charging Docks",
+    "slug": "controller-charging-docks",
+    "description": "Explore charging docks to keep compatible gaming controllers ready for your next session.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791876244105-6792ae1c131943cbc8c0ec5334c5c8e7/GIVO_Dual_Controller_Charging_Dock.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 8,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Controller Charging Docks | Gaming",
+      "metaDescription": "Explore charging docks to keep compatible gaming controllers ready for your next session.",
+      "tags": [
+        "controller charging docks",
+        "gaming",
+        "gaming accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T07:24:09.210Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d8e"
+    },
+    "name": "Digital Edition Consoles",
+    "slug": "digital-edition-consoles",
+    "description": "Explore digital edition gaming consoles for downloadable games and connected entertainment.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791887660401-37929087d7d2582bf0579164061070c1/PlayStation_Console_and_Controller_Cutout.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 8,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Digital Edition Consoles | Gaming",
+      "metaDescription": "Explore digital edition gaming consoles for downloadable games and connected entertainment.",
+      "tags": [
+        "digital edition consoles",
+        "gaming",
+        "gaming consoles"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T10:34:24.276Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d94"
+    },
+    "name": "Gaming Carrying Cases",
+    "slug": "gaming-carrying-cases",
+    "description": "Browse carrying cases to store and transport gaming consoles, controllers, and accessories.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791876451848-f1f02ba5a91bc47610e739c4f9460a91/Open_Nintendo_Switch_Travel_Case_with_Accessories.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2b15490509fe80823d"
+    },
+    "taxRate": null,
+    "order": 9,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Gaming Carrying Cases | Gaming",
+      "metaDescription": "Browse carrying cases to store and transport gaming consoles, controllers, and accessories.",
+      "tags": [
+        "gaming carrying cases",
+        "gaming",
+        "gaming accessories"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T07:27:35.737Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acdcc41110e9681bb745d8f"
+    },
+    "name": "Portable PC Consoles",
+    "slug": "portable-pc-consoles",
+    "description": "Browse portable PC gaming consoles for handheld play and flexible gaming away from the desk.",
+    "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791897489510-ba426f2027fcef5173e2133022a8245f/MSI_Handheld_Gaming_Console_with_Neon_Dragon_Display.png",
+    "icon": "",
+    "parentId": {
+      "$oid": "6acc8e2815490509fe808238"
+    },
+    "taxRate": null,
+    "order": 9,
+    "isActive": true,
+    "featured": false,
+    "seo": {
+      "pageTitle": "Portable PC Consoles | Gaming",
+      "metaDescription": "Browse portable PC gaming consoles for handheld play and flexible gaming away from the desk.",
+      "tags": [
+        "portable pc consoles",
+        "gaming",
+        "gaming consoles"
+      ]
+    },
+    "productCount": 0,
+    "options": [],
+    "createdAt": {
+      "$date": "2026-10-13T06:14:25.676Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-13T13:18:19.619Z"
     },
     "__v": 0
   }

@@ -103,7 +103,19 @@
     "courierTrackingLinks": [],
     "enabled": false,
     "weightUnit": "kg",
-    "codCollectedBy": "vendor"
+    "codCollectedBy": "vendor",
+    "addressHold": {
+      "suggestAtCheckout": true,
+      "checkAfterOrder": true,
+      "autoRequest": true,
+      "deadlineDays": 7,
+      "onDeadline": "notify",
+      "keepReturnShipping": false,
+      "reminderDays": [
+        1,
+        3
+      ]
+    }
   },
   "social": {
     "share": {
@@ -142,8 +154,7 @@
         "card",
         "manual",
         "bank"
-      ],
-      "offlinePaymentsEnabled": false
+      ]
     },
     "orders": {
       "orderNumberPrefix": "POS"
@@ -167,8 +178,8 @@
   "aiSalesAgent": {
     "widget": {
       "position": "bottom-right",
-      "primaryColor": "#7c3aed",
-      "accentColor": "#a855f7",
+      "primaryColor": "var(--theme-primary)",
+      "accentColor": "var(--theme-primary)",
       "footerText": "Powered by AI",
       "headerTitle": "",
       "width": 400,
@@ -1099,18 +1110,18 @@
     },
     "colors": {
       "light": {
-        "backgroundColor": "#f8fafc",
-        "textColor": "#111827",
-        "mutedTextColor": "#6b7280",
-        "borderColor": "#e5e7eb",
-        "accentColor": "#2065D1"
+        "backgroundColor": "var(--theme-surface-alt)",
+        "textColor": "var(--theme-text)",
+        "mutedTextColor": "var(--theme-text-muted)",
+        "borderColor": "var(--theme-border)",
+        "accentColor": "var(--theme-primary)"
       },
       "dark": {
-        "backgroundColor": "#050505",
-        "textColor": "#ffffff",
-        "mutedTextColor": "#d1d5db",
-        "borderColor": "#27272a",
-        "accentColor": "#60a5fa"
+        "backgroundColor": "var(--theme-surface-alt)",
+        "textColor": "var(--theme-text)",
+        "mutedTextColor": "var(--theme-text-muted)",
+        "borderColor": "var(--theme-border)",
+        "accentColor": "var(--theme-primary)"
       }
     },
     "widgets": {
@@ -1674,5 +1685,16 @@
         "sms": false
       }
     }
+  },
+  "preorder": {
+    "enabled": true,
+    "requireVendorApproval": false,
+    "maxLeadDays": 180,
+    "maxDepositPercent": 100,
+    "expiryGraceDays": 14,
+    "reservePercent": 0,
+    "reserveDays": 90,
+    "autoRelease": false,
+    "autoReleaseDelayDays": 0
   }
 }

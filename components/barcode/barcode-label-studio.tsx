@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
 import { useAppSettings } from "@/providers/app-settings-provider";
@@ -33,8 +34,14 @@ import { detectBarcodeFormat, type BarcodeFormat } from "@/lib/barcode/standards
 import {
   buildTsplProductLabel,
   buildZplProductLabel,
+  MAX_LABEL_BARCODE_HEIGHT_MM,
   type ThermalPrinterLanguage,
 } from "@/lib/barcode/thermal";
+import {
+  checkLabelSize,
+  LABEL_SIZE_LIMITS,
+  layoutProductLabel,
+} from "@/lib/barcode/label-layout";
 import {
   findQzPrinters,
   printRawWithQz,
@@ -62,13 +69,56 @@ interface BarcodeLabelStudioProps {
   items: BarcodeLabelInventoryItem[];
 }
 
-type LabelPreset = "40x25" | "50x30" | "60x40";
-
-const PRESETS: Record<LabelPreset, { widthMm: number; heightMm: number }> = {
+const PRESETS = {
+  "38x25": { widthMm: 38, heightMm: 25 },
   "40x25": { widthMm: 40, heightMm: 25 },
+  "50x25": { widthMm: 50, heightMm: 25 },
   "50x30": { widthMm: 50, heightMm: 30 },
   "60x40": { widthMm: 60, heightMm: 40 },
-};
+  "100x50": { widthMm: 100, heightMm: 50 },
+  "100x150": { widthMm: 100, heightMm: 150 },
+} satisfies Record<string, { widthMm: number; heightMm: number }>;
+
+type LabelPreset = keyof typeof PRESETS;
+
+/** A preset, or a size the user typed in (kept in this browser only). */
+type SizeChoice = LabelPreset | "custom";
+
+interface LabelSizeMm {
+  widthMm: number;
+  heightMm: number;
+}
+
+const PRESET_KEYS = Object.keys(PRESETS) as LabelPreset[];
+
+const SIZE_OPTIONS = [
+  ...PRESET_KEYS.map((key) => ({
+    value: key,
+    label: `${PRESETS[key].widthMm} × ${PRESETS[key].heightMm} mm`,
+    // So "50 x 30" and "50*30" find it, not only "50x30" (the value) or "×".
+    keywords: `${PRESETS[key].widthMm} x ${PRESETS[key].heightMm} ${PRESETS[key].widthMm}*${PRESETS[key].heightMm}`,
+  })),
+  { value: "custom", label: "Custom size…", keywords: "custom own manual" },
+];
+
+/** The widest print head most desktop thermal printers have. */
+const COMMON_PRINTER_WIDTH_MM = 104;
+
+const roundToTenth = (value: number) => Math.round(value * 10) / 10;
+
+function isValidCustomSize(value: unknown): value is LabelSizeMm {
+  if (!value || typeof value !== "object") return false;
+  const { widthMm, heightMm } = value as Partial<LabelSizeMm>;
+  return (
+    typeof widthMm === "number" &&
+    typeof heightMm === "number" &&
+    checkLabelSize(widthMm, heightMm) === null
+  );
+}
+
+function barcodeHeightMm(labelHeightMm: number) {
+  return Math.min(MAX_LABEL_BARCODE_HEIGHT_MM, Math.max(9, labelHeightMm * 0.38));
+}
 
 function escapeHtml(value: string) {
   return value
@@ -98,7 +148,11 @@ export function BarcodeLabelStudio({
   // Named after the store, since this string is what the operator sees in the
   // OS print queue.
   const { storeName } = useAppSettings();
-  const [preset, setPreset] = React.useState<LabelPreset>("50x30");
+  const [preset, setPreset] = React.useState<SizeChoice>("50x30");
+  // The size a user typed. Never sent to the server: it lives in this browser
+  // (with the printer choice below), so any vendor can print any size without
+  // the store having to add it to a list first.
+  const [customSize, setCustomSize] = React.useState<LabelSizeMm | null>(null);
   const [dpi, setDpi] = React.useState<203 | 300>(203);
   const [language, setLanguage] =
     React.useState<ThermalPrinterLanguage>("zpl");
@@ -127,12 +181,21 @@ export function BarcodeLabelStudio({
         printerName?: string;
         language?: ThermalPrinterLanguage;
         dpi?: 203 | 300;
-        preset?: LabelPreset;
+        preset?: SizeChoice;
+        customSize?: unknown;
       };
       if (stored.printerName) setPrinterName(stored.printerName);
       if (stored.language) setLanguage(stored.language);
       if (stored.dpi) setDpi(stored.dpi);
-      if (stored.preset && PRESETS[stored.preset]) setPreset(stored.preset);
+      const storedCustom = isValidCustomSize(stored.customSize)
+        ? stored.customSize
+        : null;
+      if (storedCustom) setCustomSize(storedCustom);
+      if (stored.preset === "custom") {
+        if (storedCustom) setPreset("custom");
+      } else if (stored.preset && PRESETS[stored.preset]) {
+        setPreset(stored.preset);
+      }
     } catch {
       // Ignore a malformed local device profile.
     }
@@ -142,15 +205,18 @@ export function BarcodeLabelStudio({
     if (!open) return;
     localStorage.setItem(
       THERMAL_PRINTER_PROFILE_KEY,
-      JSON.stringify({ printerName, language, dpi, preset }),
+      JSON.stringify({ printerName, language, dpi, preset, customSize }),
     );
-  }, [dpi, language, open, preset, printerName]);
+  }, [customSize, dpi, language, open, preset, printerName]);
 
-  const dimensions = PRESETS[preset];
+  const dimensions: LabelSizeMm =
+    preset === "custom" ? (customSize ?? PRESETS["50x30"]) : PRESETS[preset];
+  const sizeLabel = `${dimensions.widthMm} × ${dimensions.heightMm} mm`;
   const validItems = React.useMemo(
     () => items.filter((item) => item.barcode.trim()),
     [items],
   );
+  const skippedCount = items.length - validItems.length;
   const getCopies = React.useCallback(
     (item: BarcodeLabelInventoryItem) =>
       Math.min(
@@ -163,6 +229,35 @@ export function BarcodeLabelStudio({
     [copies, useStockQuantity],
   );
   const totalCopies = validItems.reduce((sum, item) => sum + getCopies(item), 0);
+
+  // What a label cannot hold at this size, found before anything reaches a
+  // printer: a bad check digit, a barcode wider than the label, a label too
+  // short for its lines. Printing waits until each one is dealt with.
+  const problems = React.useMemo(() => {
+    const sizeProblem = checkLabelSize(dimensions.widthMm, dimensions.heightMm);
+    if (sizeProblem) return [sizeProblem];
+    const found: string[] = [];
+    for (const item of validItems) {
+      const result = layoutProductLabel({
+        barcode: item.barcode,
+        barcodeFormat: item.barcodeFormat || detectBarcodeFormat(item.barcode),
+        productName: item.productName,
+        variantName: item.variantName || undefined,
+        sku: showSku ? item.sku : undefined,
+        price: showPrice ? formatPrice(item.price) : undefined,
+        widthMm: dimensions.widthMm,
+        heightMm: dimensions.heightMm,
+        dpi,
+      });
+      if (result.ok) continue;
+      const name = item.variantName
+        ? `${item.productName} (${item.variantName})`
+        : item.productName;
+      for (const problem of result.problems) found.push(`${name}: ${problem}`);
+    }
+    return found;
+  }, [dimensions, dpi, formatPrice, showPrice, showSku, validItems]);
+  const canPrint = validItems.length > 0 && problems.length === 0;
 
   const buildRawJobs = React.useCallback(
     () =>
@@ -219,14 +314,14 @@ export function BarcodeLabelStudio({
   };
 
   const browserPrint = () => {
-    if (validItems.length === 0) return;
+    if (!canPrint) return;
     const labelHtml: string[] = [];
     for (const item of validItems) {
       let svg: string;
       try {
         svg = renderBarcodeSvg(item.barcode, {
           format: item.barcodeFormat,
-          heightMm: Math.max(9, dimensions.heightMm * 0.38),
+          heightMm: barcodeHeightMm(dimensions.heightMm),
           includeText: true,
           scale: dpi === 300 ? 3 : 2,
           paddingMm: 2.5,
@@ -272,9 +367,10 @@ export function BarcodeLabelStudio({
       .name { font-size: 8pt; line-height: 1.1; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
       .variant { font-size: 6.5pt; line-height: 1.1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
       .barcode { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-      .barcode svg { display: block; width: 100%; max-height: ${Math.max(10, dimensions.heightMm - 10)}mm; }
+      .barcode svg { display: block; width: 100%; height: 100%; }
       .footer { display: flex; justify-content: space-between; align-items: end; gap: 2mm; font-size: 6.5pt; line-height: 1; }
-      .footer strong { font-size: 8pt; }
+      .footer span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .footer strong { flex: none; font-size: 8pt; white-space: nowrap; }
       </style></head><body>${labelHtml.join("")}</body></html>`);
     target.document.close();
     const cleanup = () => iframe.remove();
@@ -287,13 +383,25 @@ export function BarcodeLabelStudio({
     else iframe.addEventListener("load", print, { once: true });
   };
 
+  const downloadCommands = () => {
+    if (!canPrint) return;
+    try {
+      downloadText(`storify-product-labels.${language}`, buildRawJobs().join("\n"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not build the label commands");
+    }
+  };
+
+  // Fit the preview in the panel: wide labels by width, tall ones by height,
+  // and nothing bigger than 5 px per mm.
+  const previewScale = Math.min(320 / dimensions.widthMm, 360 / dimensions.heightMm, 5);
   const previewItem = validItems[0];
   let previewSvg = "";
   if (previewItem) {
     try {
       previewSvg = renderBarcodeSvg(previewItem.barcode, {
         format: previewItem.barcodeFormat,
-        heightMm: Math.max(9, dimensions.heightMm * 0.38),
+        heightMm: barcodeHeightMm(dimensions.heightMm),
         includeText: true,
         scale: dpi === 300 ? 3 : 2,
       });
@@ -320,14 +428,28 @@ export function BarcodeLabelStudio({
             <div className="grid gap-3 rounded-lg border p-4 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label>Label size</Label>
-                <Select value={preset} onValueChange={(value) => setPreset(value as LabelPreset)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="40x25">40 × 25 mm</SelectItem>
-                    <SelectItem value="50x30">50 × 30 mm</SelectItem>
-                    <SelectItem value="60x40">60 × 40 mm</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={SIZE_OPTIONS}
+                  ariaLabel="Label size"
+                  value={preset}
+                  onValueChange={(value) => {
+                    const next = value as SizeChoice;
+                    // The first time "Custom" is picked it starts from the size
+                    // being used, so only what differs has to be typed.
+                    if (next === "custom") {
+                      setCustomSize((current) => current ?? { ...dimensions });
+                    }
+                    setPreset(next);
+                  }}
+                  renderValue={() =>
+                    preset === "custom" ? `Custom · ${sizeLabel}` : sizeLabel
+                  }
+                  searchPlaceholder="Search sizes..."
+                  emptyText="No sizes found"
+                  // Inside the dialog, whose scroll lock would otherwise
+                  // swallow the wheel over the portaled list.
+                  modal
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Printer language</Label>
@@ -349,6 +471,61 @@ export function BarcodeLabelStudio({
                   </SelectContent>
                 </Select>
               </div>
+              {preset === "custom" && customSize ? (
+                <div className="space-y-2 sm:col-span-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="label-custom-width">Width (mm)</Label>
+                      <NumberInput
+                        id="label-custom-width"
+                        min={LABEL_SIZE_LIMITS.minWidthMm}
+                        max={LABEL_SIZE_LIMITS.maxWidthMm}
+                        step={0.5}
+                        value={customSize.widthMm}
+                        whenEmpty="keep"
+                        normalize={roundToTenth}
+                        onValueChange={(next) => {
+                          if (next === undefined) return;
+                          setCustomSize((current) => ({
+                            ...(current ?? dimensions),
+                            widthMm: next,
+                          }));
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="label-custom-height">Height (mm)</Label>
+                      <NumberInput
+                        id="label-custom-height"
+                        min={LABEL_SIZE_LIMITS.minHeightMm}
+                        max={LABEL_SIZE_LIMITS.maxHeightMm}
+                        step={0.5}
+                        value={customSize.heightMm}
+                        whenEmpty="keep"
+                        normalize={roundToTenth}
+                        onValueChange={(next) => {
+                          if (next === undefined) return;
+                          setCustomSize((current) => ({
+                            ...(current ?? dimensions),
+                            heightMm: next,
+                          }));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Width {LABEL_SIZE_LIMITS.minWidthMm}–{LABEL_SIZE_LIMITS.maxWidthMm} mm,
+                    height {LABEL_SIZE_LIMITS.minHeightMm}–{LABEL_SIZE_LIMITS.maxHeightMm} mm.
+                    This size is not saved to the store; this computer remembers the last one you used.
+                  </p>
+                  {customSize.widthMm > COMMON_PRINTER_WIDTH_MM ? (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Most desktop thermal printers print up to {COMMON_PRINTER_WIDTH_MM} mm wide.
+                      A wider label may be cut off.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap gap-5 rounded-lg border p-4 text-sm">
@@ -365,6 +542,13 @@ export function BarcodeLabelStudio({
                 Show price
               </label>
             </div>
+
+            {skippedCount > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {skippedCount} selected {skippedCount === 1 ? "item has" : "items have"} no
+                barcode and will be skipped.
+              </p>
+            ) : null}
 
             <div className="max-h-[320px] overflow-y-auto rounded-lg border">
               {items.map((item) => (
@@ -396,22 +580,36 @@ export function BarcodeLabelStudio({
 
           <div className="space-y-4">
             <div className="rounded-lg border bg-muted/20 p-4">
-              <p className="mb-3 text-sm font-medium">Print preview</p>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Print preview</p>
+                <p
+                  className={
+                    preset === "custom"
+                      ? "rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+                      : "text-xs text-muted-foreground"
+                  }
+                >
+                  {preset === "custom" ? `Custom · ${sizeLabel}` : sizeLabel}
+                </p>
+              </div>
               <div
                 className="mx-auto flex flex-col overflow-hidden bg-white p-3 text-black shadow-sm ring-1 ring-border"
                 style={{
-                  width: `${Math.min(320, dimensions.widthMm * 5)}px`,
-                  aspectRatio: `${dimensions.widthMm}/${dimensions.heightMm}`,
+                  width: `${dimensions.widthMm * previewScale}px`,
+                  height: `${dimensions.heightMm * previewScale}px`,
                 }}
               >
                 {previewItem ? (
                   <>
                     <p className="truncate text-xs font-bold">{previewItem.productName}</p>
                     {previewItem.variantName ? <p className="truncate text-[10px]">{previewItem.variantName}</p> : null}
-                    <div className="flex min-h-0 flex-1 items-center" dangerouslySetInnerHTML={{ __html: previewSvg }} />
-                    <div className="flex justify-between text-[9px]">
-                      <span>{showSku ? `SKU ${previewItem.sku}` : ""}</span>
-                      <strong>{showPrice ? formatPrice(previewItem.price) : ""}</strong>
+                    <div
+                      className="flex min-h-0 flex-1 items-center justify-center [&>svg]:h-full [&>svg]:w-full"
+                      dangerouslySetInnerHTML={{ __html: previewSvg }}
+                    />
+                    <div className="flex items-end justify-between gap-1 text-[9px]">
+                      <span className="min-w-0 truncate">{showSku ? `SKU ${previewItem.sku}` : ""}</span>
+                      <strong className="shrink-0">{showPrice ? formatPrice(previewItem.price) : ""}</strong>
                     </div>
                   </>
                 ) : (
@@ -419,9 +617,24 @@ export function BarcodeLabelStudio({
                 )}
               </div>
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                {validItems.length} SKU · {totalCopies} labels
+                {validItems.length} SKU · {totalCopies} {totalCopies === 1 ? "label" : "labels"}
               </p>
             </div>
+
+            {problems.length > 0 ? (
+              <div
+                role="alert"
+                className="space-y-1 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+              >
+                <p className="font-medium">These labels cannot be printed as set up:</p>
+                <ul className="list-disc space-y-0.5 pl-4">
+                  {problems.slice(0, 4).map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+                {problems.length > 4 ? <p>and {problems.length - 4} more.</p> : null}
+              </div>
+            ) : null}
 
             <div className="space-y-2 rounded-lg border p-4">
               <div className="flex gap-2">
@@ -435,14 +648,14 @@ export function BarcodeLabelStudio({
                   {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 </Button>
               </div>
-              <Button type="button" className="w-full" onClick={directPrint} disabled={!printerName || isPrinting || validItems.length === 0}>
+              <Button type="button" className="w-full" onClick={directPrint} disabled={!printerName || isPrinting || !canPrint}>
                 {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                 Direct thermal print
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={browserPrint} disabled={validItems.length === 0}>
+              <Button type="button" variant="outline" className="w-full" onClick={browserPrint} disabled={!canPrint}>
                 <Printer className="mr-2 h-4 w-4" /> Browser / driver print
               </Button>
-              <Button type="button" variant="ghost" className="w-full" onClick={() => downloadText(`storify-product-labels.${language}`, buildRawJobs().join("\n"))} disabled={validItems.length === 0}>
+              <Button type="button" variant="ghost" className="w-full" onClick={downloadCommands} disabled={!canPrint}>
                 <Download className="mr-2 h-4 w-4" /> Download {language.toUpperCase()}
               </Button>
             </div>

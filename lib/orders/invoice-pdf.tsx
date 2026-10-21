@@ -5,6 +5,7 @@
 
 import { fetchStoredFile, readCappedBody } from "@/lib/storage/fetch-stored-file";
 import path from "node:path";
+import sharp from "sharp";
 import {
   Document,
   Page,
@@ -548,34 +549,70 @@ function InvoiceDocument({
 /** A logo far past this is not a logo. */
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
+/** The two formats @react-pdf draws. */
+export interface DrawableLogo {
+  data: Buffer;
+  type: "image/png" | "image/jpeg";
+}
+
 /**
- * Formats @react-pdf cannot draw. A logo in one of them was fetched for every
- * invoice — every order confirmation email — and then left out; known by its
- * extension, it is not fetched at all.
+ * The size another format is redrawn at: the header's 120 × 40 pt box, five
+ * times over, so it stays sharp in print.
  */
-const UNDRAWABLE_LOGO = /\.(svg|webp|avif|gif)(?:$|[?#])/i;
+const LOGO_PX = { width: 600, height: 200 };
+
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff]);
 
 /** A store's logo, kept a few minutes: every confirmation email draws it. */
 const LOGO_TTL_MS = 5 * 60 * 1000;
 const logoCache = new Map<
   string,
-  { expires: number; logo: Promise<{ data: Buffer; type: string } | undefined> }
+  { expires: number; logo: Promise<DrawableLogo | undefined> }
 >();
 
-function fetchLogoBuffer(
-  url?: string,
-): Promise<{ data: Buffer; type: string } | undefined> {
-  if (!url || UNDRAWABLE_LOGO.test(url)) return Promise.resolve(undefined);
+function fetchLogo(url?: string): Promise<DrawableLogo | undefined> {
+  if (!url) return Promise.resolve(undefined);
   const cached = logoCache.get(url);
   if (cached && cached.expires > Date.now()) return cached.logo;
-  const logo = readLogoBuffer(url);
+  const logo = readLogoBuffer(url).then((raw) =>
+    raw ? drawableLogo(raw, url) : undefined,
+  );
   logoCache.set(url, { expires: Date.now() + LOGO_TTL_MS, logo });
   return logo;
 }
 
-async function readLogoBuffer(
-  url: string,
-): Promise<{ data: Buffer; type: string } | undefined> {
+/**
+ * A logo as @react-pdf can draw it. PNG and JPEG go in as they are; any other
+ * format sharp reads (SVG, WebP, AVIF, GIF's first frame) is redrawn as a PNG
+ * that fits LOGO_PX. An SVG is drawn at the density that fits it there, so a
+ * small one is not blurred and a huge one not drawn at full size first.
+ * Undefined when the bytes are not an image.
+ */
+export async function drawableLogo(
+  raw: Buffer,
+  url = "",
+): Promise<DrawableLogo | undefined> {
+  if (raw.subarray(0, 4).equals(PNG_SIGNATURE)) return { data: raw, type: "image/png" };
+  if (raw.subarray(0, 3).equals(JPEG_SIGNATURE)) return { data: raw, type: "image/jpeg" };
+  try {
+    const { format, width, height } = await sharp(raw).metadata();
+    const density =
+      format === "svg" && width && height
+        ? Math.min(2400, Math.max(1, 72 * Math.min(LOGO_PX.width / width, LOGO_PX.height / height)))
+        : undefined;
+    const data = await sharp(raw, density ? { density } : {})
+      .resize({ ...LOGO_PX, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    return { data, type: "image/png" };
+  } catch (err) {
+    console.warn(`[invoice-pdf] Logo could not be drawn: ${url}`, err);
+    return undefined;
+  }
+}
+
+async function readLogoBuffer(url: string): Promise<Buffer | undefined> {
   try {
     const absoluteUrl =
       url.startsWith("http://") || url.startsWith("https://")
@@ -595,10 +632,7 @@ async function readLogoBuffer(
       return undefined;
     }
 
-    const contentType = res.headers.get("content-type") || "image/png";
-    const buffer = await readCappedBody(res, MAX_LOGO_BYTES);
-
-    return { data: buffer, type: contentType };
+    return await readCappedBody(res, MAX_LOGO_BYTES);
   } catch (err) {
     console.error("[invoice-pdf] Logo fetch error:", err);
     return undefined;
@@ -606,25 +640,10 @@ async function readLogoBuffer(
 }
 
 export async function generateInvoicePdf(data: InvoiceData): Promise<Buffer> {
-  const logo = await fetchLogoBuffer(data.logoUrl);
-
-  let logoDataUri: string | undefined;
-  if (logo) {
-    // @react-pdf/renderer only supports PNG and JPG natively
-    // For unsupported formats (webp, svg, avif), skip the logo
-    const supported =
-      logo.type.includes("png") ||
-      logo.type.includes("jpeg") ||
-      logo.type.includes("jpg");
-
-    if (supported) {
-      logoDataUri = `data:${logo.type};base64,${logo.data.toString("base64")}`;
-    } else {
-      console.warn(
-        `[invoice-pdf] Unsupported logo format: ${logo.type}. Use PNG or JPG for invoice logo.`
-      );
-    }
-  }
+  const logo = await fetchLogo(data.logoUrl);
+  const logoDataUri = logo
+    ? `data:${logo.type};base64,${logo.data.toString("base64")}`
+    : undefined;
 
   return renderToBuffer(
     <InvoiceDocument data={data} logoDataUri={logoDataUri} />

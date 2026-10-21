@@ -1,39 +1,42 @@
-import type { ThemeTokens } from "./tokens";
-
+import { KEY_COLOR_ROLES, type KeyColorRole, type ThemeTokens } from './tokens';
+import type { BrandColors } from './compile';
+import { parseColor } from '@/lib/theme-colors/color';
+export const THEME_PREVIEW_MESSAGE = 'storify:theme-preview';
+export const THEME_PREVIEW_READY_MESSAGE = 'storify:theme-preview-ready';
+export const THEME_PREVIEW_PROTOCOL = 2;
+/** The key colours as the theme paints them (light) — what the dashboards take. */
+export interface PreviewKeyColors {
+  primary: string;
+  secondary: string;
+  accent: string;
+}
 /**
- * The Themes editor ↔ storefront preview contract.
- *
- * The editor frames the LIVE storefront and posts the unsaved TOKENS into
- * it; the frame compiles them itself with the same `compileTheme` the
- * server layout uses. Tokens travel, not CSS — so the frame is the single
- * place that decides how a token becomes a variable, and the preview can
- * never drift from the storefront. Pure module: both bundles import it.
+ * What a framed dashboard page announces instead of a theme id: it takes the
+ * key colours only (its sidebar and buttons follow the theme), whatever theme
+ * is being edited.
  */
-export const THEME_PREVIEW_MESSAGE = "storify:theme-preview";
-
-/**
- * Posted by the frame to its parent once the bridge is listening. The
- * iframe's `load` event fires long before React has hydrated the storefront
- * in development — a payload posted on `load` would fall on the floor — so
- * the editor waits for this instead, and re-sends on every ready (a frame
- * that navigates re-announces itself).
- */
-export const THEME_PREVIEW_READY_MESSAGE = "storify:theme-preview-ready";
-
+export const THEME_PREVIEW_DASHBOARD_SURFACE = 'dashboard';
 export interface ThemePreviewMessage {
   type: typeof THEME_PREVIEW_MESSAGE;
-  /** The active theme's tokens as the editor currently has them. */
+  protocolVersion: 2;
+  themeId: string;
+  sequence: number;
   tokens: ThemeTokens;
+  brand: BrandColors;
+  previewMode: 'light' | 'dark';
+  /** A key colour the frame marks wherever it paints; absent or null marks none. */
+  highlight?: KeyColorRole | null;
+  /** The unsaved key colours, for a framed dashboard page (see `surface`). */
+  keyColors?: PreviewKeyColors;
 }
-
-export function isThemePreviewMessage(
-  data: unknown,
-): data is ThemePreviewMessage {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    (data as { type?: unknown }).type === THEME_PREVIEW_MESSAGE &&
-    typeof (data as { tokens?: unknown }).tokens === "object" &&
-    (data as { tokens?: unknown }).tokens !== null
-  );
+export function isThemePreviewMessage(data: unknown): data is ThemePreviewMessage {
+  if (!data || typeof data !== 'object') return false;
+  const d=data as Partial<ThemePreviewMessage>;
+  return d.type === THEME_PREVIEW_MESSAGE && d.protocolVersion === 2 && typeof d.themeId === 'string' && Number.isSafeInteger(d.sequence) && Number(d.sequence)>=0 &&
+    !!d.tokens && typeof d.tokens === 'object' && (d.tokens.colors?.schemaVersion === 3 || d.tokens.colors?.schemaVersion === 4) &&
+    !!d.brand && ['primary','secondary','accent'].every(k=>!!parseColor(d.brand![k as keyof BrandColors])) &&
+    (d.brand.skeleton === undefined || d.brand.skeleton === '' || !!parseColor(d.brand.skeleton)) &&
+    (d.previewMode === 'light' || d.previewMode === 'dark') &&
+    (d.highlight === undefined || d.highlight === null || (KEY_COLOR_ROLES as readonly string[]).includes(d.highlight)) &&
+    (d.keyColors === undefined || (!!d.keyColors && typeof d.keyColors === 'object' && ['primary','secondary','accent'].every(k=>!!parseColor(d.keyColors![k as keyof PreviewKeyColors]))));
 }

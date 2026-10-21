@@ -1,6 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAdminPhrase } from "@/hooks/use-admin-phrase";
+import {
+  MemberAccessSummary,
+  TeamMemberRoleCard,
+  resolveMemberAccess,
+  useTeamRoles,
+} from "@/components/admin/team/team-member-role-card";
+import {
+  memberStatusChoice,
+  statusFieldsFor,
+  type MemberStatusChoice,
+} from "@/components/admin/team/member-status-control";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   History,
@@ -12,6 +24,7 @@ import {
   StickyNote,
   Trash2,
   UserRound,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -28,10 +41,10 @@ import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import type { StaffPermission } from "@/config/permissions.config";
 import { StaffDetailHeader } from "./staff-detail-header";
 import {
-  GRANTABLE_STAFF_PERMISSIONS,
-  grantableInArea,
-  normalizeStaffPermissions,
-} from "./staff-permissions";
+  permissionGroupsFor,
+  readStaffPermissions,
+  summarizeAccess,
+} from "@/lib/access/permission-list";
 import {
   defaultStaffFormValues,
   type StaffArea,
@@ -49,12 +62,20 @@ import { OrdersTab } from "./tabs/orders-tab";
 import { ActivityTab } from "./tabs/activity-tab";
 import { NotesTab } from "./tabs/notes-tab";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import type { MemberViewerAccess, TeamGrantScope } from "@/lib/access/team-member-roles";
+import { staffPermissionsSellerMayGive } from "@/config/permissions.config";
 
 interface StaffDetailShellProps {
   locale: string;
   staffId: string;
   area?: StaffArea;
   readOnly?: boolean;
+  /** The person viewing may make roles (Save as a role). */
+  canManageRoles?: boolean;
+  /** What the person viewing may give (the Role card offers only that). */
+  grantScope?: TeamGrantScope | null;
+  /** The vendor area: the seller's own permissions, which bound what its staff may be given. */
+  sellerPermissions?: readonly string[] | null;
 }
 
 interface StaffResponse {
@@ -64,10 +85,24 @@ interface StaffResponse {
   phone?: string;
   image?: string;
   status?: StaffFormValues["status"];
+  /** GET only (the admin area): the store owner, who always holds everything. */
+  isOwner?: boolean;
+  /** GET only (the admin area): what the person looking may change on this member. */
+  viewer?: MemberViewerAccess;
   createdAt?: string;
   twoFactorEnabled?: boolean;
   hasPassword?: boolean;
+  role?: string;
+  /** An administrator's team role (GET/PUT /api/admin/staff/[id]); null for staff. */
+  teamRole?: {
+    teamRoleId: string | null;
+    teamExtraPermissions: string[];
+    teamRevokedPermissions: string[];
+  } | null;
   staffProfile?: {
+    teamRoleId?: string | null;
+    teamExtraPermissions?: string[];
+    teamRevokedPermissions?: string[];
     permissions?: StaffPermission[];
     vendorIds?: string[];
     locationIds?: string[];
@@ -108,7 +143,10 @@ export function StaffDetailShell({
   locale,
   staffId,
   area = "admin",
-  readOnly = false,
+  readOnly: readOnlyProp = false,
+  canManageRoles = false,
+  grantScope = null,
+  sellerPermissions = null,
 }: StaffDetailShellProps) {
   const router = useRouter();
   const { confirm } = useConfirmation();
@@ -125,7 +163,24 @@ export function StaffDetailShell({
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
 
+  const tr = useAdminPhrase();
   const [form, setForm] = useState<StaffFormValues>(defaultStaffFormValues);
+  const [isOwner, setIsOwner] = useState(false);
+  // A member at or above the person looking (or their own access) is shown,
+  // not changed: the routes refuse it anyway (lib/access/team-member-roles.ts).
+  const [viewer, setViewer] = useState<MemberViewerAccess | null>(null);
+  // A seller gives its staff only what its plan gives the seller.
+  const sellerGivable = useMemo(
+    () => (sellerPermissions ? new Set<string>(staffPermissionsSellerMayGive(sellerPermissions)) : null),
+    [sellerPermissions],
+  );
+  const readOnly =
+    readOnlyProp ||
+    (viewer !== null && !viewer.canManage && !viewer.canChangeRole && !viewer.canChangePermissions);
+  // Details, status, scope, notes, the invitation and removal are Manage
+  // team's; someone who may only change a role or permissions sees them.
+  const detailsReadOnly = readOnly || (viewer !== null && !viewer.canManage);
+  const { roles, addRole } = useTeamRoles(area === "admin");
   const [savedForm, setSavedForm] = useState<StaffFormValues>(
     defaultStaffFormValues,
   );
@@ -162,7 +217,7 @@ export function StaffDetailShell({
         email: staff.email || "",
         phone: staff.phone || "",
         status: staff.status || "active",
-        permissions: normalizeStaffPermissions(profile?.permissions || []),
+        permissions: readStaffPermissions(profile?.permissions),
         vendorIds: (profile?.vendorIds || []).map(String),
         locationIds: (profile?.locationIds || []).map(String),
         fulfillmentRegions: (profile?.fulfillmentRegions || []).join("\n"),
@@ -171,8 +226,20 @@ export function StaffDetailShell({
         startDate: toDateInputValue(profile?.startDate),
         notes: profile?.notes || "",
         isActive: profile?.isActive ?? true,
+        // "seller" is legacy staff; everything that is not admin edits as staff.
+        role: staff.role === "admin" ? "admin" : "staff",
+        teamRoleId: staff.teamRole
+          ? staff.teamRole.teamRoleId
+          : profile?.teamRoleId
+            ? String(profile.teamRoleId)
+            : null,
+        teamExtraPermissions: staff.teamRole?.teamExtraPermissions ?? profile?.teamExtraPermissions ?? [],
+        teamRevokedPermissions: staff.teamRole?.teamRevokedPermissions ?? profile?.teamRevokedPermissions ?? [],
       };
 
+      // Only the GET says; a save's answer leaves it as it was.
+      if (staff.isOwner !== undefined) setIsOwner(staff.isOwner);
+      if (staff.viewer) setViewer(staff.viewer);
       setSavedForm(loaded);
       // A manual refresh must not throw away what an admin has typed into
       // another tab — only the saved baseline moves.
@@ -352,9 +419,11 @@ export function StaffDetailShell({
       setActiveTab("profile");
       return;
     }
-    if (form.permissions.length === 0) {
+    // An administrator's access, and a staff role's, come from the role.
+    const ownList = area !== "admin" || (form.role === "staff" && !form.teamRoleId);
+    if (ownList && form.permissions.length === 0) {
       toast.error("Select at least one permission");
-      setActiveTab("permissions");
+      setActiveTab(area === "admin" ? "role" : "permissions");
       return;
     }
 
@@ -367,6 +436,12 @@ export function StaffDetailShell({
         permissions: form.permissions,
         ...(area === "admin"
           ? {
+              // An echo of the current role changes nothing; a new one moves
+              // them between the admin dashboard and the staff area.
+              role: form.role,
+              teamRoleId: form.teamRoleId,
+              teamExtraPermissions: form.teamExtraPermissions,
+              teamRevokedPermissions: form.teamRevokedPermissions,
               vendorIds: form.vendorIds,
               locationIds: form.locationIds,
               fulfillmentRegions: form.fulfillmentRegions
@@ -504,17 +579,35 @@ export function StaffDetailShell({
     }
   }, [fetchStaff, refreshStats]);
 
-  const grantable = useMemo(
-    () => grantableInArea(GRANTABLE_STAFF_PERMISSIONS, area),
-    [area],
+  const memberValue = useMemo(
+    () => ({
+      role: form.role,
+      teamRoleId: form.teamRoleId,
+      teamExtraPermissions: form.teamExtraPermissions,
+      teamRevokedPermissions: form.teamRevokedPermissions,
+      permissions: form.permissions,
+    }),
+    [form.role, form.teamRoleId, form.teamExtraPermissions, form.teamRevokedPermissions, form.permissions],
   );
-  const grantedCount = useMemo(
-    () =>
-      normalizeStaffPermissions(form.permissions).filter((permission) =>
-        grantable.includes(permission),
-      ).length,
-    [form.permissions, grantable],
+  // What they hold: their role's (the admin area) or their own list (a vendor's staff).
+  const held = useMemo(() => {
+    if (area !== "admin") return form.permissions as string[];
+    return resolveMemberAccess(memberValue, roles, isOwner)?.effective ?? [];
+  }, [area, form.permissions, memberValue, roles, isOwner]);
+  const accessCounts = useMemo(
+    () => summarizeAccess(new Set(held), permissionGroupsFor(area === "admin" ? form.role : "staff", area)),
+    [held, area, form.role],
   );
+
+  const statusChoice = memberStatusChoice(form.status, form.isActive);
+  // Back to the saved choice restores the saved fields, so a member whose
+  // old access switch was off is not rewritten by a look at this control.
+  const setStatusChoice = (choice: MemberStatusChoice) => {
+    const saved = memberStatusChoice(savedForm.status, savedForm.isActive);
+    const fields =
+      choice === saved ? { status: savedForm.status, isActive: savedForm.isActive } : statusFieldsFor(choice);
+    setForm((prev) => ({ ...prev, ...fields }));
+  };
 
   const scopeCount =
     form.vendorIds.length +
@@ -524,15 +617,23 @@ export function StaffDetailShell({
       .map((value) => value.trim())
       .filter(Boolean).length;
 
+  // The admin area: the Role tab holds the role and every permission; the
+  // vendor area's staff have no roles, only the Permissions tab.
+  const roleTab = area === "admin";
   const tabs = [
     { value: "profile", label: "Profile", icon: UserRound },
-    {
-      value: "permissions",
-      label: "Permissions",
-      icon: ShieldCheck,
-      count: grantedCount,
-    },
-    ...(area === "admin"
+    ...(roleTab ? [{ value: "role", label: tr("Role", "রোল"), icon: KeyRound }] : []),
+    ...(!roleTab
+      ? [
+          {
+            value: "permissions",
+            label: "Permissions",
+            icon: ShieldCheck,
+            count: accessCounts.held,
+          },
+        ]
+      : []),
+    ...(area === "admin" && form.role === "staff"
       ? [
           {
             value: "scope",
@@ -594,7 +695,7 @@ export function StaffDetailShell({
               />
               <span className="sr-only">Refresh</span>
             </Button>
-            {!readOnly && (
+            {!detailsReadOnly && (
               <Button
                 type="button"
                 variant="outline"
@@ -628,14 +729,14 @@ export function StaffDetailShell({
       <StaffDetailHeader
         data={header ?? LOADING_HEADER}
         stats={stats}
-        permissionCount={grantedCount}
-        totalPermissions={grantable.length}
-        accessEnabled={form.isActive}
-        hasPosAccess={form.permissions.includes(STAFF_PERMISSIONS.ACCESS_POS)}
+        permissionCount={accessCounts.held}
+        totalPermissions={accessCounts.total}
+        accessEnabled={savedForm.isActive}
+        hasPosAccess={held.includes(STAFF_PERMISSIONS.ACCESS_POS)}
         loading={isFetching}
         statsLoading={statsLoading}
         statsError={statsError}
-        onSendInvite={readOnly ? undefined : handleSendInvite}
+        onSendInvite={detailsReadOnly ? undefined : handleSendInvite}
         invitePending={isSendingInvite}
         inviteDisabled={isFetching}
       />
@@ -665,23 +766,59 @@ export function StaffDetailShell({
               stats={stats}
               onSendInvite={handleSendInvite}
               invitePending={isSendingInvite}
-              readOnly={readOnly}
+              statusChoice={statusChoice}
+              onStatusChoice={setStatusChoice}
+              statusLocked={isOwner}
+              readOnly={detailsReadOnly}
             />
           )}
         </TabsContent>
 
-        <TabsContent value="permissions">
-          {isFetching ? (
-            <DetailFormSkeleton cards={1} fieldsPerCard={8} />
-          ) : (
-            <PermissionsTab
-              permissions={form.permissions}
-              onChange={(next) => setField("permissions", next)}
-              readOnly={readOnly}
-              area={area}
-            />
-          )}
-        </TabsContent>
+        {roleTab && (
+          <TabsContent value="role">
+            {isFetching ? (
+              <DetailFormSkeleton cards={1} fieldsPerCard={4} />
+            ) : (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <TeamMemberRoleCard
+                    readOnly={readOnly}
+                    isOwner={isOwner}
+                    roles={roles}
+                    onRoleCreated={addRole}
+                    canManageRoles={canManageRoles}
+                    grantScope={grantScope}
+                    canChangeRole={viewer ? viewer.canChangeRole : true}
+                    canChangePermissions={viewer ? viewer.canChangePermissions : true}
+                    memberName={form.name}
+                    value={memberValue}
+                    onChange={(next) => setForm((prev) => ({ ...prev, ...next }))}
+                  />
+                </div>
+                <div className="lg:sticky lg:top-4 lg:self-start">
+                  <MemberAccessSummary value={memberValue} roles={roles} name={form.name} isOwner={isOwner} />
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {!roleTab && (
+          <TabsContent value="permissions">
+            {isFetching ? (
+              <DetailFormSkeleton cards={1} fieldsPerCard={8} />
+            ) : (
+              <PermissionsTab
+                permissions={form.permissions}
+                onChange={(next) => setField("permissions", next)}
+                readOnly={readOnly}
+                area={area}
+                name={form.name}
+                canGrant={sellerGivable ? (permission) => sellerGivable.has(permission) : undefined}
+              />
+            )}
+          </TabsContent>
+        )}
 
         {area === "admin" && (
           <TabsContent value="scope">
@@ -695,7 +832,7 @@ export function StaffDetailShell({
                 locations={locations}
                 locationsProblem={locationsProblem}
                 optionsLoading={optionsLoading}
-                readOnly={readOnly}
+                readOnly={detailsReadOnly}
               />
             )}
           </TabsContent>
@@ -727,7 +864,7 @@ export function StaffDetailShell({
               onAddNote={handleAddNote}
               onDelete={handleDelete}
               isDeleting={isDeleting}
-              readOnly={readOnly}
+              readOnly={detailsReadOnly}
             />
           )}
         </TabsContent>

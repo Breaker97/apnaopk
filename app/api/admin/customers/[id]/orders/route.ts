@@ -65,11 +65,16 @@ export const GET = withApi<{ id: string }>(
     // The distinction matters beyond correctness: an undefined customerId is
     // silently dropped from the query, which would have matched every order
     // in the store.
+    //
+    // A guest the till knew only by phone number has neither: their counter
+    // sales carry the guest row itself (`posCustomerProfileId`).
     const ownerFilter = profile.userId
       ? { customerId: profile.userId }
       : profile.email
         ? { guestEmail: profile.email }
-        : null;
+        : profile.isGuest
+          ? { posCustomerProfileId: profile._id }
+          : null;
     if (!ownerFilter) {
       return paginatedResponse([], page, limit, 0);
     }

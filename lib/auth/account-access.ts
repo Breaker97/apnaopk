@@ -1,5 +1,6 @@
 import "server-only";
 
+import { emailBrand } from "@/lib/email/brand-colors";
 import { ObjectId } from "mongodb";
 import { connectDB, mongoose } from "@/lib/db";
 import { PasswordReset, User, Vendor } from "@/models";
@@ -190,6 +191,7 @@ export async function sendAccountAccessEmail(
     selfService: params.selfService,
     copy: params.copy,
     vendorStoreName,
+    brand: emailBrand(settings),
   });
   const category = ACCOUNT_ACCESS_EMAIL_CATEGORY[purpose];
 

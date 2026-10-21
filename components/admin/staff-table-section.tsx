@@ -13,6 +13,8 @@ interface StaffTableSectionProps {
   area?: "admin" | "vendor";
   /** Present on the vendor dashboard: list only this store's staff. */
   vendorId?: Types.ObjectId | string;
+  /** The admin dashboard: what the viewer may do to the team (add, manage). */
+  teamActions?: { add: boolean; manage: boolean };
 }
 
 /**
@@ -25,6 +27,7 @@ export async function StaffTableSection({
   searchParams,
   area = "admin",
   vendorId,
+  teamActions,
 }: StaffTableSectionProps) {
   // Parsed with the schema the API routes use, so a page and its endpoint can
   // never read one query string two different ways.
@@ -35,6 +38,7 @@ export async function StaffTableSection({
     <StaffDataTable
       locale={locale}
       area={area}
+      teamActions={teamActions}
       data={serializeRows(list.items)}
       pagination={{
         page: list.page,

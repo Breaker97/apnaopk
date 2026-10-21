@@ -25,7 +25,7 @@ import { getSettings } from "@/models/settings.model";
 import {
   admitAppCart,
   appCheckoutIdentity,
-  assertDelivery,
+  assertFulfillmentSelection,
   inShopperWords,
   toCheckoutError,
   toPlaceInput,
@@ -142,7 +142,7 @@ async function refuseWhileEarlierPromptLive(
 }
 
 /** A refusal of the push start as the contract words it. */
-function toPushError(error: unknown): unknown {
+function toPushError(error: unknown, method?: PushPaymentRequest["fulfillmentMethod"]): unknown {
   if (error instanceof ValidationError) {
     const phone = error.errors.iotecPhone ?? error.errors.mtnMomoPhone;
     if (phone) {
@@ -168,7 +168,7 @@ function toPushError(error: unknown): unknown {
   ) {
     return methodUnavailable(error.message);
   }
-  return toCheckoutError(error);
+  return toCheckoutError(error, method);
 }
 
 /**
@@ -207,7 +207,7 @@ export const pushStartRoute = defineRoute({
       const placed = await pushOrderPlacedWith(orderKey);
       if (placed) return answerFor(placed);
 
-      assertDelivery(input);
+      assertFulfillmentSelection(input);
       await assertMethodReady(input.paymentMethod);
       await refuseWhileEarlierPromptLive(scope, { session, client });
 
@@ -246,7 +246,7 @@ export const pushStartRoute = defineRoute({
         const order = await pushOrderPlacedWith(orderKey);
         if (order && !isRetired(order)) return pushPaymentOf(order);
         if (order && (isProviderFailure(error) || isSecondOrderForKey(error))) throw paymentFailed();
-        throw await inShopperWords(toPushError(error), locale);
+        throw await inShopperWords(toPushError(error, input.fulfillmentMethod), locale);
       }
 
       const order = await pushOrderPlacedWith(orderKey);

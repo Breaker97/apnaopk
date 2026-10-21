@@ -1,11 +1,13 @@
 "use client";
 import { useFinanceRequest } from "@/hooks/use-finance-request";
-import { PayoutBreakdown } from "@/components/payouts/payout-breakdown";
+import { formatPayoutDay } from "@/components/payouts/payout-period";
+import { localCalendarDay, returnInstantForDay } from "@/lib/finance/payout-return-date";
+import { SellerBankDetailsBlock, type SellerBankDetails } from "@/components/admin/payouts/seller-bank-details";
 
 import Link from "@/components/language/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Check, Info } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Info } from "lucide-react";
 import { toast } from "@/components/ui/toast-notification";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +46,7 @@ type PayoutDetailsPayload = {
     netAmount: number;
     periodStart: string;
     periodEnd: string;
+    periodBoundary?: string;
     createdAt: string;
     paidAt?: string;
     version?: number;
@@ -55,7 +58,11 @@ type PayoutDetailsPayload = {
     paidFrom?: string;
     paymentReference?: string;
     statusHistory?: StatusEvent[];
-    vendorId?: { _id?: string; storeName?: string; slug?: string };
+    /** Orders it holds changed after it was made: cancel and draw up a new one. */
+    requiresRequote?: boolean;
+    requoteReason?: string;
+    preorderReserveReleaseAt?: string;
+    vendorId?: { _id?: string; storeName?: string; slug?: string; status?: string; bankDetails?: SellerBankDetails | null };
   };
   orders: Array<{
     _id: string;
@@ -75,6 +82,18 @@ type PayoutDetailsPayload = {
 const STEPS = ["pending", "processing", "paid"] as const;
 
 const ACCOUNTS = ["bank", "cash", "gateway"] as const;
+
+/** The corrections a payout's breakdown records, in reading order. */
+const ADJUSTMENT_ROWS: Array<{ key: string; sign: 1 | -1; label: string; hint: string }> = [
+  { key: "recoveryDeducted", sign: -1, label: "Refund recovery", hint: "paid earlier on orders refunded since" },
+  { key: "recoveryReturned", sign: 1, label: "Recovery returned", hint: "a refund recovered earlier was undone" },
+  { key: "reserveHeld", sign: -1, label: "Pre-order reserve held", hint: "held back against a late chargeback" },
+  { key: "reserveReleased", sign: 1, label: "Pre-order reserve released", hint: "held on an earlier payout, now matured" },
+  { key: "reserveCreditDeducted", sign: -1, label: "Reserve recovered", hint: "a released reserve whose payout came back" },
+  { key: "reserveCreditReturned", sign: 1, label: "Reserve recovery returned", hint: "handed back after its payout was paid again" },
+  { key: "commissionOffset", sign: -1, label: "Commission on cash sales", hint: "owed on sales the seller took the money for" },
+  { key: "commissionCredit", sign: 1, label: "Store promotions on cash sales", hint: "discounts the store paid for beyond the commission owed" },
+];
 
 const STATUS_TONE: Record<string, string> = {
   paid: "border-green-600/25 bg-green-600/10 text-green-700 dark:text-green-400",
@@ -134,6 +153,8 @@ export function AdminPayoutDetails({
   const [note, setNote] = useState("");
   const [reference, setReference] = useState("");
   const [paidFrom, setPaidFrom] = useState("");
+  /** The day a paid payout's money came back; empty means today. */
+  const [returnedOn, setReturnedOn] = useState("");
 
   // The payout's OWN currency, not the store's current one: a payout is frozen
   // in what it was calculated in, and relabelling it later says the vendor was
@@ -154,6 +175,7 @@ export function AdminPayoutDetails({
       setNote(payload.payout?.note || "");
       setReference(payload.payout?.paymentReference || "");
       setPaidFrom(payload.payout?.paidFrom || "");
+      setReturnedOn("");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load payout");
     } finally {
@@ -222,9 +244,17 @@ export function AdminPayoutDetails({
         return ["pending", "processing", "paid", "cancelled"];
     }
   }, [payout?.status]);
+  // A payout whose orders changed cannot be paid as it stands — the API
+  // refuses it; the screen stops offering it.
+  const offeredStatuses = payout?.requiresRequote
+    ? statusOptions.filter((option) => option !== "paid" || payout.status === "paid")
+    : statusOptions;
 
   /** Marking a paid payout failed: the money came back and everything unwinds. */
   const bouncing = payout?.status === "paid" && status === "failed";
+
+  /** Earnings the seller's commission took in full: nothing is sent, so there is no account. */
+  const noTransfer = (payout?.netAmount ?? 0) === 0 && (payout?.commissionOffset ?? 0) > 0;
 
   const updatePayout = async () => {
     setIsSaving(true);
@@ -237,11 +267,20 @@ export function AdminPayoutDetails({
           note,
           paymentReference: reference,
           paidFrom,
+          ...(bouncing && returnedOn && payout?.paidAt
+            ? { reversedAt: returnInstantForDay(returnedOn, new Date(payout.paidAt), new Date()).toISOString() }
+            : {}),
           expectedVersion: payout?.version ?? 0,
-          requestKey: financeRequest.key(`payout:${payoutId}`, { status, note, reference, paidFrom, version: payout?.version ?? 0 }),
+          requestKey: financeRequest.key(`payout:${payoutId}`, { status, note, reference, paidFrom, returnedOn: bouncing ? returnedOn : "", version: payout?.version ?? 0 }),
         }),
       });
       const json = await res.json().catch(() => null);
+      if (res.status === 409) {
+        // Someone else changed it first: show them what it is now.
+        toast.error(json?.message || label("finance.payout.changedElsewhere", "This payout changed. It has been reloaded."));
+        await load();
+        return;
+      }
       if (!res.ok || !json?.success) {
         throw new Error(json?.message || "Failed to update payout");
       }
@@ -287,7 +326,6 @@ export function AdminPayoutDetails({
     });
 
   const orders = data?.orders ?? [];
-  const orderTotal = orders.reduce((sum, order) => sum + order.total, 0);
   const shareTotal = orders.reduce((sum, order) => sum + order.vendorShare, 0);
   const earningsTotal = orders.reduce(
     (sum, order) => sum + order.vendorEarnings,
@@ -346,17 +384,11 @@ export function AdminPayoutDetails({
             )}
             <span aria-hidden>·</span>
             <span>
-              {label("finance.payout.ordersUpTo", "Orders up to {date}").replace(
-                "{date}",
-                day(payout.periodEnd),
-              )}
+              {label("finance.payout.ordersUpTo", "Orders up to {date}", { date: formatPayoutDay(payout.periodEnd, locale, payout.periodBoundary) })}
             </span>
             <span aria-hidden>·</span>
             <span>
-              {label("finance.payout.orderCount", "{count} orders").replace(
-                "{count}",
-                String(orders.length),
-              )}
+              {label("finance.payout.orderCount", "{count} orders", { count: String(orders.length) })}
             </span>
           </div>
         </div>
@@ -369,7 +401,21 @@ export function AdminPayoutDetails({
         adjustment — IS the net. Printed as separate cards, the difference read
         as an error on the one screen whose entire purpose is being checked.
       */}
-      {payout.breakdown && <PayoutBreakdown breakdown={payout.breakdown} currency={payout.currency} />}
+      {payout.requiresRequote && payout.status !== "paid" ? (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <p>
+            {payout.requoteReason ? `${payout.requoteReason} ` : ""}
+            {label("finance.payout.requote", "Orders in this payout changed after it was made. Cancel it and create a new one.")}
+          </p>
+        </div>
+      ) : null}
+      {payout.vendorId?.status === "suspended" && ["pending", "processing"].includes(payout.status) ? (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <p>{label("finance.payout.frozen", "This seller is suspended, so this payout cannot be sent. Restore the seller, or cancel the payout.")}</p>
+        </div>
+      ) : null}
       {!payout.breakdown && <p className="text-muted-foreground">{t("finance.reliability.legacy")}</p>}
       <Card className="gap-0 py-6">
         <CardContent className="grid gap-8 px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -408,51 +454,45 @@ export function AdminPayoutDetails({
                   value={`+${money(payout.shippingAmount)}`}
                 />
               ) : null}
-              {payout.commissionOffset ? (
-                <CalculationRow
-                  label={label(
-                    "finance.payout.commissionOffset",
-                    "Commission on cash sales",
-                  )}
-                  hint={label(
-                    "finance.payout.commissionOffsetHint",
-                    "owed on sales the vendor took the money for, deducted here instead of invoiced",
-                  )}
-                  value={`-${money(payout.commissionOffset)}`}
-                />
-              ) : null}
-              {payout.commissionCredit ? (
-                <CalculationRow
-                  label={label(
-                    "finance.payout.commissionCredit",
-                    "Store promotions on cash sales",
-                  )}
-                  hint={label(
-                    "finance.payout.commissionCreditHint",
-                    "discounts the store paid for on sales the vendor collected, beyond the commission they owed",
-                  )}
-                  value={`+${money(payout.commissionCredit)}`}
-                />
-              ) : null}
-              {otherAdjustments ? (
-                <CalculationRow
-                  label={label("finance.payout.adjustments", "Adjustments")}
-                  hint={label(
-                    "finance.payout.adjustmentsHint",
-                    "recovered from this payout — already paid on orders refunded since",
-                  )}
-                  value={money(otherAdjustments)}
-                />
+              {payout.breakdown ? (
+                // Each correction under its own name. One "Adjustments" line
+                // called a reserve held back a refund recovered.
+                ADJUSTMENT_ROWS.filter(({ key }) => Number(payout.breakdown?.[key] || 0) !== 0).map(({ key, sign, label: fallback, hint }) => (
+                  <CalculationRow
+                    key={key}
+                    label={label(`finance.payout.adjustment.${key}`, fallback)}
+                    hint={
+                      key === "reserveHeld" && payout.preorderReserveReleaseAt
+                        ? label("finance.payout.reserveUntil", "released on {date}", { date: day(payout.preorderReserveReleaseAt) })
+                        : label(`finance.payout.adjustment.${key}Hint`, hint)
+                    }
+                    value={`${sign < 0 ? "-" : "+"}${money(Math.abs(Number(payout.breakdown?.[key] || 0)))}`}
+                  />
+                ))
               ) : (
-                <CalculationRow
-                  label={label("finance.payout.adjustments", "Adjustments")}
-                  hint={label(
-                    "finance.payout.noAdjustments",
-                    "none carried in from an earlier payout",
-                  )}
-                  value={money(0)}
-                  muted
-                />
+                <>
+                  {payout.commissionOffset ? (
+                    <CalculationRow
+                      label={label("finance.payout.commissionOffset", "Commission on cash sales")}
+                      hint={label("finance.payout.commissionOffsetHint", "owed on sales the vendor took the money for, deducted here instead of invoiced")}
+                      value={`-${money(payout.commissionOffset)}`}
+                    />
+                  ) : null}
+                  {payout.commissionCredit ? (
+                    <CalculationRow
+                      label={label("finance.payout.commissionCredit", "Store promotions on cash sales")}
+                      hint={label("finance.payout.commissionCreditHint", "discounts the store paid for on sales the vendor collected, beyond the commission they owed")}
+                      value={`+${money(payout.commissionCredit)}`}
+                    />
+                  ) : null}
+                  {otherAdjustments ? (
+                    <CalculationRow
+                      label={label("finance.payout.otherAdjustments", "Other adjustments")}
+                      hint={label("finance.payout.otherAdjustmentsHint", "refund recoveries and pre-order reserve movements")}
+                      value={money(otherAdjustments)}
+                    />
+                  ) : null}
+                </>
               )}
             </div>
           </div>
@@ -469,10 +509,7 @@ export function AdminPayoutDetails({
                 <Check className="mt-0.5 size-3.5 shrink-0 text-green-600" />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium">
-                    {label("finance.payout.paidOn", "Paid {date}").replace(
-                      "{date}",
-                      dateTime(payout.paidAt),
-                    )}
+                    {label("finance.payout.paidOn", "Paid {date}", { date: dateTime(payout.paidAt) })}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {[
@@ -496,8 +533,7 @@ export function AdminPayoutDetails({
               <p className="mt-2 text-[13px] font-medium text-destructive">
                 {label(
                   "finance.payout.returnedOn",
-                  "Came back {date} — the vendor is owed it again",
-                ).replace("{date}", dateTime(payout.reversedAt))}
+                  "Came back {date} — the vendor is owed it again", { date: dateTime(payout.reversedAt) })}
               </p>
             ) : null}
           </div>
@@ -510,6 +546,31 @@ export function AdminPayoutDetails({
           <p className="text-base font-semibold">
             {label("finance.payout.statusTitle", "Status")}
           </p>
+          {settled ? (
+            // A payout that failed or was called off left the happy path: what
+            // happened to it, in order, rather than three steps all "Not yet".
+            <ol className="mt-4 space-y-2.5">
+              {[{ status: "pending", at: payout.createdAt } as StatusEvent, ...history.filter((event) => event.status !== "pending")].map((event, index) => (
+                <li key={`${event.status}-${index}`} className="flex items-start gap-2.5 text-[13px]">
+                  <span
+                    className={cn(
+                      "mt-1 size-2 shrink-0 rounded-full",
+                      event.status === "failed" || event.status === "cancelled" ? "bg-destructive" : "bg-green-600",
+                    )}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {event.status === "failed" && payout.reversedAt
+                        ? label("finance.payout.returnedStep", "Money came back")
+                        : statusLabel(event.status)}
+                      <span className="ms-2 font-normal text-muted-foreground">{dateTime(event.at)}</span>
+                    </p>
+                    {event.note ? <p className="mt-0.5 text-xs text-muted-foreground">{event.note}</p> : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
           <div className="mt-5 flex flex-wrap items-start gap-y-4">
             {STEPS.map((step, index) => {
               const done = reachedIndex >= index && reachedIndex !== -1;
@@ -548,6 +609,7 @@ export function AdminPayoutDetails({
               );
             })}
           </div>
+          )}
         </CardContent>
 
         <div className="border-t px-6 py-5">
@@ -561,7 +623,7 @@ export function AdminPayoutDetails({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((option) => (
+                  {offeredStatuses.map((option) => (
                     <SelectItem key={option} value={option}>
                       {statusLabel(option)}
                     </SelectItem>
@@ -585,6 +647,11 @@ export function AdminPayoutDetails({
               <Label className="mb-1.5 block">
                 {label("finance.expenses.paidFrom", "Paid from")}
               </Label>
+              {noTransfer ? (
+                <p className="flex h-9 items-center text-sm text-muted-foreground">
+                  {label("finance.payout.noTransfer", "No transfer — settled against commission")}
+                </p>
+              ) : (
               <Select
                 disabled={Boolean(payout.paidAt)}
                 value={paidFrom || "unset"}
@@ -606,6 +673,7 @@ export function AdminPayoutDetails({
                   ))}
                 </SelectContent>
               </Select>
+              )}
             </div>
           </div>
           <div className="mt-4">
@@ -630,6 +698,26 @@ export function AdminPayoutDetails({
               onChange={(event) => setNote(event.target.value)}
             />
           </div>
+          {bouncing ? (
+            <div className="mt-4 max-w-xs">
+              <Label htmlFor="payout-returned-on" className="mb-1.5 block">
+                {label("finance.payout.returnedOnLabel", "Day the money came back")}
+              </Label>
+              <Input
+                id="payout-returned-on"
+                type="date"
+                value={returnedOn}
+                min={payout.paidAt ? localCalendarDay(new Date(payout.paidAt)) : undefined}
+                max={localCalendarDay(new Date())}
+                onChange={(event) => setReturnedOn(event.target.value)}
+              />
+            </div>
+          ) : null}
+          {["pending", "processing"].includes(payout.status) && !noTransfer ? (
+            <div className="mt-4">
+              <SellerBankDetailsBlock details={payout.vendorId?.bankDetails} />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4">
@@ -669,8 +757,7 @@ export function AdminPayoutDetails({
           <span className="text-[13px] text-muted-foreground">
             {label(
               "finance.payout.ordersHint",
-              "Everything delivered and unpaid up to {date}",
-            ).replace("{date}", day(payout.periodEnd))}
+              "Everything delivered and unpaid up to {date}", { date: formatPayoutDay(payout.periodEnd, locale, payout.periodBoundary) })}
           </span>
         </div>
         <div className="overflow-x-auto border-t">
@@ -688,9 +775,6 @@ export function AdminPayoutDetails({
                 </th>
                 <th className="h-10 px-4 font-medium">
                   {label("finance.payout.payment", "Payment")}
-                </th>
-                <th className="h-10 px-4 text-right font-medium">
-                  {label("finance.payout.orderTotal", "Order total")}
                 </th>
                 <th className="h-10 px-4 text-right font-medium">
                   {label("finance.payout.vendorShare", "Vendor's share")}
@@ -718,9 +802,6 @@ export function AdminPayoutDetails({
                   <td className="px-4 py-3 capitalize text-muted-foreground">
                     {order.paymentStatus}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                    {money(order.total)}
-                  </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {money(order.vendorShare)}
                   </td>
@@ -732,7 +813,7 @@ export function AdminPayoutDetails({
               {orders.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="py-8 text-center text-muted-foreground"
                   >
                     {label(
@@ -747,13 +828,7 @@ export function AdminPayoutDetails({
               <tfoot>
                 <tr className="border-t bg-muted/40 font-medium">
                   <td className="px-4 py-3" colSpan={4}>
-                    {label("finance.payout.orderCount", "{count} orders").replace(
-                      "{count}",
-                      String(orders.length),
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                    {money(orderTotal)}
+                    {label("finance.payout.orderCount", "{count} orders", { count: String(orders.length) })}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {money(shareTotal)}
@@ -768,8 +843,8 @@ export function AdminPayoutDetails({
         </div>
         <p className="px-6 pb-5 pt-3.5 text-xs text-muted-foreground">
           {label(
-            "finance.payout.shareNote",
-            "The order total is what the buyer paid, including shipping and tax the store collected. The vendor's share of the goods is what gross sales adds up to; after commission it is what the net payout adds up to.",
+            "finance.payout.sellerShareNote",
+            "The seller's share of the goods on each order adds up to gross sales; after commission it adds up to the net payout. Shipping and tax the store collected are not part of it.",
           )}
         </p>
       </Card>

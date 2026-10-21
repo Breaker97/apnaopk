@@ -194,7 +194,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
                     ) : null}
                   </div>
                   <div className="p-4">
-                    <h3 className="line-clamp-2 font-semibold leading-snug group-hover:text-primary">
+                    <h3 className="line-clamp-2 font-semibold leading-snug group-hover:text-store-link">
                       {p.title}
                     </h3>
                     <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">

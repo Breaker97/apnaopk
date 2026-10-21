@@ -1,4 +1,6 @@
 import { headers } from "next/headers";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
+import { handleApiError } from "@/lib/api/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { USER_ROLES } from "@/config/app.config";
@@ -15,6 +17,11 @@ export async function POST(
   }
   if (session.user.role !== USER_ROLES.ADMIN) {
     return NextResponse.json({ success: false, message: "Admin access required" }, { status: 403 });
+  }
+  try {
+    await enforceTeamRole(_request, session.user.id, { adminOnly: true });
+  } catch (error) {
+    return handleApiError(error);
   }
   const demoBlock = getDemoModeMutationResponse();
   if (demoBlock) return demoBlock;

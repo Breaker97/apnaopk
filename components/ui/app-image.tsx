@@ -4,6 +4,31 @@ import { isTrustedRemoteUrl } from "@/lib/remote-image-domains";
 import Image, { type ImageProps } from "next/image";
 import { useState, type ReactNode } from "react";
 
+/**
+ * Whether `src` is served as-is rather than through the image optimizer —
+ * the one rule, shared with whatever has to predict the URL an image will be
+ * fetched from (the till's offline image warm-up, lib/pos/offline-images.ts).
+ *
+ * Absolute URLs on hosts outside next.config's remotePatterns — e.g. media
+ * uploaded while a different storage provider or custom CDN domain was
+ * active — would make next/image throw at render and hide the image, so they
+ * are served unoptimized straight from their origin. SVG is vector, and the
+ * optimizer refuses it outright unless `dangerouslyAllowSVG` is on (which
+ * would let an uploaded file run script on the store's own origin).
+ */
+export function isAppImageUnoptimized(src: string): boolean {
+  const normalizedSrc = src.trim();
+  const isUntrustedRemote =
+    /^https?:\/\//i.test(normalizedSrc) && !isTrustedRemoteUrl(normalizedSrc);
+  const isVector = /\.svgz?(?:[?#]|$)/i.test(normalizedSrc);
+  return (
+    normalizedSrc.startsWith("data:") ||
+    normalizedSrc.startsWith("blob:") ||
+    isVector ||
+    isUntrustedRemote
+  );
+}
+
 type AppImageProps = Omit<ImageProps, "src" | "alt" | "onError"> & {
   src?: string | null;
   alt: string;
@@ -36,21 +61,6 @@ export function AppImage({
     onImageError?.();
   };
 
-  // Absolute URLs on hosts outside next.config's remotePatterns — e.g. media
-  // uploaded while a different storage provider or custom CDN domain was
-  // active — would make next/image throw at render and hide the image. Serve
-  // those unoptimized straight from their origin so existing media keeps
-  // rendering after a storage-provider switch.
-  const isUntrustedRemote =
-    /^https?:\/\//i.test(normalizedSrc) && !isTrustedRemoteUrl(normalizedSrc);
-
-  // SVG is vector, and the optimizer refuses it outright unless
-  // `dangerouslyAllowSVG` is on (which would let an uploaded file run script
-  // on the store's own origin). Left to next/image an uploaded SVG logo
-  // answers 400 and disappears behind the fallback; served as-is it stays
-  // sharp at every size, which is the reason to upload one.
-  const isVector = /\.svgz?(?:[?#]|$)/i.test(normalizedSrc);
-
   // Use Next.js Image for optimization wherever the optimizer can load the
   // source: local relative URLs and whitelisted remote hosts get automatic
   // WebP/AVIF conversion, responsive srcset, lazy loading and caching.
@@ -68,13 +78,7 @@ export function AppImage({
       fill={fill}
       {...props}
       onError={handleError}
-      unoptimized={
-        normalizedSrc.startsWith("data:") ||
-        normalizedSrc.startsWith("blob:") ||
-        isVector ||
-        isUntrustedRemote ||
-        props.unoptimized
-      }
+      unoptimized={isAppImageUnoptimized(normalizedSrc) || props.unoptimized}
     />
   );
 }

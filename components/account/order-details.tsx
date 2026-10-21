@@ -1,5 +1,7 @@
 "use client";
 
+import { ORDER_STATUS_CLASSES } from "@/lib/theme-colors/status";
+
 import { use, useState, useEffect, useMemo } from "react";
 import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
@@ -262,7 +264,7 @@ const PICKUP_STATUS_TONES: Record<
   { icon: LucideIcon; className: string }
 > = {
   scheduled: { icon: Clock, className: "bg-muted text-foreground" },
-  ready: { icon: PackageCheck, className: "bg-primary/10 text-primary" },
+  ready: { icon: PackageCheck, className: "bg-primary/10 text-store-link" },
   collected: {
     icon: CheckCircle2,
     className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -810,7 +812,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
       label,
     } = config[status] || { variant: "outline", icon: Package, label: status };
     return (
-      <Badge variant={variant} className="gap-1.5 text-sm py-1 px-3">
+      <Badge variant={variant} className={cn("gap-1.5 text-sm py-1 px-3",ORDER_STATUS_CLASSES[status])}>
         <Icon className="h-4 w-4" />
         {label}
       </Badge>
@@ -1051,7 +1053,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
           {partialState ? (
             <Badge
               variant="secondary"
-              className="gap-1.5 bg-primary/10 px-3 py-1 text-sm text-primary"
+              className="gap-1.5 bg-primary/10 px-3 py-1 text-sm text-store-link"
             >
               <Truck className="h-4 w-4" />
               {partialState === "partially_shipped"
@@ -1125,7 +1127,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-start gap-3">
             <div className="rounded-lg bg-primary/10 p-2">
-              <CalendarClock className="h-5 w-5 text-primary" aria-hidden />
+              <CalendarClock className="h-5 w-5 text-store-link" aria-hidden />
             </div>
             <div className="min-w-0 space-y-1">
               <p className="font-semibold">
@@ -1190,7 +1192,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
         <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <div className="rounded-lg bg-background p-2">
-              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" aria-hidden />
+              <Star className="h-5 w-5 fill-current text-(--store-rating,#a86500)" aria-hidden />
             </div>
             <div className="min-w-0">
               <p className="font-semibold">
@@ -1273,7 +1275,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                 <Button
                   asChild
                   variant="secondary"
-                  className="mt-1 h-11 w-full gap-1.5 bg-primary/10 text-primary hover:bg-primary/15 md:ms-auto md:mt-0 md:h-9 md:w-auto"
+                  className="mt-1 h-11 w-full gap-1.5 bg-primary/10 text-store-link hover:bg-primary/15 md:ms-auto md:mt-0 md:h-9 md:w-auto"
                 >
                   <a
                     href={order.trackingUrl}
@@ -1605,7 +1607,7 @@ export function OrderDetails({ orderId, locale }: OrderDetailsProps) {
                               asChild
                               size="sm"
                               variant="secondary"
-                              className="h-8 shrink-0 gap-1 bg-primary/10 text-primary hover:bg-primary/15"
+                              className="h-8 shrink-0 gap-1 bg-primary/10 text-store-link hover:bg-primary/15"
                             >
                               <a
                                 href={group.shipment.trackingUrl}

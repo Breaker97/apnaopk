@@ -27,6 +27,22 @@ export function isPosWalkIn(
 }
 
 /**
+ * The name a walk-in sale was rung up under, when the till took one.
+ *
+ * A shopper who gave the cashier a phone number and no email has no account
+ * to file the sale under, so it stays a walk-in (filed under the cashier) and
+ * carries their name and guest profile alongside. The screens that would say
+ * "Walk-in customer" say this name instead. Undefined for every other sale,
+ * including an ordinary walk-in — callers keep their own label for that.
+ */
+export function posWalkInName(
+  order: { posCustomerName?: string | null } | null | undefined,
+): string | undefined {
+  const name = order?.posCustomerName?.trim();
+  return name ? name : undefined;
+}
+
+/**
  * The same rule as a Mongo aggregation expression, for a query that has to
  * leave walk-ins out: `{ $expr: { $not: [POS_WALK_IN_EXPR] } }`. `customerId`
  * is an ObjectId and `staffId` a string, hence the `$toString`; an order with

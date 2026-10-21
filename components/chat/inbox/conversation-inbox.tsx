@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Inbox, Info, MessageCircle } from "lucide-react";
+import { ArrowLeft, Inbox, Info, MessageCircle, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-notification";
@@ -76,6 +76,17 @@ interface ConversationInboxProps {
     /** Absent when the context no longer resolves; sending then says why. */
     preview?: ConversationDraftPreview;
   };
+  /**
+   * The shopper's existing thread with the draft's store. A shopper has one
+   * thread per store, so the draft's product is then staged in that thread's
+   * composer — sent as a product card — instead of opening a new conversation.
+   */
+  draftConversationId?: string;
+  /**
+   * The store's own mark, the avatar of its threads ("Store support"), which
+   * have no vendor logo to show. Customer side only.
+   */
+  platformImage?: string;
 }
 
 /**
@@ -117,6 +128,9 @@ const REASON_KEYS: Record<string, [key: string, fallback: string]> = {
 /** The width (Tailwind's `lg`) from which the list and the thread show side by side. */
 const SIDE_BY_SIDE = "(min-width: 1024px)";
 
+/** Files one reply can carry; each goes as its own attachment message. */
+const MAX_PENDING_FILES = 10;
+
 export function ConversationInbox({
   locale,
   initialConversations,
@@ -125,6 +139,8 @@ export function ConversationInbox({
   title,
   emptyTitle,
   draftContext,
+  draftConversationId,
+  platformImage,
 }: ConversationInboxProps) {
   const t = useTranslations("chat");
   // Memoized on `t` (itself stable per locale) so the data callbacks below can
@@ -157,8 +173,20 @@ export function ConversationInbox({
   const deliveryStatusLabel = (status: string) =>
     tr(`deliveryStatus.${status}`, DELIVERY_STATUS_FALLBACKS[status] || status);
 
-  const [conversations, setConversations] = useState(
+  const [storedConversations, setConversations] = useState(
     sortConversations(initialConversations),
+  );
+  // The store's own threads carry no owner logo; they show the store's mark.
+  const conversations = useMemo(
+    () =>
+      platformImage
+        ? storedConversations.map((conversation) =>
+            conversation.ownerType === "platform" && !conversation.ownerImage
+              ? { ...conversation, ownerImage: platformImage }
+              : conversation,
+          )
+        : storedConversations,
+    [storedConversations, platformImage],
   );
   const [selectedId, setSelectedId] = useState<string | undefined>(
     initialSelectedConversationId || initialConversations[0]?._id,
@@ -172,9 +200,19 @@ export function ConversationInbox({
   // to the next one opened.
   const [drafts, setDrafts] = useState<Record<string, ReplyDraft>>({});
   const [sending, setSending] = useState(false);
-  const [draftOpen, setDraftOpen] = useState(Boolean(draftContext));
+  const [draftOpen, setDraftOpen] = useState(
+    Boolean(draftContext) && !draftConversationId,
+  );
+  // The product waiting in an existing thread's composer, until sent or removed.
+  const [stagedProduct, setStagedProduct] = useState(
+    draftConversationId && draftContext?.productId ? draftContext : undefined,
+  );
   const [draftBody, setDraftBody] = useState("");
+  const stagedProductHere =
+    Boolean(stagedProduct) && selectedId === draftConversationId;
   const [uploading, setUploading] = useState(false);
+  // Files picked for the reply, sent only with it (the composer's chips).
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<InboxFilter>("all");
   // A link to one conversation (a notification) opens it, not the list.
@@ -406,10 +444,12 @@ export function ConversationInbox({
 
   // Another thread starts empty: the last one's messages, its cursor and
   // "load older" never show under the new one's name while it loads.
+  // Staged files belong to the conversation they were picked in.
   useApplyOnChange([activeConversationId], () => {
     setMessages([]);
     setHasMore(false);
     setNextCursor(undefined);
+    setPendingFiles([]);
     if (activeConversationId) setLoadingMessages(true);
   });
 
@@ -630,7 +670,8 @@ export function ConversationInbox({
    * the create endpoint; the returned thread then takes over as the selection.
    */
   const startDraftConversation = async () => {
-    if (!draftContext || !draftBody.trim() || sending) return;
+    if (!draftContext || sending) return;
+    if (!draftBody.trim() && !draftContext.productId) return;
     const body = draftBody.trim();
     setSending(true);
     try {
@@ -676,12 +717,112 @@ export function ConversationInbox({
     }
   };
 
+  /**
+   * Stages picked files for the reply, held to the channel's own types and
+   * sizes before anything is uploaded (the server checks again).
+   */
+  const stageFiles = (files: File[]) => {
+    if (!attachmentPolicy) return;
+    const accepted: File[] = [];
+    let refusedType = false;
+    let tooLargeFor: number | undefined;
+    for (const file of files) {
+      const allowed = attachmentPolicy.types.find(
+        (type) => type.mimeType === file.type.split(";")[0]?.trim().toLowerCase(),
+      );
+      if (!allowed) refusedType = true;
+      else if (file.size > allowed.maxBytes) tooLargeFor = allowed.maxBytes;
+      else accepted.push(file);
+    }
+    if (refusedType) {
+      toast.error(
+        tr("attachmentNotAccepted", "This conversation doesn't take this kind of file."),
+      );
+    }
+    if (tooLargeFor !== undefined) {
+      toast.error(
+        tr("attachmentTooLargeFor", "This file is larger than {size}, the most this conversation takes.", {
+          size: formatFileSize(tooLargeFor),
+        }),
+      );
+    }
+    setPendingFiles(accepted.slice(0, MAX_PENDING_FILES));
+  };
+
+  /**
+   * Shares the staged product into the thread, with the typed text as its
+   * message. It goes through the start endpoint, which files it under the
+   * shopper's one thread with the store.
+   */
+  const sendStagedProduct = async () => {
+    if (!stagedProduct || sending) return false;
+    const body = reply.trim();
+    setSending(true);
+    try {
+      const response = await fetch("/api/chat/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: body,
+          productId: stagedProduct.productId,
+          vendorId: stagedProduct.vendorId,
+          variantId: stagedProduct.variantId,
+          variantName: stagedProduct.variantName,
+          clientMessageId: crypto.randomUUID(),
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          errorText(payload, tr("errors.sendMessage", "Unable to send message")),
+        );
+      }
+      const conversation = payload.data.conversation as ConversationDTO;
+      const message = payload.data.message as ConversationMessageDTO;
+      replaceConversation(conversation);
+      if (conversation._id === activeConversationIdRef.current) {
+        setMessages((current) => mergeMessages(current, [message]));
+        scrollToLatest();
+      } else {
+        setSelectedId(conversation._id);
+      }
+      setStagedProduct(undefined);
+      setReply("");
+      return true;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : tr("errors.sendMessage", "Unable to send message"),
+      );
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /**
+   * Send: a product staged from a storefront chat button goes first, carrying
+   * the typed text, and the staged files after it. Otherwise the staged files
+   * first, then what they did not carry — the text (when the channel's files
+   * take no caption) and the product.
+   */
   const sendReply = async () => {
-    if (!selectedConversation || sending || conversationClosed) return;
+    if (stagedProductHere) {
+      const sent = await sendStagedProduct();
+      if (sent && pendingFiles.length > 0) await sendAttachments("");
+      return;
+    }
+    if (!selectedConversation || sending || uploading || conversationClosed) return;
     const conversationId = selectedConversation._id;
     const current = drafts[conversationId] ?? { text: "" };
-    const body = current.text.trim();
+    let body = current.text.trim();
     const product = current.product;
+    if (pendingFiles.length > 0) {
+      const files = await sendAttachments();
+      if (!files.ok) return;
+      if (files.caption) body = "";
+    }
     if (!body && !product) return;
     // The same reply sent again (its answer was lost) keeps its id, so the
     // server stores it once; anything else is a new message.
@@ -735,77 +876,72 @@ export function ConversationInbox({
     }
   };
 
-  const sendAttachment = async (file: File) => {
-    if (
-      !selectedConversation ||
-      !attachmentPolicy ||
-      uploading ||
-      providerReplyExpired ||
-      conversationClosed
-    ) {
-      return;
-    }
-    // Held to the channel's own types and sizes before anything is uploaded
-    // (the server checks again).
-    const allowed = attachmentPolicy.types.find(
-      (type) => type.mimeType === file.type.split(";")[0]?.trim().toLowerCase(),
-    );
-    if (!allowed) {
-      toast.error(
-        tr("attachmentNotAccepted", "This conversation doesn't take this kind of file."),
-      );
-      return;
-    }
-    if (file.size > allowed.maxBytes) {
-      toast.error(
-        tr("attachmentTooLargeFor", "This file is larger than {size}, the most this conversation takes.", {
-          size: formatFileSize(allowed.maxBytes),
-        }),
-      );
-      return;
+  /**
+   * The staged files, one attachment message each, in the order picked. The
+   * typed text rides on the first as its caption where the channel takes one
+   * (Messenger and Instagram take none: there the text is sent after them).
+   * What went out leaves the tray; a failed file and the ones after it stay,
+   * to send again.
+   */
+  const sendAttachments = async (
+    captionOverride?: string,
+  ): Promise<{ ok: boolean; caption: string }> => {
+    if (!selectedConversation || uploading || providerReplyExpired || conversationClosed) {
+      return { ok: false, caption: "" };
     }
     const conversationId = selectedConversation._id;
-    // A channel whose files take no caption (Messenger, Instagram) gets the
-    // file alone; the text stays in the composer to send after it.
-    const caption = selectedCapability?.captionsWithMedia ? reply.trim() : "";
+    const files = pendingFiles;
+    const caption =
+      captionOverride ??
+      (selectedCapability?.captionsWithMedia ? reply.trim() : "");
     setUploading(true);
+    let sent = 0;
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (caption) formData.append("message", caption);
-      formData.append("clientMessageId", crypto.randomUUID());
-      const response = await fetch(
-        `/api/chat/conversations/${conversationId}/attachments`,
-        { method: "POST", body: formData },
-      );
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.success) {
-        throw new Error(
-          errorText(
-            payload,
-            tr("errors.sendAttachment", "Unable to send attachment"),
-          ),
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (sent === 0 && caption) formData.append("message", caption);
+        formData.append("clientMessageId", crypto.randomUUID());
+        const response = await fetch(
+          `/api/chat/conversations/${conversationId}/attachments`,
+          { method: "POST", body: formData },
         );
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success) {
+          throw new Error(
+            errorText(
+              payload,
+              tr("errors.sendAttachment", "Unable to send attachment"),
+            ),
+          );
+        }
+        const message = payload.data.message as ConversationMessageDTO;
+        if (activeConversationIdRef.current === conversationId) {
+          setMessages((messages) => mergeMessages(messages, [message]));
+          scrollToLatest();
+        }
+        replaceConversation(payload.data.conversation);
+        sent += 1;
+        if (sent === 1 && caption) {
+          updateDraft(conversationId, (draft) => ({
+            ...draft,
+            text: draft.text.trim() === caption ? "" : draft.text,
+          }));
+        }
       }
-      const message = payload.data.message as ConversationMessageDTO;
-      if (activeConversationIdRef.current === conversationId) {
-        setMessages((messages) => mergeMessages(messages, [message]));
-        scrollToLatest();
-      }
-      replaceConversation(payload.data.conversation);
-      if (caption) {
-        updateDraft(conversationId, (draft) => ({
-          ...draft,
-          text: draft.text.trim() === caption ? "" : draft.text,
-        }));
-      }
+      return { ok: true, caption };
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
           : tr("errors.sendAttachment", "Unable to send attachment"),
       );
+      return { ok: false, caption: sent > 0 ? caption : "" };
     } finally {
+      // Another conversation opened meanwhile has a tray of its own.
+      if (activeConversationIdRef.current === conversationId) {
+        setPendingFiles(files.slice(sent));
+      }
       setUploading(false);
     }
   };
@@ -883,6 +1019,10 @@ export function ConversationInbox({
       ? selectedConversation.contact.name
       : selectedConversation.ownerName || tr("storeSupport", "Store support")
     : "";
+  const headerImage =
+    viewerMode === "store"
+      ? selectedConversation?.contact.image
+      : selectedConversation?.ownerImage;
   const headerStatus = selectedConversation
     ? conversationStatusStyle(selectedConversation.status)
     : undefined;
@@ -967,6 +1107,10 @@ export function ConversationInbox({
                 // first message is sent, so the pane does not jump.
                 <>
                   <Avatar className="size-9 shrink-0">
+                    {/* No owner name: the store's own thread. */}
+                    {platformImage && !draftPreview.ownerName ? (
+                      <AvatarImage src={platformImage} alt={draftOwnerName} />
+                    ) : null}
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                       {getInitials(draftOwnerName)}
                     </AvatarFallback>
@@ -1022,6 +1166,7 @@ export function ConversationInbox({
               value={draftBody}
               onChange={setDraftBody}
               onSubmit={() => void startDraftConversation()}
+              hasAttachment={Boolean(draftContext?.productId)}
               sending={sending}
               placeholder={tr("writeMessage", "Write a message…")}
               sendLabel={tr("sendMessage", "Send message")}
@@ -1059,9 +1204,9 @@ export function ConversationInbox({
               </Button>
 
               <Avatar className="size-9 shrink-0">
-                {viewerMode === "store" && selectedConversation.contact.image ? (
+                {headerImage ? (
                   <AvatarImage
-                    src={selectedConversation.contact.image}
+                    src={headerImage}
                     alt={headerName}
                   />
                 ) : null}
@@ -1126,10 +1271,9 @@ export function ConversationInbox({
               value={reply}
               onChange={setReply}
               onSubmit={() => void sendReply()}
-              onAttach={
-                attachmentPolicy?.types.length
-                  ? (file) => void sendAttachment(file)
-                  : undefined
+              attachments={pendingFiles}
+              onAttachmentsChange={
+                attachmentPolicy?.types.length ? stageFiles : undefined
               }
               attachAccept={attachmentPolicy?.types
                 .map((type) => type.mimeType)
@@ -1140,6 +1284,7 @@ export function ConversationInbox({
               placeholder={tr("writeReply", "Write a reply…")}
               sendLabel={tr("sendMessage", "Send message")}
               attachLabel={tr("attachFile", "Attach file")}
+              removeAttachmentLabel={tr("removeAttachment", "Remove attachment")}
               actions={
                 <ProductPicker
                   conversationId={selectedConversation._id}
@@ -1164,9 +1309,36 @@ export function ConversationInbox({
                   }}
                 />
               }
-              hasAttachment={Boolean(draft?.product)}
+              hasAttachment={stagedProductHere || Boolean(draft?.product)}
               attachment={
-                draft?.product ? (
+                stagedProductHere && stagedProduct?.preview?.productContext ? (
+                  // The product a storefront chat button brought to this
+                  // store's thread, waiting to be sent or removed.
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border bg-muted/20 pe-1.5">
+                    <div className="min-w-0 flex-1">
+                      <ProductContextCard
+                        product={stagedProduct.preview.productContext}
+                        viewProductLabel={tr("viewProduct", "View product")}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 shrink-0 rounded-full"
+                      disabled={sending}
+                      onClick={() => setStagedProduct(undefined)}
+                      aria-label={tr("removeProduct", "Remove {name}", {
+                        name: stagedProduct.preview.productContext.name,
+                      })}
+                      title={tr("removeProduct", "Remove {name}", {
+                        name: stagedProduct.preview.productContext.name,
+                      })}
+                    >
+                      <X className="size-3.5" />
+                    </Button>
+                  </div>
+                ) : draft?.product ? (
                   <AttachedProduct
                     product={draft.product}
                     onRemove={() =>

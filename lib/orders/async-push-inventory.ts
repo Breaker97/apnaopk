@@ -75,7 +75,7 @@ export async function reserveAsyncPushInventory(params: {
   if (lines.length === 0) return null;
 
   try {
-    await decrementInventory(lines, params.inventoryOpts || {});
+    await decrementInventory(lines, { ...params.inventoryOpts, financeSource: { kind: "order", id: String(params.order._id) } });
   } catch (error) {
     if (error instanceof InsufficientStockError) {
       return { soldOutProductId: String(error.line?.productId ?? "") };

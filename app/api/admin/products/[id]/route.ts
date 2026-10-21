@@ -1,6 +1,21 @@
+import type { IProduct } from "@/types";
+import { inventoryRequestKey } from "@/lib/inventory/finance-recovery";
+import { replayFinanceRequest, runFinanceOperation } from "@/lib/finance/operations";
+import { financeQuery } from "@/lib/finance/transaction";
+import { InventoryMovement } from "@/models/inventory-movement.model";
+import { FinanceOperation } from "@/models/finance-operation.model";
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
+import { withInventoryWrite } from "@/lib/inventory/finance-context";
 import { Product } from "@/models";
 import { connectDB } from "@/lib/db";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import { vendorTaxChangePolicy } from "@/lib/tax/tax-settings";
+import {
+  INHERITED_PRODUCT_TAX,
+  productTaxOf,
+  taxAfterWrite,
+  vendorTaxRefusal,
+} from "@/lib/tax/vendor-tax";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import {
   applyStockBaseline,
@@ -33,7 +48,7 @@ import {
   resolveProductFeatures,
 } from "@/lib/products/product-features";
 import { getSettingsLean } from "@/models/settings.model";
-import { ConflictError, ValidationError } from "@/lib/api/errors";
+import { AuthorizationError, ConflictError, ValidationError } from "@/lib/api/errors";
 import { assignProductLookupCodes } from "@/lib/products/barcode-normalization";
 import {
   assertProductBarcodesAreUnique,
@@ -44,6 +59,8 @@ import { markProductsForCatalogSync } from "@/lib/meta-catalog/sync-marks";
 import { runPreorderDateSyncJobs } from "@/lib/orders/preorder-terms-sync";
 import { afterResponse } from "@/lib/after-response";
 import { withApi } from "@/lib/api/handler";
+import { teamHasAny } from "@/lib/access/team-permissions";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
 import {
   releaseProductBarcodeRegistry,
   reserveProductBarcodeRegistry,
@@ -74,7 +91,7 @@ export const GET = withApi<{ id: string }>(
   async ({ request, params, session }) => {
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
-      [STAFF_PERMISSIONS.VIEW_PRODUCTS],
+      staffResourcePermissions("products"),
     );
 
     await rateLimitByUser(
@@ -112,7 +129,7 @@ export const GET = withApi<{ id: string }>(
  */
 export const PUT = withApi<{ id: string }>(
   { auth: "user" },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
       [
@@ -134,16 +151,36 @@ export const PUT = withApi<{ id: string }>(
     const { id } = params;
     if (!isValidObjectId(id)) return notFoundResponse("Product");
 
-    const { stockBaseline, ...body } = await validatePartialBody(
+    const { stockBaseline, inventoryValuationConfirmation, initialStockReceipt, ...body } = await validatePartialBody(
       request,
       ProductUpdateWithBaselineSchema,
     );
+    const saveKey = request.headers.get("idempotency-key") ? inventoryRequestKey(request) : undefined;
+    const saveFingerprint = { id, body, stockBaseline, inventoryValuationConfirmation };
+    if (saveKey) {
+      const replay = await replayFinanceRequest<{ product: unknown; operationIds: string[] }>({ action: "inventory:product-update", actorId: session.user.id, requestKey: saveKey, fingerprint: () => saveFingerprint });
+      if (replay) return successResponse({ ...(replay.data.product as Record<string, unknown>), bookkeepingState: replay.bookkeepingState, inventoryOperationId: replay.operationId });
+    }
+    if (initialStockReceipt) throw new ValidationError("Use Add stock to record purchases for an existing product.");
+    if (inventoryValuationConfirmation && (session.user.role !== USER_ROLES.ADMIN || (team && !teamHasAny(team, [ADMIN_AREA_PERMISSIONS.MANAGE_FINANCE])))) throw new ValidationError("Changing carried inventory cost requires an administrator's Finance access.");
 
     const existing = await Product.findOne(
       mergeScopeFilter({ _id: id }, buildStaffProductScopeFilter(access.staffScope)),
-    ).select("vendorId slug collectionIds category status sku barcode barcodeFormat barcodeSource preorder priceOnRequest variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets").lean();
+    ).select("inventoryFinanceGeneration vendorId slug collectionIds category status sku barcode barcodeFormat barcodeSource preorder priceOnRequest variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets chargeTax taxRate taxClass").lean();
     if (!existing) {
       return notFoundResponse("Product");
+    }
+
+    // Staff a vendor created work under the vendors' tax rule: a save that
+    // repeats the product's tax passes, a change does not (lib/tax/vendor-tax.ts).
+    if (access.vendorOwned) {
+      const taxBefore = productTaxOf(existing);
+      const taxRefusal = vendorTaxRefusal(
+        vendorTaxChangePolicy((await getSettingsLean()).tax),
+        taxBefore,
+        taxAfterWrite(taxBefore, body as Record<string, unknown>),
+      );
+      if (taxRefusal) throw new AuthorizationError(taxRefusal);
     }
 
     // `shipping.countryOfOrigin` is deliberately unrestricted — see the
@@ -290,9 +327,10 @@ export const PUT = withApi<{ id: string }>(
       updateSet.seo = { ...(body.seo || {}), handle: updateSet.handle };
     }
 
-    let product;
+    let product: IProduct | null | undefined;
     // Whether the save that went through moved a release date.
     let datesMoved = false;
+    let inventoryBookkeeping: { bookkeepingState: "complete" | "pending"; operationId: string } | undefined;
     try {
       await reserveProductBarcodeRegistry(id, nextBarcodePayload);
       // The stock this form loaded is merged with stock that moved while it
@@ -308,6 +346,7 @@ export const PUT = withApi<{ id: string }>(
           | Array<{ _id?: unknown; name?: string; stock?: number; locationInventory?: Array<{ locationId: string; quantity: number }> }>
           | undefined,
       };
+      const saveWithBaseline = async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
         const stockPin = await applyStockBaseline({
           filter: productFilter,
@@ -325,7 +364,7 @@ export const PUT = withApi<{ id: string }>(
         });
         const pin = stockPin ?? counterPin;
         datesMoved = Boolean(counterPin?.termsUpdate);
-        product = await Product.findOneAndUpdate(
+        const saveProduct = () => Product.findOneAndUpdate(
           { ...productFilter, ...(pin ? { updatedAt: pin.updatedAt } : {}) },
           {
             // A moved release date bumps the terms revision and records the
@@ -341,6 +380,7 @@ export const PUT = withApi<{ id: string }>(
           .populate("vendorId", "storeName slug")
           .populate("category", "name slug")
           .lean();
+        product = await withInventoryWrite({ reason: "correction", sourceKind: "product", sourceId: id, actorId: session.user.id, channel: "web", ...(inventoryValuationConfirmation ? { costChangeConfirmed: true, valuationExpectedVersions: inventoryValuationConfirmation.expectedVersions, valuationProductVersion: inventoryValuationConfirmation.productVersion } : {}) }, saveProduct);
         if (product || !pin) break;
         if (attempt === 2) {
           throw new ConflictError(
@@ -348,6 +388,18 @@ export const PUT = withApi<{ id: string }>(
           );
         }
       }
+      return product;
+      };
+      if (existing.inventoryFinanceGeneration && saveKey) {
+        const result = await runFinanceOperation({ action: "inventory:product-update", actorId: session.user.id, requestKey: saveKey, fingerprint: saveFingerprint, work: async () => {
+          const saved = await saveWithBaseline();
+          if (!saved) throw new ConflictError("Product changed while saving. Reload and retry.");
+          const movements = await financeQuery(InventoryMovement.find({ productId: id }).select("_id")).lean();
+          const operations = await financeQuery(FinanceOperation.find({ action: "inventory:movement", sourceId: { $in: movements.map((m) => String(m._id)) } }).select("_id")).lean();
+          return { result: { product: saved, operationIds: operations.map((op) => String(op._id)) }, postings: [], sourceId: id };
+        } });
+        inventoryBookkeeping = result; product = result.data.product;
+      } else await saveWithBaseline();
     } catch (error) {
       await syncProductBarcodeRegistry(
         id,
@@ -391,6 +443,7 @@ export const PUT = withApi<{ id: string }>(
 
     return successResponse({
       ...(product as unknown as Record<string, unknown>),
+      ...(inventoryBookkeeping ? { bookkeepingState: inventoryBookkeeping.bookkeepingState, inventoryOperationId: inventoryBookkeeping.operationId } : {}),
       ...(boostReleases.length > 0 ? { boostReleases } : {}),
     });
   },

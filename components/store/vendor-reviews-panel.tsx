@@ -39,7 +39,7 @@ function Stars({ rating, className }: { rating: number; className?: string }) {
           className={cn(
             "h-3.5 w-3.5",
             star <= Math.round(rating)
-              ? "fill-amber-400 text-amber-400"
+              ? "fill-current text-(--store-rating,#a86500)"
               : "text-muted-foreground/35",
           )}
           aria-hidden="true"
@@ -110,7 +110,7 @@ function ReviewRow({
               productSlug ? (
                 <Link
                   href={`/products/${productSlug}`}
-                  className="truncate text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+                  className="truncate text-xs text-muted-foreground underline-offset-2 hover:text-store-link hover:underline"
                 >
                   {productName}
                 </Link>
@@ -203,7 +203,7 @@ export function VendorReviewsPanel({
                   {star}
                 </span>
                 <Star
-                  className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400"
+                  className="h-3 w-3 shrink-0 fill-current text-(--store-rating,#a86500)"
                   aria-hidden="true"
                 />
                 <span
@@ -211,7 +211,7 @@ export function VendorReviewsPanel({
                   role="presentation"
                 >
                   <span
-                    className="block h-full rounded-full bg-amber-400"
+                    className="block h-full rounded-full bg-(--store-rating,#a86500)"
                     style={{ width: `${percent}%` }}
                   />
                 </span>

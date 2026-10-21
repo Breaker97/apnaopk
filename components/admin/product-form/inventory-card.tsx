@@ -26,6 +26,7 @@ import type { LocationInventory } from "@/types";
 import type { ProductFormData } from "@/components/admin/product-form/schema";
 
 interface InventoryCardProps {
+  financeHelp?: React.ReactNode;
   form: UseFormReturn<ProductFormData>;
   hasVariants: boolean;
   variantCount: number;
@@ -40,6 +41,7 @@ interface InventoryCardProps {
 }
 
 export function InventoryCard({
+  financeHelp,
   form,
   hasVariants,
   variantCount,
@@ -60,6 +62,7 @@ export function InventoryCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {financeHelp}
         {hasVariants && (
           <div className="rounded-lg border border-dashed bg-muted/40 p-4 text-sm">
             <div className="font-medium text-foreground">

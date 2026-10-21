@@ -1,9 +1,12 @@
+import { composite, mix, opaqueHex, parseColor } from "@/lib/theme-colors/color";
+import { actionColors, interactionColors, readableTone, readableToneOn, visibleTone } from "@/lib/theme-colors/derive";
 import {
   isValidCssColor,
   readableForegroundColor,
 } from "@/lib/site-config/appearance-colors";
 import { fontFamilyStack } from "@/lib/storefront/fonts/catalog";
 import {
+  BRAND_COLOR_REFS,
   COLOR_ROLES,
   type ColorRole,
   type ColorScheme,
@@ -26,6 +29,7 @@ export interface BrandColors {
   primary: string;
   secondary: string;
   accent: string;
+  skeleton?: string;
 }
 
 interface CompiledTheme {
@@ -45,27 +49,14 @@ export const THEME_ATTRIBUTES = [
   "data-hover",
 ] as const;
 
-const ROLE_VAR: Record<ColorRole, string> = {
-  background: "background",
-  surface: "surface",
-  surfaceAlt: "surface-alt",
-  text: "text",
-  textMuted: "text-muted",
-  border: "border",
-  primary: "primary",
-  onPrimary: "on-primary",
-  secondary: "secondary",
-  onSecondary: "on-secondary",
-  accent: "accent",
-  sale: "sale",
-  rating: "rating",
-  link: "link",
-};
+export const ROLE_VAR = Object.fromEntries(COLOR_ROLES.map(role => [role,role.replace(/[A-Z]/g,c => "-"+c.toLowerCase())])) as Record<ColorRole,string>;
 
 /** Every variable the compiler can emit (same purpose as the attributes). */
 export const THEME_VARS = [
   ...COLOR_ROLES.map((role) => `--store-l-${ROLE_VAR[role]}`),
   ...COLOR_ROLES.map((role) => `--store-d-${ROLE_VAR[role]}`),
+  ...["l","d"].flatMap(mode => ["primary-hover","primary-pressed"].map(role => `--store-${mode}-${role}`)),
+  ...["l","d"].flatMap(mode => ["text","text-muted","border"].map(role => `--store-${mode}-on-${role}`)),
   "--store-font-body",
   "--store-font-heading",
   "--store-heading-weight",
@@ -92,7 +83,7 @@ export const THEME_VARS = [
 /* The engine's own palette — what "" resolves to for page colors. These are
  * the values globals.css painted before themes had color tokens, so an
  * untouched store looks exactly as it did. */
-const LIGHT_BASE: Record<ColorRole, string> = {
+const LIGHT_BASE: Partial<Record<ColorRole, string>> = {
   background: "#ffffff",
   surface: "", // → background
   surfaceAlt: "#f4f6f8",
@@ -107,10 +98,11 @@ const LIGHT_BASE: Record<ColorRole, string> = {
   sale: "#dc2626",
   rating: "#f59e0b",
   link: "", // → primary
+  skeleton: "", // → a step from the page toward its text
 };
 
-/* The dark palette derived from the base when dark is "auto". */
-const DARK_BASE: Record<ColorRole, string> = {
+/* The dark palette: the page roles dark mode paints on its own. */
+const DARK_BASE: Partial<Record<ColorRole, string>> = {
   background: "#1a1a1a",
   surface: "#262626",
   surfaceAlt: "#333333",
@@ -121,11 +113,28 @@ const DARK_BASE: Record<ColorRole, string> = {
   onPrimary: "",
   secondary: "",
   onSecondary: "",
-  accent: "#333333",
+  accent: "",
   sale: "#ef4444",
   rating: "#fbbf24",
   link: "",
+  skeleton: "",
 };
+
+/**
+ * The roles dark mode takes from the LIGHT scheme: the brand-driven ones, so
+ * a custom primary or sale colour survives the switch. Page colours, text
+ * and every derived state come from the dark base instead. A dark colour
+ * the merchant set (darkMode "custom") replaces just its own role.
+ */
+const LIGHT_FOLLOWED_ROLES: readonly ColorRole[] = ["primary", "secondary", "accent", "sale", "rating", "link"];
+
+/**
+ * What a theme that OWNS its key colours (colour schema 4) falls back to for
+ * a primary or accent left on its default: the engine's own, never the store
+ * brand — which now mirrors the LIVE theme, so falling back to it would leak
+ * one theme's colours into another.
+ */
+const OWN_THEME_FALLBACK: BrandColors = { primary: "#2065d1", secondary: "", accent: "#f59e0b", skeleton: "" };
 
 const SHADOWS: Record<string, string> = {
   none: "none",
@@ -137,8 +146,6 @@ function resolveRef(value: string, brand: BrandColors): string {
   switch (value) {
     case "brand.primary":
       return brand.primary;
-    case "brand.secondary":
-      return brand.secondary;
     case "brand.accent":
       return brand.accent;
     default:
@@ -150,38 +157,69 @@ function resolveRef(value: string, brand: BrandColors): string {
  * Resolve one scheme to a concrete color per role. "" walks the role's
  * documented fallback (COLOR_ROLE_META): base palette, brand color, or
  * another role.
+ *
+ * `explicit` says which roles hold a colour the merchant chose FOR THIS
+ * MODE: those paint as chosen (the editor flags a weak one). Everything
+ * else is the engine's to make readable — a muted text or a star toned to
+ * its surfaces, and in dark mode a brand fill carried over from light (a
+ * navy button, a black one) lifted until it shows on the dark page.
  */
 function resolveScheme(
   scheme: ColorScheme,
-  base: Record<ColorRole, string>,
+  base: Partial<Record<ColorRole, string>>,
   brand: BrandColors,
+  dark: boolean,
+  explicit: (role: ColorRole) => boolean,
 ): Record<ColorRole, string> {
-  const pick = (role: ColorRole) =>
-    resolveRef(scheme[role], brand) || base[role];
-
-  const background = pick("background");
-  const surface = pick("surface") || background;
-  const surfaceAlt = pick("surfaceAlt");
+  const pick = (role: ColorRole) => resolveRef(scheme[role], brand) || base[role] || "";
+  const background = composite(pick("background"), dark ? "#1a1a1a" : "#ffffff");
+  const surface = composite(pick("surface") || background, background);
+  const surfaceAlt = composite(pick("surfaceAlt"), surface);
+  // A dark fill carried over from light, or one that follows the brand (the
+  // Dark tab's "Brand" source), is lifted until it shows on the dark page; a
+  // hex set for dark is painted as set.
+  const fill = (role: ColorRole, value: string) =>
+    dark && (!explicit(role) || (BRAND_COLOR_REFS as readonly string[]).includes(scheme[role]))
+      ? visibleTone(value, [background, surface], 3)
+      : value;
+  const readable = (value: string, minimum = 4.5) =>
+    readableToneOn(value, [background, surface], [surfaceAlt], minimum);
   const text = pick("text");
-  const primary = pick("primary") || brand.primary;
-  const accent = pick("accent") || brand.accent;
-  const secondary = pick("secondary") || surfaceAlt;
-  return {
-    background,
-    surface,
-    surfaceAlt,
-    text,
-    textMuted: pick("textMuted"),
+  const primary = fill("primary", opaqueHex(pick("primary") || brand.primary) ?? "#2065d1");
+  const accent = fill("accent", opaqueHex(pick("accent") || brand.accent) ?? "#f59e0b");
+  // Add to cart. Unset, it is the text colour — the dark button (light in
+  // dark mode) the storefront has always drawn there.
+  const ownSecondary = opaqueHex(pick("secondary"));
+  const secondary = ownSecondary ? fill("secondary", ownSecondary) : opaqueHex(text) ?? (dark ? "#fafafa" : "#212b36");
+  const sale = fill("sale", opaqueHex(pick("sale")) ?? "#dc2626");
+  const derived = interactionColors(surface,text,primary,accent,sale,dark);
+  const result: Record<ColorRole,string> = {
+    background,surface,surfaceAlt,text,primary,secondary,accent,sale,
+    textMuted: explicit("textMuted") ? pick("textMuted") : readable(pick("textMuted")),
     border: pick("border"),
-    primary,
     onPrimary: pick("onPrimary") || readableForegroundColor(primary),
-    secondary,
     onSecondary: pick("onSecondary") || readableForegroundColor(secondary),
-    accent,
-    sale: pick("sale"),
-    rating: pick("rating"),
-    link: pick("link") || primary,
+    rating: explicit("rating") ? pick("rating") : readable(pick("rating"),3),
+    link: explicit("link") ? pick("link") : readable(pick("link") || primary),
+    ...derived,
+    focusRing: readable(primary,3),
+    fieldBorder: readable(pick("border"),3),
+    saleText: readable(sale),
+    // Unset, a step from the page toward its text: visible on any page
+    // colour (a fixed #f0f0f0 vanished on an oatmeal or grey page). The old
+    // brand-wide skeleton colour had no screen left to change it, so it no
+    // longer paints.
+    skeleton:
+      opaqueHex(pick("skeleton")) ??
+      mix(background, opaqueHex(text) ?? (dark ? "#fafafa" : "#212b36"), dark ? 0.12 : 0.08),
   };
+  for (const role of ["onAccent","accentSurface","onAccentSurface","hoverSurface","onHover","selectedSurface","onSelected","focusRing","fieldBorder","onSale","saleText","saleSurface","onSaleSurface"] as const) {
+    if (scheme[role]) result[role] = pick(role);
+  }
+  for (const [fill,ink] of [["hoverSurface","onHover"],["selectedSurface","onSelected"],["accentSurface","onAccentSurface"],["saleSurface","onSaleSurface"]] as const) {
+    if (!scheme[ink]) result[ink] = ink === "onHover" || ink === "onSelected" ? readableTone(text,[result[fill]]) : readableForegroundColor(result[fill]);
+  }
+  return result;
 }
 
 /**
@@ -200,6 +238,20 @@ export function resolveThemeSchemes(
   return { light: read("l"), dark: read("d") };
 }
 
+/** Write opaque v2 colors without changing an untouched legacy surface's paint. */
+export function canonicalizeThemeColors(tokens:ThemeTokens,previous:ThemeTokens,brand:BrandColors):ThemeTokens {
+  const next=structuredClone(tokens);
+  const resolved=resolveThemeSchemes({...tokens,colors:{...tokens.colors,darkMode:"custom"}},brand);
+  for (const mode of ["light","dark"] as const) for (const role of COLOR_ROLES) {
+    const raw=tokens.colors[mode][role];
+    const parsed=parseColor(raw);
+    if (!parsed) continue;
+    const legacySurface=["background","surface","surfaceAlt"].includes(role) && parsed.a<1 && raw === previous.colors[mode][role];
+    next.colors[mode][role]=legacySurface ? resolved[mode][role] : opaqueHex(raw)!;
+  }
+  return next;
+}
+
 export function compileTheme(
   tokens: ThemeTokens,
   brand: BrandColors,
@@ -207,23 +259,41 @@ export function compileTheme(
   const vars: Record<string, string> = {};
   const attributes: Record<string, string> = {};
   const fontIds: string[] = [];
+  const fallback = tokens.colors.schemaVersion === 4 ? OWN_THEME_FALLBACK : brand;
 
-  /* Colors — light, and dark either derived or explicit. */
-  const light = resolveScheme(tokens.colors.light, LIGHT_BASE, brand);
-  const darkScheme =
+  /* Colors — light as set; dark follows light, with the merchant's own dark
+     colours (darkMode "custom") replacing just their roles. */
+  const light = resolveScheme(
+    tokens.colors.light,
+    LIGHT_BASE,
+    fallback,
+    false,
+    (role) => Boolean(tokens.colors.light[role]),
+  );
+  const darkOverrides = new Set(
     tokens.colors.darkMode === "custom"
-      ? tokens.colors.dark
-      : // Auto: the dark base, but the brand-driven roles follow light so a
-        // custom primary survives the mode switch.
-        ({
-          ...Object.fromEntries(COLOR_ROLES.map((role) => [role, ""])),
-          primary: tokens.colors.light.primary,
-          accent: tokens.colors.light.accent === "" ? "" : tokens.colors.light.accent,
-          sale: tokens.colors.light.sale,
-          rating: tokens.colors.light.rating,
-          link: tokens.colors.light.link,
-        } as ColorScheme);
-  const dark = resolveScheme(darkScheme, DARK_BASE, brand);
+      ? COLOR_ROLES.filter((role) => tokens.colors.dark[role])
+      : [],
+  );
+  const darkScheme = Object.fromEntries(
+    COLOR_ROLES.map((role) => [
+      role,
+      darkOverrides.has(role)
+        ? tokens.colors.dark[role]
+        : LIGHT_FOLLOWED_ROLES.includes(role)
+          ? tokens.colors.light[role]
+          : "",
+    ]),
+  ) as ColorScheme;
+  const dark = resolveScheme(darkScheme, DARK_BASE, fallback, true, (role) =>
+    darkOverrides.has(role),
+  );
+  for (const [mode,scheme] of [["l",light],["d",dark]] as const) {
+    for (const [name,role] of [["text","text"],["text-muted","textMuted"],["border","border"]] as const) vars[`--store-${mode}-on-${name}`] = readableForegroundColor(composite(scheme[role],scheme.surface));
+    const action = actionColors(scheme.primary,scheme.onPrimary);
+    vars[`--store-${mode}-primary-hover`] = action.hover;
+    vars[`--store-${mode}-primary-pressed`] = action.pressed;
+  }
   for (const role of COLOR_ROLES) {
     vars[`--store-l-${ROLE_VAR[role]}`] = light[role];
     vars[`--store-d-${ROLE_VAR[role]}`] = dark[role];

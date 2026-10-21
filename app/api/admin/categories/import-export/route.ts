@@ -1,12 +1,16 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
-import { AuthenticationError, AuthorizationError } from "@/lib/api/errors";
+import { AuthenticationError } from "@/lib/api/errors";
 import { errorResponse, successResponse } from "@/lib/api/response";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { sanitizeSearchString } from "@/lib/api/validate";
-import { USER_ROLES } from "@/config/app.config";
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { Category } from "@/models";
+import { getSettingsLean } from "@/models/settings.model";
+import { taxClassOptions } from "@/lib/tax/tax-settings";
 import {
   categoriesCsvResponse,
   importCategoriesCsv,
@@ -56,10 +60,13 @@ function buildCategorySort(request: NextRequest): Record<string, SortOrder> {
   return { name: sortOrder };
 }
 
-async function assertAdmin(request: NextRequest, scope: string) {
+async function assertCatalogAccess(request: NextRequest, scope: string, importing = false) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new AuthenticationError();
-  if (session.user.role !== USER_ROLES.ADMIN) throw new AuthorizationError();
+  await assertAdminOrStaffPermissions(session, importing
+    ? [STAFF_PERMISSIONS.CREATE_CATEGORIES, STAFF_PERMISSIONS.MANAGE_CATEGORIES]
+    : staffResourcePermissions("categories"));
+  if (importing) await assertAdminOrStaffPermissions(session, [STAFF_PERMISSIONS.EDIT_CATEGORIES, STAFF_PERMISSIONS.MANAGE_CATEGORIES]);
 
   await rateLimitByUser(
     request,
@@ -74,7 +81,7 @@ async function assertAdmin(request: NextRequest, scope: string) {
 export const GET = withApi(
   {},
   async ({ request }) => {
-    const session = await assertAdmin(request, "admin:categories:export");
+    const session = await assertCatalogAccess(request, "admin:categories:export");
     await connectDB();
 
     const categories = await Category.find(buildCategoryQuery(request))
@@ -100,7 +107,7 @@ export const GET = withApi(
 export const POST = withApi(
   {},
   async ({ request }) => {
-    const session = await assertAdmin(request, "admin:categories:import");
+    const session = await assertCatalogAccess(request, "admin:categories:import", true);
     await connectDB();
 
     const formData = await request.formData();
@@ -109,7 +116,10 @@ export const POST = withApi(
       return errorResponse("CSV file is required.", 400);
     }
 
-    const result = await importCategoriesCsv(await file.text());
+    // A row naming a tax class the store does not have fails, rather than
+    // silently charging the standard rate.
+    const taxClasses = new Set(taxClassOptions((await getSettingsLean()).tax).map((entry) => entry.key));
+    const result = await importCategoriesCsv(await file.text(), { taxClasses });
     await auditCatalogImport(
       createAuditContext(request, session),
       "category",

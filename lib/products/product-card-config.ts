@@ -1,3 +1,5 @@
+import { readableForegroundColor } from "@/lib/theme-colors/contrast";
+import { parseColor } from "@/lib/theme-colors/color";
 import type { CSSProperties } from "react";
 
 /**
@@ -28,6 +30,9 @@ export const PRODUCT_CARD_ELEMENTS = [
   // the vendor all along; see PRODUCT_CARD_CONFIG_VERSION for the split.
   "seller",
   "name",
+  // The colour of the variant the card shows, under the name. It used to be
+  // printed by "name" itself; see PRODUCT_CARD_CONFIG_VERSION.
+  "variant",
   "category",
   "price",
   "delivery",
@@ -45,6 +50,7 @@ export const PRODUCT_CARD_ELEMENT_LABELS: Record<ProductCardElement, string> = {
   brand: "Brand",
   seller: "Seller",
   name: "Product Name",
+  variant: "Variant name",
   category: "Category",
   price: "Price",
   delivery: "Delivery info",
@@ -126,6 +132,7 @@ export type ProductCardTypographyKey =
   | "brand"
   | "seller"
   | "product"
+  | "variant"
   | "category"
   | "price"
   | "discounted"
@@ -145,8 +152,16 @@ export type ProductCardBrandDisplay = (typeof PRODUCT_CARD_BRAND_DISPLAYS)[numbe
  * used to print moved to its own "seller" element. Configs saved before that
  * (no version) are read with their "brand" element renamed to "seller", so
  * every existing storefront keeps printing exactly what it printed.
+ *
+ * v3: the colour name the "name" element printed under the product name,
+ * with no way to switch it off, is its own "variant" element. A card saved
+ * before gets one right after its name, on where it used to show (name and
+ * swatches both on), so nothing changes until the merchant turns it off.
  */
-export const PRODUCT_CARD_CONFIG_VERSION = 2;
+export const PRODUCT_CARD_CONFIG_VERSION = 3;
+
+/** The version that split "seller" out of "brand". */
+const BRAND_SPLIT_VERSION = 2;
 
 /** A product's brand as the card draws it. */
 export interface CardBrand {
@@ -286,6 +301,7 @@ const DEFAULT_PRODUCT_CARD_GROUPS: ProductCardGroup[] = [
     items: [
       { key: "swatch", on: true },
       { key: "name", on: true },
+      { key: "variant", on: true },
       { key: "price", on: true },
       { key: "rating", on: true },
       { key: "delivery", on: true },
@@ -390,8 +406,9 @@ export const PRODUCT_CARD_COLOR_FALLBACKS = {
   cartBackground: "#18181b",
   cartBorder: "#e4e4e7",
   ratingColor: "#fbbf24",
-  stockBackground: "#fef2f2",
-  stockBorder: "#fecaca",
+  // The renderer's status-warning pair (globals.css --status-warning).
+  stockBackground: "#fef3c7",
+  stockBorder: "#fcd34d",
 } as const;
 
 interface ProductCardTypographyDefaults {
@@ -413,12 +430,14 @@ export function productCardTypographyDefaults(
     brand: { weight: "600", style: "normal", size: 12, color: "#09090b" },
     seller: { weight: "600", style: "normal", size: 12, color: "#09090b" },
     product: { weight: "600", style: "normal", size: 14, color: "#09090b" },
+    variant: { weight: "400", style: "normal", size: 13, color: "#71717a" },
     category: { weight: "400", style: "normal", size: 12, color: "#71717a" },
     price: {
       weight: style.pricePill ? "600" : "700",
       style: "normal",
       size: 14,
-      color: style.pricePill ? "#059669" : "#09090b",
+      // The pill marks a markdown, so it wears the theme's sale text.
+      color: style.pricePill ? "#da2626" : "#09090b",
     },
     discounted: { weight: "400", style: "normal", size: 14, color: "#71717a" },
     cart: {
@@ -427,7 +446,7 @@ export function productCardTypographyDefaults(
       size: 12,
       color: style.cartVariant === "outline" ? "#09090b" : "#ffffff",
     },
-    stock: { weight: "600", style: "normal", size: 12, color: "#ef4444" },
+    stock: { weight: "600", style: "normal", size: 12, color: "#92400e" },
   };
 }
 
@@ -493,7 +512,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     template: "minimal",
     groups: [
       group("g1", "preview", "swatch"),
-      group("g2", "brand", "name", "category"),
+      group("g2", "brand", "name", "variant", "category"),
       group("g3", "price", "delivery"),
       group("g4", "rating"),
       group("g5", "stock"),
@@ -510,7 +529,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     version: PRODUCT_CARD_CONFIG_VERSION,
     template: "full",
     groups: [
-      group("g1", "name", "category"),
+      group("g1", "name", "variant", "category"),
       group("g2", "preview", "swatch"),
       group("g3", "price", "delivery"),
       group("g4", "rating"),
@@ -533,7 +552,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     template: "drop-shadow",
     groups: [
       group("g1", "preview", "swatch"),
-      group("g2", "brand", "name", "category"),
+      group("g2", "brand", "name", "variant", "category"),
       group("g3", "price", "delivery"),
       group("g4", "rating"),
       group("g5", "stock"),
@@ -555,7 +574,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     version: PRODUCT_CARD_CONFIG_VERSION,
     template: "sharp-border",
     groups: [
-      group("g1", "name", "category"),
+      group("g1", "name", "variant", "category"),
       group("g2", "preview", "swatch"),
       group("g3", "price", "delivery"),
       group("g4", "rating"),
@@ -586,7 +605,7 @@ export const PRODUCT_CARD_TEMPLATES: Record<
     groups: [
       group("g1", "preview"),
       group("g2", "swatch"),
-      group("g3", "name", "category"),
+      group("g3", "name", "variant", "category"),
       group("g4", "price", "delivery"),
       group("g5", "stock"),
       group("g6", "cart"),
@@ -713,6 +732,27 @@ function normalizeProductCardGroups(
     : DEFAULT_PRODUCT_CARD_GROUPS;
 }
 
+/**
+ * A card from before v3 with its colour name as an element of its own: right
+ * after the product name, on exactly when the name used to print it (name and
+ * swatches both on). A card without a name never showed one, and gets none.
+ */
+function withVariantAfterName(groups: ProductCardGroup[]): ProductCardGroup[] {
+  const items = groups.flatMap((entry) => entry.items);
+  if (items.some((item) => item.key === "variant")) return groups;
+  const name = items.find((item) => item.key === "name");
+  if (!name) return groups;
+  const swatchOn = items.some((item) => item.key === "swatch" && item.on);
+  const variant: ProductCardItem = { key: "variant", on: name.on && swatchOn };
+  return groups.map((entry) => {
+    const at = entry.items.findIndex((item) => item.key === "name");
+    if (at < 0) return entry;
+    const next = [...entry.items];
+    next.splice(at + 1, 0, variant);
+    return { ...entry, items: next };
+  });
+}
+
 function parseTypography(raw: unknown): ProductCardTypography | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const source = raw as Record<string, unknown>;
@@ -731,6 +771,7 @@ const TYPOGRAPHY_KEYS: ProductCardTypographyKey[] = [
   "brand",
   "seller",
   "product",
+  "variant",
   "category",
   "price",
   "discounted",
@@ -748,7 +789,7 @@ const TYPOGRAPHY_KEYS: ProductCardTypographyKey[] = [
  * neither can appear in a card from before the split.
  */
 function isLegacyProductCardConfig(source: Record<string, unknown>): boolean {
-  if (num(source.version, 1) >= PRODUCT_CARD_CONFIG_VERSION) return false;
+  if (num(source.version, 1) >= BRAND_SPLIT_VERSION) return false;
   const style = source.style;
   if (typeof style === "object" && style !== null && "brandDisplay" in style) {
     return false;
@@ -810,7 +851,10 @@ export function normalizeProductCardConfig(raw: unknown): ProductCardConfig {
   return {
     version: PRODUCT_CARD_CONFIG_VERSION,
     template: oneOf(PRODUCT_CARD_TEMPLATE_IDS, source.template, "minimal"),
-    groups: normalizeProductCardGroups(source.groups, legacy),
+    groups:
+      num(source.version, 1) < PRODUCT_CARD_CONFIG_VERSION
+        ? withVariantAfterName(normalizeProductCardGroups(source.groups, legacy))
+        : normalizeProductCardGroups(source.groups, legacy),
     visibility: {
       cartButtonAlways: bool(v.cartButtonAlways, dv.cartButtonAlways),
       discountChip: bool(v.discountChip, dv.discountChip),
@@ -976,14 +1020,24 @@ export function cardButtonCss(style: ProductCardStyle): CSSProperties {
       css.border = `${style.cartBorderWidth}px solid ${style.cartBorder}`;
     }
   }
+  if (style.cartBackground && !style.typography.cart?.color) {
+    if (parseColor(style.cartBackground)?.a === 1) css.color = readableForegroundColor(style.cartBackground);
+    else if (style.cartBackground === "var(--primary)") css.color = "var(--primary-foreground)";
+    else if (style.cartBackground === "var(--highlight)") css.color = "var(--highlight-foreground)";
+    else if (style.cartBackground === "var(--secondary)") css.color = "var(--secondary-foreground)";
+    else if (style.cartBackground === "var(--foreground)") css.color = "var(--on-foreground,var(--background))";
+    else if (style.cartBackground === "var(--muted-foreground)") css.color = "var(--on-muted-foreground,var(--background))";
+    else if (style.cartBackground === "var(--border)") css.color = "var(--on-border,var(--foreground))";
+  }
   return { ...css, ...cardTypographyCss(style.typography.cart) };
 }
 
-/** The "N% OFF" chip's inline colors; empty when it keeps the rose default. */
+/** The "N% OFF" chip's explicit overrides; empty inherits the semantic sale pair. */
 export function cardDiscountChipCss(style: ProductCardStyle): CSSProperties {
   const css: CSSProperties = {};
   if (style.discountChipBackground) {
     css.backgroundColor = style.discountChipBackground;
+    if (!style.discountChipColor && parseColor(style.discountChipBackground)) css.color = readableForegroundColor(style.discountChipBackground);
   }
   if (style.discountChipColor) css.color = style.discountChipColor;
   return css;

@@ -142,7 +142,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
           <div key={key} className="px-6 py-5">
             <div className="flex gap-4">
               {/* Product Image */}
-              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-[#f5f5f5] dark:bg-zinc-800">
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
                 {item.image ? (
                   <AppImage
                     src={item.image}
@@ -175,7 +175,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                   </p>
                 ) : null}
                 {item.purchaseType === "preorder" && (
-                  <div className="mb-2 space-y-1 text-xs font-medium text-blue-600 dark:text-blue-300">
+                  <div className="mb-2 space-y-1 text-xs font-medium text-status-on-info">
                     <p>
                       {formatPreorderDate(item.preorderReleaseDate)
                         ? `Pre-order - ships around ${formatPreorderDate(
@@ -247,7 +247,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
 
               {/* Price & Remove */}
               <div className="flex flex-col items-end justify-between shrink-0">
-                <span className="inline-flex items-center rounded-full border border-emerald-500 px-2.5 py-0.5 text-sm font-semibold text-emerald-600 dark:border-emerald-600 dark:text-emerald-500">
+                <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-sm font-semibold text-foreground">
                   {formatPrice(item.price * item.quantity)}
                 </span>
                 <button
@@ -258,7 +258,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                     )
                   }
                   disabled={isRemoving}
-                  className="text-sm font-medium text-primary hover:underline disabled:opacity-50"
+                  className="text-sm font-medium text-store-link hover:underline disabled:opacity-50"
                 >
                   {isRemoving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,5 +1,5 @@
 import { connectDB } from "@/lib/db";
-import { AuthorizationError, ValidationError } from "@/lib/api/errors";
+import { AuthorizationError, ConflictError, ValidationError } from "@/lib/api/errors";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { isValidObjectId, validateBody } from "@/lib/api/validate";
 import { AdminUpdateReturnRequestSchema } from "@/lib/validations";
@@ -22,6 +22,8 @@ import {
   releasesReturnQuantity,
   RETURN_DECLINE_MESSAGES,
   RETURN_DECLINE_REASON_LABELS,
+  disposedUnitsOfLine,
+  receiptChangeProblem,
   returnHasRestocked,
   returnGoodsBack,
   returnMayRestock,
@@ -32,7 +34,17 @@ import {
   returnStatusForTracking,
 } from "@/lib/returns/returns";
 import { getSettings } from "@/models/settings.model";
-import { PartialRefundError, refundOrderPayment } from "@/lib/orders/order-refund";
+import {
+  PartialRefundError,
+  RefundOutcomeUnknownError,
+  refundOrderPayment,
+} from "@/lib/orders/order-refund";
+import {
+  holdRefundsWrite,
+  logRefundUnconfirmedError,
+  refundUnconfirmedProblem,
+} from "@/lib/orders/refund-unconfirmed";
+import { gatewayRefundPending } from "@/lib/orders/refund-gateway-status";
 import { getOrderRefundCeiling } from "@/lib/orders/preorder-cancel-refund";
 import { settleRefundRecordedLate } from "@/lib/orders/refund-recorded-late";
 import {
@@ -54,6 +66,7 @@ import {
   recomputeReturnEstimate,
   refundedDeliveryTotal,
   repriceReturnForReceipt,
+  returnClaimProblem,
 } from "@/lib/returns/return-plan";
 import {
   assertReturnOverrides,
@@ -350,6 +363,17 @@ export const PUT = withApi<{ id: string }>(
 
       const approvalOrder = await Order.findById(before.orderId).lean();
       if (!approvalOrder) throw new ValidationError("Order not found for this return");
+      // Not more than the order has left to take back: approving one unit of
+      // two frees the other for a new return, and raising this one again must
+      // not count it twice.
+      const claimProblem = await returnClaimProblem({
+        order: approvalOrder,
+        orderId: before.orderId,
+        returnId: before._id,
+        current: before.items as ReturnRequestItem[],
+        next: items,
+      });
+      if (claimProblem) throw new ValidationError(claimProblem);
       const prior = await loadPriorUnits();
       // Once the parcel has been counted, what arrived is what it is worth.
       // Priced from the approval alone, re-sending it after a short count
@@ -385,6 +409,18 @@ export const PUT = withApi<{ id: string }>(
           (entry) => entry.orderItemIndex === item.orderItemIndex,
         );
         if (!received) return item;
+        // Not a count that takes back, or changes the kind of, goods already
+        // on the shelf or settled from the held stock.
+        const recountProblem = receiptChangeProblem({
+          line: item,
+          quantity: Math.min(
+            Number(item.quantityApproved ?? item.quantityRequested ?? 0),
+            Number(received.quantityReceived || 0),
+          ),
+          condition: received.condition,
+          disposed: disposedUnitsOfLine(before, item.orderItemIndex),
+        });
+        if (recountProblem) throw new ValidationError(recountProblem);
         return {
           ...item,
           quantityReceived: Math.min(
@@ -847,6 +883,20 @@ export const PUT = withApi<{ id: string }>(
           );
         }
 
+        // A refund the gateway never answered may have gone through. Sent again
+        // ahead of the gateway's report of it, it is paid twice — so while that
+        // is unsettled nothing more goes to a gateway from this order. A refund
+        // recorded as already made, or given as credit, sends nothing.
+        if (gatewayAmount > 0 && !body.manualRefund) {
+          const unconfirmed = refundUnconfirmedProblem(
+            order as Parameters<typeof refundUnconfirmedProblem>[0],
+          );
+          if (unconfirmed) {
+            await releaseReturnClaim();
+            throw new ConflictError(unconfirmed);
+          }
+        }
+
         // What the order collected, not its total — see `getOrderRefundCeiling`.
         const total = getOrderRefundCeiling({
           ...order,
@@ -1075,6 +1125,14 @@ export const PUT = withApi<{ id: string }>(
             await Order.updateOne(...releaseRefundInFlightWrite(order._id, refundStamp)).catch(
               logRefundInFlightReleaseError,
             );
+            if (gatewayError instanceof RefundOutcomeUnknownError) {
+              // Handed back above so the gateway's report can record the refund
+              // if it was made; held here so it is not sent a second time first.
+              await Order.updateOne(...holdRefundsWrite(order._id)).catch(
+                logRefundUnconfirmedError,
+              );
+              throw new ConflictError(gatewayError.message);
+            }
             throw gatewayError;
           }
           // A refund over two charges went through for the first and not the
@@ -1236,6 +1294,10 @@ export const PUT = withApi<{ id: string }>(
             gatewayAmount > 0
               ? await createRefundTransaction({
                   order: refundOrder,
+                  metadata: { returnId: String(before._id), inventoryRefundLines: (before.items ?? []).flatMap((item: ReturnRequestItem) => {
+                    const lineId = orderAfterRefund.items?.[item.orderItemIndex]?.inventoryLineId;
+                    return lineId ? [{ lineId, quantity: item.quantityApproved ?? item.quantityRequested }] : [];
+                  }) },
                   amount: gatewayAmount,
                   reason: body.refundReason || `Return ${before.returnNumber}`,
                   createdBy: session.user.id,
@@ -1307,6 +1369,10 @@ export const PUT = withApi<{ id: string }>(
                   wholeAmount: refundAmount,
                   source: creditRestores ? "order_refund_restore" : "return_refund",
                   returnId: before._id,
+                  metadata: { inventoryRefundLines: (before.items ?? []).flatMap((item: ReturnRequestItem) => {
+                    const lineId = orderAfterRefund.items?.[item.orderItemIndex]?.inventoryLineId;
+                    return lineId ? [{ lineId, quantity: item.quantityApproved ?? item.quantityRequested }] : [];
+                  }) },
                   reason: body.refundReason || `Return ${before.returnNumber}`,
                   createdBy: session.user.id,
                 });
@@ -1405,8 +1471,15 @@ export const PUT = withApi<{ id: string }>(
       // Pesapal only sends the money once it approves the request, and a
       // refusal would otherwise never be seen: the shopper was told they had
       // been refunded the moment the request was made.
+      //
+      // Nor is a refund the gateway only accepted. Razorpay and Paystack answer
+      // "pending" for days, and a PayPal or Stripe refund can too; the return
+      // read refunded the moment the request was made. Kept processing until the
+      // gateway reports it sent (`settleReturnsOnGatewayReports`); a refusal it
+      // reports reverses the refund as it always did.
       const awaitingProvider =
-        gatewayResult.gatewayCalled !== false && gatewayResult.provider === "pesapal";
+        gatewayResult.gatewayCalled !== false &&
+        (gatewayResult.provider === "pesapal" || gatewayRefundPending(gatewayResult));
       updates.refundStatus =
         // All of it as store credit, or paying for the exchange order: done.
         gatewayAmount <= 0 && creditIssued && !creditByHand
@@ -1596,11 +1669,12 @@ export const PUT = withApi<{ id: string }>(
 
     if (!returnRequest) {
       const current = await ReturnRequest.findById(id)
-        .select("status inventoryRestored items.quantityRestocked actualRefund.amount")
+        .select("status inventoryRestored items.quantityRestocked unsellableDispositions actualRefund.amount")
         .lean<{
           status?: string;
           inventoryRestored?: boolean;
           items?: Array<{ quantityRestocked?: number }>;
+          unsellableDispositions?: Array<{ action?: string; quantity?: number }>;
           actualRefund?: { amount?: number };
         } | null>();
       if (!current) return notFoundResponse("Return request");

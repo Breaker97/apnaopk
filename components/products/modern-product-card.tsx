@@ -37,7 +37,11 @@ import {
   productOnlyVariant,
   productRequiresVariantSelection,
 } from "@/lib/products/variant-selection";
-import { findColorOption, getSwatchColor } from "@/lib/products/color-swatch";
+import {
+  findColorOption,
+  findColorVariantImage,
+  getSwatchColor,
+} from "@/lib/products/color-swatch";
 import {
   getPurchasableQuantity,
   isProductAvailable,
@@ -56,7 +60,10 @@ import {
   useQuickViewOpener,
 } from "@/components/products/quick-view-context";
 import { preloadQuickViewProduct } from "@/components/products/quick-view-product";
-import { useListingView } from "@/components/products/listing-view";
+import {
+  useListingImageSizes,
+  useListingView,
+} from "@/components/products/listing-view";
 import {
   cardButtonCss,
   cardChromeCss,
@@ -113,9 +120,13 @@ interface ModernProductCardProps {
   imagePriority?: boolean;
 }
 
-/** The card's picture slot; the "Second image" hover shot keeps to it too. */
-const CARD_IMAGE_SIZES =
-  "(max-width: 640px) 46vw, (max-width: 1024px) 32vw, 25vw";
+/**
+ * The card's picture slot; the "Second image" hover shot keeps to it too.
+ * From lg up the width is the grid's: four across unless a listing's toolbar
+ * says otherwise (see `useListingImageSizes`).
+ */
+const CARD_IMAGE_SIZES_BELOW_LG = "(max-width: 640px) 46vw, (max-width: 1024px) 32vw";
+const CARD_IMAGE_SIZES = `${CARD_IMAGE_SIZES_BELOW_LG}, 25vw`;
 
 function getPreorderRemaining(preorder?: ProductPreorder) {
   const limit = Number(preorder?.limit || 0);
@@ -243,6 +254,7 @@ function ProductCardMedia({
   onLoad?: () => void;
 }) {
   const [isModelInteractive, setIsModelInteractive] = useState(false);
+  const listingSizes = useListingImageSizes();
 
   if (!media) {
     return null;
@@ -293,7 +305,11 @@ function ProductCardMedia({
       alt={alt}
       fill
       priority={priority}
-      sizes={CARD_IMAGE_SIZES}
+      sizes={
+        listingSizes
+          ? `${CARD_IMAGE_SIZES_BELOW_LG}, ${listingSizes}`
+          : CARD_IMAGE_SIZES
+      }
       onLoad={onLoad}
       className={cn(
         contain ? "object-contain" : "object-cover",
@@ -417,8 +433,11 @@ export const ModernProductCard = memo(function ModernProductCard({
   const collectNearbyLabel = t.has("location.collectNearby")
     ? t("location.collectNearby")
     : "Collect nearby";
-  // Drives the price treatment: only a real markdown earns the accent pill.
+  // Drives the price treatment: only a real markdown earns the sale pill.
   const hasDiscount = discountPercentage > 0 && Boolean(compareAtLabel);
+  const percentOffLabel = t.has("product.percentOff")
+    ? t("product.percentOff", { percent: discountPercentage })
+    : `${discountPercentage}% OFF`;
   const chooseOptionsLabel = t.has("product.chooseOptions")
     ? t("product.chooseOptions")
     : "Choose options";
@@ -456,8 +475,23 @@ export const ModernProductCard = memo(function ModernProductCard({
   const colorValues = allColorValues.slice(0, 5);
   const colorOverflow = Math.max(0, allColorValues.length - colorValues.length);
 
-  // Get the first selected color name (for display under product name)
-  const selectedColorName = colorValues[0]?.value;
+  // The swatch the shopper clicked: the card shows that colour's picture and
+  // names it, without leaving the page. Null until one is clicked.
+  const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
+  const activeColor =
+    activeColorIndex === null ? undefined : colorValues[activeColorIndex];
+  // Cards arrive with each colour's picture resolved (storefront-product-cards);
+  // a colour with none keeps the card's own picture.
+  const activeColorImage = activeColor
+    ? findColorVariantImage(product, activeColor)
+    : null;
+
+  // The Variant name element: the colour clicked, else the product's first
+  // colour, whether or not the swatches are on the card (a surface that hides
+  // swatches hides it too).
+  const variantName = showColorSwatches
+    ? (activeColor?.value ?? colorOption?.values?.[0]?.value)
+    : undefined;
 
   // ---- Configurator-driven layout (admin → Online store → Product card).
   // Element presence/order comes from the config groups; the legacy show*
@@ -514,8 +548,10 @@ export const ModernProductCard = memo(function ModernProductCard({
   const canHover = useMediaQuery("(hover: hover)");
   // "Second image" hover: the gallery's next picture after the primary.
   // Rendered only where a pointer can hover, so a phone never downloads it.
+  // Not while a swatch's colour is on show: the gallery's next picture would
+  // be a different colour.
   const secondImageUrl =
-    cardStyle.previewHover === "second-image" && canHover
+    cardStyle.previewHover === "second-image" && canHover && !activeColorImage
       ? getSecondProductImage(product)
       : null;
   // The swap starts once that picture has loaded: a hover over one still on
@@ -525,6 +561,10 @@ export const ModernProductCard = memo(function ModernProductCard({
   );
   const swapOnHover =
     secondImageUrl !== null && loadedSecondImage === secondImageUrl;
+  // The picture on the stage: the clicked colour's, else the product's own.
+  const stageMedia = activeColorImage
+    ? { _id: `colour-${activeColorIndex}`, type: "image" as const, url: activeColorImage }
+    : primaryMedia;
   const contained = cardStyle.previewFit === "contain";
 
   const handleAddToCart = useCallback(
@@ -668,7 +708,7 @@ export const ModernProductCard = memo(function ModernProductCard({
             "h-3.5 w-3.5",
             cardStyle.ratingColor
               ? "fill-current"
-              : "fill-amber-400 text-amber-400",
+              : "fill-current text-(--store-rating,#a86500)",
           )}
           style={
             cardStyle.ratingColor ? { color: cardStyle.ratingColor } : undefined
@@ -703,7 +743,7 @@ export const ModernProductCard = memo(function ModernProductCard({
               collide with the action row on a phone-width card. It also reads
               as what it is — a fact about this seller, not a promotion. */}
           {product.collectNearby ? (
-            <span className="flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400">
+            <span className="flex items-center gap-1 font-medium text-status-on-positive">
               <Store className="h-3 w-3 shrink-0" aria-hidden="true" />
               {collectNearbyLabel}
             </span>
@@ -712,7 +752,7 @@ export const ModernProductCard = memo(function ModernProductCard({
       ) : null}
       {/* Preorder Line */}
       {hasPreorderLine ? (
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-blue-700 dark:text-blue-300 sm:text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-status-on-info sm:text-xs">
           {preorderDateLabel ? <span>Ships {preorderDateLabel}</span> : null}
           {preorderDateLabel && preorderReserveLabel ? (
             <span className="text-muted-foreground">/</span>
@@ -733,14 +773,14 @@ export const ModernProductCard = memo(function ModernProductCard({
               "relative overflow-hidden",
               !cardStyle.previewBorder && PRODUCT_CARD_PREVIEW_BORDER_CLASS,
               !cardStyle.previewBackground &&
-                "bg-[#f3f4f6] dark:bg-zinc-800/50",
+                "bg-muted",
             )}
             style={{
               ...cardPreviewStageCss(cardStyle),
               ...cardPreviewBorderCss(cardStyle),
             }}
           >
-            {primaryMedia ? (
+            {stageMedia ? (
               // A contained stage floats the product shot with air on every
               // side; a covered one bleeds it to the edges.
               <CardStageLayer
@@ -749,7 +789,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                 className={swapOnHover ? CARD_SWAP_OUT_CLASS : undefined}
               >
                 <ProductCardMedia
-                  media={primaryMedia}
+                  media={stageMedia}
                   productName={product.name}
                   priority={imagePriority}
                   contain={contained}
@@ -796,12 +836,12 @@ export const ModernProductCard = memo(function ModernProductCard({
                   </span>
                 )}
                 {vis.discountChipOnImage && discountPercentage > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-white px-2 py-1 text-xs font-semibold text-destructive shadow-sm ring-1 ring-black/5 dark:bg-muted dark:font-bold dark:text-red-400 dark:ring-white/10">
+                    <span className="inline-flex items-center rounded-full bg-white px-2 py-1 text-xs font-semibold text-store-sale-text shadow-sm ring-1 ring-black/5 dark:bg-muted dark:font-bold dark:ring-white/10">
                       -{discountPercentage}%
                     </span>
                   )}
                 {preorderAvailable ? (
-                  <span className="inline-flex items-center rounded-full bg-blue-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
+                  <span className="inline-flex items-center rounded-full bg-status-info px-2.5 py-1 text-xs font-medium text-status-on-info shadow-sm">
                     {preorderLabel}
                   </span>
                 ) : null}
@@ -818,7 +858,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                     {product.featured &&
                       !product.sponsored &&
                       discountPercentage <= 0 && (
-                        <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground shadow-sm">
+                        <span className="inline-flex items-center rounded-full bg-highlight px-2.5 py-1 text-xs font-medium text-highlight-foreground shadow-sm">
                           {t("common.featured")}
                         </span>
                       )}
@@ -916,7 +956,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                       : t("common.addToCart")
                 }
                 style={buttonRadius}
-                className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-foreground text-background shadow-md transition-transform before:absolute before:-inset-2 before:content-[''] active:scale-90 [@media(hover:hover)]:hidden"
+                className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-store-secondary text-store-on-secondary shadow-md transition-transform before:absolute before:-inset-2 before:content-[''] active:scale-90 [@media(hover:hover)]:hidden"
               >
                 {isAddingToCart ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -947,7 +987,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                     {...(needsVariantSelection ? quickViewIntent : {})}
                     disabled={isAddingToCart}
                     style={buttonRadius}
-                    className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-full bg-foreground px-2 text-[11px] font-semibold leading-none text-background shadow-lg transition-colors hover:bg-foreground/90"
+                    className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-full bg-store-secondary px-2 text-[11px] font-semibold leading-none text-store-on-secondary shadow-lg transition-colors hover:bg-store-secondary/90"
                   >
                     {isAddingToCart ? (
                       <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
@@ -985,21 +1025,37 @@ export const ModernProductCard = memo(function ModernProductCard({
         if (colorValues.length === 0) return null;
         return (
           <div key={key} className="flex items-center gap-1 px-0.5">
-            {colorValues.map((v) => {
+            {colorValues.map((v, index) => {
               const color = getSwatchColor(v.value, v.colorCode) || "#e5e7eb";
               const isLight =
                 color === "#ffffff" ||
                 color === "#fffdd0" ||
                 color === "#fef3c7";
+              const active = index === activeColorIndex;
               return (
-                <span
+                // A swatch shows its colour on this card; it does not open the
+                // product, which the rest of the card does.
+                <button
                   key={v._id}
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setActiveColorIndex(active ? null : index);
+                  }}
+                  aria-label={v.value}
+                  aria-pressed={active}
+                  title={v.value}
                   className={cn(
-                    "h-4 w-4 rounded-full transition-transform hover:scale-110",
+                    "h-4 w-4 cursor-pointer rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isLight ? "border border-border" : "border-0",
+                    // Marked inside its own edge, so the picked dot stays the
+                    // size of the others: a dark band with a light hairline
+                    // inside it, which reads on dark and light colours alike.
+                    active &&
+                      "shadow-[inset_0_0_0_2px_var(--foreground),inset_0_0_0_3px_var(--background)]",
                   )}
                   style={{ backgroundColor: color }}
-                  title={v.value}
                 />
               );
             })}
@@ -1052,17 +1108,24 @@ export const ModernProductCard = memo(function ModernProductCard({
                 useful distinguishing text without making the card overly
                 tall. */}
             <h3
-              className="line-clamp-2 text-[13px] font-semibold leading-tight text-foreground transition-colors group-hover:text-primary group-focus-within:text-primary sm:text-sm"
+              className="line-clamp-2 text-[13px] font-semibold leading-tight text-foreground transition-colors group-hover:text-store-link group-focus-within:text-store-link sm:text-sm"
               style={cardTypographyCss(typography.product)}
             >
               {product.name}
             </h3>
-            {selectedColorName && (
-              <p className="text-xs leading-snug text-muted-foreground capitalize sm:text-[13px]">
-                {selectedColorName}
-              </p>
-            )}
           </div>
+        );
+
+      case "variant":
+        if (!variantName) return null;
+        return (
+          <p
+            key={key}
+            className="truncate px-0.5 text-xs leading-snug text-muted-foreground capitalize sm:text-[13px]"
+            style={cardTypographyCss(typography.variant)}
+          >
+            {variantName}
+          </p>
         );
 
       case "category":
@@ -1097,7 +1160,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                 className={cn(
                   "whitespace-nowrap text-xs font-bold leading-snug tabular-nums sm:text-sm",
                   hasDiscount && cardStyle.pricePill
-                    ? "inline-flex items-center rounded-[6px] border border-emerald-500 px-1.5 py-0.5 font-semibold text-emerald-600 dark:border-emerald-500 dark:text-emerald-400 sm:border-2 sm:px-2.5"
+                    ? "inline-flex items-center rounded-[6px] border border-store-sale px-1.5 py-0.5 font-semibold text-store-sale-text sm:border-2 sm:px-2.5"
                     : "text-foreground",
                 )}
                 style={cardTypographyCss(typography.price)}
@@ -1117,13 +1180,13 @@ export const ModernProductCard = memo(function ModernProductCard({
                   className={cn(
                     "whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold",
                     !cardStyle.discountChipBackground &&
-                      "bg-rose-100 dark:bg-rose-500/15",
+                      "bg-store-sale-surface",
                     !cardStyle.discountChipColor &&
-                      "text-rose-600 dark:text-rose-300",
+                      "text-store-on-sale-surface",
                   )}
                   style={cardDiscountChipCss(cardStyle)}
                 >
-                  {discountPercentage}% OFF
+                  {percentOffLabel}
                 </span>
               )}
             </div>
@@ -1165,7 +1228,7 @@ export const ModernProductCard = memo(function ModernProductCard({
                       "h-3.5 w-3.5 shrink-0",
                       cardStyle.ratingColor
                         ? "fill-current"
-                        : "fill-amber-400 text-amber-400",
+                        : "fill-current text-(--store-rating,#a86500)",
                     )}
                     style={
                       cardStyle.ratingColor
@@ -1205,7 +1268,7 @@ export const ModernProductCard = memo(function ModernProductCard({
             className={cn(
               "flex items-center justify-center px-3 py-2 text-xs font-semibold",
               !cardStyle.stockBackground &&
-                "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400",
+                "bg-status-warning text-status-on-warning",
             )}
             style={{
               backgroundColor: cardStyle.stockBackground || undefined,
@@ -1231,8 +1294,8 @@ export const ModernProductCard = memo(function ModernProductCard({
             ? "text-foreground group-hover:border-foreground/25"
             : cn(
                 !cardStyle.cartBackground &&
-                  "bg-foreground text-background hover:bg-foreground/90",
-                cardStyle.cartBackground && "text-white",
+                  "bg-store-secondary text-store-on-secondary hover:bg-store-secondary/90",
+
               ),
         );
         const buttonStyle = cardButtonCss(cardStyle);
@@ -1355,20 +1418,25 @@ export const ModernProductCard = memo(function ModernProductCard({
       rel={product.sponsored ? "sponsored" : undefined}
       className={cn(
         "group flex flex-col self-start transition-transform active:scale-[0.98] [@media(hover:hover)]:active:scale-100",
+        // A list row: a rule under it, the last one without (the grid's gap
+        // is 20px in list view, so the rule sits mid-way between rows).
+        listView &&
+          "lg:border-b lg:border-border/70 lg:pb-5 lg:last:border-b-0 lg:last:pb-0",
         className,
       )}
       style={{ gap: cardStyle.groupGap, ...cardChromeCss(cardStyle) }}
     >
       {listView ? (
         // List view: the group holding the picture becomes a fixed column
-        // and every other group stacks beside it. Below lg the two columns
-        // stack again, which is the grid card exactly.
+        // (36 = 144px, `LISTING_LIST_IMAGE_WIDTH`) and every other group
+        // stacks beside it. Below lg the two columns stack again, which is
+        // the grid card exactly.
         <div
-          className="flex flex-col lg:flex-row lg:items-start lg:gap-8"
+          className="flex flex-col lg:flex-row lg:items-start lg:gap-5"
           style={{ rowGap: cardStyle.groupGap }}
         >
           <div
-            className="flex flex-col lg:w-64 lg:shrink-0"
+            className="flex flex-col lg:w-36 lg:shrink-0"
             style={{ gap: cardStyle.groupGap }}
           >
             {groupNodes.filter((group) => group.media).map((group) => group.node)}

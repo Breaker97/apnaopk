@@ -48,7 +48,7 @@
       "$date": "2026-09-13T19:58:32.833Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:22:16.855Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0
   },
@@ -97,7 +97,7 @@
       "$date": "2026-09-13T19:58:57.453Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:22:16.855Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0
   },
@@ -144,7 +144,7 @@
       "$date": "2026-09-16T13:22:54.936Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:24:14.654Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0
   },
@@ -162,7 +162,20 @@
     },
     "collectionType": "manual",
     "kind": "collection",
-    "products": [],
+    "products": [
+      {
+        "$oid": "6aaa63a12f46abe23f278deb"
+      },
+      {
+        "$oid": "6aaa87f52f46abe23f278e03"
+      },
+      {
+        "$oid": "6aab813490a6dfba31d47735"
+      },
+      {
+        "$oid": "6aabad0960c177e8c0c69ce6"
+      }
+    ],
     "conditions": [],
     "conditionMatch": "all",
     "sortOrder": "manual",
@@ -173,14 +186,15 @@
       "pointOfSale": false
     },
     "seo": {
+      "pageTitle": "Baltic Blue",
       "handle": "baltic-blue"
     },
-    "productCount": 0,
+    "productCount": 4,
     "createdAt": {
       "$date": "2026-09-16T13:31:31.542Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:31:31.550Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0
   },
@@ -193,8 +207,21 @@
     "handle": "black-saffiano",
     "description": "",
     "collectionType": "manual",
-    "kind": "look",
-    "products": [],
+    "kind": "collection",
+    "products": [
+      {
+        "$oid": "6aaa62912f46abe23f278dea"
+      },
+      {
+        "$oid": "6aab6e8c90a6dfba31d47726"
+      },
+      {
+        "$oid": "6aabae2e60c177e8c0c69cf8"
+      },
+      {
+        "$oid": "6aaa81082f46abe23f278dff"
+      }
+    ],
     "conditions": [],
     "conditionMatch": "all",
     "sortOrder": "manual",
@@ -208,12 +235,12 @@
       "pageTitle": "Black Saffiano",
       "handle": "black-saffiano"
     },
-    "productCount": 0,
+    "productCount": 4,
     "createdAt": {
       "$date": "2026-09-16T13:32:17.793Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:36:42.690Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0,
     "image": {
@@ -235,7 +262,20 @@
     },
     "collectionType": "manual",
     "kind": "collection",
-    "products": [],
+    "products": [
+      {
+        "$oid": "6aa94e1b14e6a3473c5cf2bd"
+      },
+      {
+        "$oid": "6aaa87f52f46abe23f278e03"
+      },
+      {
+        "$oid": "6aab83ee90a6dfba31d47736"
+      },
+      {
+        "$oid": "6aabc12d60c177e8c0c69d32"
+      }
+    ],
     "conditions": [],
     "conditionMatch": "all",
     "sortOrder": "manual",
@@ -246,14 +286,15 @@
       "pointOfSale": false
     },
     "seo": {
+      "pageTitle": "Forest Bonnie",
       "handle": "forest-bonnie"
     },
-    "productCount": 0,
+    "productCount": 4,
     "createdAt": {
       "$date": "2026-09-16T13:32:46.275Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:32:46.279Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0
   },
@@ -266,8 +307,21 @@
     "handle": "sand-route",
     "description": "",
     "collectionType": "manual",
-    "kind": "look",
-    "products": [],
+    "kind": "collection",
+    "products": [
+      {
+        "$oid": "6ab101e410060cae37a54863"
+      },
+      {
+        "$oid": "6aaa800e2f46abe23f278dfd"
+      },
+      {
+        "$oid": "6aabd59aaf46cdbcc4e75bfd"
+      },
+      {
+        "$oid": "6aabb2d060c177e8c0c69d03"
+      }
+    ],
     "conditions": [],
     "conditionMatch": "all",
     "sortOrder": "manual",
@@ -281,17 +335,66 @@
       "pageTitle": "Sand Route",
       "handle": "sand-route"
     },
-    "productCount": 0,
+    "productCount": 4,
     "createdAt": {
       "$date": "2026-09-16T13:33:10.268Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:37:36.772Z"
+      "$date": "2026-09-25T21:33:47.467Z"
     },
     "__v": 0,
     "image": {
       "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789565708201-d9qbee/cq5dam.web.hebebed.2400.2400__3_.avif",
       "alt": "Sand Route"
     }
+  },
+  {
+    "_id": {
+      "$oid": "6aac03e9940694ca85477381"
+    },
+    "title": "Handbag 2026",
+    "slug": "handbag-2026",
+    "handle": "handbag-2026",
+    "description": "",
+    "image": {
+      "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789657997593-jxqbp2/8717c0fd283c3b3cea966d1cb591d305.jpg",
+      "alt": "Handbag 2026"
+    },
+    "collectionType": "manual",
+    "kind": "collection",
+    "products": [
+      {
+        "$oid": "6aaa82442f46abe23f278e00"
+      },
+      {
+        "$oid": "6aaa81082f46abe23f278dff"
+      },
+      {
+        "$oid": "6aaa87f52f46abe23f278e03"
+      },
+      {
+        "$oid": "6aaa8d2d2f46abe23f278e07"
+      }
+    ],
+    "conditions": [],
+    "conditionMatch": "all",
+    "sortOrder": "manual",
+    "position": 0,
+    "status": "active",
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "seo": {
+      "handle": "handbag-2026"
+    },
+    "productCount": 4,
+    "createdAt": {
+      "$date": "2026-09-17T15:14:49.406Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:47.467Z"
+    },
+    "__v": 0
   }
 ]

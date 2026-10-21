@@ -183,4 +183,6 @@ if (process.env.NODE_ENV === "development" && models.Transfer) {
   mongoose.deleteModel("Transfer");
 }
 
+TransferSchema.plugin(financeSessionPlugin);
 export const Transfer = models.Transfer || model("Transfer", TransferSchema);
+import { financeSessionPlugin } from "@/lib/finance/session-plugin";

@@ -17,6 +17,12 @@ const MAX_HEIGHT = 900;
  * campaigns, a feature that is switched off. */
 const EMPTY_HEIGHT = 24;
 
+/** The active theme compiled for an admin `.store-surface` (no fallbacks). */
+export interface StoreSurfaceStyle {
+  vars: Record<string, string>;
+  attributes: Record<string, string>;
+}
+
 /**
  * The real storefront render of ONE section, framed inside its editor row.
  *
@@ -37,6 +43,7 @@ export function SectionPreviewFrame({
   hint,
   emptyLabel,
   className,
+  storeSurface,
 }: {
   locale: string;
   handle: string;
@@ -50,6 +57,8 @@ export function SectionPreviewFrame({
   /** Shown in place of the frame when the section rendered nothing. */
   emptyLabel: string;
   className?: string;
+  /** The theme's compiled colours, so the frame's ground matches the store's. */
+  storeSurface?: StoreSurfaceStyle;
 }) {
   const { previewEndpoint } = useStoreBuilderScope();
   const frame = useRef<HTMLIFrameElement | null>(null);
@@ -99,7 +108,11 @@ export function SectionPreviewFrame({
           state === "loading" && "animate-pulse",
           state === "empty" && "border-dashed bg-muted/30",
         )}
-        style={{ height: state === "empty" ? undefined : height }}
+        {...(storeSurface?.attributes ?? {})}
+        style={{
+          ...(storeSurface?.vars as React.CSSProperties | undefined),
+          height: state === "empty" ? undefined : height,
+        }}
       >
         {state === "loading" ? (
           <div className="absolute inset-0 grid place-items-center text-muted-foreground">

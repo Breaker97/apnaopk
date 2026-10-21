@@ -1,3 +1,5 @@
+import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
+import { assertVendorPermission } from "@/lib/access/rbac";
 import { buildLocalePath } from "@/lib/i18n/locale-prefix";
 import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import * as z from "zod";
@@ -54,6 +56,13 @@ const PaySchema = z.object({
 export const GET = withApi(
   { auth: "user" },
   async ({ session }) => {
+    // Money owed and paid is the payouts screen's: the same permission its
+    // sibling routes ask for.
+    await assertVendorPermission(
+      session.user,
+      VENDOR_PERMISSIONS.VIEW_PAYOUTS,
+      "You do not have permission to view payouts",
+    );
     await connectDB();
     const settings = await getSettings();
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");
@@ -97,6 +106,11 @@ export const POST = withApi(
     rateLimit: { action: "vendor:commission:pay", preset: "moderate" },
   },
   async ({ request, session }) => {
+    await assertVendorPermission(
+      session.user,
+      VENDOR_PERMISSIONS.VIEW_PAYOUTS,
+      "You do not have permission to view payouts",
+    );
     await connectDB();
     const settings = await getSettings();
     if (!settings.multiVendorMode?.enabled) throw new NotFoundError("Vendor");

@@ -28,6 +28,15 @@ import { resolveVendorPreorderAccess } from "@/lib/orders/preorder-gating";
 import { storeCanCollectDeferredBalance } from "@/lib/payments/deferred-balance";
 import { bizUploadPolicy } from "@/lib/api-core/biz/uploads/policy";
 import { getStorageConfig } from "@/lib/storage";
+import {
+  BUILT_IN_TAX_CLASS_NAMES,
+  STANDARD_TAX_CLASS,
+  classRatesAt,
+  isBuiltInTaxClass,
+  taxClassOptions,
+  vendorTaxChangePolicy,
+} from "@/lib/tax/tax-settings";
+import { vendorMayChangeTax } from "@/lib/tax/vendor-tax";
 import { Product, Vendor, Order } from "@/models";
 import { getSettingsLean, type ISettings } from "@/models/settings.model";
 import { productNotFound, productDtoContext, locationViewOf } from "./load";
@@ -100,15 +109,25 @@ export async function productEditorContext(input: {
   return { ownerId, settings, vendor, locations, features, limit };
 }
 
+const TAX_FIELDS: readonly string[] = ["chargeTax", "taxClass", "taxRate"];
+
+/**
+ * The fields the app may offer for editing. `taxLocked` (a vendor whose store
+ * keeps tax changes for itself) leaves the tax fields out of what is shown;
+ * the save path does not pass it and refuses an actual change instead, so a
+ * form that sends the tax unchanged still saves.
+ */
 export function editorWritableFields(
   grant: BizWorkspaceGrant,
   product?: EditorDocument,
+  options: { taxLocked?: boolean } = {},
 ): ProductFormOptions["writableFields"] {
   if (!grantCan(grant, product ? "EDIT_PRODUCTS" : "CREATE_PRODUCTS"))
     return [];
   return PRODUCT_EDITOR_FIELDS.filter(
     (field) =>
       !(grant.workspace === "vendor" && field === "featured") &&
+      !(options.taxLocked && grant.workspace === "vendor" && TAX_FIELDS.includes(field)) &&
       !(product && (field === "stock" || field === "locationInventory")) &&
       !(
         product?.shipping?.isPhysicalProduct !== false &&
@@ -155,6 +174,22 @@ export async function readProductFormOptions(input: {
     deferredBalanceSupported,
   });
   const storage = await getStorageConfig();
+  // Each class with the rate it is charged now; the standard class is the
+  // store's rate (settings read through getSettingsLean are current).
+  const classRates = classRatesAt(context.settings.tax, Date.now());
+  const storeRate = Number(context.settings.orders?.taxRate) || 0;
+  const taxClasses = taxClassOptions(context.settings.tax).map((entry) => {
+    const rate = entry.key === STANDARD_TAX_CLASS ? storeRate : classRates.get(entry.key);
+    return {
+      key: entry.key,
+      name: isBuiltInTaxClass(entry.key)
+        ? BUILT_IN_TAX_CLASS_NAMES[entry.key]
+        : entry.name || entry.key,
+      ...(entry.description ? { description: entry.description } : {}),
+      builtIn: isBuiltInTaxClass(entry.key),
+      ...(rate === undefined ? {} : { rate: Math.round(rate * 100 * 10_000) / 10_000 }),
+    };
+  });
   return ProductFormOptions.parse({
     currency: (await productDtoContext(input.scope)).currency.code,
     formats: [
@@ -163,7 +198,9 @@ export async function readProductFormOptions(input: {
     ],
     descriptionFormat: "html",
     features: context.features,
-    writableFields: editorWritableFields(input.grant, product),
+    writableFields: editorWritableFields(input.grant, product, {
+      taxLocked: !vendorMayChangeTax(vendorTaxChangePolicy(context.settings.tax)),
+    }),
     actions: product ? editorActions(input.grant) : [],
     categories: options.categories.map((row) => ({
       id: row._id,
@@ -213,6 +250,7 @@ export async function readProductFormOptions(input: {
           ]
         : []),
     ],
+    taxClasses,
   });
 }
 
@@ -242,6 +280,10 @@ export function toEditorValues(
   const values: EditorDocument = {};
   for (const key of PRODUCT_EDITOR_FIELDS)
     if (product[key] !== undefined) values[key] = jsonValue(product[key]);
+  // No class or custom rate means "the category's": left out, as the
+  // contract leaves out every optional field rather than sending null.
+  if (values.taxClass === null) delete values.taxClass;
+  if (values.taxRate === null) delete values.taxRate;
   const assigned = staffLocationIds(scope);
   const visible = (row: EditorDocument) =>
     !assigned.length || assigned.includes(String(row.locationId));
@@ -297,9 +339,10 @@ export async function readProductEditor(
   scope: BizScope,
   grant: BizWorkspaceGrant,
 ): Promise<ProductEditorDetail> {
-  const [product, context] = await Promise.all([
+  const [product, context, settings] = await Promise.all([
     findEditorProduct(id, scope),
     productDtoContext(scope),
+    getSettingsLean(),
   ]);
   const productDetail = toProductDetail(
     product as never,
@@ -315,7 +358,9 @@ export async function readProductEditor(
     version: productVersion(product.updatedAt),
     values: toEditorValues(product, scope),
     product: productDetail,
-    writableFields: editorWritableFields(grant, product),
+    writableFields: editorWritableFields(grant, product, {
+      taxLocked: !vendorMayChangeTax(vendorTaxChangePolicy(settings.tax)),
+    }),
     actions: editorActions(grant),
     pricing: { price: summary.price, maxPrice: summary.maxPrice },
     dependencies: historicalOrders

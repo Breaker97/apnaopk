@@ -59,7 +59,7 @@
     "subtotal": "Alakomeji",
     "shipping": "Ibiakia",
     "tax": "Ora",
-    "discount": "I bile",
+    "discount": "Ẹ̀dínwó",
     "free": "Iwe",
     "new": "Tuntun",
     "sale": "Alagbe",
@@ -227,6 +227,18 @@
   "account": {
     "welcome": "Ku ajo pada, {name}!",
     "overviewDesc": "Akaunti re ni oju kan",
+    "overview": {
+      "needsAttention": "Ó nílò àkíyèsí rẹ",
+      "actionNeeded": "A nílò ìgbésẹ̀",
+      "addressTitle": "A kò lè fi ẹrù ránṣẹ́ sí àdírẹ́sì rẹ",
+      "addressDeadline": "A ti dá ìfiránṣẹ́ dúró, jọ̀wọ́ tún àdírẹ́sì ṣe kí ó tó di {date}",
+      "addressPaused": "A ti dá ìfiránṣẹ́ dúró títí a ó fi tún àdírẹ́sì ṣe",
+      "fixAddress": "Tún àdírẹ́sì ṣe",
+      "paymentDue": "Owó tí ó yẹ kí a san",
+      "payBy": "San kí ó tó di {date}",
+      "moreInProgress": "{count} míì ń lọ lọ́wọ́",
+      "plusMore": "+{count} míì"
+    },
     "totalOrders": "Gbogbo Awon asẹ",
     "pendingOrders": "Awon asẹ ti o n duro",
     "wishlistItems": "Awon ohun ti o fẹ",
@@ -343,6 +355,10 @@
     "marketingPreferences": "Awon Ayafẹ Maketi",
     "marketingOptIn": "Awon Imeeli Maketi",
     "marketingOptInDesc": "Gbo awon ifiweransẹ maketi ati awon alagbe",
+    "groupOrders": "Àwọn àṣẹ rẹ",
+    "groupWishlist": "Àtòkọ ohun tí o fẹ́",
+    "groupNews": "Ìròyìn àti àwọn ìfilọ́lẹ̀",
+    "marketingOptInHint": "Pa èyí kí o lè yọ ara rẹ kúrò nínú gbogbo ímeèlì ìpolówó.",
     "totalSpent": "Owo Gbogbo Ti O San",
     "avgOrderValue": "Iyewo. Owo Asẹ",
     "memberSince": "Ogba Ni"
@@ -410,7 +426,8 @@
     "wishlist": "Ohun ti mo fẹ",
     "blog": "Iwe Akoso",
     "getHelp": "Kan Iranlowo",
-    "contact": "Enikọẹta"
+    "contact": "Enikọẹta",
+    "inbox": "Àpótí ìfiránṣẹ́"
   },
   "productsPage": {
     "empty": "Aisu oja",
@@ -445,7 +462,10 @@
     "featuredProducts": "Àwọn ọjà àyànfẹ́"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "Search categories..."
+    "searchPlaceholder": "Search categories...",
+    "count": "{count, plural, other {Awon eka: #}}",
+    "perRowGroup": "Awon eka ní ìlà kọ̀ọ̀kan",
+    "perRow": "{count} ní ìlà kọ̀ọ̀kan"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# oja} other {# awon oja}}",
@@ -550,6 +570,7 @@
     "heroSubtitle": "Sawari awon oja aje lati awon olufikun oja ti o jejrisi. Ra pelu igboyato ki o gbojuko iyoku de si ile re.",
     "shopByCategory": "Ra Ninu eka",
     "shopByCategoryDescription": "Sawari awon oja wa ti a pin da",
+    "shopAllInCategory": "Wo gbogbo rẹ̀ ninu {name}",
     "viewAllCategories": "Wo Gbogbo Awon eka",
     "whyChooseUs": "Kini Awon Idiyele Wa?",
     "whyChooseUsDescription": "A pese iranlowo ti o dara julo pelu awon eya ti a se fun re",
@@ -696,7 +717,8 @@
     "quotePhoneOptional": "Fóònù (àṣàyàn)",
     "quoteCompanyOptional": "Ilé-iṣẹ́ (àṣàyàn)",
     "quoteMessageOptional": "Ìránṣẹ́ (àṣàyàn)",
-    "quoteMessagePlaceholder": "Iye, ọjọ́ ìfijíṣẹ́, àlàyé…"
+    "quoteMessagePlaceholder": "Iye, ọjọ́ ìfijíṣẹ́, àlàyé…",
+    "percentOff": "Ẹ̀dínwó {percent}%"
   },
   "reviews": {
     "basedOn": "Lori {count} awon asoye",
@@ -1527,7 +1549,7 @@
             "ses": "Amazon SES",
             "other": "Òmíràn"
           },
-          "docs": "Àlàyé kíkún: docs/EMAIL_SETUP.md",
+          "docs": "Àlàyé kíkún: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "Tan 2-Step Verification lórí àkàǹtì Google tí o máa lò láti fi ránṣẹ́.",
             "step2": "Ṣẹ̀dá ọ̀rọ̀ aṣínà áàpù tí orúkọ rẹ̀ ń jẹ́ {storeName}, kí o sì ṣe àdàkọ ọ̀rọ̀ aṣínà onílẹ́tà 16 náà. Ẹ̀ẹ̀kan ṣoṣo ni Google ń fi í hàn.",
@@ -1705,6 +1727,10 @@
             "preorderAccess": {
               "title": "Àṣẹ ìwọlé àṣẹ-ṣáájú",
               "hint": "A fọwọ́ sí i, a kọ̀ ọ́ tàbí a gbà á padà"
+            },
+            "payouts": {
+              "title": "Àwọn ìsanwó",
+              "hint": "A pèsè, a fi ránṣẹ́, ó padà tàbí a fagilé"
             }
           },
           "customer": {
@@ -1792,9 +1818,8 @@
       },
       "orders": {
         "title": "Ètò àṣẹ",
-        "description": "Nọ́mbà àṣẹ, owó orí àti ìdápadà.",
+        "description": "Nọ́mbà àṣẹ, ìfiránṣẹ́ àti ìdápadà.",
         "prefix": "Ìbẹ̀rẹ̀ nọ́mbà àṣẹ",
-        "taxRate": "Ìwọ̀n owó orí",
         "shippingCost": "Ìfiránṣẹ́ déédéé",
         "freeShippingThreshold": "Ìfiránṣẹ́ ọ̀fẹ́ tí àṣẹ bá tó",
         "shippingHandledByZones": "Owó ń wá láti àwọn agbègbè ìfiránṣẹ́ rẹ.",
@@ -1842,7 +1867,6 @@
         "shippingRefundNever": "Rárá",
         "ordersHeading": "Àwọn àṣẹ",
         "prefixExample": "Nọ́mbà àṣẹ yóò rí báyìí: <strong>{example}</strong>.",
-        "taxRateHint": "A máa ń fi kún àwọn àṣẹ nígbà ìsanwó àti ní POS.",
         "shipping": "Ìfiránṣẹ́",
         "shippingLink": "Ìfiránṣẹ́ àti ìfijíṣẹ́",
         "shippingCostHint": "Ohun tí àṣẹ kan ń san fún ìfijíṣẹ́ nígbà tí àwọn agbègbè ìfiránṣẹ́ bá wà ní pípa.",
@@ -1858,7 +1882,18 @@
         "commissionSummaryLabel": "Kọmíṣọ̀n àti ìsanwó tó kéré jù",
         "commissionSummary": "Kọmíṣọ̀n {rate}%, ìsanwó tó kéré jù {amount}.",
         "vendorConfigLink": "Ìṣètò olùtajà",
-        "refundAdminFeeUpTo": "%, títí dé"
+        "refundAdminFeeUpTo": "%, títí dé",
+        "tax": "Owó-orí",
+        "taxMoved": "Ìwọ̀n owó-orí, àwọn ìsọ̀rí owó-orí àti ìforúkọsílẹ̀ rẹ wà nínú Ètò owó-orí báyìí.",
+        "taxLink": "Ṣí Ètò owó-orí"
+      },
+      "invoices": {
+        "title": "Ètò Iwe-oba",
+        "entry": {
+          "title": "Iwe-oba, ìwé ẹ̀rí ìsanwó àti sitika",
+          "description": "Ṣe àtúnṣe ohun tí ṣọ́ọ̀bù rẹ ń tẹ̀ jáde kí o sì yan àwòṣe aiyipada fún ìrú kọ̀ọ̀kan.",
+          "action": "Ṣí Ètò Iwe-oba"
+        }
       },
       "seo": {
         "title": "Ètò SEO",
@@ -2426,7 +2461,20 @@
         "soundPayment": "A ti gba ìsanwó",
         "soundOrderComplete": "Títà ti parí",
         "soundError": "Àṣìṣe tàbí ìkìlọ̀ ọjà inú ìpamọ́",
-        "soundPlay": "Mú ìró dún: {sound}"
+        "soundPlay": "Mú ìró dún: {sound}",
+        "offlineWindow": "Àkókò títà láìsí ìntánẹ́ẹ̀tì",
+        "offlineWindowHint": "Bí ojú-ìbojú títà ṣe máa ń ta ọjà pẹ́ tó láìsí ìsopọ̀ lẹ́yìn tí ó dé sẹ́fà kẹ́yìn. Lẹ́yìn náà, yóò tìpa títí tí ó fi lè wọlé padà. Láàrin wákàtí {min} sí {max}.",
+        "offlineWindowUnit": "wákàtí",
+        "allowDeposits": "Gba owó ìdógò láàyè",
+        "allowDepositsDesc": "Ojú-ìbojú títà lè gba apá kan títà báyìí kí ó sì gba ìyókù lẹ́yìn náà, fún títà tí a so mọ́ oníbàárà. A ó ya àwọn ọjà sọ́tọ̀, a ó sì kọ títà náà sílẹ̀ nígbà tí a bá san án tán.",
+        "requireOpenRegister": "Àpò owó gbọ́dọ̀ ṣí kí a tó tà",
+        "requireOpenRegisterDesc": "Ojú-ìbojú títà kọ̀ọ̀kan gbọ́dọ̀ ṣí àpò owó rẹ̀ pẹ̀lú owó ìbẹ̀rẹ̀ kí ó tó gba títà, kí títà kọ̀ọ̀kan lè wọ inú àkókò tí a ń kà nígbà ìpadé.",
+        "pricesIncludeTax": "Iye owó ní owó-orí nínú",
+        "openCashDrawer": "Ṣí àpò owó",
+        "openCashDrawerDesc": "Ṣí àpò owó nígbà tí owó nínà bá yí ọwọ́ padà ní ibi títà. Ó nílò QZ Tray àti atẹ̀wé ìwé-ẹ̀rí tó ní ibùdó àpò; ojú-ìbojú títà kọ̀ọ̀kan ń yan atẹ̀wé rẹ̀ láti àkójọ àṣàyàn àpò.",
+        "pricesIncludeTaxMovedOn": "Títàn: iye owó orí pẹpẹ ti ní owó-orí nínú tẹ́lẹ̀. Bọ́tìnnì yìí wà nínú Ètò owó-orí báyìí.",
+        "pricesIncludeTaxMovedOff": "Pípa: a ń fi owó-orí kún iye owó orí pẹpẹ. Bọ́tìnnì yìí wà nínú Ètò owó-orí báyìí.",
+        "pricesIncludeTaxLink": "Ṣí Ètò owó-orí"
       },
       "vendorPermissions": {
         "title": "Ìlànà ọjà",
@@ -2510,7 +2558,7 @@
         },
         "setup": {
           "title": "Ìtọ́sọ́nà ìṣètò {provider}",
-          "docs": "Àlàyé kíkún: docs/STORAGE_SETUP.md",
+          "docs": "Àlàyé kíkún: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "Ṣe àdàkọ",
           "copyFailed": "Kò ṣeé ṣe àdàkọ",
           "console": {
@@ -2640,7 +2688,7 @@
           "step6": "Lẹ́yìn gbígbà àkọ́kọ́, Catalog → Issues yóò ṣe àkójọ ọjà èyíkéyìí tí Meta kọ̀.",
           "caution": "Lẹ́yìn tí o bá ṣẹ̀dá URL tuntun, yí URL orísun data tó wà tẹ́lẹ̀ padà. Orísun data kejì yóò ṣe àkójọ ọjà kọ̀ọ̀kan lẹ́ẹ̀mejì.",
           "link": "Ṣí Commerce Manager",
-          "docs": "Àlàyé kíkún: docs/META_CATALOG.md"
+          "docs": "Àlàyé kíkún: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook àti Instagram ń gba àwọn àyípadà ọjà rẹ láàárín ìṣẹ́jú díẹ̀ nípasẹ̀ Catalog API ti Meta.",
         "source": {
@@ -2720,7 +2768,7 @@
             "caution": "Ṣọ́ tòkẹ́nì náà bí ọ̀rọ̀ aṣínà. Tí a bá fagilé e tàbí tí ó bá parí, ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ yóò dúró, a ó sì fi tó àwọn alábòójútó létí.",
             "off": "Pípa ìmúṣiṣẹ́pọ̀ lẹ́sẹ̀kẹsẹ̀ máa ń fi àwọn ọjà tó ti wà nínú Meta sílẹ̀ bí wọ́n ṣe wà. Yọ wọ́n kúrò nínú Commerce Manager tí o kò bá fẹ́ wọn mọ́.",
             "link": "Ṣí Business settings",
-            "docs": "Àlàyé kíkún: docs/META_CATALOG.md"
+            "docs": "Àlàyé kíkún: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -2901,11 +2949,13 @@
           "byCurrencyLabel": "Iye tó kéré jù ní àwọn owó mìíràn",
           "byCurrencyRemove": "Yọ iye tó kéré jù {currency} kúrò",
           "description": "A ń lò ó fún àwọn olùtajà tí kò ní ètò. A tún lè ṣàtúnṣe rẹ̀ nínú Ètò àṣẹ.",
-          "minWithdrawalDescription": "Iye owó tó kéré jù tí olùtajà lè béèrè gẹ́gẹ́ bí ìsanwó, ní owó ilé ìtajà rẹ.",
+          "minWithdrawalDescription": "Iye owó tó kéré jù tí a ó ṣe ìsanwó fún, ní owó ilé ìtajà rẹ.",
           "minWithdrawalLabel": "Iye yíyọ owó tó kéré jù",
           "rateDescription": "Ìpín ọgọ́rùn-ún tí pèpéle ń tọ́jú lórí títà olùtajà kọ̀ọ̀kan.",
           "rateLabel": "Ìwọ̀n kọmíṣọ̀n",
-          "title": "Kọmíṣọ̀n àìyípadà"
+          "title": "Kọmíṣọ̀n àìyípadà",
+          "autoPayoutDraftsLabel": "Pèsè ìsanwó gẹ́gẹ́ bí ètò àkókò olùtajà kọ̀ọ̀kan",
+          "autoPayoutDraftsDescription": "Ní ọjọ́ ìsanwó olùtajà (lọ́sẹ̀ọ̀sẹ̀, ní ọ̀sẹ̀ méjì-méjì tàbí lóṣooṣù, bí wọ́n ṣe yàn) a ó pèsè ìsanwó nígbà tí wọ́n bá ní tó láti san. Ìwọ ṣì ni o máa fi owó ránṣẹ́, tí o sì máa sàmì sí i pé a ti san án."
         },
         "description": "Ìlànà ìforúkọsílẹ̀, ìfọwọ́sí, àti ètò àsansílẹ̀ fún àwọn olùtajà.",
         "documents": {
@@ -3232,6 +3282,221 @@
       "saveBar": {
         "unsaved": "Àwọn àyípadà tí a kò tíì fi pamọ́",
         "discard": "Pa á rẹ́"
+      },
+      "tax": {
+        "title": "Ètò owó-orí",
+        "description": "Ohun tí o ń gbà, ibi tí o ti forúkọ sílẹ̀, àti bí a ṣe ń ṣírò owó-orí.",
+        "tabsLabel": "Àwọn abala ètò owó-orí",
+        "moreOptions": "Àwọn àṣàyàn míì",
+        "tabs": {
+          "rates": "Ìwọ̀n",
+          "registration": "Ìforúkọsílẹ̀",
+          "calculation": "Ìṣirò",
+          "vendors": "Àwọn olùtajà"
+        },
+        "links": {
+          "report": "Ìròyìn owó-orí",
+          "invoices": "Ètò iwe-oba"
+        },
+        "registrationMissingLabel": "Kò sí nọ́mbà ìforúkọsílẹ̀",
+        "rates": {
+          "description": "Ìwọ̀n tí a ń gbà lórí ìsọ̀rí kọ̀ọ̀kan. A ń gba ìwọ̀n déédé lórí àwọn ọjà tí kò ní ìsọ̀rí.",
+          "notCharging": "Kò gba owó-orí",
+          "notChargingHint": "Gbogbo ìwọ̀n jẹ́ 0%, nítorí náà a kò gba owó-orí lórí títà kankan. Ṣètò ìwọ̀n déédé nísàlẹ̀ láti bẹ̀rẹ̀ sí gba owó-orí.",
+          "removedClass": "Àwọn ọjà kan ń lo ìsọ̀rí tí kò sí mọ́",
+          "removedClassHint": "{products, plural, one {Ọjà #} other {Ọjà #}} àti {categories, plural, one {ẹ̀ka #} other {ẹ̀ka #}} wà lábẹ́ ìsọ̀rí tí a ti yọ kúrò, nítorí náà a ń gba ìwọ̀n déédé lórí wọn. Yan ìsọ̀rí fún wọn nínú olóòtú wọn.",
+          "default": "Àìyípadà",
+          "partsBadge": "{count, plural, one {apá #} other {apá #}}",
+          "neverCharged": "A kì í gba owó-orí rẹ̀",
+          "noRate": "Kò tíì sí ìwọ̀n. A ń gba ìwọ̀n déédé títí o fi ṣètò ọ̀kan.",
+          "rateLabel": "Ìwọ̀n {name}",
+          "rateTotalLabel": "Ìwọ̀n {name}, àpapọ̀ àwọn apá rẹ̀",
+          "expandLabel": "Àwọn àṣàyàn fún {name}",
+          "usageProducts": "{count, plural, one {ọjà #} other {ọjà #}}",
+          "usageCategories": "{count, plural, one {ẹ̀ka #} other {ẹ̀ka #}}",
+          "next": "Yóò yí padà sí {rate} ní {date}",
+          "name": "Orúkọ",
+          "note": "Àkíyèsí",
+          "optional": "àṣàyàn",
+          "notePlaceholder": "Ohun tó ń wọ inú ìsọ̀rí yìí",
+          "partsTitle": "Àwọn apá ìwọ̀n",
+          "total": "Àpapọ̀ {rate}",
+          "partName": "Orúkọ apá",
+          "partRate": "Ìwọ̀n apá",
+          "partPlaceholder1": "Ìpínlẹ̀",
+          "partPlaceholder2": "Kóńtì",
+          "partPlaceholder3": "Ìlú",
+          "compound": "A ń gbà á lórí àwọn apá tó wà lókè",
+          "compoundHint": "Àwọn apá ń dàpọ̀, bí owó-orí títà ti ìpínlẹ̀, ti kóńtì àti ti ìlú ṣe ń dàpọ̀. A ń ṣírò apá tí a ń gbà lórí àwọn míràn lórí iye owó pẹ̀lú àwọn apá tó wà lókè rẹ̀.",
+          "addPart": "Ṣàfikún apá",
+          "splitIntoParts": "Pín sí àwọn apá",
+          "removePart": "Yọ apá yìí kúrò",
+          "scheduleTitle": "Àyípadà tí a ṣètò",
+          "scheduleAdd": "Ṣètò àyípadà",
+          "startsOn": "Yóò bẹ̀rẹ̀ ní",
+          "newRate": "Ìwọ̀n tuntun",
+          "removeScheduled": "Yọ àyípadà tí a ṣètò yìí kúrò",
+          "earlierTitle": "Àwọn ìwọ̀n tẹ́lẹ̀",
+          "earlierLine": "{rate} láti {date}",
+          "fromStart": "Láti ìbẹ̀rẹ̀",
+          "removeEarlier": "Yọ ìwọ̀n tẹ́lẹ̀ yìí kúrò",
+          "removeClass": "Yọ ìsọ̀rí kúrò",
+          "removeClassInUse": "{products, plural, one {Ọjà #} other {Ọjà #}} àti {categories, plural, one {ẹ̀ka #} other {ẹ̀ka #}} ń lo ìsọ̀rí yìí. Nígbà tí a bá yọ ọ́ kúrò, a ó máa gba ìwọ̀n déédé lórí wọn.",
+          "removeClassHint": "A ó yọ àwọn ìwọ̀n rẹ̀ kúrò pẹ̀lú rẹ̀.",
+          "addClass": "Ṣàfikún ìsọ̀rí",
+          "newName": "Orúkọ ìsọ̀rí",
+          "newNamePlaceholder": "Ìwé",
+          "classRate": "Ìwọ̀n",
+          "add": "Ṣàfikún ìsọ̀rí",
+          "cancel": "Fagilé",
+          "full": "O lè ṣàfikún tó ìsọ̀rí {count}.",
+          "untaxedNote": "A ti ṣètò {count, plural, one {ọjà #} other {ọjà #}} láti má gba owó-orí.",
+          "customNote": "{products, plural, one {Ọjà #} other {Ọjà #}} àti {categories, plural, one {ẹ̀ka #} other {ẹ̀ka #}} ti ṣètò ìwọ̀n àdáni tiwọn. Kì í tẹ̀lé àwọn ìwọ̀n níbí; gbígbé wọn sínú ìsọ̀rí kan máa ń jẹ́ kí wọ́n lọ pọ̀ pẹ̀lú wọn."
+        },
+        "registration": {
+          "description": "Ibi tí ilé ìtajà rẹ ti forúkọ sílẹ̀ fún owó-orí. A ń gba owó-orí lórí gbogbo títà ní ìwọ̀n agbègbè yìí.",
+          "missing": "Kò sí nọ́mbà ìforúkọsílẹ̀",
+          "missingHint": "O ń gba owó-orí ṣùgbọ́n o kò tíì ṣàfikún ìforúkọsílẹ̀ owó-orí rẹ, bíi nọ́mbà ìwé àṣẹ owó-orí títà rẹ.",
+          "country": "Orílẹ̀-èdè",
+          "name": "Orúkọ agbègbè",
+          "optional": "àṣàyàn",
+          "nameHint": "A ó fi orúkọ orílẹ̀-èdè hàn tí èyí bá ṣófo.",
+          "registrationLabel": "Orúkọ ìforúkọsílẹ̀",
+          "registrationLabelPlaceholder": "Ìwé àṣẹ owó-orí títà",
+          "registrationLabelHint": "Ohun tí àjọ owó-orí rẹ ń pè é: Ìwé àṣẹ owó-orí títà, Ìwé àṣẹ olùtajà.",
+          "registrationNumber": "Nọ́mbà ìforúkọsílẹ̀",
+          "registrationNumberHint": "Nọ́mbà tí àjọ owó-orí rẹ fún ọ."
+        },
+        "calculation": {
+          "posTitle": "Ibi ìtajà",
+          "posDescription": "Bí a ṣe ń ka iye owó orí pẹpẹ ní kọ́ńtà.",
+          "posPricesIncludeTax": "Iye owó orí pẹpẹ ní owó-orí nínú",
+          "posPricesIncludeTaxDesc": "Kọ́ńtà ń gba iye owó tó wà lórí pẹpẹ, ó sì ń fi owó-orí tó wà nínú rẹ̀ hàn, dípò kí ó fi owó-orí kún un.",
+          "rulesTitle": "Bí a ṣe ń ṣírò owó-orí",
+          "rulesDescription": "Àwọn òfin wọ̀nyí kan gbogbo títà. Kò sí ohun tí a ó ṣètò níbí.",
+          "chainTitle": "A ń gba owó-orí lórí ọjà ní ọ̀kan àkọ́kọ́ nínú àwọn wọ̀nyí tí a ti ṣètò",
+          "chain": {
+            "own": "Ìwọ̀n àdáni tirẹ̀",
+            "class": "Ìsọ̀rí owó-orí rẹ̀",
+            "category": "Ìwọ̀n ẹ̀ka rẹ̀",
+            "standard": "Ìwọ̀n déédé"
+          },
+          "facts": {
+            "online": {
+              "label": "Ilé ìtajà orí ayélujára",
+              "text": "Nínú ilé ìtajà orí ayélujára, a ń fi iye owó hàn láìsí owó-orí; a ń fi owó-orí kún un nígbà ìsanwó."
+            },
+            "discounts": {
+              "label": "Ẹ̀dínwó",
+              "text": "A ń gba owó-orí lórí ohun tí oníbàárà ń san, lẹ́yìn ẹ̀dínwó àti kúpọ́ọ̀nù."
+            },
+            "shipping": {
+              "label": "Ìfiránṣẹ́",
+              "text": "A kì í gba owó-orí lórí ìfiránṣẹ́ àti owó-ibodè."
+            },
+            "region": {
+              "label": "Agbègbè",
+              "text": "A ń gba owó-orí lórí gbogbo títà ní ìwọ̀n agbègbè rẹ, ohunkóhun tí àdírẹ́sì oníbàárà bá jẹ́."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "Déédé",
+            "description": "Ọ̀pọ̀ jùlọ ọjà. Ìwọ̀n rẹ̀ ni ìwọ̀n owó-orí ilé ìtajà rẹ."
+          },
+          "reduced": {
+            "name": "Àdínkù",
+            "description": "Àwọn ọjà tí òfin rẹ ń gba owó-orí lórí wọn ní ìwọ̀n tó kéré."
+          },
+          "zero": {
+            "name": "Ìwọ̀n òdo",
+            "description": "Àwọn ọjà tí owó-orí kàn, tí a ń gbà ní 0%."
+          },
+          "exempt": {
+            "name": "Ìyọkúrò",
+            "description": "Àwọn ọjà tí kò sí lábẹ́ owó-orí rárá."
+          }
+        },
+        "picker": {
+          "label": "Owó-orí",
+          "inheritCategory": "Bákan náà pẹ̀lú ẹ̀ka rẹ̀",
+          "inheritParent": "Bákan náà pẹ̀lú ẹ̀ka òbí rẹ̀",
+          "custom": "Ìwọ̀n àdáni",
+          "customRate": "Ìwọ̀n owó-orí àdáni",
+          "customHint": "Ìwọ̀n àdáni borí gbogbo ìsọ̀rí, kò sì tẹ̀lé àwọn àyípadà ìwọ̀n nínú Ètò owó-orí.",
+          "hint": "Ìsọ̀rí ló ń pinnu ìwọ̀n, tí a ṣètò nínú Ètò → Ètò owó-orí.",
+          "removedClass": "{key} (a ti yọ ọ́ kúrò: ìwọ̀n déédé)"
+        },
+        "vendors": {
+          "policyTitle": "Owó-orí ọjà àwọn olùtajà",
+          "policyDescription": "Ilé ìtajà rẹ ló ń dáhùn fún owó-orí tí ojú-ọjà rẹ̀ ń gbà. Yan ẹni tí ó lè yí owó-orí àwọn ọjà olùtajà padà: Gba owó-orí, ìsọ̀rí owó-orí àti àwọn ìwọ̀n àdáni.",
+          "policy": {
+            "approval": "Pẹ̀lú ìfọwọ́sí rẹ",
+            "approvalHint": "Àwọn olùtajà ń fi ìbéèrè ránṣẹ́, o sì ń fọwọ́ sí i tàbí kọ̀ ọ́ nísàlẹ̀. Títí di ìgbà náà, àwọn ọjà wọn ń ní owó-orí wọn tẹ́lẹ̀.",
+            "never": "Ìwọ nìkan",
+            "neverHint": "Àwọn olùtajà ń rí owó-orí ọjà wọn ṣùgbọ́n wọn kò lè yí i padà tàbí béèrè fún àyípadà.",
+            "free": "Àwọn olùtajà fúnra wọn",
+            "freeHint": "Àwọn olùtajà ń yí owó-orí ọjà tiwọn padà láìbéèrè."
+          },
+          "requestsTitle": "Àwọn ìbéèrè àyípadà owó-orí",
+          "requestsDescription": "Fífọwọ́sí ń fi owó-orí tí a béèrè sí gbogbo ọjà inú ìbéèrè náà. Kíkọ̀ ń jẹ́ kí owó-orí wọn wà bí ó ti wà, ó sì ń sọ ìdí rẹ̀ fún olùtajà.",
+          "pendingTab": "Ń dúró",
+          "decidedTab": "Ti dáhùn",
+          "loading": "Ń gbé àwọn ìbéèrè wá…",
+          "empty": "Kò sí ìbéèrè tí ń dúró.",
+          "emptyDecided": "Kò tíì sí ìbéèrè tí a dáhùn.",
+          "loadFailed": "A kò lè gbé àwọn ìbéèrè náà wá",
+          "unknownStore": "Ilé ìtajà tí a kò mọ̀",
+          "requestedOn": "A béèrè ní {date}",
+          "asksFor": "Ń béèrè fún",
+          "now": "báyìí {tax}",
+          "moreProducts": "{count, plural, one {àti ọjà # mìíràn} other {àti ọjà # mìíràn}}",
+          "reason": "Ìdí",
+          "noteLabel": "Àkíyèsí sí olùtajà",
+          "noteRequiredHint": "a nílò rẹ̀ láti kọ̀",
+          "optional": "àṣàyàn",
+          "notePlaceholder": "Àkíyèsí kúkúrú fún olùtajà",
+          "addNote": "Ṣàfikún àkíyèsí",
+          "noteRequired": "Kọ àkíyèsí kí olùtajà lè mọ ìdí",
+          "approve": "Fọwọ́sí",
+          "decline": "Kọ̀ ọ́",
+          "cancel": "Fagilé",
+          "sendDecline": "Fi ìkọ̀ ránṣẹ́",
+          "approvedToast": "A ti fọwọ́ sí àyípadà owó-orí",
+          "declinedToast": "A ti kọ ìbéèrè náà",
+          "decisionFailed": "A kò lè fi ìpinnu náà pamọ́",
+          "pending": "Ń dúró",
+          "approved": "A ti fọwọ́ sí i",
+          "declined": "A ti kọ̀ ọ́",
+          "withdrawn": "A ti fà á sẹ́yìn",
+          "decisionNote": "Àkíyèsí: {note}"
+        },
+        "request": {
+          "notCharged": "A kò gba owó-orí",
+          "inherit": "Bákan náà pẹ̀lú ẹ̀ka rẹ̀",
+          "customRate": "Ìwọ̀n àdáni {rate}%",
+          "lockedLabel": "Owó-orí",
+          "lockedApproval": "Ilé ìtajà ló ń fọwọ́ sí àyípadà owó-orí ọjà yìí.",
+          "lockedNever": "Ilé ìtajà ló ń ṣàkóso owó-orí ọjà yìí.",
+          "newProductApproval": "A ń gba owó-orí ọjà tuntun bí ti ẹ̀ka rẹ̀. Lẹ́yìn tí o bá fi pamọ́, o lè béèrè fún owó-orí mìíràn.",
+          "requestChange": "Béèrè àyípadà",
+          "pending": "A béèrè àyípadà: {tax}. Ń dúró de ilé ìtajà.",
+          "withdraw": "Fà á sẹ́yìn",
+          "withdrawn": "A ti fa ìbéèrè náà sẹ́yìn",
+          "withdrawFailed": "A kò lè fa ìbéèrè náà sẹ́yìn",
+          "dialogTitle": "Béèrè àyípadà owó-orí",
+          "dialogDescription": "{count, plural, =1 {Ilé ìtajà yóò ṣàyẹ̀wò ìbéèrè rẹ. Títí yóò fi fọwọ́ sí i, ọjà náà yóò máa lo owó-orí rẹ̀ lọ́wọ́lọ́wọ́.} other {Ilé ìtajà yóò ṣàyẹ̀wò ìbéèrè rẹ fún ọjà #. Títí yóò fi fọwọ́ sí i, wọn yóò máa lo owó-orí wọn lọ́wọ́lọ́wọ́.}}",
+          "chargeTax": "Gba owó-orí",
+          "reason": "Kí ló dé tí owó-orí fi gbọ́dọ̀ yí padà?",
+          "reasonPlaceholder": "Fún àpẹẹrẹ: àwọn ọjà wọ̀nyí kò san owó-orí títà ní ìpínlẹ̀ wa.",
+          "reasonTooShort": "Ṣàfikún gbólóhùn kan nípa ìdí tí owó-orí fi gbọ́dọ̀ yí padà.",
+          "send": "Fi ìbéèrè ránṣẹ́",
+          "cancel": "Fagilé",
+          "sent": "A ti fi ìbéèrè ránṣẹ́ sí ilé ìtajà",
+          "sendFailed": "A kò lè fi ìbéèrè náà ránṣẹ́",
+          "bulkAction": "Béèrè àyípadà owó-orí"
+        }
       }
     },
     "analyticsPage": {
@@ -3330,7 +3595,6 @@
       "themes": "Awọn akori",
       "pages": "Awọn oju-iwe",
       "pos": "Ibi Tita",
-      "posStaff": "Awọn osise POS",
       "posLocations": "Awọn ipo POS",
       "addPage": "Fi Oju-iwe Kun",
       "aiStudio": "Ilé iṣẹ́ AI",
@@ -3343,6 +3607,7 @@
       "productCard": "Kaadi ọja",
       "finance": "Ìṣúnná owó",
       "financeOverview": "Àkópọ̀",
+      "inventoryLedger": "Iṣura àti ìwé àkọsílẹ̀",
       "expenses": "Ìnáwó",
       "receivables": "Owó tí a jẹ ọ́",
       "financeReports": "Ìròyìn",
@@ -3363,6 +3628,7 @@
       "searchInsights": "Òye ìwádìí",
       "shipping": "Ìfiránṣẹ́",
       "sliders": "Àwọn slider",
+      "campaignBanners": "Àsíá ìpolongo",
       "staff": "Ẹgbẹ́",
       "toggle": "Fi mẹ́nù ẹ̀gbẹ́ hàn tàbí pa á mọ́",
       "traffic": "Àwọn àlejò",
@@ -3481,6 +3747,19 @@
         "selected": "A ti yan {count}",
         "deleteSelected": "Pa àwọn tí a yàn rẹ́",
         "dropzoneTitle": "Fa awon faili wa sibi, tabi tẹ lati wa wọn"
+      },
+      "leave": {
+        "title": "Ṣé kí o jáde láì fipamọ́?",
+        "descriptionNew": "A kò tíì fi ọjà yìí pamọ́. Tí o bá jáde báyìí, ohun tí o kọ yóò sọnù níbí; aṣàwákiri yìí ń pa ẹ̀dà kan mọ́ tí o lè mú padà nígbà tí o bá tún fi ọjà kún.",
+        "descriptionEdit": "A kò tíì fi àwọn àtúnṣe rẹ sí ọjà yìí pamọ́. Tí o bá jáde báyìí, wọn yóò sọnù.",
+        "confirm": "Jáde",
+        "cancel": "Dúró"
+      },
+      "draft": {
+        "title": "A rí ọjà tí a kò fipamọ́",
+        "body": "Aṣàwákiri yìí ti pa ọjà kan láti {time} mọ́ tí a kò fipamọ́ rí.",
+        "restore": "Mú un padà",
+        "discard": "Pa á tì"
       }
     },
     "onlineStorePage": {
@@ -4572,15 +4851,31 @@
         "settings": "Ètò àkòrí",
         "css": "CSS àdáni"
       },
-      "customCss": {
-        "title": "CSS àdáni"
-      },
       "preview": {
         "pages": {
-          "search": "Wa"
-        }
+          "product": "Ojú-ìwé ọjà",
+          "home": "Ojú-ìwé àkọ́kọ́",
+          "products": "Àwọn ọjà",
+          "cart": "Kẹ̀kẹ́ ọjà",
+          "search": "Ìwádìí"
+        },
+        "desktop": "Kọ̀ǹpútà",
+        "mobile": "Fóònù",
+        "hint": "Àkọ́wo lẹ́sẹ̀kẹsẹ̀ — ń fi àwọn àyípadà tí a kò tíì fi pamọ́ hàn.",
+        "open": "Ṣí ilé ìtajà",
+        "title": "Àkọ́wo ilé ìtajà",
+        "page": "Ojú-ìwé àkọ́wo"
       },
-      "launchTitle": "Ètò àkòrí"
+      "customCss": {
+        "title": "CSS àdáni",
+        "description": "Àwọn òfin tí a ń fi kún lẹ́yìn àwọn àṣà tí àkòrí fúnra rẹ̀ ní, lórí gbogbo ojú-ìwé ilé ìtajà. Àkòrí kọ̀ọ̀kan máa ń pa CSS tirẹ̀ mọ́ — yíyí àkòrí padà máa ń mú CSS ti àkòrí náà wá. Fún àwọ̀, ìrísí lẹ́tà àti ìrísí, ó sàn kí o lo Ètò àkòrí; lo èyí fún àwọn kúlẹ̀kúlẹ̀ tí kò sí níbẹ̀.",
+        "hint": "Fi àwọn òfin mọ sí .store-surface kí wọ́n má baà dé ìṣàkóso láé.",
+        "save": "Fi CSS pamọ́",
+        "saved": "A ti fi CSS àdáni pamọ́"
+      },
+      "launchTitle": "Ètò àkòrí",
+      "launchDescription": "Àwọ̀, ìrísí lẹ́tà, ìtòlẹ́sẹẹsẹ, ìrísí àti bọ́tìnnì fún àkòrí tí ó ń ṣiṣẹ́, tí o ń ṣàtúnṣe lẹ́gbẹ̀ẹ́ àkọ́wo lẹ́sẹ̀kẹsẹ̀ ti ilé ìtajà rẹ. Àkòrí kọ̀ọ̀kan máa ń pa ètò tirẹ̀ mọ́ — yíyí àkòrí padà máa ń mú ètò ti àkòrí náà wá.",
+      "launch": "Ṣí olóòtú àkòrí"
     },
     "phrases": {
       "guest": "Àlejò",
@@ -4623,10 +4918,179 @@
       "team_members_exported": "A ti gbé àwọn ọmọ ẹgbẹ́ jáde",
       "team_members_could_not_be_exported": "A kò lè gbé àwọn ọmọ ẹgbẹ́ jáde",
       "vendors_exported": "A ti gbé àwọn olùtajà jáde",
-      "vendors_could_not_be_exported": "A kò lè gbé àwọn olùtajà jáde"
+      "vendors_could_not_be_exported": "A kò lè gbé àwọn olùtajà jáde",
+      "area": "Agbègbè",
+      "view": "Wò",
+      "manage": "Ṣàkóso",
+      "failed_to_load_the_role": "A kò lè gbé ipa náà wá",
+      "name_is_required": "Orúkọ jẹ́ dandan",
+      "failed_to_save_the_role": "A kò lè fi ipa náà pamọ́",
+      "role_updated": "A ti ṣe ìmúdójúìwọ̀n ipa náà",
+      "role_created": "A ti ṣẹ̀dá ipa náà",
+      "failed_to_delete_the_role": "A kò lè pa ipa náà rẹ́",
+      "role_deleted": "A ti pa ipa náà rẹ́",
+      "edit_role": "Ṣàtúnṣe ipa",
+      "new_role": "Ipa tuntun",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "Ipa ni ohun tí àwọn ọmọ ẹgbẹ́ rẹ̀ lè ṣe. Yíyí i padà ń yí gbogbo ọmọ ẹgbẹ́ rẹ̀ padà.",
+      "save_role": "Fi ipa pamọ́",
+      "role_details": "Àlàyé ipa",
+      "name": "Orúkọ",
+      "dashboard": "Dáṣíbọ́ọ̀dù",
+      "admin_dashboard": "Dáṣíbọ́ọ̀dù ìṣàkóso",
+      "staff_area": "Agbègbè òṣìṣẹ́",
+      "any_permission_in_the_admin_dashboard": "Ìgbàlààyè èyíkéyìí, nínú dáṣíbọ́ọ̀dù ìṣàkóso",
+      "store_records_and_the_till_in_the_staff_area": "Àkọsílẹ̀ ilé ìtajà àti POS, nínú agbègbè òṣìṣẹ́",
+      "every_permission": "Gbogbo ìgbàlààyè",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "Alábòójútó máa ń ní gbogbo ìgbàlààyè nígbà gbogbo, títí kan àwọn tí a bá fi kún un lẹ́yìn. Láti dín alábòójútó kù, fún un ní ipa mìíràn.",
+      "delete_this_role": "Pa ipa yìí rẹ́?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "A kò lè pa ipa tí ó ní ọmọ ẹgbẹ́ rẹ́; kọ́kọ́ fún wọn ní ipa mìíràn.",
+      "roles": "Àwọn ipa",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "Ohun tí irú ọmọ ẹgbẹ́ kọ̀ọ̀kan lè ṣe. Fún ọmọ ẹgbẹ́ ní ipa lórí ojú-ìwé rẹ̀.",
+      "create_role": "Ṣẹ̀dá ipa",
+      "built_in": "Tí a kọ́ sínú",
+      "members": "ọmọ ẹgbẹ́",
+      "view_role": "Wo ipa",
+      "the_store_owner_always_holds_every_permission": "Ẹni tó ni ilé ìtajà máa ń ní gbogbo ìgbàlààyè nígbà gbogbo.",
+      "the_home_screen_s_figures": "Àwọn nọ́mbà ojú-ìwé àkọ́kọ́",
+      "returns_refunds": "Ìdápadà àti dídá owó padà",
+      "quotes": "Ìdíyelé",
+      "price_requests_and_offers": "Ìbéèrè iye owó àti àwọn ìfilọ̀",
+      "applications_stores_plans_and_commissions": "Àwọn ìbéèrè, ilé ìtajà, ètò àti kọmíṣọ̀n",
+      "payouts": "Ìsanwó fún àwọn olùtajà",
+      "manage_sends_vendors_their_money": "Ṣàkóso ń fi owó àwọn olùtajà ránṣẹ́ sí wọn",
+      "payments": "Àwọn ìsanwó",
+      "transactions_and_chargebacks": "Àwọn ìdúnàdúrà àti ìdápadà owó",
+      "finance": "Ìnáwó",
+      "ledger_expenses_periods_and_reports": "Ìwé ìṣúná, ìnáwó, àwọn àsìkò àti ìròyìn",
+      "marketing": "Ìpolówó",
+      "boosts": "Ìgbéga",
+      "sponsored_products": "Àwọn ọjà onígbọ̀wọ́",
+      "online_store": "Ilé ìtajà orí ayélujára",
+      "theme_pages_menus_sliders_checkout": "Àkòrí, ojú-ìwé, àkójọ, sláídà, ìsanwó",
+      "blog": "Búlọ́ọ̀gì",
+      "posts_categories_comments": "Àwọn àròkọ, ẹ̀ka, àsọyé",
+      "ai_sales_agent": "Aṣojú títà AI",
+      "its_settings_and_conversations": "Ètò àti ìjíròrò rẹ̀",
+      "ai_studio": "Ilé iṣẹ́ AI",
+      "all_accounts": "Gbogbo àkọọ́lẹ̀",
+      "every_sign_in_on_the_store": "Gbogbo ìwọlé sí ilé ìtajà",
+      "settings": "Ètò",
+      "store_settings": "Ètò ilé ìtajà",
+      "sensitive_settings": "Ètò ẹlẹgẹ́",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "Ẹnu ọ̀nà ìsanwó, ìpamọ́, olùpèsè ímeèlì/SMS, ìwọlé, ààbò, àwọn agbéjáde",
+      "activity_log": "Àkọsílẹ̀ ìgbòkègbodò",
+      "who_did_what": "Ta ló ṣe kí ni",
+      "team": "Ẹgbẹ́",
+      "manage_adds_and_edits_members_within_your_own_permissions": "Ṣàkóso ń fi ọmọ ẹgbẹ́ kún àti ṣàtúnṣe wọn, nínú ìgbàlààyè tìrẹ",
+      "create_and_change_roles": "Ṣẹ̀dá àti yí àwọn ipa padà",
+      "member": "ọmọ ẹgbẹ́",
+      "permission": "àṣẹ",
+      "role": "Ipa",
+      "staff": "Òṣìṣẹ́",
+      "abandoned_checkouts": "Àwọn ìsanwó tí a fi sílẹ̀",
+      "active": "Ń ṣiṣẹ́",
+      "added_for_this_member": "A fi kún un fún ọmọ ẹgbẹ́ yìí",
+      "all": "Gbogbo",
+      "all_vendors_and_locations_including_ones_added_later": "Gbogbo olùtajà àti ibi, títí kan èyí tí a máa fi kún lẹ́yìn",
+      "also_catalogues_for_ads": "Àti àwọn kátálọ́gì fún ìpolówó",
+      "analytics": "Ìtúpalẹ̀",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "Ó ń dáhùn àpótí ìfiránṣẹ́, ó sì ń wo àwọn àṣẹ àti àwọn oníbàárà",
+      "brands": "Àwọn àmì-ìdámọ̀",
+      "campaign_banners": "Àwọn àsíá ìpolongo",
+      "can": "Lè",
+      "can_sign_in_and_work": "Lè wọlé kí ó sì ṣiṣẹ́.",
+      "can_t": "Kò lè",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "Kò lè wọlé tàbí tún ọ̀rọ̀ aṣínà rẹ̀ ṣe. Fún ẹni tí ó kúrò pẹ̀lú àìbalẹ̀.",
+      "can_t_sign_in_turn_back_on_any_time": "Kò lè wọlé. Tún un tàn nígbàkígbà.",
+      "cancel": "Fagilé",
+      "cashier": "Akọ̀wé owó",
+      "catalog": "Kátálọ́gì",
+      "categories": "Àwọn ẹ̀ka",
+      "changed": "Ti yípadà",
+      "changed_from_the_role": "Yàtọ̀ sí ipa náà",
+      "create": "Ṣẹ̀dá",
+      "creating_and_cancelling_orders_stays_with_the_store": "Ṣíṣẹ̀dá àti fífagilé àṣẹ wà lọ́wọ́ ilé ìtajà",
+      "customer_accounts_are_changed_by_the_store": "Ilé ìtajà ló ń yí àkọọ́lẹ̀ oníbàárà padà",
+      "customers": "Àwọn oníbàárà",
+      "delete": "Pa rẹ́",
+      "discounts_gift_cards": "Ẹ̀dínwó àti káàdì ẹ̀bùn",
+      "edit": "Ṣàtúnṣe",
+      "every_staff_permission": "Gbogbo ìgbàlààyè òṣìṣẹ́",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "Gbogbo ohun tí a lè fún ọmọ ẹgbẹ́ dáṣíbọ́ọ̀dù ìṣàkóso, ní agbègbè-agbègbè.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "Gbogbo ohun tí a lè fún ọmọ ẹgbẹ́ agbègbè òṣìṣẹ́, ní agbègbè-agbègbè.",
+      "everything_except_deleting_records": "Ohun gbogbo àyàfi pípa àkọsílẹ̀ rẹ́",
+      "everything_in_the_staff_area_deleting_included": "Ohun gbogbo ní agbègbè òṣìṣẹ́, títí kan pípa rẹ́",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "Gbogbo ohun tí a lè fún ipa yìí, ní agbègbè-agbègbè. Àwọn àpótí oníla gígé yàtọ̀ sí ipa náà.",
+      "everywhere": "Níbi gbogbo",
+      "gives_access": "Ó ń fúnni ní ààyè",
+      "inbox": "Àpótí ìfiránṣẹ́",
+      "invite": "Ìpè",
+      "manage_the_till": "Ṣàkóso POS",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "Ṣíṣàkóso POS ní ẹ̀dínwó, ìròyìn POS àti àwọn káńtà nínú",
+      "moderate": "Ṣàbójútó",
+      "money": "Owó",
+      "moves_money": "Ó ń gbé owó",
+      "new_team_member": "Ọmọ ẹgbẹ́ tuntun",
+      "nothing_yet": "Kò sí nǹkan síbẹ̀",
+      "online_store_reports": "Ilé ìtajà orí ayélujára àti ìròyìn",
+      "only_in_the_admin_dashboard": "Nínú dáṣíbọ́ọ̀dù ìṣàkóso nìkan",
+      "only_these": "Àwọn wọ̀nyí nìkan",
+      "open_past_the_return_window": "Ṣí lẹ́yìn àkókò ìdápadà",
+      "orders": "Àwọn àṣẹ",
+      "pause": "Dáwọ́ dúró díẹ̀",
+      "paused": "Ti dáwọ́ dúró díẹ̀",
+      "permissions": "Àwọn ìgbàlààyè",
+      "permissions_given": "Ìgbàlààyè tí a fún",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "Yan Manager tàbí Administrator láti fún èyíkéyìí nínú ìwọ̀nyí. Òṣìṣẹ́ ń ṣiṣẹ́ ní agbègbè òṣìṣẹ́ àti ní POS.",
+      "pick_vendors_locations_or_regions_below": "Yan olùtajà, ibi tàbí agbègbè nísàlẹ̀",
+      "point_of_sale": "Ibi ìtajà (POS)",
+      "popups_and_bars_on_the_home_page": "Àwọn fèrèsé àgbéjáde àti ọ̀pá ní ojú-ìwé ilé",
+      "products": "Àwọn ọjà",
+      "refund": "Dá owó padà",
+      "refund_sends_money_back_to_the_customer": "Dídá owó padà ń dá owó padà fún oníbàárà",
+      "reply": "Fèsì",
+      "reviews": "Àwọn àgbéyẹ̀wò",
+      "rings_up_sales_at_the_register": "Ó ń ta ọjà ní ìforúkọsílẹ̀ owó",
+      "role_name": "Orúkọ ipa",
+      "role_name_e_g_floor_lead": "Orúkọ ipa, fún àpẹẹrẹ Olórí ilẹ̀ ìtajà",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "Àwọn ipa tí o ṣẹ̀dá lórí ojú-ìwé Àwọn ipa yóò hàn níbí gẹ́gẹ́ bí káàdì míràn.",
+      "sales_associate": "Olùrànlọ́wọ́ ìtajà",
+      "save_as_a_role": "Fi pamọ́ bí ipa",
+      "scope": "Ààlà",
+      "secrets": "Àṣírí",
+      "selling": "Títà",
+      "send_recovery_emails": "Fi ímeèlì ìrántí ránṣẹ́",
+      "shift_lead": "Olórí ìyípo iṣẹ́",
+      "staff_area_pos": "Agbègbè òṣìṣẹ́ àti POS",
+      "start_from": "Bẹ̀rẹ̀ láti",
+      "status": "Ipò",
+      "store_admin": "Ìṣàkóso ilé ìtajà",
+      "summary": "Àkópọ̀",
+      "support_agent": "Aṣojú ìrànlọ́wọ́",
+      "suspended": "Ti dádúró",
+      "taken_away_for_this_member": "A yọ ọ́ kúrò fún ọmọ ẹgbẹ́ yìí",
+      "the_books": "Ìwé ìṣirò",
+      "the_register_orders_customers_and_the_inbox": "Ìforúkọsílẹ̀ owó, àwọn àṣẹ, oníbàárà àti àpótí ìfiránṣẹ́",
+      "use": "Lò",
+      "use_the_register": "Lo ìforúkọsílẹ̀ owó",
+      "vendors": "Àwọn olùtajà",
+      "watch": "Ṣọ́ra",
+      "what_this_staff_member_can_do_by_area": "Ohun tí òṣìṣẹ́ yìí lè ṣe, ní agbègbè-agbègbè.",
+      "where_they_work": "Ibi tí wọ́n ti ń ṣiṣẹ́",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "Ibi tí wọ́n ti ń ṣiṣẹ́ àti ohun tí wọ́n fi ń bẹ̀rẹ̀. O lè yí ìgbàlààyè èyíkéyìí padà nísàlẹ̀ fún ọmọ ẹgbẹ́ yìí.",
+      "works_in_the_admin_dashboard": "Ń ṣiṣẹ́ ní dáṣíbọ́ọ̀dù ìṣàkóso",
+      "works_in_the_staff_area_and_at_the_till": "Ń ṣiṣẹ́ ní agbègbè òṣìṣẹ́ àti ní POS",
+      "writes_copy_and_images_with_the_store_s_ai_key": "Ń kọ ọ̀rọ̀ àti àwòrán pẹ̀lú kọ́kọ́rọ́ AI ilé ìtajà",
+      "anything_only_in_the_admin_dashboard": "ohunkóhun tí ó wà ní dáṣíbọ́ọ̀dù ìṣàkóso nìkan",
+      "this_member": "ọmọ ẹgbẹ́ yìí",
+      "by_role": "Gẹ́gẹ́ bí ipa"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "Àwọn ìdápadà (ọjọ́ 30)",
+          "description": "{count} ṣì ń lọ lọ́wọ́"
+        },
         "needsReview": {
           "title": "Ń dúró de àyẹ̀wò",
           "description": "Fọwọ́sí tàbí kọ̀"
@@ -4687,7 +5151,7 @@
       "enterFullscreen": "Ojú-ìbojú kíkún",
       "exitFullscreen": "Jáde kúrò ní ojú-ìbojú kíkún",
       "reset": "Dá padà sí àìyípadà",
-      "personalNote": "Fún ìwọ nìkan, lórí aṣàwákiri yìí. A máa ń ṣètò àwọn àmì, àwọ̀ àti ìrísí àìyípadà ilé ìtajà rẹ nínú Ile itaja ori ayelujara → Awọn akori → Àmì ìdánimọ̀.",
+      "personalNote": "Fún ìwọ nìkan, lórí aṣàwákiri yìí. A máa ń ṣètò àwọn àmì àti ìrísí àìyípadà ilé ìtajà rẹ nínú Ile itaja ori ayelujara → Awọn akori → Àmì ìdánimọ̀, àwọn àwọ̀ rẹ̀ sì nínú Ètò àkòrí.",
       "darkMode": "Ipò òkùnkùn",
       "contrast": "Ìyàtọ̀ àwọ̀",
       "rtl": "Láti ọ̀tún sí òsì",
@@ -4695,7 +5159,12 @@
       "sidebar": "Ọ̀pá ẹ̀gbẹ́",
       "sidebarColor": "Àwọ̀",
       "sidebarIntegrate": "Àdàpọ̀",
-      "sidebarApparent": "Hàn gbangba"
+      "sidebarApparent": "Hàn gbangba",
+      "sidebarPaint": "Kun ọ̀pá ẹ̀gbẹ́ pẹ̀lú",
+      "sidebarPaintPrimary": "Àkọ́kọ́",
+      "sidebarPaintSecondary": "Kejì",
+      "sidebarPaintHint": "Ó ń lo àwọn àwọ̀ àkòrí rẹ tó ń ṣiṣẹ́.",
+      "sidebarPaintChange": "Yí wọn padà"
     },
     "preorderAccess": {
       "vendorFallback": "Olùtajà",
@@ -4883,7 +5352,10 @@
           "countryOfOrigin": "Orúkọ orílẹ̀-èdè tàbí kóòdù lẹ́tà méjì, fún àpẹẹrẹ BD.",
           "hsCode": "Kóòdù owó orí kọ́sítọ́ọ̀mù.",
           "barcode": "EAN-13, UPC-A, GTIN-14 tàbí Code 128. A ó ṣẹ̀dá rẹ̀ tí ó bá ṣófo.",
-          "vendorId": "Olùtajà tí ọjà náà jẹ́ tirẹ̀, bí ó ṣe hàn nínú fáìlì àwọn olùtajà tí a gbé jáde. Àìyípadà: ilé ìtajà tìrẹ."
+          "vendorId": "Olùtajà tí ọjà náà jẹ́ tirẹ̀, bí ó ṣe hàn nínú fáìlì àwọn olùtajà tí a gbé jáde. Àìyípadà: ilé ìtajà tìrẹ.",
+          "chargeTax": "true tàbí false: gba owó-orí lórí ọjà yìí. Àìyípadà: true.",
+          "taxClass": "Ìsọ̀rí owó-orí kan láti inú Ètò owó-orí: standard, reduced, zero, exempt tàbí èyí tí o fi kún un. Kọ inherit láti tún lo owó-orí ẹ̀ka rẹ̀.",
+          "taxRate": "Ìwọ̀n owó-orí àdáni ní ìdá-ọgọ́rùn-ún, fún àpẹẹrẹ 7.5. Ó gba ipò ìsọ̀rí owó-orí, nítorí náà kọ taxClass tàbí taxRate, kì í ṣe méjèèjì."
         },
         "title": "Gbé àwọn ọjà wọlé",
         "description": "Fi ọ̀pọ̀ ọjà tuntun kún un tàbí ṣe ìmúdójúìwọ̀n àwọn tó ti wà lẹ́ẹ̀kan náà láti inú fáìlì CSV tàbí JSON.",
@@ -5245,12 +5717,75 @@
       "actions": {
         "export": "Gbé Jáde",
         "import": "Gbé wọlé",
-        "addCollection": "Fi àkójọpọ̀ kún un"
+        "addCollection": "Fi àkójọpọ̀ kún un",
+        "importExport": "Gbé wọlé / Gbé Jáde",
+        "downloadSample": "Ṣe igbasilẹ faili apẹẹrẹ"
       },
       "dialogs": {
         "updateStatus": {
           "confirm": "Ìmúdójúìwọ̀n"
         }
+      },
+      "importDialog": {
+        "title": "Gbé àwọn àkójọpọ̀ wọlé",
+        "description": "Fi àwọn àkójọpọ̀ tuntun kún un tàbí ṣe ìmúdójúìwọ̀n àwọn tó ti wà lẹ́ẹ̀kan náà láti inú fáìlì CSV.",
+        "sampleTitle": "Bẹ̀rẹ̀ láti inú fáìlì àpẹẹrẹ",
+        "sampleDescription": "Ó ní àwọn ọ̀wọ̀n tí ìgbéwọlé ń kà àti àwọn àkójọpọ̀ àpẹẹrẹ méjì, ọ̀kan manual àti ọ̀kan automated. Fi tìrẹ rọ́pò àwọn àpẹẹrẹ náà, fi ìlà àkọ́kọ́ sílẹ̀ bí ó ṣe wà, kí o sì gbé fáìlì náà sókè síbí.",
+        "sampleCsv": "CSV àpẹẹrẹ",
+        "sampleFailed": "A kò lè gba fáìlì àpẹẹrẹ náà sílẹ̀",
+        "dropTitle": "Yan fáìlì kan tàbí fà á wá síbí",
+        "dropHint": "CSV · títí dé àkójọpọ̀ {rows} · {size} MB",
+        "removeFile": "Yọ fáìlì kúrò",
+        "fileTooLarge": "Fáìlì yìí tóbi ju {size} MB lọ. Pín in sí àwọn fáìlì kéékèèké.",
+        "wrongType": "Yan fáìlì .csv kan.",
+        "rulesTitle": "Bí a ṣe ń gbé àwọn ìlà wọlé",
+        "rules": {
+          "match": "Ìlà tó ní id tàbí slug àkójọpọ̀ tó ti wà ń ṣe ìmúdójúìwọ̀n àkójọpọ̀ náà. Ìlà tí kò ní èyíkéyìí nínú wọn ni a máa ń báramu pẹ̀lú title rẹ̀, ó sì ń ṣẹ̀dá àkójọpọ̀ tuntun nígbà tí kò sí ohun tó bá a mu.",
+          "blank": "Sẹ́ẹ̀lì tó ṣófo ń pa ìníyelórí àkójọpọ̀ náà báyìí mọ́. Àkójọpọ̀ tuntun ń bẹ̀rẹ̀ bí manual draft.",
+          "products": "Àkójọpọ̀ manual ń ṣàtòjọ àwọn ọjà rẹ̀ nípa slug, SKU tàbí orúkọ, tí | ya sọ́tọ̀. Àwọn ọjà gbọ́dọ̀ ti wà tẹ́lẹ̀; orúkọ tí kò bá èyíkéyìí mu ni a máa ń fò, a sì máa ń ròyìn rẹ̀. Sẹ́ẹ̀lì ọjà tó ṣófo ń pa àwọn ọjà tó wà báyìí mọ́.",
+          "conditions": "Àkójọpọ̀ automated nílò òfin kan ó kéré tán nínú ọ̀wọ̀n conditions, tí a kọ gẹ́gẹ́ bí JSON bí àpẹẹrẹ inú ìtọ́sọ́nà àwọn ọ̀wọ̀n."
+        },
+        "columnsTitle": "Ìtọ́sọ́nà àwọn ọ̀wọ̀n",
+        "required": "Dandan fún àwọn àkójọpọ̀ tuntun",
+        "columns": {
+          "title": "Orúkọ àkójọpọ̀.",
+          "slug": "Àdírẹ́sì wẹ́ẹ̀bù àkójọpọ̀ náà. A ṣe é láti inú title nígbà tó bá ṣófo. Ó tún ń wá àkójọpọ̀ tí a ó ṣe ìmúdójúìwọ̀n.",
+          "id": "Nínú àwọn fáìlì tí a kó jáde nìkan. Ó ń wá àkójọpọ̀ gan-an tí a ó ṣe ìmúdójúìwọ̀n.",
+          "description": "Àpèjúwe kúkúrú ní ọ̀rọ̀ lásán.",
+          "descriptionHtml": "Àpèjúwe kíkún. A gba HTML láàyè.",
+          "imageUrl": "Ọ̀nà àsopọ̀ àwòrán gbogbo ènìyàn (https://…) fún ìbòrí àkójọpọ̀.",
+          "imageAlt": "Ọ̀rọ̀ àfidípò fún àwòrán ìbòrí. Ó ń lo title nígbà tó bá ṣófo.",
+          "collectionType": "manual tàbí automated. Àwọn àkójọpọ̀ tuntun jẹ́ manual àyàfi tí fáìlì bá sọ òmíràn.",
+          "status": "active tàbí draft. Àwọn àkójọpọ̀ tuntun jẹ́ draft àyàfi tí fáìlì bá sọ òmíràn.",
+          "products": "Fún àwọn àkójọpọ̀ manual: slug, SKU tàbí orúkọ àwọn ọjà tí | ya sọ́tọ̀, fún àpẹẹrẹ blue-shirt|red-shirt.",
+          "productIds": "Nínú àwọn fáìlì tí a kó jáde nìkan: id àwọn ọjà tí | ya sọ́tọ̀. A ń lò ó pẹ̀lú products.",
+          "conditions": "Fún àwọn àkójọpọ̀ automated: àwọn òfin gẹ́gẹ́ bí àtòjọ JSON. Àwọn pápá: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all tàbí any: bóyá ọjà gbọ́dọ̀ ní ìbámu pẹ̀lú gbogbo òfin tàbí ọ̀kan péré. Àìyípadà: all.",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc tàbí created-desc.",
+          "position": "Nọ́mbà tó ń tò àkójọpọ̀ yìí nínú àwọn àtòjọ. Èyí tó kéré jù ni ó wà níwájú.",
+          "onlineStore": "true tàbí false: fi àkójọpọ̀ hàn nínú ilé ìtajà orí ayélujára. Àìyípadà: true.",
+          "pointOfSale": "true tàbí false: fi hàn níbi títà ọjà. Àìyípadà: false.",
+          "seoPageTitle": "Àkọlé tí àwọn ẹ̀rọ ìṣàwárí ń fihàn fún ojú ìwé àkójọpọ̀.",
+          "seoMetaDescription": "Àpèjúwe tí àwọn ẹ̀rọ ìṣàwárí ń fihàn fún ojú ìwé àkójọpọ̀."
+        },
+        "cancel": "Fagilé",
+        "submit": "Gbé àwọn àkójọpọ̀ wọlé",
+        "importing": "À ń gbé e wọlé… àwọn fáìlì ńlá lè gba ìṣẹ́jú kan. Jẹ́ kí fèrèsé yìí wà ní ṣíṣí.",
+        "requestFailed": "A kò lè gbé fáìlì náà wọlé. Gbìyànjú lẹ́ẹ̀kan sí i.",
+        "resultTitle": "Ìgbéwọlé ti parí",
+        "resultFailedTitle": "A kò lè gbé fáìlì náà wọlé",
+        "created": "A ti ṣẹ̀dá",
+        "updated": "A ti ṣe ìmúdójúìwọ̀n",
+        "failed": "Ó kùnà",
+        "warnings": "Àwọn àkíyèsí",
+        "errorsTitle": "Àwọn ìlà tí a kò gbé wọlé",
+        "errorsHint": "Ṣàtúnṣe àwọn ìlà wọ̀nyí nínú fáìlì rẹ, kí o sì tún gbé e wọlé. Àwọn ìlà tí a ti gbé wọlé yóò ṣe ìmúdójúìwọ̀n àwọn àkójọpọ̀ kan náà dípò kí wọ́n fi ẹ̀dà mìíràn kún un.",
+        "rowLabel": "Ìlà {row}",
+        "fileLabel": "Fáìlì",
+        "moreErrors": "…àti {count} mìíràn nínú àtòjọ tí o lè gbà sílẹ̀.",
+        "downloadErrors": "Gba àtòjọ àṣìṣe sílẹ̀",
+        "importAnother": "Gbé fáìlì mìíràn wọlé",
+        "done": "Ó ti parí"
       }
     },
     "categoriesDataTable": {
@@ -5406,6 +5941,7 @@
         "genericError": "Ajeji sele"
       },
       "mega": {
+        "shopAll": "Wo gbogbo rẹ̀ ninu {name}",
         "links": "Àwọn ìjápọ̀",
         "addLink": "Fi ọ̀nà asopọ̀ kún un",
         "viewAllCategories": "Wo Gbogbo Awon eka",
@@ -5524,18 +6060,69 @@
     },
     "payoutsPage": {
       "createSection": {
-        "selectVendor": "Yan olùtajà"
+        "selectVendor": "Yan olùtajà",
+        "title": "Ṣẹ̀dá ìsanwó",
+        "periodStart": "Ìbẹ̀rẹ̀ àkókò (àṣàyàn)",
+        "periodEnd": "Òpin àkókò",
+        "creating": "Ń ṣẹ̀dá...",
+        "create": "Ṣẹ̀dá",
+        "optionalNote": "Àkọsílẹ̀ (àṣàyàn)",
+        "description": "Ó ń san ohun tí a lè san ní báyìí fún olùtajà: àwọn títà tí ó ti dé tí àkókò ìdápadà wọn ti kọjá, yọ ohunkóhun tí wọ́n jẹ kúrò.",
+        "searchVendor": "Wá àwọn olùtajà",
+        "noVendor": "A kò rí olùtajà kankan",
+        "searching": "Ń wá…",
+        "vendorMissing": "Olùtajà yìí kò sí mọ́",
+        "suspended": "Ti dá dúró — ìsanwó ti dì",
+        "startHint": "Fi sílẹ̀ ní òfo láti fi gbogbo títà tí a lè sanwó fún kún un títí dé ọjọ́ òpin.",
+        "frozen": "A ti dá olùtajà yìí dúró, nítorí náà ìsanwó ti dì. A ó máa ka àwọn títà rẹ̀ lọ títí a ó fi dá a padà.",
+        "belowMinimum": "{amount} kéré sí ìsanwó tó kéré jù tí ó jẹ́ {minimum}.",
+        "orderCount": "{count, plural, one {Àṣẹ #} other {Àṣẹ #}} nínú ìsanwó yìí.",
+        "moreThanMax": "Àṣẹ {count} tó pẹ́ jù tí a lè sanwó fún nìkan ló lè wọ ìsanwó kan; ìyókù yóò lọ sínú èyí tó kàn.",
+        "sellerConfirmed": "{count, plural, one {Ìfijíṣẹ́ # ni olùtajà fìdí rẹ̀ múlẹ̀} other {Ìfijíṣẹ́ # ni olùtajà fìdí wọn múlẹ̀}}, kì í ṣe ilé-iṣẹ́ akérù.",
+        "commissionLeft": "Kọmíṣọ̀n {amount} tí olùtajà jẹ kò wọ inú ìsanwó yìí, ó sì ṣì jẹ́ gbèsè."
       },
       "listSection": {
         "allStatuses": "Gbogbo ipo",
         "columns": {
           "amount": "Iye owó",
           "period": "Àkókò",
-          "details": "Awon alaye"
-        }
+          "details": "Awon alaye",
+          "payout": "Ìsanwó",
+          "vendor": "Olùtajà",
+          "status": "Ipò"
+        },
+        "title": "Àwọn ìsanwó tí a ṣe",
+        "searchPlaceholder": "Wá nọ́mbà ìsanwó tàbí olùtajà",
+        "open": "Ṣí",
+        "empty": "A kò rí ìsanwó kankan."
       },
       "statuses": {
-        "paid": "A ti san"
+        "paid": "A ti san",
+        "pending": "Ń dúró",
+        "processing": "Ń ṣiṣẹ́ lórí rẹ̀",
+        "failed": "Kò ṣàṣeyọrí",
+        "cancelled": "A ti fagilé"
+      },
+      "title": "Ìsanwó fún olùtajà",
+      "subtitle": "Ṣẹ̀dá ìsanwó fún àwọn olùtajà kí o sì tọpa ìlọsíwájú ìsanwó kọ̀ọ̀kan.",
+      "pagination": {
+        "pageOf": "Ojú-ìwé {page} nínú {totalPages}"
+      },
+      "toast": {
+        "requiredFields": "Yan olùtajà àti ọjọ́ òpin.",
+        "createSuccess": "A ti ṣẹ̀dá ìsanwó.",
+        "createError": "A kò lè ṣẹ̀dá ìsanwó"
+      },
+      "sendTo": {
+        "title": "Fi ránṣẹ́ sí",
+        "missing": "Kò sí àkáǹtì báńkì tí a kọ sílẹ̀. Ní kí olùtajà fi ọ̀kan kún un nínú ètò rẹ̀, tàbí sanwó ní owó lọ́wọ́ tàbí nípasẹ̀ ẹnu-ọ̀nà ìsanwó.",
+        "accountName": "Orúkọ àkáǹtì",
+        "accountNumber": "Nọ́mbà àkáǹtì",
+        "bankName": "Báńkì",
+        "routingNumber": "Nọ́mbà routing",
+        "swiftCode": "SWIFT",
+        "show": "Fi nọ́mbà àkáǹtì hàn",
+        "copy": "Ṣe àdàkọ {field}"
       }
     },
     "paymentTransactionsPage": {
@@ -5657,21 +6244,255 @@
         "title": "Ìsàlẹ̀ Ojú-ìwé"
       }
     },
+    "customizeHub": {
+      "title": "Ṣàtúnṣe",
+      "description": "Yan ojú-ewé ilé ìtajà kan láti ṣàtúnṣe."
+    },
     "themeEditor": {
-      "title": "Ètò àkòrí",
-      "saved": "A ti fi ètò àkòrí pamọ́",
-      "saveFailed": "Ìfipamọ́ kùnà",
-      "brandRef": "Àmì ọjà",
-      "modeLight": "Ìmọ́lẹ̀",
-      "modeDark": "Òkùnkùn",
+      "presets": {
+        "default": "Búlúù",
+        "cyan": "Búlúù fẹ́ẹ́rẹ́",
+        "purple": "Àlùkò",
+        "blue": "Dúdú",
+        "orange": "Ọsàn",
+        "red": "Pupa"
+      },
+      "colorMode": "Ipò àwọ̀",
+      "darkFollows": "Òkùnkùn ń tẹ̀lé àwọn àwọ̀ ìmọ́lẹ̀ rẹ fúnra rẹ̀. Tẹ àwọ̀ kan láti ṣètò rẹ̀ fún òkùnkùn nìkan.",
+      "advancedColors": "Onípele gíga",
+      "advancedLowContrast": "Àwọ̀ kan níbí ṣòro láti kà",
+      "sections": {
+        "page": "Ojú-ìwé",
+        "text": "Ọ̀rọ̀",
+        "sales": "Ẹ̀dínwó àti ìdíyelé",
+        "lines": "Ìlà",
+        "states": "Ipò",
+        "soft": "Ẹ̀yìn rírọ̀"
+      },
+      "sourceDefault": "Àìyípadà àkòrí",
+      "sourceAuto": "Aládàáṣe",
+      "sourceCustom": "Àdáni",
+      "colorSource": "Orísun àwọ̀",
+      "autoDarkHint": "Ń tẹ̀lé àwọn àwọ̀ ìmọ́lẹ̀ rẹ, a tún un ṣe kí ó lè hàn lórí ojú-ìwé òkùnkùn.",
+      "defaultHint": "Àwọ̀ tí àkòrí fúnra rẹ̀ ní, tí a yàn kí ó bá àwọn yòókù mu.",
+      "usedFor": "A ń lò ó fún",
+      "useReadable": "Lo {color}",
+      "backToAuto": "Padà sí aládàáṣe",
+      "resetToDefault": "Dá padà sí àìyípadà àkòrí",
+      "textAuto": "Àwọ̀ ọ̀rọ̀ aládàáṣe",
+      "accentUse": "Àmì Tí a gbé yọ àti ti mẹ́nù",
+      "saleUse": "Ẹ̀dínwó àti iye owó ẹ̀dínwó",
+      "lowContrastOn": "Ó ṣòro láti rí lórí {surface} ({ratio}:1). Fojú sí {minimum}:1.",
       "groups": {
         "colors": {
-          "label": "Awon awọ"
+          "description": "{theme} nìkan ló ń lo àwọn àwọ̀ wọ̀nyí. Àwọn àkòrí rẹ míì ń pa tiwọn mọ́.",
+          "label": "Àwọ̀"
+        },
+        "type": {
+          "label": "Ìrísí lẹ́tà",
+          "description": "Ojú lẹ́tà àti ìṣe wọn fún àkọlé, ọ̀rọ̀ ara àti bọ́tìnnì."
         },
         "layout": {
-          "label": "Ìtòlẹ́sẹẹsẹ"
+          "label": "Ìtòlẹ́sẹẹsẹ",
+          "description": "Ìbú ojú-ìwé, àti àwọn àìyípadà gbogbogbò tí apá hero àti bánà ń jogún."
+        },
+        "shape": {
+          "label": "Ìrísí",
+          "description": "Igun, ààlà àti òjìji. Iye gangan, ní pixel."
+        },
+        "buttons": {
+          "label": "Bọ́tìnnì",
+          "description": "Ìwọ̀n àti ìhùwàsí bọ́tìnnì ìṣe."
         }
-      }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "Ẹ̀yìn",
+          "hint": "Lẹ́yìn gbogbo ojú-ìwé."
+        },
+        "surface": {
+          "label": "Káàdì àti mẹ́nù",
+          "hint": "Pánẹ́lì, fèrèsé àgbéjáde, dropdown àti mẹ́nù."
+        },
+        "surfaceAlt": {
+          "label": "Ìpín àti chip",
+          "hint": "Àwọn abala onípín, ẹ̀yìn àwòrán àti chip lásán."
+        },
+        "text": {
+          "label": "Ọ̀rọ̀",
+          "hint": "Àkọlé àti ọ̀rọ̀ inú."
+        },
+        "textMuted": {
+          "label": "Ọ̀rọ̀ kejì",
+          "hint": "Àkọlé àwòrán, ẹ̀ka, ọ̀rọ̀ àyè."
+        },
+        "border": {
+          "label": "Ìlà ìpínyà",
+          "hint": "Ìlà láàrin àwọn abala àti yí káàdì ká."
+        },
+        "primary": {
+          "label": "Bọ́tìnnì àkọ́kọ́",
+          "hint": "Bọ́tìnnì pàtàkì, iye inú agbọ̀n àti ìlà abẹ́ tábù tó ń ṣiṣẹ́."
+        },
+        "onPrimary": {
+          "label": "Ọ̀rọ̀ lórí àkọ́kọ́",
+          "hint": "Àkọlé lórí bọ́tìnnì àkọ́kọ́."
+        },
+        "secondary": {
+          "label": "Bọ́tìnnì kejì",
+          "hint": "“Fikun si Kekere” àti àwọn bọ́tìnnì kejì yòókù."
+        },
+        "onSecondary": {
+          "label": "Ọ̀rọ̀ lórí kejì",
+          "hint": "Àkọlé lórí “Fikun si Kekere”."
+        },
+        "accent": {
+          "label": "Ìtẹnumọ́",
+          "hint": "Àmì Tí a gbé yọ lórí káàdì ọjà àti báàjì nínú mẹ́nù ilé ìtajà."
+        },
+        "sale": {
+          "label": "Ẹ̀dínwó",
+          "hint": "Báàjì ẹ̀dínwó àti iye owó ẹ̀dínwó."
+        },
+        "rating": {
+          "label": "Ìràwọ̀ ìdíyelé",
+          "hint": "Ìràwọ̀ àyẹ̀wò."
+        },
+        "link": {
+          "label": "Ìjápọ̀",
+          "hint": "Ìjápọ̀, “Wo Gbogbo” àti ohun mẹ́nù tó ń ṣiṣẹ́: ọ̀rọ̀ ní àwọ̀ àkọ́kọ́, tí a mú kí ó ṣeé kà."
+        },
+        "onAccent": {
+          "label": "Ọ̀rọ̀ lórí ìtẹnumọ́",
+          "hint": "Àkọlé lórí àwọ̀ ìtẹnumọ́."
+        },
+        "accentSurface": {
+          "label": "Ẹ̀yìn ìtẹnumọ́",
+          "hint": "Àwọ̀ ìtẹnumọ́ rírọ̀ lẹ́yìn ọ̀rọ̀ ìpolówó."
+        },
+        "onAccentSurface": {
+          "label": "Ọ̀rọ̀ lórí ẹ̀yìn ìtẹnumọ́",
+          "hint": "Ọ̀rọ̀ lórí àwọ̀ ìtẹnumọ́ rírọ̀."
+        },
+        "hoverSurface": {
+          "label": "Ẹ̀yìn hover",
+          "hint": "Mẹ́nù àti bọ́tìnnì lábẹ́ atọ́ka."
+        },
+        "onHover": {
+          "label": "Ọ̀rọ̀ lórí hover",
+          "hint": "Àkọlé lórí ẹ̀yìn hover."
+        },
+        "selectedSurface": {
+          "label": "Ẹ̀yìn àṣàyàn",
+          "hint": "Àwọn ohun tí a fi àmì ìfọwọ́sí sí nínú dropdown àti ìlà tó ń ṣiṣẹ́ nínú mẹ́nù."
+        },
+        "onSelected": {
+          "label": "Ọ̀rọ̀ lórí àṣàyàn",
+          "hint": "Àkọlé lórí ẹ̀yìn àṣàyàn."
+        },
+        "focusRing": {
+          "label": "Òrùka focus",
+          "hint": "Ìlà tí àwọn olùlò kíbọ́ọ̀dù ń tẹ̀lé."
+        },
+        "fieldBorder": {
+          "label": "Ààlà àpótí ìkọ̀wé",
+          "hint": "Àpótí ìsanwó, fọ́ọ̀mù àti dropdown. Àpótí ìwádìí orí ojú-ìwé ní ààlà tirẹ̀ nínú Sítúdíò Orí Ojú-ìwé."
+        },
+        "onSale": {
+          "label": "Ọ̀rọ̀ lórí ẹ̀dínwó",
+          "hint": "Àkọlé lórí báàjì ẹ̀dínwó aláwọ̀ kíkún."
+        },
+        "saleText": {
+          "label": "Ọ̀rọ̀ ẹ̀dínwó",
+          "hint": "Iye owó ẹ̀dínwó àti owó tí a fi pamọ́ lórí ojú-ìwé."
+        },
+        "saleSurface": {
+          "label": "Ẹ̀yìn ẹ̀dínwó",
+          "hint": "Lẹ́yìn chip ẹ̀dínwó lẹ́gbẹ̀ẹ́ iye owó."
+        },
+        "onSaleSurface": {
+          "label": "Ọ̀rọ̀ lórí ẹ̀yìn ẹ̀dínwó",
+          "hint": "Ọ̀rọ̀ lórí àwọ̀ ẹ̀dínwó rírọ̀."
+        },
+        "skeleton": {
+          "label": "Ibi-ìdúró ìgbéwọlé",
+          "hint": "Àwọn búlọ́ọ̀kù eérú tó ń hàn nígbà tí ojú-ìwé ń gbé wọlé."
+        }
+      },
+      "title": "Ètò àkòrí",
+      "back": "Àwọn Àkòrí",
+      "unsaved": "Àwọn àyípadà tí a kò tíì fi pamọ́",
+      "allSaved": "A ti fi gbogbo àyípadà pamọ́",
+      "discard": "Pa á rẹ́",
+      "save": "Fipamọ́",
+      "saved": "A ti fi ètò àkòrí pamọ́",
+      "saveFailed": "Ìfipamọ́ kùnà",
+      "resetGroup": "Dá ẹgbẹ́ yìí padà",
+      "resetAll": "Dá gbogbo rẹ̀ padà sí àìyípadà àkòrí",
+      "resetAllTitle": "Dá gbogbo ètò padà?",
+      "preview": "Àkọ́wo",
+      "controls": "Ètò",
+      "setCustom": "Ṣètò àwọ̀ àdáni",
+      "contrastHint": "Ìyàtọ̀ àwọ̀ sí ẹ̀yìn rẹ̀",
+      "modeLight": "Ìmọ́lẹ̀",
+      "modeDark": "Òkùnkùn",
+      "leaveGuard": "O ní àwọn àyípadà àkòrí tí o kò tíì fi pamọ́.",
+      "fonts": {
+        "inter": "Àárín, ti ìmọ̀-ẹ̀rọ, àìyípadà",
+        "manrope": "Oníjiometirí, ọjà òde òní",
+        "dm-sans": "Rogodo, ọ̀rẹ́",
+        "plus-jakarta-sans": "Jiometirí rírọ̀, ìgbésí ayé",
+        "nunito": "Ìparí rogodo, eléré",
+        "source-sans-3": "Ti ènìyàn, kíkà gígùn",
+        "space-grotesk": "Grotesk àrà, ìmọ̀-ẹ̀rọ",
+        "playfair-display": "Ìyàtọ̀ gíga, ti ìwé ìròyìn",
+        "lora": "Serif tútù, tí ó rọrùn láti kà",
+        "fraunces": "Rírọ̀, gbígbóná, àlàáfíà",
+        "cormorant-garamond": "Olówó iyebíye, aṣọ àṣà",
+        "dm-serif-display": "Àkọlé nìkan (ìwúwo kan)",
+        "noto-sans-bengali": "Bẹ́ngálì + Látìn, sans",
+        "noto-serif-bengali": "Bẹ́ngálì + Látìn, serif"
+      },
+      "resetColors": "Dá àwọ̀ àkòrí padà",
+      "invalidColor": "Tẹ àwọ̀ hex tàbí RGB tó tọ́. Àkọ́wo ń pa àwọ̀ tó tọ́ kẹ́yìn mọ́.",
+      "contrastPass": "Ó yege",
+      "contrastLow": "Kéré",
+      "previewLoading": "Ń so àkọ́wo lẹ́sẹ̀kẹsẹ̀ pọ̀…",
+      "previewOutdated": "Sọ àkọ́wo di tuntun láti gbé ẹ̀rọ àwọ̀ tuntun wọlé.",
+      "refreshPreview": "Sọ àkọ́wo di tuntun",
+      "cannotVerifyColor": "A kò lè ṣàyẹ̀wò àpèjúwe àwọ̀ àdáni yìí. Wo àkọ́wo ní ipò méjèèjì.",
+      "themeChanged": "A tan àkòrí mìíràn nígbà tí o ń ṣàtúnṣe. Tún ṣí olóòtú náà fún àkòrí yẹn.",
+      "conflictKeepDraft": "Ẹlòmíràn fi àwọn ètò wọ̀nyí pamọ́ nígbà tí o ń ṣàtúnṣe. Tẹ “Fipamọ́” lẹ́ẹ̀kan sí i láti fi àwọn àyípadà rẹ rọ́pò tiwọn, tàbí “Pa á rẹ́” láti gbé tiwọn wọlé.",
+      "darkOwnHint": "Ipò òkùnkùn ní àwọ̀ tirẹ̀ níbí ({color}), nítorí náà kò tẹ̀lé èyí. Yí i padà lórí tábù Òkùnkùn.",
+      "keyColorsTitle": "Àwọn àwọ̀ pàtàkì",
+      "keyColorsHint": "Tọ́ka sí ọ̀kan láti rí i nínú àwòtẹ́lẹ̀",
+      "keyColors": {
+        "primary": {
+          "label": "Àkọ́kọ́",
+          "sample": "Rà báyìí"
+        },
+        "secondary": {
+          "label": "Kejì",
+          "sample": "Fi kún kẹ̀kẹ́ ìrajà"
+        },
+        "accent": {
+          "label": "Ìtẹnumọ́",
+          "sample": "Àyànfẹ́"
+        },
+        "skeleton": {
+          "label": "Ìgbéwọlé"
+        }
+      },
+      "themeDefaultNamed": "Àìyípadà {theme}",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "Àwọn àtòjọ àwọ̀",
+      "saveAsPalette": "Fi pamọ́ bí àtòjọ àwọ̀",
+      "resetToNamed": "Padà sí {name}",
+      "themeOnly": "{theme} nìkan",
+      "moreColors": "Àwọn àwọ̀ míì",
+      "advancedHintStates": "Hover, àṣàyàn, focus, ẹ̀yìn ẹ̀dínwó",
+      "resetAllDescriptionTheme": "Gbogbo ẹgbẹ́, pẹ̀lú àwọn àwọ̀, yóò padà sí àìyípadà {theme} fúnra rẹ̀. Àwọn àkòrí rẹ míì kò ní yí padà. A kò ní fi nǹkan kan pamọ́ títí tí o fi tẹ Fipamọ́.",
+      "previewShowing": "Ó ń sàmì sí ibi tí a ti lo {color}"
     },
     "searchInsights": {
       "title": "Òye ìwádìí",
@@ -5702,7 +6523,8 @@
         "collection": "Àkójọpọ̀",
         "brand": "Àmì ọjà",
         "slider": "Ìfihàn Sílàìdì",
-        "menu": "Mẹ́nù"
+        "menu": "Mẹ́nù",
+        "teamRole": "Ipa ẹgbẹ"
       },
       "empty": {
         "clearFilters": "Nu awon oorun"
@@ -5718,6 +6540,124 @@
         "title": "Àkọsílẹ̀ iṣẹ́",
         "filterTitle": "Fifo"
       }
+    },
+    "categoryForm": {
+      "taxRate": "Owó-orí"
+    },
+    "themeColors": {
+      "title": "Àwọ̀ àkòrí",
+      "refs": {
+        "primary": "Àkọ́kọ́",
+        "secondary": "Ìkejì",
+        "accent": "Ìtẹnumọ́",
+        "background": "Ẹ̀yìn",
+        "surface": "Káàdì",
+        "surfaceAlt": "Ìpín àti chip",
+        "text": "Ọ̀rọ̀",
+        "textMuted": "Ọ̀rọ̀ kejì",
+        "border": "Ìlà ìpínyà"
+      },
+      "following": "Ń tẹ̀lé {name} àkòrí. Yí i padà ní Ètò àkòrí → Àwọ̀.",
+      "followingShort": "Àkòrí · {name}",
+      "hint": "Yan àwọ̀ àkòrí kan láti tẹ̀lé Ètò àkòrí → Àwọ̀.",
+      "pick": "Lo àwọ̀ àkòrí"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "A kò lè gbé àkópọ̀ ìsanwó wá",
+      "loadPayoutsError": "A kò lè gbé àwọn ìsanwó wá",
+      "columns": {
+        "payout": "Ìsanwó",
+        "period": "Àkókò",
+        "status": "Ipò",
+        "netAmount": "Iye owó lẹ́yìn ìyọkúrò"
+      },
+      "bankMissingTitle": "Kò sí àkáǹtì ìsanwó tí a kọ sílẹ̀",
+      "bankMissing": "Ohun tó kù: {fields}. Owó lọ́wọ́ tàbí ẹnu-ọ̀nà ìsanwó nìkan ni a lè fi san ìsanwó títí a ó fi kọ àwọn àlàyé náà kún un ní táàbù Business.",
+      "frozenTitle": "Ìsanwó ti dì",
+      "frozen": "A ti dá olùtajà yìí dúró. A ó máa ka àwọn títà rẹ̀ lọ, ṣùgbọ́n a kò ní san nǹkan kan títí a ó fi dá a padà.",
+      "owedNow": "Ohun tí a ó san báyìí",
+      "owedNowHint": "Ohun tí ìsanwó tí a bá ṣẹ̀dá báyìí yóò gbé: àwọn títà tí ó ti dé tí a sì ti sanwó fún, tí àkókò ìdápadà wọn ti kọjá, yọ ohun tí olùtajà jẹ kúrò.",
+      "createPayout": "Ṣẹ̀dá ìsanwó",
+      "noneAwaiting": "Kò sí àṣẹ tí ó ti dé tí a sì ti sanwó fún tí ó ń dúró de ìsanwó.",
+      "nothingPayable": "{count, plural, one {Àṣẹ # tó yẹ} other {Àṣẹ # tó yẹ}}, ṣùgbọ́n ìdápadà owó àti ẹ̀dínwó kò fi nǹkan kan sílẹ̀ láti san.",
+      "across": "Láàárín {count, plural, one {àṣẹ #} other {àṣẹ #}} · àpapọ̀ {gross} yọ kọmíṣọ̀n {commission} kúrò. A ti yọ ìdápadà owó àti ẹ̀dínwó kúrò tẹ́lẹ̀.",
+      "belowMinimumTitle": "Kéré sí iye yíyọ owó tó kéré jù",
+      "belowMinimum": "Ìsanwó gbọ́dọ̀ tó {minimum} ó kéré tán. A ó kọ èyí tí a bá ṣẹ̀dá báyìí.",
+      "commissionLeft": "Kọmíṣọ̀n {amount} tí olùtajà jẹ lórí títà owó lọ́wọ́ kò wọ inú ìsanwó tó kàn, ó sì ṣì jẹ́ gbèsè.",
+      "overpaidTitle": "A san {amount} fún àwọn títà tí a dá owó wọn padà lẹ́yìn náà",
+      "overpaidRecovered": "A ti yọ {amount} nínú rẹ̀ kúrò nínú iye tó wà lókè. Ohunkóhun tó bá kù yóò wá láti inú àwọn ìsanwó tó ń bọ̀.",
+      "overpaidLater": "A ó yọ ọ́ kúrò nínú ìsanwó olùtajà tó kàn, tàbí kọ ìsanpadà gbèsè sílẹ̀ tí wọ́n bá san án padà.",
+      "otherCurrenciesTitle": "Iye owó tó kù ní {currencies}",
+      "otherCurrencies": "Olùtajà yìí tún ṣòwò ní {currencies}. Àwọn iye owó yẹn kò sí nínú àwọn iye tó wà lókè, wọ́n sì nílò ìsanwó tiwọn — a kì í da owó oríṣiríṣi pọ̀ láé.",
+      "trade": "Òwò",
+      "tradeHint": "Ohun tí olùtajà yìí tà, ní gbogbo àṣẹ tí a kò fagilé, ní {currency}",
+      "grossSales": "Àpapọ̀ títà",
+      "vendorEarnings": "Owó tí olùtajà rí",
+      "vendorEarningsHint": "àpapọ̀ yọ kọmíṣọ̀n kúrò",
+      "paidOut": "A ti san",
+      "pendingAmount": "{amount} ń dúró",
+      "platformRevenue": "Owó tí pèpéle rí láti ọ̀dọ̀ olùtajà yìí",
+      "platformRevenueHint": "Kọmíṣọ̀n àti owó ìfiránṣẹ́ tí a dá dúró láti inú àwọn títà rẹ̀, pẹ̀lú owó ìforúkọsílẹ̀ tí ó san. Owó tí ń wọlé ṣáájú ìnáwó pèpéle.",
+      "commission": "Kọmíṣọ̀n",
+      "commissionHint": "lórí títà tí ó ti dé tí a sì ti sanwó fún, lẹ́yìn ìyọkúrò ìdápadà owó",
+      "subscriptions": "Ìforúkọsílẹ̀",
+      "invoicesPaid": "A ti san ìwé owó {paid} nínú {total}",
+      "noInvoices": "kò sí ìwé owó",
+      "shipping": "Ìfiránṣẹ́",
+      "shippingHint": "a dá a dúró, a kò san án jáde",
+      "total": "Àpapọ̀",
+      "history": "Ìtàn ìsanwó",
+      "historyHint": "Àwọn ìsanwó tí a kọ sílẹ̀ fún olùtajà yìí, tuntun jù lọ ní àkọ́kọ́",
+      "historyEmpty": "A kò tíì ṣẹ̀dá ìsanwó kankan fún olùtajà yìí",
+      "repayment": {
+        "open": "Kọ ìsanpadà gbèsè sílẹ̀",
+        "listTitle": "Tí a san padà ní ọwọ́",
+        "undo": "Dá padà",
+        "voidReason": "Kí ló dé tí a fi ń fagilé ìsanpadà gbèsè yìí?",
+        "voided": "A ti fagilé ìsanpadà gbèsè",
+        "failed": "A kò lè fi ìsanpadà gbèsè pamọ́",
+        "title": "Kọ ìsanpadà gbèsè sílẹ̀",
+        "description": "Owó tí olùtajà san padà fún àwọn títà tí a dá owó wọn padà lẹ́yìn ìsanwó rẹ̀. Ó ń yọ kúrò nínú ohun tí ó jẹ, nítorí náà àwọn ìsanwó tó ń bọ̀ kò ní gbà á padà mọ́.",
+        "amount": "Iye owó ({currency})",
+        "receivedInto": "A gbà á sínú",
+        "receivedAt": "Ọjọ́ tí ó dé",
+        "reference": "Ìtọ́kasí",
+        "note": "Àkíyèsí",
+        "cancel": "Fagilé",
+        "save": "Kọ ìsanpadà sílẹ̀",
+        "saving": "Ń fi pamọ́…",
+        "recorded": "A ti kọ ìsanpadà gbèsè sílẹ̀"
+      }
+    },
+    "colorPicker": {
+      "format": "Ọ̀nà àwọ̀",
+      "opacity": "Ìfarahàn àwọ̀",
+      "value": "Iye àwọ̀",
+      "saved": "Àwọn àwọ̀ tí a fipamọ́",
+      "save": "Fi àwọ̀ yìí pamọ́",
+      "use": "Lo {color}",
+      "remove": "Yọ {color} kúrò"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {ìyípadà # sí ipa náà} other {ìyípadà # sí ipa náà}}",
+      "changesFromRole": "{count, plural, one {ìyípadà # sí {role}} other {ìyípadà # sí {role}}} fún ọmọ ẹgbẹ́ yìí nìkan",
+      "resetTo": "Padà sí {role}",
+      "matchesRole": "Ó bá {role} mu. Sàmì sí tàbí yọ àmì kúrò lórí ohunkóhun láti yí i padà fún {name} nìkan.",
+      "roleSaved": "\"{name}\" ti di ipa báyìí, ọmọ ẹgbẹ́ yìí sì wà nínú rẹ̀."
+    },
+    "tagInput": {
+      "placeholder": "Fi àmì kún un",
+      "selected": "A ti yan {tag}. Tẹ Backspace láti yọ ọ́ kúrò.",
+      "duplicate": "A ti fi {tag} kún un tẹ́lẹ̀",
+      "tooLong": "Àmì kan lè ní àwọn lẹ́tà tó tó {max}",
+      "tooMany": "O lè fi àmì tó tó {max} kún un",
+      "added": "A fi {tag} kún un",
+      "removed": "A yọ {tag} kúrò",
+      "remove": "Yọ {tag} kúrò"
+    },
+    "accountMenu": {
+      "myAccount": "Akaunti mi",
+      "version": "Ẹ̀dà {version}"
     }
   },
   "vendor": {
@@ -5889,7 +6829,17 @@
       "addressPrecision": "Fi hàn",
       "socialAdd": "Fi ọ̀nà asopọ̀ kún un",
       "socialRemove": "Yọ ọ̀nà asopọ̀ kúrò",
-      "shareButtons": "Àwọn bọ́tìnnì pínpín"
+      "shareButtons": "Àwọn bọ́tìnnì pínpín",
+      "changeEmail": "Yípadà",
+      "changeEmailTitle": "Yí ímeèlì rẹ padà",
+      "changeEmailDescription": "Ìwọ yóò wọlé pẹ̀lú ímeèlì tuntun. A ó sọ fún ímeèlì rẹ lọ́wọ́lọ́wọ́ nípa ìyípadà náà.",
+      "newEmail": "Ímeèlì tuntun",
+      "currentPasswordForEmail": "Ọ̀rọ̀ aṣínà lọ́wọ́lọ́wọ́",
+      "updateEmail": "Ṣe ìmúdójúìwọ̀n ímeèlì",
+      "emailChanged": "A ti ṣe ìmúdójúìwọ̀n ímeèlì. Láti ìsinsìnyí, wọlé pẹ̀lú ímeèlì tuntun rẹ.",
+      "emailChangeFailed": "A kò lè ṣe ìmúdójúìwọ̀n ímeèlì",
+      "phoneInvalid": "Tẹ nọ́mbà fóònù tó tọ́ sí i",
+      "payoutScheduleHint": "Ní ọjọ́ ìsanwó rẹ, ilé ìtajà máa ń pèsè ìsanwó ohun tó ti ṣetán, ní kété tí ó bá tó iye tó kéré jù tìrẹ àti ti ilé ìtajà. Ilé ìtajà yóò wá fi ránṣẹ́ sí àkáǹtì tó wà lókè."
     },
     "payoutsPage": {
       "listSection": {
@@ -5907,6 +6857,78 @@
     },
     "activityLog": {
       "title": "Àkọsílẹ̀ iṣẹ́"
+    },
+    "payoutDetail": {
+      "back": "Àwọn ìsanwó",
+      "period": "Àwọn títà tí a pàṣẹ {start} – {end}",
+      "noteFromStore": "Àkíyèsí láti ilé ìtajà",
+      "grossSales": "Àpapọ̀ títà",
+      "grossSalesHint": "ìpín rẹ nínú àwọn àṣẹ tó wà nísàlẹ̀",
+      "commission": "Kọmíṣọ̀n",
+      "shipping": "Owó ìfijíṣẹ́",
+      "shippingHint": "tí a gbà lọ́wọ́ àwọn olùrà fún àwọn páálí tí o fi jíṣẹ́",
+      "adjustment": {
+        "recoveryDeducted": "Gbígba owó ìdápadà padà",
+        "recoveryDeductedHint": "a san fún ọ tẹ́lẹ̀ lórí àwọn àṣẹ tí a ti dá owó wọn padà láti ìgbà náà",
+        "recoveryReturned": "Ìgbàpadà tí a dá padà",
+        "recoveryReturnedHint": "a ti fagilé ìdápadà owó tí a gbà padà tẹ́lẹ̀",
+        "reserveHeld": "A dá ìpamọ́ àṣẹ-ṣáájú dúró",
+        "reserveHeldHint": "a dá a dúró nítorí chargeback tó lè dé pẹ́",
+        "reserveReleased": "A tú ìpamọ́ àṣẹ-ṣáájú sílẹ̀",
+        "reserveReleasedHint": "a dá a dúró nínú ìsanwó ìṣáájú, a ti tú u sílẹ̀ báyìí",
+        "reserveCreditDeducted": "A gba ìpamọ́ padà",
+        "reserveCreditDeductedHint": "ìpamọ́ tí a tú sílẹ̀ tí ìsanwó rẹ̀ padà wá",
+        "reserveCreditReturned": "Ìgbàpadà ìpamọ́ tí a dá padà",
+        "reserveCreditReturnedHint": "a dá a padà lẹ́yìn tí a tún san ìsanwó rẹ̀ lẹ́ẹ̀kan sí i",
+        "commissionOffset": "Kọmíṣọ̀n lórí títà owó lọ́wọ́",
+        "commissionOffsetHint": "o jẹ ẹ́ lórí àwọn títà tí o gba owó wọn fúnra rẹ, a yanjú rẹ̀ níbí dípò ìwé owó",
+        "commissionCredit": "Ẹ̀dínwó ilé ìtajà lórí títà owó lọ́wọ́",
+        "commissionCreditHint": "ẹ̀dínwó tí ilé ìtajà san ju kọmíṣọ̀n tí o jẹ lọ"
+      },
+      "reserveUntil": "a ó tú u sílẹ̀ ní {date}",
+      "otherAdjustments": "Àwọn àtúnṣe mìíràn",
+      "otherAdjustmentsHint": "ìgbàpadà owó ìdápadà àti ìgbésẹ̀ ìpamọ́ àṣẹ-ṣáájú",
+      "netPayout": "Ìsanwó lẹ́yìn ìyọkúrò",
+      "sentOn": "A fi ránṣẹ́ ní {date}",
+      "reference": "ìtọ́kasí {reference}",
+      "returnedOn": "Ó padà wá ní {date} — àwọn títà inú rẹ̀ ti padà sínú iye owó rẹ tó kù",
+      "history": "Ohun tó ṣẹlẹ̀",
+      "returnedStep": "Owó padà wá",
+      "orders": "Àwọn àṣẹ nínú ìsanwó yìí",
+      "order": "Àṣẹ",
+      "placed": "Ọjọ́ àṣẹ",
+      "yourShare": "Ìpín rẹ",
+      "afterCommission": "Lẹ́yìn kọmíṣọ̀n",
+      "noOrders": "Kò sí àṣẹ tí a so mọ́ ìsanwó yìí."
+    },
+    "suspendedMoney": {
+      "title": "Owó rẹ",
+      "frozen": "A ti dá ìsanwó dúró nígbà tí a dá àkáǹtì rẹ dúró. A ó máa ka àwọn títà rẹ lọ, a ó sì san wọ́n ní kété tí a bá dá ààyè rẹ padà.",
+      "ready": "Ó ṣetán fún ìsanwó",
+      "held": "Ó ṣì wà lójú ọ̀nà tàbí nínú àkókò ìdápadà",
+      "payouts": "Àwọn ìsanwó tuntun jù",
+      "status": {
+        "pending": "Ń dúró",
+        "processing": "Ń ṣiṣẹ́ lórí rẹ̀",
+        "paid": "A ti san",
+        "failed": "Kò ṣàṣeyọrí",
+        "cancelled": "A ti fagilé"
+      }
+    },
+    "commissionCard": {
+      "canceled": "A fagilé ìsanwó. Ìwé owó náà ṣì ṣí sílẹ̀.",
+      "settled": "A ti san ìwé owó kọmíṣọ̀n.",
+      "pendingInfo": "Ìsanwó ṣì ń lọ lọ́wọ́ — ìwé owó náà yóò parí fúnra rẹ̀ ní kété tí a bá jẹ́rìísí rẹ̀.",
+      "verifyFailed": "A kò tíì lè jẹ́rìísí ìsanwó yẹn.",
+      "pollTimeout": "A kò tíì lè jẹ́rìísí ìsanwó. Ìwé owó náà yóò parí fúnra rẹ̀ ní kété tí a bá jẹ́rìísí rẹ̀.",
+      "checkPhone": "Wo fóònù rẹ kí o sì fọwọ́ sí ìbéèrè ìsanwó náà.",
+      "failed": "A kò lè bẹ̀rẹ̀ ìsanwó",
+      "title": "Kọmíṣọ̀n tí o jẹ",
+      "subtitle": "Kọmíṣọ̀n lórí àwọn títà tí o gba owó wọn fúnra rẹ — owó lọ́wọ́, COD tàbí ẹ̀rọ ìsanwó tìrẹ — nítorí náà a kò lè yọ ọ́ kúrò nínú ìsanwó.",
+      "payNow": "Sanwó báyìí",
+      "noMethods": "Kò sí ọ̀nà ìsanwó tí ó wà fún èyí. Kàn sí alábòójútó ọjà láti yanjú rẹ̀ ní ọ̀nà mìíràn.",
+      "dialogTitle": "San kọmíṣọ̀n",
+      "continue": "Tẹ̀síwájú sí ìsanwó"
     }
   },
   "footer": {
@@ -5963,7 +6985,19 @@
     "searchCustomers": "Wa nipase aha, imeeli, tabi fon...",
     "addNote": "Fikun akọsọ si asẹ yii...",
     "subtotal": "Alakomeji",
-    "tax": "Ora",
+    "tax": {
+      "label": "Owó-orí",
+      "included": "Owó-orí (wà nínú)",
+      "exempt": "Láìsí owó-orí",
+      "exemptWith": "Láìsí owó-orí · {reason}",
+      "exemptTitle": "Títà láìsí owó-orí",
+      "exemptIntro": "Ṣe títà yìí láìsí owó-orí. A ó pa ìdí rẹ̀ mọ́ sínú àṣẹ, a ó sì tẹ̀ ẹ́ sórí ìwé-ẹ̀rí.",
+      "exemptReason": "Ìdí (dandan)",
+      "exemptReference": "Nọ́mbà ìwé-ẹ̀rí ìyọkúrò (àṣàyàn)",
+      "exemptApply": "Tà láìsí owó-orí",
+      "exemptRemove": "Gba owó-orí",
+      "close": "Pa á dé"
+    },
     "total": "Lapọ",
     "charge": "Sanwo",
     "billAndPayment": "Iwe & Osanwo",
@@ -6000,10 +7034,463 @@
       "emailPlaceholder": "alejo@example.com",
       "phone": "Fon",
       "phonePlaceholder": "Fi nomba fon sii",
-      "nameEmailRequired": "Aha ati imeeli nilo",
       "created": "Alejo ti a ṣẹda",
       "createError": "Ajeji ṣẹda alejo",
-      "save": "Fipamọ Alejo"
+      "save": "Fipamọ Alejo",
+      "nameContactRequired": "Tẹ orúkọ oníbàárà, àti ímeèlì tàbí nọ́mbà fóònù",
+      "contactHint": "Ímeèlì tàbí nọ́mbà fóònù ti tó. A ó pa oníbàárà tó ní nọ́mbà fóònù nìkan mọ́ láìsí àkáǹtì.",
+      "marketingOptIn": "Oníbàárà gbà láti gba ìròyìn àti ìpèsè nípasẹ̀ ímeèlì"
+    },
+    "offline": {
+      "bannerOffline": "Kò sí ìntánẹ́ẹ̀tì — a ń to àwọn títà sí ìlà",
+      "bannerStockAge": "Ọjà tí a fihàn jẹ́ ti {age}",
+      "bannerSignedOut": "O ti jáde — wọlé padà láti mú un bára mu",
+      "bannerSignedOutNote": "Àwọn títà tó wà ní ìlà ṣì wà ní ìpamọ́ lórí ẹ̀rọ yìí.",
+      "bannerBackOnline": "Ìntánẹ́ẹ̀tì ti padà",
+      "waitingToSync": "{count, plural, other {Títà # ń dúró de ìbáramu}}",
+      "needsReview": "{count, plural, other {# nílò àyẹ̀wò}}",
+      "review": "Ṣàyẹ̀wò",
+      "signIn": "Wọlé",
+      "syncNow": "Mú un bára mu báyìí",
+      "lockedTitle": "Tún sopọ̀ láti máa bá títà lọ",
+      "lockedLastSeen": "Ojú-ìbojú títà yìí dé sẹ́fà kẹ́yìn {time}. Fún ààbò, yóò wà ní títìpa títí tí ó fi lè wọlé padà.",
+      "lockedNever": "Ojú-ìbojú títà yìí kò tíì dé sẹ́fà lórí ẹ̀rọ yìí, nítorí náà a kò lè lò ó láìsí ìntánẹ́ẹ̀tì.",
+      "lockedQueued": "{count, plural, other {Títà <strong>#</strong> tí a ṣe láìsí ìntánẹ́ẹ̀tì ṣì wà ní ìpamọ́ lórí ẹ̀rọ yìí, a ó sì mú wọn bára mu fúnra wọn nígbà tí o bá padà sí ìntánẹ́ẹ̀tì.}} Má ṣe pa dátà aṣàwákiri rẹ́.",
+      "waitingForConnection": "Ń dúró de ìsopọ̀…",
+      "reviewTitle": "Àwọn títà tí sẹ́fà kọ̀",
+      "reviewDescription": "A ti sanwó fún ọ̀kọ̀ọ̀kan wọn ní kọ́ńtà. Ṣàtúnṣe ohun tó fà á kí o sì tún un fi ránṣẹ́, tàbí jù ú nù lẹ́yìn tí o bá ti kọ ọ́ sílẹ̀ pẹ̀lú ọwọ́.",
+      "reviewLabel": "Àwọn títà láìsí ìntánẹ́ẹ̀tì tí ó nílò àyẹ̀wò",
+      "reviewEmpty": "Kò sí ohun tí ó kù láti ṣàyẹ̀wò.",
+      "reviewReceipt": "Ìwé-ẹ̀rí {number}",
+      "reviewTaken": "Ti gbà á {time}",
+      "reviewAttempts": "{count, plural, other {Ìgbìyànjú #}}",
+      "reviewServerSaid": "Sẹ́fà sọ pé: {message}",
+      "reviewDiscard": "Jù ú nù",
+      "reviewSendAgain": "Fi ránṣẹ́ lẹ́ẹ̀kan sí i",
+      "close": "Pa á dé",
+      "anotherCounter": "Kọ́ńtà mìíràn",
+      "discardTitle": "Ṣé kí a jù títà yìí nù kúrò nínú ìlà?",
+      "discardDescription": "A kò ní fi ìwé-ẹ̀rí {number} ránṣẹ́ sí sẹ́fà láé. Ṣe èyí nìkan lẹ́yìn tí a bá ti kọ títà náà sílẹ̀ lọ́nà mìíràn — oníbàárà ló ní ìwé-ẹ̀rí náà lọ́wọ́.",
+      "savedOffline": "A ti fi pamọ́ láìsí ìntánẹ́ẹ̀tì — ìwé-ẹ̀rí {number}",
+      "savedOfflineNote": "A ó mú un bára mu fúnra rẹ̀ nígbà tí ìsopọ̀ bá padà.",
+      "outboxFull": "Ojú-ìbojú títà yìí ní ọ̀pọ̀lọpọ̀ títà tí a kò tíì mú bára mu. Tún sopọ̀ láti mú wọn bára mu kí o tó gba òmíràn.",
+      "noStorage": "Aṣàwákiri yìí kò lè fi títà láìsí ìntánẹ́ẹ̀tì pamọ́, nítorí náà a kò gba títà náà.",
+      "readerOnly": "Ẹ̀rọ ìkàwé káàdì nìkan",
+      "touchOrStripe": "Fífọwọ́kàn tàbí Stripe"
+    },
+    "counter": {
+      "unavailable": "Kọ́ńtà kò sí",
+      "sharedStock": "Ọjà àjọpín",
+      "finishSaleFirst": "Kọ́kọ́ parí tàbí fagilé títà lọ́wọ́lọ́wọ́",
+      "changeCounter": "Ń tà láti {name}. Yí kọ́ńtà padà",
+      "sellingFrom": "Ń tà láti",
+      "sellingAt": "Ń tà ní {name}",
+      "findCounter": "Wá kọ́ńtà...",
+      "noMatch": "Kò sí kọ́ńtà tí ó bá a mu.",
+      "heldCount": "{count} tí a dá dúró",
+      "activeCount": "{count} tí ń ṣiṣẹ́",
+      "deactivated": "A ti pa kọ́ńtà lọ́wọ́lọ́wọ́",
+      "pickerTitle": "Kọ́ńtà wo ni o wà?",
+      "pickerNote": "Ọjà, àwọn títà tí a dá dúró, àti gbogbo ìwé-ẹ̀rí tí a tẹ̀ lórí ojú-ìbojú títà yìí ń tẹ̀lé àṣàyàn yìí.",
+      "findYourCounter": "Wá kọ́ńtà rẹ...",
+      "recentOnDevice": "Tó ṣẹ̀ṣẹ̀ lò lórí ẹ̀rọ yìí",
+      "otherCounters": "Àwọn kọ́ńtà mìíràn",
+      "defaultLocation": "Ibi àìyípadà",
+      "startSellingAt": "Bẹ̀rẹ̀ sí í tà ní {name}",
+      "pickCounter": "Yan kọ́ńtà kan",
+      "signedInAs": "O wọlé gẹ́gẹ́ bí {name}",
+      "signedIn": "O ti wọlé",
+      "shortcutsMany": "<key>1</key>–<key>9</key> fún mẹ́sàn-án àkọ́kọ́, tẹ̀ láti wá àwọn tó kù,",
+      "shortcutsFew": "Tẹ <key>1</key>–<key>{last}</key> láti yan,",
+      "shortcutEnter": "<key>Enter</key> láti bẹ̀rẹ̀",
+      "sellFromShared": "Tà láti inú ọjà àjọpín dípò rẹ̀",
+      "switchLabel": "Yí kọ́ńtà padà",
+      "switchTitle": "Ṣé kí o yí kọ́ńtà padà nígbà tí títà ṣì ṣí sílẹ̀?",
+      "switchUnits": "{count, plural, other {Ẹyọ # wà lórí kọ́ńtà}}, pẹ̀lú iye àti ọjà ti {from}.",
+      "switchChecking": "A ń ṣàyẹ̀wò ohun tí {to} lè pèsè…",
+      "switchRemovedOne": "<b>{name}</b> <b>kò ní ọjà ní {to}</b> — a ó yọ ọ́ kúrò nínú títà náà.",
+      "switchRemovedMany": "<b>{name}</b> àti {others} mìíràn <b>kò ní ọjà ní {to}</b> — a ó yọ wọ́n kúrò nínú títà náà.",
+      "switchReduced": "{count, plural, other {A ó dín ìlà # kù sí iye ọjà tí {to} ní ní tòótọ́.}}",
+      "switchAllAvailable": "Gbogbo ìlà nínú títà yìí wà ní {to}.",
+      "switchHeldStay": "{count, plural, other {Títà # tí a dá dúró níbí yóò wà ní {from}. O kò ní rí wọn láti {to}.}}",
+      "switchHeldStayNone": "Àwọn títà tí a dá dúró níbí yóò wà ní {from}. O kò ní rí wọn láti {to}.",
+      "switchReceiptChanges": "Iye ọjà àti ìsàlẹ̀ ìwé-ẹ̀rí yóò yí padà sí {to} láti ìlà tó kàn.",
+      "switchHold": "Dá títà yìí dúró, lẹ́yìn náà yí padà",
+      "switchRecheck": "Yí padà kí o sì tún ọjà ṣàyẹ̀wò",
+      "switchRemovesAll": "Ó yọ gbogbo {total} kúrò",
+      "switchKeeps": "Ó pa {kept} mọ́ nínú ìlà {total}",
+      "switchStay": "Dúró ní {from}",
+      "nowSellingFrom": "A ń tà láti {name} báyìí",
+      "nowSellingShared": "A ń tà láti inú ọjà àjọpín báyìí",
+      "probeFailed": "A kò lè ṣàyẹ̀wò ọjà ní kọ́ńtà yẹn. Ojú-ìbojú títà kò yí padà.",
+      "holdFailed": "A kò lè dá títà náà dúró. Ojú-ìbojú títà kò yí padà.",
+      "rechecked": "A ti tún títà ṣàyẹ̀wò · {changes}",
+      "holdLabel": "Ìyípadà kọ́ńtà → {name}",
+      "heldBehind": "{count, plural, other {<b>Títà #</b> ṣì wà ní ìdádúró ní {name}}}",
+      "goBackTo": "Padà sí {name}",
+      "dismiss": "Pa á dé",
+      "saleBlocked": "Kọ́ńtà yìí kò sí mọ́. Yan òmíràn kí o tó gba ìsanwó."
+    },
+    "scan": {
+      "closeDialogFirst": "Pa fèrèsé tó ṣí sílẹ̀ dé, lẹ́yìn náà tún ṣàyẹ̀wò.",
+      "multipleMatches": "Ọ̀pọ̀ ọjà bá kóòdù yìí mu. Jọ̀wọ́ ṣàtúnṣe SKU tàbí bákóòdù tí ó ṣe àtúnwí.",
+      "noMatch": "A kò rí ọjà kankan fún kóòdù tí a ṣàyẹ̀wò.",
+      "lookupFailed": "A kò lè wá kóòdù tí a ṣàyẹ̀wò."
+    },
+    "held": {
+      "removed": "{count, plural, other {A yọ ìlà # kúrò}}",
+      "repriced": "{count} ní iye tuntun",
+      "reduced": "A dín {count} kù sí ọjà tó wà",
+      "resumed": "A ti tẹ̀síwájú pẹ̀lú àṣẹ tí a dá dúró",
+      "resumedWithChanges": "A ti tẹ̀síwájú pẹ̀lú àṣẹ tí a dá dúró · {changes}",
+      "nothingAvailable": "Kò sí ọ̀kan nínú àwọn ọjà àṣẹ tí a dá dúró yìí tó ṣì wà. A fi sílẹ̀ lórí ojú-ìbojú títà.",
+      "recheckFailed": "A kò lè ṣàyẹ̀wò iye àti ọjà lọ́wọ́lọ́wọ́. Àṣẹ tí a dá dúró ṣì wà lórí ojú-ìbojú títà.",
+      "finishFirst": "Parí tàbí dá títà lọ́wọ́lọ́wọ́ dúró kí o tó tẹ̀síwájú pẹ̀lú òmíràn.",
+      "holdFailed": "A kò lè dá àṣẹ yìí dúró. Títà náà ṣì wà nínú apẹ̀rẹ̀.",
+      "holdFull": "Ojú-ìbojú títà yìí ti ní àṣẹ {max} tí a dá dúró. Kọ́kọ́ tẹ̀síwájú pẹ̀lú ọ̀kan tàbí pa ọ̀kan rẹ́.",
+      "orderHeld": "A ti dá àṣẹ dúró",
+      "orderHeldLabel": "A ti dá àṣẹ dúró · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "Ẹni tí ń ṣàkóso POS nìkan ló lè fún ni ní ẹ̀dínwó",
+      "cashMustCover": "Owó tí a gbà gbọ́dọ̀ bo àpapọ̀ àṣẹ náà",
+      "noReceipt": "Kò sí dátà ìwé-ẹ̀rí",
+      "printPreviewFailed": "A kò lè ṣí àwòtẹ́lẹ̀ ìtẹ̀wé",
+      "noInvoice": "Kò sí ìwé-owó fún àṣẹ yìí",
+      "invoicePopupBlocked": "A kò lè ṣí ìwé-owó. Jọ̀wọ́ gba àwọn fèrèsé agbéjáde láàyè."
+    },
+    "complete": {
+      "title": "Títà ti parí",
+      "items": "{count, plural, one {ọjà #} other {ọjà #}}",
+      "soldAt": "A tà á ní {name}",
+      "viewReceipt": "Wo ìwé-ẹ̀rí",
+      "printReceipt": "Tẹ ìwé-ẹ̀rí",
+      "newSale": "Títà tuntun",
+      "emailReceipt": "Fi ìwé-ẹ̀rí ránṣẹ́ nípasẹ̀ ímeèlì",
+      "textReceipt": "Fi ìwé-ẹ̀rí ránṣẹ́ nípasẹ̀ SMS",
+      "send": "Fi ránṣẹ́",
+      "cancel": "Fagilé",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "Nọ́mbà fóònù oníbàárà",
+      "sentEmail": "A ti fi ìwé-ẹ̀rí ránṣẹ́ sí {to} nípasẹ̀ ímeèlì",
+      "sentSms": "A ti fi ìwé-ẹ̀rí ránṣẹ́ sí {to} nípasẹ̀ SMS",
+      "alreadySent": "A ti fi ránṣẹ́ sí {to} ní ìṣẹ́jú díẹ̀ sẹ́yìn",
+      "sendFailed": "Kò ṣeé ṣe láti fi ìwé-ẹ̀rí ránṣẹ́",
+      "offlineHint": "A lè fi ìwé-ẹ̀rí ránṣẹ́ kí a sì wò ó ní kété tí a bá mú títà yìí bára mu."
+    },
+    "pay": {
+      "title": "Gba ìsanwó",
+      "balanceTitle": "Gba ìyókù owó",
+      "draftItems": "{count, plural, one {Àkọsílẹ̀ · ọjà #} other {Àkọsílẹ̀ · ọjà #}}",
+      "close": "Pa á dé",
+      "totalDue": "Àpapọ̀ tí a ó san",
+      "remaining": "Ìyókù láti san",
+      "ofTotal": "A ti san {paid} nínú {total}",
+      "payments": "Ìsanwó",
+      "remove": "Yọ kúrò",
+      "discountPercent": "A ti lo ẹ̀dínwó {value}%",
+      "discountAmount": "A ti lo ẹ̀dínwó {amount}",
+      "cashDesc": "Pẹ̀lú ṣẹ́ǹjì",
+      "bank": "Ìfiránṣẹ́ owó bánkì",
+      "bankDesc": "Pẹ̀lú ìtọ́kasí",
+      "manualDesc": "Ọ̀nà ti ara ẹni",
+      "storeCredit": "Kírẹ́dìtì ilé ìtajà",
+      "storeCreditDesc": "{amount} wà",
+      "split": "Pín",
+      "cashGiven": "Owó tí a fún",
+      "amount": "Iye",
+      "changeDue": "Ṣẹ́ǹjì",
+      "stillOwed": "A ó san ìyókù ní ọ̀nà mìíràn",
+      "tooMuch": "Kò ju {amount} lọ tí ó kù láti san",
+      "tooMuchCredit": "{amount} kírẹ́dìtì ilé ìtajà nìkan ló wà",
+      "touch": "Fọwọ́kàn",
+      "touchDesc": "Fọwọ́kan tàbí fi káàdì sínú olùkà",
+      "stripe": "Stripe",
+      "stripeDesc": "Fọ́ọ̀mù àlàyé káàdì",
+      "readyForTap": "Ó ti ṣetán fún ìfọwọ́kàn tàbí ìfisínú",
+      "readyForTapNote": "Oníbàárà ń fọwọ́kan tàbí fi káàdì rẹ̀ sínú olùkà.",
+      "referenceOptional": "Ìtọ́kasí (àṣàyàn)",
+      "referencePlaceholder": "ID ìdúnàádúrà, kóòdù àṣẹ, àti bẹ́ẹ̀ bẹ́ẹ̀ lọ",
+      "stripePaysRest": "Káàdì ń san ìyókù: {amount}",
+      "cardNumber": "Nọ́mbà káàdì",
+      "expiry": "Ọjọ́ ìparí",
+      "cvc": "CVC",
+      "stripeNotConfigured": "A kò tíì ṣètò Stripe nínú ètò ìsanwó.",
+      "stripeLoading": "Ń ṣí àwọn àyè káàdì aláàbò…",
+      "stripeSecured": "Stripe ló ń dáàbò bò ó — a ń sọ àlàyé káàdì di àmì nígbà ìfiránṣẹ́.",
+      "stripeFailed": "Ìsanwó káàdì kò lọ",
+      "processing": "Ń ṣiṣẹ́…",
+      "acceptCash": "Gba owó nínà",
+      "charge": "Gba {amount}",
+      "chargeOnReader": "Gba {amount} lórí olùkà",
+      "useCredit": "San {amount} pẹ̀lú kírẹ́dìtì ilé ìtajà",
+      "addPayment": "Fi ìsanwó {method} ti {amount} kún un",
+      "takeDeposit": "Gba {amount} bí owó ìdógò, {due} lẹ́yìn náà",
+      "takePart": "Gba {amount} báyìí, {due} ṣì jẹ gbèsè",
+      "depositNeedsCustomer": "So oníbàárà mọ́ ọn láti gba owó ìdógò",
+      "depositTaken": "A ti gba owó ìdógò fún {number}. {due} ṣì kù láti san.",
+      "completeSale": "Parí títà"
+    },
+    "sales": {
+      "title": "Títà",
+      "close": "Pa á dé",
+      "back": "Padà",
+      "searchPlaceholder": "Nọ́mbà ìwé-ẹ̀rí tàbí nọ́mbà fóònù",
+      "dueOnly": "Àwọn tó ní gbèsè nìkan",
+      "empty": "A kò rí títà kankan.",
+      "recentHint": "Àwọn títà tuntun ní ibi títà yìí",
+      "selectHint": "Yan títà kan láti wò ó.",
+      "offline": "Wíwá títà nílò àsopọ̀.",
+      "loadFailed": "Kò ṣeé ṣe láti gbé àwọn títà wá",
+      "balanceDue": "Gbèsè {amount}",
+      "balanceDueLabel": "Ìyókù gbèsè",
+      "items": "Àwọn ọjà",
+      "payments": "Ìsanwó",
+      "total": "Àpapọ̀",
+      "refunded": "A ti dá padà",
+      "split": "Pín",
+      "collectBalance": "Gba ìyókù · {amount}",
+      "collectFailed": "Kò ṣeé ṣe láti gba ìsanwó",
+      "balancePaid": "A ti san ìyókù. Títà ti parí.",
+      "balancePart": "A ti gba ìsanwó. {due} ṣì kù láti san.",
+      "print": "Tẹ ìwé-ẹ̀rí",
+      "viewInvoice": "Wo ìwé-owó"
+    },
+    "register": {
+      "title": "Àpò owó",
+      "openChip": "Àpò wà ní ṣíṣí",
+      "closedChip": "Àpò wà ní títì",
+      "openToSell": "Ṣí àpò owó kí o tó gba títà.",
+      "close": "Pa á dé",
+      "failed": "Kò ṣeé ṣe láti ṣe àpò ní ọ̀tun",
+      "offline": "Ṣíṣí, títì àti gbígbé owó nílò àsopọ̀. Àwọn títà ń bá a lọ láti wọ inú àpò tí ó ṣí.",
+      "openIntro": "Ka owó tí ó wà nínú àpò kí títà àkọ́kọ́ tó bẹ̀rẹ̀, kí o sì tẹ̀ ẹ́ bí owó ìbẹ̀rẹ̀.",
+      "openingFloat": "Owó ìbẹ̀rẹ̀",
+      "openRegister": "Ṣí àpò",
+      "opened": "A ti ṣí àpò",
+      "openedAt": "A ṣí i ní {time}",
+      "salesCount": "Títà",
+      "grossSales": "Àpapọ̀ títà",
+      "cashSales": "Títà owó nínà",
+      "cashIn": "Owó tí a fi sínú",
+      "cashOut": "Owó tí a mú jáde",
+      "cashRefunds": "Owó nínà tí a dá padà",
+      "expectedCash": "Ohun tó yẹ kó wà nínú àpò",
+      "countedCash": "Owó tí a kà",
+      "variance": "Ìyàtọ̀",
+      "balanced": "Ó bá a mu",
+      "over": "Ó pọ̀ jù",
+      "short": "Ó kéré jù",
+      "cashInIntro": "Owó tí a fi sínú àpò tí kì í ṣe títà, bí ṣẹ́ǹjì láti inú àpótí ìpamọ́.",
+      "cashOutIntro": "Owó tí a mú jáde tí kì í ṣe ìdápadà, bí fífi sínú àpótí ìpamọ́ tàbí ìnáwó tí a san.",
+      "amount": "Iye",
+      "reason": "Ìdí",
+      "reasonPlaceholder": "Ìdí (dandan)",
+      "cashAdded": "A ti fi owó kún àpò",
+      "cashRemoved": "A ti mú owó jáde láti inú àpò",
+      "back": "Padà",
+      "note": "Àkọsílẹ̀ ìpadé",
+      "notePlaceholder": "Àkọsílẹ̀ fún ìjábọ̀ ìpadé (àṣàyàn)",
+      "queuedFirst": "{count, plural, one {Títà # ṣì ń dúró} other {Títà # ṣì ń dúró}} láti bára mu. Ti àpò ní kété tí wọ́n bá bára mu.",
+      "closeRegister": "Ti àpò",
+      "closed": "A ti ti àpò",
+      "xReport": "Ìjábọ̀ X",
+      "zReport": "Ìjábọ̀ Z",
+      "printX": "Tẹ ìjábọ̀ X",
+      "printZ": "Tẹ ìjábọ̀ Z",
+      "printBlocked": "A ti dí fèrèsé ìjábọ̀. Gba fèrèsé àgbéjáde láàyè fún ojú-òpó yìí láti tẹ̀ ẹ́.",
+      "reportOpened": "A ṣí i",
+      "reportClosed": "A tì í",
+      "tender": {
+        "cash": "Owó nínà",
+        "card": "Káàdì",
+        "bank": "Ìfiránṣẹ́ owó bánkì",
+        "manual": "Òmíràn",
+        "store_credit": "Kírẹ́dìtì ilé ìtajà"
+      },
+      "noSale": "Kò sí títà",
+      "noSaleIntro": "Ṣí àpò láìsí títà, fún ṣẹ́ǹjì tàbí àyẹ̀wò. A ó pa ìdí rẹ̀ mọ́ sínú ìjábọ̀ àpò.",
+      "noSaleDone": "A ti ṣí àpò",
+      "printer": "Atẹ̀wé àpò",
+      "printerIntro": "Àpò owó ń ṣí nípasẹ̀ atẹ̀wé ìwé-ẹ̀rí tí a so ó mọ́, ní lílo QZ Tray lórí kọ̀ǹpútà yìí. Yan atẹ̀wé náà.",
+      "printerFind": "Wá àwọn atẹ̀wé",
+      "printerQzMissing": "QZ Tray kò ṣiṣẹ́ lórí kọ̀ǹpútà yìí",
+      "printerNone": "Kò sí àpò ní ojú-ìbojú títà yìí",
+      "printerPin": "Pín àpò",
+      "printerTest": "Dánwò",
+      "printerTestFailed": "Àpò kò ṣí. Ṣàyẹ̀wò atẹ̀wé àti QZ Tray.",
+      "printerSave": "Fi pamọ́",
+      "printerSaved": "A ti fi atẹ̀wé àpò pamọ́ fún ojú-ìbojú títà yìí",
+      "printerNotSet": "Kọ́kọ́ ṣètò atẹ̀wé àpò",
+      "printerCurrent": "Àpò: {name}",
+      "printerSetUp": "Ṣètò atẹ̀wé àpò"
+    },
+    "returns": {
+      "action": "Gba àwọn ọjà tí a dá padà",
+      "title": "Gba àwọn ọjà tí a dá padà",
+      "close": "Pa á dé",
+      "offline": "Ìdápadà nílò àsopọ̀. Gba ìdápadà ní kété tí ojú-ìbojú títà bá padà sórí ayélujára.",
+      "loadFailed": "Kò ṣeé ṣe láti gbé àwọn ọjà títà yìí wá",
+      "previewFailed": "Kò ṣeé ṣe láti ṣírò owó ìdápadà",
+      "failed": "Kò ṣeé ṣe láti gba ìdápadà",
+      "nothingReturnable": "Kò sí ohun kankan nínú títà yìí tí a lè dá padà.",
+      "returnable": "{count} ni a lè dá padà",
+      "blockedFinalSale": "Títà ìkẹyìn",
+      "blockedWindow": "Àkókò ìdápadà ti kọjá",
+      "blockedOther": "A kò lè dá a padà",
+      "less": "Ọ̀kan dín",
+      "more": "Ọ̀kan sí i",
+      "condition": "Ipò",
+      "conditions": {
+        "new": "A kò tíì ṣí i",
+        "opened": "A ti ṣí i, ó ṣeé tà",
+        "damaged": "Ó ti bàjẹ́",
+        "missing_parts": "Àwọn apá kan sọnù",
+        "unusable": "Kò ṣeé lò"
+      },
+      "restockHint": "Àwọn ọjà tí a kò ṣí àti èyí tí a ṣí ń padà sínú ọjà ibi títà yìí.",
+      "reason": "Ìdí",
+      "reasons": {
+        "wrong_size_or_variant": "Ìwọ̀n tàbí oríṣi tí kò tọ́",
+        "damaged_or_defective": "Ó ti bàjẹ́ tàbí ó ní àbùkù",
+        "not_as_described": "Kò rí bí a ṣe ṣàpèjúwe rẹ̀",
+        "wrong_item_received": "Ọjà tí kò tọ́",
+        "arrived_late": "Ó dé pẹ́",
+        "changed_mind": "Ó yí ọkàn padà",
+        "other": "Òmíràn"
+      },
+      "note": "Àkọsílẹ̀",
+      "notePlaceholder": "Àkọsílẹ̀ (àṣàyàn)",
+      "noteRequired": "Sọ ohun tí kò dára (dandan)",
+      "refundTo": "Dá padà sí",
+      "methods": {
+        "cash": "Owó nínà láti inú àpò",
+        "card": "Káàdì, pẹ̀lú ọwọ́",
+        "bank": "Ìfiránṣẹ́ owó bánkì",
+        "original": "Padà sórí káàdì",
+        "store_credit": "Kírẹ́dìtì ilé ìtajà",
+        "exchange": "Pàṣípààrọ̀",
+        "later": "Dá padà lẹ́yìn náà"
+      },
+      "adminOnly": "Alábòójútó ló ń dá owó padà. A ń kọ ìdápadà sílẹ̀ báyìí, ìdápadà owó sì ń dúró dè wọ́n lábẹ́ Ìdápadà.",
+      "exchangeHint": "Owó ìdápadà náà ń sanwó fún títà tuntun tí a ó ṣe tẹ̀lé e.",
+      "laterHint": "A ń kọ ìdápadà sílẹ̀ báyìí. Dá owó padà lẹ́yìn náà láti Ìdápadà.",
+      "refundTotal": "Ìdápadà",
+      "restockingFee": "Ó ní owó ìdápadà sínú ilé ìkẹ́rùsí ti {amount}",
+      "submit": "Gba ìdápadà",
+      "done": "A ti gba ìdápadà {numbers}",
+      "doneRefunded": "A ti dá {amount} padà.",
+      "doneCash": "Fún oníbàárà ní {amount} láti inú àpò.",
+      "doneCredit": "A ti fi {amount} kún kírẹ́dìtì ilé ìtajà oníbàárà.",
+      "creditBack": "{amount} ti padà sí kírẹ́dìtì ilé ìtajà oníbàárà, èyí tí ó san apá kan nínú títà náà.",
+      "doneLater": "Ìdápadà owó ń dúró de alábòójútó.",
+      "doneExchange": "{amount} ń lọ sínú títà tuntun.",
+      "print": "Tẹ ìwé ìdápadà",
+      "printBlocked": "A ti dí fèrèsé ìwé náà. Gba fèrèsé àgbéjáde láàyè fún ojú-òpó yìí láti tẹ̀ ẹ́.",
+      "slipTitle": "Ìdápadà",
+      "slipSale": "Títà",
+      "exchangeReference": "Pàṣípààrọ̀ {numbers}",
+      "exchangeBanner": "Kírẹ́dìtì pàṣípààrọ̀ {amount}",
+      "exchangeDismiss": "Fi kírẹ́dìtì pàṣípààrọ̀ sílẹ̀",
+      "exchangeDismissHint": "A kò lò ó: fún oníbàárà ní owó nínà {amount} láti inú àpò."
+    },
+    "operator": {
+      "title": "Olùgbowó",
+      "close": "Pa á dé",
+      "offline": "Yíyí olùgbowó padà nílò àsopọ̀. Ibi títà wà lọ́wọ́ ẹni tí ó ń lò ó.",
+      "loadFailed": "Kò ṣeé ṣe láti gbé àwọn olùgbowó wá",
+      "failed": "Ìyẹn kò ṣiṣẹ́. Tún gbìyànjú.",
+      "workingNow": "Ń ṣiṣẹ́ ní ibi títà",
+      "switchBack": "Padà sí {name}",
+      "takeOver": "Gba ibi títà",
+      "nobody": "Kò sí alábàáṣiṣẹ́pọ̀ kankan tí ó tíì ṣètò PIN ojú-ìbojú títà. Ẹnì kọ̀ọ̀kan ń ṣètò tirẹ̀ nígbà tí ó bá wọlé.",
+      "pin": "PIN",
+      "switch": "Yí olùgbowó padà",
+      "switched": "{name} ń ṣiṣẹ́ ní ibi títà",
+      "setPin": "Ṣètò PIN ojú-ìbojú títà mi",
+      "changePin": "Yí PIN ojú-ìbojú títà mi padà",
+      "pinIntro": "{name}, yan PIN oní nọ́mbà 4 sí 8. Àwọn alábàáṣiṣẹ́pọ̀ ń lo tiwọn láti gba ibi títà yìí.",
+      "newPin": "PIN tuntun",
+      "confirmPin": "PIN lẹ́ẹ̀kan sí i",
+      "pinMismatch": "PIN méjèèjì kò bára mu",
+      "savePin": "Fi PIN pamọ́",
+      "pinSaved": "A ti ṣètò PIN ojú-ìbojú títà rẹ",
+      "back": "Padà"
+    },
+    "reports": {
+      "navLabel": "Ìjábọ̀ POS",
+      "title": "Ìjábọ̀ ibi títà",
+      "subtitle": "Títà nípasẹ̀ olùgbowó àti ibi títà, owó tí a gbà nípasẹ̀ ọ̀nà ìsanwó, àti àbájáde kíkà àpò kọ̀ọ̀kan.",
+      "loadFailed": "Kò ṣeé ṣe láti gbé ìjábọ̀ wá",
+      "period": "Àkókò",
+      "presets": {
+        "today": "Lónìí",
+        "yesterday": "Àná",
+        "week": "Ọjọ́ 7 sẹ́yìn",
+        "month": "Ọjọ́ 30 sẹ́yìn",
+        "thisMonth": "Oṣù yìí"
+      },
+      "counter": "Ibi títà",
+      "allCounters": "Gbogbo ibi títà",
+      "refresh": "Sọ di ọ̀tun",
+      "export": "Gbé CSV jáde",
+      "empty": "Kò sí títà ní àkókò yìí.",
+      "noSessions": "A kò ṣí àpò kankan ní àkókò yìí.",
+      "stats": {
+        "sales": "Títà",
+        "items": "{count, plural, one {ọjà # ni a tà} other {ọjà # ni a tà}}",
+        "gross": "Àpapọ̀ títà",
+        "discounts": "{amount} nínú ẹ̀dínwó",
+        "net": "Lẹ́yìn ìdápadà",
+        "refunds": "A dá {amount} padà",
+        "average": "Ìpíndọ́gba títà",
+        "balanceDue": "{amount} ṣì jẹ gbèsè lórí owó ìdógò"
+      },
+      "byCashier": "Nípasẹ̀ olùgbowó",
+      "byCounter": "Nípasẹ̀ ibi títà",
+      "byTender": "Owó tí ó wọlé nípasẹ̀ ọ̀nà ìsanwó",
+      "sessions": "Àwọn àkókò àpò",
+      "unknownCashier": "Olùgbowó tí a kò mọ̀",
+      "noCounter": "Kò sí ibi títà",
+      "open": "Ṣí",
+      "payments": "{count, plural, one {ìsanwó #} other {ìsanwó #}}",
+      "tenders": {
+        "cash": "Owó nínà",
+        "card": "Káàdì",
+        "bank": "Ìfiránṣẹ́ owó bánkì",
+        "manual": "Òmíràn",
+        "store_credit": "Kírẹ́dìtì ilé ìtajà"
+      },
+      "columns": {
+        "name": "Orúkọ",
+        "sales": "Títà",
+        "items": "Àwọn ọjà",
+        "gross": "Àpapọ̀ títà",
+        "discounts": "Ẹ̀dínwó",
+        "refunds": "Ìdápadà",
+        "net": "Àpapọ̀ gidi",
+        "average": "Ìpíndọ́gba",
+        "tender": "Ọ̀nà ìsanwó",
+        "payments": "Ìsanwó",
+        "amount": "Iye",
+        "session": "Àkókò",
+        "counter": "Ibi títà",
+        "openedBy": "Ẹni tí ó ṣí i",
+        "opened": "A ṣí i",
+        "closed": "A tì í",
+        "expected": "Owó tí a retí",
+        "counted": "A kà á",
+        "variance": "Ìyàtọ̀"
+      }
+    },
+    "quickKeys": {
+      "tab": "Àwọn àyànfẹ́",
+      "empty": "Kò sí bọ́tìnnì kíákíá síbẹ̀",
+      "emptyManager": "Fi ìràwọ̀ sí ọjà kan nínú àkójọ láti fi sí ibí fún gbogbo ibi títà.",
+      "emptyCashier": "Ẹni tí ó ń ṣàkóso POS lè fi ìràwọ̀ sí àwọn ọjà láti fi wọ́n sí ibí.",
+      "add": "Fi kún àwọn àyànfẹ́",
+      "remove": "Yọ kúrò nínú àwọn àyànfẹ́",
+      "failed": "A kò fi àwọn àyànfẹ́ pamọ́"
     }
   },
   "locations": {
@@ -6044,7 +7531,17 @@
     "deleteError": "Ajeji paara ibẹẹẹ",
     "updateError": "Ajeji imudojuiwọn ibẹẹẹ",
     "saveError": "Ajeji fipamọ ibẹẹẹ",
-    "actions": "Awon ise"
+    "actions": "Awon ise",
+    "deliveryOrder": "Ilana ifijiṣẹ",
+    "deliveryOrderHint": "A máa ń fi àwọn ìbéèrè orí ayélujára ránṣẹ́ láti ibi àkọ́kọ́ tó ní ọjà, lẹ́yìn náà ìkejì, bẹ́ẹ̀ báyìí.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "Kò sí ifijiṣẹ́",
+    "services": "Àwọn iṣẹ́",
+    "pickup": "Gbigba",
+    "returns": "Àwọn ìdápadà",
+    "noTill": "Kò sí kọ́ńtà",
+    "shipSooner": "Fi ránṣẹ́ láti ibí ní kùtùkùtù",
+    "shipLater": "Fi ránṣẹ́ láti ibí lẹ́yìn"
   },
   "toast": {
     "createdSuccess": "{resource} ti a ṣẹda",
@@ -6687,7 +8184,10 @@
     "loadOlderConversations": "Gbé àwọn ìjíròrò àtijọ́ wọlé",
     "attachments": {
       "alt": "Àfikún ìbánisọ̀rọ̀",
-      "open": "Ṣí àfikún"
+      "open": "Ṣí àfikún",
+      "view": "Wo àwòrán ní kíkún",
+      "openNewTab": "Ṣí ní táàbù tuntun",
+      "download": "Gba sílẹ̀"
     },
     "assignment": {
       "label": "Aṣojú tí a yàn",
@@ -6735,7 +8235,7 @@
       "webhookUrlNotPublic": "Meta gba àdírẹ́sì ìdáhùn HTTPS gbangba nìkan. Ṣí ojú-ìwé yìí lórí dòméènì rẹ tí ó ń ṣiṣẹ́ — tàbí nípasẹ̀ tunnel — kí o tó forúkọ sílẹ̀.",
       "setup": {
         "title": "Ìtọ́sọ́nà ìṣètò {provider}",
-        "docs": "Àlàyé kíkún: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "Àlàyé kíkún: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Ṣẹ̀dá app Meta kan kí o sì fi ọjà WhatsApp kún un.",
           "config": "Ṣẹ̀dá ìtòlẹ́sẹẹsẹ Facebook Login for Business tí ó ń fún ní àwọn àṣẹ wọ̀nyí, kí o sì fi ID rẹ̀ sí META_WHATSAPP_CONFIGURATION_ID.",
@@ -6873,6 +8373,7 @@
     "noLinks": "Kò sí ìjápọ̀ tí a pín síbẹ̀",
     "subject": "Àkòrí",
     "viewProduct": "Wo ọjà",
+    "removeAttachment": "Yọ àsomọ́ kúrò",
     "messageProduct": {
       "open": "Ṣí {name}",
       "priceOnRequest": "Iye owó lórí ìbéèrè"
@@ -7326,15 +8827,171 @@
       "amount": "Iye owó",
       "kind": {
         "sale": "Alagbe",
-        "commission": "Ìdíwọ̀n owó"
+        "commission": "Ìdíwọ̀n owó",
+        "payout": "A ti san",
+        "refund": "Ìdápadà owó",
+        "boost": "Ìgbéga",
+        "subscription": "Ìforúkọsílẹ̀",
+        "other": "Àtúnṣe",
+        "payout_returned": "Ìsanwó padà wá",
+        "refund_reversed": "A yí ìdápadà owó padà",
+        "commission_settled": "A san kọmíṣọ̀n láti inú ìsanwó",
+        "promotion_credit": "Kírẹ́dìtì ẹ̀dínwó",
+        "delivery_label": "Àmì ìfijíṣẹ́",
+        "repayment": "O san padà"
       },
-      "statements": "Àwọn ìwé ìṣirò owó"
+      "statements": "Àwọn ìwé ìṣirò owó",
+      "title": "Ìṣúnná owó rẹ",
+      "subtitle": "Ohun tí o rí, ohun tí a ti san, àti ohun tí ọjà ń tọ́jú fún ọ.",
+      "opening": "Iye owó ìbẹ̀rẹ̀",
+      "openingHint": "Tí a mú wá láti ṣáájú àkókò yìí",
+      "earned": "Tí o rí",
+      "earnedHint": "Ìpín rẹ nínú títà, lẹ́yìn kọmíṣọ̀n",
+      "paidOut": "A ti san",
+      "closing": "Tí a ń tọ́jú fún ọ",
+      "closingHint": "Iye owó rẹ nínú ìwé àkọsílẹ̀ — káàdì tó wà lókè fi ohun tí ìsanwó lè fi ránṣẹ́ hàn",
+      "owed": "O jẹ gbèsè",
+      "owedHint": "Kọmíṣọ̀n lórí àwọn àṣẹ tí o gba owó wọn fúnra rẹ",
+      "activity": "Ìṣẹ̀lẹ̀",
+      "reference": "Ìtọ́kasí",
+      "empty": "Kò sí ohun tó yí padà ní àkókò yìí. Àwọn títà, ìdápadà owó àti ìsanwó máa ń hàn níbí bí wọ́n ṣe ń ṣẹlẹ̀.",
+      "emptyTitle": "Kò sí nǹkan láti fi hàn síbẹ̀",
+      "emptyBody": "Ìwé ìṣirò owó rẹ yóò máa kún bí a ṣe ń sanwó fún àwọn àṣẹ. Títà kọ̀ọ̀kan ń fi ohun tí o rí kún un; ìsanwó kọ̀ọ̀kan ń yọ ọ́ jáde.",
+      "heldChange": "Tí a ń tọ́jú fún ọ",
+      "owedChange": "O jẹ gbèsè",
+      "statementsSubtitle": "Gbogbo títà, ìdápadà owó àti ìsanwó tó yí iye owó rẹ padà.",
+      "seeAll": "Wo ìwé ìṣirò owó kíkún",
+      "export": "Gbé jáde",
+      "truncated": "Ń fi àkọsílẹ̀ {shown} àkọ́kọ́ hàn nínú {total}. Yan àkókò tó kúrú láti rí ìyókù — àwọn iye owó tó wà lókè bo gbogbo àkókò náà bí ó ti wù kí ó rí.",
+      "owedTitle": "Gbèsè sí ọjà",
+      "owedSubtitle": "Kọmíṣọ̀n lórí àwọn àṣẹ tí o gba owó wọn fúnra rẹ. Owó náà ti jẹ́ tìrẹ tẹ́lẹ̀; èyí ni ohun tí o jẹ lórí rẹ̀.",
+      "owedEmpty": "O kò jẹ nǹkan kan fún àkókò yìí.",
+      "owedOrders": "Àwọn àṣẹ"
     },
     "reports": {
       "title": "Ìròyìn"
     },
     "periods": {
       "reopen": "Ṣí padà"
+    },
+    "balance": {
+      "title": "Ohun tí a jẹ ọ́",
+      "ready": "Ó ṣetán fún ìsanwó tó kàn",
+      "readyHint": "Láti inú àṣẹ {count} tí ó ti dé, tí àkókò ìdápadà ti kọjá",
+      "belowMinimum": "A ó ṣe ìsanwó ní kété tí èyí bá tó {amount}",
+      "held": "Ń dúró kí àkókò ìdápadà kọjá",
+      "heldHint": "Ó ti dé, a sì lè san án ní ọjọ́ {days} lẹ́yìn ìfijíṣẹ́",
+      "reserve": "A dá dúró fún àṣẹ-ṣáájú",
+      "reserveHint": "A ó tú u sílẹ̀ láti {date}",
+      "reserveUndated": "A ó tú u sílẹ̀ pẹ̀lú ìsanwó tó ń bọ̀",
+      "owedBack": "Gbèsè tí o jẹ ilé ìtajà",
+      "owedBackHint": "A san án fún ọ lórí àwọn àṣẹ tí a ti dá owó wọn padà láti ìgbà náà; a ó yọ ọ́ kúrò nínú ìsanwó rẹ tó kàn",
+      "tooManyOrders": "Àṣẹ tó ju 500 lọ ti ṣetán: ilé ìtajà ń san wọ́n ní ìpín-ìpín, èyí tó pẹ́ jù ní àkọ́kọ́",
+      "frozen": "A ti dá ìsanwó dúró nígbà tí a dá àkáǹtì rẹ dúró. A ó máa ka àwọn títà rẹ lọ.",
+      "inPayout": "Nínú ìsanwó tí a ń pèsè",
+      "inPayoutHint": "{numbers} — ó ń bọ̀ wá sọ́dọ̀ rẹ",
+      "notDelivered": "Kò tíì dé",
+      "notDeliveredHint": "Àṣẹ {count} tí a ti sanwó fún wà lójú ọ̀nà; àkókò ìdápadà ń bẹ̀rẹ̀ nígbà ìfijíṣẹ́",
+      "awaitingBalance": "Àṣẹ-ṣáájú tí ń dúró de owó tó kù",
+      "awaitingBalanceHint": "A lè san án ní kété tí olùrà bá san ìyókù tí ọjà sì dé",
+      "commissionLeft": "Kọmíṣọ̀n tí ó kù láti san",
+      "commissionLeftHint": "Lórí àwọn títà tí o gba owó wọn fúnra rẹ; a ó yọ ọ́ kúrò nínú ìsanwó tó ń bọ̀ tàbí nípasẹ̀ ìwé owó",
+      "owedBackLater": "Gbèsè tí o ṣì jẹ ilé ìtajà",
+      "owedBackLaterHint": "A san án fún ọ lórí àwọn àṣẹ tí a ti dá owó wọn padà láti ìgbà náà; ó ju ohun tí ìsanwó tó kàn lè gbé lọ, nítorí náà a ó yọ ọ́ kúrò nínú àwọn tó ń bọ̀ lẹ́yìn"
+    },
+    "payout": {
+      "changedElsewhere": "Ìsanwó yìí ti yí padà. A ti tún un gbé wá.",
+      "updated": "A ti ṣe àtúnṣe ìsanwó.",
+      "notFound": "A kò rí ìsanwó.",
+      "backToPayouts": "Ìsanwó fún olùtajà",
+      "ordersUpTo": "Àwọn àṣẹ títí dé {date}",
+      "orderCount": "Àṣẹ {count}",
+      "requote": "Àwọn àṣẹ inú ìsanwó yìí yí padà lẹ́yìn tí a ṣe é. Fagilé e kí o sì ṣẹ̀dá tuntun.",
+      "frozen": "A ti dá olùtajà yìí dúró, nítorí náà a kò lè fi ìsanwó yìí ránṣẹ́. Dá olùtajà náà padà, tàbí fagilé ìsanwó náà.",
+      "howItWasWorkedOut": "Bí a ṣe ṣírò ìsanwó yìí",
+      "grossSales": "Àpapọ̀ títà",
+      "grossSalesHint": "ìpín olùtajà nínú àwọn àṣẹ tó wà nísàlẹ̀",
+      "commission": "Kọmíṣọ̀n",
+      "ofGross": "nínú àpapọ̀",
+      "shippingAmount": "Owó ìfijíṣẹ́",
+      "shippingAmountHint": "tí a gbà lọ́wọ́ àwọn olùrà fún àwọn páálí tí olùtajà fi jíṣẹ́",
+      "reserveUntil": "a ó tú u sílẹ̀ ní {date}",
+      "commissionOffset": "Kọmíṣọ̀n lórí títà owó lọ́wọ́",
+      "commissionOffsetHint": "ó jẹ ẹ́ lórí àwọn títà tí olùtajà gba owó wọn, a yọ ọ́ kúrò níbí dípò ìwé owó",
+      "commissionCredit": "Ẹ̀dínwó ilé ìtajà lórí títà owó lọ́wọ́",
+      "commissionCreditHint": "ẹ̀dínwó tí ilé ìtajà san lórí àwọn títà tí olùtajà gba owó wọn, ju kọmíṣọ̀n tí wọ́n jẹ lọ",
+      "otherAdjustments": "Àwọn àtúnṣe mìíràn",
+      "otherAdjustmentsHint": "ìgbàpadà owó ìdápadà àti ìgbésẹ̀ ìpamọ́ àṣẹ-ṣáájú",
+      "netPayout": "Ìsanwó lẹ́yìn ìyọkúrò",
+      "paidOn": "A san ní {date}",
+      "reference": "Ìtọ́kasí ìsanwó",
+      "noReference": "A kò kọ ìtọ́kasí ìsanwó sílẹ̀",
+      "returnedOn": "Ó padà wá ní {date} — a tún jẹ olùtajà ní owó náà",
+      "statusTitle": "Ipò",
+      "returnedStep": "Owó padà wá",
+      "notRecorded": "A kò kọ ọ́ sílẹ̀",
+      "notYet": "Kò tíì",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "A kò kọ ọ́ sílẹ̀",
+      "note": "Àkíyèsí",
+      "noteReturnedHint": "— dandan: ìdí tí owó fi padà wá",
+      "noteHint": "— a fi pamọ́ sórí ìsanwó, olùtajà sì lè rí i",
+      "returnedOnLabel": "Ọjọ́ tí owó padà wá",
+      "returnedWarning": "Lo èyí nìkan nígbà tí báńkì bá dá owó náà padà. A ó yí àkọsílẹ̀ inú ìwé àkọsílẹ̀ padà, a ó tún jẹ olùtajà ní owó náà, àwọn títà wọ̀nyí yóò sì padà sínú ìsanwó tó kàn.",
+      "saveWarning": "Sísàmì sí ìsanwó pé a ti san án máa ń kọ àkọsílẹ̀ sínú ìwé àkọsílẹ̀, ó sì ń yanjú àwọn àṣẹ tó wà lẹ́yìn rẹ̀. A kò lè yọ ọ́ kúrò — àtúnṣe ni a fi ń ṣàtúnṣe àṣìṣe.",
+      "noChanges": "Kò sí ìyípadà síbẹ̀",
+      "ordersTitle": "Àwọn àṣẹ nínú ìsanwó yìí",
+      "ordersHint": "Gbogbo ohun tí ó ti dé tí a kò tíì san títí dé {date}",
+      "order": "Àṣẹ",
+      "placed": "Ọjọ́ àṣẹ",
+      "orderStatus": "Ipò àṣẹ",
+      "payment": "Ìsanwó",
+      "vendorShare": "Ìpín olùtajà",
+      "vendorEarnings": "Lẹ́yìn kọmíṣọ̀n",
+      "noOrders": "Kò sí àṣẹ tí a so mọ́ ìsanwó yìí.",
+      "sellerShareNote": "Ìpín olùtajà nínú ọjà àṣẹ kọ̀ọ̀kan ló para pọ̀ di àpapọ̀ títà; lẹ́yìn kọmíṣọ̀n ó di ìsanwó lẹ́yìn ìyọkúrò. Owó ìfiránṣẹ́ àti owó-orí tí ilé ìtajà gbà kò sí nínú rẹ̀.",
+      "adjustment": {
+        "recoveryDeducted": "Gbígba owó ìdápadà padà",
+        "recoveryDeductedHint": "a san án tẹ́lẹ̀ lórí àwọn àṣẹ tí a ti dá owó wọn padà láti ìgbà náà",
+        "recoveryReturned": "Ìgbàpadà tí a dá padà",
+        "recoveryReturnedHint": "a ti fagilé ìdápadà owó tí a gbà padà tẹ́lẹ̀",
+        "reserveHeld": "A dá ìpamọ́ àṣẹ-ṣáájú dúró",
+        "reserveHeldHint": "a dá a dúró nítorí chargeback tó lè dé pẹ́",
+        "reserveReleased": "A tú ìpamọ́ àṣẹ-ṣáájú sílẹ̀",
+        "reserveReleasedHint": "a dá a dúró nínú ìsanwó ìṣáájú, àkókò rẹ̀ ti pé báyìí",
+        "reserveCreditDeducted": "A gba ìpamọ́ padà",
+        "reserveCreditDeductedHint": "ìpamọ́ tí a tú sílẹ̀ tí ìsanwó rẹ̀ padà wá",
+        "reserveCreditReturned": "Ìgbàpadà ìpamọ́ tí a dá padà",
+        "reserveCreditReturnedHint": "a dá a padà lẹ́yìn tí a tún san ìsanwó rẹ̀ lẹ́ẹ̀kan sí i",
+        "commissionOffset": "Kọmíṣọ̀n lórí títà owó lọ́wọ́",
+        "commissionOffsetHint": "ó jẹ ẹ́ lórí àwọn títà tí olùtajà gba owó wọn",
+        "commissionCredit": "Ẹ̀dínwó ilé ìtajà lórí títà owó lọ́wọ́",
+        "commissionCreditHint": "ẹ̀dínwó tí ilé ìtajà san ju kọmíṣọ̀n tí a jẹ lọ"
+      }
+    },
+    "receivables": {
+      "title": "Ohun tí a jẹ olùtajà àti ohun tí wọ́n jẹ",
+      "subtitle": "Owó tí a ń tọ́jú fún olùtajà, ní ìdojúkọ kọmíṣọ̀n tí wọ́n jẹ lórí àwọn títà tí wọ́n gba owó wọn fúnra wọn.",
+      "vendor": "Olùtajà",
+      "net": "Iye tí a ó yanjú",
+      "emptyTitle": "Kò sí ohun tí ó kù",
+      "emptyBody": "Àwọn iye owó máa ń hàn bí a ṣe ń sanwó fún àwọn àṣẹ: pèpéle ń tọ́jú ìpín olùtajà títí ìsanwó yóò fi parí, olùtajà tí ó gba owó lọ́wọ́ fúnra rẹ̀ sì jẹ kọmíṣọ̀n lórí rẹ̀.",
+      "collectNote": "A kà á láti inú ìwé àkọsílẹ̀, nítorí náà a ń ka títà láti ìgbà tí owó rẹ̀ bá dé. Ojú-ìwé ìsanwó fi ohun tí a lè san lónìí hàn.",
+      "overpaidTitle": "A san ju ohun tí a tọ́jú rí lọ",
+      "overpaidHint": "Ìsanwó kan yanjú títà tí olùtajà ti gba owó rẹ̀ fúnra rẹ̀. Àwọn ìsanwó tuntun kò lè ṣe èyí mọ́; àtúnṣe lórí àkópọ̀ Ìṣúnná owó ni a fi ń pa iye owó tí a ti kọ sílẹ̀ rẹ́.",
+      "owedBackTitle": "Àwọn olùtajà tí wọ́n jẹ gbèsè",
+      "owedBackHint": "Ó sábà máa ń jẹ́ ìdápadà owó lẹ́yìn tí a ti san owó olùtajà. A ó yọ ọ́ kúrò nínú ìsanwó rẹ̀ tó kàn fúnra rẹ̀, tàbí kọ ìsanpadà gbèsè sílẹ̀ ní táàbù Payouts olùtajà tí wọ́n bá san án padà. Má ṣe kọ àtúnṣe pẹ̀lú — ìyẹn yóò gbà á padà lẹ́ẹ̀mejì.",
+      "heldForVendors": "Ò ń tọ́jú fún àwọn olùtajà",
+      "commissionTheyOwe": "Kọmíṣọ̀n tí wọ́n jẹ ọ́",
+      "netToSettle": "Iye tí ó kù láti yanjú",
+      "netHint": "Ohun tí ìwé àkọsílẹ̀ jẹ lápapọ̀ — ìsanwó máa ń fi apá tí ó ti dé nìkan ránṣẹ́"
+    },
+    "paidFrom": {
+      "bank": "Báńkì",
+      "cash": "Owó lọ́wọ́",
+      "gateway": "Iye owó ẹnu-ọ̀nà ìsanwó",
+      "unpaid": "A kò tíì san án",
+      "other": "Òmíràn"
     }
   },
   "storeBrandsPage": {

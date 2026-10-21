@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StoreProfileNotice } from "@/components/admin/store-profile-notice";
+import { ScopeChoice } from "@/components/admin/team/scope-choice";
 import type { StaffFormValues, StaffScopeOption } from "../staff-detail-types";
 
 interface ScopeTabProps {
@@ -70,122 +71,146 @@ export function ScopeTab({
     form.vendorIds.length === 0 &&
     form.locationIds.length === 0 &&
     regionCount === 0;
+  // "Only these" with nothing picked yet still reaches everywhere; the
+  // choice is kept here so the pickers stay open while one is made.
+  const [limited, setLimited] = useState(!unscoped);
+
+  const chooseEverywhere = () => {
+    setLimited(false);
+    setField("vendorIds", []);
+    setField("locationIds", []);
+    setField("fulfillmentRegions", "");
+  };
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Locations
-            </CardTitle>
-            <CardDescription>
-              Which stores this person can operate. Empty means every location.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {optionsLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Loading locations…
-              </p>
-            ) : locations.length === 0 && locationsProblem ? (
-              <StoreProfileNotice code={locationsProblem} compact />
-            ) : locations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No inventory locations yet.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {locations.map((location) => (
-                  <label
-                    key={location._id}
-                    className="flex items-center gap-2 rounded-lg border p-3 text-sm hover:bg-accent/50"
-                  >
-                    <Checkbox
-                      checked={form.locationIds.includes(location._id)}
-                      disabled={readOnly}
-                      onCheckedChange={(checked) =>
-                        toggle("locationIds", location._id, Boolean(checked))
-                      }
-                    />
-                    <span className="truncate">{location.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+          <CardContent className="pt-6">
+            <ScopeChoice
+              limited={limited}
+              onChange={(next) => (next ? setLimited(true) : chooseEverywhere())}
+              disabled={readOnly}
+            />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Vendors
-            </CardTitle>
-            <CardDescription>
-              Empty means the staff member sees every vendor&apos;s data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {vendors.length > 8 && (
-              <Input
-                value={vendorQuery}
-                onChange={(e) => setVendorQuery(e.target.value)}
-                placeholder="Search vendors…"
-              />
-            )}
-            {optionsLoading ? (
-              <p className="text-sm text-muted-foreground">Loading vendors…</p>
-            ) : visibleVendors.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {vendors.length === 0
-                  ? "No vendors yet."
-                  : "No vendor matches that search."}
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {visibleVendors.map((vendor) => (
-                  <label
-                    key={vendor._id}
-                    className="flex items-center gap-2 rounded-lg border p-3 text-sm hover:bg-accent/50"
-                  >
-                    <Checkbox
-                      checked={form.vendorIds.includes(vendor._id)}
-                      disabled={readOnly}
-                      onCheckedChange={(checked) =>
-                        toggle("vendorIds", vendor._id, Boolean(checked))
-                      }
-                    />
-                    <span className="truncate">{vendor.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {limited ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Locations
+                </CardTitle>
+                <CardDescription>
+                  Which stores this person can operate. Empty means every location.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {optionsLoading ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading locations…
+                  </p>
+                ) : locations.length === 0 && locationsProblem ? (
+                  <StoreProfileNotice code={locationsProblem} compact />
+                ) : locations.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No inventory locations yet.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {locations.map((location) => (
+                      <label
+                        key={location._id}
+                        className="flex items-center gap-2 rounded-lg border p-3 text-sm hover:bg-accent/50"
+                      >
+                        <Checkbox
+                          checked={form.locationIds.includes(location._id)}
+                          disabled={readOnly}
+                          onCheckedChange={(checked) =>
+                            toggle("locationIds", location._id, Boolean(checked))
+                          }
+                        />
+                        <span className="truncate">{location.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Fulfillment regions</CardTitle>
-            <CardDescription>One region per line</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="staff-regions" className="sr-only">
-                Fulfillment regions
-              </Label>
-              <Textarea
-                id="staff-regions"
-                value={form.fulfillmentRegions}
-                onChange={(e) => setField("fulfillmentRegions", e.target.value)}
-                placeholder={"US\nCalifornia\nBangladesh"}
-                rows={3}
-                disabled={readOnly}
-              />
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="h-5 w-5" />
+                  Vendors
+                </CardTitle>
+                <CardDescription>
+                  Empty means the staff member sees every vendor&apos;s data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {vendors.length > 8 && (
+                  <Input
+                    value={vendorQuery}
+                    onChange={(e) => setVendorQuery(e.target.value)}
+                    placeholder="Search vendors…"
+                  />
+                )}
+                {optionsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading vendors…</p>
+                ) : visibleVendors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {vendors.length === 0
+                      ? "No vendors yet."
+                      : "No vendor matches that search."}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {visibleVendors.map((vendor) => (
+                      <label
+                        key={vendor._id}
+                        className="flex items-center gap-2 rounded-lg border p-3 text-sm hover:bg-accent/50"
+                      >
+                        <Checkbox
+                          checked={form.vendorIds.includes(vendor._id)}
+                          disabled={readOnly}
+                          onCheckedChange={(checked) =>
+                            toggle("vendorIds", vendor._id, Boolean(checked))
+                          }
+                        />
+                        <span className="truncate">{vendor.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Fulfillment regions</CardTitle>
+                <CardDescription>One region per line</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="staff-regions" className="sr-only">
+                    Fulfillment regions
+                  </Label>
+                  <Textarea
+                    id="staff-regions"
+                    value={form.fulfillmentRegions}
+                    onChange={(e) => setField("fulfillmentRegions", e.target.value)}
+                    placeholder={"US\nCalifornia\nBangladesh"}
+                    rows={3}
+                    disabled={readOnly}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
       </div>
 
       <div className="space-y-6">

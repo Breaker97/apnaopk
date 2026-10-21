@@ -1,5 +1,7 @@
 import type { Types } from "mongoose";
-import { User, StaffProfile } from "@/models";
+import { AdminProfile, User, StaffProfile } from "@/models";
+import { TeamRole } from "@/models/team-role.model";
+import { USER_ROLES } from "@/config/app.config";
 import { connectDB } from "@/lib/db";
 import { STAFF_USER_ROLES, TEAM_USER_ROLES } from "@/lib/access/staff-role";
 import { getOwnerAdminUserIds } from "@/lib/access/team-roles";
@@ -38,15 +40,32 @@ interface StaffListContext {
   vendorId?: Types.ObjectId | string;
 }
 
-function applyStatusFilter(
+/**
+ * The status tabs, as the Status column reads them (resolveMemberStatus):
+ * Paused is an inactive account, or an active one whose staff access switch
+ * is off (the switch from before the edit page folded it into Status).
+ */
+async function applyStatusFilter(
   query: Record<string, unknown>,
   status: string | undefined,
 ) {
+  const and = (condition: Record<string, unknown>) => {
+    query.$and = [...((query.$and as unknown[]) ?? []), condition];
+  };
   if (status === "active") {
     // Accounts predating the status field behave as active.
     query.status = { $in: ["active", null] };
+    and({ _id: { $nin: await StaffProfile.distinct("userId", { isActive: false }) } });
   } else if (status === "inactive") {
-    query.status = "inactive";
+    and({
+      $or: [
+        { status: "inactive" },
+        {
+          status: { $in: ["active", null] },
+          _id: { $in: await StaffProfile.distinct("userId", { isActive: false }) },
+        },
+      ],
+    });
   } else if (status === "banned") {
     query.status = "banned";
   }
@@ -86,7 +105,7 @@ export async function fetchStaffList(
       { email: { $regex: search, $options: "i" } },
     ];
   }
-  applyStatusFilter(query, status);
+  await applyStatusFilter(query, status);
 
   const [users, total, ownerIds] = await Promise.all([
     User.find(query)
@@ -111,12 +130,17 @@ export async function fetchStaffList(
     profiles.map((profile) => [String(profile.userId), profile]),
   );
 
+  // Each member's team role, by name: administrators from their admin
+  // profile (none = Administrator, from before roles), staff from theirs.
+  const roleNames = vendorId ? new Map<string, string>() : await teamRoleNamesFor(users, profiles);
+
   const ownerIdSet = new Set(ownerIds);
   const items = users.map((user) => {
     const profile = profileByUserId.get(String(user._id));
     return {
       ...user,
       isOwner: ownerIdSet.has(String(user._id)),
+      teamRoleName: roleNames.get(String(user._id)) ?? null,
       // What the member can actually do — a vendor's staff lose grants saved
       // before the platform-only list existed, and the row says so.
       staffProfile: profile
@@ -126,4 +150,30 @@ export async function fetchStaffList(
   });
 
   return listResult(items as unknown[], page, limit, total);
+}
+
+async function teamRoleNamesFor(
+  users: { _id: unknown; role?: string | null }[],
+  staffProfiles: { userId: unknown; teamRoleId?: unknown }[],
+): Promise<Map<string, string>> {
+  const adminIds = users.filter((user) => user.role === USER_ROLES.ADMIN).map((user) => user._id);
+  const adminProfiles = adminIds.length
+    ? await AdminProfile.find({ userId: { $in: adminIds } })
+        .select("userId teamRoleId")
+        .lean<{ userId: unknown; teamRoleId?: unknown }[]>()
+    : [];
+  const roleIds = [...adminProfiles, ...staffProfiles]
+    .map((profile) => profile.teamRoleId)
+    .filter(Boolean);
+  const roles = roleIds.length
+    ? await TeamRole.find({ _id: { $in: roleIds } }).select("name").lean<{ _id: unknown; name: string }[]>()
+    : [];
+  const nameById = new Map(roles.map((role) => [String(role._id), role.name]));
+  const names = new Map<string, string>();
+  for (const id of adminIds) names.set(String(id), "Administrator");
+  for (const profile of [...adminProfiles, ...staffProfiles]) {
+    const name = profile.teamRoleId ? nameById.get(String(profile.teamRoleId)) : undefined;
+    if (name) names.set(String(profile.userId), name);
+  }
+  return names;
 }

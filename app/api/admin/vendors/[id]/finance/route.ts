@@ -317,7 +317,7 @@ export const GET = withApi<{ id: string }>(
     const quote = await quotePayout({ vendorId: id, currency });
     return successResponse({
       currency,
-      quote: { currency, netAmount: quote.netAmount, breakdown: quote.breakdown, eligible: quote.eligible, calculatedAt: quote.calculatedAt, availableCurrencies: quote.availableCurrencies },
+      quote: { currency, netAmount: quote.netAmount, breakdown: quote.breakdown, eligible: quote.eligible, canCreate: quote.canCreate, settlesWithoutTransfer: quote.settlesWithoutTransfer, eligibilityReason: quote.eligibilityReason, frozen: quote.frozen, hasMore: quote.hasMore, commissionOwedNotDeducted: quote.commissionOwedNotDeducted, calculatedAt: quote.calculatedAt, availableCurrencies: quote.availableCurrencies },
       // Balances this vendor holds in a currency the screen above cannot show.
       otherCurrencies,
       minWithdrawalAmount: resolveMinWithdrawal(settings, currency),
@@ -398,6 +398,8 @@ export const GET = withApi<{ id: string }>(
       bank: {
         complete: missingBankFields.length === 0,
         missing: missingBankFields,
+        // The same fields by key, for a screen that names them in its own language.
+        missingFields: REQUIRED_BANK_FIELDS.filter(([key]) => !String(bank[key] ?? "").trim()).map(([key]) => key),
       },
     });
   },

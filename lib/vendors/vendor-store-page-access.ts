@@ -20,11 +20,13 @@ type SessionUser = Parameters<typeof assertVendorPermission>[0] & {
  *
  * Reading needs "view store settings"; changing the landing page or a
  * slider needs "edit store settings", the same permission the store profile
- * uses.
+ * uses. `messages` rewords the refusal for a caller that guards something
+ * other than the online store (invoice templates).
  */
 export async function requireVendorStorePageAccess(
   user: SessionUser,
   mode: "view" | "edit",
+  messages: { view?: string; edit?: string } = {},
 ) {
   await assertVendorPermission(
     user,
@@ -32,8 +34,8 @@ export async function requireVendorStorePageAccess(
       ? VENDOR_PERMISSIONS.EDIT_STORE_SETTINGS
       : VENDOR_PERMISSIONS.VIEW_STORE_SETTINGS,
     mode === "edit"
-      ? "You do not have permission to change your online store"
-      : "You do not have permission to view your online store",
+      ? (messages.edit ?? "You do not have permission to change your online store")
+      : (messages.view ?? "You do not have permission to view your online store"),
   );
 
   await connectDB();

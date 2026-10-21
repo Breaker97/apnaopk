@@ -10,6 +10,7 @@ import {
   type CustomsEstimate,
 } from "@/lib/shipping/shipping";
 import { quantizeToCurrency } from "@/lib/intl/money";
+import { vendorAllowsDelivery } from "@/lib/vendors/vendor-fulfillment";
 
 /**
  * Shared shipping resolution used by every checkout path (online checkout,
@@ -37,6 +38,7 @@ type VendorRateGroup = {
 
 export type ResolvedCheckoutShipping = {
   available: boolean;
+  unavailableReason?: "pickup_only";
   mode: "single" | "vendor";
   shippingCost: number;
   selectedShippingMethod?: ResolvedShippingMethod;
@@ -200,17 +202,34 @@ async function resolveCheckoutShippingUnrounded(params: {
     params.isMultiVendorEnabled &&
     Boolean(platformShipping?.vendorShipping?.enabled);
 
-  if (vendorShippingEnabled) {
-    const vendorIds = shippableVendorIds;
-    const vendorDocs = await Vendor.find({ _id: { $in: vendorIds } })
+  // The seller's delivery choice applies even when prices are inherited or
+  // the store uses legacy flat/free shipping. Read it before every fallback.
+  const vendorDocs = params.isMultiVendorEnabled
+    ? await Vendor.find({ _id: { $in: shippableVendorIds } })
       .select("shipping storeName")
       .lean<
         Array<{
           _id: { toString: () => string };
           storeName?: string;
-          shipping?: ShippingSettings;
+          shipping?: ShippingSettings & { fulfillmentMode?: unknown };
         }>
-      >();
+      >()
+    : [];
+  if (vendorDocs.some((vendor) => !vendorAllowsDelivery(vendor.shipping?.fulfillmentMode))) {
+    return {
+      available: false,
+      unavailableReason: "pickup_only",
+      mode: "single",
+      shippingCost: 0,
+      vendorShippingCosts: new Map(),
+      singleOptions: [],
+      vendorGroups: [],
+      customs: { ...customs, dutyAmount: 0, collectedAtCheckout: false },
+    };
+  }
+
+  if (vendorShippingEnabled) {
+    const vendorIds = shippableVendorIds;
     const vendorProfiles = new Map<string, ShippingSettings | undefined>(
       vendorDocs.map((v) => [v._id.toString(), v.shipping]),
     );

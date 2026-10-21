@@ -47,10 +47,19 @@ export const LEDGER_SOURCE_KIND = {
   SHIPMENT: "shipment",
   EXPENSE: "expense",
   ADJUSTMENT: "adjustment",
+  /** Durable, attributed own-store stock and valuation events. */
+  INVENTORY_MOVEMENT: "inventory_movement",
+  /**
+   * The one-time cutover correction: it offsets the inventory entries the
+   * legacy paths posted before the store's stock had opening balances.
+   */
+  INVENTORY_RECONCILIATION: "inventory_reconciliation",
   /** Units written off when a stock transfer was received short or damaged. */
   TRANSFER: "transfer",
   /** Store credit given with no sale behind it, or expired unspent (R8). */
   STORE_CREDIT: "store_credit",
+  /** Money a seller paid back by hand for a sale refunded after its payout. */
+  VENDOR_REPAYMENT: "vendor_repayment",
 } as const;
 
 export type LedgerSourceKind =

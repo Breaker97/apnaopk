@@ -8,6 +8,13 @@ import {
 } from "@/lib/api/errors";
 import { assertVendorPermission } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
+import { vendorTaxChangePolicy } from "@/lib/tax/tax-settings";
+import {
+  INHERITED_PRODUCT_TAX,
+  productTaxOf,
+  taxAfterWrite,
+  vendorTaxRefusal,
+} from "@/lib/tax/vendor-tax";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { checkPlanLimit } from "@/lib/vendors/vendor-limits";
 import { getSettings } from "@/models/settings.model";
@@ -153,6 +160,14 @@ export const POST = withApi(
     // says.
     delete (body as Record<string, unknown>).featured;
     delete (body as Record<string, unknown>).vendorId;
+    // A product's tax is the store's to change unless Settings → Tax lets
+    // vendors (lib/tax/vendor-tax.ts); a new one starts on its category's.
+    const taxRefusal = vendorTaxRefusal(
+      vendorTaxChangePolicy(settings.tax),
+      null,
+      taxAfterWrite(INHERITED_PRODUCT_TAX, body as Record<string, unknown>),
+    );
+    if (taxRefusal) throw new AuthorizationError(taxRefusal);
     // `shipping.countryOfOrigin` is deliberately unrestricted: it records
     // where the goods were made, not a country the store sells or ships to.
 

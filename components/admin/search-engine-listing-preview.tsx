@@ -12,10 +12,10 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { TagInput } from "@/components/ui/tag-input";
 import { Textarea } from "@/components/ui/textarea";
 import { AppImage } from "@/components/ui/app-image";
-import { ExternalLink, Pencil, Plus, X } from "lucide-react";
+import { ExternalLink, Pencil } from "lucide-react";
 import { useAppSettings } from "@/providers/app-settings-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SeoChecklist } from "@/components/admin/seo-checklist";
@@ -145,7 +145,6 @@ export function SearchEngineListingPreview({
     DEFAULT_PREVIEW_BASE_URL,
   );
   const [failedFaviconSrc, setFailedFaviconSrc] = useState<string | null>(null);
-  const [tagInput, setTagInput] = useState("");
   const hasHydratedEditDefaultsRef = useRef(false);
   const hasManualHandleEditRef = useRef(false);
   const previousGeneratedHandleRef = useRef("");
@@ -198,21 +197,6 @@ export function SearchEngineListingPreview({
     resolvedStoreName.trim().charAt(0).toUpperCase() ||
     capitalize(entityLabel).charAt(0);
   const showTagsInput = Array.isArray(tags) && Boolean(onTagsChange);
-
-  const addTag = () => {
-    if (!showTagsInput || !onTagsChange) return;
-    const next = tagInput.trim().toLowerCase();
-    if (!next) return;
-    if (!tags.includes(next)) {
-      onTagsChange([...tags, next]);
-    }
-    setTagInput("");
-  };
-
-  const removeTag = (tag: string) => {
-    if (!showTagsInput || !onTagsChange) return;
-    onTagsChange(tags.filter((item) => item !== tag));
-  };
 
   useEffect(() => {
     if (!isEditing || hasHydratedEditDefaultsRef.current) return;
@@ -422,46 +406,13 @@ export function SearchEngineListingPreview({
             {showTagsInput ? (
               <div className="space-y-2">
                 <Label>Tags</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={tagInput}
-                    onChange={(event) => setTagInput(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === ",") {
-                        event.preventDefault();
-                        addTag();
-                      }
-                    }}
-                    onBlur={addTag}
-                    placeholder={tagsPlaceholder}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={addTag}
-                    aria-label="Add SEO tag"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="gap-1">
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          aria-label={`Remove ${tag}`}
-                          className="inline-flex rounded-sm text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
+                <TagInput
+                  value={tags}
+                  onValueChange={onTagsChange}
+                  normalize={(tag) => tag.toLowerCase()}
+                  placeholder={tagsPlaceholder}
+                  aria-label="Tags"
+                />
               </div>
             ) : null}
           </div>

@@ -15,6 +15,8 @@ interface VendorStorefrontHeaderLabels {
   reviews: string;
   /** e.g. "1.2k sold". Rendered only when units have been delivered. */
   sold: string;
+  /** e.g. "1.2k followers". Empty when the store has no followers yet. */
+  followers?: string;
   /** e.g. "Ships in 1–2 days". Empty when the vendor set no processing window. */
   ships: string;
   pickupAvailable: string;
@@ -201,17 +203,15 @@ export function VendorStorefrontHeader({
               </p>
             ) : null}
 
-            {/* Trust row, deliberately down to two facts: rating and sales are
-                buying signals, while the product count is already a tab badge
-                and the join date lives in About. Four equally grey facts gave
-                the eye nowhere to land. Each is omitted rather than shown as a
-                zero — an unrated new store should read as new, not as badly
-                rated. */}
+            {/* Trust row: rating, sales and followers are buying signals, while
+                the product count is already a tab badge and the join date
+                lives in About. Each is omitted rather than shown as a zero — an
+                unrated new store should read as new, not as badly rated. */}
             <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-muted-foreground">
               {vendor.rating > 0 ? (
                 <span className="inline-flex items-center gap-1.5">
                   <Star
-                    className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                    className="h-3.5 w-3.5 fill-current text-(--store-rating,#a86500)"
                     aria-hidden="true"
                   />
                   <strong className="font-semibold text-foreground">
@@ -226,6 +226,12 @@ export function VendorStorefrontHeader({
               ) : null}
 
               {vendor.unitsSold > 0 ? <span>{labels.sold}</span> : null}
+
+              {labels.followers && (vendor.rating > 0 || vendor.unitsSold > 0) ? (
+                <span aria-hidden="true">·</span>
+              ) : null}
+
+              {labels.followers ? <span>{labels.followers}</span> : null}
             </div>
 
             {/* Fact pills. The coarsest appearance of the address — the full

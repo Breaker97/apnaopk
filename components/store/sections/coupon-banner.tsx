@@ -80,8 +80,10 @@ export async function CouponBanner({
         <div
           // The dark plate stays UNDER whatever is chosen: a colour or a
           // gradient covers it anyway, and an image that fails to load leaves
-          // the strip its own look instead of white copy on nothing.
-          className="relative overflow-hidden rounded-xl bg-foreground text-background"
+          // the strip its own look instead of white copy on nothing. A fixed
+          // dark, not the text colour: the copy is white, and in dark mode the
+          // text colour is near-white.
+          className="relative overflow-hidden rounded-xl bg-zinc-900 text-white"
           style={backgroundCss(background)}
         >
           {/* Copy on this strip is white, so artwork needs a scrim under it.

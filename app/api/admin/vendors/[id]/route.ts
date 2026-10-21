@@ -1,3 +1,4 @@
+import { describeUnsettledVendorMoney, UNSETTLED_VENDOR_DELETE_MESSAGE } from "@/lib/finance/vendor-unsettled";
 import {
   Product,
   User,
@@ -55,6 +56,7 @@ import {
 import {
   applyVendorStatusChange,
   assertCanChangeVendorOwnerRole,
+  assertVendorOwnerAccountEditable,
   auditVendorStatusChange,
   notifyVendorStatusChange,
   prepareVendorStatusChange,
@@ -680,6 +682,13 @@ export const PUT = withApi<{ id: string }>(
     if (body.status && body.status !== vendorBefore.status && vendorBefore.userId) {
       await assertCanChangeVendorOwnerRole(vendorBefore.userId);
     }
+    // The owner's own account, only when they are not on the team. The form
+    // echoes the owner's fields back; only a real change counts.
+    const ownerAccount = (vendorBefore as { user?: Record<string, unknown> | null }).user ?? {};
+    const ownerNow = (field: string) => ownerAccount[field] ?? (field === "status" ? USER_ACCOUNT_STATUS.ACTIVE : undefined);
+    if (Object.entries(userUpdates).some(([field, value]) => ownerNow(field) !== value)) {
+      await assertVendorOwnerAccountEditable(vendorBefore.userId);
+    }
 
     const vendor = await Vendor.findByIdAndUpdate(
       id,
@@ -844,6 +853,13 @@ export const DELETE = withApi<{ id: string }>(
           error instanceof Error ? error.message : String(error);
         if (!/No such subscription/i.test(message)) throw error;
       }
+    }
+
+    // Their unpaid sales, open payouts and owed commission would otherwise
+    // stay in the books with nobody left to pay or bill.
+    const unsettled = await describeUnsettledVendorMoney(id);
+    if (unsettled) {
+      throw new ValidationError(`${unsettled} ${UNSETTLED_VENDOR_DELETE_MESSAGE}`);
     }
 
     const productCount = await Product.countDocuments({ vendorId: id });

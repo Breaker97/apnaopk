@@ -270,7 +270,7 @@ export function SearchDrawer({
                       <Link
                         href={`/products/${product.slug}`}
                         onClick={() => onOpenChange(false)}
-                        className="flex items-center gap-4 rounded-lg p-2 transition-colors hover:bg-muted/60"
+                        className="flex items-center gap-4 rounded-lg p-2 transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
                         <span className="relative block h-14 w-14 shrink-0 overflow-hidden bg-muted/50">
                           {product.images?.[0] ? (

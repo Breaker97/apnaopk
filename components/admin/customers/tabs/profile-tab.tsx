@@ -2,6 +2,8 @@
 
 import { CountrySelect } from "@/components/common/country-multi-select";
 import { Input } from "@/components/ui/input";
+import { TagInput } from "@/components/ui/tag-input";
+import { joinTagText, parseTagText } from "@/lib/customers/tag-text";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -217,10 +219,10 @@ export function ProfileTab({
 
           <div className="space-y-2">
             <Label htmlFor="customer-tags">Tags</Label>
-            <Input
+            <TagInput
               id="customer-tags"
-              value={form.tagsInput}
-              onChange={(e) => setField("tagsInput", e.target.value)}
+              value={parseTagText(form.tagsInput)}
+              onValueChange={(tags) => setField("tagsInput", joinTagText(tags))}
               placeholder="vip, repeat, b2b"
               disabled={readOnly}
             />

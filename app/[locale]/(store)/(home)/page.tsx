@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { type Locale } from "@/config/i18n.config";
+import { CampaignBannerHost } from "@/components/store/campaign-banners/campaign-banner-host";
 import { StoreSections } from "@/components/store/store-sections";
+import { getStorefrontCampaignBanners } from "@/lib/campaign-banners/storefront";
 import { getHomePageRender } from "@/lib/storefront/pages/get-home-page";
 import { storefrontPageMetadata } from "@/lib/storefront/storefront-metadata";
 
@@ -59,6 +61,16 @@ export default async function HomePage({ params }: PageProps) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const { sections, ctx } = await getHomePageRender(locale as Locale);
-  return <StoreSections sections={sections} ctx={ctx} />;
+  const [{ sections, ctx }, campaignBanners] = await Promise.all([
+    getHomePageRender(locale as Locale),
+    // The popups and bars the store runs. Which of them THIS visitor sees is
+    // decided in their browser (the page is one render for everyone).
+    getStorefrontCampaignBanners(locale),
+  ]);
+  return (
+    <>
+      <CampaignBannerHost banners={campaignBanners} />
+      <StoreSections sections={sections} ctx={ctx} />
+    </>
+  );
 }

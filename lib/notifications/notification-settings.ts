@@ -35,6 +35,7 @@ export interface NotificationSettings {
     newOrders: NotificationChannelSettings;
     returns: NotificationChannelSettings;
     preorderAccess: NotificationChannelSettings;
+    payouts: NotificationChannelSettings;
   };
   customer: {
     orderUpdates: NotificationChannelSettings;
@@ -69,6 +70,9 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
     newOrders: { inApp: true, email: true, browserPush: true, sms: false },
     returns: { inApp: true, email: true, browserPush: true, sms: false },
     preorderAccess: { inApp: true, email: true, browserPush: true, sms: false },
+    // Money leaving for a seller, or coming back: they hear of it without
+    // having to check the payouts page.
+    payouts: { inApp: true, email: true, browserPush: true, sms: false },
   },
   customer: {
     orderUpdates: { inApp: true, email: true, browserPush: true, sms: false },

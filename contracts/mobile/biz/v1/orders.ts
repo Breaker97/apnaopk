@@ -328,6 +328,8 @@ export type OrderActionRequest = z.infer<typeof OrderActionRequest>;
  *   - `PICKUP_CONSIGNMENT`: collected, not shipped: no tracking to add.
  *   - `CANCEL_NEEDS_REFUND`: cancelling it would give money back. Refunds are
  *     made on the website's dashboard (`Config.store.dashboardUrl`).
+ *   - `CARRIER_DELIVERS`: a carrier is tracking this parcel, so a seller
+ *     cannot mark it delivered: the carrier's scan does.
  * - 403 AUTHORIZATION_ERROR: `OTHER_SELLERS_ITEMS`: a seller's staff may
  *   change only an order that is wholly their seller's.
  * - 400 VALIDATION_ERROR: `TRACKING_REQUIRED` (with `errors`): `mark_shipped`
@@ -346,6 +348,7 @@ export const ORDER_ACTION_REASONS = [
   "TRACKING_REQUIRED",
   "OTHER_SELLERS_ITEMS",
   "CANCEL_NEEDS_REFUND",
+  "CARRIER_DELIVERS",
 ] as const;
 export type OrderActionReason = (typeof ORDER_ACTION_REASONS)[number];
 

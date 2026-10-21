@@ -97,7 +97,7 @@ export function ProductGridLocationNotice({
         className,
       )}
     >
-      <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+      <MapPin className="h-4 w-4 shrink-0 text-store-link" aria-hidden="true" />
       <span className="font-medium">{locationLabel}</span>
       {radiusLabel ? (
         <span className="text-muted-foreground">· {radiusLabel}</span>

@@ -24,6 +24,7 @@ export interface PayoutRow {
   breakdown?: Record<string, number>;
   paidFrom?: string;
   paymentReference?: string;
+  note?: string;
   createdAt?: Date | string;
 }
 
@@ -58,5 +59,6 @@ export function toPayoutDetail(row: PayoutRow): PayoutDetail {
     orderCount: row.orderIds?.length ?? 0,
     ...(row.paidFrom ? { method: row.paidFrom } : {}),
     ...(row.paymentReference ? { reference: row.paymentReference } : {}),
+    ...(row.note?.trim() ? { note: row.note.trim() } : {}),
   };
 }

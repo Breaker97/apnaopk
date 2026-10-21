@@ -17,6 +17,8 @@ const TestProviderSchema = z.object({ provider: z.string().max(40).optional() })
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
+import { handleApiError } from "@/lib/api/errors";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
@@ -181,6 +183,11 @@ export async function POST(request: NextRequest) {
         { success: false, message: "Admin access required" },
         { status: 403 },
       );
+    }
+    try {
+      await enforceTeamRole(request, session.user.id, { adminOnly: true });
+    } catch (error) {
+      return handleApiError(error);
     }
     const demoBlock = getDemoModeMutationResponse();
     if (demoBlock) return demoBlock;

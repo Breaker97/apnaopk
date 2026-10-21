@@ -110,6 +110,8 @@ export function ConversationDetails({
     viewerMode === "store"
       ? conversation.contact.name
       : conversation.ownerName || labels.storeSupport;
+  const avatarImage =
+    viewerMode === "store" ? conversation.contact.image : conversation.ownerImage;
 
   if (view === "media") {
     return (
@@ -240,8 +242,8 @@ export function ConversationDetails({
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="flex flex-col items-center gap-2 px-4 pb-4 pt-6 text-center">
         <Avatar className="size-20">
-          {viewerMode === "store" && conversation.contact.image ? (
-            <AvatarImage src={conversation.contact.image} alt={displayName} />
+          {avatarImage ? (
+            <AvatarImage src={avatarImage} alt={displayName} />
           ) : null}
           <AvatarFallback className="bg-primary/10 text-xl font-bold text-primary">
             {getInitials(displayName)}

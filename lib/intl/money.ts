@@ -140,3 +140,73 @@ export function formatCurrency(
 export function roundMoney(value: number): number {
   return roundScaled(value, 100);
 }
+
+/**
+ * Split `amount` across `weights` in amounts the currency can hold, the
+ * rounding remainder going to the biggest share so the parts always add back
+ * up to the whole. Nothing to weight by gives it all to the first share.
+ * The ledger's `allocate` (lib/finance/postings.ts) and the tax engine
+ * (lib/tax/tax-engine.ts) both split money with this.
+ *
+ * No share ever takes the opposite sign of the amount. Rounding each share to
+ * the nearest unit can over-assign — six equal weights splitting 0.04 round to
+ * 0.01 each, 0.02 too much — and handing the whole correction to one share
+ * left it at -0.01: a negative line tax, a negative line discount. Where that
+ * would happen the amount is split by the largest-remainder method instead.
+ * Every other split keeps the result it always had, so cents already booked do
+ * not move when the same amount is split again.
+ */
+export function allocateMoney(amount: number, weights: number[], currency: string): number[] {
+  const totalWeight = weights.reduce((sum, w) => sum + Math.max(0, w), 0);
+  if (weights.length === 0) return [];
+  if (totalWeight <= 0) {
+    return weights.map((_, index) => (index === 0 ? amount : 0));
+  }
+  const shares = weights.map((weight) =>
+    quantizeToCurrency((amount * Math.max(0, weight)) / totalWeight, currency),
+  );
+  const assigned = shares.reduce((sum, share) => sum + share, 0);
+  const remainder = quantizeToCurrency(amount - assigned, currency);
+  if (remainder !== 0) {
+    let absorber = 0;
+    for (let index = 1; index < weights.length; index += 1) {
+      if (Math.max(0, weights[index]!) > Math.max(0, weights[absorber]!)) {
+        absorber = index;
+      }
+    }
+    shares[absorber] = quantizeToCurrency(shares[absorber]! + remainder, currency);
+  }
+  const sign = amount < 0 ? -1 : 1;
+  if (shares.some((share) => share * sign < 0)) {
+    return allocateByLargestRemainder(amount, weights, totalWeight, currency);
+  }
+  return shares;
+}
+
+/**
+ * `amount` split in whole minor units: each share gets the floor of its exact
+ * portion, then the units left over go one each to the shares with the largest
+ * fractions (ties to the earlier share). Shares are never more than one unit
+ * from their exact portion and always add up to the amount.
+ */
+function allocateByLargestRemainder(
+  amount: number,
+  weights: number[],
+  totalWeight: number,
+  currency: string,
+): number[] {
+  const unit = 1 / 10 ** currencyPriceScale(currency);
+  const sign = amount < 0 ? -1 : 1;
+  const units = Math.round(Math.abs(amount) / unit);
+  const exact = weights.map((weight) => (units * Math.max(0, weight)) / totalWeight);
+  const floors = exact.map((value) => Math.floor(value));
+  let left = units - floors.reduce((sum, value) => sum + value, 0);
+  const byFraction = exact
+    .map((value, index) => ({ index, fraction: value - floors[index]! }))
+    .sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+  for (let i = 0; left > 0 && byFraction.length > 0; i = (i + 1) % byFraction.length) {
+    floors[byFraction[i]!.index]! += 1;
+    left -= 1;
+  }
+  return floors.map((value) => quantizeToCurrency(sign * value * unit, currency));
+}

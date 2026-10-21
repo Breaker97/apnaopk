@@ -1,6 +1,6 @@
+import { staffResourceActions, staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { setRequestLocale } from "next-intl/server";
 import { requireStaffAreaAccess } from "@/lib/access/staff-area-guard";
-import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { OrdersListView } from "@/components/admin/orders-list-view";
 
 interface PageProps {
@@ -18,19 +18,15 @@ export default async function StaffOrdersPage({
 
   const access = await requireStaffAreaAccess({
     locale,
-    required: [STAFF_PERMISSIONS.VIEW_ORDERS],
+    required: staffResourcePermissions("orders"),
   });
-  const readOnly = !(
-    access.staffPermissions.includes(STAFF_PERMISSIONS.MANAGE_ORDERS) ||
-    access.staffPermissions.includes(STAFF_PERMISSIONS.EDIT_ORDERS) ||
-    access.staffPermissions.includes(STAFF_PERMISSIONS.DELETE_ORDERS)
-  );
+  const actionAccess = staffResourceActions(access.staffPermissions, "orders");
 
   return (
     <OrdersListView
       locale={locale}
       area="staff"
-      readOnly={readOnly}
+      actionAccess={actionAccess}
       staffScope={access.staffScope}
       searchParams={search}
     />

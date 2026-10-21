@@ -10,6 +10,7 @@ import {
   Circle,
   Download,
   Eye,
+  FileDown,
   Mail,
   MailPlus,
   Pencil,
@@ -38,7 +39,10 @@ import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { useCsvImportExport } from "@/hooks/use-csv-import-export";
-import { CustomerImportDialog } from "@/components/admin/customers/customer-import-dialog";
+import {
+  CustomerImportDialog,
+  downloadCustomerImportSample,
+} from "@/components/admin/customers/customer-import-dialog";
 import { apiClient, type ApiClientError } from "@/lib/api/client";
 import { AccountEmailProgress } from "@/components/admin/customers/account-email-progress";
 import {
@@ -779,6 +783,12 @@ export function CustomersDataTable({
                     label: t("admin.productsDataTable.actions.import"),
                     icon: <Upload className="h-4 w-4" />,
                     onClick: () => setImportOpen(true),
+                  },
+                  {
+                    id: "toolbar-import-sample",
+                    label: t("admin.productsDataTable.actions.downloadSample"),
+                    icon: <FileDown className="h-4 w-4" />,
+                    onClick: downloadCustomerImportSample,
                   },
                 ],
               }

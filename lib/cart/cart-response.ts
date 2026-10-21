@@ -31,6 +31,8 @@ export function withLineFacts<T extends object>(item: T, fact: CartProductFacts 
     vendorName: fact?.vendorName,
     variantOptions: fact?.variantOptions,
     finalSale: fact?.finalSale || undefined,
+    // Only a rate of its own is sent: absent, the line takes the store's.
+    taxRate: typeof fact?.taxRate === "number" ? fact.taxRate : undefined,
   };
 }
 

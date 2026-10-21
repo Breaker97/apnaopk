@@ -137,7 +137,7 @@ export default async function PreOrderPage({
             {facts.map((fact) => (
               <li key={fact.label} className="inline-flex items-center gap-1.5">
                 <fact.icon
-                  className="h-4 w-4 shrink-0 text-primary"
+                  className="h-4 w-4 shrink-0 text-store-link"
                   aria-hidden="true"
                 />
                 {fact.label}
@@ -148,7 +148,7 @@ export default async function PreOrderPage({
         <Link
           href="/account/orders/pre-orders"
           data-slot="button"
-          className="inline-flex items-center whitespace-nowrap border border-primary/15 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+          className="inline-flex items-center whitespace-nowrap border border-primary/15 bg-primary/5 px-4 py-2 text-sm font-semibold text-store-link transition-colors hover:bg-primary/10"
         >
           {t("preorderPage.trackOrders")}
         </Link>
@@ -156,7 +156,7 @@ export default async function PreOrderPage({
 
       {shelfEmpty ? (
         <div className="mt-8 flex flex-col items-center gap-3 rounded-lg border border-dashed px-5 py-12 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+          <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-store-link">
             <CalendarClock className="h-6 w-6" aria-hidden="true" />
           </span>
           <h2 className="mt-1 text-lg font-semibold text-foreground">
@@ -195,7 +195,7 @@ export default async function PreOrderPage({
                   className={`shrink-0 whitespace-nowrap rounded-button border px-4 py-2 text-sm font-semibold transition-colors ${
                     sort === id
                       ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-border bg-background text-foreground hover:border-primary/35 hover:text-primary"
+                      : "border-border bg-background text-foreground hover:border-primary/35 hover:text-store-link"
                   }`}
                 >
                   {t(`preorderPage.sort.${id}`)}

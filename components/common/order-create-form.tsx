@@ -31,6 +31,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { TagInput } from "@/components/ui/tag-input";
+import { joinTagText, parseTagText } from "@/lib/customers/tag-text";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import {
@@ -124,7 +126,7 @@ type CreateCustomerFormValues = {
   notes: string;
 };
 
-type OrderCreateFormVariant = "admin" | "vendor";
+type OrderCreateFormVariant = "admin" | "vendor" | "staff";
 
 interface OrderCreateFormProps {
   locale: string;
@@ -139,6 +141,7 @@ interface OrderCreateFormProps {
    * without one, so a store that ships by hand and hid the field can too.
    */
   postalCodeRequired: boolean;
+  canCreateCustomer?: boolean;
 }
 
 /** What a delivery address still lacks, as a toast, or null when nothing does. */
@@ -199,18 +202,6 @@ function readApiMessage(data: unknown) {
 function asRecord(value: unknown) {
   if (!value || typeof value !== "object") return null;
   return value as Record<string, unknown>;
-}
-
-function parseCsvTags(input: string) {
-  if (!input.trim()) return [];
-  return Array.from(
-    new Set(
-      input
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    ),
-  );
 }
 
 function mapCustomerProfileToCustomer(profile: unknown): Customer | null {
@@ -302,6 +293,7 @@ export function OrderCreateForm({
   locale,
   variant,
   postalCodeRequired,
+  canCreateCustomer = true,
 }: OrderCreateFormProps) {
   const router = useRouter();
   const { formatPrice, currency } = useCurrency();
@@ -312,7 +304,7 @@ export function OrderCreateForm({
       shippingOriginCountry,
     );
   }, [countryAvailability, shippingOriginCountry]);
-  const apiBase = `/api/${variant}`;
+  const apiBase = `/api/${variant === "staff" ? "admin" : variant}`;
   const ordersPath = `/${locale}/${variant}/orders`;
 
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -340,6 +332,9 @@ export function OrderCreateForm({
   const [tags, setTags] = useState("");
   const [discount, setDiscount] = useState("0");
   const [shippingCost, setShippingCost] = useState("0");
+  // "auto" taxes each line at its product's rate (Settings → Tax Settings),
+  // as a checkout does; "custom" is one typed rate for the whole order.
+  const [taxMode, setTaxMode] = useState<"auto" | "custom">("auto");
   const [taxRate, setTaxRate] = useState("0");
   const [paymentDueLater, setPaymentDueLater] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -353,8 +348,23 @@ export function OrderCreateForm({
   const numericShipping = Number(shippingCost) || 0;
   const numericTaxRate = Number(taxRate) || 0;
   const taxableSubtotal = Math.max(subtotal - numericDiscount, 0);
-  const tax = Math.round(taxableSubtotal * (numericTaxRate / 100) * 100) / 100;
-  const total = Math.round((taxableSubtotal + numericShipping + tax) * 100) / 100;
+  const typedTax = Math.round(taxableSubtotal * (numericTaxRate / 100) * 100) / 100;
+  const preview = useOrderPreview(apiBase, {
+    items: lines.map((line) => ({
+      productId: line.productId,
+      variantId: line.variantId,
+      quantity: line.quantity,
+    })),
+    discount: numericDiscount,
+    shippingCost: numericShipping,
+    ...(taxMode === "custom" ? { taxRate: numericTaxRate } : {}),
+  });
+  // The server's figures are what the save charges; until they arrive a typed
+  // rate is worked out here, and automatic tax shows as pending.
+  const tax = preview.totals?.tax ?? (taxMode === "custom" ? typedTax : null);
+  const total =
+    preview.totals?.total ??
+    Math.round((taxableSubtotal + numericShipping + (tax ?? 0)) * 100) / 100;
   const hasDraftChanges =
     lines.length > 0 ||
     Boolean(selectedCustomer) ||
@@ -394,7 +404,8 @@ export function OrderCreateForm({
         sortOrder: "desc",
       });
       if (search.trim()) params.set("search", search.trim());
-      const response = await fetch(`${apiBase}/products?${params.toString()}`);
+      const path = variant === "staff" ? `${apiBase}/orders/form-options?resource=products&` : `${apiBase}/products?`;
+      const response = await fetch(`${path}${params.toString()}`);
       const data = await response.json();
       if (requestId !== productRequestRef.current) return;
       if (!response.ok || data.success === false) {
@@ -407,7 +418,7 @@ export function OrderCreateForm({
     } finally {
       if (requestId === productRequestRef.current) setIsLoadingProducts(false);
     }
-  }, [apiBase]);
+  }, [apiBase, variant]);
 
   const fetchCustomers = useCallback(async (search: string) => {
     const requestId = ++customerRequestRef.current;
@@ -419,7 +430,8 @@ export function OrderCreateForm({
         sortOrder: "desc",
       });
       if (search.trim()) params.set("search", search.trim());
-      const response = await fetch(`${apiBase}/customers?${params.toString()}`);
+      const path = variant === "staff" ? `${apiBase}/orders/form-options?resource=customers&` : `${apiBase}/customers?`;
+      const response = await fetch(`${path}${params.toString()}`);
       const data = await response.json();
       if (requestId !== customerRequestRef.current) return;
       if (!response.ok || data.success === false) {
@@ -441,7 +453,7 @@ export function OrderCreateForm({
     } finally {
       if (requestId === customerRequestRef.current) setIsLoadingCustomers(false);
     }
-  }, [apiBase]);
+  }, [apiBase, variant]);
 
   useEffect(() => {
     if (!productDialogOpen) return;
@@ -528,7 +540,7 @@ export function OrderCreateForm({
     const shippingPostalCode = createCustomerForm.shippingPostalCode.trim();
     const shippingCountry = createCustomerForm.shippingCountry.trim();
     const notesValue = createCustomerForm.notes.trim();
-    const tags = parseCsvTags(createCustomerForm.tagsInput);
+    const tags = parseTagText(createCustomerForm.tagsInput);
     const shippingAddress = {
       firstName: firstName || undefined,
       lastName: lastName || undefined,
@@ -685,12 +697,10 @@ export function OrderCreateForm({
           paymentStatus: markAsPaid ? "paid" : "pending",
           shippingCost: numericShipping,
           discount: numericDiscount,
-          taxRate: numericTaxRate,
+          // Left out, the server taxes each line at its product's rate.
+          ...(taxMode === "custom" ? { taxRate: numericTaxRate } : {}),
           notes: notes.trim() || undefined,
-          tags: tags
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean),
+          tags: parseTagText(tags),
         }),
       });
       const data = await response.json().catch(() => null);
@@ -849,7 +859,22 @@ export function OrderCreateForm({
                 <PaymentRow label="Subtotal" detail={`${lines.length} item${lines.length === 1 ? "" : "s"}`} value={formatPrice(subtotal)} />
                 <PaymentInputRow label="Add discount" value={discount} onChange={setDiscount} prefix={currency.symbol} />
                 <PaymentInputRow label="Add shipping or delivery" value={shippingCost} onChange={setShippingCost} prefix={currency.symbol} />
-                <PaymentInputRow label="Estimated tax" value={taxRate} onChange={setTaxRate} suffix="% VAT" />
+                <PaymentTaxRow
+                  mode={taxMode}
+                  onModeChange={setTaxMode}
+                  rate={taxRate}
+                  onRateChange={setTaxRate}
+                  value={
+                    tax !== null
+                      ? formatPrice(tax)
+                      : lines.length > 0 && preview.loading
+                        ? "Calculating…"
+                        : "-"
+                  }
+                />
+                {preview.error ? (
+                  <p className="px-4 pb-2 text-xs text-destructive">{preview.error}</p>
+                ) : null}
                 <PaymentRow label="Total" value={formatPrice(total)} strong />
                 <div className="flex items-center gap-2 border-t px-4 py-3 text-sm">
                   <Checkbox
@@ -905,13 +930,13 @@ export function OrderCreateForm({
                     setCustomerMenuOpen(true);
                     setSelectedCustomer(null);
                   }}
-                  placeholder="Search or create a customer"
+                  placeholder={canCreateCustomer ? "Search or create a customer" : "Search customers"}
                   className="pl-9"
                 />
               </div>
               {customerMenuOpen ? (
                 <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-md border bg-popover shadow-lg">
-                  <button
+                  {canCreateCustomer && <button
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={openCreateCustomerModal}
@@ -919,7 +944,7 @@ export function OrderCreateForm({
                   >
                     <Plus className="h-4 w-4" />
                     Create a new customer
-                  </button>
+                  </button>}
                   <div className="max-h-64 overflow-auto py-1">
                     {isLoadingCustomers ? (
                       <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
@@ -983,10 +1008,11 @@ export function OrderCreateForm({
           ) : null}
 
           <SideCard title="Tags" actionIcon={<Edit3 className="h-4 w-4" />}>
-            <Input
-              value={tags}
-              onChange={(event) => setTags(event.target.value)}
+            <TagInput
+              value={parseTagText(tags)}
+              onValueChange={(next) => setTags(joinTagText(next))}
               placeholder="vip, wholesale"
+              aria-label="Tags"
             />
           </SideCard>
         </div>
@@ -1280,11 +1306,11 @@ export function OrderCreateForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-customer-tags">Tags</Label>
-                <Input
+                <TagInput
                   id="new-customer-tags"
-                  value={createCustomerForm.tagsInput}
-                  onChange={(event) =>
-                    setCreateCustomerField("tagsInput", event.target.value)
+                  value={parseTagText(createCustomerForm.tagsInput)}
+                  onValueChange={(tags) =>
+                    setCreateCustomerField("tagsInput", joinTagText(tags))
                   }
                   placeholder="vip, wholesale"
                   disabled={isCreatingCustomer}
@@ -1373,6 +1399,126 @@ function PaymentRow({
       <span className={strong ? "font-semibold" : undefined}>{label}</span>
       <span className="text-muted-foreground">{detail || "-"}</span>
       <span className={cn("text-right", strong && "font-semibold")}>{value}</span>
+    </div>
+  );
+}
+
+type OrderPreviewRequest = {
+  items: Array<{ productId: string; variantId?: string; quantity: number }>;
+  discount: number;
+  shippingCost: number;
+  taxRate?: number;
+};
+
+type OrderPreviewTotals = {
+  subtotal: number;
+  discount: number;
+  tax: number;
+  shippingCost: number;
+  total: number;
+  automaticTax: boolean;
+};
+
+/**
+ * The order's totals as the save will charge them (`…/orders/preview`): tax
+ * by each product's class needs the store's tax settings, which only the
+ * server reads. Asked again, a moment after the lines or money fields stop
+ * changing; an answer for an older form is dropped.
+ */
+function useOrderPreview(apiBase: string, request: OrderPreviewRequest) {
+  const key = JSON.stringify(request);
+  const empty = request.items.length === 0;
+  const [answer, setAnswer] = useState<{
+    key: string;
+    totals: OrderPreviewTotals | null;
+    error: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (empty) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`${apiBase}/orders/preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: key,
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || data?.success === false) throw new Error(readApiMessage(data));
+        setAnswer({ key, totals: data.data as OrderPreviewTotals, error: null });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setAnswer({
+          key,
+          totals: null,
+          error: error instanceof Error ? error.message : "The tax could not be worked out",
+        });
+      }
+    }, 300);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [apiBase, key, empty]);
+
+  const current = !empty && answer?.key === key ? answer : null;
+  return {
+    totals: current?.totals ?? null,
+    error: current?.error ?? null,
+    loading: !empty && !current,
+  };
+}
+
+/**
+ * Tax: automatic (each product's class, as a checkout charges it) or one
+ * typed rate for the whole order.
+ */
+function PaymentTaxRow({
+  mode,
+  onModeChange,
+  rate,
+  onRateChange,
+  value,
+}: {
+  mode: "auto" | "custom";
+  onModeChange: (mode: "auto" | "custom") => void;
+  rate: string;
+  onRateChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_120px_120px] items-center gap-3 px-4 py-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span>Tax</span>
+        <Select value={mode} onValueChange={(next) => onModeChange(next as "auto" | "custom")}>
+          <SelectTrigger className="h-8 w-auto min-w-36" aria-label="How tax is charged">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">By product tax class</SelectItem>
+            <SelectItem value="custom">Custom rate</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {mode === "custom" ? (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            value={rate}
+            onChange={(event) => onRateChange(event.target.value)}
+            className="h-8 text-right"
+            aria-label="Tax rate"
+          />
+          <span className="text-xs text-muted-foreground">%</span>
+        </div>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      )}
+      <span className="text-right">{value}</span>
     </div>
   );
 }

@@ -164,6 +164,14 @@
         ]
       },
       {
+        "id": "custom_step_412a9bfb",
+        "key": "custom_step_412a9bfb",
+        "kind": "custom",
+        "enabled": true,
+        "system": false,
+        "fields": []
+      },
+      {
         "id": "subscription",
         "key": "subscription",
         "kind": "subscription",
@@ -185,8 +193,8 @@
       "$date": "2026-07-22T08:41:42.524Z"
     },
     "updatedAt": {
-      "$date": "2026-08-16T15:45:42.638Z"
+      "$date": "2026-09-07T18:42:27.489Z"
     },
-    "__v": 14
+    "__v": 15
   }
 ]

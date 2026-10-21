@@ -12,12 +12,12 @@
  * Matches app-page documents and their RSC payloads.
  *
  * Excluded, in order: the immutable build output, API routes (they set
- * `private, no-store` themselves via lib/api/response.ts), local uploads
- * (content-addressed, cached for a year), and any path containing a dot —
- * i.e. static files such as `/favicon.ico` or `/logo.png`.
+ * `private, no-store` themselves via lib/api/response.ts), the PostHog reverse
+ * proxy, local uploads (content-addressed, cached for a year), and any path
+ * containing a dot — i.e. static files such as `/favicon.ico` or `/logo.png`.
  */
 export const APP_PAGE_HEADER_SOURCE =
-  "/:path((?!_next/|api/|uploads/|.*\\.).*)";
+  "/:path((?!_next/|api/|ingest/|uploads/|.*\\.).*)";
 
 /**
  * Browsers must re-ask the server for every page.

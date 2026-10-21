@@ -7,22 +7,12 @@ import { useTranslations } from "next-intl";
 import {
   Globe,
   LayoutDashboard,
-  LogOut,
   ShoppingCart,
-  User,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { signOutAndReload } from "@/lib/auth/auth-client";
+import { HeaderAccountMenu } from "@/components/layout/account-menu";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -64,10 +54,6 @@ export function StaffHeader({ user, locale, posEnabled }: StaffHeaderProps) {
 
   const isPosTerminal = basePath === "/staff/pos";
 
-  const handleLogout = async () => {
-    await signOutAndReload(locale);
-  };
-
   const handleLocaleChange = (newLocale: Locale) => {
     if (!pathname) return;
     const currentPrefix = `/${locale}`;
@@ -75,15 +61,6 @@ export function StaffHeader({ user, locale, posEnabled }: StaffHeaderProps) {
       ? pathname.replace(currentPrefix, `/${newLocale}`)
       : `/${newLocale}${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
     router.push(newPathname);
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   const currentLocaleConfig = localeConfig[locale];
@@ -178,61 +155,22 @@ export function StaffHeader({ user, locale, posEnabled }: StaffHeaderProps) {
             it but there was nowhere to read them, nor to turn on push. */}
         <NotificationDrawer locale={locale} />
 
-        {/* The viewer's own preferences; nothing in it is store-wide. */}
-        <PreferencesDrawer locale={locale} />
+        {/* The viewer's own preferences, opened from the account menu;
+            nothing in it is store-wide. Staff have no settings page, so
+            no gear either. */}
+        <PreferencesDrawer locale={locale} showTrigger={false} />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-10 w-10 border border-border p-1"
-            >
-              <Avatar className="h-full w-full">
-                <AvatarImage src={user.image} alt={user.name} />
-                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            sideOffset={10}
-            collisionPadding={12}
-            className="w-56 max-w-[calc(100vw-1.5rem)] rounded-xl border-border/60 bg-popover/95 shadow-xl backdrop-blur"
-          >
-            <DropdownMenuLabel>
-              <div className="flex min-w-0 flex-col space-y-1">
-                <p className="truncate text-sm font-medium leading-tight">
-                  {user.name}
-                </p>
-                <p
-                  className="truncate text-xs leading-tight text-muted-foreground"
-                  title={user.email}
-                >
-                  {user.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link
-                href={`/${locale}/staff/profile`}
-                className="cursor-pointer"
-              >
-                <User className="mr-2 h-4 w-4" />
-                <span>{tf("common.profile", "Profile")}</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="text-destructive focus:text-destructive cursor-pointer"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{tf("common.logout", "Log out")}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* The account menu lives in the sidebar's foot; the POS terminal
+            has no sidebar, so it keeps one here. */}
+        {isPosTerminal && (
+          <HeaderAccountMenu
+            locale={locale}
+            user={user}
+            links={[
+              { href: "/staff/profile", label: tf("common.profile", "Profile"), Icon: UserRound },
+            ]}
+          />
+        )}
       </div>
     </header>
   );

@@ -196,7 +196,7 @@ function commonLabels(tSafe: TSafe) {
       collapse: tSafe("admin.footerStudio.panel.paddingPairs", "Edit as pairs"),
     },
     paddingLabel: tSafe("admin.footerStudio.panel.padding", "Padding"),
-    heading: tSafe("admin.footerStudio.panel.heading", "Title"),
+    heading: tSafe("admin.footerStudio.panel.titleField", "Title"),
     inherit: tSafe("admin.footerStudio.panel.inherit", "Inherit"),
     clearColor: tSafe(
       "admin.footerStudio.panel.clearColor",
@@ -316,12 +316,12 @@ function RowProperties({
       </PanelRow>
       {row.borderTop > 0 ? (
         <PanelRow
-          label={tSafe("admin.footerStudio.panel.borderColor", "Border colour")}
+          label={tSafe("admin.footerStudio.panel.borderColour", "Border colour")}
         >
           <ColorField
             value={row.borderColor}
             label={tSafe(
-              "admin.footerStudio.panel.borderColor",
+              "admin.footerStudio.panel.borderColour",
               "Border colour",
             )}
             inheritLabel={labels.inherit}
@@ -593,10 +593,10 @@ function TextFields({
           "Left empty, the store's own description is shown here instead — which is what most footers do.",
         )}
       </p>
-      <PanelRow label={tSafe("admin.footerStudio.panel.color", "Colour")}>
+      <PanelRow label={tSafe("admin.footerStudio.panel.colour", "Colour")}>
         <FillField
           value={item.fill}
-          label={tSafe("admin.footerStudio.panel.color", "Colour")}
+          label={tSafe("admin.footerStudio.panel.colour", "Colour")}
           clearLabel={labels.clearColor}
           tSafe={tSafe}
           onChange={(fill) => onPatch({ fill })}
@@ -743,7 +743,7 @@ function LinksFields({
               <div className="flex items-center gap-1.5">
                 <Input
                   value={link.label}
-                  placeholder={tSafe("admin.footerStudio.links.label", "Label")}
+                  placeholder={tSafe("admin.footerStudio.panel.label", "Label")}
                   onChange={(event) =>
                     onPatch({
                       links: item.links.map((entry) =>
@@ -775,7 +775,7 @@ function LinksFields({
               </div>
               <Input
                 value={link.url}
-                placeholder={tSafe("admin.footerStudio.links.url", "Url")}
+                placeholder={tSafe("admin.footerStudio.panel.url", "URL")}
                 onChange={(event) =>
                   onPatch({
                     links: item.links.map((entry) =>

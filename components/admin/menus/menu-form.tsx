@@ -30,15 +30,16 @@ import { cn } from "@/lib/utils";
 import {
   blankItem,
   buildCategorySyncDiff,
-  buildItemIndex,
   categoryToMenuItem,
   ensureChildren,
   firstImageItemPath,
   firstItemPath,
   getMegaMenuDepthWarning,
+  getMegaRootCount,
   getMenuStats,
   makeId,
-  mergeGeneratedCategoryItem,
+  mergeCategorySync,
+  pathsEqual,
   pathToItem,
   remapPathAfterReorder,
   replaceAtPath,
@@ -158,6 +159,18 @@ export function MenuForm({ menuId }: Props) {
       const parent = path.length === 1 ? next.items : pathToItem(next.items, path.slice(0, -1))?.children;
       if (parent) parent.splice(path[path.length - 1], 1);
       return next;
+    });
+    // Keep the selection on something that still exists: inside the removed
+    // item it falls back to the parent, after it in the same list it shifts up.
+    setActivePath((current) => {
+      if (!current || current.length < path.length) return current;
+      const depth = path.length - 1;
+      if (!pathsEqual(current.slice(0, depth), path.slice(0, depth))) return current;
+      if (current[depth] < path[depth]) return current;
+      if (current[depth] === path[depth]) return depth === 0 ? null : path.slice(0, depth);
+      const shifted = [...current];
+      shifted[depth] -= 1;
+      return shifted;
     });
   };
 
@@ -287,10 +300,7 @@ export function MenuForm({ menuId }: Props) {
           return;
         }
 
-        const currentByResource = buildItemIndex(form.items);
-        const mergedItems = trimmed.items.map((item) =>
-          mergeGeneratedCategoryItem(item, currentByResource),
-        );
+        const mergedItems = mergeCategorySync(form.items, trimmed.items);
 
         setPendingSync({
           items: mergedItems,
@@ -384,6 +394,8 @@ export function MenuForm({ menuId }: Props) {
   const activeCategoryIndex = activePath?.[0] ?? null;
   const activeCategory =
     activeCategoryIndex === null ? null : form.items[activeCategoryIndex] || null;
+  // The rail's length sets how many links one row of columns may list.
+  const megaRootCount = getMegaRootCount(form.items);
 
   const onSubmit = async () => {
     if (!form.name.trim()) {
@@ -559,6 +571,7 @@ export function MenuForm({ menuId }: Props) {
             <div className="flex flex-wrap items-center gap-3">
               <MegaSlotMeter
                 category={activeCategory}
+                rootCount={megaRootCount}
                 label={t("canvas.slots")}
                 summary={(links: number) => t("canvas.slotSummary", { links })}
               />
@@ -603,6 +616,7 @@ export function MenuForm({ menuId }: Props) {
                 <MegaFlyoutCanvas
                   category={activeCategory}
                   categoryIndex={activeCategoryIndex}
+                  rootCount={megaRootCount}
                   activePath={activePath}
                   labels={canvasLabels}
                   onSelect={selectItem}
@@ -615,6 +629,7 @@ export function MenuForm({ menuId }: Props) {
                   <MenuItemInspector
                     item={activeItem}
                     ancestors={activeAncestors}
+                    rootCount={megaRootCount}
                     path={activePath}
                     depth={activeDepth}
                     location={form.location}
@@ -625,6 +640,9 @@ export function MenuForm({ menuId }: Props) {
                     }}
                     onAddChild={() => {
                       if (activePath) addChild(activePath);
+                    }}
+                    onRemove={() => {
+                      if (activePath) removeAt(activePath);
                     }}
                   />
                 </div>
@@ -713,6 +731,7 @@ export function MenuForm({ menuId }: Props) {
                   <MenuItemInspector
                     item={activeItem}
                     ancestors={activeAncestors}
+                    rootCount={megaRootCount}
                     path={activePath}
                     depth={activeDepth}
                     location={form.location}
@@ -744,6 +763,7 @@ export function MenuForm({ menuId }: Props) {
                   railLabel={t("mega.categories")}
                   viewAllLabel={t("mega.viewAllCategories")}
                   viewAllShortLabel={t("mega.viewAll")}
+                  shopAllLabel={(name) => t("mega.shopAll", { name })}
                   emptyLabel={t("emptyItems")}
                 />
               </CardContent>

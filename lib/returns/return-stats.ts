@@ -2,7 +2,11 @@ import { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Order, ReturnRequest } from "@/models";
 import { getSettings } from "@/models/settings.model";
-import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
+import {
+  OPEN_RETURN_STATUSES,
+  RETURN_REFUND_STATUS,
+  RETURN_STATUS,
+} from "@/lib/returns/returns";
 import { inStoreCurrencyExpr } from "@/lib/intl/currency-scope";
 import {
   buildStaffOrderScopeFilter,
@@ -11,6 +15,10 @@ import {
 } from "@/lib/access/staff-scope";
 
 interface ReturnStats {
+  /** Returns asked for in the last 30 days. */
+  requestedCount: number;
+  /** Of `requestedCount`: still running, not refused, cancelled or finished. */
+  requestedOpen: number;
   needsReview: number;
   onTheWayBack: number;
   refundDue: number;
@@ -39,8 +47,8 @@ export function vendorReturnsFilter(vendorId: Types.ObjectId) {
 
 /**
  * The counts above the Returns table, one per question the page is opened
- * with: what is waiting on my decision, what is still on its way back, what
- * came back and is still owed, and what went out lately.
+ * with: how many came in lately, what is waiting on my decision, what is still
+ * on its way back, what came back and is still owed, and what went out lately.
  *
  * A failed or `manual_required` refund is counted as owed whatever the status
  * says: a manual one reads "refunded", but no gateway carried the money and
@@ -90,6 +98,9 @@ export async function fetchReturnStats(
       inStoreCurrencyExpr(storeCurrency),
     ],
   };
+  // "Still open" is narrowed to the same window as the count it sits under,
+  // so it can never read larger than the total above it.
+  const isRequestedLately = { $gte: ["$createdAt", since] };
   const countIf = (condition: unknown) => ({
     $sum: { $cond: [condition, 1, 0] },
   });
@@ -102,6 +113,10 @@ export async function fetchReturnStats(
     {
       $group: {
         _id: null,
+        requestedCount: countIf(isRequestedLately),
+        requestedOpen: countIf({
+          $and: [isRequestedLately, { $in: ["$status", OPEN_RETURN_STATUSES] }],
+        }),
         needsReview: countIf({ $eq: ["$status", RETURN_STATUS.REQUESTED] }),
         onTheWayBack: countIf({
           $in: [
@@ -144,6 +159,8 @@ export async function fetchReturnStats(
   ]);
 
   return {
+    requestedCount: row?.requestedCount ?? 0,
+    requestedOpen: row?.requestedOpen ?? 0,
     needsReview: row?.needsReview ?? 0,
     onTheWayBack: row?.onTheWayBack ?? 0,
     refundDue: row?.refundDue ?? 0,

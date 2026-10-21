@@ -382,7 +382,7 @@ interface ShiprocketPickupAddress {
  * different record that a merchant is free to set differently. Quoting from the
  * wrong one produces a rate that does not match what the consignment is billed.
  */
-export async function shiprocketPickupAddresses(params: {
+async function shiprocketPickupAddresses(params: {
   token: string;
 }): Promise<ShiprocketPickupAddress[]> {
   const result = (await shiprocketFetch({

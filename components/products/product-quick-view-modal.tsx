@@ -1,6 +1,9 @@
 "use client";
 
-import { productRequiresVariantSelection } from "@/lib/products/variant-selection";
+import {
+  defaultOptionValues,
+  productRequiresVariantSelection,
+} from "@/lib/products/variant-selection";
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "@/components/language/link";
 import { useRouter } from "@/hooks/use-locale-navigation";
@@ -331,7 +334,9 @@ export function ProductQuickViewModal({
 
   const modalRef = useRef<HTMLDivElement>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  // What the shopper picked; every other option keeps its first value
+  // (`selectedOptions` below).
+  const [chosenOptions, setChosenOptions] = useState<Record<string, string>>({});
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
@@ -369,7 +374,7 @@ export function ProductQuickViewModal({
 
     const frame = requestAnimationFrame(() => {
       setQuantity(1);
-      setSelectedOptions({});
+      setChosenOptions({});
       setIsModelInteractive(false);
     });
 
@@ -404,6 +409,18 @@ export function ProductQuickViewModal({
   const images = product.images || [];
   const options = (product.options || []) as ProductOption[];
   const variants = product.variants as ProductVariant[] | undefined;
+  // Every option on its first value until the shopper picks another, as on
+  // the product page (defaultOptionValues), read from the full product once
+  // it is in.
+  const firstValues = defaultOptionValues(product);
+  const selectedOptions: Record<string, string> = {
+    ...Object.fromEntries(
+      options.flatMap((option, index) =>
+        firstValues[index] ? [[option.name, firstValues[index]]] : [],
+      ),
+    ),
+    ...chosenOptions,
+  };
 
   // Find current variant based on selections. `findVariant` matches on the
   // options answered SO FAR, so a half-filled selection would resolve to the
@@ -535,7 +552,7 @@ export function ProductQuickViewModal({
   };
 
   const handleOptionSelect = (optionName: string, value: string) => {
-    setSelectedOptions((prev) => ({
+    setChosenOptions((prev) => ({
       ...prev,
       [optionName]: value,
     }));
@@ -776,7 +793,14 @@ export function ProductQuickViewModal({
               </span>
             ) : (
               <>
-                <span className="text-lg font-bold leading-none text-orange-500">
+                <span
+                  className={cn(
+                    "text-lg font-bold leading-none",
+                    currentComparePrice && currentComparePrice > currentPrice
+                      ? "text-store-sale-text"
+                      : "text-foreground",
+                  )}
+                >
                   {formatPrice(currentPrice)}
                 </span>
                 {currentComparePrice && currentComparePrice > currentPrice && (
@@ -784,7 +808,7 @@ export function ProductQuickViewModal({
                     <span className="text-xs text-muted-foreground line-through">
                       {formatPrice(currentComparePrice)}
                     </span>
-                    <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[10px] font-bold text-destructive">
+                    <span className="rounded-full bg-store-sale-surface px-1.5 py-0.5 text-[10px] font-bold text-store-on-sale-surface">
                       -{discountPercentage}%
                     </span>
                   </>
@@ -864,7 +888,7 @@ export function ProductQuickViewModal({
 
           {/* Pre-order / low stock — same slot as the card, above the CTAs. */}
           {preorderAvailable && (
-            <div className="mt-2.5 space-y-2 rounded-md border border-blue-200 bg-blue-50 p-2.5 text-[11px] text-blue-800">
+            <div className="mt-2.5 space-y-2 rounded-md border border-status-on-info/20 bg-status-info p-2.5 text-[11px] text-status-on-info">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-semibold">
                   {preorderDateLabel
@@ -897,7 +921,7 @@ export function ProductQuickViewModal({
             </div>
           )}
           {!preorderAvailable && currentStock > 0 && currentStock <= 10 && (
-            <p className="mt-2.5 text-[11px] text-orange-500">
+            <p className="mt-2.5 text-[11px] font-medium text-status-on-warning">
               {t("product.lowStock", {
                 count: currentStock,
                 defaultMessage: `Only ${currentStock} left in stock`,
@@ -912,7 +936,7 @@ export function ProductQuickViewModal({
                 "mt-3 text-xs font-medium",
                 unansweredOptions.length > 0
                   ? "text-muted-foreground"
-                  : "text-orange-600 dark:text-orange-400",
+                  : "text-status-on-warning",
               )}
             >
               {variantChoicePrompt}
@@ -925,7 +949,7 @@ export function ProductQuickViewModal({
               <button
                 onClick={openQuoteOnProductPage}
                 data-slot="button"
-                className="flex h-9 flex-1 items-center justify-center gap-1.5 bg-foreground px-2 text-xs font-semibold text-background transition-all hover:bg-foreground/90"
+                className="flex h-9 flex-1 items-center justify-center gap-1.5 bg-store-secondary px-2 text-xs font-semibold text-store-on-secondary transition-all hover:bg-store-secondary/90"
               >
                 {quoteButtonText}
               </button>
@@ -939,7 +963,7 @@ export function ProductQuickViewModal({
                 "flex h-9 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-all",
                 isUnavailable
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-foreground text-background hover:bg-foreground/90"
+                  : "bg-store-secondary text-store-on-secondary hover:bg-store-secondary/90"
               )}
             >
               {isAddingToCart ? (
@@ -961,7 +985,7 @@ export function ProductQuickViewModal({
                 "flex h-9 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-semibold transition-all",
                 isUnavailable
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-primary text-primary-foreground hover:bg-(--primary-hover,var(--primary))"
               )}
             >
               {isBuyingNow ? (
@@ -980,7 +1004,7 @@ export function ProductQuickViewModal({
           <Link
             href={`/products/${product.slug}`}
             onClick={onClose}
-            className="mt-2.5 flex items-center justify-center gap-0.5 text-xs font-medium text-primary hover:underline"
+            className="mt-2.5 flex items-center justify-center gap-0.5 text-xs font-medium text-store-link hover:underline"
           >
             {t("product.viewFullDetails")}
             <ChevronRight className="h-3 w-3" />
@@ -1063,7 +1087,7 @@ export function ProductQuickViewModal({
             {/* Discount Badge - Top Left */}
             {discountPercentage > 0 && (
               <div className="absolute left-3 top-3 sm:left-4 sm:top-4">
-                <span className="inline-flex items-center rounded-full bg-destructive px-2 py-0.5 text-[10px] font-medium text-white sm:px-2.5 sm:py-1 sm:text-xs">
+                <span className="inline-flex items-center rounded-full bg-store-sale px-2 py-0.5 text-[10px] font-medium text-store-on-sale sm:px-2.5 sm:py-1 sm:text-xs">
                   -{discountPercentage}%
                 </span>
               </div>
@@ -1121,7 +1145,14 @@ export function ProductQuickViewModal({
                       {formatPrice(currentComparePrice)}
                     </span>
                   )}
-                  <span className="text-base font-bold text-orange-500 sm:text-xl">
+                  <span
+                    className={cn(
+                      "text-base font-bold sm:text-xl",
+                      currentComparePrice && currentComparePrice > currentPrice
+                        ? "text-store-sale-text"
+                        : "text-foreground",
+                    )}
+                  >
                     {formatPrice(currentPrice)}
                   </span>
                 </>
@@ -1142,7 +1173,7 @@ export function ProductQuickViewModal({
                     "mt-2 text-xs font-medium",
                     unansweredOptions.length > 0
                       ? "text-muted-foreground"
-                      : "text-orange-600 dark:text-orange-400",
+                      : "text-status-on-warning",
                   )}
                 >
                   {variantChoicePrompt}
@@ -1156,7 +1187,7 @@ export function ProductQuickViewModal({
                 <button
                   onClick={openQuoteOnProductPage}
                   data-slot="button"
-                  className="flex h-8 w-full items-center justify-center gap-1.5 bg-foreground px-3 text-[11px] font-medium text-background transition-all hover:bg-foreground/90 sm:h-11 sm:gap-2 sm:px-6 sm:text-sm"
+                  className="flex h-8 w-full items-center justify-center gap-1.5 bg-store-secondary px-3 text-[11px] font-medium text-store-on-secondary transition-all hover:bg-store-secondary/90 sm:h-11 sm:gap-2 sm:px-6 sm:text-sm"
                 >
                   {quoteButtonText}
                 </button>
@@ -1210,7 +1241,7 @@ export function ProductQuickViewModal({
                     "flex h-8 flex-1 items-center justify-center gap-1.5 px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
                     isUnavailable
                       ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : "bg-foreground text-background hover:bg-foreground/90"
+                      : "bg-store-secondary text-store-on-secondary hover:bg-store-secondary/90"
                   )}
                 >
                   {isAddingToCart ? (
@@ -1235,7 +1266,7 @@ export function ProductQuickViewModal({
                   "flex h-8 w-full items-center justify-center gap-1.5 px-3 text-[11px] font-medium transition-all sm:h-11 sm:gap-2 sm:px-6 sm:text-sm",
                   isUnavailable
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-primary text-primary-foreground hover:bg-(--primary-hover,var(--primary))"
                 )}
               >
                 {isBuyingNow ? (
@@ -1253,7 +1284,7 @@ export function ProductQuickViewModal({
               {/* Stock Info - reserved height to keep layout stable */}
               <div className="min-h-3">
                 {preorderAvailable && (
-                  <div className="space-y-2 rounded-md border border-blue-200 bg-blue-50 p-2.5 text-[11px] text-blue-800 sm:p-3 sm:text-xs">
+                  <div className="space-y-2 rounded-md border border-status-on-info/20 bg-status-info p-2.5 text-[11px] text-status-on-info sm:p-3 sm:text-xs">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">
                         {preorderDateLabel
@@ -1284,7 +1315,7 @@ export function ProductQuickViewModal({
                   </div>
                 )}
                 {!preorderAvailable && currentStock > 0 && currentStock <= 10 && (
-                  <p className="text-[11px] text-orange-500 sm:text-xs">
+                  <p className="text-[11px] font-medium text-status-on-warning sm:text-xs">
                     {t("product.lowStock", {
                       count: currentStock,
                       defaultMessage: `Only ${currentStock} left in stock`,
@@ -1297,7 +1328,7 @@ export function ProductQuickViewModal({
               <Link
                 href={`/products/${product.slug}`}
                 onClick={onClose}
-                className="block pt-0.5 text-center text-[11px] text-primary hover:underline sm:pt-1 sm:text-sm"
+                className="block pt-0.5 text-center text-[11px] text-store-link hover:underline sm:pt-1 sm:text-sm"
               >
                 {t("product.viewFullDetails")}
               </Link>

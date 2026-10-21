@@ -44,7 +44,7 @@ const RETIRED =
   "Local storage was retired in v1.5. Configure Cloudflare R2, AWS S3, MinIO " +
   "or DigitalOcean Spaces in Settings → Storage, then run " +
   "`pnpm db:migrate media-to-cloud` to move the files already on this server. " +
-  "See docs/STORAGE_SETUP.md.";
+  "See https://storify.neurolightstudio.com/docs#cloudflare-r2.";
 
 export class LegacyLocalProvider implements StorageService {
   private config: StorageConfig;

@@ -2,12 +2,12 @@
 import { formatCurrency } from "@/lib/intl/money";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "@/components/language/link";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { AlertTriangle, Landmark, Wallet } from "lucide-react";
 import {
   DataTable,
-  CurrencyCell,
   DateCell,
   StatusCell,
   type DataTableColumn,
@@ -26,6 +26,8 @@ import { toast } from "@/components/ui/toast-notification";
 import { apiClient } from "@/lib/api/client";
 import { useCurrencyFormatter } from "@/providers/currency-provider";
 import { CommissionOwedCard } from "./commission-owed-card";
+import { RecordRepaymentDialog } from "./record-repayment-dialog";
+import { PayoutPeriod } from "@/components/payouts/payout-period";
 
 interface VendorFinance {
   currency: string;
@@ -34,6 +36,15 @@ interface VendorFinance {
   /** Already paid for sales refunded since — recovered from the next payout. */
   overpaid?: number;
   minWithdrawalAmount: number;
+  quote?: {
+    netAmount: number;
+    eligible: boolean;
+    eligibilityReason?: string | null;
+    frozen?: boolean;
+    hasMore?: boolean;
+    commissionOwedNotDeducted?: number;
+    breakdown?: Record<string, number>;
+  };
   owed: {
     amount: number;
     grossSales: number;
@@ -61,7 +72,7 @@ interface VendorFinance {
     pendingCount: number;
     lastPaidAt: string | null;
   };
-  bank: { complete: boolean; missing: string[] };
+  bank: { complete: boolean; missing: string[]; missingFields?: string[] };
 }
 
 interface PayoutRow {
@@ -74,7 +85,18 @@ interface PayoutRow {
   commissionAmount?: number;
   periodStart: string;
   periodEnd: string;
+  periodBoundary?: string;
   createdAt: string;
+}
+
+interface RepaymentRow {
+  _id: string;
+  amount: number;
+  currency: string;
+  receivedInto: string;
+  reference?: string;
+  receivedAt: string;
+  status: "recorded" | "voided";
 }
 
 interface PayoutsResponse {
@@ -87,13 +109,13 @@ interface PayoutsTabProps {
   basePath: string;
 }
 
-const PAYOUT_STATUS_MAP = {
-  pending: { label: "Pending", variant: "outline" as const },
-  processing: { label: "Processing", variant: "secondary" as const },
-  paid: { label: "Paid", variant: "default" as const },
-  failed: { label: "Failed", variant: "destructive" as const },
-  cancelled: { label: "Cancelled", variant: "destructive" as const },
-};
+const PAYOUT_STATUS_VARIANT = {
+  pending: "outline",
+  processing: "secondary",
+  paid: "default",
+  failed: "destructive",
+  cancelled: "destructive",
+} as const;
 
 function MoneyStat({
   label,
@@ -124,10 +146,16 @@ function MoneyStat({
 }
 
 export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
+  const t = useTranslations("admin.vendorPayoutsTab");
+  const tStatus = useTranslations("admin.payoutsPage.statuses");
+  const tBank = useTranslations("admin.payoutsPage.sendTo");
   const router = useRouter();
   const [finance, setFinance] = useState<VendorFinance | null>(null);
   const [financeLoading, setFinanceLoading] = useState(true);
+  const [financeRevision, setFinanceRevision] = useState(0);
   const [rows, setRows] = useState<PayoutRow[]>([]);
+  const [repayments, setRepayments] = useState<RepaymentRow[]>([]);
+  const [repaymentOpen, setRepaymentOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<{
@@ -150,16 +178,22 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
       .catch((error) => {
         if (!active) return;
         console.error("Failed to load vendor finance:", error);
-        toast.error("Failed to load payout summary");
+        toast.error(t("loadSummaryError"));
       })
       .finally(() => {
         if (active) setFinanceLoading(false);
       });
+    apiClient
+      .get<RepaymentRow[]>(`/api/admin/vendors/${vendorId}/repayments`)
+      .then((list) => {
+        if (active) setRepayments(list || []);
+      })
+      .catch(() => undefined);
 
     return () => {
       active = false;
     };
-  }, [vendorId]);
+  }, [vendorId, financeRevision, t]);
 
   useEffect(() => {
     let active = true;
@@ -181,7 +215,7 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
       .catch((error) => {
         if (!active) return;
         console.error("Failed to load vendor payouts:", error);
-        toast.error("Failed to load payouts");
+        toast.error(t("loadPayoutsError"));
       })
       .finally(() => {
         if (active) setIsLoading(false);
@@ -190,22 +224,40 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
     return () => {
       active = false;
     };
-  }, [vendorId, page]);
+  }, [vendorId, page, t]);
 
   const openPayout = useCallback(
     (row: PayoutRow) => router.push(`${basePath}/payouts/${row._id}`),
     [basePath, router],
   );
 
+  const voidRepayment = async (row: RepaymentRow) => {
+    const reason = window.prompt(t("repayment.voidReason"));
+    if (!reason?.trim()) return;
+    try {
+      await apiClient.post(`/api/admin/vendors/${vendorId}/repayments/${row._id}/void`, { reason: reason.trim() });
+      toast.success(t("repayment.voided"));
+      setFinanceRevision((value) => value + 1);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("repayment.failed"));
+    }
+  };
+
   const owed = finance?.owed;
+  const quote = finance?.quote;
+  const recovered = Number(quote?.breakdown?.recoveryDeducted || 0);
   const belowMinimum = Boolean(
     finance && owed && owed.amount > 0 && owed.amount < finance.minWithdrawalAmount,
+  );
+  const liveRepayments = repayments.filter((row) => row.status === "recorded");
+  const statusMap = Object.fromEntries(
+    Object.entries(PAYOUT_STATUS_VARIANT).map(([status, variant]) => [status, { label: tStatus(status), variant }]),
   );
 
   const columns: DataTableColumn<PayoutRow>[] = [
     {
       id: "payoutNumber",
-      header: "Payout",
+      header: t("columns.payout"),
       cell: (row) => (
         <Link
           href={`${basePath}/payouts/${row._id}`}
@@ -218,25 +270,18 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
     },
     {
       id: "period",
-      header: "Period",
-      cell: (row) => (
-        <span className="text-sm text-muted-foreground">
-          <DateCell date={row.periodStart} format="medium" /> –{" "}
-          <DateCell date={row.periodEnd} format="medium" />
-        </span>
-      ),
+      header: t("columns.period"),
+      cell: (row) => <PayoutPeriod start={row.periodStart} end={row.periodEnd} boundary={row.periodBoundary} />,
     },
     {
       id: "status",
-      header: "Status",
-      cell: (row) => (
-        <StatusCell status={row.status} statusMap={PAYOUT_STATUS_MAP} />
-      ),
+      header: t("columns.status"),
+      cell: (row) => <StatusCell status={row.status} statusMap={statusMap} />,
       className: "w-[130px]",
     },
     {
       id: "netAmount",
-      header: "Net amount",
+      header: t("columns.netAmount"),
       cell: (row) => (
         <span className="tabular-nums">{formatCurrency(row.netAmount, row.currency || "USD")}</span>
       ),
@@ -249,14 +294,24 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
       {!financeLoading && finance && !finance.bank.complete && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>No payout account on file</AlertTitle>
+          <AlertTitle>{t("bankMissingTitle")}</AlertTitle>
           <AlertDescription>
-            Missing {finance.bank.missing.join(", ").toLowerCase()}. A payout can
-            still be recorded, but there is nowhere to send the money — add the
-            details on the Business tab first.
+            {t("bankMissing", {
+              fields: (finance.bank.missingFields ?? [])
+                .map((field) => tBank(field as "accountName"))
+                .join(", "),
+            })}
           </AlertDescription>
         </Alert>
       )}
+
+      {!financeLoading && quote?.frozen ? (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t("frozenTitle")}</AlertTitle>
+          <AlertDescription>{t("frozen")}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -264,15 +319,12 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-4 w-4" />
-                Owed now
+                {t("owedNow")}
               </CardTitle>
-              <CardDescription>
-                Delivered, paid orders not yet included in any payout — the
-                exact amount a payout created now would carry
-              </CardDescription>
+              <CardDescription>{t("owedNowHint")}</CardDescription>
             </div>
             <Button asChild size="sm" variant="outline">
-              <Link href={`${basePath}/payouts`}>Create payout</Link>
+              <Link href={`${basePath}/payouts`}>{t("createPayout")}</Link>
             </Button>
           </div>
         </CardHeader>
@@ -291,52 +343,74 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
                 copy just has to explain the zero instead of reading like a bug.
               */}
               <p className="text-sm text-muted-foreground">
-                {!owed?.orderCount ? (
-                  "No delivered, paid orders are awaiting payout."
-                ) : owed.amount === 0 ? (
-                  <>
-                    {owed.orderCount.toLocaleString()} eligible order
-                    {owed.orderCount === 1 ? "" : "s"}, but refunds and
-                    order-level discounts leave nothing payable.
-                  </>
-                ) : (
-                  <>
-                    Across {owed.orderCount.toLocaleString()} order
-                    {owed.orderCount === 1 ? "" : "s"} ·{" "}
-                    {format(owed.grossSales)} gross less{" "}
-                    {format(owed.commissionAmount)} commission. Refunds and
-                    order-level discounts are already deducted.
-                  </>
-                )}
+                {!owed?.orderCount
+                  ? t("noneAwaiting")
+                  : owed.amount === 0
+                    ? t("nothingPayable", { count: owed.orderCount })
+                    : t("across", {
+                        count: owed.orderCount,
+                        gross: format(owed.grossSales),
+                        commission: format(owed.commissionAmount),
+                      })}
               </p>
               {belowMinimum && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Below the minimum withdrawal</AlertTitle>
+                  <AlertTitle>{t("belowMinimumTitle")}</AlertTitle>
                   <AlertDescription>
-                    Payouts must be at least{" "}
-                    {format(finance?.minWithdrawalAmount ?? 0)}. Creating one now
-                    would be rejected.
+                    {t("belowMinimum", { minimum: format(finance?.minWithdrawalAmount ?? 0) })}
                   </AlertDescription>
                 </Alert>
               )}
+              {quote?.commissionOwedNotDeducted ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("commissionLeft", { amount: format(quote.commissionOwedNotDeducted) })}
+                </p>
+              ) : null}
               {/*
                 A payout is final and a refund is not, so money can already have
-                gone out for goods that came back. It comes off the next payout,
-                which means "Owed now" is not what one created today would carry.
+                gone out for goods that came back. The figure above already has
+                what the next payout recovers taken off — said here, not taken
+                off a second time.
               */}
               {finance?.overpaid ? (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>
-                    {format(finance.overpaid)} overpaid on refunded orders
+                    {t("overpaidTitle", { amount: format(finance.overpaid) })}
                   </AlertTitle>
                   <AlertDescription>
-                    Already paid for sales that were refunded afterwards. It is
-                    recovered from the next payout, so one created now would
-                    carry {format(Math.max(0, (owed?.amount ?? 0) - finance.overpaid))}.
+                    <p>
+                      {recovered > 0
+                        ? t("overpaidRecovered", { amount: format(recovered) })
+                        : t("overpaidLater")}
+                    </p>
+                    <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => setRepaymentOpen(true)}>
+                      {t("repayment.open")}
+                    </Button>
                   </AlertDescription>
                 </Alert>
+              ) : null}
+              {liveRepayments.length > 0 ? (
+                <div className="space-y-1.5 text-sm">
+                  <p className="font-medium">{t("repayment.listTitle")}</p>
+                  <ul className="divide-y rounded-lg border">
+                    {liveRepayments.map((row) => (
+                      <li key={row._id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                        <span className="min-w-0">
+                          <span className="font-medium tabular-nums">{formatCurrency(row.amount, row.currency)}</span>
+                          <span className="ms-2 text-muted-foreground">
+                            <DateCell date={row.receivedAt} format="medium" />
+                            {row.reference ? ` · ${row.reference}` : ""}
+                          </span>
+                        </span>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => void voidRepayment(row)}>
+                          {t("repayment.undo")}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
               {/*
                 Every figure on this screen is in one currency. A vendor who has
@@ -348,13 +422,10 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>
-                    Balances in {finance.otherCurrencies.join(", ")}
+                    {t("otherCurrenciesTitle", { currencies: finance.otherCurrencies.join(", ") })}
                   </AlertTitle>
                   <AlertDescription>
-                    This vendor has also traded in{" "}
-                    {finance.otherCurrencies.join(", ")}. Those balances are not
-                    in the figures above and need a payout of their own —
-                    currencies are never added together.
+                    {t("otherCurrencies", { currencies: finance.otherCurrencies.join(", ") })}
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -362,6 +433,18 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
           )}
         </CardContent>
       </Card>
+
+      {finance && finance.overpaid ? (
+        <RecordRepaymentDialog
+          key={`${finance.currency}-${finance.overpaid}`}
+          vendorId={vendorId}
+          currency={finance.currency}
+          owedBack={finance.overpaid}
+          open={repaymentOpen}
+          onOpenChange={setRepaymentOpen}
+          onRecorded={() => setFinanceRevision((value) => value + 1)}
+        />
+      ) : null}
 
       {/*
         Directly under "Owed now" on purpose: the two are the same question
@@ -372,30 +455,29 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
 
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>Trade</CardTitle>
+          <CardTitle>{t("trade")}</CardTitle>
           <CardDescription>
-            What this vendor sold, across every non-cancelled order, in{" "}
-            {finance?.currency || "store currency"}
+            {t("tradeHint", { currency: finance?.currency || "" })}
           </CardDescription>
         </CardHeader>
         <div className="grid grid-cols-2 divide-x divide-y border-t lg:grid-cols-3 lg:divide-y-0">
           <MoneyStat
-            label="Gross sales"
+            label={t("grossSales")}
             value={format(finance?.lifetime.grossSales ?? 0)}
             loading={financeLoading}
           />
           <MoneyStat
-            label="Vendor earnings"
+            label={t("vendorEarnings")}
             value={format(finance?.lifetime.vendorEarnings ?? 0)}
-            hint="gross less commission"
+            hint={t("vendorEarningsHint")}
             loading={financeLoading}
           />
           <MoneyStat
-            label="Paid out"
+            label={t("paidOut")}
             value={format(finance?.payouts.paidAmount ?? 0)}
             hint={
               finance?.payouts.pendingAmount
-                ? `${format(finance.payouts.pendingAmount)} pending`
+                ? t("pendingAmount", { amount: format(finance.payouts.pendingAmount) })
                 : undefined
             }
             loading={financeLoading}
@@ -411,37 +493,37 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
       */}
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle>Platform revenue from this vendor</CardTitle>
-          <CardDescription>
-            Commission and retained shipping from their sales, plus the
-            subscription fees they paid. Revenue before platform costs.
-          </CardDescription>
+          <CardTitle>{t("platformRevenue")}</CardTitle>
+          <CardDescription>{t("platformRevenueHint")}</CardDescription>
         </CardHeader>
         <div className="grid grid-cols-2 divide-x divide-y border-t lg:grid-cols-4 lg:divide-y-0">
           <MoneyStat
-            label="Commission"
+            label={t("commission")}
             value={format(finance?.platformRevenue.commission ?? 0)}
-            hint="on delivered, paid sales, net of refunds"
+            hint={t("commissionHint")}
             loading={financeLoading}
           />
           <MoneyStat
-            label="Subscriptions"
+            label={t("subscriptions")}
             value={format(finance?.platformRevenue.subscriptions ?? 0)}
             hint={
               finance?.platformRevenue.invoiceCount
-                ? `${finance.platformRevenue.paidInvoiceCount} of ${finance.platformRevenue.invoiceCount} invoices paid`
-                : "no invoices"
+                ? t("invoicesPaid", {
+                    paid: finance.platformRevenue.paidInvoiceCount,
+                    total: finance.platformRevenue.invoiceCount,
+                  })
+                : t("noInvoices")
             }
             loading={financeLoading}
           />
           <MoneyStat
-            label="Shipping"
+            label={t("shipping")}
             value={format(finance?.platformRevenue.shipping ?? 0)}
-            hint="retained, not paid out"
+            hint={t("shippingHint")}
             loading={financeLoading}
           />
           <MoneyStat
-            label="Total"
+            label={t("total")}
             value={format(finance?.platformRevenue.total ?? 0)}
             loading={financeLoading}
           />
@@ -452,11 +534,9 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Landmark className="h-4 w-4" />
-            Payout history
+            {t("history")}
           </CardTitle>
-          <CardDescription>
-            Payouts recorded for this vendor, newest first
-          </CardDescription>
+          <CardDescription>{t("historyHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -468,7 +548,7 @@ export function PayoutsTab({ vendorId, basePath }: PayoutsTabProps) {
             pagination={pagination ?? undefined}
             onPageChange={setPage}
             onRowClick={openPayout}
-            emptyMessage="No payouts have been created for this vendor yet"
+            emptyMessage={t("historyEmpty")}
           />
         </CardContent>
       </Card>

@@ -42,3 +42,15 @@ export function expenseListRange(
     ? { from: range.from.toISOString(), to: range.to.toISOString() }
     : null;
 }
+
+/** Export exactly the calendar days and category used by the expense list. */
+export function vendorExpenseExportQuery(period: string, from: string, to: string, today: string, category: string) {
+  const range = expenseListRange(period, from, to, today);
+  const query = new URLSearchParams({ type: "expenses", period: range ? "custom" : "all" });
+  if (range) {
+    query.set("from", range.from.slice(0, 10));
+    query.set("to", range.to.slice(0, 10));
+  }
+  if (category !== "all") query.set("category", category);
+  return query;
+}

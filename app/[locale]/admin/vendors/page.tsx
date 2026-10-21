@@ -20,10 +20,16 @@ import {
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { parsePageQuery } from "@/lib/api/validate";
 import { serializeRows } from "@/lib/api/list-query";
-import { AdminListQuerySchema } from "@/lib/validations";
+import { AdminVendorListQuerySchema } from "@/lib/validations";
 import { fetchAdminVendorList } from "@/lib/vendors/vendor-list";
 import { getVendorSalesTotals } from "@/lib/vendors/vendor-sales";
 import { getStoreMoneyFormatter } from "@/lib/intl/server-currency";
+import { getSettings } from "@/models/settings.model";
+import {
+  findDefaultVendorPlan,
+  isPaidVendorPlan,
+  vendorPlansEnabled,
+} from "@/lib/vendors/vendor-plan-assignment";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -77,13 +83,22 @@ async function VendorsTable({
 }) {
   // Parsed with the schema the API route uses, so the page and the endpoint
   // can never read one query string two different ways.
-  const query = parsePageQuery(searchParams, AdminListQuerySchema);
-  const list = await fetchAdminVendorList(query);
+  const query = parsePageQuery(searchParams, AdminVendorListQuerySchema);
+  const [list, settings] = await Promise.all([fetchAdminVendorList(query), getSettings()]);
+  // What the import's file check says about plans before anything is sent.
+  const plansEnabled = vendorPlansEnabled(settings);
+  const defaultPlan = plansEnabled ? await findDefaultVendorPlan(settings) : null;
 
   return (
     <VendorsDataTable
       locale={locale}
       data={serializeRows(list.items)}
+      importContext={{
+        plansEnabled,
+        defaultPlan: defaultPlan
+          ? { name: defaultPlan.name, paid: isPaidVendorPlan(defaultPlan) }
+          : null,
+      }}
       pagination={{
         page: list.page,
         limit: list.limit,

@@ -5,9 +5,11 @@ import { ValidationError } from "@/lib/api/errors";
 import { successResponse } from "@/lib/api/response";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import {
+  DEFAULT_AI_SALES_AGENT_SETTINGS,
   isOpenAIConfigured,
   normalizeAISalesAgentSettings,
 } from "@/lib/ai-sales-agent/settings";
+import { widgetColor } from "@/lib/theme-colors/theme-refs";
 import {
   getAISalesUsage,
   isTokenBudgetExhausted,
@@ -92,14 +94,8 @@ function sanitizeUpdate(data: unknown) {
     next.widget = {
       position:
         data.widget.position === "bottom-left" ? "bottom-left" : "bottom-right",
-      primaryColor:
-        typeof data.widget.primaryColor === "string"
-          ? data.widget.primaryColor.slice(0, 40)
-          : "#7c3aed",
-      accentColor:
-        typeof data.widget.accentColor === "string"
-          ? data.widget.accentColor.slice(0, 40)
-          : "#a855f7",
+      primaryColor: widgetColor(data.widget.primaryColor, DEFAULT_AI_SALES_AGENT_SETTINGS.widget.primaryColor),
+      accentColor: widgetColor(data.widget.accentColor, DEFAULT_AI_SALES_AGENT_SETTINGS.widget.accentColor),
       avatarUrl:
         typeof data.widget.avatarUrl === "string"
           ? data.widget.avatarUrl.slice(0, 500)

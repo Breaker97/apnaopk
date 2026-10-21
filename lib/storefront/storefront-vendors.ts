@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { vendorAllowsDelivery, vendorAllowsPickup } from "@/lib/vendors/vendor-fulfillment";
 import {
   ORDER_STATUS,
   PRODUCT_STATUS,
@@ -130,6 +131,7 @@ type VendorLean = {
   storeVisibility?: unknown;
   messaging?: unknown;
   shipping?: {
+    fulfillmentMode?: unknown;
     delivery?: {
       processingDaysMin?: number;
       processingDaysMax?: number;
@@ -196,7 +198,7 @@ function gatePickup(
   shipping: VendorLean["shipping"],
 ): StorefrontVendorPickup | undefined {
   const pickup = shipping?.localPickup;
-  if (!pickup?.enabled) return undefined;
+  if (!vendorAllowsPickup(shipping?.fulfillmentMode) || !pickup?.enabled) return undefined;
 
   const address = text(pickup.pickupAddress);
   const instructions = text(pickup.instructions);
@@ -216,6 +218,7 @@ function resolveProcessingDays(
   shipping: VendorLean["shipping"],
 ): { min: number; max: number } | undefined {
   const delivery = shipping?.delivery;
+  if (!vendorAllowsDelivery(shipping?.fulfillmentMode)) return undefined;
   const min =
     typeof delivery?.processingDaysMin === "number"
       ? delivery.processingDaysMin
@@ -396,7 +399,7 @@ export const getStorefrontVendorBySlug = unstable_cache(
       // `rating` and `totalSales` are deliberately absent: both are dead columns
       // (never written), and the real figures are aggregated below.
       .select(
-        "storeName slug description logo banner shareSettings verified createdAt address socialLinks socialProfiles storeVisibility messaging shipping.delivery shipping.localPickup",
+        "storeName slug description logo banner shareSettings verified createdAt address socialLinks socialProfiles storeVisibility messaging shipping.fulfillmentMode shipping.delivery shipping.localPickup",
       )
       .lean<VendorLean | null>();
 

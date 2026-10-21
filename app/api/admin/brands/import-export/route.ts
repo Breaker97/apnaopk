@@ -1,3 +1,6 @@
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import { assertAdminOrStaffPermissions } from "@/lib/access/staff-authz";
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { connectDB } from "@/lib/db";
 import { errorResponse, successResponse } from "@/lib/api/response";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -15,7 +18,7 @@ import { MAX_IMPORT_FILE_BYTES } from "@/lib/products/import-limits";
  * GET /api/admin/brands/import-export
  * Export brands as CSV for the list's current search, tab and sort (Admin only).
  */
-export const GET = withApi({ auth: "admin" }, async ({ request, session }) => {
+export const GET = withApi({ auth: "admin-or-staff", staffPermissions: staffResourcePermissions("brands") }, async ({ request, session }) => {
   await rateLimitByUser(
     request,
     session.user.id,
@@ -46,7 +49,8 @@ export const GET = withApi({ auth: "admin" }, async ({ request, session }) => {
  * Import brands from an uploaded CSV (Admin only). Rows that match an existing
  * brand update it; the rest create platform-owned, approved brands.
  */
-export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
+export const POST = withApi({ auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.CREATE_BRANDS, STAFF_PERMISSIONS.MANAGE_BRANDS] }, async ({ request, session }) => {
+  await assertAdminOrStaffPermissions(session, [STAFF_PERMISSIONS.EDIT_BRANDS, STAFF_PERMISSIONS.MANAGE_BRANDS]);
   await rateLimitByUser(
     request,
     session.user.id,

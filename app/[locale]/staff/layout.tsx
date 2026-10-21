@@ -7,7 +7,10 @@ import { getSettings } from "@/models/settings.model";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { StaffSidebar } from "@/components/staff/staff-sidebar";
 import { requireStaffAreaAccess } from "@/lib/access/staff-area-guard";
-import { staffScopeReachesAbandonedCheckouts } from "@/lib/access/staff-scope";
+import {
+  hasStaffScope,
+  staffScopeReachesAbandonedCheckouts,
+} from "@/lib/access/staff-scope";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarStateSync } from "@/components/layout/sidebar-state-sync";
 import { AiAvailabilityProvider } from "@/components/ai-authoring/ai-availability-provider";
@@ -57,6 +60,7 @@ export default async function StaffLayout({ children, params }: LayoutProps) {
             posEnabled={posEnabled}
             storeName={settings.general?.storeName}
             abandonedCheckoutsInScope={staffScopeReachesAbandonedCheckouts(staffScope)}
+            campaignBannersInScope={!hasStaffScope(staffScope)}
           />
           <SidebarInset className="[--dashboard-header-height:4rem]">
             <StaffHeader

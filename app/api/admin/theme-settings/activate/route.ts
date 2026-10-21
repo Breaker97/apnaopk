@@ -10,6 +10,7 @@ import {
   getThemeDefaults,
   THEME_MANIFESTS,
 } from "@/lib/storefront/themes/registry";
+import { liveKeyColors } from "@/lib/storefront/themes/key-colors";
 import { normalizeThemeTokens } from "@/lib/storefront/themes/tokens";
 import { getSettings } from "@/models/settings.model";
 import * as z from "zod";
@@ -93,6 +94,13 @@ export const POST = withApi(
 
     return successResponse({
       theme: manifest.id,
+      // The dashboards' colours, which are the live theme's — the new
+      // theme's now: the admin's open dashboard follows without a reload.
+      brand: (({ primary, secondary, accent }) => ({
+        primaryColor: primary,
+        secondaryColor: secondary,
+        accentColor: accent,
+      }))(liveKeyColors(settings)),
       values: normalizeThemeTokens(getThemeDefaults(manifest), stored),
       seededTemplates,
       draftedTemplates,

@@ -15,7 +15,7 @@ import { ValidationError, handleApiError } from "@/lib/api/errors";
 import { isStaffRole } from "@/lib/access/staff-role";
 import { STAFF_MANAGED_BY } from "@/lib/access/staff-ownership";
 import { requireVendorStaffPermission } from "@/lib/access/vendor-staff-guard";
-import { sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
+import { assertSellerMayGiveStaff, sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
 import { auditStaffCreated } from "@/lib/access/audit-staff";
 import { createAuditContext } from "@/lib/audit";
 
@@ -88,6 +88,10 @@ export async function POST(request: NextRequest) {
     if (!z.string().email().safeParse(normalizedEmail).success) {
       throw new ValidationError("Invalid email address");
     }
+    // Never more than this seller's plan gives the seller, refused before
+    // anything is written (the defaults a save without a list gets are held
+    // to the plan where staff permissions are read).
+    await assertSellerMayGiveStaff(vendor._id, sanitizeVendorStaffPermissions(permissions));
     const existingUser = await User.findOne({ email: normalizedEmail }).lean();
     const hasValidStatus = ["active", "inactive", "banned"].includes(status);
 

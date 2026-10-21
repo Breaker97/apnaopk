@@ -1,4 +1,7 @@
 import "server-only";
+import { isAdmin } from "@/lib/access/rbac";
+import { assertTeamPermission } from "@/lib/access/team-route-guard";
+import { STAFF_RESOURCE_ANY, STAFF_RESOURCE_WRITE } from "@/config/team-permissions.config";
 
 import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
@@ -56,6 +59,14 @@ export async function requireScope(
   }
 
   try {
+    // An administrator is held to their team role: stock locations are the
+    // inventory's.
+    if (session.user.id && isAdmin(session.user as Parameters<typeof isAdmin>[0])) {
+      await assertTeamPermission(
+        session.user.id,
+        mode === "read" ? STAFF_RESOURCE_ANY.inventory : STAFF_RESOURCE_WRITE.inventory,
+      );
+    }
     return {
       ok: true,
       scope: await resolveLocationScope(session.user, mode),

@@ -40,6 +40,7 @@ export type CheckoutPickupLocation = {
 type PickupFulfillmentSelectorProps = {
   method: CheckoutFulfillmentMethod;
   pickupAvailable: boolean;
+  deliveryAvailable?: boolean;
   multiVendor: boolean;
   locations?: CheckoutPickupLocation[];
   selectedLocationId?: string | null;
@@ -60,6 +61,8 @@ type PickupFulfillmentSelectorProps = {
     contactStoreForHours: string;
     branchOutOfStock: string;
     noBranchHasEverything: string;
+    noOptions: string;
+    pickupOnlyHint: string;
   }>;
 };
 
@@ -85,6 +88,7 @@ const WEEKDAY_LABELS: Record<number, string> = Object.fromEntries(
 export function PickupFulfillmentSelector({
   method,
   pickupAvailable,
+  deliveryAvailable = true,
   multiVendor,
   locations,
   selectedLocationId,
@@ -120,11 +124,11 @@ export function PickupFulfillmentSelector({
       >
         {(
           [
-            {
+            ...(deliveryAvailable ? [{
               value: "delivery" as const,
               title: labels?.delivery || "Delivery",
               hint: labels?.deliveryHint,
-            },
+            }] : []),
             ...(pickupAvailable
               ? [
                   {
@@ -184,7 +188,13 @@ export function PickupFulfillmentSelector({
         })}
       </div>
 
-      {multiVendor ? (
+      {!deliveryAvailable ? (
+        <p role={pickupAvailable ? "status" : "alert"} className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+          {pickupAvailable
+            ? (labels?.pickupOnlyHint || "This store offers pickup only. Collect your order at a pickup location.")
+            : (labels?.noOptions || "Some items are pickup only. Order from one store at a time, or remove those items to choose delivery.")}
+        </p>
+      ) : multiVendor ? (
         <p className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
           {labels?.multiVendor ||
             "Pickup is available when your cart contains items from one store."}

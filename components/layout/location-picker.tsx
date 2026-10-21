@@ -574,7 +574,7 @@ function LocationPickerControl({
             )}
             aria-label={t("location.chooseLocation")}
           >
-            <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <MapPin className="h-4 w-4 shrink-0 text-store-link" aria-hidden="true" />
             <span className="flex flex-col leading-tight">
               <span className="max-w-[9rem] truncate font-medium">
                 {pillLabel}
@@ -717,7 +717,7 @@ function LocationPickerControl({
                       onClick={() => handlePickCity(city)}
                       className={cn(
                         "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent",
-                        active && "bg-accent font-medium",
+                        active && "bg-selection text-selection-foreground font-medium",
                       )}
                     >
                       <span className="truncate">
@@ -747,7 +747,7 @@ function LocationPickerControl({
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-primary transition-colors hover:bg-accent"
+                  className="w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-store-link transition-colors hover:bg-accent"
                 >
                   {t("location.showMoreCities", { count: hiddenCityCount })}
                 </button>

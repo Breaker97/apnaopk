@@ -20,11 +20,39 @@
  * connection already down has whatever the previous shift left, and any
  * successful server call during the shift renews it.
  *
- * A merchant-configurable window belongs in POS settings eventually — a market
- * stall and a jeweller want different answers. Left as a constant until
- * somebody asks, rather than shipping a setting nobody has an opinion about.
+ * Twelve hours is the default, not the rule: Settings → POS → "Offline
+ * selling window" sets it per store, between the bounds below — a market
+ * stall that trades all weekend on one sign-in and a jeweller who wants the
+ * till dead within the hour are both reasonable answers.
  */
-const OFFLINE_SESSION_WINDOW_MS = 12 * 60 * 60 * 1000;
+export const DEFAULT_OFFLINE_SESSION_HOURS = 12;
+export const MIN_OFFLINE_SESSION_HOURS = 1;
+/**
+ * Three days. Past that a device that walked out of the shop keeps looking
+ * like a working till for longer than anyone would notice it gone, and the
+ * catalogue it sells from is days stale.
+ */
+export const MAX_OFFLINE_SESSION_HOURS = 72;
+
+const OFFLINE_SESSION_WINDOW_MS = DEFAULT_OFFLINE_SESSION_HOURS * 60 * 60 * 1000;
+
+/**
+ * The window in milliseconds for a stored hours setting. Anything missing,
+ * malformed or out of bounds reads as the default rather than as "never" or
+ * "forever": this is read from the cached page on a device with no
+ * connection, where a bad value cannot be corrected.
+ */
+export function offlineSessionWindowMs(hours: unknown): number {
+  const value = typeof hours === "number" ? hours : Number.NaN;
+  if (
+    !Number.isInteger(value) ||
+    value < MIN_OFFLINE_SESSION_HOURS ||
+    value > MAX_OFFLINE_SESSION_HOURS
+  ) {
+    return OFFLINE_SESSION_WINDOW_MS;
+  }
+  return value * 60 * 60 * 1000;
+}
 
 const STAMP_KEY_PREFIX = "pos:last-authenticated";
 
@@ -63,7 +91,10 @@ export interface POSOfflineSessionState {
   lastAuthenticatedAt: Date | null;
 }
 
-export function readPOSOfflineSession(scope: string): POSOfflineSessionState {
+export function readPOSOfflineSession(
+  scope: string,
+  windowMs: number = OFFLINE_SESSION_WINDOW_MS,
+): POSOfflineSessionState {
   if (!hasStorage()) {
     // No storage means no stamp can ever be written, so refusing here would
     // lock a browser that is merely private-mode. Online use is unaffected;
@@ -87,7 +118,7 @@ export function readPOSOfflineSession(scope: string): POSOfflineSessionState {
   // A stamp in the future means the device clock moved backwards — treat it as
   // current rather than as expired, since locking a working till over a clock
   // adjustment is the worse failure.
-  const remainingMs = Math.max(0, OFFLINE_SESSION_WINDOW_MS - Math.max(0, elapsed));
+  const remainingMs = Math.max(0, windowMs - Math.max(0, elapsed));
 
   return {
     allowed: remainingMs > 0,

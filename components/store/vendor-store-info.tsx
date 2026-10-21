@@ -148,7 +148,7 @@ function Field({
       className="border-b py-3 first:pt-0 last:border-b-0 last:pb-0"
     >
       <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        <Icon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        <Icon className="h-3.5 w-3.5 text-store-link" aria-hidden="true" />
         {label}
       </p>
       {children}
@@ -269,7 +269,7 @@ export function VendorStoreInfo({
         <Field icon={Phone} label={labels.phone}>
           <a
             href={`tel:${phone.replace(/\s+/g, "")}`}
-            className="text-sm font-medium text-primary hover:underline"
+            className="text-sm font-medium text-store-link hover:underline"
           >
             {phone}
           </a>
@@ -309,7 +309,7 @@ export function VendorStoreInfo({
                     rel="noopener noreferrer"
                     aria-label={name}
                     title={name}
-                    className="grid h-8 w-8 place-items-center rounded-lg border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                    className="grid h-8 w-8 place-items-center rounded-lg border text-muted-foreground transition-colors hover:border-primary hover:text-store-link"
                   >
                     <Glyph className="h-3.5 w-3.5" />
                   </a>
@@ -348,7 +348,7 @@ export function VendorStoreInfoMobile({
           className="flex w-full items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-muted/60"
         >
           <span className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+            <MapPin className="h-4 w-4 text-store-link" aria-hidden="true" />
             {triggerLabel}
           </span>
           <ChevronRight

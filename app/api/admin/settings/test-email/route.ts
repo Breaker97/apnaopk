@@ -7,6 +7,7 @@ import {
 } from "@/config/branding.config";
 import { createSmtpTransport, sendEmailWithOutcome } from "@/lib/email/email";
 import { escapeHtml } from "@/lib/email/escape-html";
+import { liveKeyColors } from "@/lib/storefront/themes/key-colors";
 import { getSmtpConfigurationFingerprint } from "@/lib/email/smtp-verification";
 import { revalidateSettingsContent } from "@/lib/cache-invalidation";
 import * as z from "zod";
@@ -59,7 +60,7 @@ export const POST = withApi(
       const storeName = settings.general?.storeName || DEFAULT_STORE_NAME;
       const safeStoreName = escapeHtml(storeName);
       const primaryColor = escapeHtml(
-        settings.appearance?.primaryColor || DEFAULT_PRIMARY_COLOR,
+        liveKeyColors(settings).primary || DEFAULT_PRIMARY_COLOR,
       );
 
       // One try only: a failed test that went out by itself half an hour

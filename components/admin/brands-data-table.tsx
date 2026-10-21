@@ -1,5 +1,7 @@
 "use client";
 
+import type { StaffResourceActions } from "@/lib/access/staff-resource-actions";
+
 import {
   Plus,
   Pencil,
@@ -54,6 +56,8 @@ interface Brand {
 
 interface BrandsDataTableProps {
   locale: string;
+  area?: "admin" | "staff";
+  actionAccess?: StaffResourceActions;
   /** Rows for the current query string, fetched by the page. */
   data: Brand[];
   pagination: {
@@ -66,9 +70,20 @@ interface BrandsDataTableProps {
 
 export function BrandsDataTable({
   locale,
+  area = "admin",
+  actionAccess,
   data,
   pagination,
 }: BrandsDataTableProps) {
+  const basePath = `/${locale}/${area}`;
+  const canCreate = actionAccess?.canCreate ?? true;
+  const canEdit = actionAccess?.canEdit ?? true;
+  const canDelete = actionAccess?.canDelete ?? true;
+  const canImport = canCreate && canEdit;
+  const allowsAction = useCallback(
+    (id: string) => ["delete", "archive"].includes(id) ? canDelete : canEdit,
+    [canDelete, canEdit],
+  );
   const t = useTranslations();
   const router = useRouter();
   const { confirm } = useConfirmation();
@@ -330,7 +345,7 @@ export function BrandsDataTable({
             image={row.logo}
             title={row.name}
             subtitle={`/${row.slug}`}
-            href={`/admin/brands/${row._id}/edit`}
+            href={canEdit ? `${basePath}/brands/${row._id}/edit` : undefined}
           />
         ),
         className: "w-[420px]",
@@ -396,21 +411,23 @@ export function BrandsDataTable({
       { id: "rejected", label: "Rejected" },
       { id: "archived", label: "Archived" },
     ],
-    [],
+    [basePath, canEdit],
   );
 
   const tableHeader = useMemo(
     () =>
       buildAdminCommerceTableHeader({
         title: "Brands",
-        addAction: {
+        addAction: canCreate ? {
           id: "add",
           label: "Add brand",
-          href: "/admin/brands/new",
+          href: `${basePath}/brands/new`,
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
-        },
-        importExportAction: {
+        } : undefined,
+        importExportAction: !canImport ? {
+          id: "export", label: "Export CSV", icon: <Download className="h-4 w-4" />, onClick: csv.exportCsv,
+        } : {
           id: "import-export",
           label: t("admin.productsDataTable.actions.importExport"),
           icon: <ChevronsUpDown className="h-4 w-4" />,
@@ -438,13 +455,15 @@ export function BrandsDataTable({
       csv.isExporting,
       csv.isImporting,
       csv.openFilePicker,
-      locale,
+      basePath,
+      canCreate,
+      canImport,
       t,
     ],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<Brand>[]>(
-    () => [
+    () => ([
       {
         id: "activate",
         label: "Set active",
@@ -487,12 +506,13 @@ export function BrandsDataTable({
         variant: "destructive",
         onClick: handleBulkPermanentDelete,
       },
-    ],
+    ] satisfies DataTableBulkAction<Brand>[]).filter((action) => allowsAction(action.id)),
     [
       handleBulkArchive,
       handleBulkFeaturedUpdate,
       handleBulkPermanentDelete,
       handleBulkStatusUpdate,
+      allowsAction,
     ],
   );
 
@@ -500,7 +520,7 @@ export function BrandsDataTable({
     (row: Brand): DataTableAction[] => {
       // Archived brands only offer restore.
       if (row.deletedAt) {
-        return [
+        return ([
           {
             id: "restore",
             label: "Restore",
@@ -514,7 +534,7 @@ export function BrandsDataTable({
             variant: "destructive",
             onClick: () => handlePermanentDelete(row),
           },
-        ];
+        ] satisfies DataTableAction[]).filter((action) => allowsAction(action.id));
       }
 
       const actions: DataTableAction[] = [];
@@ -543,7 +563,7 @@ export function BrandsDataTable({
           id: "edit",
           label: "Edit",
           icon: <Pencil className="h-4 w-4" />,
-          href: `/admin/brands/${row._id}/edit`,
+          href: `${basePath}/brands/${row._id}/edit`,
         },
         {
           id: row.featured ? "remove-featured" : "mark-featured",
@@ -573,10 +593,11 @@ export function BrandsDataTable({
         },
       );
 
-      return actions;
+      return actions.filter((action) => allowsAction(action.id));
     },
     [
-      locale,
+      basePath,
+      allowsAction,
       handleArchive,
       handleFeaturedUpdate,
       handleModeration,
@@ -606,7 +627,7 @@ export function BrandsDataTable({
         activeTab={list.activeTab}
         onTabChange={list.handleTabChange}
         actions={tableHeader.actions}
-        selectable
+        selectable={canEdit || canDelete}
         selectedItems={selectedBrands}
         onSelectionChange={setSelectedBrands}
         bulkActions={bulkActions}
@@ -630,9 +651,7 @@ export function BrandsDataTable({
         rowActions={rowActions}
         rowActionsHeader="Actions"
         rowActionsVariant="inline"
-        onRowClick={(row) =>
-          router.push(`/admin/brands/${row._id}/edit`)
-        }
+        onRowClick={canEdit ? (row) => router.push(`${basePath}/brands/${row._id}/edit`) : undefined}
         emptyMessage="No brands found. Create your first brand to get started."
         emptyIcon={<Tag className="h-8 w-8" />}
       />

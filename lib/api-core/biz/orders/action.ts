@@ -83,6 +83,7 @@ const CONTRACT_REASON: Record<(typeof LIB_REASONS)[keyof typeof LIB_REASONS], Or
   [LIB_REASONS.pickupConsignment]: "PICKUP_CONSIGNMENT",
   [LIB_REASONS.orderStateChanged]: "ORDER_STATE_CHANGED",
   [LIB_REASONS.otherSellersItems]: "OTHER_SELLERS_ITEMS",
+  [LIB_REASONS.carrierDelivers]: "CARRIER_DELIVERS",
 };
 
 const ORDER_NOT_FOUND = () => new MobileApiError(404, "NOT_FOUND", "Order not found.");

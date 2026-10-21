@@ -1,4 +1,5 @@
 import { backgroundAccentColor, hasBackground } from "@/lib/sliders/background";
+import { isThemeColorRef } from "@/lib/theme-colors/theme-refs";
 import {
   colorChroma,
   colorTone,
@@ -104,7 +105,7 @@ interface HeaderSchemeColors {
 /** Chroma (max − min channel, of 255) up to which a paint reads as grey. */
 const NEUTRAL_CHROMA = 40;
 /** The contrast an ink must keep on its surface to survive the scheme. */
-const MIN_INK_CONTRAST = 3;
+const MIN_INK_CONTRAST = 4.5;
 
 /** The scheme's two surfaces, each with its ink. */
 interface Surfaces {
@@ -129,12 +130,23 @@ function isNeutralLight(paint: HeaderBackground): boolean {
   );
 }
 
+/**
+ * A surface painted a theme colour (`var(--theme-…)`). It has no fixed value
+ * here: the theme repaints it for dark mode itself, with its own readable ink.
+ */
+const THEME_SURFACE = "theme";
+
+function isThemePaint(paint: HeaderBackground): boolean {
+  return paint.type === "solid" && isThemeColorRef(paint.color);
+}
+
 /** What lies beneath: the paint's own colour, else the surface it sits on. */
 function beneath(
   paint: HeaderBackground,
   surface: string | null,
 ): string | null {
-  return hasBackground(paint) ? paintColor(paint) : surface;
+  if (!hasBackground(paint)) return surface;
+  return isThemePaint(paint) ? THEME_SURFACE : paintColor(paint);
 }
 
 /** A neutral light paint becomes the scheme's surface; anything else stands. */
@@ -145,6 +157,9 @@ function resurface(paint: HeaderBackground, to: string): HeaderBackground {
 /** An ink that no longer reads on `surface` clears to the surface's own. */
 function readableInk(ink: HeaderFill, surface: string | null): HeaderFill {
   if (!surface || !hasBackground(ink)) return ink;
+  // A hex drawn for the light plate cannot be checked against a theme colour
+  // that dark mode repaints; the theme's own ink reads in either mode.
+  if (surface === THEME_SURFACE) return inheritFill();
   const color = paintColor(ink);
   if (!color) return ink;
   return contrastRatio(color, surface) >= MIN_INK_CONTRAST

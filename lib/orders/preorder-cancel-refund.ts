@@ -8,6 +8,7 @@ import {
 } from "@/lib/orders/order-refund";
 import { createRefundTransaction } from "@/lib/payments/payment-transactions";
 import { settleRefundedPaymentStatus } from "@/lib/orders/refund-payment-status";
+import { holdRefundsWrite, logRefundUnconfirmedError } from "@/lib/orders/refund-unconfirmed";
 import { quantizeToCurrency } from "@/lib/intl/money";
 import {
   consignmentCharge,
@@ -501,6 +502,14 @@ export async function refundCancelledPreorder(params: {
     ).catch((rollbackErr) =>
       console.error("Failed to roll back cancel-refund claim:", rollbackErr),
     );
+    // No answer: the refund may have been made, and the headroom just handed
+    // back is for the gateway's report to take. Held, so nobody sends it again
+    // from the order screen ahead of that report.
+    if (outcomeUnknown) {
+      await Order.updateOne(...holdRefundsWrite(order._id)).catch(
+        logRefundUnconfirmedError,
+      );
+    }
     if (params.reportFailure !== false) {
       await reportFailedCancelRefund({
         order,

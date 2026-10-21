@@ -68,7 +68,7 @@ const CARDS = [
   },
   {
     key: "hero",
-    href: "/admin/online-store/customize",
+    href: "/admin/online-store/customize?page=home",
     icon: LayoutTemplate,
     titleKey: "cardHeroTitle",
     descriptionKey: "cardHeroDescription",

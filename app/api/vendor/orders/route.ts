@@ -41,6 +41,7 @@ import { notifyOrderCreatedParticipants } from "@/lib/notifications/notification
 import { createAuditContext } from "@/lib/audit";
 import { auditOrderPlaced } from "@/lib/orders/audit-order";
 import { withApi } from "@/lib/api/handler";
+import { enforceTeamRoleForUser } from "@/lib/access/team-route-guard";
 import { fetchVendorOrderList } from "@/lib/vendors/vendor-order-list";
 import {
   auditVendorOrdersExported,
@@ -48,7 +49,12 @@ import {
 } from "@/lib/vendors/vendor-order-export";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
-import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
+import {
+  orderLineVariantSnapshot,
+  type OrderLineVariantSnapshot,
+} from "@/lib/orders/order-line-variant";
+import { priceManualOrder } from "@/lib/orders/create-admin-order";
+import { manualOrderLineTaxes } from "@/lib/orders/manual-order-tax";
 
 /**
  * GET /api/vendor/orders
@@ -134,6 +140,8 @@ type ResolvedVendorOrderLine = VendorCreateOrderLine & {
   /** Undefined when the vendor does not track a cost for this product. */
   cost?: number;
   image?: string;
+  /** The variant as it was sold (lib/orders/order-line-variant.ts). */
+  variantSnapshot: OrderLineVariantSnapshot;
 };
 
 function idsMatch(left: unknown, right?: string) {
@@ -154,6 +162,7 @@ export async function POST(request: NextRequest) {
     if (!session) throw new AuthenticationError();
 
     const user = session.user;
+    await enforceTeamRoleForUser(request, user);
     const canCreate = await hasVendorPermission(
       user,
       VENDOR_PERMISSIONS.CREATE_ORDERS,
@@ -271,25 +280,29 @@ export async function POST(request: NextRequest) {
         price: Number(variant?.price ?? product.price ?? 0),
         cost: resolveOrderItemCost({ product, variant }),
         image: variant?.image || product.images?.[0],
+        variantSnapshot: orderLineVariantSnapshot(product, line.variantId),
       };
     });
 
-    const subtotal = roundMoney(
-      resolvedLines.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    );
-    const discount = Math.min(roundMoney(body.discount), subtotal);
-    const taxableSubtotal = Math.max(subtotal - discount, 0);
-    // Rounded to what the currency can hold: 2 decimals left fractional yen.
+    // Priced as the admin's manual orders are: each line at its product's
+    // tax rate unless the form typed one, rounded to what the currency holds.
     const orderCurrency = settings.general?.defaultCurrency || "USD";
-    const tax = quantizeToCurrency(
-      taxableSubtotal * (body.taxRate / 100),
-      orderCurrency,
-    );
-    const shippingCost = quantizeToCurrency(body.shippingCost, orderCurrency);
-    const total = quantizeToCurrency(
-      taxableSubtotal + tax + shippingCost,
-      orderCurrency,
-    );
+    const { plan: taxPlan, subtotal, discount, tax, shippingCost, total } =
+      await priceManualOrder({
+        lines: resolvedLines,
+        discount: body.discount,
+        shippingCost: body.shippingCost,
+        taxRate: body.taxRate,
+        storeRate: Number(settings.orders?.taxRate) || 0,
+        currency: orderCurrency,
+      });
+    const lineTaxes = await manualOrderLineTaxes(resolvedLines, {
+      plan: taxPlan,
+      line: (item) => item,
+      discount,
+      tax,
+      currency: orderCurrency,
+    });
 
     const vendorIdString = String(vendor._id);
     const vendorGroups = new Map<string, ResolvedVendorOrderLine[]>();
@@ -307,9 +320,11 @@ export async function POST(request: NextRequest) {
       getPrice: (item) => item.price,
       getCost: (item) => item.cost,
       getImage: (item) => item.image,
+      getVariantSnapshot: (item) => item.variantSnapshot,
       fallbackCommissionPercent:
         settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
       status: "pending",
+      ...lineTaxes,
     });
 
     // The delivery charge is this parcel's, as a checkout order's would be.
@@ -325,8 +340,10 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
+    const inventoryReservationSourceId = new Types.ObjectId().toString();
+    const financeSource = { kind: "order_reservation", id: inventoryReservationSourceId };
     try {
-      await decrementInventory(inventoryLines);
+      await decrementInventory(inventoryLines, { financeSource });
     } catch (err) {
       if (err instanceof InsufficientStockError) {
         throw new ValidationError(
@@ -339,6 +356,7 @@ export async function POST(request: NextRequest) {
     let order;
     try {
       order = await Order.create({
+        inventoryReservationSourceId,
         orderNumber: await getNextOnlineOrderNumber(settings.orders?.prefix),
         currency: settings.general?.defaultCurrency || "USD",
         customerId: body.customerId,
@@ -354,6 +372,11 @@ export async function POST(request: NextRequest) {
           cost: item.cost,
           quantity: item.quantity,
           image: item.image,
+          // The tax this line carried, as its consignment line records it.
+          taxRate: lineTaxes.getTaxRate?.(item),
+          tax: lineTaxes.getTax?.(item),
+          taxParts: lineTaxes.getTaxParts?.(item),
+          ...item.variantSnapshot,
         })),
         subOrders,
         shippingAddress: body.shippingAddress,
@@ -372,7 +395,7 @@ export async function POST(request: NextRequest) {
         notes: body.notes,
       });
     } catch (err) {
-      await restoreInventory(inventoryLines).catch((restoreErr) =>
+      await restoreInventory(inventoryLines, { financeSource }).catch((restoreErr) =>
         console.error(
           "Failed to restore inventory after vendor order failure:",
           restoreErr,

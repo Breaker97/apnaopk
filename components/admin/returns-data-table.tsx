@@ -244,6 +244,8 @@ interface AdminReturnRequest {
     settledMethod?: string;
     settledReference?: string;
     settledAt?: string;
+    /** The gateway that took the refund. */
+    provider?: string;
   };
   /** What goes out instead of the money, before it is processed (R7). */
   exchangeItems?: Array<{ name: string; quantity: number }>;
@@ -1599,12 +1601,16 @@ export function ReturnsDataTable({
                             </span>
                           ) : null}
                           {/* A Pesapal refund goes only once Pesapal approves it;
-                              recording that on Payments settles this too. */}
+                              recording that on Payments settles this too. Any
+                              other gateway reports it itself once it has sent
+                              it, and this reads refunded then. */}
                           {request.refundStatus === "processing" ? (
                             <span className="text-xs text-muted-foreground">
                               {scope === "vendor"
                                 ? "Waiting on the payment provider"
-                                : "Waiting on the provider — record it under Payments once it has gone"}
+                                : request.actualRefund?.provider === "pesapal"
+                                  ? "Waiting on the provider — record it under Payments once it has gone"
+                                  : "Waiting on the provider to confirm it went"}
                             </span>
                           ) : null}
                           {request.refundPayer === "vendor" &&

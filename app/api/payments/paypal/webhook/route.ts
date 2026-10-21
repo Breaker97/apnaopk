@@ -54,7 +54,7 @@ type PayPalRefundResource = {
   /** Why PayPal declined, on a denial event. */
   status_details?: { reason?: string } | null;
   /** On a capture event: the PayPal order the capture belongs to. */
-  supplementary_data?: { related_ids?: { order_id?: string } } | null;
+  supplementary_data?: { related_ids?: { order_id?: string; capture_id?: string } } | null;
 };
 
 type PayPalWebhookEvent = {

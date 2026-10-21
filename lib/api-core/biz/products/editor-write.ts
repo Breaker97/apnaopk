@@ -73,6 +73,17 @@ import {
 import { productVersion } from "./dto";
 import { productNotFound } from "./load";
 import { ifMatchVersions } from "./update";
+import {
+  taxClassOptions,
+  vendorTaxChangePolicy,
+  type StoredTaxSettings,
+} from "@/lib/tax/tax-settings";
+import {
+  INHERITED_PRODUCT_TAX,
+  productTaxOf,
+  taxAfterWrite,
+  vendorTaxRefusal,
+} from "@/lib/tax/vendor-tax";
 
 interface WriteContext {
   actorId: string;
@@ -168,6 +179,32 @@ async function assertTaxonomy(
         "collectionIds",
       );
   }
+}
+
+/**
+ * A tax class must be one of the store's (Settings → Tax), and a class and a
+ * custom rate replace each other as on the product form: setting one clears
+ * the other, and null clears either back to the category's.
+ */
+function applyEditorTax(changes: EditorDocument, tax: StoredTaxSettings) {
+  const hasClass = typeof changes.taxClass === "string";
+  const hasRate = typeof changes.taxRate === "number";
+  if (hasClass && hasRate)
+    editorRefusal(
+      "PRODUCT_FIELD_NOT_ALLOWED",
+      "Send a tax class or a custom tax rate, not both.",
+      "taxRate",
+    );
+  if (hasClass) {
+    if (!taxClassOptions(tax).some((entry) => entry.key === changes.taxClass))
+      editorRefusal(
+        "PRODUCT_FIELD_NOT_ALLOWED",
+        "Select one of the store's tax classes.",
+        "taxClass",
+      );
+    changes.taxRate = null;
+  }
+  if (hasRate) changes.taxClass = null;
 }
 
 /** Full writes retain domain receipts indefinitely. No stock/order effect is inferred from response loss. */
@@ -409,6 +446,19 @@ export async function writeProductEditor(
                 ),
               });
             await assertTaxonomy(changes, before);
+            // A vendor works under Settings → Tax's rule for vendors' tax:
+            // a change it keeps for the store is refused, a save repeating
+            // the product's tax passes (lib/tax/vendor-tax.ts).
+            if (context.grant.workspace === "vendor") {
+              const stored = before ? productTaxOf(before) : null;
+              const refusal = vendorTaxRefusal(
+                vendorTaxChangePolicy(config.settings.tax),
+                stored,
+                taxAfterWrite(stored ?? INHERITED_PRODUCT_TAX, changes),
+              );
+              if (refusal) editorRefusal("PRODUCT_FIELD_NOT_ALLOWED", refusal, "taxClass");
+            }
+            applyEditorTax(changes, config.settings.tax);
             const options = changes.options || before?.options || [];
             const media = changes.media || before?.media || [];
             for (const variant of changes.variants || before?.variants || []) {

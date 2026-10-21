@@ -119,15 +119,35 @@ export async function commissionOwedForVendor(
   currency: string,
   range?: { periodStart?: Date; periodEnd?: Date },
   payCredit = false,
+  options: {
+    /**
+     * The most this bill may come to — what a payout has room to deduct.
+     *
+     * Over it, the bill takes the oldest sales whose commission still fits and
+     * leaves the rest for the next payout or an invoice. All or nothing used
+     * to mean a seller owing a little more than one payout was paid in full
+     * while owing more than they were sent, and one owing a little less had
+     * the whole debt taken.
+     */
+    cap?: number;
+  } = {},
 ): Promise<CommissionOwed> {
   await connectDB();
   const wanted = String(currency || "USD").trim().toUpperCase();
 
-  const orders = await financeQuery(Order.find(
-    buildCommissionOwedOrderFilter(vendorId, range),
-  ))
-    .select(PAYABLE_ORDER_PROJECTION)
-    .lean();
+  // Oldest first: a bill capped by what a payout can carry takes the oldest
+  // debts before the newer ones.
+  const orders = (
+    await financeQuery(Order.find(
+      buildCommissionOwedOrderFilter(vendorId, range),
+    ))
+      .select(PAYABLE_ORDER_PROJECTION)
+      .lean()
+  ).sort(
+    (a, b) =>
+      new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime() ||
+      String(a._id).localeCompare(String(b._id)),
+  );
 
   const refundByOrderId = await fetchRefundTotalsByOrder(
     orders.map((order) => order._id as Types.ObjectId),
@@ -135,16 +155,21 @@ export async function commissionOwedForVendor(
   // The one caller that may add delivery to the debt. A payout never does:
   // there the platform is holding the money and paying the vendor out of it,
   // so billing them for delivery would charge them twice.
-  const policy = resolveReturnPolicy(await getSettings());
-  const byCurrency = sumVendorPayable(
-    orders,
-    vendorId,
-    refundByOrderId,
-    isCommissionOwedSubOrder,
-    wanted,
-    { billVendorCodShipping: policy.billVendorCodShipping },
-  );
-  const totals = payableInCurrency(byCurrency, wanted);
+  const settings = await getSettings();
+  const policy = resolveReturnPolicy(settings);
+  // An order from before currencies were recorded is the store's own — not
+  // whichever currency this bill is raised in.
+  const storeCurrency = String(settings.general?.defaultCurrency || wanted).toUpperCase();
+  const sumOwed = (subset: typeof orders) =>
+    sumVendorPayable(
+      subset,
+      vendorId,
+      refundByOrderId,
+      isCommissionOwedSubOrder,
+      storeCurrency,
+      { billVendorCodShipping: policy.billVendorCodShipping },
+    );
+  const byCurrency = sumOwed(orders);
 
   // Commission the vendor has already paid on sales that were refunded after
   // they paid it. The platform owes it back; netting it off the next bill is
@@ -152,32 +177,80 @@ export async function commissionOwedForVendor(
   const credit = await fetchVendorCommissionCreditBalance({
     vendorId,
     currency: wanted,
+    storeCurrency,
   });
-  const grossOwed = roundMoney(totals.commissionAmount);
-  // The store's promotions on these sales come off first: the vendor collected
-  // the discounted price of goods they are owed the full price for.
-  const promotionCredit = roundMoney(totals.promotionCredit);
-  const afterPromotions = roundMoney(grossOwed - promotionCredit);
-  const creditApplied = payCredit ? credit : applyCommissionCredit(credit, afterPromotions);
-  const billed = roundMoney(afterPromotions - creditApplied);
+  // A debt the vendor owes back (negative credit) is the oldest money on the
+  // bill, so a payout with a cap takes it first — but never past the cap. Over
+  // it, the payout was left with a negative net and could not be created at
+  // all, with the seller's earnings stuck behind a debt bigger than they were.
+  // What does not fit waits for the next payout.
+  const debtRoom = options.cap === undefined ? Infinity : Math.max(0, options.cap);
+  const creditToApply =
+    payCredit && credit < 0 && -credit > debtRoom
+      ? debtRoom > 0 ? -debtRoom : 0
+      : credit;
+  const bill = (subset: typeof orders) => {
+    const totals = payableInCurrency(
+      subset === orders ? byCurrency : sumOwed(subset),
+      wanted,
+    );
+    const grossOwed = roundMoney(totals.commissionAmount);
+    // The store's promotions on these sales come off first: the vendor collected
+    // the discounted price of goods they are owed the full price for.
+    const promotionCredit = roundMoney(totals.promotionCredit);
+    const afterPromotions = roundMoney(grossOwed - promotionCredit);
+    const creditApplied = payCredit ? creditToApply : applyCommissionCredit(credit, afterPromotions);
+    const billed = roundMoney(afterPromotions - creditApplied);
+    return { totals, grossOwed, promotionCredit, creditApplied, billed };
+  };
+
+  let chosen = bill(orders);
+  if (options.cap !== undefined && chosen.billed > Math.max(0, options.cap)) {
+    chosen = bill(withinCap(orders, Math.max(0, options.cap), (subset) => bill(subset).billed));
+  }
 
   return {
     currency: wanted,
     // Only the commission column is meaningful — `netAmount` is what the
     // platform would owe the vendor, and on these sales it owes them nothing.
-    amount: Math.max(0, billed),
-    creditApplied,
-    grossOwed,
-    promotionCredit,
-    storeOwes: Math.max(0, roundMoney(-billed)),
-    grossSales: roundMoney(totals.grossSales),
-    orderCount: totals.orderIds.length,
-    orderIds: totals.orderIds,
+    amount: Math.max(0, chosen.billed),
+    creditApplied: chosen.creditApplied,
+    grossOwed: chosen.grossOwed,
+    promotionCredit: chosen.promotionCredit,
+    storeOwes: Math.max(0, roundMoney(-chosen.billed)),
+    grossSales: roundMoney(chosen.totals.grossSales),
+    orderCount: chosen.totals.orderIds.length,
+    orderIds: chosen.totals.orderIds,
     otherCurrencies: byCurrency
       .filter((row) => row.currency !== wanted && row.commissionAmount > 0)
       .map((row) => row.currency)
       .sort(),
   };
+}
+
+/**
+ * The oldest orders whose bill still fits under `cap`, in order — skipping one
+ * that would not fit rather than stopping at it, so a single large sale does
+ * not hold back the small ones behind it. Each order's own bill is read once;
+ * the chosen set is then billed as a whole (the figure the invoice will
+ * claim), and trimmed from the newest end if rounding carried it over.
+ */
+export function withinCap<T>(
+  orders: ReadonlyArray<T>,
+  cap: number,
+  billOf: (subset: T[]) => number,
+): T[] {
+  const picked: T[] = [];
+  let running = billOf([]);
+  for (const order of orders) {
+    const own = roundMoney(billOf([order]) - billOf([]));
+    if (roundMoney(running + own) <= cap) {
+      picked.push(order);
+      running = roundMoney(running + own);
+    }
+  }
+  while (picked.length > 0 && billOf(picked) > cap) picked.pop();
+  return picked;
 }
 
 /**
@@ -203,6 +276,8 @@ export async function createCommissionInvoice(input: {
    * to pay — see `CommissionInvoice.payoutId`.
    */
   payoutId?: Types.ObjectId | string;
+  /** With `payoutId`: the most the payout has room to deduct — see `commissionOwedForVendor`. */
+  cap?: number;
 }): Promise<{
   invoiceId: string;
   amount: number;
@@ -222,6 +297,7 @@ export async function createCommissionInvoice(input: {
     input.currency,
     input.range,
     Boolean(input.payoutId),
+    { cap: input.payoutId ? input.cap : undefined },
   );
   // A bill with nothing to collect is not raised — except by a payout, which
   // settles the sales it claims whichever way the balance runs, and pays the
@@ -336,6 +412,14 @@ export async function createCommissionInvoice(input: {
  * What an invoice's claim is worth: the commission on exactly the sales that
  * carry its stamp, less as much of the credit as that commission can absorb.
  */
+function loadClaimedOrders(invoiceId: Types.ObjectId | string) {
+  return financeQuery(Order.find({
+    "subOrders.commissionSettlementId": invoiceId,
+  }))
+    .select(PAYABLE_ORDER_PROJECTION)
+    .lean();
+}
+
 async function billedOnClaim(params: {
   invoiceId: Types.ObjectId;
   vendorId: Types.ObjectId;
@@ -343,21 +427,20 @@ async function billedOnClaim(params: {
   /** The credit the read offered this bill — never more than it could take. */
   creditAvailable: number;
   payCredit?: boolean;
+  /** Orders already read for this claim, when the caller needs them too. */
+  orders?: Awaited<ReturnType<typeof loadClaimedOrders>>;
 }): Promise<{
   amount: number;
   creditApplied: number;
   storeOwes: number;
   orderIds: string[];
 }> {
-  const orders = await financeQuery(Order.find({
-    "subOrders.commissionSettlementId": params.invoiceId,
-  }))
-    .select(PAYABLE_ORDER_PROJECTION)
-    .lean();
+  const orders = params.orders ?? (await loadClaimedOrders(params.invoiceId));
   const refundByOrderId = await fetchRefundTotalsByOrder(
     orders.map((order) => order._id as Types.ObjectId),
   );
-  const policy = resolveReturnPolicy(await getSettings());
+  const settings = await getSettings();
+  const policy = resolveReturnPolicy(settings);
   const totals = payableInCurrency(
     sumVendorPayable(
       orders,
@@ -366,7 +449,7 @@ async function billedOnClaim(params: {
       (sub) =>
         String((sub as { commissionSettlementId?: unknown }).commissionSettlementId) ===
         String(params.invoiceId),
-      params.currency,
+      String(settings.general?.defaultCurrency || params.currency).toUpperCase(),
       { billVendorCodShipping: policy.billVendorCodShipping },
     ),
     params.currency,
@@ -385,6 +468,84 @@ async function billedOnClaim(params: {
     storeOwes: Math.max(0, roundMoney(-billed)),
     orderIds: totals.orderIds,
   };
+}
+
+/**
+ * Whether the sales a payout's commission deduction was worked out from still
+ * add up to what it deducted — read at the moment the payout is paid.
+ *
+ * A payout fixes its commission offset and any promotion credit it pays when it
+ * is made, and the cash sales behind them are claimed through the invoice, not
+ * through the payout's own order claims. A refund that lands on one of those
+ * cash sales in between changes what the store owes, and a payout that looked
+ * only at its own order claims paid the old figure: an 80 promotion credit for
+ * a sale that had been refunded in full.
+ *
+ * The same arithmetic the claim was billed with, run again over exactly the
+ * sales that carry the invoice's stamp, and compared with what the invoice
+ * recorded. Also returns when each sale was claimed, for the caller's refund
+ * check.
+ */
+export async function describeCommissionClaimChange(
+  invoiceId: Types.ObjectId | string,
+): Promise<{ reason: string | null; claimedAtByOrder: Map<string, Date> }> {
+  const claimedAtByOrder = new Map<string, Date>();
+  const settlementId = new Types.ObjectId(String(invoiceId));
+  const invoice = await financeQuery(CommissionInvoice.findById(settlementId))
+    .select("vendorId currency amount storeOwes creditApplied payoutId createdAt")
+    .lean<{
+      vendorId: Types.ObjectId;
+      currency: string;
+      amount?: number;
+      storeOwes?: number;
+      creditApplied?: number;
+      payoutId?: Types.ObjectId | null;
+      createdAt?: Date;
+    } | null>();
+  if (!invoice) return { reason: null, claimedAtByOrder };
+
+  const orders = await loadClaimedOrders(settlementId);
+  for (const order of orders) {
+    for (const sub of order.subOrders ?? []) {
+      const claim = sub as {
+        vendorId?: unknown;
+        status?: string;
+        commissionSettlementId?: unknown;
+        commissionClaimedAt?: Date | null;
+      };
+      if (String(claim.commissionSettlementId) !== String(settlementId)) continue;
+      if (String(claim.vendorId) !== String(invoice.vendorId)) continue;
+      if (claim.status !== "delivered") {
+        return {
+          reason: "A sale whose commission this payout settles is no longer delivered.",
+          claimedAtByOrder,
+        };
+      }
+      claimedAtByOrder.set(
+        String(order._id),
+        new Date(claim.commissionClaimedAt ?? invoice.createdAt ?? 0),
+      );
+    }
+  }
+
+  const billed = await billedOnClaim({
+    invoiceId: settlementId,
+    vendorId: invoice.vendorId,
+    currency: invoice.currency,
+    creditAvailable: Number(invoice.creditApplied || 0),
+    payCredit: Boolean(invoice.payoutId),
+    orders,
+  });
+  if (
+    billed.amount !== roundMoney(Number(invoice.amount || 0)) ||
+    billed.storeOwes !== roundMoney(Number(invoice.storeOwes || 0))
+  ) {
+    return {
+      reason: "The commission settled in this payout changed after it was made.",
+      claimedAtByOrder,
+    };
+  }
+  return { reason: null, claimedAtByOrder };
 }
 
 /**

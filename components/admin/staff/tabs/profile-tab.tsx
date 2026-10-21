@@ -11,15 +11,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import {
+  MemberStatusControl,
+  type MemberStatusChoice,
+} from "@/components/admin/team/member-status-control";
+import { useAdminPhrase } from "@/hooks/use-admin-phrase";
 import type {
   StaffFormValues,
   StaffHeaderData,
@@ -36,6 +33,11 @@ interface ProfileTabProps {
   stats: StaffStats | null;
   onSendInvite: () => void;
   invitePending: boolean;
+  /** Active, Paused or Suspended: the account status and the access switch, as one. */
+  statusChoice: MemberStatusChoice;
+  onStatusChoice: (next: MemberStatusChoice) => void;
+  /** The owner's and your own status are not changed here. */
+  statusLocked?: boolean;
   readOnly?: boolean;
 }
 
@@ -57,8 +59,12 @@ export function ProfileTab({
   stats,
   onSendInvite,
   invitePending,
+  statusChoice,
+  onStatusChoice,
+  statusLocked = false,
   readOnly = false,
 }: ProfileTabProps) {
+  const tr = useAdminPhrase();
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
@@ -129,28 +135,6 @@ export function ProfileTab({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="staff-status">Account status</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(value) =>
-                    setField("status", value as StaffFormValues["status"])
-                  }
-                  disabled={readOnly}
-                >
-                  <SelectTrigger id="staff-status" className="w-full">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="banned">Banned</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Banned or inactive blocks sign-in entirely
-                </p>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="staff-job-title">Job title</Label>
                 <Input
                   id="staff-job-title"
@@ -182,28 +166,14 @@ export function ProfileTab({
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Staff access</CardTitle>
-            <CardDescription>
-              Toggle staff access without removing the profile
-            </CardDescription>
+            <CardTitle>{tr("Status", "স্ট্যাটাস")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Active</p>
-                <p className="text-xs text-muted-foreground">
-                  {form.isActive
-                    ? "Staff can access their dashboard"
-                    : "Staff access is suspended"}
-                </p>
-              </div>
-              <Switch
-                checked={form.isActive}
-                onCheckedChange={(checked) => setField("isActive", checked)}
-                disabled={readOnly}
-                aria-label="Staff access"
-              />
-            </div>
+            <MemberStatusControl
+              value={statusChoice}
+              onChange={onStatusChoice}
+              disabled={readOnly || statusLocked}
+            />
           </CardContent>
         </Card>
 

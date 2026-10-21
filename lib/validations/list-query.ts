@@ -1,4 +1,7 @@
 import * as z from "zod";
+import { USER_ACCOUNT_STATUS } from "@/config/app.config";
+import { DASHBOARD_PERIODS } from "@/lib/admin/dashboard-period";
+import { DAY_RANGE_PATTERN } from "@/lib/date-filter";
 
 /**
  * Paginated list-query schemas shared by admin API routes and the client-side
@@ -34,6 +37,42 @@ export const AdminListQuerySchema = z.object({
   sortBy: z.string().optional(),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
+
+/**
+ * Admin vendor list query params: the Vendors page's filter row. Every select
+ * takes "all" too, so a link carrying one still parses instead of dropping
+ * every param back to the defaults.
+ */
+export const AdminVendorListQuerySchema = AdminListQuerySchema.extend({
+  /** When the vendor joined: a named period, or two days joined by "_" (see `lib/date-filter.ts`). */
+  date: z
+    .union([z.enum(DASHBOARD_PERIODS), z.string().regex(DAY_RANGE_PATTERN)])
+    .optional(),
+  /** The owner's login, which is separate from the vendor's own status. */
+  account: z.enum(["all", ...Object.values(USER_ACCOUNT_STATUS)]).optional(),
+  /** The storefront's Verified badge. */
+  verified: z.enum(["all", "yes", "no"]).optional(),
+  /** `storeActive`: whether the storefront is open. */
+  store: z.enum(["all", "open", "closed"]).optional(),
+  /** Where the commission rate came from (`commissionSource`). */
+  commission: z.enum(["all", "default", "plan", "manual"]).optional(),
+});
+
+export type AdminVendorListQuery = z.infer<typeof AdminVendorListQuerySchema>;
+
+/** The filter row's params; each select's "all" is no filter. */
+export type AdminVendorListFilters = Pick<
+  AdminVendorListQuery,
+  "date" | "account" | "verified" | "store" | "commission"
+>;
+
+/** The filter row's params out of a parsed query, for passing on unchanged. */
+export function pickVendorListFilters(
+  query: AdminVendorListFilters,
+): AdminVendorListFilters {
+  const { date, account, verified, store, commission } = query;
+  return { date, account, verified, store, commission };
+}
 
 /**
  * Product list query params with filters

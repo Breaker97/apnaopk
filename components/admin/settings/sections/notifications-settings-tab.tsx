@@ -171,6 +171,10 @@ export function NotificationsSettingsTab(props: {
         title: t("events.vendor.preorderAccess.title"),
         hint: t("events.vendor.preorderAccess.hint"),
       },
+      payouts: {
+        title: t("events.vendor.payouts.title"),
+        hint: t("events.vendor.payouts.hint"),
+      },
     },
     customer: {
       orderUpdates: {

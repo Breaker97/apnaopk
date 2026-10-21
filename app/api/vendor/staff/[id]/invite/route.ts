@@ -24,6 +24,7 @@ import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { defaultLocale, isValidLocale } from "@/config/i18n.config";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { staffInviteEmailHtml } from "@/lib/email/staff-invite-email";
+import { emailBrand } from "@/lib/email/brand-colors";
 import { createAuditContext } from "@/lib/audit";
 import { auditStaffInvited } from "@/lib/access/audit-staff";
 
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         storeName,
         roleLabel: "a staff member",
         inviteUrl,
+        brand: emailBrand(settings),
       }),
       settings,
     });

@@ -1,0 +1,1 @@
+export { InventoryAdjustmentRequest as InventoryAdjustmentSchema, InventoryReceiptRequest as InventoryReceiptSchema, InventoryRevaluationRequest as InventoryRevaluationSchema } from "@/contracts/mobile/biz/v1/inventory-finance";

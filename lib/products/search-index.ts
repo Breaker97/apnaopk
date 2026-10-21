@@ -1,3 +1,4 @@
+import type { AnyBulkWriteOperation } from "mongodb";
 import { unstable_cache } from "next/cache";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
@@ -64,16 +65,22 @@ export async function backfillProductSearchIndex(
   let updated = 0;
   let batches = 0;
   let truncated = false;
-  let operations: {
-    updateOne: {
-      filter: { _id: unknown };
-      update: { $set: { search: ReturnType<typeof buildProductSearchIndex> } };
-    };
-  }[] = [];
+  let operations: AnyBulkWriteOperation[] = [];
 
   const flush = async () => {
     if (operations.length === 0) return;
-    const result = await Product.bulkWrite(operations, { ordered: false });
+    // The raw driver, on purpose. The inventory finance hooks refuse any
+    // model-level bulk write whose JSON mentions stock, cost, shipping and the
+    // like, so that stock never moves without movement evidence. A search
+    // block is made of the product's own words, and a product that says
+    // "stock" in its copy got the whole batch rejected, which broke
+    // `pnpm db:seed` and the `product-search` migration. `search` is derived
+    // from the document and holds no inventory, so there is nothing to
+    // record. This also leaves `updatedAt` alone: re-indexing does not edit
+    // the product.
+    const result = await Product.collection.bulkWrite(operations, {
+      ordered: false,
+    });
     updated += result.modifiedCount + result.upsertedCount;
     operations = [];
     batches += 1;

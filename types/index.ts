@@ -449,6 +449,8 @@ export interface VendorCarrierSettings {
 
 export interface VendorShippingProfile {
   enabled: boolean;
+  /** Absent on legacy profiles: both methods, subject to configured pickup branches. */
+  fulfillmentMode?: import("@/lib/vendors/vendor-fulfillment").VendorFulfillmentMode;
   weightUnit?: "kg" | "lb";
   carriers?: VendorCarrierSettings;
   origin?: {
@@ -538,6 +540,10 @@ export interface ICategory {
   image?: string;
   icon?: string;
   parentId?: Types.ObjectId;
+  /** Percent; null takes the category's tax class, then the parent's, then the store's. See lib/tax/tax-rates.ts. */
+  taxRate?: number | null;
+  /** Settings → Tax class key; null takes the parent's. */
+  taxClass?: string | null;
   order: number;
   isActive: boolean;
   featured: boolean;
@@ -930,6 +936,8 @@ export interface ProductVariant {
 }
 
 export interface IProduct {
+  inventoryFinanceGeneration?: number;
+  inventoryFinanceCurrency?: string;
   /** Internal mobile stock mutation receipts, written atomically with stock. */
   stockAdjustmentReceipts?: Array<{ key: string; hash: string; appliedAt: Date; durable?: boolean }>;
   _id: Types.ObjectId;
@@ -955,6 +963,10 @@ export interface IProduct {
    * API refuses the line — see lib/products/quote-pricing.ts.
    */
   priceOnRequest?: boolean;
+  /** Percent; null takes the tax class's, then the category's, then the store's. See lib/tax/tax-rates.ts. */
+  taxRate?: number | null;
+  /** Settings → Tax class key; null takes the category's. */
+  taxClass?: string | null;
   /** Merchant's own wording for the quote button. Empty falls back to i18n. */
   quoteButtonLabel?: string;
   sku: string;
@@ -1100,6 +1112,12 @@ export interface CartItem {
    * the cart endpoints, like the seller — see lib/returns/final-sale.ts.
    */
   finalSale?: boolean;
+  /**
+   * The product's own tax rate (a fraction) when it or its category sets one;
+   * absent, the store's applies. Attached per line by the cart endpoints —
+   * see lib/tax/tax-rates.ts.
+   */
+  taxRate?: number;
 }
 
 export interface ICart {
@@ -1171,6 +1189,8 @@ export interface ICart {
 // ============================================
 
 export interface OrderItem {
+  inventoryLineId?: string;
+  inventoryFinanceGeneration?: number;
   productId: Types.ObjectId;
   variantId?: Types.ObjectId;
   vendorId: Types.ObjectId;
@@ -1218,6 +1238,12 @@ export interface OrderItem {
   };
   /** This line's share of the coupon's goods discount — see the Order model. */
   couponDiscount?: number;
+  /** Percent this line was taxed at, when lines carry their own rates. */
+  taxRate?: number;
+  /** The tax this line carried, when lines carry their own rates. */
+  tax?: number;
+  /** That tax by part (state, county) — lib/tax/tax-parts.ts. */
+  taxParts?: Array<{ name: string; rate: number; amount: number; compound?: boolean }>;
   // Per-line discount (applied before any order-level discount)
   lineDiscount?: {
     type: "percent" | "amount";
@@ -1226,6 +1252,16 @@ export interface OrderItem {
   };
   // Per-line note attached by the cashier
   lineNote?: string;
+  /**
+   * The variant as it was sold, copied when the order was placed — see
+   * lib/orders/order-line-variant.ts. Absent on older orders.
+   */
+  variantLabel?: string;
+  variantOptions?: Array<{ name: string; value: string }>;
+  variantSku?: string;
+  compareAtPrice?: number;
+  /** `compareAtPrice` is net of tax like `price` (tax-inclusive POS lines, review G on). */
+  compareAtPriceNet?: boolean;
 }
 
 interface OrderShippingMethod {
@@ -1376,6 +1412,10 @@ export interface SubOrder {
   paymentStatus?: PaymentStatus;
   paidAt?: Date;
   /** This consignment's slice of a scoped coupon; absent means shared by sales. */
+  /** Tax this consignment carried, where lines have their own rates. */
+  tax?: number;
+  /** That tax by part (state, county) — lib/tax/tax-parts.ts. */
+  taxParts?: Array<{ name: string; rate: number; amount: number; compound?: boolean }>;
   couponDiscount?: number;
   /** What a free-shipping coupon took off this consignment's delivery. */
   shippingDiscount?: number;
@@ -1400,6 +1440,9 @@ export interface SubOrder {
   carrier?: string;
   shippedAt?: Date;
   deliveredAt?: Date;
+  /** Who said it was delivered — see lib/orders/delivery-attestation.ts. */
+  deliveryAttestedBy?: "carrier" | "vendor" | "admin" | "counter";
+  inventoryFinanceCycle?: number;
   inventoryReserved?: boolean;
   preorderReserved?: boolean;
   /** The seller's "goods available" — see the order model. */
@@ -1448,6 +1491,8 @@ export interface OrderReturnTerms
 }
 
 export interface IOrder {
+  inventoryReservationSourceId?: string;
+  inventoryFinanceVersion?: number;
   _id: Types.ObjectId;
   orderNumber: string;
   customerId: Types.ObjectId;
@@ -1519,6 +1564,8 @@ export interface IOrder {
   refundLockAt?: Date;
   /** An in-app refund is between its reservation and its row. */
   refundInFlightAt?: Date;
+  /** A gateway never answered a refund: new gateway refunds wait while this stands. */
+  refundUnconfirmedAt?: Date;
   /** Client-generated idempotency key for POS sales. */
   posClientRequestId?: string;
   /**
@@ -1526,6 +1573,38 @@ export interface IOrder {
    * no connection. The customer holds this, not `orderNumber`.
    */
   posLocalReceiptNumber?: string;
+  /**
+   * When a replayed offline sale reached the server. `createdAt` and `paidAt`
+   * are the sale's own time; this keeps the arrival. See models/order.model.ts.
+   */
+  posSyncedAt?: Date;
+  /** A phone-only customer's guest profile (POS). See models/order.model.ts. */
+  posCustomerProfileId?: string;
+  /** That customer's name, as the till took it. */
+  posCustomerName?: string;
+  /** How a counter sale was paid, tender by tender. See models/order.model.ts. */
+  posTenders?: Array<{
+    method: string;
+    amount: number;
+    tendered?: number;
+    change?: number;
+    reference?: string;
+    cardSubMethod?: string;
+    stripePaymentIntentId?: string;
+    kind?: "sale" | "balance";
+    collectedAt?: Date | string;
+    collectedBy?: string;
+    requestId?: string;
+    sessionId?: string;
+  }>;
+  /** The register session (drawer) the sale was rung up in. */
+  posRegisterSessionId?: string;
+  /** What a deposit sale still owes. */
+  posBalanceDue?: number;
+  /** Rung up at shelf prices that include tax; stored net. */
+  pricesIncludeTax?: boolean;
+  /** Sold without tax at the till, and why. */
+  taxExemption?: { reason: string; reference?: string; by?: string; at?: Date };
   /** Lines a replayed offline sale drove negative. See models/order.model.ts. */
   posOversoldLines?: Array<{
     productId?: string;

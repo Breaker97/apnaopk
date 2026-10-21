@@ -31,7 +31,7 @@ export default async function AdminReturnsPage({ params }: PageProps) {
           refunds through the original payment method when available.
         </p>
       </div>
-      <Suspense fallback={<AdminStatsStripSkeleton items={4} />}>
+      <Suspense fallback={<AdminStatsStripSkeleton items={5} />}>
         <ReturnsStatsStrip locale={locale} staffScope={staffScope} />
       </Suspense>
       {/* Money moves on an admin's authority alone — staff were offered the

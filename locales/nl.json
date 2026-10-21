@@ -165,13 +165,15 @@
     "getHelp": "Hulp krijgen",
     "brands": "Merken",
     "vendors": "Verkopers",
-    "compare": "Vergelijken"
+    "compare": "Vergelijken",
+    "inbox": "Inbox"
   },
   "home": {
     "heroTitle": "Welkom bij {storeName}",
     "heroSubtitle": "Ontdek geweldige producten van geverifieerde verkopers. Koop met vertrouwen en geniet van een vlotte levering tot aan je deur.",
     "shopByCategory": "Winkel per categorie",
     "shopByCategoryDescription": "Blader door onze grote selectie producten, gesorteerd per categorie",
+    "shopAllInCategory": "Alles in {name} bekijken",
     "viewAllCategories": "Bekijk alle categorieën",
     "whyChooseUs": "Waarom {storeName}?",
     "whyChooseUsDescription": "Wij bieden de beste winkelervaring met functies die voor jou zijn gemaakt",
@@ -277,7 +279,8 @@
     "addToBag": "In winkelwagen",
     "sortBy": "Sorteren op",
     "color": "Kleur",
-    "colors": "Kleuren"
+    "colors": "Kleuren",
+    "percentOff": "{percent}% KORTING"
   },
   "reviews": {
     "basedOn": "Gebaseerd op {count} beoordelingen",
@@ -592,7 +595,10 @@
     "featuredProducts": "Uitgelichte producten"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "Search categories..."
+    "searchPlaceholder": "Search categories...",
+    "count": "{count, plural, one {# categorie} other {# categorieën}}",
+    "perRowGroup": "Categorieën per rij",
+    "perRow": "{count} per rij"
   },
   "errors": {
     "pageNotFound": "Pagina niet gevonden",
@@ -1481,7 +1487,7 @@
             "ses": "Amazon SES",
             "other": "Anders"
           },
-          "docs": "Volledige uitleg: docs/EMAIL_SETUP.md",
+          "docs": "Volledige uitleg: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "Zet 2-Step Verification aan voor het Google-account waarmee je gaat versturen.",
             "step2": "Maak een app-wachtwoord met de naam {storeName} en kopieer het wachtwoord van 16 letters. Google toont het maar één keer.",
@@ -1659,6 +1665,10 @@
             "preorderAccess": {
               "title": "Pre-ordertoegang",
               "hint": "Goedgekeurd, afgewezen of ingetrokken"
+            },
+            "payouts": {
+              "title": "Uitbetalingen",
+              "hint": "Voorbereid, verstuurd, teruggekomen of geannuleerd"
             }
           },
           "customer": {
@@ -1746,9 +1756,8 @@
       },
       "orders": {
         "title": "Bestelinstellingen",
-        "description": "Bestelnummers, belasting en retouren.",
+        "description": "Bestelnummers, verzending en retouren.",
         "prefix": "Voorvoegsel bestelnummer",
-        "taxRate": "Belastingtarief",
         "shippingCost": "Standaardverzending",
         "freeShippingThreshold": "Gratis verzending vanaf",
         "shippingHandledByZones": "Tarieven komen uit je verzendzones.",
@@ -1796,7 +1805,6 @@
         "shippingRefundNever": "Nooit",
         "ordersHeading": "Bestellingen",
         "prefixExample": "Bestelnummers zien eruit als <strong>{example}</strong>.",
-        "taxRateHint": "Wordt bij het afrekenen en in de kassa bij bestellingen opgeteld.",
         "shipping": "Verzending",
         "shippingLink": "Verzending en levering",
         "shippingCostHint": "Wat een bestelling voor bezorging betaalt zolang verzendzones uit staan.",
@@ -1812,7 +1820,18 @@
         "commissionSummaryLabel": "Commissie en minimale uitbetaling",
         "commissionSummary": "{rate}% commissie, minimale uitbetaling {amount}.",
         "vendorConfigLink": "Verkopersconfiguratie",
-        "refundAdminFeeUpTo": "% tot maximaal"
+        "refundAdminFeeUpTo": "% tot maximaal",
+        "tax": "Btw",
+        "taxMoved": "Btw-tarieven, btw-klassen en je registratie staan nu in Btw-instellingen.",
+        "taxLink": "Btw-instellingen openen"
+      },
+      "invoices": {
+        "title": "Factuurinstellingen",
+        "entry": {
+          "title": "Facturen, bonnen en stickers",
+          "description": "Ontwerp wat je winkel afdrukt en kies per soort het standaardsjabloon.",
+          "action": "Factuurinstellingen openen"
+        }
       },
       "seo": {
         "title": "SEO-instellingen",
@@ -2380,7 +2399,20 @@
         "soundPayment": "Betaling geaccepteerd",
         "soundOrderComplete": "Verkoop voltooid",
         "soundError": "Fout of voorraadwaarschuwing",
-        "soundPlay": "Geluid afspelen: {sound}"
+        "soundPlay": "Geluid afspelen: {sound}",
+        "offlineWindow": "Offline verkoopvenster",
+        "offlineWindowHint": "Hoe lang een kassa zonder verbinding blijft verkopen nadat deze de server voor het laatst heeft bereikt. Daarna wordt hij vergrendeld tot hij weer kan inloggen. Tussen {min} en {max} uur.",
+        "offlineWindowUnit": "uur",
+        "allowDeposits": "Aanbetalingen toestaan",
+        "allowDepositsDesc": "De kassa mag bij een verkoop met een gekoppelde klant nu een deel afrekenen en de rest later. De goederen worden apart gezet, en de verkoop wordt geboekt zodra alles is betaald.",
+        "requireOpenRegister": "Open lade verplicht om te verkopen",
+        "requireOpenRegisterDesc": "Elke kassa moet haar lade openen met een wisselgeldbedrag voordat ze een verkoop afrekent, zodat elke verkoop in een sessie valt die bij het sluiten wordt geteld.",
+        "pricesIncludeTax": "Prijzen inclusief btw",
+        "openCashDrawer": "Kassalade openen",
+        "openCashDrawerDesc": "Open de kassalade wanneer er aan de kassa contant geld wordt gewisseld. Vereist QZ Tray en een bonprinter met ladepoort; elke kassa kiest haar printer in het lademenu.",
+        "pricesIncludeTaxMovedOn": "Aan: schapprijzen zijn al inclusief btw. Deze schakelaar staat nu in Btw-instellingen.",
+        "pricesIncludeTaxMovedOff": "Uit: btw wordt bij de schapprijzen opgeteld. Deze schakelaar staat nu in Btw-instellingen.",
+        "pricesIncludeTaxLink": "Btw-instellingen openen"
       },
       "vendorPermissions": {
         "title": "Marktplaatsbeleid",
@@ -2464,7 +2496,7 @@
         },
         "setup": {
           "title": "{provider} installatiegids",
-          "docs": "Volledige uitleg: docs/STORAGE_SETUP.md",
+          "docs": "Volledige uitleg: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "Kopiëren",
           "copyFailed": "Kopiëren mislukt",
           "console": {
@@ -2594,7 +2626,7 @@
           "step6": "Na het eerste ophalen toont Catalog → Issues elk artikel dat Meta heeft afgewezen.",
           "caution": "Wijzig na het genereren van een nieuwe URL de URL van de bestaande gegevensbron. Een tweede gegevensbron zou elk product twee keer tonen.",
           "link": "Commerce Manager openen",
-          "docs": "Volledige uitleg: docs/META_CATALOG.md"
+          "docs": "Volledige uitleg: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook en Instagram krijgen je productwijzigingen binnen enkele minuten via de Catalog API van Meta.",
         "source": {
@@ -2674,7 +2706,7 @@
             "caution": "Behandel het token als een wachtwoord. Als het wordt ingetrokken of verloopt, pauzeert de live-synchronisatie en krijgen beheerders een melding.",
             "off": "Als je live-synchronisatie uitzet, blijven de artikelen die al in Meta staan zoals ze zijn. Verwijder ze in Commerce Manager als je ze niet meer wilt.",
             "link": "Business settings openen",
-            "docs": "Volledige uitleg: docs/META_CATALOG.md"
+            "docs": "Volledige uitleg: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -2855,11 +2887,13 @@
           "byCurrencyLabel": "Minimum in andere valuta’s",
           "byCurrencyRemove": "Het minimum voor {currency} verwijderen",
           "description": "Geldt voor verkopers zonder abonnement. Ook te bewerken onder Bestelinstellingen.",
-          "minWithdrawalDescription": "Het kleinste saldo dat een verkoper als uitbetaling kan aanvragen, in de valuta van je winkel.",
+          "minWithdrawalDescription": "Kleinste saldo waarvoor een uitbetaling wordt gedaan, in de valuta van je winkel.",
           "minWithdrawalLabel": "Minimaal opnamebedrag",
           "rateDescription": "Percentage dat het platform op elke verkoop van een verkoper houdt.",
           "rateLabel": "Commissiepercentage",
-          "title": "Standaardcommissie"
+          "title": "Standaardcommissie",
+          "autoPayoutDraftsLabel": "Uitbetalingen klaarzetten volgens het schema van elke verkoper",
+          "autoPayoutDraftsDescription": "Op de uitbetalingsdag van een verkoper (wekelijks, om de twee weken of maandelijks, zoals die heeft gekozen) wordt een uitbetaling klaargezet zodra er genoeg is om uit te betalen. Je verstuurt het geld nog steeds zelf en markeert het als betaald."
         },
         "description": "Beleid voor registratie, goedkeuring en abonnementen van verkopers.",
         "documents": {
@@ -3186,6 +3220,221 @@
       "saveBar": {
         "unsaved": "Niet-opgeslagen wijzigingen",
         "discard": "Verwerpen"
+      },
+      "tax": {
+        "title": "Btw-instellingen",
+        "description": "Wat je rekent, waar je geregistreerd bent en hoe btw wordt berekend.",
+        "tabsLabel": "Onderdelen van btw-instellingen",
+        "moreOptions": "Meer opties",
+        "tabs": {
+          "rates": "Tarieven",
+          "registration": "Registratie",
+          "calculation": "Berekening",
+          "vendors": "Verkopers"
+        },
+        "links": {
+          "report": "Btw-rapport",
+          "invoices": "Factuurinstellingen"
+        },
+        "registrationMissingLabel": "Registratienummer ontbreekt",
+        "rates": {
+          "description": "Wat elke klasse wordt gerekend. Producten zonder klasse krijgen het standaardtarief.",
+          "notCharging": "Er wordt geen btw gerekend",
+          "notChargingHint": "Elk tarief is 0%, dus geen enkele verkoop wordt belast. Stel hieronder het standaardtarief in om btw te gaan rekenen.",
+          "removedClass": "Sommige producten gebruiken een klasse die niet meer bestaat",
+          "removedClassHint": "{products, plural, one {# product} other {# producten}} en {categories, plural, one {# categorie} other {# categorieën}} zijn ingedeeld bij een verwijderde klasse en krijgen daarom het standaardtarief. Kies in hun editor een klasse voor ze.",
+          "default": "Basisklasse",
+          "partsBadge": "{count, plural, one {# onderdeel} other {# onderdelen}}",
+          "neverCharged": "Nooit belast",
+          "noRate": "Nog geen tarief. Het standaardtarief wordt gerekend totdat je er een instelt.",
+          "rateLabel": "Tarief {name}",
+          "rateTotalLabel": "Tarief {name}, het totaal van de onderdelen",
+          "expandLabel": "Opties voor {name}",
+          "usageProducts": "{count, plural, one {# product} other {# producten}}",
+          "usageCategories": "{count, plural, one {# categorie} other {# categorieën}}",
+          "next": "Wordt {rate} op {date}",
+          "name": "Naam",
+          "note": "Notitie",
+          "optional": "optioneel",
+          "notePlaceholder": "Wat in deze klasse valt",
+          "partsTitle": "Onderdelen van het tarief",
+          "total": "Totaal {rate}",
+          "partName": "Naam van onderdeel",
+          "partRate": "Tarief van onderdeel",
+          "partPlaceholder1": "Staat",
+          "partPlaceholder2": "County",
+          "partPlaceholder3": "Stad",
+          "compound": "Bovenop de onderdelen hierboven gerekend",
+          "compoundHint": "Onderdelen worden opgeteld, zoals de verkoopbelasting van een staat, een county en een stad. Een onderdeel dat bovenop wordt gerekend, wordt berekend over de prijs plus de onderdelen erboven.",
+          "addPart": "Onderdeel toevoegen",
+          "splitIntoParts": "Splitsen in onderdelen",
+          "removePart": "Dit onderdeel verwijderen",
+          "scheduleTitle": "Geplande wijziging",
+          "scheduleAdd": "Wijziging plannen",
+          "startsOn": "Gaat in op",
+          "newRate": "Nieuw tarief",
+          "removeScheduled": "Deze geplande wijziging verwijderen",
+          "earlierTitle": "Eerdere tarieven",
+          "earlierLine": "{rate} vanaf {date}",
+          "fromStart": "Vanaf het begin",
+          "removeEarlier": "Dit eerdere tarief verwijderen",
+          "removeClass": "Klasse verwijderen",
+          "removeClassInUse": "{products, plural, one {# product} other {# producten}} en {categories, plural, one {# categorie} other {# categorieën}} gebruiken deze klasse. Na het verwijderen krijgen ze het standaardtarief.",
+          "removeClassHint": "De tarieven worden mee verwijderd.",
+          "addClass": "Klasse toevoegen",
+          "newName": "Naam van de klasse",
+          "newNamePlaceholder": "Boeken",
+          "classRate": "Tarief",
+          "add": "Klasse toevoegen",
+          "cancel": "Annuleren",
+          "full": "Je kunt maximaal {count} klassen toevoegen.",
+          "untaxedNote": "{count, plural, one {# product is} other {# producten zijn}} ingesteld om geen btw te rekenen.",
+          "customNote": "{products, plural, one {# product} other {# producten}} en {categories, plural, one {# categorie} other {# categorieën}} hebben een eigen aangepast tarief. Dat volgt de tarieven hier niet; als je ze onder een klasse zet, lopen ze mee."
+        },
+        "registration": {
+          "description": "Waar je winkel voor de btw is geregistreerd. Elke verkoop wordt belast tegen de tarieven van deze regio.",
+          "missing": "Geen registratienummer",
+          "missingHint": "Je rekent belasting, maar hebt je belastingregistratie nog niet toegevoegd, zoals het nummer van je verkoopbelastingvergunning.",
+          "country": "Land",
+          "name": "Naam van de regio",
+          "optional": "optioneel",
+          "nameHint": "Als dit leeg is, wordt de naam van het land getoond.",
+          "registrationLabel": "Naam van de registratie",
+          "registrationLabelPlaceholder": "Verkoopbelastingvergunning",
+          "registrationLabelHint": "Hoe je belastingdienst het noemt: verkoopbelastingvergunning, verkopersvergunning.",
+          "registrationNumber": "Registratienummer",
+          "registrationNumberHint": "Het nummer dat je belastingdienst je heeft gegeven."
+        },
+        "calculation": {
+          "posTitle": "Kassa",
+          "posDescription": "Hoe schapprijzen aan de kassa worden gelezen.",
+          "posPricesIncludeTax": "Schapprijzen inclusief btw",
+          "posPricesIncludeTaxDesc": "De kassa rekent de prijs op het schap en toont de btw die erin zit, in plaats van btw erbovenop te rekenen.",
+          "rulesTitle": "Zo wordt btw berekend",
+          "rulesDescription": "Deze regels gelden voor elke verkoop. Hier valt niets in te stellen.",
+          "chainTitle": "Een product krijgt de eerste hiervan die is ingesteld",
+          "chain": {
+            "own": "Zijn eigen aangepaste tarief",
+            "class": "Zijn btw-klasse",
+            "category": "Het tarief van zijn categorie",
+            "standard": "Het standaardtarief"
+          },
+          "facts": {
+            "online": {
+              "label": "Webwinkel",
+              "text": "In de webwinkel worden prijzen zonder btw getoond; btw wordt bij het afrekenen toegevoegd."
+            },
+            "discounts": {
+              "label": "Kortingen",
+              "text": "Btw wordt berekend over wat de klant betaalt, na kortingen en kortingsbonnen."
+            },
+            "shipping": {
+              "label": "Verzending",
+              "text": "Verzending en douanerechten worden niet belast."
+            },
+            "region": {
+              "label": "Regio",
+              "text": "Elke verkoop wordt belast tegen de tarieven van je regio, ongeacht het adres van de klant."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "Standaard",
+            "description": "De meeste goederen. Het tarief van deze klasse is het btw-tarief van je winkel."
+          },
+          "reduced": {
+            "name": "Verlaagd",
+            "description": "Goederen die volgens de wet tegen een lager tarief worden belast."
+          },
+          "zero": {
+            "name": "Nultarief",
+            "description": "Belastbare goederen tegen 0%."
+          },
+          "exempt": {
+            "name": "Vrijgesteld",
+            "description": "Goederen die volledig buiten de btw vallen."
+          }
+        },
+        "picker": {
+          "label": "Btw",
+          "inheritCategory": "Zelfde als de categorie",
+          "inheritParent": "Zelfde als de bovenliggende categorie",
+          "custom": "Eigen tarief",
+          "customRate": "Eigen btw-tarief",
+          "customHint": "Een eigen tarief gaat voor elke klasse en volgt geen tariefwijzigingen in Btw-instellingen.",
+          "hint": "De klasse bepaalt het tarief, ingesteld onder Instellingen → Btw-instellingen.",
+          "removedClass": "{key} (verwijderd: standaardtarief)"
+        },
+        "vendors": {
+          "policyTitle": "Btw op producten van verkopers",
+          "policyDescription": "Je winkel is verantwoordelijk voor de btw die de marktplaats int. Kies wie de btw van de producten van een verkoper mag wijzigen: Btw rekenen, de btw-klasse en eigen tarieven.",
+          "policy": {
+            "approval": "Met jouw goedkeuring",
+            "approvalHint": "Verkopers sturen een aanvraag, die je hieronder goedkeurt of afwijst. Tot die tijd houden hun producten hun btw.",
+            "never": "Alleen jij",
+            "neverHint": "Verkopers zien de btw van hun producten, maar kunnen die niet wijzigen of erom vragen.",
+            "free": "Verkopers zelf",
+            "freeHint": "Verkopers wijzigen de btw van hun eigen producten zonder te vragen."
+          },
+          "requestsTitle": "Aanvragen voor btw-wijziging",
+          "requestsDescription": "Goedkeuren zet de gevraagde btw op elk product in de aanvraag. Afwijzen laat hun btw ongewijzigd en laat de verkoper weten waarom.",
+          "pendingTab": "Wachtend",
+          "decidedTab": "Beantwoord",
+          "loading": "Aanvragen laden…",
+          "empty": "Er wachten geen aanvragen.",
+          "emptyDecided": "Er zijn nog geen aanvragen beantwoord.",
+          "loadFailed": "De aanvragen konden niet worden geladen",
+          "unknownStore": "Onbekende winkel",
+          "requestedOn": "Aangevraagd op {date}",
+          "asksFor": "Vraagt",
+          "now": "nu {tax}",
+          "moreProducts": "{count, plural, one {en nog # product} other {en nog # producten}}",
+          "reason": "Reden",
+          "noteLabel": "Notitie voor de verkoper",
+          "noteRequiredHint": "nodig om af te wijzen",
+          "optional": "optioneel",
+          "notePlaceholder": "Een korte notitie voor de verkoper",
+          "addNote": "Notitie toevoegen",
+          "noteRequired": "Schrijf een notitie zodat de verkoper weet waarom",
+          "approve": "Goedkeuren",
+          "decline": "Afwijzen",
+          "cancel": "Annuleren",
+          "sendDecline": "Afwijzing versturen",
+          "approvedToast": "Btw-wijziging goedgekeurd",
+          "declinedToast": "Aanvraag afgewezen",
+          "decisionFailed": "De beslissing kon niet worden opgeslagen",
+          "pending": "Wachtend",
+          "approved": "Goedgekeurd",
+          "declined": "Afgewezen",
+          "withdrawn": "Ingetrokken",
+          "decisionNote": "Notitie: {note}"
+        },
+        "request": {
+          "notCharged": "Geen btw",
+          "inherit": "Zelfde als de categorie",
+          "customRate": "Eigen tarief {rate}%",
+          "lockedLabel": "Btw",
+          "lockedApproval": "De winkel keurt wijzigingen in de btw van dit product goed.",
+          "lockedNever": "De winkel beheert de btw van dit product.",
+          "newProductApproval": "Een nieuw product krijgt de btw van zijn categorie. Zodra het is opgeslagen, kun je een andere btw aanvragen.",
+          "requestChange": "Wijziging aanvragen",
+          "pending": "Wijziging aangevraagd: {tax}. Wacht op de winkel.",
+          "withdraw": "Intrekken",
+          "withdrawn": "Aanvraag ingetrokken",
+          "withdrawFailed": "De aanvraag kon niet worden ingetrokken",
+          "dialogTitle": "Btw-wijziging aanvragen",
+          "dialogDescription": "{count, plural, one {De winkel beoordeelt je aanvraag. Tot de goedkeuring houdt het product zijn huidige btw.} other {De winkel beoordeelt je aanvraag voor # producten. Tot de goedkeuring houden ze hun huidige btw.}}",
+          "chargeTax": "Btw rekenen",
+          "reason": "Waarom moet de btw veranderen?",
+          "reasonPlaceholder": "Bijvoorbeeld: deze artikelen zijn in onze staat vrijgesteld van verkoopbelasting.",
+          "reasonTooShort": "Voeg een zin toe over waarom de btw moet veranderen.",
+          "send": "Aanvraag versturen",
+          "cancel": "Annuleren",
+          "sent": "Aanvraag naar de winkel verstuurd",
+          "sendFailed": "De aanvraag kon niet worden verstuurd",
+          "bulkAction": "Btw-wijziging aanvragen"
+        }
       }
     },
     "sidebar": {
@@ -3199,6 +3448,7 @@
       "productCard": "Productkaart",
       "finance": "Financiën",
       "financeOverview": "Overzicht",
+      "inventoryLedger": "Voorraad en grootboek",
       "expenses": "Uitgaven",
       "payouts": "Uitbetalingen",
       "receivables": "Vorderingen",
@@ -3236,7 +3486,6 @@
       "pages": "Pagina's",
       "pos": "Kassa",
       "posLocations": "Locaties",
-      "posStaff": "Personeel",
       "preorders": "Voorbestellingen",
       "products": "Producten",
       "returns": "Retouren",
@@ -3244,6 +3493,7 @@
       "salesChannels": "Verkoopkanalen",
       "shipping": "Verzending",
       "sliders": "Sliders",
+      "campaignBanners": "Campagnebanners",
       "staff": "Team",
       "themes": "Thema's",
       "toggle": "Zijbalk tonen of verbergen",
@@ -3386,6 +3636,19 @@
         "selected": "{count} geselecteerd",
         "deleteSelected": "Selectie verwijderen",
         "dropzoneTitle": "Sleep bestanden hierheen of klik om te bladeren"
+      },
+      "leave": {
+        "title": "Verlaten zonder op te slaan?",
+        "descriptionNew": "Dit product is nog niet opgeslagen. Als je nu weggaat, gaat wat je hebt ingevoerd hier verloren; deze browser bewaart een kopie die je de volgende keer dat je een product toevoegt kunt herstellen.",
+        "descriptionEdit": "Je wijzigingen aan dit product zijn niet opgeslagen. Als je nu weggaat, gaan ze verloren.",
+        "confirm": "Verlaten",
+        "cancel": "Blijven"
+      },
+      "draft": {
+        "title": "Niet-opgeslagen product gevonden",
+        "body": "Deze browser heeft een product van {time} bewaard dat nooit is opgeslagen.",
+        "restore": "Herstellen",
+        "discard": "Verwijderen"
       }
     },
     "onlineStorePage": {
@@ -4522,18 +4785,31 @@
         "settings": "Thema-instellingen",
         "css": "Eigen CSS"
       },
-      "customCss": {
-        "title": "Eigen CSS"
-      },
       "preview": {
         "pages": {
+          "product": "Productpagina",
           "home": "Startpagina",
           "products": "Producten",
           "cart": "Winkelwagen",
           "search": "Zoeken"
-        }
+        },
+        "desktop": "Desktop",
+        "mobile": "Mobiel",
+        "hint": "Live voorbeeld — toont niet-opgeslagen wijzigingen.",
+        "open": "Winkel openen",
+        "title": "Winkelvoorbeeld",
+        "page": "Voorbeeldpagina"
       },
-      "launchTitle": "Thema-instellingen"
+      "customCss": {
+        "title": "Eigen CSS",
+        "description": "Regels die na de eigen stijlen van het thema worden toegevoegd, op elke winkelpagina. Per thema opgeslagen — wissel je van thema, dan geldt de eigen stylesheet van dat thema. Gebruik voor kleuren, typografie en vormen liever de Thema-instellingen; gebruik dit voor de details die je daar niet kunt aanpassen.",
+        "hint": "Beperk regels tot .store-surface, zodat ze nooit in het beheer terechtkomen.",
+        "save": "CSS opslaan",
+        "saved": "Eigen CSS opgeslagen"
+      },
+      "launchTitle": "Thema-instellingen",
+      "launchDescription": "Kleuren, typografie, indeling, vormen en knoppen voor het actieve thema, bewerkt naast een live voorbeeld van je winkel. Per thema opgeslagen — wissel je van thema, dan gelden de eigen instellingen van dat thema.",
+      "launch": "Thema-editor openen"
     },
     "phrases": {
       "guest": "Gast",
@@ -4577,7 +4853,163 @@
       "team_members_exported": "Teamleden geëxporteerd",
       "team_members_could_not_be_exported": "Teamleden konden niet worden geëxporteerd",
       "vendors_exported": "Verkopers geëxporteerd",
-      "vendors_could_not_be_exported": "Verkopers konden niet worden geëxporteerd"
+      "vendors_could_not_be_exported": "Verkopers konden niet worden geëxporteerd",
+      "area": "Gebied",
+      "view": "Bekijken",
+      "manage": "Beheren",
+      "failed_to_load_the_role": "Rol laden mislukt",
+      "name_is_required": "Naam is verplicht",
+      "failed_to_save_the_role": "Rol opslaan mislukt",
+      "role_updated": "Rol bijgewerkt",
+      "role_created": "Rol aangemaakt",
+      "failed_to_delete_the_role": "Rol verwijderen mislukt",
+      "role_deleted": "Rol verwijderd",
+      "edit_role": "Rol bewerken",
+      "new_role": "Nieuwe rol",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "Een rol is wat de leden ervan mogen doen. Een wijziging geldt voor alle leden.",
+      "save_role": "Rol opslaan",
+      "role_details": "Roldetails",
+      "name": "Naam",
+      "dashboard": "Dashboard",
+      "admin_dashboard": "Beheerdashboard",
+      "staff_area": "Personeelsomgeving",
+      "any_permission_in_the_admin_dashboard": "Elke bevoegdheid, in het beheerdashboard",
+      "store_records_and_the_till_in_the_staff_area": "Winkelgegevens en de kassa, in de personeelsomgeving",
+      "every_permission": "Alle bevoegdheden",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "De Beheerder heeft altijd alle bevoegdheden, ook later toegevoegde. Geef een beheerder een andere rol om hem te beperken.",
+      "delete_this_role": "Deze rol verwijderen?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "Een rol met leden kan niet worden verwijderd; geef ze eerst een andere rol.",
+      "roles": "Rollen",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "Wat elk soort teamlid mag doen. Geef een lid een rol op zijn pagina.",
+      "create_role": "Rol aanmaken",
+      "built_in": "Ingebouwd",
+      "members": "leden",
+      "view_role": "Rol bekijken",
+      "the_store_owner_always_holds_every_permission": "De winkeleigenaar heeft altijd alle bevoegdheden.",
+      "the_home_screen_s_figures": "De cijfers op het startscherm",
+      "returns_refunds": "Retouren en terugbetalingen",
+      "quotes": "Offertes",
+      "price_requests_and_offers": "Prijsaanvragen en aanbiedingen",
+      "applications_stores_plans_and_commissions": "Aanvragen, winkels, abonnementen en commissies",
+      "payouts": "Uitbetalingen",
+      "manage_sends_vendors_their_money": "Beheren stuurt verkopers hun geld",
+      "payments": "Betalingen",
+      "transactions_and_chargebacks": "Transacties en terugboekingen",
+      "finance": "Financiën",
+      "ledger_expenses_periods_and_reports": "Grootboek, uitgaven, perioden en rapporten",
+      "marketing": "Marketing",
+      "boosts": "Boosts",
+      "sponsored_products": "Gesponsorde producten",
+      "online_store": "Onlinewinkel",
+      "theme_pages_menus_sliders_checkout": "Thema, pagina's, menu's, sliders, afrekenen",
+      "blog": "Blog",
+      "posts_categories_comments": "Berichten, categorieën, reacties",
+      "ai_sales_agent": "AI-verkoopassistent",
+      "its_settings_and_conversations": "Zijn instellingen en gesprekken",
+      "ai_studio": "AI-studio",
+      "all_accounts": "Alle accounts",
+      "every_sign_in_on_the_store": "Elke aanmelding in de winkel",
+      "settings": "Instellingen",
+      "store_settings": "Winkelinstellingen",
+      "sensitive_settings": "Gevoelige instellingen",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "Betaalproviders, opslag, e-mail-/sms-providers, aanmelden, beveiliging, vervoerders",
+      "activity_log": "Activiteitenlog",
+      "who_did_what": "Wie wat deed",
+      "team": "Team",
+      "manage_adds_and_edits_members_within_your_own_permissions": "Beheren voegt leden toe en bewerkt ze, binnen je eigen bevoegdheden",
+      "create_and_change_roles": "Rollen aanmaken en wijzigen",
+      "member": "lid",
+      "permission": "machtiging",
+      "role": "Rol",
+      "staff": "Personeel",
+      "abandoned_checkouts": "Verlaten afrekeningen",
+      "added_for_this_member": "Toegevoegd voor dit lid",
+      "all": "Alles",
+      "all_vendors_and_locations_including_ones_added_later": "Alle verkopers en locaties, ook later toegevoegde",
+      "also_catalogues_for_ads": "Ook catalogi voor advertenties",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "Beantwoordt de inbox en bekijkt bestellingen en klanten",
+      "brands": "Merken",
+      "campaign_banners": "Campagnebanners",
+      "can": "Kan",
+      "can_sign_in_and_work": "Kan inloggen en werken.",
+      "can_t": "Kan niet",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "Kan niet inloggen en het wachtwoord niet resetten. Voor iemand die in onmin is vertrokken.",
+      "can_t_sign_in_turn_back_on_any_time": "Kan niet inloggen. Op elk moment weer aan te zetten.",
+      "cashier": "Kassamedewerker",
+      "catalog": "Catalogus",
+      "categories": "Categorieën",
+      "changed": "Gewijzigd",
+      "changed_from_the_role": "Anders dan de rol",
+      "create": "Aanmaken",
+      "creating_and_cancelling_orders_stays_with_the_store": "Bestellingen aanmaken en annuleren blijft bij de winkel",
+      "customer_accounts_are_changed_by_the_store": "Klantaccounts worden door de winkel gewijzigd",
+      "discounts_gift_cards": "Kortingen en cadeaubonnen",
+      "every_staff_permission": "Alle personeelsbevoegdheden",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "Alles wat een lid van het beheerdashboard kan krijgen, per onderdeel.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "Alles wat een lid van de personeelsomgeving kan krijgen, per onderdeel.",
+      "everything_except_deleting_records": "Alles behalve records verwijderen",
+      "everything_in_the_staff_area_deleting_included": "Alles in de personeelsomgeving, verwijderen inbegrepen",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "Alles wat deze rol kan krijgen, per onderdeel. Gestreepte vakjes wijken af van de rol.",
+      "everywhere": "Overal",
+      "gives_access": "Geeft toegang",
+      "inbox": "Inbox",
+      "invite": "Uitnodiging",
+      "manage_the_till": "Kassa beheren",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "Kassa beheren omvat kortingen, kassarapporten en balies",
+      "moderate": "Modereren",
+      "money": "Geld",
+      "moves_money": "Verplaatst geld",
+      "new_team_member": "Nieuw teamlid",
+      "nothing_yet": "Nog niets",
+      "online_store_reports": "Onlinewinkel en rapporten",
+      "only_in_the_admin_dashboard": "Alleen in het beheerdashboard",
+      "only_these": "Alleen deze",
+      "open_past_the_return_window": "Openen na de retourtermijn",
+      "pause": "Pauzeren",
+      "paused": "Gepauzeerd",
+      "permissions": "Bevoegdheden",
+      "permissions_given": "Gegeven bevoegdheden",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "Kies Manager of Administrator om een hiervan te geven. Personeel werkt in de personeelsomgeving en aan de kassa.",
+      "pick_vendors_locations_or_regions_below": "Kies hieronder verkopers, locaties of regio's",
+      "point_of_sale": "Kassasysteem (POS)",
+      "popups_and_bars_on_the_home_page": "Pop-ups en balken op de startpagina",
+      "refund": "Terugbetalen",
+      "refund_sends_money_back_to_the_customer": "Terugbetalen stuurt geld terug naar de klant",
+      "reply": "Beantwoorden",
+      "reviews": "Beoordelingen",
+      "rings_up_sales_at_the_register": "Rekent verkopen af aan de kassa",
+      "role_name": "Rolnaam",
+      "role_name_e_g_floor_lead": "Rolnaam, bijv. Vloerleider",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "Rollen die je op het scherm Rollen maakt, verschijnen hier als extra kaarten.",
+      "sales_associate": "Verkoopmedewerker",
+      "save_as_a_role": "Opslaan als rol",
+      "scope": "Bereik",
+      "secrets": "Geheimen",
+      "selling": "Verkoop",
+      "send_recovery_emails": "Herinneringsmails sturen",
+      "shift_lead": "Ploegleider",
+      "staff_area_pos": "Personeelsomgeving en kassa",
+      "start_from": "Beginnen vanaf",
+      "status": "Status",
+      "store_admin": "Winkelbeheer",
+      "summary": "Samenvatting",
+      "support_agent": "Supportmedewerker",
+      "suspended": "Geschorst",
+      "taken_away_for_this_member": "Weggenomen voor dit lid",
+      "the_books": "De boekhouding",
+      "the_register_orders_customers_and_the_inbox": "De kassa, bestellingen, klanten en de inbox",
+      "use": "Gebruiken",
+      "use_the_register": "De kassa gebruiken",
+      "watch": "Let op",
+      "what_this_staff_member_can_do_by_area": "Wat dit personeelslid kan doen, per onderdeel.",
+      "where_they_work": "Werkplek",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "Waar ze werken en waarmee ze beginnen. Je kunt hieronder elke bevoegdheid voor dit lid wijzigen.",
+      "works_in_the_admin_dashboard": "Werkt in het beheerdashboard",
+      "works_in_the_staff_area_and_at_the_till": "Werkt in de personeelsomgeving en aan de kassa",
+      "writes_copy_and_images_with_the_store_s_ai_key": "Schrijft teksten en afbeeldingen met de AI-sleutel van de winkel",
+      "anything_only_in_the_admin_dashboard": "alles wat alleen in het beheerdashboard staat",
+      "this_member": "dit lid",
+      "by_role": "Volgens rol"
     },
     "dashboardPage": {
       "ordersDescription": "Totalen voor de gekozen periode, verdeeld per verkoopkanaal.",
@@ -4608,6 +5040,10 @@
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "Retouren (30 dagen)",
+          "description": "{count} nog open"
+        },
         "needsReview": {
           "title": "Te beoordelen",
           "description": "Goedkeuren of afwijzen"
@@ -4668,7 +5104,7 @@
       "enterFullscreen": "Volledig scherm",
       "exitFullscreen": "Volledig scherm sluiten",
       "reset": "Standaardwaarden herstellen",
-      "personalNote": "Alleen voor jou, in deze browser. De logo's, kleuren en standaardweergave van je winkel stel je in bij Webwinkel → Thema's → Huisstijl.",
+      "personalNote": "Alleen voor jou, in deze browser. De logo's en standaardweergave van je winkel stel je in bij Webwinkel → Thema's → Huisstijl, de kleuren bij Thema-instellingen.",
       "darkMode": "Donkere modus",
       "contrast": "Contrast",
       "rtl": "Rechts naar links",
@@ -4676,7 +5112,12 @@
       "sidebar": "Zijbalk",
       "sidebarColor": "Kleur",
       "sidebarIntegrate": "Geïntegreerd",
-      "sidebarApparent": "Opvallend"
+      "sidebarApparent": "Opvallend",
+      "sidebarPaint": "Zijbalk kleuren met",
+      "sidebarPaintPrimary": "Primair",
+      "sidebarPaintSecondary": "Secundair",
+      "sidebarPaintHint": "Gebruikt de kleuren van je actieve thema.",
+      "sidebarPaintChange": "Wijzigen"
     },
     "preorderAccess": {
       "vendorFallback": "Verkoper",
@@ -4886,7 +5327,10 @@
           "countryOfOrigin": "Landnaam of tweeletterige code, bijv. BD.",
           "hsCode": "Douanetariefcode.",
           "barcode": "EAN-13, UPC-A, GTIN-14 of Code 128. Leeg: wordt automatisch gegenereerd.",
-          "vendorId": "De verkoper bij wie een product hoort, zoals in een verkopersexport. Standaard: je eigen winkel."
+          "vendorId": "De verkoper bij wie een product hoort, zoals in een verkopersexport. Standaard: je eigen winkel.",
+          "chargeTax": "true of false: btw heffen op dit product. Standaard: true.",
+          "taxClass": "Een btw-klasse uit Btw-instellingen: standard, reduced, zero, exempt of een die je zelf hebt toegevoegd. Schrijf inherit om weer de btw van de categorie te gebruiken.",
+          "taxRate": "Een eigen btw-tarief in procenten, bijv. 7.5. Het vervangt de btw-klasse, dus vul taxClass of taxRate in, niet allebei."
         },
         "title": "Producten importeren",
         "description": "Voeg in één keer nieuwe producten toe of werk bestaande bij vanuit een CSV- of JSON-bestand.",
@@ -5342,7 +5786,9 @@
       "actions": {
         "export": "Exporteren",
         "import": "Importeren",
-        "addCollection": "Collectie toevoegen"
+        "addCollection": "Collectie toevoegen",
+        "importExport": "Importeren / Exporteren",
+        "downloadSample": "Voorbeeldbestand downloaden"
       },
       "bulkActions": {
         "delete": "Verwijderen"
@@ -5364,6 +5810,67 @@
           "confirm": "Bijwerken",
           "cancel": "Annuleren"
         }
+      },
+      "importDialog": {
+        "title": "Collecties importeren",
+        "description": "Voeg in één keer nieuwe collecties toe of werk bestaande bij vanuit een CSV-bestand.",
+        "sampleTitle": "Begin met het voorbeeldbestand",
+        "sampleDescription": "Het bevat de kolommen die de import leest en twee voorbeeldcollecties, één manual en één automated. Vervang de voorbeelden door je eigen collecties, laat de eerste rij ongewijzigd en upload het bestand hier.",
+        "sampleCsv": "Voorbeeld-CSV",
+        "sampleFailed": "Het voorbeeldbestand kon niet worden gedownload",
+        "dropTitle": "Kies een bestand of sleep het hierheen",
+        "dropHint": "CSV · maximaal {rows} collecties · {size} MB",
+        "removeFile": "Bestand verwijderen",
+        "fileTooLarge": "Dit bestand is groter dan {size} MB. Splits het in kleinere bestanden.",
+        "wrongType": "Kies een .csv-bestand.",
+        "rulesTitle": "Zo worden rijen geïmporteerd",
+        "rules": {
+          "match": "Een rij met de id of slug van een bestaande collectie werkt die collectie bij. Een rij met geen van beide wordt op titel gezocht en maakt een nieuwe collectie aan als er niets overeenkomt.",
+          "blank": "Een lege cel houdt de huidige waarde van de collectie. Een nieuwe collectie begint als manual en als draft.",
+          "products": "Een manual-collectie noemt haar producten op slug, SKU of naam, gescheiden door |. De producten moeten al bestaan; een naam zonder match wordt overgeslagen en gemeld. Een lege productcel houdt de huidige producten.",
+          "conditions": "Een automated-collectie heeft minstens één regel nodig in de kolom conditions, geschreven als JSON zoals het voorbeeld in het kolomoverzicht."
+        },
+        "columnsTitle": "Kolomoverzicht",
+        "required": "Verplicht voor nieuwe collecties",
+        "columns": {
+          "title": "Naam van de collectie.",
+          "slug": "Het webadres van de collectie. Leeg: gemaakt van de titel. Vindt ook de collectie die wordt bijgewerkt.",
+          "id": "Alleen in geëxporteerde bestanden. Vindt precies de collectie die wordt bijgewerkt.",
+          "description": "Korte beschrijving in platte tekst.",
+          "descriptionHtml": "Volledige beschrijving. HTML is toegestaan.",
+          "imageUrl": "Een openbare afbeeldingslink (https://…) voor de omslag van de collectie.",
+          "imageAlt": "Alternatieve tekst voor de omslagafbeelding. Leeg: de titel wordt gebruikt.",
+          "collectionType": "manual of automated. Nieuwe collecties zijn manual, tenzij het bestand iets anders aangeeft.",
+          "status": "active of draft. Nieuwe collecties zijn draft, tenzij het bestand iets anders aangeeft.",
+          "products": "Voor manual-collecties: productslugs, SKU’s of namen gescheiden door |, bijv. blue-shirt|red-shirt.",
+          "productIds": "Alleen in geëxporteerde bestanden: product-id’s gescheiden door |. Wordt samen met products gebruikt.",
+          "conditions": "Voor automated-collecties: de regels als JSON-lijst. Velden: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all of any: of een product aan alle regels moet voldoen of maar aan één. Standaard: all.",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc of created-desc.",
+          "position": "Een getal dat deze collectie in lijsten sorteert. Lager komt eerst.",
+          "onlineStore": "true of false: de collectie tonen in de webwinkel. Standaard: true.",
+          "pointOfSale": "true of false: tonen bij de kassa. Standaard: false.",
+          "seoPageTitle": "De titel die zoekmachines tonen voor de collectiepagina.",
+          "seoMetaDescription": "De beschrijving die zoekmachines tonen voor de collectiepagina."
+        },
+        "cancel": "Annuleren",
+        "submit": "Collecties importeren",
+        "importing": "Bezig met importeren… Grote bestanden kunnen een minuut duren. Houd dit venster open.",
+        "requestFailed": "Het bestand kon niet worden geïmporteerd. Probeer het opnieuw.",
+        "resultTitle": "Import voltooid",
+        "resultFailedTitle": "Het bestand kon niet worden geïmporteerd",
+        "created": "Aangemaakt",
+        "updated": "Bijgewerkt",
+        "failed": "Mislukt",
+        "warnings": "Opmerkingen",
+        "errorsTitle": "Rijen die niet zijn geïmporteerd",
+        "errorsHint": "Corrigeer deze rijen in je bestand en importeer het opnieuw. Rijen die al zijn geïmporteerd werken dezelfde collecties bij in plaats van kopieën toe te voegen.",
+        "rowLabel": "Rij {row}",
+        "fileLabel": "Bestand",
+        "moreErrors": "…en nog {count} in de downloadbare lijst.",
+        "downloadErrors": "Foutenlijst downloaden",
+        "importAnother": "Nog een bestand importeren",
+        "done": "Klaar"
       }
     },
     "categoriesDataTable": {
@@ -5544,6 +6051,7 @@
         "genericError": "Er is een fout opgetreden"
       },
       "mega": {
+        "shopAll": "Alles in {name} bekijken",
         "categories": "Categorieën",
         "addLink": "Link toevoegen",
         "viewAllCategories": "Bekijk alle categorieën",
@@ -5716,22 +6224,68 @@
     "payoutsPage": {
       "title": "Uitbetalingen",
       "createSection": {
-        "selectVendor": "Kies een verkoper"
+        "selectVendor": "Kies een verkoper",
+        "title": "Uitbetaling aanmaken",
+        "periodStart": "Begin periode (optioneel)",
+        "periodEnd": "Einde periode",
+        "creating": "Bezig met aanmaken...",
+        "create": "Aanmaken",
+        "optionalNote": "Optionele notitie",
+        "description": "Betaalt een verkoper uit wat nu uitbetaalbaar is: geleverde verkopen waarvan de retourtermijn voorbij is, min wat de verkoper verschuldigd is.",
+        "searchVendor": "Verkopers zoeken",
+        "noVendor": "Geen verkoper gevonden",
+        "searching": "Zoeken…",
+        "vendorMissing": "Deze verkoper bestaat niet meer",
+        "suspended": "Geschorst — uitbetalingen zijn bevroren",
+        "startHint": "Laat leeg om elke uitbetaalbare verkoop tot de einddatum mee te nemen.",
+        "frozen": "Deze verkoper is geschorst, dus uitbetalingen zijn bevroren. De verkopen blijven meetellen tot de verkoper weer is hersteld.",
+        "belowMinimum": "{amount} is lager dan de minimale uitbetaling van {minimum}.",
+        "orderCount": "{count, plural, one {# bestelling} other {# bestellingen}} in deze uitbetaling.",
+        "moreThanMax": "Alleen de oudste {count} uitbetaalbare bestellingen passen in één uitbetaling; de rest gaat mee in de volgende.",
+        "sellerConfirmed": "{count, plural, one {# levering is} other {# leveringen zijn}} bevestigd door de verkoper, niet door een vervoerder.",
+        "commissionLeft": "{amount} aan commissie die de verkoper verschuldigd is, past niet in deze uitbetaling en blijft openstaan."
       },
       "listSection": {
         "allStatuses": "Alle statussen",
         "columns": {
           "vendor": "Verkoper",
           "amount": "Bedrag",
-          "period": "Periode"
+          "period": "Periode",
+          "payout": "Uitbetaling",
+          "status": "Status",
+          "details": "Details"
         },
-        "open": "Openen"
+        "open": "Openen",
+        "title": "Uitbetalingsrondes",
+        "searchPlaceholder": "Zoek op uitbetalingsnummer of verkoper",
+        "empty": "Geen uitbetalingen gevonden."
       },
       "statuses": {
         "processing": "Wordt verwerkt",
         "paid": "Betaald",
         "failed": "Mislukt",
-        "cancelled": "Geannuleerd"
+        "cancelled": "Geannuleerd",
+        "pending": "In afwachting"
+      },
+      "subtitle": "Maak afrekenrondes voor verkopers aan en volg de levenscyclus van uitbetalingen.",
+      "pagination": {
+        "pageOf": "Pagina {page} van {totalPages}"
+      },
+      "toast": {
+        "requiredFields": "Kies een verkoper en een einddatum.",
+        "createSuccess": "Uitbetaling aangemaakt.",
+        "createError": "Uitbetaling aanmaken mislukt"
+      },
+      "sendTo": {
+        "title": "Ontvanger",
+        "missing": "Geen bankrekening bekend. Vraag de verkoper er een toe te voegen in de instellingen, of betaal contant of via een betaalprovider.",
+        "accountName": "Naam rekeninghouder",
+        "accountNumber": "Rekeningnummer",
+        "bankName": "Bank",
+        "routingNumber": "Routingnummer",
+        "swiftCode": "SWIFT",
+        "show": "Rekeningnummer tonen",
+        "copy": "{field} kopiëren"
       }
     },
     "paymentTransactionsPage": {
@@ -5859,26 +6413,255 @@
     "navigationHub": {
       "title": "Navigatie"
     },
+    "customizeHub": {
+      "title": "Aanpassen",
+      "description": "Kies een winkelpagina om aan te passen."
+    },
     "themeEditor": {
+      "presets": {
+        "default": "Blauw",
+        "cyan": "Cyaan",
+        "purple": "Paars",
+        "blue": "Zwart",
+        "orange": "Oranje",
+        "red": "Rood"
+      },
+      "colorMode": "Kleurmodus",
+      "darkFollows": "Donker volgt automatisch je lichte kleuren. Klik op een kleur om die alleen voor donker in te stellen.",
+      "advancedColors": "Geavanceerd",
+      "advancedLowContrast": "Een kleur hier is slecht leesbaar",
+      "sections": {
+        "page": "Pagina",
+        "text": "Tekst",
+        "sales": "Aanbiedingen en beoordelingen",
+        "lines": "Lijnen",
+        "states": "Statussen",
+        "soft": "Zachte achtergronden"
+      },
+      "sourceDefault": "Themastandaard",
+      "sourceAuto": "Auto",
+      "sourceCustom": "Aangepast",
+      "colorSource": "Kleurbron",
+      "autoDarkHint": "Volgt je lichte kleuren, aangepast zodat het zichtbaar is op een donkere pagina.",
+      "defaultHint": "De eigen kleur van het thema, gekozen om goed samen te gaan met de rest.",
+      "usedFor": "Gebruikt voor",
+      "useReadable": "{color} gebruiken",
+      "backToAuto": "Terug naar auto",
+      "resetToDefault": "Terugzetten naar themastandaard",
+      "textAuto": "Automatische tekstkleur",
+      "accentUse": "Uitgelicht- en menulabels",
+      "saleUse": "Kortingen en aanbiedingsprijzen",
+      "lowContrastOn": "Slecht zichtbaar op {surface} ({ratio}:1). Streef naar {minimum}:1.",
+      "groups": {
+        "colors": {
+          "description": "Alleen {theme} gebruikt deze kleuren. Je andere thema's houden hun eigen kleuren.",
+          "label": "Kleuren"
+        },
+        "type": {
+          "label": "Typografie",
+          "description": "Lettertypen en opmaak voor koppen, lopende tekst en knoppen."
+        },
+        "layout": {
+          "label": "Indeling",
+          "description": "Paginabreedte en de algemene standaarden die hero- en bannersecties overnemen."
+        },
+        "shape": {
+          "label": "Vormen",
+          "description": "Hoeken, randen en schaduw. Exacte waarden, in pixels."
+        },
+        "buttons": {
+          "label": "Knoppen",
+          "description": "Grootte en gedrag van actieknoppen."
+        }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "Achtergrond",
+          "hint": "Achter elke pagina."
+        },
+        "surface": {
+          "label": "Kaarten en menu's",
+          "hint": "Panelen, pop-ups, keuzelijsten en menu's."
+        },
+        "surfaceAlt": {
+          "label": "Banden en chips",
+          "hint": "Secties met een band, afbeeldingsachtergronden en neutrale chips."
+        },
+        "text": {
+          "label": "Tekst",
+          "hint": "Koppen en lopende tekst."
+        },
+        "textMuted": {
+          "label": "Secundaire tekst",
+          "hint": "Bijschriften, categorieën, plaatshouders."
+        },
+        "border": {
+          "label": "Scheidingslijnen",
+          "hint": "Lijnen tussen secties en rond kaarten."
+        },
+        "primary": {
+          "label": "Primaire knop",
+          "hint": "Hoofdknoppen, het aantal in winkelwagen en de lijnen onder actieve tabbladen."
+        },
+        "onPrimary": {
+          "label": "Tekst op primair",
+          "hint": "Labels op primaire knoppen."
+        },
+        "secondary": {
+          "label": "Secundaire knop",
+          "hint": "“In winkelwagen” en de andere secundaire knoppen."
+        },
+        "onSecondary": {
+          "label": "Tekst op secundair",
+          "hint": "Het label op de knop “In winkelwagen”."
+        },
+        "accent": {
+          "label": "Accent",
+          "hint": "Het label Uitgelicht op productkaarten en badges in het winkelmenu."
+        },
+        "sale": {
+          "label": "Aanbieding",
+          "hint": "Kortingsbadges en aanbiedingsprijzen."
+        },
+        "rating": {
+          "label": "Beoordelingssterren",
+          "hint": "Sterren bij reviews."
+        },
+        "link": {
+          "label": "Links",
+          "hint": "Links, “Alles bekijken” en het actieve menu-item: tekst in de primaire kleur, goed leesbaar gehouden."
+        },
+        "onAccent": {
+          "label": "Tekst op accent",
+          "hint": "Labels op de accentkleur."
+        },
+        "accentSurface": {
+          "label": "Accentachtergrond",
+          "hint": "Een zachte tint van het accent achter promotietekst."
+        },
+        "onAccentSurface": {
+          "label": "Tekst op accentachtergrond",
+          "hint": "Tekst op de accenttint."
+        },
+        "hoverSurface": {
+          "label": "Hover-achtergrond",
+          "hint": "Menu's en knoppen onder de aanwijzer."
+        },
+        "onHover": {
+          "label": "Tekst bij hover",
+          "hint": "Labels op de hover-achtergrond."
+        },
+        "selectedSurface": {
+          "label": "Geselecteerde achtergrond",
+          "hint": "Aangevinkte items in keuzelijsten en de actieve rij in menu's."
+        },
+        "onSelected": {
+          "label": "Tekst op selectie",
+          "hint": "Labels op de geselecteerde achtergrond."
+        },
+        "focusRing": {
+          "label": "Focusring",
+          "hint": "De omlijning die toetsenbordgebruikers volgen."
+        },
+        "fieldBorder": {
+          "label": "Veldranden",
+          "hint": "Checkoutvelden, formulieren en keuzelijsten. Het zoekvak in de header heeft een eigen rand in Headerstudio."
+        },
+        "onSale": {
+          "label": "Tekst op aanbieding",
+          "hint": "Labels op volle kortingsbadges."
+        },
+        "saleText": {
+          "label": "Aanbiedingstekst",
+          "hint": "Aanbiedingsprijzen en besparingen op de pagina."
+        },
+        "saleSurface": {
+          "label": "Aanbiedingsachtergrond",
+          "hint": "Achter de kortingschips naast de prijzen."
+        },
+        "onSaleSurface": {
+          "label": "Tekst op aanbiedingsachtergrond",
+          "hint": "Tekst op de aanbiedingstint."
+        },
+        "skeleton": {
+          "label": "Laadplaatshouder",
+          "hint": "De grijze blokken die je ziet terwijl een pagina laadt."
+        }
+      },
       "title": "Thema-instellingen",
       "back": "Thema's",
       "unsaved": "Niet-opgeslagen wijzigingen",
+      "allSaved": "Alle wijzigingen opgeslagen",
       "discard": "Verwerpen",
       "save": "Opslaan",
       "saved": "Thema-instellingen opgeslagen",
       "saveFailed": "Opslaan mislukt",
+      "resetGroup": "Groep terugzetten",
+      "resetAll": "Alles terugzetten naar themastandaard",
+      "resetAllTitle": "Alle instellingen terugzetten?",
       "preview": "Voorbeeld",
-      "brandRef": "Merk",
+      "controls": "Instellingen",
+      "setCustom": "Een eigen kleur instellen",
+      "contrastHint": "Contrast met de eigen achtergrond",
       "modeLight": "Licht",
       "modeDark": "Donker",
-      "groups": {
-        "colors": {
-          "label": "Kleuren"
+      "leaveGuard": "Je hebt niet-opgeslagen themawijzigingen.",
+      "fonts": {
+        "inter": "Neutraal, technisch, de standaard",
+        "manrope": "Geometrisch, moderne retail",
+        "dm-sans": "Afgerond, vriendelijk",
+        "plus-jakarta-sans": "Zacht geometrisch, lifestyle",
+        "nunito": "Afgeronde uiteinden, speels",
+        "source-sans-3": "Humanistisch, lange teksten",
+        "space-grotesk": "Eigenzinnige grotesk, tech",
+        "playfair-display": "Redactioneel, hoog contrast",
+        "lora": "Rustige, leesbare schreef",
+        "fraunces": "Zacht, warm, welzijn",
+        "cormorant-garamond": "Luxe, mode",
+        "dm-serif-display": "Alleen koppen (één gewicht)",
+        "noto-sans-bengali": "Bengaals + Latijn, schreefloos",
+        "noto-serif-bengali": "Bengaals + Latijn, schreef"
+      },
+      "resetColors": "Themakleuren terugzetten",
+      "invalidColor": "Voer een geldige hex- of RGB-kleur in. Het voorbeeld houdt de laatste geldige kleur.",
+      "contrastPass": "Voldoet",
+      "contrastLow": "Laag",
+      "previewLoading": "Live voorbeeld verbinden…",
+      "previewOutdated": "Vernieuw het voorbeeld om de nieuwste kleurengine te laden.",
+      "refreshPreview": "Voorbeeld vernieuwen",
+      "cannotVerifyColor": "Deze eigen kleurexpressie kan niet worden gecontroleerd. Bekijk het voorbeeld in beide modi.",
+      "themeChanged": "Er is een ander thema geactiveerd terwijl je aan het bewerken was. Open de editor opnieuw voor dat thema.",
+      "conflictKeepDraft": "Iemand anders heeft deze instellingen opgeslagen terwijl je aan het bewerken was. Druk nogmaals op Opslaan om hun wijzigingen door de jouwe te vervangen, of op Verwerpen om die van hen te laden.",
+      "darkOwnHint": "De donkere modus heeft hier een eigen kleur ({color}) en volgt deze dus niet. Wijzig die op het tabblad Donker.",
+      "keyColorsTitle": "Hoofdkleuren",
+      "keyColorsHint": "Wijs er een aan om die in de preview te zien",
+      "keyColors": {
+        "primary": {
+          "label": "Primair",
+          "sample": "Nu kopen"
         },
-        "layout": {
-          "label": "Indeling"
+        "secondary": {
+          "label": "Secundair",
+          "sample": "In winkelwagen"
+        },
+        "accent": {
+          "label": "Accent",
+          "sample": "Uitgelicht"
+        },
+        "skeleton": {
+          "label": "Laden"
         }
-      }
+      },
+      "themeDefaultNamed": "Standaard van {theme}",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "Paletten",
+      "saveAsPalette": "Opslaan als palet",
+      "resetToNamed": "Terug naar {name}",
+      "themeOnly": "Alleen {theme}",
+      "moreColors": "Meer kleuren",
+      "advancedHintStates": "Hover, selectie, focus, aanbiedingsachtergrond",
+      "resetAllDescriptionTheme": "Elke groep, ook de kleuren, gaat terug naar de eigen standaardwaarden van {theme}. Je andere thema's blijven ongewijzigd. Er wordt niets opgeslagen tot je op Opslaan drukt.",
+      "previewShowing": "Markeert waar {color} wordt gebruikt"
     },
     "searchInsights": {
       "title": "Zoekinzichten",
@@ -5919,7 +6702,8 @@
         "location": "Locatie",
         "collection": "Collectie",
         "brand": "Merk",
-        "slider": "Diavoorstelling"
+        "slider": "Diavoorstelling",
+        "teamRole": "Teamrol"
       },
       "empty": {
         "clearFilters": "Filters wissen"
@@ -5942,6 +6726,124 @@
     "vendorsDataTable": {
       "thisVendor": "deze verkoper",
       "deleteSingleDescription": "Are you sure you want to delete {name}? This action cannot be undone."
+    },
+    "categoryForm": {
+      "taxRate": "Btw"
+    },
+    "themeColors": {
+      "title": "Themakleuren",
+      "refs": {
+        "primary": "Primair",
+        "secondary": "Secundair",
+        "accent": "Accent",
+        "background": "Achtergrond",
+        "surface": "Kaarten",
+        "surfaceAlt": "Banden en chips",
+        "text": "Tekst",
+        "textMuted": "Secundaire tekst",
+        "border": "Scheidingslijnen"
+      },
+      "following": "Volgt de themakleur {name}. Wijzig dit in Thema-instellingen → Kleuren.",
+      "followingShort": "Thema · {name}",
+      "hint": "Kies een themakleur om Thema-instellingen → Kleuren te volgen.",
+      "pick": "Een themakleur gebruiken"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "Uitbetalingsoverzicht laden mislukt",
+      "loadPayoutsError": "Uitbetalingen laden mislukt",
+      "columns": {
+        "payout": "Uitbetaling",
+        "period": "Periode",
+        "status": "Status",
+        "netAmount": "Nettobedrag"
+      },
+      "bankMissingTitle": "Geen uitbetalingsrekening bekend",
+      "bankMissing": "Ontbreekt: {fields}. Een uitbetaling kan alleen contant of via een betaalprovider worden gedaan tot de gegevens zijn toegevoegd op het tabblad Bedrijf.",
+      "frozenTitle": "Uitbetalingen zijn bevroren",
+      "frozen": "Deze verkoper is geschorst. De verkopen blijven meetellen, maar er wordt niets uitbetaald tot de verkoper weer is hersteld.",
+      "owedNow": "Nu verschuldigd",
+      "owedNowHint": "Wat een uitbetaling die je nu aanmaakt zou bevatten: geleverde, betaalde verkopen waarvan de retourtermijn voorbij is, min wat de verkoper verschuldigd is.",
+      "createPayout": "Uitbetaling aanmaken",
+      "noneAwaiting": "Er wachten geen geleverde, betaalde bestellingen op uitbetaling.",
+      "nothingPayable": "{count, plural, one {# geschikte bestelling} other {# geschikte bestellingen}}, maar na terugbetalingen en kortingen blijft er niets uit te betalen.",
+      "across": "Over {count, plural, one {# bestelling} other {# bestellingen}} · {gross} bruto min {commission} commissie. Terugbetalingen en kortingen zijn al afgetrokken.",
+      "belowMinimumTitle": "Onder het minimale opnamebedrag",
+      "belowMinimum": "Uitbetalingen moeten minstens {minimum} zijn. Een uitbetaling die je nu aanmaakt, wordt geweigerd.",
+      "commissionLeft": "{amount} aan commissie die de verkoper verschuldigd is over contante verkopen, past niet in de volgende uitbetaling en blijft openstaan.",
+      "overpaidTitle": "{amount} uitbetaald voor verkopen die daarna zijn terugbetaald",
+      "overpaidRecovered": "{amount} daarvan is al afgetrokken van het bedrag hierboven. Wat overblijft, gaat af van latere uitbetalingen.",
+      "overpaidLater": "Het gaat af van de volgende uitbetaling van de verkoper, of registreer een terugstorting als de verkoper het terugbetaalt.",
+      "otherCurrenciesTitle": "Saldi in {currencies}",
+      "otherCurrencies": "Deze verkoper heeft ook verkocht in {currencies}. Die saldi zitten niet in de bedragen hierboven en hebben een eigen uitbetaling nodig — valuta’s worden nooit bij elkaar opgeteld.",
+      "trade": "Omzet",
+      "tradeHint": "Wat deze verkoper heeft verkocht, over alle niet-geannuleerde bestellingen, in {currency}",
+      "grossSales": "Brutoverkopen",
+      "vendorEarnings": "Inkomsten verkoper",
+      "vendorEarningsHint": "bruto min commissie",
+      "paidOut": "Uitbetaald",
+      "pendingAmount": "{amount} in afwachting",
+      "platformRevenue": "Platformomzet van deze verkoper",
+      "platformRevenueHint": "Commissie en ingehouden verzendkosten uit de verkopen, plus de betaalde abonnementskosten. Omzet vóór platformkosten.",
+      "commission": "Commissie",
+      "commissionHint": "op geleverde, betaalde verkopen, na terugbetalingen",
+      "subscriptions": "Abonnementen",
+      "invoicesPaid": "{paid} van {total} facturen betaald",
+      "noInvoices": "geen facturen",
+      "shipping": "Verzending",
+      "shippingHint": "ingehouden, niet uitbetaald",
+      "total": "Totaal",
+      "history": "Uitbetalingsgeschiedenis",
+      "historyHint": "Uitbetalingen voor deze verkoper, nieuwste eerst",
+      "historyEmpty": "Er zijn nog geen uitbetalingen aangemaakt voor deze verkoper",
+      "repayment": {
+        "open": "Terugstorting registreren",
+        "listTitle": "Handmatig teruggestort",
+        "undo": "Ongedaan maken",
+        "voidReason": "Waarom wordt deze terugstorting ongedaan gemaakt?",
+        "voided": "Terugstorting ongedaan gemaakt",
+        "failed": "De terugstorting kon niet worden opgeslagen",
+        "title": "Terugstorting registreren",
+        "description": "Geld dat de verkoper heeft teruggestort voor verkopen die na de uitbetaling zijn terugbetaald. Het gaat af van wat de verkoper verschuldigd is, zodat latere uitbetalingen het niet meer terugvorderen.",
+        "amount": "Bedrag ({currency})",
+        "receivedInto": "Ontvangen op",
+        "receivedAt": "Datum ontvangen",
+        "reference": "Referentie",
+        "note": "Notitie",
+        "cancel": "Annuleren",
+        "save": "Terugstorting registreren",
+        "saving": "Opslaan…",
+        "recorded": "Terugstorting geregistreerd"
+      }
+    },
+    "colorPicker": {
+      "format": "Kleurformaat",
+      "opacity": "Dekking",
+      "value": "Kleurwaarde",
+      "saved": "Opgeslagen kleuren",
+      "save": "Deze kleur opslaan",
+      "use": "{color} gebruiken",
+      "remove": "{color} verwijderen"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {# afwijking van de rol} other {# afwijkingen van de rol}}",
+      "changesFromRole": "{count, plural, one {# afwijking van {role}} other {# afwijkingen van {role}}} alleen voor dit lid",
+      "resetTo": "Terug naar {role}",
+      "matchesRole": "Gelijk aan {role}. Vink iets aan of uit om het alleen voor {name} te wijzigen.",
+      "roleSaved": "\"{name}\" is nu een rol, en dit lid heeft die rol."
+    },
+    "tagInput": {
+      "placeholder": "Tag toevoegen",
+      "selected": "{tag} geselecteerd. Druk op Backspace om te verwijderen.",
+      "duplicate": "{tag} is al toegevoegd",
+      "tooLong": "Een tag mag maximaal {max} tekens bevatten",
+      "tooMany": "Je kunt maximaal {max} tags toevoegen",
+      "added": "{tag} toegevoegd",
+      "removed": "{tag} verwijderd",
+      "remove": "{tag} verwijderen"
+    },
+    "accountMenu": {
+      "myAccount": "Mijn account",
+      "version": "Versie {version}"
     }
   },
   "aiStudioHub": {
@@ -6220,7 +7122,10 @@
     "loadOlderConversations": "Oudere gesprekken laden",
     "attachments": {
       "alt": "Chatbijlage",
-      "open": "Bijlage openen"
+      "open": "Bijlage openen",
+      "view": "Volledige afbeelding bekijken",
+      "openNewTab": "Openen in nieuw tabblad",
+      "download": "Downloaden"
     },
     "assignment": {
       "label": "Toegewezen medewerker",
@@ -6268,7 +7173,7 @@
       "webhookUrlNotPublic": "Meta accepteert alleen een openbare HTTPS-callback. Open deze pagina op je live domein — of via een tunnel — voordat je hem registreert.",
       "setup": {
         "title": "{provider}-installatiegids",
-        "docs": "Volledige uitleg: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "Volledige uitleg: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Maak een Meta-app en voeg daar het WhatsApp-product aan toe.",
           "config": "Maak een Facebook Login for Business-configuratie die deze rechten verleent en zet het ID ervan in META_WHATSAPP_CONFIGURATION_ID.",
@@ -6406,6 +7311,7 @@
     "noLinks": "Nog geen links gedeeld",
     "subject": "Onderwerp",
     "viewProduct": "Product bekijken",
+    "removeAttachment": "Bijlage verwijderen",
     "messageProduct": {
       "open": "{name} openen",
       "priceOnRequest": "Prijs op aanvraag"
@@ -6896,7 +7802,17 @@
       "addressPrecision": "Tonen",
       "socialAdd": "Link toevoegen",
       "socialRemove": "Link verwijderen",
-      "shareButtons": "Deelknoppen"
+      "shareButtons": "Deelknoppen",
+      "changeEmail": "Wijzigen",
+      "changeEmailTitle": "Je e-mailadres wijzigen",
+      "changeEmailDescription": "Je logt voortaan in met het nieuwe e-mailadres. We laten je huidige e-mailadres weten dat het is gewijzigd.",
+      "newEmail": "Nieuw e-mailadres",
+      "currentPasswordForEmail": "Huidig wachtwoord",
+      "updateEmail": "E-mailadres bijwerken",
+      "emailChanged": "E-mailadres bijgewerkt. Log voortaan in met je nieuwe e-mailadres.",
+      "emailChangeFailed": "E-mailadres bijwerken mislukt",
+      "phoneInvalid": "Voer een geldig telefoonnummer in",
+      "payoutScheduleHint": "Op je uitbetalingsdag zet de winkel een uitbetaling klaar van wat klaarstaat, zodra dat jouw minimum en dat van de winkel bereikt. De winkel verstuurt die daarna naar de rekening hierboven."
     },
     "payoutsPage": {
       "title": "Uitbetalingen"
@@ -6911,6 +7827,78 @@
     },
     "activityLog": {
       "title": "Activiteitenlogboek"
+    },
+    "payoutDetail": {
+      "back": "Uitbetalingen",
+      "period": "Verkopen besteld {start} – {end}",
+      "noteFromStore": "Notitie van de winkel",
+      "grossSales": "Brutoverkopen",
+      "grossSalesHint": "jouw aandeel in de bestellingen hieronder",
+      "commission": "Commissie",
+      "shipping": "Bezorgkosten",
+      "shippingHint": "aan klanten gerekend voor pakketten die jij hebt bezorgd",
+      "adjustment": {
+        "recoveryDeducted": "Terugvordering van terugbetalingen",
+        "recoveryDeductedHint": "eerder aan jou uitbetaald voor bestellingen die sindsdien zijn terugbetaald",
+        "recoveryReturned": "Terugvordering teruggegeven",
+        "recoveryReturnedHint": "een eerder teruggevorderde terugbetaling is ongedaan gemaakt",
+        "reserveHeld": "Voorbestellingsreserve ingehouden",
+        "reserveHeldHint": "ingehouden voor een late terugboeking",
+        "reserveReleased": "Voorbestellingsreserve vrijgegeven",
+        "reserveReleasedHint": "ingehouden bij een eerdere uitbetaling, nu vrijgegeven",
+        "reserveCreditDeducted": "Reserve teruggevorderd",
+        "reserveCreditDeductedHint": "een vrijgegeven reserve waarvan de uitbetaling terugkwam",
+        "reserveCreditReturned": "Reserveterugvordering teruggegeven",
+        "reserveCreditReturnedHint": "teruggegeven nadat de uitbetaling opnieuw is betaald",
+        "commissionOffset": "Commissie op contante verkopen",
+        "commissionOffsetHint": "verschuldigd over verkopen die je zelf hebt geïnd, hier verrekend in plaats van gefactureerd",
+        "commissionCredit": "Winkelacties op contante verkopen",
+        "commissionCreditHint": "kortingen die de winkel heeft betaald boven de commissie die je verschuldigd was"
+      },
+      "reserveUntil": "vrijgegeven op {date}",
+      "otherAdjustments": "Overige aanpassingen",
+      "otherAdjustmentsHint": "terugvorderingen van terugbetalingen en bewegingen in de voorbestellingsreserve",
+      "netPayout": "Netto-uitbetaling",
+      "sentOn": "Verstuurd op {date}",
+      "reference": "referentie {reference}",
+      "returnedOn": "Teruggekomen op {date} — de verkopen erin staan weer in je saldo",
+      "history": "Wat er is gebeurd",
+      "returnedStep": "Geld teruggekomen",
+      "orders": "Bestellingen in deze uitbetaling",
+      "order": "Bestelling",
+      "placed": "Geplaatst",
+      "yourShare": "Jouw aandeel",
+      "afterCommission": "Na commissie",
+      "noOrders": "Geen bestellingen gekoppeld aan deze uitbetaling."
+    },
+    "suspendedMoney": {
+      "title": "Je geld",
+      "frozen": "Uitbetalingen staan stil zolang je account is geschorst. Je verkopen blijven meetellen en worden uitbetaald zodra je toegang is hersteld.",
+      "ready": "Klaar voor een uitbetaling",
+      "held": "Nog onderweg of binnen de retourtermijn",
+      "payouts": "Laatste uitbetalingen",
+      "status": {
+        "pending": "In afwachting",
+        "processing": "Wordt verwerkt",
+        "paid": "Betaald",
+        "failed": "Mislukt",
+        "cancelled": "Geannuleerd"
+      }
+    },
+    "commissionCard": {
+      "canceled": "De betaling is geannuleerd. De factuur staat nog open.",
+      "settled": "Commissiefactuur voldaan.",
+      "pendingInfo": "De betaling wordt nog verwerkt — de factuur wordt automatisch voldaan zodra die is bevestigd.",
+      "verifyFailed": "We konden die betaling nog niet bevestigen.",
+      "pollTimeout": "We konden de betaling nog niet bevestigen. De factuur wordt automatisch voldaan zodra die is bevestigd.",
+      "checkPhone": "Controleer je telefoon en keur het betaalverzoek goed.",
+      "failed": "De betaling kon niet worden gestart",
+      "title": "Commissie die je verschuldigd bent",
+      "subtitle": "Commissie over verkopen die je zelf hebt geïnd — contant, onder rembours of via je eigen terminal — en die dus niet van een uitbetaling kon worden afgetrokken.",
+      "payNow": "Nu betalen",
+      "noMethods": "Hiervoor is geen betaalmethode beschikbaar. Neem contact op met de marktplaatsbeheerder om dit op een andere manier te voldoen.",
+      "dialogTitle": "Commissie voldoen",
+      "continue": "Doorgaan naar betaling"
     }
   },
   "install": {
@@ -7030,14 +8018,36 @@
     "active": "Actief",
     "default": "Standaard",
     "activeLocation": "Actief",
-    "actions": "Acties"
+    "actions": "Acties",
+    "deliveryOrder": "Verzendvolgorde",
+    "deliveryOrderHint": "Online bestellingen worden verzonden vanaf de 1e locatie met voorraad, daarna de 2e, enzovoort.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "Geen levering",
+    "services": "Diensten",
+    "pickup": "Afhalen",
+    "returns": "Retouren",
+    "noTill": "Geen kassa",
+    "shipSooner": "Eerder vanaf hier verzenden",
+    "shipLater": "Later vanaf hier verzenden"
   },
   "pos": {
     "newSale": "Nieuwe verkoop",
     "searchProducts": "Producten zoeken...",
     "noProducts": "Geen producten gevonden",
     "subtotal": "Subtotaal",
-    "tax": "Belasting",
+    "tax": {
+      "label": "Btw",
+      "included": "Btw (inbegrepen)",
+      "exempt": "Vrijgesteld van btw",
+      "exemptWith": "Vrijgesteld van btw · {reason}",
+      "exemptTitle": "Btw-vrije verkoop",
+      "exemptIntro": "Reken deze verkoop af zonder btw. De reden wordt bij de bestelling bewaard en op de bon afgedrukt.",
+      "exemptReason": "Reden (verplicht)",
+      "exemptReference": "Nummer vrijstellingscertificaat (optioneel)",
+      "exemptApply": "Btw-vrij verkopen",
+      "exemptRemove": "Btw rekenen",
+      "close": "Sluiten"
+    },
     "total": "Totaal",
     "totalDue": "Te betalen",
     "cash": "Contant",
@@ -7045,7 +8055,479 @@
     "manual": "Handmatig",
     "errorLoadingProducts": "Producten konden niet worden geladen",
     "customer": {
-      "phone": "Telefoon"
+      "phone": "Telefoon",
+      "addCustomer": "Klant toevoegen",
+      "addCustomerDesc": "Zoek bestaande klanten of maak een nieuwe aan",
+      "walkIn": "Inloopklant",
+      "walkInDesc": "Geen klantgegevens nodig",
+      "existingCustomer": "Bestaande klant",
+      "createNew": "Nieuwe aanmaken",
+      "searchPlaceholder": "Zoek op naam, telefoon of e-mail...",
+      "searchHint": "Typ minstens 2 tekens om te zoeken",
+      "noResults": "Geen klanten gevonden",
+      "createInstead": "Maak in plaats daarvan een nieuwe klant aan",
+      "customerName": "Naam klant",
+      "namePlaceholder": "Voer de naam van de klant in",
+      "emailAddress": "E-mailadres",
+      "emailPlaceholder": "klant@example.com",
+      "phonePlaceholder": "Voer het telefoonnummer in",
+      "created": "Klant aangemaakt",
+      "createError": "Klant aanmaken mislukt",
+      "save": "Klant opslaan",
+      "nameContactRequired": "Voer de naam van de klant in, en een e-mailadres of telefoonnummer",
+      "contactHint": "Een e-mailadres of telefoonnummer is genoeg. Een klant met alleen een telefoonnummer wordt zonder account bewaard.",
+      "marketingOptIn": "Klant gaat akkoord met nieuws en aanbiedingen per e-mail"
+    },
+    "offline": {
+      "bannerOffline": "Offline — verkopen worden in de wachtrij gezet",
+      "bannerStockAge": "Getoonde voorraad is van {age}",
+      "bannerSignedOut": "Uitgelogd — log opnieuw in om te synchroniseren",
+      "bannerSignedOutNote": "Verkopen in de wachtrij blijven op dit apparaat bewaard.",
+      "bannerBackOnline": "Weer online",
+      "waitingToSync": "{count, plural, one {# verkoop wacht op synchronisatie} other {# verkopen wachten op synchronisatie}}",
+      "needsReview": "{count, plural, one {# moet worden gecontroleerd} other {# moeten worden gecontroleerd}}",
+      "review": "Controleren",
+      "signIn": "Inloggen",
+      "syncNow": "Nu synchroniseren",
+      "lockedTitle": "Maak opnieuw verbinding om te blijven verkopen",
+      "lockedLastSeen": "Deze kassa heeft de server voor het laatst {time} bereikt. Om veiligheidsredenen blijft hij vergrendeld tot hij weer kan inloggen.",
+      "lockedNever": "Deze kassa heeft de server op dit apparaat nog niet bereikt en kan dus niet offline worden gebruikt.",
+      "lockedQueued": "{count, plural, one {<strong>#</strong> offline verkoop staat nog op dit apparaat en wordt automatisch gesynchroniseerd zodra je weer online bent.} other {<strong>#</strong> offline verkopen staan nog op dit apparaat en worden automatisch gesynchroniseerd zodra je weer online bent.}} Wis de browsergegevens niet.",
+      "waitingForConnection": "Wachten op verbinding…",
+      "reviewTitle": "Door de server geweigerde verkopen",
+      "reviewDescription": "Elk hiervan is aan de balie betaald. Los de oorzaak op en verstuur hem opnieuw, of verwijder hem zodra hij met de hand is vastgelegd.",
+      "reviewLabel": "Offline verkopen die gecontroleerd moeten worden",
+      "reviewEmpty": "Niets meer te controleren.",
+      "reviewReceipt": "Bon {number}",
+      "reviewTaken": "Afgerekend {time}",
+      "reviewAttempts": "{count, plural, one {# poging} other {# pogingen}}",
+      "reviewServerSaid": "De server meldde: {message}",
+      "reviewDiscard": "Verwijderen",
+      "reviewSendAgain": "Opnieuw versturen",
+      "close": "Sluiten",
+      "anotherCounter": "Een andere balie",
+      "discardTitle": "Deze verkoop uit de wachtrij verwijderen?",
+      "discardDescription": "Bon {number} wordt nooit naar de server gestuurd. Doe dit alleen als de verkoop op een andere manier is vastgelegd — de klant heeft die bon.",
+      "savedOffline": "Offline opgeslagen — bon {number}",
+      "savedOfflineNote": "Wordt automatisch gesynchroniseerd zodra de verbinding terug is.",
+      "outboxFull": "Deze kassa heeft te veel niet-gesynchroniseerde verkopen. Maak verbinding en synchroniseer voordat je er meer afrekent.",
+      "noStorage": "Deze browser kan geen offline verkopen opslaan, dus de verkoop is niet afgerekend.",
+      "readerOnly": "Alleen kaartlezer",
+      "touchOrStripe": "Contactloos of Stripe"
+    },
+    "counter": {
+      "unavailable": "Balie niet beschikbaar",
+      "sharedStock": "Gedeelde voorraad",
+      "finishSaleFirst": "Rond eerst de huidige verkoop af of annuleer hem",
+      "changeCounter": "Verkoop vanuit {name}. Balie wijzigen",
+      "sellingFrom": "Verkoop vanuit",
+      "sellingAt": "Verkoop bij {name}",
+      "findCounter": "Zoek een balie...",
+      "noMatch": "Geen balie komt overeen.",
+      "heldCount": "{count} geparkeerd",
+      "activeCount": "{count} actief",
+      "deactivated": "De huidige balie is gedeactiveerd",
+      "pickerTitle": "Bij welke balie sta je?",
+      "pickerNote": "Voorraad, geparkeerde verkopen en elke bon die op deze kassa wordt afgedrukt, volgen deze keuze.",
+      "findYourCounter": "Zoek je balie...",
+      "recentOnDevice": "Recent op dit apparaat",
+      "otherCounters": "Andere balies",
+      "defaultLocation": "Standaardlocatie",
+      "startSellingAt": "Begin met verkopen bij {name}",
+      "pickCounter": "Kies een balie",
+      "signedInAs": "Ingelogd als {name}",
+      "signedIn": "Ingelogd",
+      "shortcutsMany": "<key>1</key>–<key>9</key> voor de eerste negen, typ om de rest te vinden,",
+      "shortcutsFew": "Druk op <key>1</key>–<key>{last}</key> om te kiezen,",
+      "shortcutEnter": "<key>Enter</key> om te beginnen",
+      "sellFromShared": "In plaats daarvan uit gedeelde voorraad verkopen",
+      "switchLabel": "Balie wisselen",
+      "switchTitle": "Van balie wisselen met een open verkoop?",
+      "switchUnits": "{count, plural, one {# stuk} other {# stuks}} op de balie, geprijsd en uit de voorraad van {from}.",
+      "switchChecking": "Controleren wat {to} kan leveren…",
+      "switchRemovedOne": "<b>{name}</b> heeft <b>geen voorraad bij {to}</b> — het zou uit de verkoop vallen.",
+      "switchRemovedMany": "<b>{name}</b> en {others} andere hebben <b>geen voorraad bij {to}</b> — ze zouden uit de verkoop vallen.",
+      "switchReduced": "{count, plural, one {# regel zou worden verlaagd tot de voorraad die {to} echt heeft.} other {# regels zouden worden verlaagd tot de voorraad die {to} echt heeft.}}",
+      "switchAllAvailable": "Elke regel van deze verkoop is beschikbaar bij {to}.",
+      "switchHeldStay": "{count, plural, one {# hier geparkeerde verkoop blijft bij {from}. Vanuit {to} zie je hem niet.} other {# hier geparkeerde verkopen blijven bij {from}. Vanuit {to} zie je ze niet.}}",
+      "switchHeldStayNone": "Hier geparkeerde verkopen blijven bij {from}. Vanuit {to} zie je ze niet.",
+      "switchReceiptChanges": "Voorraadaantallen en de voettekst van de bon gaan vanaf de volgende regel over naar {to}.",
+      "switchHold": "Deze verkoop parkeren en dan wisselen",
+      "switchRecheck": "Wisselen en voorraad opnieuw controleren",
+      "switchRemovesAll": "Verwijdert alle {total}",
+      "switchKeeps": "Houdt {kept} van {total} regels",
+      "switchStay": "Blijf bij {from}",
+      "nowSellingFrom": "Nu verkoop vanuit {name}",
+      "nowSellingShared": "Nu verkoop uit gedeelde voorraad",
+      "probeFailed": "Kon de voorraad bij die balie niet controleren. De kassa is niet gewisseld.",
+      "holdFailed": "De verkoop kon niet worden geparkeerd. De kassa is niet gewisseld.",
+      "rechecked": "Verkoop opnieuw gecontroleerd · {changes}",
+      "holdLabel": "Baliewissel → {name}",
+      "heldBehind": "{count, plural, one {<b># verkoop</b> nog geparkeerd bij {name}} other {<b># verkopen</b> nog geparkeerd bij {name}}}",
+      "goBackTo": "Terug naar {name}",
+      "dismiss": "Sluiten",
+      "saleBlocked": "Deze balie is niet meer beschikbaar. Kies een andere voordat je afrekent."
+    },
+    "scan": {
+      "closeDialogFirst": "Sluit het geopende venster en scan opnieuw.",
+      "multipleMatches": "Meerdere producten komen overeen met deze code. Corrigeer dubbele SKU- of barcodewaarden.",
+      "noMatch": "Geen product gevonden voor de gescande code.",
+      "lookupFailed": "Kan de gescande code niet opzoeken."
+    },
+    "held": {
+      "removed": "{count, plural, one {# regel verwijderd} other {# regels verwijderd}}",
+      "repriced": "{count} opnieuw geprijsd",
+      "reduced": "{count} verlaagd tot beschikbare voorraad",
+      "resumed": "Geparkeerde bestelling hervat",
+      "resumedWithChanges": "Geparkeerde bestelling hervat · {changes}",
+      "nothingAvailable": "Geen van de artikelen van deze geparkeerde bestelling is nog beschikbaar. Hij is op de kassa gelaten.",
+      "recheckFailed": "Kon de huidige prijzen en voorraad niet controleren. De geparkeerde bestelling staat nog op de kassa.",
+      "finishFirst": "Rond de huidige verkoop af of parkeer hem voordat je een andere hervat.",
+      "holdFailed": "Kon deze bestelling niet parkeren. De verkoop staat nog in de winkelwagen.",
+      "holdFull": "Deze kassa heeft al {max} geparkeerde bestellingen. Hervat of verwijder er eerst een.",
+      "orderHeld": "Bestelling geparkeerd",
+      "orderHeldLabel": "Bestelling geparkeerd · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "Alleen wie de kassa beheert, kan korting geven",
+      "cashMustCover": "Het ontvangen contante bedrag moet het totaal dekken",
+      "noReceipt": "Geen bongegevens beschikbaar",
+      "printPreviewFailed": "Kan het afdrukvoorbeeld niet openen",
+      "noInvoice": "Er is geen factuur beschikbaar voor deze bestelling",
+      "invoicePopupBlocked": "Kan de factuur niet openen. Sta pop-ups toe."
+    },
+    "complete": {
+      "title": "Verkoop voltooid",
+      "items": "{count, plural, one {# artikel} other {# artikelen}}",
+      "soldAt": "Verkocht bij {name}",
+      "viewReceipt": "Bon bekijken",
+      "printReceipt": "Bon afdrukken",
+      "newSale": "Nieuwe verkoop",
+      "emailReceipt": "Bon e-mailen",
+      "textReceipt": "Bon per sms",
+      "send": "Versturen",
+      "cancel": "Annuleren",
+      "emailPlaceholder": "klant@example.com",
+      "phonePlaceholder": "Telefoonnummer van de klant",
+      "sentEmail": "Bon gemaild naar {to}",
+      "sentSms": "Bon ge-sms't naar {to}",
+      "alreadySent": "Zojuist al naar {to} verstuurd",
+      "sendFailed": "De bon kon niet worden verstuurd",
+      "offlineHint": "Bonnen kunnen worden verstuurd en bekeken zodra deze verkoop is gesynchroniseerd."
+    },
+    "pay": {
+      "title": "Betaling ontvangen",
+      "balanceTitle": "Restbedrag innen",
+      "draftItems": "{count, plural, one {Concept · # artikel} other {Concept · # artikelen}}",
+      "close": "Sluiten",
+      "totalDue": "Totaal te betalen",
+      "remaining": "Nog te betalen",
+      "ofTotal": "{paid} betaald van {total}",
+      "payments": "Betalingen",
+      "remove": "Verwijderen",
+      "discountPercent": "{value}% korting toegepast",
+      "discountAmount": "{amount} korting toegepast",
+      "cashDesc": "Met wisselgeld",
+      "bank": "Bankoverschrijving",
+      "bankDesc": "Met referentie",
+      "manualDesc": "Eigen methode",
+      "storeCredit": "Winkeltegoed",
+      "storeCreditDesc": "{amount} beschikbaar",
+      "split": "Gesplitst",
+      "cashGiven": "Ontvangen contant",
+      "amount": "Bedrag",
+      "changeDue": "Wisselgeld",
+      "stillOwed": "De rest op een andere manier betalen",
+      "tooMuch": "Er staat niet meer dan {amount} open",
+      "tooMuchCredit": "Slechts {amount} winkeltegoed beschikbaar",
+      "touch": "Contactloos",
+      "touchDesc": "Tik of steek de kaart in de lezer",
+      "stripe": "Stripe",
+      "stripeDesc": "Formulier voor kaartgegevens",
+      "readyForTap": "Klaar om te tikken of insteken",
+      "readyForTapNote": "De klant tikt of steekt zijn kaart in de lezer.",
+      "referenceOptional": "Referentie (optioneel)",
+      "referencePlaceholder": "Transactie-ID, autorisatiecode, enz.",
+      "stripePaysRest": "De kaart betaalt de rest: {amount}",
+      "cardNumber": "Kaartnummer",
+      "expiry": "Vervaldatum",
+      "cvc": "CVC",
+      "stripeNotConfigured": "Stripe is niet ingesteld in de betaalinstellingen.",
+      "stripeLoading": "Beveiligde kaartvelden laden…",
+      "stripeSecured": "Beveiligd door Stripe — kaartgegevens worden bij verzenden getokeniseerd.",
+      "stripeFailed": "De kaartbetaling is niet gelukt",
+      "processing": "Bezig…",
+      "acceptCash": "Contant accepteren",
+      "charge": "{amount} afschrijven",
+      "chargeOnReader": "{amount} afschrijven op de lezer",
+      "useCredit": "{amount} betalen met winkeltegoed",
+      "addPayment": "{method}-betaling van {amount} toevoegen",
+      "takeDeposit": "{amount} als aanbetaling nemen, {due} later te betalen",
+      "takePart": "Nu {amount} nemen, {due} staat nog open",
+      "depositNeedsCustomer": "Koppel een klant om een aanbetaling te nemen",
+      "depositTaken": "Aanbetaling ontvangen voor {number}. Nog {due} te betalen.",
+      "completeSale": "Verkoop voltooien"
+    },
+    "sales": {
+      "title": "Verkopen",
+      "close": "Sluiten",
+      "back": "Terug",
+      "searchPlaceholder": "Bonnummer of telefoonnummer",
+      "dueOnly": "Alleen met openstaand bedrag",
+      "empty": "Geen verkopen gevonden.",
+      "recentHint": "Laatste verkopen aan deze kassa",
+      "selectHint": "Kies een verkoop om te bekijken.",
+      "offline": "Een verkoop zoeken vereist een verbinding.",
+      "loadFailed": "De verkopen konden niet worden geladen",
+      "balanceDue": "{amount} open",
+      "balanceDueLabel": "Openstaand bedrag",
+      "items": "Artikelen",
+      "payments": "Betalingen",
+      "total": "Totaal",
+      "refunded": "Terugbetaald",
+      "split": "Gesplitst",
+      "collectBalance": "Restbedrag innen · {amount}",
+      "collectFailed": "De betaling kon niet worden ontvangen",
+      "balancePaid": "Restbedrag betaald. De verkoop is voltooid.",
+      "balancePart": "Betaling ontvangen. Nog {due} te betalen.",
+      "print": "Bon afdrukken",
+      "viewInvoice": "Factuur bekijken"
+    },
+    "register": {
+      "title": "Kassalade",
+      "openChip": "Lade open",
+      "closedChip": "Lade dicht",
+      "openToSell": "Open de kassalade voordat je een verkoop afrekent.",
+      "close": "Sluiten",
+      "failed": "De lade kon niet worden bijgewerkt",
+      "offline": "Openen, sluiten en contant geld verplaatsen vereisen een verbinding. Verkopen gaan gewoon door in de open lade.",
+      "openIntro": "Tel het contant geld in de lade vóór de eerste verkoop en voer het in als wisselgeldbedrag.",
+      "openingFloat": "Wisselgeld bij opening",
+      "openRegister": "Lade openen",
+      "opened": "Lade geopend",
+      "openedAt": "Geopend {time}",
+      "salesCount": "Verkopen",
+      "grossSales": "Totale verkoop",
+      "cashSales": "Contante verkopen",
+      "cashIn": "Storting",
+      "cashOut": "Opname",
+      "cashRefunds": "Contante terugbetalingen",
+      "expectedCash": "Verwacht in de lade",
+      "countedCash": "Geteld contant",
+      "variance": "Verschil",
+      "balanced": "Sluitend",
+      "over": "Teveel",
+      "short": "Tekort",
+      "cashInIntro": "Contant geld in de lade dat geen verkoop is, zoals wisselgeld uit de kluis.",
+      "cashOutIntro": "Contant geld eruit dat geen terugbetaling is, zoals een afroming naar de kluis of een betaalde uitgave.",
+      "amount": "Bedrag",
+      "reason": "Reden",
+      "reasonPlaceholder": "Reden (verplicht)",
+      "cashAdded": "Contant geld aan de lade toegevoegd",
+      "cashRemoved": "Contant geld uit de lade genomen",
+      "back": "Terug",
+      "note": "Afsluitnotitie",
+      "notePlaceholder": "Notitie voor het afsluitrapport (optioneel)",
+      "queuedFirst": "{count, plural, one {# verkoop wacht} other {# verkopen wachten}} nog op synchronisatie. Sluit de lade zodra dat klaar is.",
+      "closeRegister": "Lade sluiten",
+      "closed": "Lade gesloten",
+      "xReport": "X-rapport",
+      "zReport": "Z-rapport",
+      "printX": "X-rapport afdrukken",
+      "printZ": "Z-rapport afdrukken",
+      "printBlocked": "Het rapportvenster is geblokkeerd. Sta pop-ups toe voor deze site om af te drukken.",
+      "reportOpened": "Geopend",
+      "reportClosed": "Gesloten",
+      "tender": {
+        "cash": "Contant",
+        "card": "Kaart",
+        "bank": "Bankoverschrijving",
+        "manual": "Overig",
+        "store_credit": "Winkeltegoed"
+      },
+      "noSale": "Geen verkoop",
+      "noSaleIntro": "Open de lade zonder verkoop, om te wisselen of te controleren. De reden wordt in het rapport van de lade bewaard.",
+      "noSaleDone": "Lade geopend",
+      "printer": "Ladeprinter",
+      "printerIntro": "De kassalade opent via de bonprinter waarop ze is aangesloten, met QZ Tray op deze computer. Kies die printer.",
+      "printerFind": "Printers zoeken",
+      "printerQzMissing": "QZ Tray draait niet op deze computer",
+      "printerNone": "Geen lade aan deze kassa",
+      "printerPin": "Ladepin",
+      "printerTest": "Testen",
+      "printerTestFailed": "De lade ging niet open. Controleer de printer en QZ Tray.",
+      "printerSave": "Opslaan",
+      "printerSaved": "Ladeprinter opgeslagen voor deze kassa",
+      "printerNotSet": "Stel eerst de ladeprinter in",
+      "printerCurrent": "Lade: {name}",
+      "printerSetUp": "Ladeprinter instellen"
+    },
+    "returns": {
+      "action": "Artikelen retour nemen",
+      "title": "Artikelen retour nemen",
+      "close": "Sluiten",
+      "offline": "Retouren vereisen een verbinding. Neem de retour aan zodra de kassa weer online is.",
+      "loadFailed": "De artikelen van deze verkoop konden niet worden geladen",
+      "previewFailed": "De terugbetaling kon niet worden berekend",
+      "failed": "De retour kon niet worden aangenomen",
+      "nothingReturnable": "Niets van deze verkoop kan worden geretourneerd.",
+      "returnable": "{count} retourneerbaar",
+      "blockedFinalSale": "Definitieve verkoop",
+      "blockedWindow": "Retourtermijn verstreken",
+      "blockedOther": "Niet retourneerbaar",
+      "less": "Eén minder",
+      "more": "Eén meer",
+      "condition": "Staat",
+      "conditions": {
+        "new": "Ongeopend",
+        "opened": "Geopend, verkoopbaar",
+        "damaged": "Beschadigd",
+        "missing_parts": "Onderdelen ontbreken",
+        "unusable": "Onbruikbaar"
+      },
+      "restockHint": "Ongeopende en geopende artikelen gaan terug in de voorraad van deze kassa.",
+      "reason": "Reden",
+      "reasons": {
+        "wrong_size_or_variant": "Verkeerde maat of variant",
+        "damaged_or_defective": "Beschadigd of defect",
+        "not_as_described": "Niet zoals beschreven",
+        "wrong_item_received": "Verkeerd artikel",
+        "arrived_late": "Te laat aangekomen",
+        "changed_mind": "Van gedachten veranderd",
+        "other": "Overig"
+      },
+      "note": "Notitie",
+      "notePlaceholder": "Notitie (optioneel)",
+      "noteRequired": "Vertel wat er mis is (verplicht)",
+      "refundTo": "Terugbetalen via",
+      "methods": {
+        "cash": "Contant uit de lade",
+        "card": "Kaart, handmatig",
+        "bank": "Bankoverschrijving",
+        "original": "Terug naar de kaart",
+        "store_credit": "Winkeltegoed",
+        "exchange": "Ruilen",
+        "later": "Later terugbetalen"
+      },
+      "adminOnly": "Terugbetalingen doet een beheerder. De retour wordt nu vastgelegd en de terugbetaling wacht op hem onder Retouren.",
+      "exchangeHint": "De terugbetaling gaat naar een nieuwe verkoop die direct daarna wordt afgerekend.",
+      "laterHint": "De retour wordt nu vastgelegd. Betaal later terug via Retouren.",
+      "refundTotal": "Terugbetaling",
+      "restockingFee": "Inclusief {amount} terugplaatsingskosten",
+      "submit": "Retour aannemen",
+      "done": "Retour {numbers} aangenomen",
+      "doneRefunded": "{amount} terugbetaald.",
+      "doneCash": "Geef de klant {amount} uit de lade.",
+      "doneCredit": "{amount} toegevoegd aan het winkeltegoed van de klant.",
+      "creditBack": "{amount} ging terug naar het winkeltegoed van de klant, waarmee een deel van de verkoop was betaald.",
+      "doneLater": "De terugbetaling wacht op een beheerder.",
+      "doneExchange": "{amount} gaat naar de nieuwe verkoop.",
+      "print": "Retourbon afdrukken",
+      "printBlocked": "Het bonvenster is geblokkeerd. Sta pop-ups toe voor deze site om af te drukken.",
+      "slipTitle": "Retour",
+      "slipSale": "Verkoop",
+      "exchangeReference": "Ruil {numbers}",
+      "exchangeBanner": "Ruiltegoed {amount}",
+      "exchangeDismiss": "Ruiltegoed laten vallen",
+      "exchangeDismissHint": "Niet gebruikt: geef de klant {amount} contant uit de lade."
+    },
+    "operator": {
+      "title": "Kassamedewerker",
+      "close": "Sluiten",
+      "offline": "Van kassamedewerker wisselen vereist een verbinding. De kassa blijft bij wie ermee werkt.",
+      "loadFailed": "De kassamedewerkers konden niet worden geladen",
+      "failed": "Dat lukte niet. Probeer het opnieuw.",
+      "workingNow": "Bedient de kassa",
+      "switchBack": "Terug naar {name}",
+      "takeOver": "Kassa overnemen",
+      "nobody": "Nog geen collega heeft een kassapincode ingesteld. Iedereen stelt zijn eigen in terwijl hij is ingelogd.",
+      "pin": "Pincode",
+      "switch": "Medewerker wisselen",
+      "switched": "{name} bedient nu de kassa",
+      "setPin": "Mijn kassapincode instellen",
+      "changePin": "Mijn kassapincode wijzigen",
+      "pinIntro": "{name}, kies een pincode van 4 tot 8 cijfers. Collega's nemen deze kassa over met hun eigen pincode.",
+      "newPin": "Nieuwe pincode",
+      "confirmPin": "Pincode nogmaals",
+      "pinMismatch": "De twee pincodes zijn niet gelijk",
+      "savePin": "Pincode opslaan",
+      "pinSaved": "Je kassapincode is ingesteld",
+      "back": "Terug"
+    },
+    "reports": {
+      "navLabel": "Kassarapporten",
+      "title": "Kassarapporten",
+      "subtitle": "Verkopen per medewerker en kassa, ontvangsten per betaalmethode, en hoe de telling van elke lade uitkwam.",
+      "loadFailed": "Het rapport kon niet worden geladen",
+      "period": "Periode",
+      "presets": {
+        "today": "Vandaag",
+        "yesterday": "Gisteren",
+        "week": "Afgelopen 7 dagen",
+        "month": "Afgelopen 30 dagen",
+        "thisMonth": "Deze maand"
+      },
+      "counter": "Kassa",
+      "allCounters": "Alle kassa's",
+      "refresh": "Vernieuwen",
+      "export": "CSV exporteren",
+      "empty": "Geen verkopen in deze periode.",
+      "noSessions": "In deze periode is geen lade geopend.",
+      "stats": {
+        "sales": "Verkopen",
+        "items": "{count, plural, one {# artikel verkocht} other {# artikelen verkocht}}",
+        "gross": "Totale verkoop",
+        "discounts": "{amount} aan kortingen",
+        "net": "Na terugbetalingen",
+        "refunds": "{amount} terugbetaald",
+        "average": "Gemiddelde verkoop",
+        "balanceDue": "{amount} nog open op aanbetalingen"
+      },
+      "byCashier": "Per medewerker",
+      "byCounter": "Per kassa",
+      "byTender": "Ontvangsten per betaalmethode",
+      "sessions": "Ladesessies",
+      "unknownCashier": "Onbekende medewerker",
+      "noCounter": "Geen kassa",
+      "open": "Open",
+      "payments": "{count, plural, one {# betaling} other {# betalingen}}",
+      "tenders": {
+        "cash": "Contant",
+        "card": "Kaart",
+        "bank": "Bankoverschrijving",
+        "manual": "Overig",
+        "store_credit": "Winkeltegoed"
+      },
+      "columns": {
+        "name": "Naam",
+        "sales": "Verkopen",
+        "items": "Artikelen",
+        "gross": "Totale verkoop",
+        "discounts": "Kortingen",
+        "refunds": "Terugbetalingen",
+        "net": "Netto",
+        "average": "Gemiddeld",
+        "tender": "Betaalmethode",
+        "payments": "Betalingen",
+        "amount": "Bedrag",
+        "session": "Sessie",
+        "counter": "Kassa",
+        "openedBy": "Geopend door",
+        "opened": "Geopend",
+        "closed": "Gesloten",
+        "expected": "Verwacht contant",
+        "counted": "Geteld",
+        "variance": "Verschil"
+      }
+    },
+    "quickKeys": {
+      "tab": "Favorieten",
+      "empty": "Nog geen sneltoetsen",
+      "emptyManager": "Geef een product in het raster een ster om het hier voor elke kassa te zetten.",
+      "emptyCashier": "Wie de kassa beheert, kan producten een ster geven om ze hier te zetten.",
+      "add": "Aan favorieten toevoegen",
+      "remove": "Uit favorieten verwijderen",
+      "failed": "De favorieten zijn niet opgeslagen"
     }
   },
   "account": {
@@ -7096,7 +8578,19 @@
       "viewOrder": "Bestelling bekijken"
     },
     "twoFactorAuth": "Tweestapsverificatie",
-    "storeCreditExpired": "Verlopen"
+    "storeCreditExpired": "Verlopen",
+    "overview": {
+      "needsAttention": "Vraagt om je aandacht",
+      "actionNeeded": "Actie vereist",
+      "addressTitle": "We kunnen niet naar je adres bezorgen",
+      "addressDeadline": "Verzending is gepauzeerd, corrigeer het adres vóór {date}",
+      "addressPaused": "Verzending is gepauzeerd totdat het adres is gecorrigeerd",
+      "fixAddress": "Adres corrigeren",
+      "paymentDue": "Betaling verschuldigd",
+      "payBy": "Betaal vóór {date}",
+      "moreInProgress": "{count} andere in behandeling",
+      "plusMore": "+{count} meer"
+    }
   },
   "finance": {
     "reliability": {
@@ -7140,7 +8634,10 @@
     },
     "paidFrom": {
       "cash": "Contant",
-      "other": "Anders"
+      "other": "Anders",
+      "bank": "Bank",
+      "gateway": "Saldo bij betaalprovider",
+      "unpaid": "Nog niet betaald"
     },
     "expenses": {
       "title": "Uitgaven",
@@ -7165,17 +8662,68 @@
       "title": "Financiën"
     },
     "receivables": {
-      "vendor": "Verkoper"
+      "vendor": "Verkoper",
+      "title": "Saldi met verkopers",
+      "subtitle": "Geld dat namens een verkoper wordt vastgehouden, tegenover commissie die ze verschuldigd zijn over verkopen die ze zelf hebben geïnd.",
+      "net": "Netto te verrekenen",
+      "emptyTitle": "Niets openstaand",
+      "emptyBody": "Saldi verschijnen zodra bestellingen worden betaald: het platform houdt het aandeel van een verkoper vast tot een uitbetaling is afgerond, en een verkoper die zelf contant geld int, is daarover commissie verschuldigd.",
+      "collectNote": "Gelezen uit het grootboek, dus een verkoop telt mee vanaf het moment dat het geld binnenkomt. Uitbetalingen toont wat vandaag uitbetaalbaar is.",
+      "overpaidTitle": "Meer uitbetaald dan ooit is vastgehouden",
+      "overpaidHint": "Een uitbetaling heeft een verkoop afgerekend waarvan de verkoper het geld zelf had geïnd. Nieuwe uitbetalingen kunnen dit niet meer; het al vastgelegde saldo wordt weggewerkt met een aanpassing in het Financieel overzicht.",
+      "owedBackTitle": "Verkopers die geld moeten terugbetalen",
+      "owedBackHint": "Meestal een terugbetaling nadat de verkoper al was uitbetaald. Het gaat vanzelf af van de volgende uitbetaling, of registreer een terugstorting op het tabblad Uitbetalingen van de verkoper als die het terugbetaalt. Boek niet ook nog een aanpassing — dan wordt het twee keer teruggevorderd.",
+      "heldForVendors": "Je houdt vast voor verkopers",
+      "commissionTheyOwe": "Commissie die ze jou verschuldigd zijn",
+      "netToSettle": "Nog netto te verrekenen",
+      "netHint": "Wat de boeken per saldo verschuldigd zijn — een uitbetaling verstuurt alleen het geleverde deel"
     },
     "statement": {
       "date": "Datum",
       "amount": "Bedrag",
       "kind": {
-        "sale": "Aanbieding",
-        "commission": "Commissie"
+        "sale": "Verkoop",
+        "commission": "Commissie",
+        "payout": "Uitbetaald",
+        "refund": "Terugbetaling",
+        "boost": "Boost",
+        "subscription": "Abonnement",
+        "other": "Aanpassing",
+        "payout_returned": "Uitbetaling teruggekomen",
+        "refund_reversed": "Terugbetaling teruggedraaid",
+        "commission_settled": "Commissie verrekend via uitbetaling",
+        "promotion_credit": "Actietegoed",
+        "delivery_label": "Verzendlabel",
+        "repayment": "Door jou teruggestort"
       },
       "statements": "Afschriften",
-      "owedOrders": "Bestellingen"
+      "owedOrders": "Bestellingen",
+      "title": "Je financiën",
+      "subtitle": "Wat je hebt verdiend, wat is uitbetaald en wat de marktplaats voor je vasthoudt.",
+      "opening": "Beginsaldo",
+      "openingHint": "Overgenomen van vóór deze periode",
+      "earned": "Verdiend",
+      "earnedHint": "Jouw aandeel in de verkopen, na commissie",
+      "paidOut": "Uitbetaald",
+      "closing": "Voor jou vastgehouden",
+      "closingHint": "Je saldo volgens de boeken — de kaart hierboven toont wat een uitbetaling kan versturen",
+      "owed": "Je bent verschuldigd",
+      "owedHint": "Commissie over bestellingen die je zelf hebt geïnd",
+      "activity": "Activiteit",
+      "type": "Type",
+      "reference": "Referentie",
+      "empty": "Er is in deze periode niets veranderd. Verkopen, terugbetalingen en uitbetalingen verschijnen hier zodra ze plaatsvinden.",
+      "emptyTitle": "Nog niets te tonen",
+      "emptyBody": "Je afschrift vult zich zodra bestellingen worden betaald. Elke verkoop voegt toe wat je hebt verdiend; elke uitbetaling haalt het er weer af.",
+      "heldChange": "Voor jou vastgehouden",
+      "owedChange": "Je bent verschuldigd",
+      "statementsSubtitle": "Elke verkoop, terugbetaling en uitbetaling die je saldo heeft veranderd.",
+      "seeAll": "Volledig afschrift bekijken",
+      "export": "Exporteren",
+      "truncated": "De eerste {shown} van {total} regels worden getoond. Kies een kortere periode om de rest te zien — de saldi hierboven gelden hoe dan ook voor de hele periode.",
+      "owedTitle": "Verschuldigd aan de marktplaats",
+      "owedSubtitle": "Commissie over bestellingen die je zelf hebt geïnd. Het geld is al van jou; dit is wat je erover verschuldigd bent.",
+      "owedEmpty": "Je bent voor deze periode niets verschuldigd."
     },
     "reports": {
       "title": "Rapporten",
@@ -7184,6 +8732,101 @@
     "periods": {
       "closedAt": "Gesloten",
       "reopen": "Heropenen"
+    },
+    "balance": {
+      "title": "Wat je tegoed hebt",
+      "ready": "Klaar voor de volgende uitbetaling",
+      "readyHint": "Uit {count} geleverde bestellingen waarvan de retourtermijn voorbij is",
+      "belowMinimum": "Er volgt een uitbetaling zodra dit {amount} bereikt",
+      "held": "Wacht tot de retourtermijn voorbij is",
+      "heldHint": "Geleverd, en uitbetaalbaar {days} dagen na levering",
+      "reserve": "Ingehouden voor voorbestellingen",
+      "reserveHint": "Vrijgegeven vanaf {date}",
+      "reserveUndated": "Wordt vrijgegeven met een latere uitbetaling",
+      "owedBack": "Terug te betalen aan de winkel",
+      "owedBackHint": "Aan jou uitbetaald voor bestellingen die sindsdien zijn terugbetaald; dit gaat af van je volgende uitbetaling",
+      "tooManyOrders": "Er staan meer dan 500 bestellingen klaar: de winkel betaalt ze in delen uit, oudste eerst",
+      "frozen": "Uitbetalingen staan stil zolang je account is geschorst. Je verkopen blijven meetellen.",
+      "inPayout": "In een uitbetaling die wordt voorbereid",
+      "inPayoutHint": "{numbers} — onderweg naar jou",
+      "notDelivered": "Nog niet geleverd",
+      "notDeliveredHint": "{count} betaalde bestellingen onderweg; de retourtermijn begint bij levering",
+      "awaitingBalance": "Voorbestellingen die wachten op het restbedrag",
+      "awaitingBalanceHint": "Uitbetaalbaar zodra de klant de rest betaalt en de goederen zijn geleverd",
+      "commissionLeft": "Commissie die nog moet worden verrekend",
+      "commissionLeftHint": "Over verkopen die je zelf hebt geïnd; dit gaat af van een latere uitbetaling of komt op een factuur",
+      "owedBackLater": "Nog terug te betalen aan de winkel",
+      "owedBackLaterHint": "Aan jou uitbetaald voor bestellingen die sindsdien zijn terugbetaald; meer dan de volgende uitbetaling kan dekken, dus het gaat af van latere uitbetalingen"
+    },
+    "payout": {
+      "changedElsewhere": "Deze uitbetaling is gewijzigd. Ze is opnieuw geladen.",
+      "updated": "Uitbetaling bijgewerkt.",
+      "notFound": "Uitbetaling niet gevonden.",
+      "backToPayouts": "Uitbetalingen",
+      "ordersUpTo": "Bestellingen tot {date}",
+      "orderCount": "{count} bestellingen",
+      "requote": "De bestellingen in deze uitbetaling zijn gewijzigd nadat ze is aangemaakt. Annuleer de uitbetaling en maak een nieuwe aan.",
+      "frozen": "Deze verkoper is geschorst, dus deze uitbetaling kan niet worden verstuurd. Herstel de verkoper of annuleer de uitbetaling.",
+      "howItWasWorkedOut": "Hoe deze uitbetaling is berekend",
+      "grossSales": "Brutoverkopen",
+      "grossSalesHint": "het aandeel van de verkoper in de bestellingen hieronder",
+      "commission": "Commissie",
+      "ofGross": "van bruto",
+      "shippingAmount": "Bezorgkosten",
+      "shippingAmountHint": "aan klanten gerekend voor pakketten die de verkoper heeft bezorgd",
+      "reserveUntil": "vrijgegeven op {date}",
+      "commissionOffset": "Commissie op contante verkopen",
+      "commissionOffsetHint": "verschuldigd over verkopen waarvan de verkoper het geld zelf heeft ontvangen; hier afgetrokken in plaats van gefactureerd",
+      "commissionCredit": "Winkelacties op contante verkopen",
+      "commissionCreditHint": "kortingen die de winkel heeft betaald op verkopen die de verkoper zelf heeft geïnd, boven de verschuldigde commissie",
+      "otherAdjustments": "Overige aanpassingen",
+      "otherAdjustmentsHint": "terugvorderingen van terugbetalingen en bewegingen in de voorbestellingsreserve",
+      "netPayout": "Netto-uitbetaling",
+      "paidOn": "Betaald op {date}",
+      "reference": "Betalingsreferentie",
+      "noReference": "Geen betalingsreferentie vastgelegd",
+      "returnedOn": "Teruggekomen op {date} — de verkoper heeft het weer tegoed",
+      "statusTitle": "Status",
+      "returnedStep": "Geld teruggekomen",
+      "notRecorded": "Niet vastgelegd",
+      "notYet": "Nog niet",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "Niet vastgelegd",
+      "note": "Notitie",
+      "noteReturnedHint": "— verplicht: waarom het geld terugkwam",
+      "noteHint": "— wordt bij de uitbetaling bewaard en is zichtbaar voor de verkoper",
+      "returnedOnLabel": "Datum waarop het geld terugkwam",
+      "returnedWarning": "Gebruik dit alleen als de bank het geld heeft teruggestuurd. De boeking in het grootboek wordt teruggedraaid, de verkoper heeft het bedrag weer tegoed en deze verkopen gaan terug naar de volgende uitbetaling.",
+      "saveWarning": "Een uitbetaling als betaald markeren boekt die in het grootboek en rekent de onderliggende bestellingen af. Dit kan niet worden teruggedraaid — een fout corrigeer je met een aanpassing.",
+      "noChanges": "Nog geen wijzigingen",
+      "ordersTitle": "Bestellingen in deze uitbetaling",
+      "ordersHint": "Alles wat geleverd en nog niet uitbetaald is tot {date}",
+      "order": "Bestelling",
+      "placed": "Geplaatst",
+      "orderStatus": "Bestelstatus",
+      "payment": "Betaling",
+      "vendorShare": "Aandeel verkoper",
+      "vendorEarnings": "Na commissie",
+      "noOrders": "Geen bestellingen gekoppeld aan deze uitbetaling.",
+      "sellerShareNote": "Het aandeel van de verkoper in de goederen van elke bestelling telt op tot de brutoverkopen; na commissie telt het op tot de netto-uitbetaling. Verzendkosten en belasting die de winkel heeft geïnd, horen er niet bij.",
+      "adjustment": {
+        "recoveryDeducted": "Terugvordering van terugbetalingen",
+        "recoveryDeductedHint": "eerder uitbetaald voor bestellingen die sindsdien zijn terugbetaald",
+        "recoveryReturned": "Terugvordering teruggegeven",
+        "recoveryReturnedHint": "een eerder teruggevorderde terugbetaling is ongedaan gemaakt",
+        "reserveHeld": "Voorbestellingsreserve ingehouden",
+        "reserveHeldHint": "ingehouden voor een late terugboeking",
+        "reserveReleased": "Voorbestellingsreserve vrijgegeven",
+        "reserveReleasedHint": "ingehouden bij een eerdere uitbetaling, nu vervallen",
+        "reserveCreditDeducted": "Reserve teruggevorderd",
+        "reserveCreditDeductedHint": "een vrijgegeven reserve waarvan de uitbetaling terugkwam",
+        "reserveCreditReturned": "Reserveterugvordering teruggegeven",
+        "reserveCreditReturnedHint": "teruggegeven nadat de uitbetaling opnieuw is betaald",
+        "commissionOffset": "Commissie op contante verkopen",
+        "commissionOffsetHint": "verschuldigd over verkopen waarvan de verkoper het geld zelf heeft ontvangen",
+        "commissionCredit": "Winkelacties op contante verkopen",
+        "commissionCreditHint": "kortingen die de winkel heeft betaald boven de verschuldigde commissie"
+      }
     }
   },
   "ui": {
@@ -7210,6 +8853,10 @@
     "fullName": "Volledige naam"
   },
   "customerProfile": {
+    "groupOrders": "Je bestellingen",
+    "groupWishlist": "Je verlanglijst",
+    "groupNews": "Nieuws en aanbiedingen",
+    "marketingOptInHint": "Zet dit uit om je af te melden voor alle marketing-e-mails.",
     "preferences": "Voorkeuren",
     "newsletter": "Nieuwsbrief",
     "pushMessages": "Berichten"

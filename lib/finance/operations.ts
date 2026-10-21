@@ -6,7 +6,7 @@ import { FinanceOperation, FinanceVendorState } from "@/models/finance-operation
 import { LedgerEntry } from "@/models/ledger-entry.model";
 import { FiscalPeriod } from "@/models/fiscal-period.model";
 import { applyPeriodClose, postLedgerEntries, type LedgerPosting } from "./ledger";
-import { financeQuery, financeSession, financeTransaction } from "./transaction";
+import { afterFinanceCommit, financeQuery, financeSession, financeTransaction } from "./transaction";
 import { TransactionContendedError, TransactionOutcomeUnknownError, TransactionsUnavailableError } from "@/lib/db-transaction";
 
 export function financialFingerprint(value: unknown): string {
@@ -65,7 +65,17 @@ export async function finishFinanceOperation(id: unknown): Promise<boolean> {
   const op = await FinanceOperation.findOneAndUpdate({
     _id: id, state: "pending", $or: [{ leaseUntil: null }, { leaseUntil: { $lt: now } }],
   }, { $set: { leaseOwner: owner, leaseUntil: new Date(now.getTime() + 60_000) }, $inc: { attempts: 1 } }, { returnDocument: "after" }).lean();
-  if (!op) return (await FinanceOperation.findById(id).select("state").lean())?.state === "complete";
+  const finishChildren = async (result: unknown) => {
+    const ids = (result as { operationIds?: unknown } | null)?.operationIds;
+    if (!Array.isArray(ids)) return true;
+    let complete = true;
+    for (const child of new Set(ids.filter((value): value is string => typeof value === "string" && value !== String(id)))) complete = await finishFinanceOperation(child) && complete;
+    return complete;
+  };
+  if (!op) {
+    const existing = await FinanceOperation.findById(id).select("state result").lean();
+    return existing?.state === "complete" && await finishChildren(existing.result);
+  }
   try {
     const postings = op.postings as LedgerPosting[];
     const verify = async () => {
@@ -82,6 +92,14 @@ export async function finishFinanceOperation(id: unknown): Promise<boolean> {
     await postLedgerEntries(postings, { strict: true, resolvedDates: true });
     const count = await verify();
     if (count !== new Set(postings.map((p) => p.key)).size) throw new Error("Some posting legs remain missing");
+    if (!await finishChildren(op.result)) throw new Error("Dependent inventory posting work remains pending");
+    if (op.action === "refund:reverse") {
+      const notice = (op.result as { reversalNotice?: Parameters<typeof import("@/lib/notifications/notifications").notifyAdminsPaymentAnomaly>[0] }).reversalNotice;
+      if (notice) {
+        const { notifyAdminsPaymentAnomaly } = await import("@/lib/notifications/notifications");
+        await notifyAdminsPaymentAnomaly(notice, { strict: true });
+      }
+    }
     await FinanceOperation.updateOne({ _id: id, leaseOwner: owner }, { $set: { state: "complete" }, $unset: { leaseOwner: "", leaseUntil: "", error: "" } });
     return true;
   } catch (error) {
@@ -127,7 +145,11 @@ export async function runFinanceOperation<T>(input: {
       else throw error;
     }
   }
-  if (financeSession()) return { data: op!.result as T, operationId: String(op!._id), bookkeepingState: "pending" };
+  if (financeSession()) {
+    const operationId = String(op!._id);
+    afterFinanceCommit(async () => { await finishFinanceOperation(operationId); });
+    return { data: op!.result as T, operationId, bookkeepingState: "pending" };
+  }
   const complete = await finishFinanceOperation(op!._id);
   return { data: op!.result as T, operationId: String(op!._id), bookkeepingState: complete ? "complete" : "pending" };
 }

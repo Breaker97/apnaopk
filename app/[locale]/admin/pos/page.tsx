@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
-import { canAccessPOS, canApplyPosDiscount } from "@/lib/access/rbac";
+import { canAccessPOS } from "@/lib/access/rbac";
+import { posSeatSettings } from "@/lib/pos/pos-seat-settings";
 import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { getSettings } from "@/models/settings.model";
@@ -8,6 +9,8 @@ import { buildPOSSettings } from "@/lib/pos/build-pos-settings";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
 import { localeHref } from "@/lib/i18n/locale-routing";
+import { PLATFORM_OWNER } from "@/lib/invoice-templates/owner";
+import { posReceiptTemplate } from "@/lib/invoice-templates/pos-template";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -37,7 +40,9 @@ export default async function AdminPosPage({ params }: PageProps) {
     <POSPageShell
       settings={{
         ...buildPOSSettings(settings),
-        canApplyDiscounts: await canApplyPosDiscount(session.user),
+        ...(await posSeatSettings(session.user, settings)),
+        // The receipt template (Invoice Template Builder, Phase 6): null prints the standard receipt.
+        ...(await posReceiptTemplate(PLATFORM_OWNER, settings)),
       }}
       user={session.user}
     />

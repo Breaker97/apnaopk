@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/db";
-import { canAccessPOS, canApplyPosDiscount } from "@/lib/access/rbac";
+import { canAccessPOS } from "@/lib/access/rbac";
+import { posSeatSettings } from "@/lib/pos/pos-seat-settings";
 import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { getSettings } from "@/models/settings.model";
@@ -14,6 +15,8 @@ import { Vendor } from "@/models";
 import type { Address } from "@/types";
 import type { VendorStoreVisibility } from "@/lib/vendors/vendor-address";
 import { localeHref } from "@/lib/i18n/locale-routing";
+import { PLATFORM_OWNER, vendorOwner } from "@/lib/invoice-templates/owner";
+import { posReceiptTemplate } from "@/lib/invoice-templates/pos-template";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -42,6 +45,7 @@ export default async function VendorPosPage({ params }: PageProps) {
   const vendor = await Vendor.findOne({ userId: session.user.id })
     .select("storeName address storeVisibility")
     .lean<{
+      _id: unknown;
       storeName?: string;
       address?: Address;
       storeVisibility?: VendorStoreVisibility;
@@ -56,7 +60,9 @@ export default async function VendorPosPage({ params }: PageProps) {
           settings,
           vendor ? vendorReceiptIdentity(vendor) : undefined,
         ),
-        canApplyDiscounts: await canApplyPosDiscount(session.user),
+        ...(await posSeatSettings(session.user, settings)),
+        // The receipt template (Invoice Template Builder, Phase 6): this vendor's chain.
+        ...(await posReceiptTemplate(vendor ? vendorOwner(String(vendor._id)) : PLATFORM_OWNER, settings)),
       }}
       user={session.user}
     />

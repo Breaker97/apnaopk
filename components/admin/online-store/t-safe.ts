@@ -20,11 +20,21 @@ export function createTSafe(t: Translator) {
         v?: Record<string, string | number>,
       ) => string;
       const result = translate(key, values);
-      return typeof result === "string" && result !== key ? result : fallback;
+      return typeof result === "string" && result !== key
+        ? result
+        : fill(fallback, values);
     } catch {
-      return fallback;
+      return fill(fallback, values);
     }
   };
+}
+
+/** The English fallback with its `{placeholders}` filled, as next-intl would. */
+function fill(text: string, values?: Record<string, string | number>): string {
+  if (!values) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in values ? String(values[name]) : match,
+  );
 }
 
 export type TSafe = ReturnType<typeof createTSafe>;

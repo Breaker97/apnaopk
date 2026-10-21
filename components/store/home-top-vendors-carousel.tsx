@@ -147,7 +147,7 @@ export function HomeTopVendorsCarousel({
             {viewAll ? (
               <Link
                 href={viewAll.href}
-                className="whitespace-nowrap text-xs font-semibold text-primary hover:underline sm:text-sm"
+                className="whitespace-nowrap text-xs font-semibold text-store-link hover:underline sm:text-sm"
               >
                 {viewAll.label}
               </Link>
@@ -254,7 +254,7 @@ function VendorCard({
       label: labels.rating,
       value: (
         <span className="inline-flex items-center justify-center gap-1">
-          <Star className="h-3 w-3 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" />
+          <Star className="h-3 w-3 fill-current text-(--store-rating,#a86500) sm:h-3.5 sm:w-3.5" />
           {formatRating(vendor.rating)}
         </span>
       ),
@@ -317,14 +317,16 @@ function VendorCard({
         )}
       </Link>
 
-      <div className="relative flex flex-1 flex-col px-0.5 pb-0.5 pt-7 sm:px-1 sm:pb-1 sm:pt-9">
-        <div className="absolute -top-5 left-0.5 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-[3px] border-card bg-background shadow-sm sm:-top-6 sm:left-1 sm:h-12 sm:w-12 sm:border-4">
+      {/* The logo straddles the banner's edge: half above, half below. The
+          body's top padding keeps the same gap under it at either size. */}
+      <div className="relative flex flex-1 flex-col px-0.5 pb-0.5 pt-[31px] sm:px-1 sm:pb-1 sm:pt-10">
+        <div className="absolute -top-[23px] left-0.5 flex h-[46px] w-[46px] items-center justify-center overflow-hidden rounded-full border-[3px] border-card bg-background shadow-sm sm:-top-[28px] sm:left-1 sm:h-[55px] sm:w-[55px] sm:border-4">
           {vendor.logo ? (
             <AppImage
               src={vendor.logo}
               alt={`${vendor.storeName} logo`}
-              width={48}
-              height={48}
+              width={56}
+              height={56}
               className="h-full w-full object-cover"
             />
           ) : (

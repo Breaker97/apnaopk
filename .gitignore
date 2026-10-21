@@ -27,9 +27,6 @@
 .DS_Store
 *.swp
 *.pem
-.codex
-.worktrees/
-.biz-run/
 
 # debug
 npm-debug.log*
@@ -49,17 +46,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
-
-# Agent tooling artifacts — local to whoever uses the tool, never shipped
-.agents/
-.trae/
-.superpowers/
-/docs/superpowers/
-/CLAUDE.md
-
-# Security audits and internal review notes — kept by the team, never shipped
-/docs/security-audit-*/
-/docs/audit/
 
 # Local-storage uploads (runtime user media, served by app/uploads route)
 /public/uploads/

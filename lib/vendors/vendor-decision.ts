@@ -13,7 +13,7 @@ import {
   type VendorStatus,
 } from "@/config/app.config";
 import { defaultLocale } from "@/config/i18n.config";
-import { ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
+import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/api/errors";
 import { isValidObjectId } from "@/lib/api/validate";
 import { requestEmailVerification } from "@/lib/auth/auth";
 import {
@@ -233,6 +233,32 @@ export async function assertCanChangeVendorOwnerRole(userId: unknown) {
   ) {
     throw new ValidationError(
       "Admin and staff accounts cannot be converted through vendor updates",
+    );
+  }
+}
+
+/** Whether an owner account is on the team (an administrator, or staff), by either role field. */
+async function ownerHoldsTeamRole(userId: unknown): Promise<boolean> {
+  const owner = await User.findById(userId).select("role roles").lean();
+  const roles = Array.isArray((owner as { roles?: unknown } | null)?.roles)
+    ? ((owner as { roles?: string[] }).roles || [])
+    : [];
+  const role = (owner as { role?: string } | null)?.role;
+  return role === USER_ROLES.ADMIN || isStaffRole(role) || roles.includes(USER_ROLES.ADMIN) || roles.some(isStaffRole);
+}
+
+/**
+ * A store owner's account — its login email, name, phone and status — is
+ * changed from the store's page only when the owner is not on the team. An
+ * administrator's or staff member's account is the Team page's, where nobody
+ * changes an account at or above their own level: here, a new login email is
+ * a password reset away from the account itself.
+ */
+export async function assertVendorOwnerAccountEditable(userId: unknown) {
+  if (!userId) return;
+  if (await ownerHoldsTeamRole(userId)) {
+    throw new AuthorizationError(
+      "This store's owner is a member of the team. Change their account on the Team page.",
     );
   }
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import type { StaffResourceActions } from "@/lib/access/staff-resource-actions";
+
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useState, useCallback, useMemo } from "react";
@@ -47,6 +49,7 @@ interface ProductsDataTableProps {
   locale: string;
   area?: "admin" | "staff";
   readOnly?: boolean;
+  actionAccess?: StaffResourceActions;
   /** Rows for the current query string, fetched by the page. */
   data: Product[];
   pagination: {
@@ -73,11 +76,15 @@ export function ProductsDataTable({
   locale,
   area = "admin",
   readOnly = false,
+  actionAccess,
   data,
   pagination,
   vendorOptions = [],
   isMultiVendor = false,
 }: ProductsDataTableProps) {
+  const canCreate = !readOnly && (actionAccess?.canCreate ?? true);
+  const canEdit = !readOnly && (actionAccess?.canEdit ?? true);
+  const canDelete = !readOnly && (actionAccess?.canDelete ?? true);
   const t = useTranslations();
   const router = useRouter();
   const { confirm } = useConfirmation();
@@ -329,7 +336,7 @@ export function ProductsDataTable({
               title={row.title || row.name}
               titleWordLimit={4}
               href={
-                readOnly
+                !canEdit
                   ? `/${locale}/products/${row.slug}`
                   : `${basePath}/products/${row._id}/edit`
               }
@@ -443,7 +450,7 @@ export function ProductsDataTable({
         className: "w-[220px]",
       },
     ],
-    [basePath, formatPrice, getSourceLabel, isMultiVendor, locale, readOnly, t],
+    [basePath, formatPrice, getSourceLabel, isMultiVendor, locale, canEdit, t],
   );
 
   // Tabs
@@ -521,7 +528,7 @@ export function ProductsDataTable({
     () =>
       buildAdminCommerceTableHeader({
         title: t("admin.productsDataTable.title"),
-        addAction: readOnly
+        addAction: !canCreate
           ? undefined
           : {
               id: "add",
@@ -530,7 +537,7 @@ export function ProductsDataTable({
               icon: <Plus className="h-4 w-4" />,
               variant: "default",
             },
-        importExportAction: readOnly
+        importExportAction: !(canCreate || canEdit)
           ? {
               id: "export",
               label: t("admin.productsDataTable.actions.export"),
@@ -570,7 +577,8 @@ export function ProductsDataTable({
       handleDownloadSample,
       handleExportProducts,
       handleImportProducts,
-      readOnly,
+      canCreate,
+      canEdit,
       t,
     ],
   );
@@ -580,7 +588,7 @@ export function ProductsDataTable({
     () =>
       readOnly
         ? []
-        : [
+        : ([
             {
               id: "set-active",
               label: t("admin.productsDataTable.bulkActions.setActive"),
@@ -609,8 +617,8 @@ export function ProductsDataTable({
               variant: "destructive",
               onClick: handleBulkDelete,
             },
-          ],
-    [handleBulkDelete, handleBulkStatusUpdate, readOnly, t],
+          ] satisfies DataTableBulkAction<Product>[]).filter((action) => action.id === "delete" ? canDelete : canEdit),
+    [handleBulkDelete, handleBulkStatusUpdate, readOnly, canEdit, canDelete, t],
   );
 
   // Row actions
@@ -625,7 +633,7 @@ export function ProductsDataTable({
               href: `/products/${row.slug}`,
             },
           ]
-        : [
+        : ([
             {
               id: "view",
               label: t("admin.productsDataTable.rowActions.view"),
@@ -645,13 +653,13 @@ export function ProductsDataTable({
               variant: "destructive",
               onClick: () => handleDelete(row),
             },
-          ],
-    [basePath, handleDelete, locale, readOnly, t],
+          ] satisfies DataTableAction[]).filter((action) => action.id === "view" || (action.id === "edit" ? canEdit : canDelete)),
+    [basePath, handleDelete, locale, readOnly, canEdit, canDelete, t],
   );
 
   return (
     <>
-      {!readOnly && (
+      {(canCreate || canEdit) && (
         <ProductImportDialog
           open={importOpen}
           onOpenChange={setImportOpen}
@@ -711,7 +719,7 @@ export function ProductsDataTable({
         rowActionsVariant="inline"
         onRowClick={(row) =>
           router.push(
-            readOnly
+            !canEdit
               ? `/${locale}/products/${row.slug}`
               : `${basePath}/products/${row._id}/edit`,
           )

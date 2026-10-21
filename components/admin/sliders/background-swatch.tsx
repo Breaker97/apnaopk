@@ -15,6 +15,7 @@ import {
 } from "@/lib/sliders/types";
 import { cn } from "@/lib/utils";
 import { BackgroundPicker } from "./background-picker";
+import { useDisplayColor } from "@/components/admin/theme-colors-context";
 import { CHECKERBOARD } from "./color-picker";
 
 /**
@@ -22,10 +23,11 @@ import { CHECKERBOARD } from "./color-picker";
  * translucent one shows AS translucent — on a plain plate, 30% black and
  * light grey are the same square.
  */
-function swatchCss(value: SlideBackground): React.CSSProperties {
+function swatchCss(value: SlideBackground, display?: string): React.CSSProperties {
   if (value.type === "solid" && value.color) {
+    const paint = display ?? value.color;
     return {
-      background: `linear-gradient(${value.color}, ${value.color}), ${CHECKERBOARD}`,
+      background: `linear-gradient(${paint}, ${paint}), ${CHECKERBOARD}`,
     };
   }
   return backgroundCss(value);
@@ -67,6 +69,8 @@ export function BackgroundSwatchField({
 }) {
   const isSet = hasBackground(value);
   const labels = backgroundPickerLabels(tSafe);
+  // A theme reference shows the store's colour, not the dashboard's.
+  const display = useDisplayColor(value.type === "solid" ? value.color : undefined);
   /** What is in the slot, named — the button says this, the swatch shows it. */
   const fill = !isSet
     ? tSafe("admin.storeBuilder.noColor", "None")
@@ -94,7 +98,7 @@ export function BackgroundSwatchField({
                 !isSet &&
                   "bg-[linear-gradient(45deg,transparent_42%,var(--border)_42%,var(--border)_58%,transparent_58%)]",
               )}
-              style={isSet ? swatchCss(value) : undefined}
+              style={isSet ? swatchCss(value, display) : undefined}
             />
             <span className="truncate text-xs font-normal">{fill}</span>
           </Button>
@@ -108,7 +112,7 @@ export function BackgroundSwatchField({
                 "bg-[linear-gradient(45deg,transparent_46%,var(--border)_46%,var(--border)_54%,transparent_54%)]",
               className,
             )}
-            style={isSet ? swatchCss(value) : undefined}
+            style={isSet ? swatchCss(value, display) : undefined}
           />
         )}
       </PopoverTrigger>
@@ -118,6 +122,7 @@ export function BackgroundSwatchField({
           onChange={onChange}
           labels={labels}
           modes={modes}
+          tSafe={tSafe}
         />
         <Button
           type="button"

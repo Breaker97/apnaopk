@@ -9,6 +9,7 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getVendorStatement, resolveRequestedPeriod } from "@/lib/finance/reports";
 import { resolveFinanceDashboardPeriod } from "@/lib/finance/dashboard-finance-period";
 import { localeHref } from "@/lib/i18n/locale-routing";
+import { vendorFinancePage } from "./vendor-finance-query";
 
 /**
  * The guard and the load every vendor finance screen repeats.
@@ -35,6 +36,7 @@ export async function guardVendorFinance(locale: string) {
   return {
     vendor,
     storeCurrency: settings.general?.defaultCurrency || "USD",
+    canManageExpenses: access.vendorPermissions.includes(VENDOR_PERMISSIONS.MANAGE_PAYOUTS),
   };
 }
 
@@ -63,6 +65,12 @@ export async function loadVendorFinance(params: {
    * as the dashboard's falls back to its default, and the reverse likewise.
    */
   periods?: "finance" | "dashboard";
+  /**
+   * The newest few lines instead of the period's first page — for an
+   * overview's "recent activity". Totals are unaffected either way.
+   */
+  recentLines?: number;
+  balance?: "owed";
 }) {
   const guarded = await guardVendorFinance(params.locale);
   const search = {
@@ -76,7 +84,13 @@ export async function loadVendorFinance(params: {
     params.periods === "dashboard"
       ? resolveFinanceDashboardPeriod(search)
       : resolveRequestedPeriod(search);
-  const statements = await getVendorStatement(String(guarded.vendor._id), period);
+  const requestedCurrency = readParam(params.searchParams, "currency");
+  const currency = requestedCurrency && /^[A-Za-z]{3}$/.test(requestedCurrency) ? requestedCurrency.toUpperCase() : undefined;
+  const page = params.recentLines ? 1 : vendorFinancePage(readParam(params.searchParams, "page"));
+  const pageSize = params.recentLines ?? 50;
+  const statements = await getVendorStatement(String(guarded.vendor._id), period, pageSize, {
+    newestFirst: Boolean(params.recentLines), page, currency, balance: params.balance,
+  });
 
-  return { ...guarded, period, statements };
+  return { ...guarded, period, statements, page, pageSize, currency };
 }

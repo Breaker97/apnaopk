@@ -1,8 +1,9 @@
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { Brand, Product } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
-import { isAdmin } from "@/lib/access/rbac";
+import { canReadCatalogManagement } from "@/lib/access/staff-authz";
 import { createAuditContext } from "@/lib/audit";
 import {
   auditCatalogDelete,
@@ -52,7 +53,7 @@ export const GET = withApi<RouteParams>(
 
     // Admins (brand edit/restore form) may load any brand; everyone else only
     // sees approved, live, non-archived brands.
-    const visibility = isAdmin(session?.user)
+    const visibility = await canReadCatalogManagement(session?.user, "brands")
       ? {}
       : {
           approvalStatus: APPROVED_BRAND_CONDITION,
@@ -79,10 +80,10 @@ export const GET = withApi<RouteParams>(
 
 /**
  * PUT /api/brands/[id]
- * Update brand (Admin only) - requires ID
+ * Update brand (Admin or permitted staff) - requires ID
  */
 export const PUT = withApi<RouteParams>(
-  { auth: "admin" },
+  { auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.EDIT_BRANDS, STAFF_PERMISSIONS.MANAGE_BRANDS] },
   async ({ request, params, session }) => {
     const { id } = params;
 
@@ -180,7 +181,7 @@ export const PUT = withApi<RouteParams>(
  * clear product references.
  */
 export const DELETE = withApi<RouteParams>(
-  { auth: "admin" },
+  { auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.DELETE_BRANDS, STAFF_PERMISSIONS.MANAGE_BRANDS] },
   async ({ request, params, session }) => {
     const { id } = params;
 

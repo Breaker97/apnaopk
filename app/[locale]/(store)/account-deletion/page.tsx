@@ -79,7 +79,7 @@ export default async function AccountDeletionPage({ params }: PageProps) {
             <p className="text-muted-foreground">
               {t.rich("cannotSignInReset", {
                 reset: (chunks) => (
-                  <Link href="/forgot-password" className="font-medium text-primary underline-offset-4 hover:underline">
+                  <Link href="/forgot-password" className="font-medium text-store-link underline-offset-4 hover:underline">
                     {chunks}
                   </Link>
                 ),
@@ -89,7 +89,7 @@ export default async function AccountDeletionPage({ params }: PageProps) {
               <p className="text-muted-foreground">
                 {t.rich("cannotSignInEmail", {
                   email: () => (
-                    <a href={mailto} className="font-medium text-primary underline-offset-4 hover:underline">
+                    <a href={mailto} className="font-medium text-store-link underline-offset-4 hover:underline">
                       {storeEmail}
                     </a>
                   ),
@@ -99,7 +99,7 @@ export default async function AccountDeletionPage({ params }: PageProps) {
               <p className="text-muted-foreground">
                 {t.rich("cannotSignInContact", {
                   contact: (chunks) => (
-                    <Link href="/contact" className="font-medium text-primary underline-offset-4 hover:underline">
+                    <Link href="/contact" className="font-medium text-store-link underline-offset-4 hover:underline">
                       {chunks}
                     </Link>
                   ),

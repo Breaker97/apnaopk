@@ -9,6 +9,7 @@ import { resolveLocalizedSetting, LEGACY_SEARCH_PLACEHOLDERS } from "@/lib/i18n/
 import { Link as LinkIcon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TagInput } from "@/components/ui/tag-input";
 import { Separator } from "@/components/ui/separator";
 import type { AnnouncementDraft } from "@/components/admin/online-store/header-chrome-state";
 import { BackgroundSwatchField } from "@/components/admin/sliders/background-swatch";
@@ -727,6 +728,7 @@ function RowProperties({
             inheritLabel={labels.inherit}
             clearLabel={labels.clearColor}
             onChange={(borderColor) => onPatch({ borderColor })}
+            tSafe={tSafe}
           />
         </PanelRow>
       ) : null}
@@ -1282,6 +1284,7 @@ function SearchBarFields({
           inheritLabel={labels.inherit}
           clearLabel={labels.clearColor}
           onChange={(border) => onPatch({ border })}
+          tSafe={tSafe}
         />
       </PanelRow>
       <ToggleField
@@ -1472,19 +1475,6 @@ function SearchDrawerFields({
   item: HeaderSearchIconItem;
   onPatch: (patch: Partial<HeaderSearchIconItem>) => void;
 }) {
-  // Edited as text and parsed on blur, so a comma mid-typing does not split
-  // a half-written term into two.
-  const [trendingText, setTrendingText] = useState(item.trending.join(", "));
-  const commitTrending = () => {
-    const terms = trendingText
-      .split(",")
-      .map((term) => term.trim())
-      .filter(Boolean)
-      .slice(0, MAX_SEARCH_TRENDING);
-    onPatch({ trending: terms });
-    setTrendingText(terms.join(", "));
-  };
-
   const rows = [...item.drawerCollections];
   const setRow = (index: number, id: string) => {
     const next = [...rows];
@@ -1533,12 +1523,12 @@ function SearchDrawerFields({
         align="start"
       >
         <div className="space-y-1">
-          <Input
-            value={trendingText}
-            onChange={(event) => setTrendingText(event.target.value)}
-            onBlur={commitTrending}
+          <TagInput
+            size="sm"
+            value={item.trending}
+            onValueChange={(trending) => onPatch({ trending })}
+            maxTags={MAX_SEARCH_TRENDING}
             placeholder="wallets, speedy, pochette"
-            className="h-8 text-xs"
             aria-label={tSafe("admin.headerStudio.panel.trending", "Trending")}
           />
           <p className="text-[11px] leading-snug text-muted-foreground">
@@ -1618,6 +1608,7 @@ function BorderRows({
             inheritLabel={labels.inherit}
             clearLabel={labels.clearColor}
             onChange={onColor}
+            tSafe={tSafe}
           />
         </PanelRow>
       ) : null}

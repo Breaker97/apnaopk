@@ -7,6 +7,8 @@ import {
   backgroundAccentColor,
   resolveSlideBackground,
   resolveSlideLayout,
+  resolveSlideElements,
+  slideTextContrastThreshold,
   resolveTextStyle,
   slideWarnings,
   suggestContrastFix,
@@ -113,14 +115,15 @@ export function SlideWarningsStrip({
   const background = resolveSlideBackground(slide, shape);
   const picture = background.type === "image" || background.type === "video" ? background.image : undefined;
   const overlay = background.overlay ?? 0;
-  const ink = resolveTextStyle(slide, "heading", shape).color ?? "#ffffff";
-  const headingOn = slide.elements.heading;
+  const elements=resolveSlideElements(slide,shape);
+  const copyElements=["tagline","heading","description"] as const;
+  const copyOn=copyElements.some(element=>elements[element] && !!slide.texts[element]);
   const layout = resolveSlideLayout(slide, shape);
   const regionKey = `${layout.h}:${layout.v}`;
 
   // Sampling applies only over a picture, under a heading, with no plate;
   // otherwise the sample is simply not consulted.
-  const applies = Boolean(picture && headingOn && !slide.plate);
+  const applies = Boolean(picture && copyOn && !slide.plate);
   useEffect(() => {
     if (!applies || !picture) return;
     const signal = { cancelled: false };
@@ -136,7 +139,7 @@ export function SlideWarningsStrip({
   }, [picture, overlay, applies, regionKey, shape]);
 
   const warnings = new Set<SlideWarning>(slideWarnings(slide, shape));
-  const pictureContrast = applies && sample !== null && contrastRatio(ink, sample) < 3;
+  const pictureContrast = applies && sample !== null && copyElements.some(element => elements[element] && !!slide.texts[element] && contrastRatio(resolveTextStyle(slide,element,shape).color ?? "#ffffff",sample)<slideTextContrastThreshold(slide,element,shape));
   if (pictureContrast) warnings.add("low-contrast");
   if (warnings.size === 0) return null;
 

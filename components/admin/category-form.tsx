@@ -4,6 +4,7 @@ import * as z from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, ChevronDown, Loader2, Search } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
+import { useTranslations } from "next-intl";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams } from "next/navigation";
 import { useRouter } from "@/hooks/use-locale-navigation";
@@ -61,6 +62,8 @@ import type {
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { MAX_MEGA_MENU_DEPTH } from "@/lib/site-config/menu-depth";
+import type { TaxClass } from "@/lib/tax/tax-settings";
+import { TaxClassPicker } from "@/components/admin/settings/fields/tax-class-picker";
 
 /** The catalog never nests deeper than the storefront panel can draw. */
 const MAX_CATEGORY_DEPTH = MAX_MEGA_MENU_DEPTH;
@@ -74,6 +77,10 @@ const categorySchema = z.object({
   isActive: z.boolean(),
   featured: z.boolean(),
   displayOrder: z.number().int().min(0),
+  // Percent; empty takes the parent category's rate, then the store's.
+  taxRate: z.number().min(0).max(100).nullable().optional(),
+  // A Settings → Tax class; empty takes the parent's. A custom rate wins.
+  taxClass: z.string().nullable().optional(),
   seo: z
     .object({
       pageTitle: z
@@ -114,6 +121,8 @@ interface CategoryRecord {
   isActive: boolean;
   featured?: boolean;
   order?: number;
+  taxRate?: number | null;
+  taxClass?: string | null;
   slug?: string;
   seo?: { pageTitle?: string; metaDescription?: string; tags?: string[] };
   productCount?: number;
@@ -122,13 +131,18 @@ interface CategoryRecord {
 
 interface CategoryFormProps {
   categoryId?: string;
+  area?: "admin" | "staff";
+  /** The classes in Settings → Tax; without them, the built-in ones. */
+  taxClasses?: TaxClass[];
 }
 
-export function CategoryForm({ categoryId }: CategoryFormProps) {
+export function CategoryForm({ categoryId, area = "admin", taxClasses }: CategoryFormProps) {
+  const t = useTranslations("admin.categoryForm");
+  const tTaxPicker = useTranslations("admin.settings.tax.picker");
   const router = useRouter();
   const params = useParams<{ locale?: string }>();
   const locale = typeof params.locale === "string" ? params.locale : "en";
-  const basePath = `/${locale}/admin/categories`;
+  const basePath = `/${locale}/${area}/categories`;
 
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(!!categoryId);
@@ -215,6 +229,8 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
       isActive: true,
       featured: false,
       displayOrder: 0,
+      taxRate: null,
+      taxClass: null,
       seo: {
         pageTitle: "",
         metaDescription: "",
@@ -265,6 +281,8 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
           isActive: category.isActive,
           featured: Boolean(category.featured),
           displayOrder: category.order || 0,
+          taxRate: typeof category.taxRate === "number" ? category.taxRate : null,
+          taxClass: typeof category.taxClass === "string" && category.taxClass ? category.taxClass : null,
           seo: {
             pageTitle: category.seo?.pageTitle || "",
             metaDescription: category.seo?.metaDescription || "",
@@ -328,6 +346,11 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
       // explicit null: dropping the key leaves the API's `$set` untouched, so an
       // existing parent survives the save and the category never reaches the rail.
       payload.parentId = payload.parentId === "none" ? null : payload.parentId;
+      // Null clears it back to the parent's (or the store's) rate.
+      payload.taxRate = typeof data.taxRate === "number" ? data.taxRate : null;
+      // A custom rate is the whole answer, so it keeps no class.
+      payload.taxClass =
+        typeof data.taxRate !== "number" && data.taxClass ? data.taxClass : null;
 
       // Serialize the variant template back to the stored `_id` shape, dropping
       // incomplete options (no name or no values).
@@ -387,13 +410,14 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
     useWatch({ control: form.control, name: "seo.slug" }) || "";
   const watchedSeoTags =
     useWatch({ control: form.control, name: "seo.tags" }) || [];
+  const watchedTaxClass = useWatch({ control: form.control, name: "taxClass" });
+  const watchedTaxRate = useWatch({ control: form.control, name: "taxRate" });
   const watchedActive =
     useWatch({ control: form.control, name: "isActive" }) ?? true;
   const watchedFeatured =
     useWatch({ control: form.control, name: "featured" }) ?? false;
 
-  // Category forms are admin-only, so the content endpoint is always the admin
-  // one (no vendor variant like the product form has).
+  // Admin and staff share the permission-checked content endpoint.
   const aiAuthoring = useAiAuthoring({
     contentEndpoint: "/api/admin/ai-authoring/content",
   });
@@ -626,7 +650,7 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
                               breadcrumbLeaf="Image"
                               savedMessage="Saved to category image"
                               subjectNoun="category"
-                              posHref="/admin/pos"
+                              posHref={`/${area}/pos`}
                               browseHref="/"
                               persistKey={`category:admin:${categoryId ?? "new"}:image`}
                             />
@@ -691,7 +715,7 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
                               breadcrumbLeaf="Icon"
                               savedMessage="Saved to category icon"
                               subjectNoun="category"
-                              posHref="/admin/pos"
+                              posHref={`/${area}/pos`}
                               browseHref="/"
                               // The field asks for a transparent square icon, so
                               // generation starts there instead of making the
@@ -938,6 +962,23 @@ export function CategoryForm({ categoryId }: CategoryFormProps) {
                     </FormItem>
                   )}
                 />
+
+                {/* Its class or its own rate, for the products filed here
+                    that set none; unset takes the parent's, then the store's. */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{t("taxRate")}</p>
+                  <TaxClassPicker
+                    id="categoryTaxClass"
+                    classes={taxClasses}
+                    taxClass={watchedTaxClass}
+                    taxRate={watchedTaxRate}
+                    inheritLabel={tTaxPicker("inheritParent")}
+                    onChange={(next) => {
+                      form.setValue("taxClass", next.taxClass, { shouldDirty: true });
+                      form.setValue("taxRate", next.taxRate, { shouldDirty: true });
+                    }}
+                  />
+                </div>
 
                 {categoryId && productCount !== null ? (
                   <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">

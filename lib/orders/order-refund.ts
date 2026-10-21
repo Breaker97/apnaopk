@@ -26,6 +26,8 @@ import {
   refundPesapalTransaction,
 } from "@/lib/payments/pesapal";
 import { resolvePesapalCredentials } from "@/lib/settings/credentials";
+import { GatewayApiError } from "@/lib/payments/gateway-api-error";
+import { markRefundNotSent } from "@/lib/orders/refund-outcome";
 import { getSettings } from "@/models/settings.model";
 import { refundSettlesOutOfBand } from "@/lib/returns/refund-settlement";
 import {
@@ -92,8 +94,28 @@ function normalizeMethod(value?: string) {
  *
  * Set `manual: true` to skip the gateway and treat the refund as already
  * settled out-of-band (e.g., refunded via a provider dashboard or in cash).
+ *
+ * A failure is marked when it is the gateway's own answer, so nothing was sent
+ * (`refundNotSent`). `RefundOutcomeUnknownError` and `PartialRefundError` are
+ * the two that are NOT: the first does not know, the second sent part of it.
  */
-export async function refundOrderPayment(params: {
+export async function refundOrderPayment(
+  params: Parameters<typeof sendRefundToGateway>[0],
+): Promise<RefundGatewayResult> {
+  try {
+    return await sendRefundToGateway(params);
+  } catch (error) {
+    if (
+      !(error instanceof RefundOutcomeUnknownError) &&
+      !(error instanceof PartialRefundError)
+    ) {
+      markRefundNotSent(error);
+    }
+    throw error;
+  }
+}
+
+async function sendRefundToGateway(params: {
   order: OrderRefundContext;
   amount: number;
   reason?: string;
@@ -553,6 +575,13 @@ function refundOutcomeUnknown(err: unknown): boolean {
     return true;
   }
   if (error.name === "AbortError" || error.name === "TimeoutError") return true;
+  // The gateway answered, but with its own server failing: a 5xx (or a
+  // timeout it reports) says nothing about whether the refund was made first.
+  const httpStatus =
+    err instanceof GatewayApiError
+      ? err.status
+      : Number((err as { httpStatus?: unknown }).httpStatus);
+  if (httpStatus >= 500 || httpStatus === 408) return true;
   const code = String(error.code || error.cause?.code || "");
   if (
     [

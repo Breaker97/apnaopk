@@ -1,5 +1,7 @@
 "use client";
 
+import { ORDER_STATUS_CLASSES } from "@/lib/theme-colors/status";
+
 import { useState } from "react";
 import Link from "@/components/language/link";
 import { useTranslations } from "next-intl";
@@ -130,7 +132,7 @@ function getStatusBadge(status: string) {
     variant: "outline",
     label: status,
   };
-  return <Badge variant={variant}>{label}</Badge>;
+  return <Badge variant={variant} className={ORDER_STATUS_CLASSES[status]}>{label}</Badge>;
 }
 
 export function CustomerOrdersList({

@@ -5,9 +5,9 @@ import { bizOperationBinding, runDurableBizOperation, type BizOperationExecution
 import { mongoBizOperationStore } from "@/lib/api-next/biz-operation-store";
 import { applyBizStockEffect } from "@/lib/api-core/biz/stock-effect";
 import { productScopeFilter } from "@/lib/api-core/biz/scope";
-import { priceReturnAsItStands, loadPriorReturnUnits } from "@/lib/returns/return-plan";
+import { priceReturnAsItStands, loadPriorReturnUnits, returnClaimProblem } from "@/lib/returns/return-plan";
 import { mergeReturnOverrides } from "@/lib/returns/return-price-overrides";
-import { returnStatusChangeProblem, returnHasRestocked, returnStatusAfterCount, returnStatusForTracking, returnRestockPlan, returnMayRestock, returnGoodsBack, RETURN_DECLINE_MESSAGES, isReturnDeclineReason } from "@/lib/returns/returns";
+import { disposedUnitsOfLine, receiptChangeProblem, returnStatusChangeProblem, returnHasRestocked, returnStatusAfterCount, returnStatusForTracking, returnRestockPlan, returnMayRestock, returnGoodsBack, RETURN_DECLINE_MESSAGES, isReturnDeclineReason } from "@/lib/returns/returns";
 import { returnShippingUpdates } from "@/lib/returns/return-destination";
 import { resolveBizUpload } from "@/lib/api-next/biz-upload";
 import { returnActionAftermath } from "./aftermath";
@@ -31,7 +31,12 @@ export async function restockBizReturn(input: { returned: ReturnRecord; context:
     if (!product) refuse("RETURN_LOCATION_NOT_ALLOWED", "A returned product is no longer accessible.");
     const variant = line.variantId ? product.variants?.find((row) => String(row._id) === line.variantId) : undefined;
     const counters = variant?.locationInventory ?? product.locationInventory ?? [];
-    const locationId = input.locationId ?? (counters.length ? locations.find((location) => counters.some((counter) => String(counter.locationId) === location._id))?._id : undefined);
+    // Only a product that keeps stock by location takes its units back at
+    // one. Named a location, one that keeps none would have its total
+    // replaced by the units coming back (the first-entry rule of
+    // `applyStockChangeAtomic`), so it takes them on its total alone — as the
+    // website's restock does (`restoreInventory`'s `exactLocation`).
+    const locationId = counters.length ? input.locationId ?? locations.find((location) => counters.some((counter) => String(counter.locationId) === location._id))?._id : undefined;
     if (counters.length && !locationId) refuse("RETURN_LOCATION_NOT_ALLOWED", "Choose an authorized location for these goods.");
     if (product.shipping?.isPhysicalProduct !== false && product.inventory?.tracked !== false) {
       const moved = await applyBizStockEffect({ effectKey: input.operation.effectKey, leg: `return-${input.returned._id}-line-${line.orderItemIndex}`, productId: line.productId, variantId: line.variantId, locationId, quantity: line.quantity, scopeFilter: productScopeFilter(input.context.scope), session: input.session });
@@ -86,15 +91,15 @@ export async function actOnBizReturn(input: ReturnActionRequest, id: string, con
           items = items.map((line) => { const asked = input.approvedItems!.find((item) => item.index === line.orderItemIndex); if (!asked) return line;
             if (asked.quantity > line.quantityRequested || asked.quantity < Number(line.quantityRestocked || 0)) refuse("RETURN_QUANTITY_CHANGED", "The approved quantity is not available.");
             return { ...line, quantityApproved: asked.quantity, quantityReceived: Math.min(line.quantityReceived, asked.quantity) }; });
+          // Not more than the order has left to take back: another return may hold what this one gave up.
+          const claimProblem = await returnClaimProblem({ order, orderId: before.orderId, returnId: before._id, current: before.items, next: items }); if (claimProblem) refuse("RETURN_QUANTITY_CHANGED", claimProblem);
           updates.items = items;
         }
         if (input.action === "record_receipt") {
           if (!input.receivedItems?.length) refuse("RETURN_QUANTITY_CHANGED", "Record the quantities and condition that arrived.");
           assertUnique(input.receivedItems);
           items = items.map((line) => { const asked = input.receivedItems!.find((item) => item.index === line.orderItemIndex); if (!asked) return line;
-            const dispositions = (before.unsellableDispositions || []).filter((disposition) => before.items[disposition.itemIndex]?.orderItemIndex === asked.index);
-            const disposed = dispositions.reduce((sum, disposition) => sum + disposition.quantity, 0);
-            if (asked.quantity > line.quantityApproved || asked.quantity < Number(line.quantityRestocked || 0) + disposed || (disposed > 0 && asked.condition !== line.condition)) refuse("RETURN_QUANTITY_CHANGED", "A receipt cannot remove or change goods already restocked or disposed of.");
+            if (asked.quantity > line.quantityApproved || receiptChangeProblem({ line, quantity: asked.quantity, condition: asked.condition, disposed: disposedUnitsOfLine(before, asked.index) })) refuse("RETURN_QUANTITY_CHANGED", "A receipt cannot remove or change goods already restocked or disposed of.");
             return { ...line, quantityReceived: asked.quantity, condition: asked.condition, restockable: ["new", "opened"].includes(asked.condition) }; });
           updates.items = items; updates.receivedAt = now; updates.itemsCountedAt = now; updates.inspectedAt = now; updates.status = returnStatusAfterCount(before.status);
         }

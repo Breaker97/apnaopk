@@ -23,7 +23,7 @@ type Doc = Record<string, unknown>;
 
 /** What differs between one kind of content and the next. */
 export interface ContentKind {
-  resource: "slider" | "menu" | "blogPost" | "blogCategory";
+  resource: "slider" | "menu" | "blogPost" | "blogCategory" | "campaignBanner";
   /** How a sentence names one of them. */
   noun: string;
   /** The fields a save can change, read off a stored document as the diff compares them. */
@@ -60,6 +60,26 @@ export const SLIDER_CONTENT: ContentKind = {
   }),
   labels: { isActive: "active", autoplaySeconds: "autoplay delay" },
   statusField: "isActive",
+};
+
+export const CAMPAIGN_BANNER_CONTENT: ContentKind = {
+  resource: "campaignBanner",
+  noun: "campaign banner",
+  snapshot: (doc) => ({
+    name: doc.name,
+    type: doc.type,
+    status: doc.status,
+    priority: doc.priority,
+    schedule: doc.schedule,
+    couponCode: doc.couponCode,
+    // The copy, colours and rules are long; the row names them as changed.
+    content: doc.content,
+    countdown: doc.countdown,
+    signup: doc.signup,
+    rules: doc.rules,
+  }),
+  labels: { couponCode: "coupon", content: "content", rules: "display rules" },
+  statusField: "status",
 };
 
 export const MENU_CONTENT: ContentKind = {

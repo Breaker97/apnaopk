@@ -9,6 +9,7 @@ import {
 } from "@/lib/payments/stripe";
 import { checkoutCartFingerprint } from "@/lib/checkout/checkout-cart-fingerprint";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
+import { decodeLineTaxSnapshot, lineTaxGetters } from "@/lib/tax/checkout-tax";
 import { preorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
 import {
   couponVendorKey,
@@ -54,6 +55,11 @@ import {
 } from "@/lib/catalog/product-shipping";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
 import {
+  orderLineVariantSnapshot,
+  type OrderLineProductSource,
+  type OrderLineVariantSource,
+} from "@/lib/orders/order-line-variant";
+import {
   settleCapturedOrder,
   type PendingOrderDocument,
 } from "@/lib/payments/finalize-order";
@@ -95,12 +101,19 @@ type StripeOrderCartItem = {
   productId: {
     _id: string;
     name: string;
+    cost?: number | null;
     sku?: string;
     images?: string[];
     vendorId: string | { _id: string };
     shipping?: ProductShippingData;
+    comparePrice?: number | null;
+    options?: OrderLineProductSource["options"];
     variants?: Array<
-      VariantShippingData & { _id: { toString: () => string } }
+      VariantShippingData &
+        Omit<OrderLineVariantSource, "_id"> & {
+          _id: { toString: () => string };
+          cost?: number | null;
+        }
     >;
   };
   variantId?: string;
@@ -623,7 +636,9 @@ async function createStripeOrderFromCart(
   const cart = await Cart.findById(cartId)
     .populate({
       path: "items.productId",
-      select: "name price images vendorId stock sku slug shipping variants",
+      // `options` + `comparePrice` complete the line's variant snapshot.
+      // Captures without an attempt still need the product's unit cost.
+      select: "name price cost comparePrice images vendorId stock sku slug shipping variants options",
       populate: { path: "vendorId", select: "_id" },
     })
     .lean();
@@ -749,7 +764,27 @@ async function createStripeOrderFromCart(
     vendorContext,
     (item) => item.productId.vendorId,
   );
+  // Lines taxed at their own rates record the tax they carried — the same
+  // split the checkout order builder writes (lib/tax/checkout-tax.ts).
+  const taxGetters = await lineTaxGetters(items, {
+    line: (item) => ({
+      productId: item.productId._id,
+      vendorId: couponVendorKey(item.productId.vendorId),
+      price: item.price,
+      quantity: item.quantity,
+    }),
+    couponShare: couponLineShares ? (item) => couponShareByLine.get(item) : null,
+    goodsDiscount: isFreeShippingCouponType(couponType) ? 0 : parseFloat(discount || "0") || 0,
+    tax: parseFloat(tax || "0") || 0,
+    storeRate: settings.orders?.taxRate ?? 0,
+    currency: settings.general?.defaultCurrency || "USD",
+    // What each line was charged when the payment was quoted. Worked out again
+    // from today's rates, a rate changed since would move the tax from one line
+    // to another, and every line, vendor and refund figure after it.
+    snapshot: decodeLineTaxSnapshot(metadata.lineTaxes, items, parseFloat(tax || "0") || 0),
+  });
   const subOrders = await buildVendorSubOrders(vendorGroups, {
+    ...taxGetters,
     currency: settings.general?.defaultCurrency || "USD",
     getProductId: (item) => item.productId._id,
     getVariantId: (item) => item.variantId,
@@ -776,6 +811,7 @@ async function createStripeOrderFromCart(
     getPreorderSupplierEta: (item) => item.preorderSupplierEta,
     getPreorderBatchName: (item) => item.preorderBatchName,
     getCouponDiscount: (item) => couponShareByLine.get(item),
+    getVariantSnapshot: (item) => orderLineVariantSnapshot(item.productId, item.variantId),
     getCustoms: (item) => buildOrderItemCustomsSnapshot({
       productShipping: item.productId.shipping,
       variantShipping: item.variantId
@@ -911,6 +947,11 @@ async function createStripeOrderFromCart(
         preorderSupplierEta: item.preorderSupplierEta,
         preorderBatchName: item.preorderBatchName,
         couponDiscount: couponShareByLine.get(item),
+        // The tax this line carried, as its consignment line records it — a
+        // return of the line reads it from here.
+        taxRate: taxGetters.getTaxRate?.(item),
+        tax: taxGetters.getTax?.(item),
+        taxParts: taxGetters.getTaxParts?.(item),
         customs: buildOrderItemCustomsSnapshot({
           productShipping: item.productId.shipping,
           variantShipping: item.variantId
@@ -920,6 +961,7 @@ async function createStripeOrderFromCart(
               )
             : undefined,
         }),
+        ...orderLineVariantSnapshot(item.productId, item.variantId),
       })),
       subOrders,
       fulfillment: pickupFulfillment,

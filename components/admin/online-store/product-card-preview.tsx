@@ -38,6 +38,7 @@ const MOCK = {
   brand: "Prada",
   seller: "Acme",
   name: "Aurora Runner 2 Limited Edition",
+  variant: "Black",
   category: "Sneakers",
   price: "$999.00",
   compareAt: "$1,299.99",
@@ -64,6 +65,7 @@ export function ProductCardPreview({
   hasOptions = false,
   actionLabels = ACTION_LABELS,
   chooseOptionsLabel = "Choose options",
+  percentOffLabel = (percent) => `${percent}% OFF`,
   className,
 }: {
   config: ProductCardConfig;
@@ -83,6 +85,8 @@ export function ProductCardPreview({
   /** Default wording per action, when the merchant typed none. */
   actionLabels?: Record<ProductCardConfig["action"]["cart"], string>;
   chooseOptionsLabel?: string;
+  /** The discount chip's wording, in the storefront's own copy. */
+  percentOffLabel?: (percent: number) => string;
   className?: string;
 }) {
   const vis = config.visibility;
@@ -98,7 +102,7 @@ export function ProductCardPreview({
       <Star
         className={cn(
           "h-3.5 w-3.5",
-          style.ratingColor ? "fill-current" : "fill-amber-400 text-amber-400",
+          style.ratingColor ? "fill-current" : "fill-current text-(--store-rating,#a86500)",
         )}
         style={style.ratingColor ? { color: style.ratingColor } : undefined}
       />
@@ -262,6 +266,17 @@ export function ProductCardPreview({
           </h3>
         );
 
+      case "variant":
+        return (
+          <p
+            key={key}
+            className="truncate px-0.5 text-xs leading-snug text-muted-foreground capitalize sm:text-[13px]"
+            style={cardTypographyCss(typography.variant)}
+          >
+            {MOCK.variant}
+          </p>
+        );
+
       case "category":
         return (
           <p
@@ -284,7 +299,7 @@ export function ProductCardPreview({
                 className={cn(
                   "whitespace-nowrap text-sm font-bold leading-snug tabular-nums",
                   style.pricePill
-                    ? "inline-flex items-center rounded-[6px] border-2 border-emerald-500 px-2 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400"
+                    ? "inline-flex items-center rounded-[6px] border-2 border-store-sale px-2 py-0.5 font-semibold text-store-sale-text"
                     : "text-foreground",
                 )}
                 style={cardTypographyCss(typography.price)}
@@ -302,13 +317,13 @@ export function ProductCardPreview({
                   className={cn(
                     "whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold",
                     !style.discountChipBackground &&
-                      "bg-rose-100 dark:bg-rose-500/15",
+                      "bg-store-sale-surface",
                     !style.discountChipColor &&
-                      "text-rose-600 dark:text-rose-300",
+                      "text-store-on-sale-surface",
                   )}
                   style={cardDiscountChipCss(style)}
                 >
-                  {MOCK.discount}% OFF
+                  {percentOffLabel(MOCK.discount)}
                 </span>
               )}
             </div>
@@ -350,7 +365,7 @@ export function ProductCardPreview({
                       "h-3.5 w-3.5 shrink-0",
                       style.ratingColor
                         ? "fill-current"
-                        : "fill-amber-400 text-amber-400",
+                        : "fill-current text-(--store-rating,#a86500)",
                     )}
                     style={
                       style.ratingColor
@@ -390,7 +405,7 @@ export function ProductCardPreview({
             className={cn(
               "flex items-center justify-center px-3 py-2 text-xs font-semibold",
               !style.stockBackground &&
-                "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400",
+                "bg-status-warning text-status-on-warning",
             )}
             style={{
               backgroundColor: style.stockBackground || undefined,
@@ -416,8 +431,8 @@ export function ProductCardPreview({
               style.cartVariant === "outline"
                 ? "text-foreground"
                 : cn(
-                    !style.cartBackground && "bg-foreground text-background",
-                    style.cartBackground && "text-white",
+                    !style.cartBackground && "bg-store-secondary text-store-on-secondary",
+
                   ),
             )}
             style={cardButtonCss(style)}

@@ -1176,7 +1176,7 @@ function ChannelSetupGuide({
         <p className="text-xs text-muted-foreground">
           {tr(
             "channelConnections.setup.docs",
-            "Full walkthrough: docs/OMNICHANNEL_MESSAGING.md",
+            "Full walkthrough: https://storify.neurolightstudio.com/docs#omnichannel",
           )}
         </p>
       </SetupGuideSection>

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   ArrowDown,
   ArrowUp,
+  Circle,
   Plus,
   Pencil,
   Trash2,
@@ -15,11 +16,10 @@ import {
 } from "lucide-react";
 import {
   DataTable,
-  StatusCell,
   type DataTableColumn,
   type DataTableAction,
 } from "@/components/ui/data-table";
-import { Badge } from "@/components/ui/badge";
+import { InfoTip } from "@/components/ui/info-tip";
 import { toast } from "@/components/ui/toast-notification";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { LocationFormDialog } from "./location-form-dialog";
@@ -32,6 +32,8 @@ import {
   rankFulfillmentCandidates,
 } from "@/lib/locations/dispatch-order";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
+import { cn } from "@/lib/utils";
 
 interface Location {
   _id: string;
@@ -47,6 +49,9 @@ interface Location {
   createdAt: string;
   updatedAt: string;
 }
+
+const SERVICE_CHIP =
+  "inline-flex items-center rounded-sm bg-slate-100 px-2 py-1 text-[12px] font-medium text-slate-800 dark:bg-slate-500/20 dark:text-slate-200";
 
 export function LocationsContent() {
   const t = useTranslations();
@@ -118,10 +123,6 @@ export function LocationsContent() {
 
     return data;
   }, [locations, activeTab, searchValue]);
-
-  // Counts for tabs
-  const activeCount = locations.filter((l) => l.isActive).length;
-  const inactiveCount = locations.filter((l) => !l.isActive).length;
 
   // Actions
   const handleDelete = useCallback(
@@ -286,86 +287,119 @@ export function LocationsContent() {
         id: "name",
         header: t("locations.name"),
         cell: (row) => (
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-              <MapPin className="h-4 w-4 text-primary" />
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="hidden size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 sm:flex">
+              <MapPin className="size-4 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0 max-w-[136px] sm:max-w-[200px] xl:max-w-[240px] 2xl:max-w-[360px]">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{row.name}</span>
+                <span className="truncate font-semibold" title={row.name}>
+                  {row.name}
+                </span>
                 {row.isDefault && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <span className="shrink-0 rounded-sm bg-primary/10 px-1.5 text-[11px] font-semibold leading-4 text-primary">
                     {t("locations.default")}
-                  </Badge>
+                  </span>
+                )}
+                {/* The Status column is hidden below lg; an inactive branch
+                    still has to read as one there. */}
+                {!row.isActive && (
+                  <span className="shrink-0 rounded-sm bg-slate-100 px-1.5 text-[11px] font-semibold leading-4 text-slate-800 lg:hidden dark:bg-slate-500/20 dark:text-slate-200">
+                    {t("locations.inactive")}
+                  </span>
                 )}
               </div>
               {row.address && (
-                <span className="text-xs text-muted-foreground line-clamp-1">
+                <div
+                  className="truncate text-muted-foreground"
+                  title={row.address}
+                >
                   {row.address}
-                </span>
+                </div>
               )}
             </div>
           </div>
         ),
       },
       {
-        id: "dispatch",
-        header: "Dispatch",
-        // What this branch does, in the two words a merchant needs: where it
-        // sits in the delivery queue, and whether the public may collect here.
-        // Without it the reorder actions below would move a number nothing on
-        // screen ever showed.
+        id: "delivery",
+        header: (
+          <span className="inline-flex items-center gap-1">
+            {t("locations.deliveryOrder")}
+            <InfoTip text={t("locations.deliveryOrderHint")} />
+          </span>
+        ),
+        // Where this branch sits in the delivery queue. Without it the
+        // reorder actions below would move a number nothing on screen showed.
         cell: (row) => {
           const rank = dispatchRank(row._id);
-          return (
-            <div className="flex flex-wrap items-center gap-1">
-              {rank >= 0 ? (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                  Ships #{rank + 1}
-                </Badge>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  No delivery
-                </span>
-              )}
-              {row.pickupEnabled ? (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  Pickup
-                </Badge>
-              ) : null}
-              {/* Shown only when OFF. It defaults on, so a "Counter" badge
-                  would sit on almost every row and say nothing; the exception is
-                  what a merchant needs, because it is the answer to "why is this
-                  branch missing from my register". */}
-              {row.sellsAtCounter === false ? (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                  No till
-                </Badge>
-              ) : null}
-              {/* Off by default, so the badge marks the few that are on. */}
-              {row.acceptsReturns ? (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  Returns
-                </Badge>
-              ) : null}
-            </div>
+          return rank >= 0 ? (
+            <span className="font-medium text-slate-700 dark:text-slate-300">
+              {t("locations.deliveryRank", { rank: rank + 1 })}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">
+              <span aria-hidden="true">&mdash;</span>
+              <span className="sr-only">{t("locations.noDelivery")}</span>
+            </span>
           );
         },
-        className: "w-[160px]",
+        className: "hidden w-[140px] lg:table-cell",
+        headerClassName: "hidden lg:table-cell",
+      },
+      {
+        id: "services",
+        header: t("locations.services"),
+        // Whether the public may collect here, and the two switches that
+        // differ from the norm. Nothing is drawn for a branch that does
+        // neither: most rows have no such flag, and a chip on every row would
+        // say nothing.
+        cell: (row) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {row.pickupEnabled ? (
+              <span className={SERVICE_CHIP}>{t("locations.pickup")}</span>
+            ) : null}
+            {/* Off by default, so the chip marks the few that are on. */}
+            {row.acceptsReturns ? (
+              <span className={SERVICE_CHIP}>{t("locations.returns")}</span>
+            ) : null}
+            {/* Shown only when OFF. It defaults on, so a "Counter" chip would
+                sit on almost every row; the exception is what a merchant
+                needs, because it is the answer to "why is this branch missing
+                from my register". */}
+            {row.sellsAtCounter === false ? (
+              <span
+                className={cn(
+                  SERVICE_CHIP,
+                  "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+                )}
+              >
+                {t("locations.noTill")}
+              </span>
+            ) : null}
+          </div>
+        ),
+        className: "hidden w-[220px] xl:table-cell",
+        headerClassName: "hidden xl:table-cell",
       },
       {
         id: "status",
         header: t("locations.status"),
         cell: (row) => (
-          <StatusCell
-            status={row.isActive ? "active" : "inactive"}
-            statusMap={{
-              active: { label: t("locations.active"), variant: "default" },
-              inactive: { label: t("locations.inactive"), variant: "secondary" },
-            }}
-          />
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-[12px] font-medium",
+              row.isActive
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                : "bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-200",
+            )}
+          >
+            <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
+            {row.isActive ? t("locations.active") : t("locations.inactive")}
+          </span>
         ),
-        className: "w-[120px]",
+        className: "hidden w-[140px] lg:table-cell",
+        headerClassName: "hidden lg:table-cell",
       },
     ],
     [t, dispatchRank]
@@ -374,36 +408,27 @@ export function LocationsContent() {
   // Tabs
   const tabs = useMemo(
     () => [
-      {
-        id: "all",
-        label: t("locations.all"),
-        count: locations.length,
-      },
-      {
-        id: "active",
-        label: t("locations.active"),
-        count: activeCount,
-      },
-      {
-        id: "inactive",
-        label: t("locations.inactive"),
-        count: inactiveCount,
-      },
+      { id: "all", label: t("locations.all") },
+      { id: "active", label: t("locations.active") },
+      { id: "inactive", label: t("locations.inactive") },
     ],
-    [t, locations.length, activeCount, inactiveCount]
+    [t]
   );
 
-  // Top actions
-  const tableActions = useMemo<DataTableAction[]>(
-    () => [
-      {
-        id: "add",
-        label: t("locations.addLocation"),
-        icon: <Plus className="h-4 w-4" />,
-        onClick: handleAdd,
-        disabled: Boolean(profileProblem),
-      },
-    ],
+  // Header: the same title row, underline tabs and search row as Orders.
+  const tableHeader = useMemo(
+    () =>
+      buildAdminCommerceTableHeader({
+        title: t("locations.title"),
+        addAction: {
+          id: "add",
+          label: t("locations.addLocation"),
+          icon: <Plus className="h-4 w-4" />,
+          variant: "default",
+          onClick: handleAdd,
+          disabled: Boolean(profileProblem),
+        },
+      }),
     [t, handleAdd, profileProblem]
   );
 
@@ -435,7 +460,7 @@ export function LocationsContent() {
       if (rank > 0) {
         actions.push({
           id: "dispatchUp",
-          label: "Ship from here sooner",
+          label: t("locations.shipSooner"),
           icon: <ArrowUp className="h-4 w-4" />,
           onClick: () => handleMove(row, -1),
         });
@@ -443,7 +468,7 @@ export function LocationsContent() {
       if (rank >= 0 && rank < dispatchOrder.length - 1) {
         actions.push({
           id: "dispatchDown",
-          label: "Ship from here later",
+          label: t("locations.shipLater"),
           icon: <ArrowDown className="h-4 w-4" />,
           onClick: () => handleMove(row, 1),
         });
@@ -496,21 +521,30 @@ export function LocationsContent() {
         columns={columns}
         keyField="_id"
         isLoading={isLoading}
-        title={t("locations.title")}
-        titleIcon={<MapPin className="h-5 w-5" />}
+        loadingMode="rows"
+        title={tableHeader.title}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        actions={tableActions}
+        actions={tableHeader.actions}
         searchable
         searchPlaceholder={t("locations.searchPlaceholder")}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
+        toolbarActions={tableHeader.toolbarActions}
+        toolbarLayout={tableHeader.toolbarLayout}
+        tabsVariant={tableHeader.tabsVariant}
+        filtersVariant={tableHeader.filtersVariant}
+        appearance={tableHeader.appearance}
+        stackedTopControls={tableHeader.stackedTopControls}
+        showToolbarSortButton={tableHeader.showToolbarSortButton}
+        onRowClick={handleEdit}
         rowActions={rowActions}
         rowActionsHeader={t("locations.actions")}
+        rowActionsVariant="dropdown"
         emptyMessage={t("locations.empty")}
         emptyIcon={<MapPin className="h-10 w-10" />}
-        dense
+        className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
       />
 
       <LocationFormDialog

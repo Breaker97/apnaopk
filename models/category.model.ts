@@ -60,6 +60,25 @@ const CategorySchema = new Schema<ICategory>(
       ref: "Category",
       default: null,
     },
+    /**
+     * The custom sales-tax rate, in percent, of the products filed here (and
+     * under its subcategories) that set none of their own. Absent (null) it
+     * takes the category's tax class, then the parent's, then the store's; 0
+     * makes them tax-free. See lib/tax/tax-rates.ts.
+     */
+    taxRate: {
+      type: Number,
+      min: [0, "Tax rate cannot be negative"],
+      max: [100, "Tax rate cannot exceed 100%"],
+      default: null,
+    },
+    /** The tax class (Settings → Tax) of the products filed here that set none. */
+    taxClass: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: null,
+    },
     order: {
       type: Number,
       default: 0,

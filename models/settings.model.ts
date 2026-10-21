@@ -68,6 +68,10 @@ import {
   MIN_LOYALTY_SPEND_PER_POINT,
 } from "@/lib/customers/loyalty";
 import {
+  withEffectiveStoreRate,
+  type StoredTaxSettings,
+} from "@/lib/tax/tax-settings";
+import {
   DEFAULT_BILL_VENDOR_COD_SHIPPING,
   DEFAULT_REFUND_ADMIN_FEE_CAP,
   DEFAULT_REFUND_ADMIN_FEE_PERCENT,
@@ -342,6 +346,12 @@ interface ICommissionSettings {
   minWithdrawalAmount: number;
   /** A minimum of its own for a payout in another currency — see `resolveMinWithdrawal`. */
   minWithdrawalByCurrency?: Map<string, number>;
+  /**
+   * Draw payouts up on each seller's own schedule (weekly, every two weeks,
+   * monthly) — see lib/finance/scheduled-payouts.ts. The store still sends the
+   * money and marks each one paid.
+   */
+  autoPayoutDrafts?: boolean;
 }
 
 /**
@@ -375,6 +385,12 @@ interface IReturnPolicySettings {
 
 interface IOrderSettings {
   prefix: string;
+  /**
+   * The store's tax rate, a fraction: the standard class's rate in effect now
+   * (Settings → Tax). The tax save writes it and every read works it out
+   * again, so a scheduled rate starts on its date — see
+   * `withEffectiveStoreRate` in lib/tax/tax-settings.ts. Not edited directly.
+   */
   taxRate: number;
   freeShippingThreshold?: number;
   defaultShippingCost: number;
@@ -788,6 +804,12 @@ export interface ISecuritySettings {
 interface IPOSCustomizeSettings {
   printedReceiptsEnabled: boolean;
   receiptPrinter?: string;
+  /**
+   * Kick the cash drawer open (ESC/POS, through QZ Tray) when cash changes
+   * hands at the till. Each device names the printer its drawer hangs off;
+   * see lib/pos/cash-drawer.ts. Off by default.
+   */
+  openCashDrawer?: boolean;
   soundEnabled: boolean;
   soundVolume: number;
   soundAddToCart: boolean;
@@ -805,10 +827,33 @@ type POSPaymentMethod = POSSelectablePaymentMethod;
 
 interface IPOSCheckoutSettings {
   paymentMethods: POSPaymentMethod[];
+  /**
+   * Let the till take part of a sale now and the rest later (a deposit), for a
+   * sale with a customer attached. Off by default: a deposit is a promise the
+   * shop has to keep track of.
+   */
+  allowDeposits?: boolean;
+  /**
+   * A till may only sell with its drawer open (a register session). Off by
+   * default, so a store that does not count drawers sells as before.
+   */
+  requireOpenRegister?: boolean;
+  /**
+   * Shelf prices at the till already include tax: the total is what the
+   * shelf says and the tax is the part of it that is tax. Off by default (tax
+   * is added on top, as online). See lib/pos/order-totals.ts.
+   */
+  pricesIncludeTax?: boolean;
 }
 
 interface IPOSOrdersSettings {
   orderNumberPrefix: string;
+}
+
+/** How a register behaves with no connection (`lib/pos/offline-session.ts`). */
+interface IPOSOfflineSettings {
+  /** Hours a register may keep selling after its last sign-in check, 1–72. */
+  sessionHours: number;
 }
 
 interface IPOSSettings {
@@ -820,6 +865,7 @@ interface IPOSSettings {
   customize: IPOSCustomizeSettings;
   checkout: IPOSCheckoutSettings;
   orders: IPOSOrdersSettings;
+  offline?: IPOSOfflineSettings;
 }
 
 interface IMultiVendorModeSettings {
@@ -1297,6 +1343,8 @@ export interface ISettings extends Document {
   email: IEmailSettings;
   sms: ISmsSettings;
   orders: IOrderSettings;
+  /** Settings → Tax. Normalized at every read through `normalizeTaxSettings()`. */
+  tax: StoredTaxSettings;
   shipping: IShippingSettings;
   seo: ISEOSettings;
   social: ISocialSettings;
@@ -1840,6 +1888,10 @@ const SettingsSchema = new Schema<ISettings>(
                   type: Map,
                   of: { type: Number, min: 0 },
                   default: undefined,
+                },
+                autoPayoutDrafts: {
+                  type: Boolean,
+                  default: true,
                 },
               },
               { _id: false },
@@ -2523,6 +2575,7 @@ const SettingsSchema = new Schema<ISettings>(
               {
                 printedReceiptsEnabled: { type: Boolean, default: false },
                 receiptPrinter: { type: String },
+                openCashDrawer: { type: Boolean, default: false },
                 soundEnabled: { type: Boolean, default: true },
                 soundVolume: { type: Number, default: 50, min: 0, max: 100 },
                 soundAddToCart: { type: Boolean, default: true },
@@ -2542,6 +2595,9 @@ const SettingsSchema = new Schema<ISettings>(
                   enum: [...POS_SELECTABLE_PAYMENT_METHODS],
                   default: ["cash", "card"],
                 },
+                allowDeposits: { type: Boolean, default: false },
+                requireOpenRegister: { type: Boolean, default: false },
+                pricesIncludeTax: { type: Boolean, default: false },
               },
               { _id: false },
             ),
@@ -2551,6 +2607,18 @@ const SettingsSchema = new Schema<ISettings>(
             type: new Schema(
               {
                 orderNumberPrefix: { type: String, default: "POS" },
+              },
+              { _id: false },
+            ),
+            default: () => ({}),
+          },
+          // Bounds repeated from lib/pos/offline-session.ts for documents saved
+          // through `save()`; the settings route refuses a bad value at the
+          // door (`validatePosSettings`), and the register clamps on read.
+          offline: {
+            type: new Schema(
+              {
+                sessionHours: { type: Number, default: 12, min: 1, max: 72 },
               },
               { _id: false },
             ),
@@ -2673,6 +2741,80 @@ const SettingsSchema = new Schema<ISettings>(
           physicalProducts: { type: Boolean, default: true },
           digitalProducts: { type: Boolean, default: true },
           priceOnRequest: { type: Boolean, default: true },
+        },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
+
+    // Settings → Tax (lib/tax/tax-settings.ts). Empty until the first save:
+    // the store runs on `orders.taxRate` until then. No defaults below — a
+    // missing `calculation.posPricesIncludeTax` reads the POS setting it
+    // replaced, which a default would hide.
+    tax: {
+      type: new Schema(
+        {
+          classes: {
+            type: [
+              new Schema(
+                { key: String, name: String, description: String },
+                { _id: false },
+              ),
+            ],
+            default: undefined,
+          },
+          regions: {
+            type: [
+              new Schema(
+                {
+                  key: String,
+                  name: String,
+                  country: String,
+                  registrationLabel: String,
+                  registrationNumber: String,
+                  rates: {
+                    type: [
+                      new Schema(
+                        {
+                          classKey: String,
+                          effectiveFrom: { type: Date, default: null },
+                          components: {
+                            type: [
+                              new Schema(
+                                { name: String, rate: Number, compound: Boolean },
+                                { _id: false },
+                              ),
+                            ],
+                            default: undefined,
+                          },
+                        },
+                        { _id: false },
+                      ),
+                    ],
+                    default: undefined,
+                  },
+                },
+                { _id: false },
+              ),
+            ],
+            default: undefined,
+          },
+          calculation: {
+            type: new Schema(
+              { posPricesIncludeTax: Boolean },
+              { _id: false },
+            ),
+            default: undefined,
+          },
+          // How vendors may change their products' tax; absent reads as
+          // "approval" (`vendorTaxChangePolicy`).
+          marketplace: {
+            type: new Schema(
+              { vendorTaxChanges: String },
+              { _id: false },
+            ),
+            default: undefined,
+          },
         },
         { _id: false },
       ),
@@ -2879,8 +3021,12 @@ const SettingsSchema = new Schema<ISettings>(
                   enum: ["bottom-right", "bottom-left"],
                   default: "bottom-right",
                 },
-                primaryColor: { type: String, default: "#7c3aed" },
-                accentColor: { type: String, default: "#a855f7" },
+                // The theme's primary (lib/ai-sales-agent/settings.ts): a store
+                // that never picks colours gets a chat in its own brand.
+                // Mongoose fills these on every read, so a hex default here
+                // would override the code default for every such store.
+                primaryColor: { type: String, default: "var(--theme-primary)" },
+                accentColor: { type: String, default: "var(--theme-primary)" },
                 avatarUrl: String,
                 footerText: { type: String, default: "Powered by AI" },
                 headerTitle: { type: String, default: "" },
@@ -3237,11 +3383,16 @@ async function loadSettingsData(): Promise<ISettingsData> {
     await migrateSettings();
   }
 
+  // The store's tax rate is the one in effect now, worked out on every read
+  // so a scheduled rate starts on its date (lib/tax/tax-settings.ts).
   const data = await Settings.findOne().lean<ISettingsData | null>();
-  if (data) return data;
+  if (data) return withEffectiveStoreRate(data, Date.now());
   // A brand-new database: let the upsert mint the singleton, then read it
   // back as plain data so this path never hands out a hydrated document.
-  return (await loadSettingsDocument()).toObject() as ISettingsData;
+  return withEffectiveStoreRate(
+    (await loadSettingsDocument()).toObject() as ISettingsData,
+    Date.now(),
+  );
 }
 
 /**

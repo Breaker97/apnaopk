@@ -1,8 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Check, Printer, FileText, Plus, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { POSReceiptSender } from "@/components/pos/pos-receipt-sender";
 
 interface POSSaleCompleteModalProps {
   open: boolean;
@@ -22,6 +24,16 @@ interface POSSaleCompleteModalProps {
    * only trace is the order record.
    */
   locationName?: string | null;
+  /**
+   * The sale's server id. Null for a sale queued offline: there is nothing to
+   * fetch an invoice for or send a receipt of until it syncs.
+   */
+  orderId?: string | null;
+  /** The sale's customer, the receipt's default recipient. */
+  defaultEmail?: string;
+  defaultPhone?: string;
+  /** Which ways this store can send a receipt (`lib/pos/pos-seat-settings.ts`). */
+  receiptChannels?: { email: boolean; sms: boolean };
 }
 
 export function POSSaleCompleteModal({
@@ -36,7 +48,14 @@ export function POSSaleCompleteModal({
   fp,
   paymentMethod,
   locationName,
+  orderId,
+  defaultEmail,
+  defaultPhone,
+  receiptChannels,
 }: POSSaleCompleteModalProps) {
+  const t = useTranslations("pos.complete");
+  const synced = Boolean(orderId);
+
   if (!open) return null;
 
   return (
@@ -49,7 +68,7 @@ export function POSSaleCompleteModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Sale complete"
+        aria-label={t("title")}
         className={cn(
           "bg-background w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl",
           "animate-in zoom-in-95 slide-in-from-bottom-2 duration-300",
@@ -67,33 +86,35 @@ export function POSSaleCompleteModal({
             </div>
           </div>
 
-          {/* Title */}
-          <h2 className="text-xl font-semibold tracking-tight">
-            Sale complete
-          </h2>
+          <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+          <p className="mt-1.5 font-mono text-xs text-muted-foreground">{orderNumber}</p>
 
-          {/* Order number */}
-          <p className="mt-1.5 font-mono text-xs text-muted-foreground">
-            {orderNumber}
-          </p>
-
-          {/* Total */}
           <div className="mt-5 w-full">
             <p className="text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
               {fp(total)}
             </p>
             {itemCount !== undefined ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                {itemCount} {itemCount === 1 ? "item" : "items"}
+                {t("items", { count: itemCount })}
                 {paymentMethod ? ` · ${paymentMethod}` : ""}
               </p>
             ) : null}
             {locationName ? (
               <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                 <Store className="h-3 w-3" />
-                Sold at {locationName}
+                {t("soldAt", { name: locationName })}
               </p>
             ) : null}
+          </div>
+
+          {/* Email or text the receipt. A queued sale has no server record yet. */}
+          <div className="mt-5 w-full">
+            <POSReceiptSender
+              orderId={orderId ?? null}
+              defaultEmail={defaultEmail}
+              defaultPhone={defaultPhone}
+              receiptChannels={receiptChannels}
+            />
           </div>
         </div>
 
@@ -103,10 +124,12 @@ export function POSSaleCompleteModal({
             type="button"
             variant="ghost"
             onClick={onViewReceipt}
+            disabled={!synced}
+            title={!synced ? t("offlineHint") : undefined}
             className="h-10 flex-1 rounded-xl text-sm font-medium text-foreground hover:bg-muted"
           >
             <FileText className="mr-1.5 h-4 w-4" />
-            View receipt
+            {t("viewReceipt")}
           </Button>
           <Button
             type="button"
@@ -115,7 +138,7 @@ export function POSSaleCompleteModal({
             className="h-10 flex-1 rounded-xl text-sm font-medium text-foreground hover:bg-muted"
           >
             <Printer className="mr-1.5 h-4 w-4" />
-            Print receipt
+            {t("printReceipt")}
           </Button>
           <Button
             type="button"
@@ -123,7 +146,7 @@ export function POSSaleCompleteModal({
             className="h-10 flex-1 rounded-xl bg-primary text-sm font-semibold text-white hover:bg-primary/90"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            New sale
+            {t("newSale")}
           </Button>
         </div>
       </div>

@@ -21,14 +21,16 @@
  * shorter than the viewport wherever the fixed mobile bottom nav renders.
  *
  * Written as one literal — Tailwind scans source text, so an interpolated
- * class name would never be generated. `--storefront-header-height` is
- * published by store-header from a client effect and is therefore absent for
+ * class name would never be generated. The header's height is read at rest
+ * (`--storefront-header-rest-height`), not live: the live value follows the
+ * bar as it folds on scroll, and the photo resized with it. Both are
+ * published by store-header from a client effect and are therefore absent for
  * the server-rendered loading fallback; the 7rem fallback approximates the real
  * sticky header (~114px) instead of a token 4rem, which otherwise made the
  * skeleton's media box taller than the gallery on short viewports.
  */
 export const MEDIA_FRAME_CLASS =
-  "relative h-[38vh] max-h-[360px] w-full sm:h-[42vh] sm:max-h-[400px] md:h-[44vh] md:max-h-[400px] lg:aspect-square lg:h-auto lg:max-h-[calc(100svh-var(--storefront-header-height,7rem)-14rem)]";
+  "relative h-[38vh] max-h-[360px] w-full sm:h-[42vh] sm:max-h-[400px] md:h-[44vh] md:max-h-[400px] lg:aspect-square lg:h-auto lg:max-h-[calc(100svh-var(--storefront-header-rest-height,7rem)-14rem)]";
 
 /**
  * Thumbnail row, capped below lg where the gallery spans the page. A centered

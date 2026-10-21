@@ -1,5 +1,7 @@
 "use client";
 
+import { resolveDimensions, type LayoutDevice } from "@/lib/site-config/responsive-dimensions";
+import { DeviceSelector, ViewportFields } from "../responsive-dimensions-fields";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -103,6 +105,7 @@ export function FooterStudio({ locale }: { locale: string }) {
   // render would refetch the settings forever.
   const tSafe = useMemo(() => createTSafe(t), [t]);
 
+  const [device, setDevice] = useState<LayoutDevice>("desktop");
   const [settings, setSettings] = useState<FooterSettings | null>(null);
   const [layout, setLayoutState] = useState<FooterLayout | null>(null);
   /**
@@ -207,6 +210,17 @@ export function FooterStudio({ locale }: { locale: string }) {
     };
     void load();
   }, [tSafe]);
+
+  const deviceLayout = useMemo(() => layout ? {
+    ...layout,
+    rows: layout.rows.map((row) => ({
+      ...resolveDimensions(row, device),
+      columns: row.columns.map((column) => ({
+        ...resolveDimensions(column, device),
+        items: column.items.map((item) => resolveDimensions(item, device)),
+      })),
+    })),
+  } : null, [layout, device]);
 
   const dirty = useMemo(
     () => JSON.stringify(layout) !== JSON.stringify(savedLayout),
@@ -319,7 +333,7 @@ export function FooterStudio({ locale }: { locale: string }) {
     }
   };
 
-  if (isLoading || !layout) {
+  if (isLoading || !layout || !deviceLayout) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -403,6 +417,10 @@ export function FooterStudio({ locale }: { locale: string }) {
         </div>
       </div>
 
+      <DeviceSelector device={device} onChange={setDevice} tSafe={tSafe} />
+      <p className="text-xs text-muted-foreground">{tSafe("admin.responsive.footerHint", "Width, padding and logo size apply only to the selected screen size. Content and other styling are shared.")}</p>
+      <ViewportFields device={device} settings={layout.viewport} fullWidth={settings?.layout.fullWidth ?? false} tSafe={tSafe} onChange={(viewport) => setLayout({ ...layout, viewport })} />
+
       {/* The drawer and the canvas share ONE DndContext — that is what lets a
           palette chip be dragged straight into a column. */}
       <DndContext
@@ -424,7 +442,7 @@ export function FooterStudio({ locale }: { locale: string }) {
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <FooterCanvas
-            layout={layout}
+            layout={deviceLayout}
             selection={selection}
             tSafe={tSafe}
             onSelect={setSelection}
@@ -449,15 +467,15 @@ export function FooterStudio({ locale }: { locale: string }) {
 
           <aside className="lg:sticky lg:top-4">
             <FooterPropertyPanel
-              layout={layout}
+              layout={deviceLayout}
               selection={selection}
               tSafe={tSafe}
-              onPatchRow={(rowId, patch) => setLayout(patchRow(layout, rowId, patch))}
+              onPatchRow={(rowId, patch) => setLayout(patchRow(layout, rowId, patch, device))}
               onPatchColumn={(columnId, patch) =>
-                setLayout(patchColumn(layout, columnId, patch))
+                setLayout(patchColumn(layout, columnId, patch, device))
               }
               onPatchItem={(itemId, patch) =>
-                setLayout(patchItem(layout, itemId, patch))
+                setLayout(patchItem(layout, itemId, patch, device))
               }
               onRemoveRow={(rowId) => {
                 setLayout(removeRow(layout, rowId));

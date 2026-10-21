@@ -1,3 +1,4 @@
+import { patchDimensions, type LayoutDevice } from "@/lib/site-config/responsive-dimensions";
 import {
   MAX_FOOTER_COLUMNS,
   MAX_FOOTER_ITEMS_PER_COLUMN,
@@ -46,17 +47,19 @@ export function patchRow(
   layout: FooterLayout,
   rowId: string,
   patch: Partial<FooterLayoutRow>,
+  device?: LayoutDevice,
 ): FooterLayout {
-  return mapRows(layout, (row) => (row.id === rowId ? { ...row, ...patch } : row));
+  return mapRows(layout, (row) => (row.id === rowId ? device ? patchDimensions(row, patch, device) : { ...row, ...patch } : row));
 }
 
 export function patchColumn(
   layout: FooterLayout,
   columnId: string,
   patch: Partial<FooterLayoutColumn>,
+  device?: LayoutDevice,
 ): FooterLayout {
   return mapColumns(layout, (column) =>
-    column.id === columnId ? { ...column, ...patch } : column,
+    column.id === columnId ? device ? patchDimensions(column, patch, device) : { ...column, ...patch } : column,
   );
 }
 
@@ -64,6 +67,7 @@ export function patchItem(
   layout: FooterLayout,
   itemId: string,
   patch: Partial<FooterLayoutItem>,
+  device?: LayoutDevice,
 ): FooterLayout {
   return mapColumns(layout, (column) => ({
     ...column,
@@ -71,7 +75,7 @@ export function patchItem(
       item.id === itemId
         ? // The cast is the union's price: `patch` is a partial of one
           // variant, and only the caller (a typed panel) knows which.
-          ({ ...item, ...patch } as FooterLayoutItem)
+          (device ? patchDimensions(item, patch, device) : { ...item, ...patch } as FooterLayoutItem)
         : item,
     ),
   }));

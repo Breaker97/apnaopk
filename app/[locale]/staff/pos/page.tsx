@@ -13,8 +13,11 @@ import { Vendor } from "@/models";
 import type { Address } from "@/types";
 import type { VendorStoreVisibility } from "@/lib/vendors/vendor-address";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
-import { canAccessPOS, canApplyPosDiscount } from "@/lib/access/rbac";
+import { canAccessPOS } from "@/lib/access/rbac";
+import { posSeatSettings } from "@/lib/pos/pos-seat-settings";
 import { localeHref } from "@/lib/i18n/locale-routing";
+import { PLATFORM_OWNER, vendorOwner } from "@/lib/invoice-templates/owner";
+import { posReceiptTemplate } from "@/lib/invoice-templates/pos-template";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -61,7 +64,9 @@ export default async function StaffPosPage({ params }: PageProps) {
     <POSPageShell
       settings={{
         ...buildPOSSettings(settings, identity),
-        canApplyDiscounts: await canApplyPosDiscount(session.user),
+        ...(await posSeatSettings(session.user, settings)),
+        // The receipt template (Invoice Template Builder, Phase 6), for the store whose receipt this is.
+        ...(await posReceiptTemplate(identity ? vendorOwner(staffScope.vendorIds[0]!) : PLATFORM_OWNER, settings)),
       }}
       user={session.user}
     />

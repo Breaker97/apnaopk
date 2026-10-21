@@ -1,5 +1,6 @@
 "use client";
 
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Tag, X, Loader2, Check } from "lucide-react";
@@ -136,6 +137,12 @@ export function CouponInput({
         eligibleProductIds: data.data.eligibleProductIds,
         shippingVendorId: data.data.shippingVendorId,
       });
+      posthogClient.capture("coupon_applied", {
+        coupon_code: data.data.code,
+        discount_type: data.data.type,
+        discount_amount: data.data.discount,
+        discount_target: data.data.discountTarget,
+      });
 
       // What the coupon was worth, which is the whole reason the shopper
       // typed it. It used to be passed to next-intl as `defaultMessage` — a
@@ -180,16 +187,16 @@ export function CouponInput({
     return (
       <div
         className={cn(
-          "flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800",
+          "flex items-center justify-between p-3 bg-status-positive text-status-on-positive rounded-lg border border-current/20",
           className
         )}
       >
         <div className="flex items-center gap-2">
-          <Check className="h-4 w-4 text-green-600" />
-          <span className="font-medium text-green-700 dark:text-green-400">
+          <Check className="h-4 w-4 text-status-on-positive" />
+          <span className="font-medium text-status-on-positive">
             {appliedCoupon.code}
           </span>
-          <span className="text-sm text-green-600">
+          <span className="text-sm text-status-on-positive">
             {appliedCouponDetail}
           </span>
         </div>
@@ -198,7 +205,7 @@ export function CouponInput({
           variant="ghost"
           size="sm"
           onClick={handleRemove}
-          className="text-green-700 hover:text-green-800 hover:bg-green-100"
+          className="text-status-on-positive hover:bg-status-positive"
         >
           <X className="h-4 w-4" />
         </Button>

@@ -17,6 +17,22 @@ interface IAdminProfile {
   permissions: AdminPermission[];
   department?: string;
   isSuperAdmin: boolean;
+  /**
+   * The member's team role (models/team-role.model.ts). Absent on rows from
+   * before roles: such an administrator holds everything, as before.
+   */
+  teamRoleId?: Types.ObjectId;
+  /** Granted on top of the role. */
+  teamExtraPermissions?: string[];
+  /** Taken away from the role. */
+  teamRevokedPermissions?: string[];
+  /**
+   * What the member holds, written from the role and the two lists above
+   * (lib/access/team-permissions.ts). `teamFullAccess` means everything,
+   * including permissions a later release adds.
+   */
+  teamPermissions?: string[];
+  teamFullAccess?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +62,11 @@ const AdminProfileSchema = new Schema<IAdminProfile>(
       type: Boolean,
       default: false,
     },
+    teamRoleId: { type: Schema.Types.ObjectId, ref: "TeamRole" },
+    teamExtraPermissions: { type: [String], default: undefined },
+    teamRevokedPermissions: { type: [String], default: undefined },
+    teamPermissions: { type: [String], default: undefined },
+    teamFullAccess: { type: Boolean },
   },
   {
     timestamps: true,
@@ -54,6 +75,8 @@ const AdminProfileSchema = new Schema<IAdminProfile>(
 
 // Indexes
 AdminProfileSchema.index({ isSuperAdmin: 1 });
+// A role's members, re-written when the role changes.
+AdminProfileSchema.index({ teamRoleId: 1 }, { sparse: true });
 
 // Virtual for user
 AdminProfileSchema.virtual("user", {

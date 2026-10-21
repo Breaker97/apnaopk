@@ -108,6 +108,7 @@ import {
   calculateCheckoutTotals,
   isFreeShippingCouponType,
 } from "@/lib/catalog/discounts";
+import { cartTaxLines } from "@/lib/tax/tax-engine";
 import {
   analyticsItemsFromCart,
   saveCheckoutAnalyticsSnapshot,
@@ -203,11 +204,14 @@ import {
 } from "@/lib/access/customer-account";
 import { STORE_NOT_READY } from "@/lib/inventory/store-profile";
 import { USER_ROLES } from "@/config/app.config";
+import { availableFulfillmentMethod } from "@/lib/vendors/vendor-fulfillment";
 
 type PickupAvailabilityState = {
   loading: boolean;
   eligible: boolean;
-  reason?: "cart_empty" | "multi_vendor" | "not_configured";
+  deliveryAvailable?: boolean;
+  failed?: boolean;
+  reason?: "cart_empty" | "digital_only" | "multi_vendor" | "not_configured" | "disabled";
   vendor?: {
     id: string;
     name: string;
@@ -384,7 +388,6 @@ function CheckoutForm({
     removeItem,
     isLoading,
     hasShippableItems,
-    hasDigitalItems,
   } = useCart();
   // Digital-only carts (ebooks, downloads) skip the shipping address and
   // shipping method entirely — only a billing address is collected, matching
@@ -1217,6 +1220,12 @@ function CheckoutForm({
     });
   const [selectedPickupLocationId, setSelectedPickupLocationId] =
     useState<string | null>(null);
+  const pickupAvailable = pickupAvailability.eligible;
+  const deliveryAvailable = pickupAvailability.deliveryAvailable !== false;
+  const fulfillmentBlocked = !isDigitalOnly && (
+    (fulfillmentMethod === "delivery" && !deliveryAvailable) ||
+    (fulfillmentMethod === "pickup" && !pickupAvailable)
+  );
 
   const watchedFirstName = useWatch({ control: form.control, name: "firstName" });
   const watchedLastName = useWatch({ control: form.control, name: "lastName" });
@@ -1393,6 +1402,7 @@ function CheckoutForm({
   // download-only carts have nothing to rate, so they never wait on a quote.
   const shippingRatesWanted =
     fulfillmentMethod === "delivery" &&
+    deliveryAvailable &&
     !isDigitalOnly &&
     hasDeliveryDestination({
       address: watchedAddress,
@@ -1451,10 +1461,15 @@ function CheckoutForm({
           setPickupAvailability({
             loading: false,
             eligible: Boolean(json.data?.eligible),
+            deliveryAvailable: json.data?.deliveryAvailable !== false,
             reason: json.data?.reason,
             vendor: json.data?.vendor,
             locations,
           });
+          setFulfillmentMethod((current) => availableFulfillmentMethod(current, {
+            deliveryAvailable: json.data?.deliveryAvailable !== false,
+            pickupAvailable: Boolean(json.data?.eligible),
+          }) || current);
           // Only branches that hold the whole basket count, so a selection
           // made before an item was added is dropped rather than carried
           // into a payment the server would refuse; the nearest usable one
@@ -1466,6 +1481,8 @@ function CheckoutForm({
           setPickupAvailability({
             loading: false,
             eligible: false,
+            deliveryAvailable: false,
+            failed: true,
             locations: [],
                 });
           setSelectedPickupLocationId(null);
@@ -1475,6 +1492,8 @@ function CheckoutForm({
           setPickupAvailability({
             loading: false,
             eligible: false,
+            deliveryAvailable: false,
+            failed: true,
             locations: [],
                 });
           setSelectedPickupLocationId(null);
@@ -1712,6 +1731,9 @@ function CheckoutForm({
     coupon: appliedCoupon,
     shippingByVendor,
     currency: currency.code,
+    // Lines with a rate of their own (a product's, a category's) are taxed at
+    // it, exactly as the server prices the order (lib/tax).
+    taxLines: cartTaxLines(items, taxRate),
   });
   const discount = totals.subtotalDiscount;
   const shippingDiscount = totals.shippingDiscount;
@@ -2292,21 +2314,14 @@ function CheckoutForm({
         detail: t("checkout.payment.mtnMomoDetail"),
       });
     }
-    // COD needs a hand-over to collect the cash at — a courier or a counter.
-    // Digital files have neither: they release off the order itself, before
-    // any cash could be collected. That rules COD out for any cart carrying a
-    // digital line, mixed carts included — not just downloads-only carts,
-    // where the money would never change hands at all. Pre-orders are out for
-    // the mirror-image reason: the seller commits stock at reservation time
-    // and the deposit/pay-later maths assume money moves NOW, while COD
-    // collects only at a door weeks away — a deposit pre-order on COD would
-    // reserve units having collected nothing. The server refuses both; this
-    // only keeps the option off the screen.
-    if (
-      paymentConfig.codEnabled &&
-      !hasDigitalItems &&
-      !hasPreorderItems
-    ) {
+    // COD is offered on carts with digital lines too: their downloads unlock
+    // only once the order is marked paid (`isOrderEntitledToDownloads`), so no
+    // file leaves before the cash is in. Pre-orders stay out: the seller
+    // commits stock at reservation time and the deposit/pay-later maths assume
+    // money moves NOW, while COD collects only at a door weeks away — a deposit
+    // pre-order on COD would reserve units having collected nothing. The
+    // server refuses it; this only keeps the option off the screen.
+    if (paymentConfig.codEnabled && !hasPreorderItems) {
       // "Cash on delivery" is the wrong words for an order nobody delivers, so
       // collection renames it to what actually happens: the shopper pays at the
       // counter when they turn up. Same payment method, same server handling —
@@ -2333,7 +2348,7 @@ function CheckoutForm({
     // a prepaid-only store, and a prepaid collection is the safer of the two
     // orders — see `pickupAvailable`.
     return methods;
-  }, [paymentConfig, fulfillmentMethod, hasDigitalItems, hasPreorderItems, t]);
+  }, [paymentConfig, fulfillmentMethod, hasPreorderItems, t]);
 
   // A pre-order that leaves a balance can only be placed on a method that can
   // come back for it (`lib/payments/balance-methods.ts`). The rest stay on the
@@ -2490,8 +2505,11 @@ function CheckoutForm({
     };
 
     try {
+      if (fulfillmentBlocked || (!isDigitalOnly && pickupAvailability.loading)) {
+        throw new Error(tr("checkout.pickup.noOptions", "Some items are pickup only. Order from one store at a time, or remove those items to choose delivery."));
+      }
       if (pickupSelectionRequired) {
-        throw new Error("Select and reserve a pickup time before payment");
+        throw new Error(t("checkout.pickup.chooseLocation"));
       }
       if (fulfillmentMethod === "delivery" && shippingUnavailable) {
         throw new Error(SHIPPING_UNAVAILABLE_MESSAGE);
@@ -2569,11 +2587,6 @@ function CheckoutForm({
       }
       if (data.paymentMethod === "cod" && paymentConfig.codEnabled === false) {
         throw new Error("Cash on Delivery is disabled");
-      }
-      if (data.paymentMethod === "cod" && hasDigitalItems) {
-        throw new Error(
-          "Cash on Delivery is not available for orders that include digital items",
-        );
       }
       if (data.paymentMethod === "cod" && hasPreorderItems) {
         throw new Error(
@@ -3516,11 +3529,11 @@ function CheckoutForm({
   // backwards: a prepaid collection is the safer of the two — the money is
   // already in before anyone walks out with the goods — and gating on COD hid
   // the entire feature from every prepaid-only merchant.
-  const pickupAvailable = pickupAvailability.eligible;
   const multiVendorPickup = pickupAvailability.reason === "multi_vendor";
-  const showFulfillmentSelector = shouldShowFulfillmentSelector({
+  const showFulfillmentSelector = !isDigitalOnly && shouldShowFulfillmentSelector({
     pickupAvailable,
     multiVendor: multiVendorPickup,
+    deliveryAvailable,
   });
   // Digital-only checkouts have no shipping address for billing to be "same
   // as" — the billing form is always shown and required.
@@ -3787,6 +3800,7 @@ function CheckoutForm({
                   {showFulfillmentSelector ? <PickupFulfillmentSelector
                     method={fulfillmentMethod}
                     pickupAvailable={pickupAvailable}
+                    deliveryAvailable={deliveryAvailable}
                     multiVendor={multiVendorPickup}
                     locations={pickupAvailability.locations}
                     selectedLocationId={selectedPickupLocationId}
@@ -3800,16 +3814,18 @@ function CheckoutForm({
                       deliveryHint: t("checkout.pickup.deliveryHint"),
                       pickup: t("checkout.pickup.localPickup"),
                       pickupHint: t("checkout.pickup.pickupHint"),
+                      pickupOnlyHint: tr("checkout.pickup.pickupOnlyHint", "This store offers pickup only. Collect your order at a pickup location."),
+                      noOptions: pickupAvailability.failed
+                        ? tr("checkout.pickup.availabilityFailed", "We couldn't load delivery and pickup options. Refresh the page to try again.")
+                        : tr("checkout.pickup.noOptions", "Some items are pickup only. Order from one store at a time, or remove those items to choose delivery."),
                       multiVendor: t("checkout.pickup.deliveryOnly"),
                       chooseLocation: t("checkout.pickup.chooseLocation"),
                       branchOutOfStock: t.has("checkout.pickup.branchOutOfStock")
                         ? t("checkout.pickup.branchOutOfStock")
                         : "Doesn't have everything in your order",
-                      noBranchHasEverything: t.has(
-                        "checkout.pickup.noBranchHasEverything",
-                      )
-                        ? t("checkout.pickup.noBranchHasEverything")
-                        : "No collection point has every item in your order right now. Choose delivery, or remove an item to collect the rest.",
+                      noBranchHasEverything: deliveryAvailable
+                        ? tr("checkout.pickup.noBranchHasEverything", "No collection point has every item in your order right now. Choose delivery, or remove an item to collect the rest.")
+                        : tr("checkout.pickup.noBranchPickupOnly", "No collection point has every item in your order right now. Remove unavailable items or contact the store."),
                       collectDuringOpeningHours: t(
                         "checkout.pickup.collectDuringOpeningHours",
                       ),
@@ -4483,7 +4499,7 @@ function CheckoutForm({
                                           >
                                             <div
                                               ref={setCardNumberMountEl}
-                                              className="dark:bg-input/30 border-input min-h-11 rounded-md border bg-background px-4 py-3 pr-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px] sm:pr-36"
+                                              className="dark:bg-input/30 border-input min-h-11 rounded-md border bg-background px-4 py-3 pr-4 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring focus-within:ring-[3px] sm:pr-36"
                                             />
                                             <div className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 sm:flex">
                                               <span className="inline-flex h-5 min-w-8 items-center justify-center rounded-[3px] border bg-white px-1 text-[9px] font-bold leading-none text-blue-700 shadow-xs">
@@ -4511,7 +4527,7 @@ function CheckoutForm({
                                             >
                                               <div
                                                 ref={setCardExpiryMountEl}
-                                                className="dark:bg-input/30 border-input min-h-11 rounded-md border bg-background px-4 py-3 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]"
+                                                className="dark:bg-input/30 border-input min-h-11 rounded-md border bg-background px-4 py-3 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring focus-within:ring-[3px]"
                                               />
                                             </div>
 
@@ -4523,7 +4539,7 @@ function CheckoutForm({
                                             >
                                               <div
                                                 ref={setCardCvcMountEl}
-                                                className="dark:bg-input/30 border-input min-h-11 rounded-md border bg-background px-4 py-3 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]"
+                                                className="dark:bg-input/30 border-input min-h-11 rounded-md border bg-background px-4 py-3 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring focus-within:ring-[3px]"
                                               />
                                               <CreditCard className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
                                             </div>
@@ -4588,7 +4604,7 @@ function CheckoutForm({
                                                           className={cn(
                                                             "flex h-11 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors",
                                                             isActive
-                                                              ? "border-primary bg-primary/10 text-primary"
+                                                              ? "border-primary bg-primary/10 text-store-link"
                                                               : "bg-background text-muted-foreground hover:bg-muted",
                                                           )}
                                                         >
@@ -4725,7 +4741,7 @@ function CheckoutForm({
                                 <div
                                   className={cn(
                                     "flex items-center gap-3 p-4 transition-colors",
-                                    field.value === "same" && "bg-accent",
+                                    field.value === "same" && "bg-selection text-selection-foreground",
                                   )}
                                 >
                                   <RadioGroupItem value="same" id="bill_same" />
@@ -4740,7 +4756,7 @@ function CheckoutForm({
                                 <div
                                   className={cn(
                                     "flex items-center gap-3 p-4 transition-colors",
-                                    field.value === "different" && "bg-accent",
+                                    field.value === "different" && "bg-selection text-selection-foreground",
                                   )}
                                 >
                                   <RadioGroupItem
@@ -4903,7 +4919,7 @@ function CheckoutForm({
                   </section>
 
                   {hasPreorderItems && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+                    <div className="rounded-lg border border-status-on-info/20 bg-status-info px-4 py-3">
                       <div className="flex items-start gap-3">
                         <Checkbox
                           id="checkout-preorder-ack"
@@ -4915,7 +4931,7 @@ function CheckoutForm({
                         />
                         <Label
                           htmlFor="checkout-preorder-ack"
-                          className="cursor-pointer text-sm font-normal leading-5 text-blue-900 dark:text-blue-100"
+                          className="cursor-pointer text-sm font-normal leading-5 text-status-on-info"
                         >
                           {preorderDateLabel
                             ? `I understand this cart contains pre-order items expected to ship on or around ${preorderDateLabel}.`
@@ -4937,7 +4953,7 @@ function CheckoutForm({
                       comes from the module the server composes its stored copy
                       with, so the record matches what was on screen. */}
                   {needsPreorderMandate && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+                    <div className="rounded-lg border border-status-on-info/20 bg-status-info px-4 py-3">
                       <div className="flex items-start gap-3">
                         <Checkbox
                           id="checkout-preorder-mandate"
@@ -4949,7 +4965,7 @@ function CheckoutForm({
                         />
                         <Label
                           htmlFor="checkout-preorder-mandate"
-                          className="cursor-pointer text-sm font-normal leading-5 text-blue-900 dark:text-blue-100"
+                          className="cursor-pointer text-sm font-normal leading-5 text-status-on-info"
                         >
                           {preorderMandateText}
                         </Label>
@@ -4977,6 +4993,8 @@ function CheckoutForm({
                     size="lg"
                     disabled={
                       isSubmitting ||
+                      fulfillmentBlocked ||
+                      (!isDigitalOnly && pickupAvailability.loading) ||
                       shippingUnavailable ||
                       shippingRateFailed ||
                       shippingQuotePending ||
@@ -5046,7 +5064,7 @@ function CheckoutForm({
                 down only: pr-2 covers the remove button's -mr-2, and
                 overflow-x-hidden keeps anything wider from adding a
                 sideways scrollbar under the items. */}
-            <aside className="border-t bg-zinc-50 px-4 py-8 lg:border-t-0 lg:px-12 lg:py-12 dark:bg-background">
+            <aside className="border-t bg-muted/50 px-4 py-8 lg:border-t-0 lg:px-12 lg:py-12 dark:bg-background">
               <div
                 className="mx-auto max-w-[440px] lg:sticky lg:top-[var(--checkout-summary-offset)] lg:mx-0 lg:max-h-[calc(100dvh-var(--checkout-summary-offset)-1rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-2"
                 style={checkoutSummaryStyle}
@@ -5074,7 +5092,7 @@ function CheckoutForm({
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     {discount > 0 ? (
-                      <div className="flex items-center justify-between text-green-700 dark:text-green-400">
+                      <div className="flex items-center justify-between text-status-on-positive">
                         <span>
                           {t("checkout.discount")}
                           {appliedCoupon ? ` (${appliedCoupon.code})` : ""}
@@ -5136,7 +5154,7 @@ function CheckoutForm({
                     ) : null}
                     {hasPreorderItems && preorderOutstandingAmount > 0 ? (
                       <>
-                        <div className="flex items-center justify-between text-blue-700 dark:text-blue-300">
+                        <div className="flex items-center justify-between text-status-on-info">
                           <span>Pre-order due today</span>
                           <span>{formatPrice(preorderDueNow)}</span>
                         </div>
@@ -5168,7 +5186,7 @@ function CheckoutForm({
                   </div>
 
                   {storeCreditApplied > 0 ? (
-                    <div className="flex items-center justify-between text-sm text-green-700 dark:text-green-400">
+                    <div className="flex items-center justify-between text-sm text-status-on-positive">
                       <span>{tr("checkout.storeCredit", "Store credit")}</span>
                       <span>-{formatPrice(storeCreditApplied)}</span>
                     </div>
@@ -5226,7 +5244,7 @@ function CheckoutForm({
                             isRemovingLine && "opacity-50",
                           )}
                         >
-                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-muted">
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
                             {item.image ? (
                               <AppImage
                                 src={item.image}
@@ -5244,7 +5262,7 @@ function CheckoutForm({
                             <div className="space-y-0.5 text-xs text-muted-foreground">
                               {checkoutItem.purchaseType === "preorder" ? (
                                 <>
-                                  <p className="font-medium text-blue-600 dark:text-blue-300">
+                                  <p className="font-medium text-status-on-info">
                                     {formatPreorderDate(
                                       checkoutItem.preorderReleaseDate,
                                     )
@@ -5302,7 +5320,7 @@ function CheckoutForm({
                                   <span className="text-muted-foreground line-through mr-1.5">
                                     {formatPrice(originalLinePrice || 0)}
                                   </span>
-                                  <span className="font-semibold text-rose-500">
+                                  <span className="font-semibold text-store-sale-text">
                                     {formatPrice(item.price * item.quantity)}
                                   </span>
                                 </p>

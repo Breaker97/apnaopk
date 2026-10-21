@@ -248,6 +248,10 @@ PaymentTransactionSchema.index({ customerEmail: 1, createdAt: -1 });
 // cheap, because a gateway having a bad afternoon is exactly when it fires.
 // Sparse: only a failure row carries the key, and most rows never will.
 PaymentTransactionSchema.index({ "metadata.dedupeKey": 1 }, { sparse: true });
+PaymentTransactionSchema.index({ orderId: 1, externalId: 1 }, {
+  unique: true,
+  partialFilterExpression: { "metadata.source": "paypal-match-review" },
+});
 PaymentTransactionSchema.index({ bizOperationId: 1, bizOperationLeg: 1 }, {
   unique: true,
   partialFilterExpression: { bizOperationId: { $gt: "" }, bizOperationLeg: { $gt: "" } },

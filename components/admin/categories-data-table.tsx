@@ -1,5 +1,7 @@
 "use client";
 
+import type { StaffResourceActions } from "@/lib/access/staff-resource-actions";
+
 import {
   Plus,
   ChevronsUpDown,
@@ -54,6 +56,8 @@ interface TreeCategory extends Category {
 
 interface CategoriesDataTableProps {
   locale: string;
+  area?: "admin" | "staff";
+  actionAccess?: StaffResourceActions;
   initialPage?: number;
   initialSearch?: string;
   initialStatus?: string;
@@ -61,10 +65,21 @@ interface CategoriesDataTableProps {
 
 export function CategoriesDataTable({
   locale,
+  area = "admin",
+  actionAccess,
   initialPage = 1,
   initialSearch = "",
   initialStatus = "all",
 }: CategoriesDataTableProps) {
+  const basePath = `/${locale}/${area}`;
+  const canCreate = actionAccess?.canCreate ?? true;
+  const canEdit = actionAccess?.canEdit ?? true;
+  const canDelete = actionAccess?.canDelete ?? true;
+  const canImport = canCreate && canEdit;
+  const allowsAction = useCallback(
+    (id: string) => ["delete", "archive"].includes(id) ? canDelete : canEdit,
+    [canDelete, canEdit],
+  );
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -554,7 +569,7 @@ export function CategoriesDataTable({
               image={row.image}
               title={row.name}
               subtitle={subtitle}
-              href={`/admin/categories/${row._id}/edit`}
+              href={canEdit ? `${basePath}/categories/${row._id}/edit` : undefined}
             />
           );
         },
@@ -589,7 +604,7 @@ export function CategoriesDataTable({
         className: "w-[120px]",
       },
     ],
-    [locale, t],
+    [basePath, canEdit, t],
   );
 
   const tabs = useMemo<DataTableTab[]>(
@@ -606,14 +621,16 @@ export function CategoriesDataTable({
     () =>
       buildAdminCommerceTableHeader({
         title: t("admin.categoriesDataTable.title"),
-        addAction: {
+        addAction: canCreate ? {
           id: "add",
           label: t("admin.categoriesDataTable.actions.addCategory"),
-          href: "/admin/categories/new",
+          href: `${basePath}/categories/new`,
           icon: <Plus className="h-4 w-4" />,
           variant: "default",
-        },
-        importExportAction: {
+        } : undefined,
+        importExportAction: !canImport ? {
+          id: "export", label: "Export CSV", icon: <Download className="h-4 w-4" />, onClick: handleExportCategories,
+        } : {
           id: "import-export",
           label: t("admin.productsDataTable.actions.importExport"),
           icon: <ChevronsUpDown className="h-4 w-4" />,
@@ -634,11 +651,11 @@ export function CategoriesDataTable({
           ],
         },
       }),
-    [handleExportCategories, handleImportCategories, locale, t],
+    [handleExportCategories, handleImportCategories, basePath, canCreate, canImport, t],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<TreeCategory>[]>(
-    () => [
+    () => ([
       {
         id: "activate",
         label: t("admin.categoriesDataTable.bulkActions.setActive"),
@@ -674,17 +691,17 @@ export function CategoriesDataTable({
         variant: "destructive",
         onClick: handleBulkDelete,
       },
-    ],
-    [handleBulkDelete, handleBulkFeaturedUpdate, handleBulkStatusUpdate, t],
+    ] satisfies DataTableBulkAction<TreeCategory>[]).filter((action) => allowsAction(action.id)),
+    [handleBulkDelete, handleBulkFeaturedUpdate, handleBulkStatusUpdate, allowsAction, t],
   );
 
   const rowActions = useCallback(
-    (row: TreeCategory): DataTableAction[] => [
+    (row: TreeCategory): DataTableAction[] => ([
       {
         id: "edit",
         label: t("admin.categoriesDataTable.rowActions.edit"),
         icon: <Pencil className="h-4 w-4" />,
-        href: `/admin/categories/${row._id}/edit`,
+        href: `${basePath}/categories/${row._id}/edit`,
       },
       {
         id: row.featured ? "remove-featured" : "mark-featured",
@@ -705,8 +722,8 @@ export function CategoriesDataTable({
         variant: "destructive",
         onClick: () => handleDelete(row),
       },
-    ],
-    [locale, handleDelete, handleFeaturedUpdate, t],
+    ] satisfies DataTableAction[]).filter((action) => allowsAction(action.id)),
+    [basePath, allowsAction, handleDelete, handleFeaturedUpdate, t],
   );
 
   return (
@@ -729,7 +746,7 @@ export function CategoriesDataTable({
         activeTab={activeTab}
         onTabChange={handleTabChange}
         actions={tableHeader.actions}
-        selectable
+        selectable={canEdit || canDelete}
         selectedItems={selectedCategories}
         onSelectionChange={setSelectedCategories}
         bulkActions={bulkActions}
@@ -753,9 +770,7 @@ export function CategoriesDataTable({
         rowActions={rowActions}
         rowActionsHeader={t("admin.categoriesDataTable.rowActionsHeader")}
         rowActionsVariant="inline"
-        onRowClick={(row) =>
-          router.push(`/admin/categories/${row._id}/edit`)
-        }
+        onRowClick={canEdit ? (row) => router.push(`${basePath}/categories/${row._id}/edit`) : undefined}
         emptyMessage={t("admin.categoriesDataTable.empty")}
         emptyIcon={<FolderTree className="h-8 w-8" />}
       />

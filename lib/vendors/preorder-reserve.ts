@@ -1,7 +1,7 @@
 import { financeQuery } from "@/lib/finance/transaction";
 import { Types } from "mongoose";
 import { Payout } from "@/models";
-import { roundMoney } from "@/lib/intl/money";
+import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
 import {
   payableInCurrency,
   sumVendorPayable,
@@ -74,7 +74,13 @@ export function computePreorderReserve<
     params.payoutCurrency,
   );
 
-  return Math.max(0, roundMoney((netAmount * params.percent) / 100));
+  // In what the payout's currency can hold. Two decimals everywhere left a UGX
+  // reserve of 100.5 that later quoted as 101 and claimed as 100.5 — and the
+  // payout refused itself as stale on every attempt from then on.
+  return Math.max(
+    0,
+    quantizeToCurrency((netAmount * params.percent) / 100, params.payoutCurrency),
+  );
 }
 
 /**
@@ -141,8 +147,12 @@ export async function claimMaturedReserves(params: {
     .lean();
 
   return {
-    amount: roundMoney(
+    // Quantized the way the quote reads the same rows, so the two agree even
+    // on a reserve stored before amounts were held in the currency's own
+    // precision.
+    amount: quantizeToCurrency(
       claimed.reduce((sum, row) => sum + Number(row.preorderReserveHeld || 0), 0),
+      params.currency,
     ),
     count: claimed.length,
   };
@@ -178,17 +188,21 @@ export async function unclaimReserves(params: {
 export async function sumHeldReserve(params: {
   vendorId: Types.ObjectId | string;
   currency?: string;
+  /** Overview stages exclude money already in a payout or its current quote. */
+  unallocatedOnly?: boolean;
+  excludePayoutIds?: ReadonlyArray<unknown>;
 }): Promise<number> {
   const rows = await financeQuery(Payout.find({
     vendorId: new Types.ObjectId(String(params.vendorId)),
     ...(params.currency ? { currency: params.currency.toUpperCase() } : {}),
     preorderReserveHeld: { $gt: 0 },
     preorderReserveReleasedAt: null,
+    ...(params.unallocatedOnly ? { preorderReserveReleasedInPayoutId: null } : {}),
+    ...(params.excludePayoutIds?.length ? { _id: { $nin: params.excludePayoutIds } } : {}),
     status: { $nin: ["cancelled", "failed"] },
   }))
     .select("preorderReserveHeld")
     .lean();
-  return roundMoney(
-    rows.reduce((sum, row) => sum + Number(row.preorderReserveHeld || 0), 0),
-  );
+  const total = rows.reduce((sum, row) => sum + Number(row.preorderReserveHeld || 0), 0);
+  return params.currency ? quantizeToCurrency(total, params.currency) : roundMoney(total);
 }

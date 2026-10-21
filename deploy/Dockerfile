@@ -9,16 +9,13 @@
 # It lives under deploy/ (not the repo root) on purpose: some deploy panels
 # auto-prefer a root Dockerfile over their source build, and this one is only
 # valid when CI has already built the app. For on-server deploys keep using
-# Nixpacks — docs/UPGRADE.md -> "Build requirements". Full pipeline docs:
-# docs/DEPLOYMENT_PREBUILT_IMAGE.md
+# Nixpacks. Full pipeline docs (Dokploy chapter, Path B):
+# https://storify.neurolightstudio.com/docs#deploy-dokploy
 FROM node:24-bookworm-slim
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # corepack picks up the pinned pnpm version from package.json's packageManager
-RUN corepack enable \
-  && apt-get update \
-  && apt-get install --yes --no-install-recommends curl wget \
-  && rm -rf /var/lib/apt/lists/*
+RUN corepack enable
 
 WORKDIR /app
 
@@ -37,7 +34,7 @@ COPY . .
 RUN test -f .next/BUILD_ID || { \
       echo "ERROR: no prebuilt .next/ in the build context." ; \
       echo "This Dockerfile packages an app that CI already built; it never compiles." ; \
-      echo "Run the deploy-image workflow (docs/DEPLOYMENT_PREBUILT_IMAGE.md) or use Nixpacks for on-server builds." ; \
+      echo "Run the deploy-image workflow (https://storify.neurolightstudio.com/docs#deploy-dokploy) or use Nixpacks for on-server builds." ; \
       exit 1 ; \
     }
 

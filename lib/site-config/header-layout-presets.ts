@@ -9,9 +9,11 @@
  * default design (header-layout-default.ts).
  */
 
+import { themeColorCss } from "@/lib/theme-colors/theme-refs";
 import {
   createHeaderRow,
   defaultTextStyle,
+  inheritFill,
   solidBackground,
   type HeaderLayout,
   type HeaderMenuButtonItem,
@@ -117,8 +119,8 @@ export const HEADER_LAYOUT_PRESETS: HeaderLayoutPreset[] = [
           1,
           {
             height: 56,
-            background: solidBackground("#3b6ff5"),
-            foreground: solidBackground("#ffffff"),
+            // The theme's primary: its ink follows (no fixed white).
+            background: solidBackground(themeColorCss("primary")),
           },
           [
             column(
@@ -226,8 +228,8 @@ export const HEADER_LAYOUT_PRESETS: HeaderLayoutPreset[] = [
                 width: 340,
                 openOn: "always",
                 panel: {
-                  background: solidBackground("#3b6ff5"),
-                  foreground: solidBackground("#ffffff"),
+                  background: solidBackground(themeColorCss("primary")),
+                  foreground: inheritFill(),
                   width: 0,
                   itemRoundness: 999,
                   showIcons: true,

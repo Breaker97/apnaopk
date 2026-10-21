@@ -11,7 +11,7 @@ import {
 } from "@/config/permissions.config";
 import { StaffProfile, type IStaffProfile } from "@/models/staff-profile.model";
 import { AuthorizationError } from "@/lib/api/errors";
-import { effectiveStaffPermissions } from "@/lib/access/staff-authz";
+import { sellerCappedStaffPermissions } from "@/lib/access/staff-authz";
 
 // ============================================
 // Role Checking Utilities
@@ -164,7 +164,7 @@ export async function canAccessPOS(
       if (!user.id) return false;
       const profile = await getStaffProfile(user.id);
       if (!profile?.isActive) return false;
-      return effectiveStaffPermissions(profile).includes(
+      return (await sellerCappedStaffPermissions(profile)).includes(
         STAFF_PERMISSIONS.ACCESS_POS,
       );
     }
@@ -191,7 +191,7 @@ export async function canApplyPosDiscount(user: MinimalUser): Promise<boolean> {
     const profile = await getStaffProfile(user.id);
     return Boolean(
       profile?.isActive &&
-        effectiveStaffPermissions(profile).includes(STAFF_PERMISSIONS.MANAGE_POS),
+        (await sellerCappedStaffPermissions(profile)).includes(STAFF_PERMISSIONS.MANAGE_POS),
     );
   }
   return false;

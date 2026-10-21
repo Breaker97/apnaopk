@@ -41,6 +41,15 @@ export interface IStaffProfile {
     createdAt: Date;
   }[];
   isActive: boolean;
+  /**
+   * A staff-tier team role (models/team-role.model.ts). With one,
+   * `permissions` is written from the role plus the two lists below
+   * (lib/access/team-permissions.ts); without, `permissions` is the member's
+   * own list, as before roles.
+   */
+  teamRoleId?: Types.ObjectId;
+  teamExtraPermissions?: string[];
+  teamRevokedPermissions?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,6 +132,9 @@ const StaffProfileSchema = new Schema<IStaffProfile>(
       type: Boolean,
       default: true,
     },
+    teamRoleId: { type: Schema.Types.ObjectId, ref: "TeamRole" },
+    teamExtraPermissions: { type: [String], default: undefined },
+    teamRevokedPermissions: { type: [String], default: undefined },
   },
   {
     timestamps: true,
@@ -141,6 +153,9 @@ StaffProfileSchema.virtual("user", {
   foreignField: "_id",
   justOne: true,
 });
+
+// A role's members, re-written when the role changes.
+StaffProfileSchema.index({ teamRoleId: 1 }, { sparse: true });
 
 StaffProfileSchema.methods.hasPermission = function (
   permission: StaffPermission,

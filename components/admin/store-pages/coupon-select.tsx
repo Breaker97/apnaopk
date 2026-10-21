@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { NativeSelect } from "@/components/ui/native-select";
+import { useTranslations } from "next-intl";
+import { createTSafe } from "@/components/admin/online-store/t-safe";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { apiClient } from "@/lib/api/client";
 import { useStoreBuilderScope } from "./builder-scope";
 
@@ -25,19 +27,34 @@ interface CouponOption {
  * The CODE is stored, not the id — see the field's own note. So a stored
  * code stays selectable even once its discount is gone, and the merchant can
  * see what the banner is still advertising.
+ *
+ * It is the app's one select-with-search, like the brand, category and
+ * collection pickers beside it: a native `<select>` drew the browser's own
+ * list, which matched nothing else on the screen.
  */
 export function CouponSelect({
   value,
   onChange,
   placeholder,
   emptyLabel,
+  endpoint,
+  ariaLabel,
 }: {
   value: string;
   onChange: (code: string) => void;
   placeholder: string;
   /** Shown in place of the list when the store has no active discounts. */
   emptyLabel: string;
+  /**
+   * Read the options from here instead of the builder scope's discounts list,
+   * for a screen with its own rule about which codes it may offer (Campaign
+   * Banners). Taken as written: it already says "active".
+   */
+  endpoint?: string;
+  /** The trigger's name, for a field whose label is drawn outside it. */
+  ariaLabel?: string;
 }) {
+  const tSafe = createTSafe(useTranslations());
   // The store's discounts by default; a vendor's builder lists their own.
   const { couponsEndpoint } = useStoreBuilderScope();
   const [options, setOptions] = useState<CouponOption[] | null>(null);
@@ -47,7 +64,7 @@ export function CouponSelect({
     apiClient
       // paginatedResponse nests the rows: { data, pagination }, NOT an array.
       .get<{ data?: CouponOption[] } | CouponOption[]>(
-        `${couponsEndpoint}?page=1&limit=100&status=active`,
+        endpoint ?? `${couponsEndpoint}?page=1&limit=100&status=active`,
       )
       .then((payload) => {
         if (cancelled) return;
@@ -60,7 +77,7 @@ export function CouponSelect({
     return () => {
       cancelled = true;
     };
-  }, [couponsEndpoint]);
+  }, [couponsEndpoint, endpoint]);
 
   /** "SUMMER20 — 20% off" : enough to tell two discounts apart at a glance. */
   const describe = (option: CouponOption) => {
@@ -77,24 +94,29 @@ export function CouponSelect({
   const missing =
     value && options && !options.some((option) => option.code === value);
 
+  const noneAvailable = options !== null && options.length === 0;
+  const choices = [
+    // Only while something is picked: the way back to "no coupon".
+    ...(value ? [{ value: "", label: placeholder }] : []),
+    ...(options ?? []).map((option) => ({
+      value: option.code,
+      label: describe(option),
+    })),
+    // A code whose discount was renamed, paused or deleted: keep it
+    // visible so the merchant can see what is being advertised.
+    ...(missing ? [{ value, label: value }] : []),
+  ];
+
   return (
-    <NativeSelect
+    <SearchableSelect
+      options={choices}
       value={value}
+      onValueChange={onChange}
       disabled={options === null}
-      onChange={(event) => onChange(event.target.value)}
-      className="w-full"
-    >
-      <option value="">
-        {options && options.length === 0 ? emptyLabel : placeholder}
-      </option>
-      {(options ?? []).map((option) => (
-        <option key={option._id ?? option.code} value={option.code}>
-          {describe(option)}
-        </option>
-      ))}
-      {/* A code whose discount was renamed, paused or deleted: keep it
-          visible so the merchant can see what is being advertised. */}
-      {missing ? <option value={value}>{value}</option> : null}
-    </NativeSelect>
+      ariaLabel={ariaLabel}
+      placeholder={noneAvailable ? emptyLabel : placeholder}
+      searchPlaceholder={tSafe("admin.storeBuilder.searchCoupons", "Search discounts…")}
+      emptyText={emptyLabel}
+    />
   );
 }

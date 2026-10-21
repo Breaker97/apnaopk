@@ -329,7 +329,7 @@ export function ProductMainEditor({
       case "discountChipOnImage":
         return (
           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
-            10% OFF
+            {tSafe("product.percentOff", "{percent}% OFF", { percent: 10 })}
           </span>
         );
       case "ratingCount":

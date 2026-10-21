@@ -81,12 +81,8 @@ export interface GatewayDisputeReading {
    * be recognised as this money rather than recorded a second time.
    */
   moneyIds: string[];
-  /**
-   * Whether a refund recorded after the dispute opened can be this dispute's
-   * money. PayPal settles a claim by refunding the capture, so the refund its
-   * webhook recorded and the settlement the dispute lists are one payment.
-   */
-  settlesThroughRefunds: boolean;
+  /** Identity and status supplied by PayPal's trusted disputed transaction. */
+  paypalCapture?: { id: string; reversed: boolean };
 }
 
 /** Below this, two amounts are the same money. */
@@ -125,9 +121,12 @@ function compactLocator(fields: Record<string, string>): Record<string, string> 
 // ---------------------------------------------------------------------------
 
 interface StripeBalanceTransactionLike {
+  id?: string;
+  created?: number;
   amount?: number | null;
   fee?: number | null;
   currency?: string | null;
+  exchange_rate?: number | null;
 }
 
 interface StripeDisputeLike {
@@ -154,85 +153,122 @@ const STRIPE_STAGES: Record<string, DisputeStage> = {
   prevented: "closed",
 };
 
-interface DisputeFeeAmount {
-  amount: number;
-  currency: string;
-  note?: string;
-}
-
 function roundToCurrency(amount: number, currency: string): number {
+  // Preserve the gateway's minor units, including three-decimal amounts;
+  // checkout's price quantizer deliberately uses a different scale.
   const factor = 10 ** currencyMinorUnitExponent(currency);
-  return Math.round(amount * factor) / factor;
+  return Math.round(Number((amount * factor).toPrecision(15))) / factor;
 }
 
 /**
- * What a Stripe dispute's balance transactions charged in fees, and what they
- * gave back, in major units. Stripe charges the fee on the withdrawal and,
- * where it returns it, credits it on the reinstatement as a negative fee.
- *
- * A balance transaction is in the account's settlement currency, which is not
- * always the order's: a store selling in USD on an account that settles in EUR
- * was charged "20 EUR", and that fee went into the books in euros beside a
- * sale in dollars. When the dispute says what the same withdrawal was in the
- * order's currency, the fee is converted at that withdrawal's own rate — the
- * rate Stripe used, not one assumed here — and the charged figure kept in the
- * note. Without both amounts it stays in the currency it was charged in.
+ * Stripe's FX rate runs from the dispute currency to the settlement currency:
+ * https://docs.stripe.com/api/balance_transactions/object#balance_transaction_object-exchange_rate
+ * Convert subunits to major units before dividing, because the two currencies
+ * can have different minor-unit exponents. The disputed face value is not a
+ * conversion rate: a movement can be only part of that amount.
  */
-function disputeFees(dispute: {
-  amount?: number | null;
-  currency?: string | null;
-  balance_transactions?: StripeBalanceTransactionLike[] | null;
-}): {
-  charged: DisputeFeeAmount | null;
-  returned: DisputeFeeAmount | null;
-} {
-  const disputeCurrency = lower(dispute.currency);
-  const disputeMajor = disputeCurrency
-    ? fromStripeAmount(Math.abs(Number(dispute.amount || 0)), disputeCurrency)
-    : 0;
-  const totals = {
-    charged: { amount: 0, currency: "", original: 0, originalCurrency: "" },
-    returned: { amount: 0, currency: "", original: 0, originalCurrency: "" },
+function stripeMovementInDisputeCurrency(
+  amount: number | null | undefined,
+  transaction: StripeBalanceTransactionLike,
+  disputeCurrency: string,
+): number | null {
+  const currency = upper(transaction?.currency);
+  if (
+    typeof amount !== "number" || !Number.isSafeInteger(amount) ||
+    !/^[A-Z]{3}$/.test(currency) || !/^[A-Z]{3}$/.test(disputeCurrency)
+  ) return null;
+
+  let major = fromStripeAmount(amount, currency);
+  if (currency !== disputeCurrency && amount !== 0) {
+    const rate = transaction.exchange_rate;
+    if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) return null;
+    major /= rate;
+  }
+  const factor = 10 ** currencyMinorUnitExponent(disputeCurrency);
+  if (!Number.isFinite(major) || !Number.isSafeInteger(Math.round(major * factor))) return null;
+  const rounded = roundToCurrency(Math.abs(major), disputeCurrency);
+  return major < 0 ? -rounded : rounded;
+}
+
+/** All principal movements must be known before an existing chargeback can be undone. */
+function stripeDisputeMoney(
+  transactions: StripeBalanceTransactionLike[] | null,
+  currency: string,
+): Pick<GatewayDisputeReading, "withdrawn" | "taken"> {
+  const unknown = { withdrawn: null, taken: null };
+  if (!transactions) return unknown;
+  let debit = 0;
+  let credit = 0;
+  for (const transaction of transactions) {
+    const moved = stripeMovementInDisputeCurrency(transaction?.amount, transaction, currency);
+    if (moved === null) return unknown;
+    if (moved < 0) debit -= moved;
+    else credit += moved;
+  }
+  if (!Number.isFinite(debit) || !Number.isFinite(credit)) return unknown;
+  return {
+    taken: roundToCurrency(debit, currency),
+    withdrawn: roundToCurrency(Math.max(0, debit - credit), currency),
   };
+}
 
-  for (const transaction of dispute.balance_transactions || []) {
-    const fee = Number(transaction?.fee || 0);
-    if (!Number.isFinite(fee) || fee === 0) continue;
-    const feeCurrency = lower(transaction?.currency);
-    if (!feeCurrency) continue;
-    const feeMajor = fromStripeAmount(Math.abs(fee), feeCurrency);
-    const movedMajor = fromStripeAmount(Math.abs(Number(transaction?.amount || 0)), feeCurrency);
-    const convert =
-      disputeCurrency && feeCurrency !== disputeCurrency && disputeMajor > 0 && movedMajor > 0;
-    const amount = convert ? feeMajor * (disputeMajor / movedMajor) : feeMajor;
-    const currency = convert ? disputeCurrency : feeCurrency;
-
-    const bucket = fee > 0 ? totals.charged : totals.returned;
-    bucket.currency = bucket.currency || currency;
-    if (bucket.currency !== currency) continue;
-    bucket.amount += amount;
-    if (convert) {
-      bucket.originalCurrency = bucket.originalCurrency || feeCurrency;
-      if (bucket.originalCurrency === feeCurrency) bucket.original += feeMajor;
+/**
+ * Fees are separate from principal. Each fee uses its movement's own FX rate;
+ * in particular, a small reinstatement must not scale its fee return by the
+ * full disputed amount. Without a rate, retain the reported fee currency.
+ */
+function disputeFees(
+  transactions: StripeBalanceTransactionLike[] | null,
+  disputeCurrency: string,
+): DisputeFeeMovement[] {
+  const buckets = new Map<string, {
+    amount: number;
+    currency: string;
+    returned: boolean;
+    originals: Map<string, number>;
+  }>();
+  // Keep the original fee's canonical key when a later movement adds a fee
+  // in another currency. API balance transactions have durable timestamps
+  // and ids, so a reordered list must not switch the primary fee bucket.
+  const movements = [...(transactions || [])].sort((a, b) =>
+    (a?.created ?? 0) - (b?.created ?? 0) || String(a?.id || "").localeCompare(String(b?.id || "")),
+  );
+  for (const transaction of movements) {
+    const fee = transaction?.fee;
+    const currency = upper(transaction?.currency);
+    if (typeof fee !== "number" || !Number.isSafeInteger(fee) || fee === 0 || !/^[A-Z]{3}$/.test(currency)) continue;
+    const original = fromStripeAmount(Math.abs(fee), currency);
+    const converted = stripeMovementInDisputeCurrency(Math.abs(fee), transaction, disputeCurrency);
+    const target = converted === null ? currency : disputeCurrency;
+    const returned = fee < 0;
+    const key = `${returned}:${target}`;
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { amount: 0, currency: target, returned, originals: new Map() };
+      buckets.set(key, bucket);
+    }
+    bucket.amount += converted ?? original;
+    if (converted !== null && currency !== target) {
+      bucket.originals.set(currency, (bucket.originals.get(currency) || 0) + original);
     }
   }
-
-  const finish = (bucket: typeof totals.charged): DisputeFeeAmount | null => {
-    if (bucket.amount <= 0 || !bucket.currency) return null;
-    const code = bucket.currency.toUpperCase();
+  return [...buckets.values()].map((bucket) => {
+    const notes = [...bucket.originals].map(([currency, amount]) =>
+      `${bucket.returned ? "returned" : "charged"} ${roundToCurrency(amount, currency).toFixed(
+        currencyMinorUnitExponent(currency),
+      )} ${currency} at the gateway`,
+    );
+    // The first bucket retains its existing key even when a new currency
+    // appears; only additional buckets need a distinct posting key.
+    const primary = [...buckets.values()].find((other) => other.returned === bucket.returned);
     return {
-      amount: roundToCurrency(bucket.amount, code),
-      currency: code,
-      ...(bucket.original > 0
-        ? {
-            note: `charged ${roundToCurrency(bucket.original, bucket.originalCurrency).toFixed(
-              currencyMinorUnitExponent(bucket.originalCurrency),
-            )} ${bucket.originalCurrency.toUpperCase()} at the gateway`,
-          }
-        : {}),
+      amount: roundToCurrency(bucket.amount, bucket.currency),
+      currency: bucket.currency,
+      returned: bucket.returned,
+      ...(notes.length ? { note: notes.join("; ") } : {}),
+      ...(bucket !== primary ? { part: lower(bucket.currency) } : {}),
     };
-  };
-  return { charged: finish(totals.charged), returned: finish(totals.returned) };
+  }).filter((fee) => fee.amount > 0);
 }
 
 /**
@@ -251,14 +287,13 @@ export function readStripeDispute(
 
   const currency = upper(dispute.currency || "usd");
   const amount = fromStripeAmount(Number(dispute.amount || 0), currency);
-  // Stripe lists zero, one or two: the withdrawal, then the reinstatement. A
-  // copy of the dispute without the list at all says nothing either way.
+  // A copy without the list says nothing. A present list reports the gross
+  // monetary movements, independently of the face value and dispute status.
   const transactions = Array.isArray(dispute.balance_transactions)
     ? dispute.balance_transactions
     : null;
-  const withdrawals = (transactions || []).filter((t) => Number(t?.amount) < 0).length;
-  const reinstatements = (transactions || []).filter((t) => Number(t?.amount) > 0).length;
-  const fees = disputeFees(dispute);
+  const money = stripeDisputeMoney(transactions, upper(dispute.currency));
+  const fees = disputeFees(transactions, upper(dispute.currency));
 
   return {
     gateway: "stripe",
@@ -272,20 +307,15 @@ export function readStripeDispute(
       paymentId: intentId,
     },
     currency,
-    withdrawn: transactions ? (withdrawals > reinstatements ? amount : 0) : null,
-    taken: transactions ? (withdrawals > 0 ? amount : 0) : null,
+    ...money,
     stage: STRIPE_STAGES[lower(dispute.status)] ?? "opened",
     reason: humanize(dispute.reason),
     disputedAmount: amount,
     respondBy: dateFrom(dispute.evidence_details?.due_by),
     openedAt: dateFrom(dispute.created),
     updatedAt: null,
-    fees: [
-      ...(fees.charged ? [{ ...fees.charged, returned: false }] : []),
-      ...(fees.returned ? [{ ...fees.returned, returned: true }] : []),
-    ],
+    fees,
     moneyIds: [],
-    settlesThroughRefunds: false,
   };
 }
 
@@ -370,7 +400,6 @@ export function readRazorpayDispute(
     updatedAt: null,
     fees: [],
     moneyIds: [],
-    settlesThroughRefunds: false,
   };
 }
 
@@ -535,7 +564,6 @@ export function readPaystackDispute(
     moneyIds: linked
       .map((refund) => String(refund.id ?? ""))
       .filter(Boolean),
-    settlesThroughRefunds: false,
   };
 }
 
@@ -566,7 +594,7 @@ export interface PayPalDisputeLike {
   status?: string | null;
   dispute_amount?: PayPalMoneyLike | null;
   dispute_outcome?: { outcome_code?: string | null } | null;
-  disputed_transactions?: Array<{ seller_transaction_id?: string | null }> | null;
+  disputed_transactions?: Array<{ seller_transaction_id?: string | null; transaction_status?: string | null }> | null;
   fund_movements?: PayPalFundMovementLike[] | null;
   money_movements?: PayPalFundMovementLike[] | null;
   dispute_life_cycle_stage?: string | null;
@@ -598,10 +626,10 @@ export function readPayPalDispute(
   options: { movementsTrusted?: boolean } = {},
 ): GatewayDisputeReading | null {
   const id = String(dispute?.dispute_id || "");
-  const captureId =
-    (dispute?.disputed_transactions || [])
-      .map((transaction) => String(transaction?.seller_transaction_id || ""))
-      .find(Boolean) || "";
+  const captures = (dispute?.disputed_transactions || []).filter((transaction) => transaction?.seller_transaction_id);
+  // A settlement spanning several captures needs review; selecting the first
+  // capture would assign the whole movement to an arbitrary payment.
+  const captureId = captures.length === 1 ? String(captures[0]!.seller_transaction_id) : "";
   if (!id || !captureId) return null;
 
   const currency = upper(dispute.dispute_amount?.currency_code || "USD");
@@ -685,7 +713,7 @@ export function readPayPalDispute(
     updatedAt: dateFrom(dispute.update_time),
     fees,
     moneyIds: [],
-    settlesThroughRefunds: true,
+    paypalCapture: { id: captureId, reversed: options.movementsTrusted === true && upper(captures[0]!.transaction_status) === "REVERSED" },
   };
 }
 
@@ -701,12 +729,8 @@ export interface DisputeMoneyRow {
   standing: boolean;
   /** Epoch milliseconds; newer rows are reversed first. */
   at: number;
-  /**
-   * A candidate that is only this dispute's money if it is ALL of it — a
-   * refund that merely happened after the dispute opened. A smaller one is a
-   * different refund, and taking it would leave the chargeback unrecorded.
-   */
-  exact?: boolean;
+  /** Amount and time alone are never evidence of identity. */
+  match?: "gateway_id" | "capture_reversal" | "reviewed";
 }
 
 interface DisputeSettlementPlan {
@@ -731,10 +755,10 @@ interface DisputeSettlementPlan {
  * Bring what the books hold for a dispute in line with what the gateway says.
  *
  * `linked` is every row already recorded for the dispute, reversed or not;
- * `candidates` are rows recorded under other ids that may be its money, best
- * first. A candidate is adopted only while the gateway reports more money than
- * the dispute's rows account for, and only if it fits inside that gap — so a
- * refund of a different amount is never mistaken for it.
+ * `candidates` are rows recorded under other ids, with explicit identity
+ * evidence supplied by the caller. Unproven rows are ignored even if their
+ * amount and timestamp match. A proven candidate must also fit the gap the
+ * gateway reports; amount is a consistency check, never identity evidence.
  *
  * Rows are recorded and reversed whole: the ledger, the payout engine and the
  * history replay all read one row as one refund. When the gateway gives back
@@ -767,12 +791,10 @@ export function planDisputeSettlement(input: {
 
   const adopted: DisputeMoneyRow[] = [];
   for (const candidate of input.candidates) {
-    if (!candidate.standing) continue;
+    if (!candidate.standing || !candidate.match) continue;
     const gap = Math.max(taken - accounted, withdrawn - standing);
     if (gap <= DISPUTE_MONEY_EPSILON) break;
-    const fits = candidate.exact
-      ? Math.abs(candidate.amount - gap) <= DISPUTE_MONEY_EPSILON
-      : candidate.amount <= gap + DISPUTE_MONEY_EPSILON;
+    const fits = candidate.amount <= gap + DISPUTE_MONEY_EPSILON;
     if (!fits) continue;
     adopted.push(candidate);
     plan.adopt.push(candidate.id);

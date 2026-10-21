@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { DateField } from "@/components/ui/date-field";
+import Link from "@/components/language/link";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -41,7 +42,10 @@ const ACCOUNT_LABELS: Record<LedgerAccount, string> = {
   [LEDGER_ACCOUNT.CASH_BANK]: "Bank",
   [LEDGER_ACCOUNT.CASH_ON_HAND]: "Cash in hand",
   [LEDGER_ACCOUNT.INVENTORY]: "Inventory",
-  [LEDGER_ACCOUNT.UNAPPLIED_PAYMENT_PAYABLE]: "Received payments awaiting application",
+  [LEDGER_ACCOUNT.OPENING_INVENTORY_EQUITY]: "Opening inventory equity",
+  [LEDGER_ACCOUNT.INVENTORY_ADJUSTMENTS]: "Inventory adjustments",
+  [LEDGER_ACCOUNT.UNAPPLIED_PAYMENT_PAYABLE]:
+    "Received payments awaiting application",
   [LEDGER_ACCOUNT.VENDOR_PAYABLE]: "Owed to vendors",
   [LEDGER_ACCOUNT.COMMISSION_RECEIVABLE]: "Commission owed to you",
   [LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE]: "Owed by customers",
@@ -147,6 +151,7 @@ export function AdjustmentDialog({
   storeCurrency,
   multiVendor,
   currencies,
+  synchronizedCurrencies = [],
 }: {
   storeCurrency: string;
   multiVendor: boolean;
@@ -160,6 +165,7 @@ export function AdjustmentDialog({
    * to say which one it is correcting.
    */
   currencies: string[];
+  synchronizedCurrencies?: string[];
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -174,11 +180,25 @@ export function AdjustmentDialog({
   // in, and on a single-currency store it is the only option there is.
   const currencyOptions = useMemo(() => {
     const all = new Set(
-      [storeCurrency, ...currencies].map((c) => c.toUpperCase()).filter(Boolean),
+      [storeCurrency, ...currencies]
+        .map((c) => c.toUpperCase())
+        .filter(Boolean),
     );
     return [...all];
   }, [storeCurrency, currencies]);
   const [currency, setCurrency] = useState(storeCurrency.toUpperCase());
+  const protectedStockAccounts: readonly LedgerAccount[] = [
+    LEDGER_ACCOUNT.INVENTORY,
+    LEDGER_ACCOUNT.COST_OF_GOODS,
+    LEDGER_ACCOUNT.OPENING_INVENTORY_EQUITY,
+  ];
+  const synchronizedStock =
+    synchronizedCurrencies.includes(currency) &&
+    (!multiVendor || form.book !== "marketplace");
+  const blockedStockEntry =
+    synchronizedStock &&
+    (protectedStockAccounts.includes(form.debit) ||
+      protectedStockAccounts.includes(form.credit));
 
   /** True when either side of the entry is a per-vendor balance. */
   const needsVendor =
@@ -192,10 +212,9 @@ export function AdjustmentDialog({
     let cancelled = false;
     void (async () => {
       try {
-        const data = await apiClient.get<{ data?: VendorOption[] } | VendorOption[]>(
-          "/api/admin/vendors",
-          { query: { page: 1, limit: 100 } },
-        );
+        const data = await apiClient.get<
+          { data?: VendorOption[] } | VendorOption[]
+        >("/api/admin/vendors", { query: { page: 1, limit: 100 } });
         const rows = Array.isArray(data) ? data : (data?.data ?? []);
         if (!cancelled) setVendors(rows);
       } catch {
@@ -239,10 +258,14 @@ export function AdjustmentDialog({
   };
 
   const save = useCallback(async () => {
+    if (blockedStockEntry || isSaving) return;
     const amount = Number(form.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error(
-        label("finance.adjustments.amountRequired", "Enter an amount above zero"),
+        label(
+          "finance.adjustments.amountRequired",
+          "Enter an amount above zero",
+        ),
       );
       return;
     }
@@ -283,9 +306,7 @@ export function AdjustmentDialog({
         book: multiVendor ? form.book : "own",
         ...(needsVendor && form.vendorId ? { vendorId: form.vendorId } : {}),
       });
-      toast.success(
-        label("finance.adjustments.posted", "Adjustment posted"),
-      );
+      toast.success(label("finance.adjustments.posted", "Adjustment posted"));
       setOpen(false);
       setForm(emptyForm());
       // The balances on this page are server-rendered from the ledger, so the
@@ -303,7 +324,16 @@ export function AdjustmentDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [form, currency, multiVendor, needsVendor, label, router]);
+  }, [
+    form,
+    currency,
+    multiVendor,
+    needsVendor,
+    label,
+    router,
+    blockedStockEntry,
+    isSaving,
+  ]);
 
   return (
     <>
@@ -319,8 +349,16 @@ export function AdjustmentDialog({
         {label("finance.adjustments.open", "Adjust balances")}
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!isSaving) setOpen(next);
+        }}
+      >
+        <DialogContent
+          className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
+          showCloseButton={!isSaving}
+        >
           <DialogHeader>
             <DialogTitle>
               {label("finance.adjustments.title", "Adjust balances")}
@@ -390,11 +428,14 @@ export function AdjustmentDialog({
               <Label htmlFor="adjustment-date">
                 {label("finance.expenses.date", "Date")}
               </Label>
-              <Input
+              <DateField
                 id="adjustment-date"
-                type="date"
                 value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                onChange={(date) => setForm({ ...form, date })}
+                placeholder={label("finance.expenses.date", "Date")}
+                disableAfter={new Date()}
+                yearPicker
+                startMonth={new Date(1970, 0, 1)}
               />
             </div>
             <div className="space-y-1.5">
@@ -414,7 +455,7 @@ export function AdjustmentDialog({
                 entry posted from a screen that would not show you its own two
                 sides is one nobody can check. */}
             <div className="space-y-1.5">
-              <Label>
+              <Label htmlFor="adjustment-debit">
                 {label("finance.adjustments.into", "Into (debit)")}
               </Label>
               <Select
@@ -427,12 +468,19 @@ export function AdjustmentDialog({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="adjustment-debit">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {accountOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      disabled={
+                        synchronizedStock &&
+                        protectedStockAccounts.includes(option.value)
+                      }
+                    >
                       {option.label}
                     </SelectItem>
                   ))}
@@ -440,7 +488,7 @@ export function AdjustmentDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>
+              <Label htmlFor="adjustment-credit">
                 {label("finance.adjustments.outOf", "Out of (credit)")}
               </Label>
               <Select
@@ -453,12 +501,19 @@ export function AdjustmentDialog({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="adjustment-credit">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {accountOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      disabled={
+                        synchronizedStock &&
+                        protectedStockAccounts.includes(option.value)
+                      }
+                    >
                       {option.label}
                     </SelectItem>
                   ))}
@@ -470,11 +525,11 @@ export function AdjustmentDialog({
                 answer and a picker with one item is a question with no point. */}
             {currencyOptions.length > 1 ? (
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>
+                <Label htmlFor="adjustment-currency">
                   {label("finance.adjustments.currency", "Currency")}
                 </Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
+                  <SelectTrigger id="adjustment-currency">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -575,6 +630,20 @@ export function AdjustmentDialog({
             </div>
           </div>
 
+          {synchronizedStock && (
+            <p className="rounded-lg bg-muted/50 p-3 text-xs leading-6 text-muted-foreground">
+              {label(
+                "finance.adjustments.stockManagedHint",
+                "Stock quantity, value and sale costs are managed through Inventory and ledger so the stock records stay in sync.",
+              )}{" "}
+              <Link
+                className="font-medium text-primary underline underline-offset-2"
+                href={`/admin/inventory/finance?currency=${currency}`}
+              >
+                {label("inventoryFinance.title", "Inventory and ledger")}
+              </Link>
+            </p>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -583,7 +652,10 @@ export function AdjustmentDialog({
             >
               {label("common.cancel", "Cancel")}
             </Button>
-            <Button onClick={() => void save()} disabled={isSaving}>
+            <Button
+              onClick={() => void save()}
+              disabled={isSaving || blockedStockEntry}
+            >
               {label("finance.adjustments.post", "Post adjustment")}
             </Button>
           </DialogFooter>

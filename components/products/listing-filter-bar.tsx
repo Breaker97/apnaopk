@@ -295,7 +295,7 @@ function FacetBody({
           {facet.viewAllHref ? (
             <Link
               href={facet.viewAllHref}
-              className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+              className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-store-link transition-colors hover:text-store-link/80"
             >
               {t("common.viewAll")}
               <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -421,7 +421,7 @@ function ClearButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80",
+        "inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-medium text-store-link transition-colors hover:text-store-link/80",
         className,
       )}
     >

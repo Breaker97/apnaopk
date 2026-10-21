@@ -2,7 +2,7 @@
 
 import * as z from "zod";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, Loader2, Plus, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams } from "next/navigation";
@@ -14,6 +14,7 @@ import {
   type UploadedMedia,
 } from "@/components/ui/media-uploader";
 import { Badge } from "@/components/ui/badge";
+import { TagInput } from "@/components/ui/tag-input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -142,7 +143,6 @@ export function BlogPostForm({ postId }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(!!postId);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
-  const [tagInput, setTagInput] = useState("");
   const [postSlug, setPostSlug] = useState("");
   const slugManuallyEditedRef = useRef(false);
 
@@ -285,22 +285,6 @@ export function BlogPostForm({ postId }: Props) {
       form.setValue("slug", next, { shouldDirty: true });
     }
   }, [watchedTitle, watchedSlug, form]);
-
-  const addTag = () => {
-    const v = tagInput.trim().toLowerCase();
-    if (!v) return;
-    if (!watchedTags.includes(v)) {
-      form.setValue("tags", [...watchedTags, v]);
-    }
-    setTagInput("");
-  };
-
-  const removeTag = (t: string) => {
-    form.setValue(
-      "tags",
-      watchedTags.filter((x) => x !== t),
-    );
-  };
 
   const toggleCategory = (id: string) => {
     const current = form.getValues("categoryIds") || [];
@@ -950,38 +934,14 @@ export function BlogPostForm({ postId }: Props) {
 
                 <div>
                   <FormLabel>{t("fields.tags")}</FormLabel>
-                  <div className="mt-2 flex gap-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addTag();
-                        }
-                      }}
-                      placeholder={t("placeholders.tag")}
-                    />
-                    <Button type="button" variant="outline" onClick={addTag}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {watchedTags.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {watchedTags.map((t) => (
-                        <Badge key={t} variant="secondary" className="gap-1">
-                          {t}
-                          <button
-                            type="button"
-                            className="ml-1 inline-flex"
-                            onClick={() => removeTag(t)}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : null}
+                  <TagInput
+                    className="mt-2"
+                    value={watchedTags}
+                    onValueChange={(tags) => form.setValue("tags", tags)}
+                    normalize={(tag) => tag.toLowerCase()}
+                    placeholder={t("placeholders.tag")}
+                    aria-label={t("fields.tags")}
+                  />
                 </div>
               </CardContent>
             </Card>

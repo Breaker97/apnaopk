@@ -43,7 +43,7 @@ export async function Testimonials({
                     className={cn(
                       "h-4 w-4",
                       index < entry.rating
-                        ? "fill-amber-400 text-amber-400"
+                        ? "fill-current text-(--store-rating,#a86500)"
                         : "text-muted-foreground/30",
                     )}
                     aria-hidden

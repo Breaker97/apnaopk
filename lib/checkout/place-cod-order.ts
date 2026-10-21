@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { after } from "next/server";
 import { afterResponse } from "@/lib/after-response";
 import { Cart } from "@/models";
@@ -134,6 +135,7 @@ export async function placeCodOrder(
     variantId: item.variantId,
     quantity: item.quantity,
   }));
+  const inventoryReservationSourceId = randomUUID();
 
   try {
     // A collection comes off the counter the shopper chose, not off
@@ -141,6 +143,7 @@ export async function placeCodOrder(
     // yet on this path, so the snapshot is read directly rather than
     // through `orderInventoryOpts`.
     await decrementInventory(inventoryLines, {
+      financeSource: { kind: "order_reservation", id: inventoryReservationSourceId },
       ...(pickupFulfillment
         ? { locationId: pickupFulfillment.pickup.pickupLocationId }
         : {}),
@@ -172,6 +175,7 @@ export async function placeCodOrder(
   let order: Awaited<ReturnType<typeof createOrder>>;
   try {
     order = await createOrder({
+      inventoryReservationSourceId,
       ...checkoutDetails,
       storeCredit: orderStoreCredit,
       customerId,
@@ -216,9 +220,7 @@ export async function placeCodOrder(
     // order creation.
     await restoreInventory(
       inventoryLines,
-      pickupFulfillment
-        ? { locationId: pickupFulfillment.pickup.pickupLocationId }
-        : {},
+      { ...(pickupFulfillment ? { locationId: pickupFulfillment.pickup.pickupLocationId } : {}), financeSource: { kind: "order_reservation", id: inventoryReservationSourceId } },
     ).catch(() => undefined);
     await giveBackCouponUse();
     await releaseCartClaim();

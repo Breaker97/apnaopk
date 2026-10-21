@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { enforceTeamRoleForUser } from "@/lib/access/team-route-guard";
 import * as z from "zod";
 import { successResponse } from "@/lib/api/response";
 import {
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest) {
       session as unknown as { user: { id: string; role: string } },
       [STAFF_PERMISSIONS.VIEW_ANALYTICS],
     );
+    await enforceTeamRoleForUser(request, session.user);
     // Plausible reports the whole site's traffic; it cannot be narrowed to the
     // vendors or locations a scoped staff member is limited to.
     assertUnscopedStaff(

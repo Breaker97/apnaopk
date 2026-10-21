@@ -51,6 +51,9 @@ import {
   type UnitPriceMeasureUnit,
   type UnitPriceSnapshot,
 } from "@/components/admin/product-form/schema";
+import { TaxClassPicker } from "@/components/admin/settings/fields/tax-class-picker";
+import { LockedTaxRow } from "@/components/admin/product-form/locked-tax-row";
+import type { TaxClass } from "@/lib/tax/tax-settings";
 
 interface PricingCardProps {
   form: UseFormReturn<ProductFormData>;
@@ -74,6 +77,12 @@ interface PricingCardProps {
   showPriceOnRequest: boolean;
   /** The store no longer offers it, which the switch's hint then says. */
   priceOnRequestSwitchedOff: boolean;
+  /** Settings → Tax's classes, for the tax picker. */
+  taxClasses?: TaxClass[];
+  /** Set when a vendor may not edit tax here (Settings → Tax Settings → Vendors). */
+  taxLock?: "approval" | "never";
+  /** The saved product, for a vendor's tax change request. */
+  productId?: string;
 }
 
 export function PricingCard({
@@ -92,12 +101,17 @@ export function PricingCard({
   setUnitPricePopoverOpen,
   showPriceOnRequest,
   priceOnRequestSwitchedOff,
+  taxClasses,
+  taxLock,
+  productId,
 }: PricingCardProps) {
   const t = useTranslations();
   const [unitPriceSnapshot, setUnitPriceSnapshot] =
     useState<UnitPriceSnapshot>();
   const watchedChargeTax =
     useWatch({ control: form.control, name: "pricing.chargeTax" }) ?? true;
+  const watchedTaxClass = useWatch({ control: form.control, name: "pricing.taxClass" });
+  const watchedTaxRate = useWatch({ control: form.control, name: "pricing.taxRate" });
   // "Price on request" hides every price input on this card rather than
   // disabling them: none of those numbers reach a shopper while it is on, so
   // leaving them on screen would only invite the merchant to tune figures
@@ -125,6 +139,60 @@ export function PricingCard({
       control: form.control,
       name: "pricing.unitPrice.baseUnit",
     }) || "kg";
+
+  // Tax belongs to the product, not to one price: variants are each taxed on
+  // their own price, and a quoted price is taxed at checkout. So this shows
+  // however the price is set, not only beside a single price.
+  //
+  // A vendor whose store keeps tax changes for itself sees the tax, and asks
+  // for a change instead (lib/tax/vendor-tax.ts).
+  const taxFields = taxLock ? (
+    <LockedTaxRow
+      lock={taxLock}
+      productId={productId}
+      classes={taxClasses}
+      current={{
+        chargeTax: watchedChargeTax,
+        taxClass: watchedTaxClass ?? null,
+        taxRate: watchedTaxRate ?? null,
+      }}
+    />
+  ) : (
+    <>
+      <FormField
+        control={form.control}
+        name="pricing.chargeTax"
+        render={({ field }) => (
+          <FormItem className="flex items-center gap-2">
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+              />
+            </FormControl>
+            <FormLabel className="font-normal">
+              {t("admin.productForm.fields.chargeTaxProduct")}
+            </FormLabel>
+          </FormItem>
+        )}
+      />
+      {/* Its class or its own rate; unset takes the category's, then the
+          store's (lib/tax/tax-rates.ts). Off above, it sells tax-free. */}
+      {watchedChargeTax ? (
+        <TaxClassPicker
+          id="productTaxClass"
+          classes={taxClasses}
+          taxClass={watchedTaxClass}
+          taxRate={watchedTaxRate}
+          inheritLabel={t("admin.settings.tax.picker.inheritCategory")}
+          onChange={(next) => {
+            form.setValue("pricing.taxClass", next.taxClass, { shouldDirty: true });
+            form.setValue("pricing.taxRate", next.taxRate, { shouldDirty: true });
+          }}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <Card className="gap-2">
@@ -487,25 +555,7 @@ export function PricingCard({
                 </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="pricing.chargeTax"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-2">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked) =>
-                          field.onChange(checked === true)
-                        }
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      {t("admin.productForm.fields.chargeTaxProduct")}
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
+              {taxFields}
 
               <div className="flex flex-wrap items-center gap-2 pt-1 text-sm">
                 <FormField
@@ -577,6 +627,8 @@ export function PricingCard({
         </Accordion>
           </>
         )}
+
+        {watchedPriceOnRequest || hasVariants ? taxFields : null}
 
         {showPriceOnRequest ? (
           <>

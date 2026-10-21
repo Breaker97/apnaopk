@@ -1,4 +1,11 @@
 import * as z from "zod";
+import { resolveTeamAccess } from "@/lib/access/team-permissions";
+import {
+  adminMemberRoleFields,
+  assertTeamDuties,
+  memberAccessRecord,
+  staffMemberRoleFields,
+} from "@/lib/access/team-member-roles";
 import { User, StaffProfile, AdminProfile } from "@/models";
 import {
   createdResponse,
@@ -54,7 +61,7 @@ export const POST = withApi(
     auth: "admin",
     rateLimit: { action: "admin:staff:create", preset: "moderate" },
   },
-  async ({ request, session }) => {
+  async ({ request, session, team }) => {
     const body = await request.json();
     const {
       name,
@@ -77,6 +84,42 @@ export const POST = withApi(
 
     if (!name?.trim()) throw new ValidationError("Name is required");
     if (!email?.trim()) throw new ValidationError("Email is required");
+
+    // The member's role and permissions, refused before anything is written
+    // when the person adding them may not give that role or those permissions.
+    const actor = team ?? (await resolveTeamAccess(session.user.id));
+    assertTeamDuties(actor, ["create"]);
+    const roleInput = {
+      teamRoleId: typeof body.teamRoleId === "string" ? body.teamRoleId : undefined,
+      teamExtraPermissions: body.teamExtraPermissions,
+      teamRevokedPermissions: body.teamRevokedPermissions,
+    };
+    const requestedStaffPermissions = sanitizeStaffPermissions(permissions);
+    const adminRole =
+      role === USER_ROLES.ADMIN ? await adminMemberRoleFields(roleInput, actor, null) : null;
+    const staffRole =
+      role === USER_ROLES.ADMIN
+        ? null
+        : await staffMemberRoleFields(
+            {
+              ...roleInput,
+              // A list sent is their whole list; none sent is the chosen
+              // role's (or, with no role named, the default staff list).
+              permissions:
+                requestedStaffPermissions.length > 0
+                  ? requestedStaffPermissions
+                  : roleInput.teamRoleId
+                    ? undefined
+                    : DEFAULT_STAFF_PERMISSIONS,
+            },
+            actor,
+            null,
+          );
+    // Permissions on top of the role (or taken from it) are a separate grant
+    // from adding the member.
+    if (adminRole?.changes.permissions || staffRole?.changes.permissions) {
+      assertTeamDuties(actor, ["editPermissions"]);
+    }
 
     const normalizedEmail = String(email).toLowerCase().trim();
     if (!z.string().email().safeParse(normalizedEmail).success) {
@@ -153,6 +196,8 @@ export const POST = withApi(
             isSuperAdmin: false,
             department: department?.trim() || undefined,
           },
+          // The team role: Administrator unless another was chosen.
+          ...(adminRole ? { $set: adminRole.fields } : {}),
         },
         { upsert: true },
       );
@@ -163,14 +208,10 @@ export const POST = withApi(
         throw new ValidationError("Staff profile already exists for this user");
       }
 
-      const staffPermissions = sanitizeStaffPermissions(permissions);
-
       staffProfile = await StaffProfile.create({
         userId,
-        permissions:
-          staffPermissions.length > 0
-            ? staffPermissions
-            : DEFAULT_STAFF_PERMISSIONS,
+        ...(staffRole?.set ?? {}),
+        permissions: staffRole?.permissions ?? DEFAULT_STAFF_PERMISSIONS,
         // Platform-owned even when scoped to vendors: `vendorIds` here limits
         // what data this staff member sees, it does not hand them to a vendor.
         managedBy: STAFF_MANAGED_BY.PLATFORM,
@@ -188,9 +229,10 @@ export const POST = withApi(
       .select("name email image phone status role createdAt")
       .lean();
 
-    // The member as stored, not as asked for: the row shows the status and the
-    // permissions the account actually received, and an administrator, who holds
-    // no staff permissions or scope, is recorded without any.
+    // The member as stored, not as asked for: the row shows the status, the
+    // role and the permissions the account actually received (an
+    // administrator's are their team role's; they hold no staff scope).
+    const accessGiven = await memberAccessRecord(userId, role);
     await auditStaffCreated(
       createAuditContext(request, session),
       { userId, name: user?.name ?? name.trim(), email: normalizedEmail },
@@ -198,7 +240,9 @@ export const POST = withApi(
         account: role === USER_ROLES.ADMIN ? "administrator" : "staff",
         status: user?.status ?? "active",
         isActive: staffProfile?.isActive,
-        permissions: staffProfile?.permissions,
+        permissions: accessGiven.permissions,
+        teamRole: accessGiven.teamRole,
+        fullAccess: accessGiven.fullAccess,
         department:
           role === USER_ROLES.ADMIN ? department?.trim() : staffProfile?.department,
         vendorIds: staffProfile?.vendorIds,

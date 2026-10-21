@@ -4,15 +4,23 @@ import {
   Loader2,
   ArrowLeft,
   Eye,
+  History,
   Trash2,
 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   buildStockBaseline,
   type StockBaseline,
 } from "@/lib/products/stock-baseline-client";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useSearchParams } from "next/navigation";
@@ -33,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { WarningBanner } from "@/components/ui/warning-banner";
 import { Switch } from "@/components/ui/switch";
 import {
   MediaUploader,
@@ -54,6 +63,9 @@ import { isOptionVisual } from "@/lib/products/option-visual";
 import type { LocationInventory } from "@/types";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
+import { useSession } from "@/lib/auth/auth-client";
+import { useLeaveGuard } from "@/hooks/use-leave-guard";
+import { useLocalDraft } from "@/hooks/use-local-draft";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminFormStickyHeader } from "@/components/admin/admin-form-sticky-header";
@@ -74,6 +86,7 @@ import {
   formSchema,
   formatDateInputValue,
   type ProductFormData,
+  type ProductFormMediaItem,
   type UnitPriceMeasureUnit,
   type Category,
   type Brand,
@@ -83,6 +96,16 @@ import {
   type RawPreorderSettings,
   type ShippingFormContext,
 } from "@/components/admin/product-form/schema";
+import {
+  EMPTY_EXTRAS_FINGERPRINT,
+  PRODUCT_DRAFT_VERSION,
+  extrasFingerprint,
+  mergeDraftForm,
+  productDraftKey,
+  validateProductDraft,
+  type ProductDraft,
+  type ProductFormExtras,
+} from "@/components/admin/product-form/draft";
 import { PricingCard } from "@/components/admin/product-form/pricing-card";
 import {
   PreorderCard,
@@ -109,11 +132,13 @@ import type {
   VendorPreorderAccess,
 } from "@/lib/products/form-options-types";
 import type { ProductFeatures } from "@/lib/products/product-features";
+import type { TaxClass } from "@/lib/tax/tax-settings";
 import { MAX_PRODUCT_MEDIA } from "@/lib/products/media-limits";
 
 interface ProductFormProps {
   productId?: string;
   isVendor?: boolean;
+  canDelete?: boolean;
   area?: "admin" | "staff";
   /**
    * What this store offers (Settings → Products), resolved by the page so the
@@ -121,6 +146,14 @@ interface ProductFormProps {
    * whether pre-orders and "Price on request" can be switched on.
    */
   productFeatures: ProductFeatures;
+  /** The classes in Settings → Tax; without them, the built-in ones. */
+  taxClasses?: TaxClass[];
+  /**
+   * Set for a vendor (or a vendor's staff) whose store keeps tax changes for
+   * itself (Settings → Tax Settings → Vendors): the tax is shown, not edited,
+   * and the save leaves it out.
+   */
+  taxLock?: "approval" | "never";
 }
 
 /**
@@ -134,23 +167,6 @@ const PREORDERS_SWITCHED_OFF: VendorPreorderAccess = {
   requestedAt: null,
   maxLeadDays: 0,
   maxDepositPercent: 100,
-};
-
-type ProductFormMediaItem = {
-  _id: string;
-  url: string;
-  filename?: string;
-  type?: string;
-  mimeType?: string;
-  alt?: string;
-  position: number;
-  size?: number;
-  width?: number;
-  height?: number;
-  thumbnailUrl?: string;
-  provider?: "youtube" | "vimeo";
-  embedId?: string;
-  fit?: "auto" | "contain" | "cover";
 };
 
 // Character bounds for AI-generated copy. These mirror the server-side product
@@ -171,14 +187,18 @@ const SEO_DESCRIPTION_MAX_CHARS = 160;
 export function ProductForm({
   productId,
   isVendor = false,
+  canDelete = true,
   area = "admin",
   productFeatures,
+  taxClasses,
+  taxLock,
 }: ProductFormProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useParams();
   const t = useTranslations();
+  const format = useFormatter();
   const locale = params.locale as string;
   const { currency } = useCurrency();
   const { confirm } = useConfirmation();
@@ -223,6 +243,9 @@ export function ProductForm({
   // The stock numbers as loaded. Sent back on save so the server can tell what
   // this form changed from what sales and transfers moved while it was open.
   const stockBaselineRef = useRef<StockBaseline | null>(null);
+  const updateStockRequest = useRef<{ fingerprint: string; body: unknown; key: string } | null>(null);
+  const createStockKey = useRef<string | null>(null);
+  const financialCostRef = useRef<{ generation?: number; cost?: number | null; variants: Array<{ _id: string; cost?: number | null }> } | null>(null);
   const injectedCategoryOptionIdsRef = useRef<Set<string>>(new Set());
   const [activeLocations, setActiveLocations] = useState<
     {
@@ -298,6 +321,8 @@ export function ProductForm({
         unitPriceUnit: "none",
         cost: undefined,
         chargeTax: true,
+        taxRate: null,
+        taxClass: null,
         priceOnRequest: false,
         quoteButtonLabel: "",
       },
@@ -404,6 +429,128 @@ export function ProductForm({
   // Only the FIRST answer is waited for: a retry keeps the form on screen.
   const isFetching = isFetchingProduct || (!!productId && formOptions.pending);
 
+  // ── Unsaved changes ──────────────────────────────────────────────────────
+  // react-hook-form knows its own fields; the gallery, digital files, options,
+  // variants and per-location stock are plain state beside it, so the form
+  // counts as changed when either side moved off where it started.
+  //
+  // `formState.isDirty` is no use here: the Shipping card registers fields
+  // (length, width, height) that the defaults don't name, so react-hook-form
+  // finds the values "different" from them as soon as the page opens. The
+  // per-field `dirtyFields` only holds what someone actually changed.
+  const { dirtyFields } = form.formState;
+  const formChanged = Object.keys(dirtyFields).length > 0;
+  const { data: authSession } = useSession();
+  const userId = authSession?.user?.id;
+  const formValues = useWatch({ control: form.control });
+  const extras = useMemo<ProductFormExtras>(
+    () => ({
+      media: mediaItems,
+      digitalAssets,
+      digitalDownloadLimit,
+      digitalPreview,
+      options: productOptions,
+      variants,
+      locationInventory: productLocationInventory,
+    }),
+    [
+      mediaItems,
+      digitalAssets,
+      digitalDownloadLimit,
+      digitalPreview,
+      productOptions,
+      variants,
+      productLocationInventory,
+    ],
+  );
+  const extrasPrint = useMemo(() => extrasFingerprint(extras), [extras]);
+  // A new product starts empty. An existing one starts as it loaded, taken once
+  // the form has finished filling itself in (the location rows are seeded a
+  // tick after the product lands).
+  const [startingExtras, setStartingExtras] = useState<string | null>(
+    productId ? null : EMPTY_EXTRAS_FINGERPRINT,
+  );
+  const captureStartingExtras = useEffectEvent(() =>
+    setStartingExtras(extrasPrint),
+  );
+  useEffect(() => {
+    if (!productId || isFetching) return;
+    const timer = window.setTimeout(() => captureStartingExtras(), 500);
+    return () => window.clearTimeout(timer);
+  }, [productId, isFetching]);
+  // Set once a save lands: the form is on its way out and nothing is unsaved.
+  const [saved, setSaved] = useState(false);
+  const unsaved =
+    !saved &&
+    (formChanged || (startingExtras !== null && extrasPrint !== startingExtras));
+
+  // Leaving with unsaved changes asks first (a link, a reload, a closed tab).
+  const requestLeave = useLeaveGuard(unsaved, {
+    title: t("admin.productForm.leave.title"),
+    description: t(
+      productId
+        ? "admin.productForm.leave.descriptionEdit"
+        : "admin.productForm.leave.descriptionNew",
+    ),
+    confirm: t("admin.productForm.leave.confirm"),
+    cancel: t("admin.productForm.leave.cancel"),
+  });
+
+  // A new product also keeps a copy in this browser, offered back when the
+  // page was left some way a guard can't stop (the browser's Back, a crash).
+  // An existing product has no copy: its stock and prices move while it is
+  // away, and putting an old copy back over them would undo that on Save.
+  const restoreDraft = (copy: ProductDraft) => {
+    const kept = copy.extras;
+    // The restored options already carry the category's template (or the
+    // user's removal of it); applying it again would put those back.
+    const category = (copy.form as { category?: unknown }).category;
+    appliedCategoryRef.current = category ? String(category) : "";
+    injectedCategoryOptionIdsRef.current = new Set();
+    // Kept defaults: the restored form stays "changed" from a blank one.
+    form.reset(mergeDraftForm(form.formState.defaultValues, copy.form), {
+      keepDefaultValues: true,
+    });
+    updateMediaItems(kept.media);
+    setDigitalAssets(kept.digitalAssets);
+    setDigitalDownloadLimit(kept.digitalDownloadLimit);
+    setDigitalPreview(kept.digitalPreview);
+    setProductOptions(kept.options);
+    setVariants(kept.variants);
+    setProductLocationInventory([
+      ...kept.locationInventory,
+      ...activeLocations
+        .filter(
+          (location) =>
+            !kept.locationInventory.some(
+              (row) => String(row.locationId) === location._id,
+            ),
+        )
+        .map((location) => ({
+          locationId: location._id,
+          locationName: location.name,
+          quantity: 0,
+        })),
+    ]);
+    createStockKey.current = null;
+  };
+  const draftSignal = useMemo(
+    () => ({ formValues, extras }),
+    [formValues, extras],
+  );
+  const draft = useLocalDraft<ProductDraft>({
+    key:
+      productId || !userId
+        ? null
+        : productDraftKey(isVendor ? "vendor" : area, userId),
+    version: PRODUCT_DRAFT_VERSION,
+    unsaved,
+    signal: draftSignal,
+    read: () => ({ form: form.getValues(), extras }),
+    apply: restoreDraft,
+    validate: validateProductDraft,
+  });
+
   // Keep productLocationInventory in sync with activeLocations.
   // When locations are added, missing entries are appended.
   // When locations become inactive, their entries stay (so the data isn't lost)
@@ -481,6 +628,7 @@ export function ProductForm({
         if (data) {
           const product = data;
           stockBaselineRef.current = buildStockBaseline(product);
+          financialCostRef.current = { generation: product.inventoryFinanceGeneration, cost: product.cost, variants: (product.variants ?? []).map((v: { _id: string; cost?: number | null }) => ({ _id: String(v._id), cost: v.cost })) };
 
           const loadedMedia = Array.isArray(product.media)
             ? product.media
@@ -863,6 +1011,8 @@ export function ProductForm({
                 typeof product.chargeTax === "boolean"
                   ? product.chargeTax
                   : true,
+              taxRate: typeof product.taxRate === "number" ? product.taxRate : null,
+              taxClass: typeof product.taxClass === "string" && product.taxClass ? product.taxClass : null,
               priceOnRequest: product.priceOnRequest === true,
               quoteButtonLabel: product.quoteButtonLabel || "",
             },
@@ -1318,7 +1468,26 @@ export function ProductForm({
             ? null
             : data.pricing.unitPriceUnit),
         cost: data.pricing.cost ?? null,
-        chargeTax: data.pricing.chargeTax,
+        // A locked vendor never sends tax: the store's copy stands, and a new
+        // product starts on its category's.
+        ...(taxLock
+          ? {}
+          : {
+              chargeTax: data.pricing.chargeTax,
+              // Null clears it: the product takes its class's, its category's
+              // or the store's rate.
+              taxRate:
+                data.pricing.chargeTax && typeof data.pricing.taxRate === "number"
+                  ? data.pricing.taxRate
+                  : null,
+              // A custom rate is the product's whole answer, so it keeps no class.
+              taxClass:
+                data.pricing.chargeTax &&
+                typeof data.pricing.taxRate !== "number" &&
+                data.pricing.taxClass
+                  ? data.pricing.taxClass
+                  : null,
+            }),
         priceOnRequest: data.pricing.priceOnRequest,
         // Null clears it (see CLEARABLE_PRODUCT_FIELDS): an emptied input must
         // drop the merchant's old wording rather than keep it alive on a
@@ -1376,15 +1545,44 @@ export function ProductForm({
       };
 
       if (method === "PUT") {
-        await apiClient.put(url, payload);
+        const fingerprint = JSON.stringify(payload);
+        if (updateStockRequest.current?.fingerprint === fingerprint) {
+          await apiClient.put(url, updateStockRequest.current.body, { headers: { "Idempotency-Key": updateStockRequest.current.key } });
+        } else {
+        let confirmation: { productVersion: string; expectedVersions: Record<string, number> } | undefined;
+        if (!isVendor && financialCostRef.current?.generation === 1) {
+          const before = financialCostRef.current;
+          const changes = [
+            ...((before.cost ?? null) !== (payload.cost ?? null) ? [{ newUnitCost: payload.cost }] : []),
+            ...normalizedVariants.filter((v) => before.variants.some((old) => old._id === String(v._id) && (old.cost ?? null) !== (v.cost ?? null))).map((v) => ({ variantId: String(v._id), newUnitCost: v.cost ?? payload.cost })),
+          ];
+          const previews: Array<{ productVersion: string; positions: Array<{ key: string; version: number; oldValue: number; newValue: number; currency: string }> }> = [];
+          for (const change of changes) {
+            if (change.newUnitCost == null) throw new Error("A carried inventory cost cannot be cleared. Use Inventory and ledger to review its valuation.");
+            previews.push(await apiClient.post("/api/admin/inventory/valuation-changes", { productId, ...change, preview: true, note: "Product cost change", expectedVersions: {}, productVersion: "" }, { headers: { "Idempotency-Key": crypto.randomUUID() } }));
+          }
+          if (previews.length) {
+            const positions = [...new Map(previews.flatMap((p) => p.positions).map((p) => [p.key, p])).values()];
+            const lines = positions.map((p) => `${new Intl.NumberFormat(locale, { style: "currency", currency: p.currency }).format(p.oldValue)} → ${new Intl.NumberFormat(locale, { style: "currency", currency: p.currency }).format(p.newValue)}`);
+            if (!window.confirm(`${t.has("inventoryFinance.costConfirmation") ? t("inventoryFinance.costConfirmation") : "Confirm this fixed-cost valuation change. Original order costs stay unchanged."}\n${lines.join("\n")}`)) return;
+            confirmation = { productVersion: previews[0].productVersion, expectedVersions: Object.fromEntries(positions.map((p) => [p.key, p.version])) };
+          }
+        }
+        const body = { ...payload, ...(confirmation ? { inventoryValuationConfirmation: confirmation } : {}) };
+        updateStockRequest.current = { fingerprint, body, key: crypto.randomUUID() };
+        await apiClient.put(url, body, { headers: { "Idempotency-Key": updateStockRequest.current.key } });
+        }
       } else {
-        await apiClient.post(url, payload);
+        createStockKey.current ??= crypto.randomUUID();
+        await apiClient.post(url, payload, { headers: { "Idempotency-Key": createStockKey.current } });
       }
       toast.success(
         productId
           ? "Product updated successfully"
           : "Product created successfully",
       );
+      setSaved(true);
+      draft.stop();
       router.push(basePath);
     } catch (error) {
       toast.error(describeApiError(error, "Failed to save product"));
@@ -1888,6 +2086,7 @@ export function ProductForm({
                       {t("admin.productForm.actions.view")}
                     </span>
                   </Button>
+                  {canDelete && (
                   <Button
                     type="button"
                     variant="outline"
@@ -1909,6 +2108,7 @@ export function ProductForm({
                       {t("admin.productForm.actions.deleteProduct")}
                     </span>
                   </Button>
+                  )}
                 </>
               )}
               <Button
@@ -1930,7 +2130,11 @@ export function ProductForm({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() =>
+                  void requestLeave().then((ok) => {
+                    if (ok) router.back();
+                  })
+                }
                 className="shrink-0"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -1939,6 +2143,36 @@ export function ProductForm({
             </>
           }
         />
+
+        {draft.offer && (
+          <WarningBanner
+            icon={History}
+            title={t("admin.productForm.draft.title")}
+            data-draft-banner=""
+            action={
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={draft.discard}
+                >
+                  {t("admin.productForm.draft.discard")}
+                </Button>
+                <Button type="button" size="sm" onClick={draft.restore}>
+                  {t("admin.productForm.draft.restore")}
+                </Button>
+              </div>
+            }
+          >
+            {t("admin.productForm.draft.body", {
+              time: format.dateTime(new Date(draft.offer.savedAt), {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
+            })}
+          </WarningBanner>
+        )}
 
         <FormOptionsNotice
           status={formOptions.status}
@@ -2110,6 +2344,9 @@ export function ProductForm({
               setPricingAccordionValue={setPricingAccordionValue}
               unitPricePopoverOpen={unitPricePopoverOpen}
               setUnitPricePopoverOpen={setUnitPricePopoverOpen}
+              taxClasses={taxClasses}
+              taxLock={taxLock}
+              productId={productId}
               // Chosen at creation, like the format: an existing product
               // offers the switch only while it is priced on request.
               showPriceOnRequest={
@@ -2123,6 +2360,7 @@ export function ProductForm({
             {watchedIsPhysicalProduct && (
               <InventoryCard
                 form={form}
+                financeHelp={!isVendor && productId ? <a className="text-sm underline" href={`/${locale}/admin/inventory/finance?productId=${productId}`}>{t.has("inventoryFinance.title") ? t("inventoryFinance.title") : "Inventory and ledger"}</a> : undefined}
                 hasVariants={hasVariants}
                 variantCount={variants.length}
                 variantTotalStock={variantTotalStock}

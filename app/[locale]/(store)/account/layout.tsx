@@ -3,9 +3,10 @@ import { mongoose } from "@/lib/db";
 import { connectDB } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { AccountSidebar } from "@/components/account/account-sidebar";
-import { AccountMobileNav } from "@/components/account/account-mobile-nav";
-import { AccountBreadcrumb } from "@/components/account/account-breadcrumb";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarStateSync } from "@/components/layout/sidebar-state-sync";
+import { CustomerSidebar } from "@/components/account/customer-sidebar";
+import { CustomerHeader } from "@/components/account/customer-header";
 import {
   countUnreadNotifications,
   getAccountProfile,
@@ -117,30 +118,36 @@ export default async function AccountLayout({ children, params }: LayoutProps) {
             inlines `calc(var(--radius) ± n)` into every `rounded-*` utility, this
             single override reshapes cards, tiles, inputs and buttons throughout
             the subtree in one place — no per-card class to keep in sync. */}
-        <div className="container mx-auto px-4 pb-8 lg:py-8 [--dashboard-header-height:var(--storefront-header-height,4rem)] [--radius:0.5rem]">
-          {/* Mobile chrome: sticky identity strip + section pills. Renders here (not
-              per page) so it stays put while the content below it scrolls, and so
-              every page inherits the same nav without repeating a back link. */}
-          <AccountMobileNav locale={locale} stats={stats} demoMode={demoMode} />
-
-          {/* Desktop only: on phones the sticky strip above already names the
-              section and carries the way back, so a second trail under it would be
-              the same navigation twice. */}
-          <AccountBreadcrumb locale={locale} className="hidden lg:block" />
-
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar */}
-            <AccountSidebar locale={locale} stats={stats} demoMode={demoMode} />
-
-            {/* Main Content */}
-            <div className="flex-1 min-w-0 space-y-6">
-              <EmailVerificationNotice
-                email={session.user.email}
-                status={session.user.emailVerificationStatus}
-                locale={locale}
-              />
-              {children}
-            </div>
+        {/* The account is drawn like the admin, vendor and staff dashboards:
+            a sidebar and a top bar of its own. `data-account-segment` is what
+            the store layout keys on to hide its header, footer and bottom
+            bar here, so the shop's chrome never sits above this one. */}
+        {/* Lines are drawn at half the theme's border colour: a theme's border
+            is picked for the shop (Furniture's is a dark taupe), and on a
+            dashboard full of cards, rails and dividers it read too heavy.
+            Two steps, because --border cannot be defined from itself on one
+            element: the outer box mixes the inherited colour, the inner one
+            hands it to everything below. */}
+        <div
+          data-account-segment=""
+          className="[--account-line:color-mix(in_oklab,var(--border)_50%,transparent)] [--dashboard-header-height:4rem] [--radius:0.5rem]"
+        >
+          <div className="[--border:var(--account-line)]">
+            <SidebarProvider>
+              <SidebarStateSync />
+              <CustomerSidebar locale={locale} stats={stats} />
+              <SidebarInset>
+                <CustomerHeader locale={locale} demoMode={demoMode} />
+                <main className="isolate flex-1 min-w-0 space-y-6 overflow-x-clip p-4 md:p-6">
+                  <EmailVerificationNotice
+                    email={session.user.email}
+                    status={session.user.emailVerificationStatus}
+                    locale={locale}
+                  />
+                  {children}
+                </main>
+              </SidebarInset>
+            </SidebarProvider>
           </div>
         </div>
       </ResourceScope>

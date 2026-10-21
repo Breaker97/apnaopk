@@ -276,7 +276,7 @@ export function ElectronicsCart() {
               ) : null}
               {item.purchaseType === "preorder" && (
                 <div className="mt-1.5 space-y-0.5 text-[12.5px] leading-4">
-                  <p className="flex items-center gap-1.5 font-medium text-primary">
+                  <p className="flex items-center gap-1.5 font-medium text-status-on-info">
                     <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {formatPreorderDate(item.preorderReleaseDate)
                       ? `Pre-order · ships around ${formatPreorderDate(
@@ -293,7 +293,7 @@ export function ElectronicsCart() {
                 </div>
               )}
               {isLowStock && (
-                <p className="mt-1.5 flex items-center gap-1 text-[12.5px] font-medium leading-4 text-[#ff5c00]">
+                <p className="mt-1.5 flex items-center gap-1 text-[12.5px] font-medium leading-4 text-status-on-warning">
                   <Clock3 className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   Only {stock} left
                 </p>
@@ -316,7 +316,7 @@ export function ElectronicsCart() {
           )}
           <span
             className={`text-[15px] font-semibold leading-5 tabular-nums ${
-              hasComparePrice ? "text-destructive" : "text-foreground"
+              hasComparePrice ? "text-store-sale-text" : "text-foreground"
             }`}
           >
             {formatCartPrice(item.price)}
@@ -512,14 +512,14 @@ export function ElectronicsCart() {
                   appliedCoupon ? ` (${appliedCoupon.code})` : ""
                 }`}
               >
-                <span className="font-semibold tabular-nums text-green-700 dark:text-green-400">
+                <span className="font-semibold tabular-nums text-status-on-positive">
                   -{formatCartPrice(discount)}
                 </span>
               </SummaryRow>
             ) : null}
             {saleSavings > 0 ? (
               <SummaryRow label={t("common.sale")}>
-                <span className="font-semibold tabular-nums text-green-700 dark:text-green-400">
+                <span className="font-semibold tabular-nums text-status-on-positive">
                   -{formatCartPrice(saleSavings)}
                 </span>
               </SummaryRow>
@@ -543,7 +543,7 @@ export function ElectronicsCart() {
           {deliveryEstimateText ? (
             <div className="mt-4 flex items-start gap-3 rounded-[10px] bg-primary/[0.07] p-3">
               <Truck
-                className="mt-0.5 h-[18px] w-[18px] shrink-0 text-primary"
+                className="mt-0.5 h-[18px] w-[18px] shrink-0 text-store-link"
                 aria-hidden
               />
               <p className="text-[12.5px] leading-5 text-muted-foreground">
@@ -573,7 +573,7 @@ export function ElectronicsCart() {
           <Link
             href="/products"
             data-slot="button"
-            className="flex h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border border-primary/25 bg-background px-4 text-[14px] font-semibold leading-none text-primary transition-colors hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="flex h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border border-primary/25 bg-background px-4 text-[14px] font-semibold leading-none text-store-link transition-colors hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             {t("cart.continueShopping")}
             <ArrowRight className="h-4 w-4" aria-hidden />

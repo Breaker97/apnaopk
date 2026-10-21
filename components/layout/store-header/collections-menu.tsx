@@ -128,7 +128,7 @@ export function CollectionsMenu({
               key={collection.id}
               href={collection.href}
               onClick={() => setOpen(false)}
-              className="group/tile flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
+              className="group/tile flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">
                 {collection.image ? (
@@ -148,7 +148,7 @@ export function CollectionsMenu({
                 {/* Two lines: a collection called "Headphones & Audio
                     Accessories" cut to "Headphones & Au…" is the failure a
                     thumbnail menu exists to avoid. */}
-                <span className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover/tile:text-primary">
+                <span className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover/tile:text-store-link">
                   {collection.title}
                 </span>
                 {showDescription && collection.description ? (
@@ -164,7 +164,7 @@ export function CollectionsMenu({
           <Link
             href={viewAllHref}
             onClick={() => setOpen(false)}
-            className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border-t border-border/60 px-3 pb-1 pt-3 text-sm font-semibold transition-colors hover:text-primary"
+            className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border-t border-border/60 px-3 pb-1 pt-3 text-sm font-semibold transition-colors hover:text-store-link"
           >
             {viewAllLabel}
             <ArrowRight className="h-4 w-4 rtl:rotate-180" />

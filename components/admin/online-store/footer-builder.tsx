@@ -1,5 +1,6 @@
 "use client";
 
+import { viewportDefaults } from "@/lib/site-config/responsive-dimensions";
 import {
   useCallback,
   useEffect,
@@ -653,9 +654,15 @@ export function FooterBuilder() {
                 />
               </FieldRow>
               <SwitchRow
-                label={t("fields.fullWidthFooter")}
-                checked={footer.layout.fullWidth}
-                onChange={(value) => updateField("layout.fullWidth", value)}
+                label={`${t("fields.fullWidthFooter")} (Desktop)`}
+                checked={(footer.builder.viewport?.desktop?.width ?? (footer.layout.fullWidth ? 3200 : 0)) === 3200}
+                onChange={(value) => updateField("builder.viewport", {
+                  ...footer.builder.viewport,
+                  desktop: {
+                    ...(footer.builder.viewport?.desktop ?? viewportDefaults("desktop", footer.layout.fullWidth)),
+                    width: value ? 3200 : 0,
+                  },
+                })}
               />
               <Separator />
               <ColorSchemeFields
@@ -1168,7 +1175,7 @@ function FooterPreview({
               </button>
             </div>
             <Badge variant="outline">
-              {footer.layout.fullWidth ? t("preview.fullWidth") : t("preview.contained")}
+              {(footer.builder.viewport?.desktop?.width ?? (footer.layout.fullWidth ? 3200 : 0)) === 3200 ? t("preview.fullWidth") : t("preview.contained")}
             </Badge>
           </div>
         </div>
@@ -1177,7 +1184,7 @@ function FooterPreview({
         <div
           className={cn(
             "mx-auto overflow-hidden rounded-md border shadow-sm",
-            footer.layout.fullWidth ? "w-full" : "max-w-6xl",
+            (footer.builder.viewport?.desktop?.width ?? (footer.layout.fullWidth ? 3200 : 0)) === 3200 ? "w-full" : "max-w-6xl",
           )}
           style={
             {

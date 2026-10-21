@@ -82,7 +82,7 @@ export async function CheckoutChrome({
               </>
             ) : (
               <>
-                <Store className="h-6 w-6 shrink-0 text-primary" />
+                <Store className="h-6 w-6 shrink-0 text-store-link" />
                 <span className="truncate text-xl font-bold">{storeName}</span>
               </>
             )}

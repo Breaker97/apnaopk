@@ -150,7 +150,7 @@ function splitSuffix(href: string): [path: string, suffix: string] {
  * excludes from its matcher. Prefixing one of these turns a working URL into a
  * 404, so they are left exactly as written.
  */
-const UNLOCALIZED_PREFIXES = ["/api/", "/_next/", "/_vercel/"];
+const UNLOCALIZED_PREFIXES = ["/api/", "/_next/", "/_vercel/", "/ingest/"];
 
 /** `/uploads/a.png`, `/manifest.webmanifest` — a file, not a page. */
 const FILE_PATTERN = /\.[^/]+$/;

@@ -20,6 +20,10 @@ import {
   Tag,
   Nfc,
   Wallet,
+  Gift,
+  Plus,
+  Trash2,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,10 +31,15 @@ import { createStripeElementStyle } from "@/components/checkout/checkout-helpers
 import { cn } from "@/lib/utils";
 import type { POSSettings } from "@/lib/pos/build-pos-settings";
 import type { POSDiscount } from "@/components/pos/discount-dialog";
-import { roundMoney } from "@/lib/intl/money";
+import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
+import {
+  remainingAfterTenders,
+  sumTenders,
+  type POSTenderInput,
+} from "@/lib/pos/tenders";
 
-type PaymentMethodId = "cash" | "card" | "bank" | "manual";
+type PaymentMethodId = "cash" | "card" | "bank" | "manual" | "store_credit";
 type CardSubMethod = "touch" | "stripe";
 
 interface PaymentMethodOption {
@@ -53,14 +62,16 @@ interface POSTakePaymentDialogProps {
   total: number;
   itemCount: number;
   discount: POSDiscount | null;
-  onProcess: (
-    method: string,
-    cashTendered: number,
-    reference?: string,
-    note?: string,
-    stripePaymentIntentId?: string,
-  ) => Promise<void> | void;
-  onCreateStripeIntent: () => Promise<{
+  /**
+   * Take the sale with these tenders. `deposit` asks for part of it now and
+   * the rest later. Resolves true when the sale went through (or was queued).
+   */
+  onComplete: (
+    tenders: POSTenderInput[],
+    options: { deposit: boolean },
+  ) => Promise<boolean>;
+  /** An intent for what the card pays: the rest of the sale. */
+  onCreateStripeIntent: (amount: number) => Promise<{
     paymentIntentId: string;
     clientSecret: string;
   }>;
@@ -69,13 +80,28 @@ interface POSTakePaymentDialogProps {
   /**
    * Whether the register has lost its connection.
    *
-   * Only Stripe cares: cash is entirely local, and a "Touch" card payment is
-   * settled by the reader on its own line — the register is merely recording
-   * that it happened. Stripe needs a PaymentIntent from the server, so offering
-   * it offline would strand the cashier mid-sale with a customer waiting.
+   * Stripe and store credit care: both need the server at the moment of
+   * payment, so offering either offline would strand the cashier mid-sale.
+   * Cash is local, and a "Touch" card payment is settled by the reader on its
+   * own line — the register is merely recording that it happened.
    */
   isOffline?: boolean;
   fp: (amount: number) => string;
+  /** Store credit the sale's customer account can spend; 0 or absent: none. */
+  storeCreditAvailable?: number;
+  /**
+   * An exchange's refund, already counted out of the drawer, paying toward
+   * this sale: it opens as a cash tender carrying the return's reference.
+   */
+  exchangeCredit?: { amount: number; reference: string } | null;
+  /** A customer is on the sale — a deposit needs someone to owe the rest. */
+  hasCustomer: boolean;
+  /**
+   * "sale" rings a sale up. "balance" takes a payment toward a deposit sale's
+   * balance: part of it is always allowed (the rest stays owed), and neither
+   * the Stripe form nor store credit is offered — see lib/pos/collect-balance.ts.
+   */
+  mode?: "sale" | "balance";
 }
 
 /**
@@ -115,19 +141,34 @@ export function POSTakePaymentDialog({
   total,
   itemCount,
   discount,
-  onProcess,
+  onComplete,
   onCreateStripeIntent,
   isProcessing,
   settings,
   isOffline = false,
   fp,
+  storeCreditAvailable = 0,
+  exchangeCredit = null,
+  hasCustomer,
+  mode = "sale",
 }: POSTakePaymentDialogProps) {
-  const t = useTranslations();
+  const isBalance = mode === "balance";
+  const t = useTranslations("pos.pay");
+  const tRoot = useTranslations();
+  const currency = settings.currency;
+  const money = React.useCallback(
+    (value: number) => quantizeToCurrency(value, currency),
+    [currency],
+  );
+
+  /** Tenders taken so far on this sale, in order. */
+  const [tenders, setTenders] = React.useState<POSTenderInput[]>([]);
   const [selectedMethod, setSelectedMethod] =
     React.useState<PaymentMethodId>("cash");
   const [cardSubMethod, setCardSubMethod] =
     React.useState<CardSubMethod>("touch");
-  const [cashTendered, setCashTendered] = React.useState("");
+  /** Cash given, or the amount of a non-cash tender. */
+  const [amountText, setAmountText] = React.useState("");
   const [reference, setReference] = React.useState("");
   const [stripeElementReady, setStripeElementReady] = React.useState(false);
   const [stripeElementError, setStripeElementError] = React.useState<
@@ -154,29 +195,45 @@ export function POSTakePaymentDialog({
     [],
   );
 
+  const remaining = remainingAfterTenders(total, tenders, currency);
+  const paidSoFar = sumTenders(tenders, currency);
+  const creditInTenders = sumTenders(
+    tenders.filter((tender) => tender.method === "store_credit"),
+    currency,
+  );
+  const creditLeft = Math.max(0, money(storeCreditAvailable - creditInTenders));
+
+  const prefillFor = React.useCallback(
+    (method: PaymentMethodId, left: number) => {
+      const value = method === "store_credit" ? Math.min(creditLeft, left) : left;
+      return value > 0 ? String(value) : "";
+    },
+    [creditLeft],
+  );
+
   const CARD_SUB_OPTIONS: CardSubOption[] = React.useMemo(
     () => [
       {
         id: "touch",
-        label: "Touch",
-        description: "Tap or insert card on reader",
+        label: t("touch"),
+        description: t("touchDesc"),
         icon: <Nfc className="h-4 w-4" />,
       },
       // Dropped entirely rather than shown disabled: a greyed-out button at the
       // counter is a question the cashier has to stop and answer while somebody
       // waits. The reader-based option next to it still takes cards.
-      ...(isOffline
+      ...(isOffline || isBalance
         ? []
         : [
             {
               id: "stripe" as const,
-              label: "Stripe",
-              description: "Card details form",
+              label: t("stripe"),
+              description: t("stripeDesc"),
               icon: <Wallet className="h-4 w-4" />,
             },
           ]),
     ],
-    [isOffline],
+    [isOffline, isBalance, t],
   );
 
   // A connection lost while the dialog is already open, with Stripe selected,
@@ -185,14 +242,25 @@ export function POSTakePaymentDialog({
     if (isOffline && cardSubMethod === "stripe") setCardSubMethod("touch");
   });
 
-  // Reset state when dialog opens
+  // A fresh sale opens empty, on the first method, asking for all of it.
   useApplyOnChange([open, total], () => {
     if (!open) return;
+    // An exchange's refund pays first: the money never left the counter.
+    const exchange =
+      !isBalance && exchangeCredit && exchangeCredit.amount > 0 && settings.paymentMethods.includes("cash")
+        ? money(Math.min(exchangeCredit.amount, total))
+        : 0;
+    const opening: POSTenderInput[] =
+      exchange > 0
+        ? [{ method: "cash", amount: exchange, tendered: exchange, reference: exchangeCredit?.reference }]
+        : [];
+    setTenders(opening);
     setSelectedMethod("cash");
     setCardSubMethod("touch");
     // Prefill the exact total — paying to the cent is the common case, and an
     // empty field left the confirm button disabled for no visible reason.
-    setCashTendered(total > 0 ? total.toFixed(2) : "");
+    const left = money(total - exchange);
+    setAmountText(left > 0 ? String(left) : "");
     setReference("");
     setStripeElementError(null);
   });
@@ -203,39 +271,51 @@ export function POSTakePaymentDialog({
     if (settings.paymentMethods.includes("cash")) {
       list.push({
         id: "cash",
-        label: t("pos.cash"),
-        description: "With change",
+        label: tRoot("pos.cash"),
+        description: t("cashDesc"),
         icon: <Banknote className="h-4 w-4" />,
       });
     }
     if (settings.paymentMethods.includes("card")) {
       list.push({
         id: "card",
-        label: "Card",
+        label: tRoot("pos.card"),
         // Offline the Stripe form is gone, so promising it here would send the
         // cashier looking for a button that is not on the screen.
-        description: isOffline ? "Reader only" : "Touch or Stripe",
+        description: isOffline
+          ? tRoot("pos.offline.readerOnly")
+          : tRoot("pos.offline.touchOrStripe"),
         icon: <CreditCard className="h-4 w-4" />,
       });
     }
     if (settings.paymentMethods.includes("bank")) {
       list.push({
         id: "bank",
-        label: "Bank Transfer",
-        description: "With reference",
+        label: t("bank"),
+        description: t("bankDesc"),
         icon: <Building2 className="h-4 w-4" />,
       });
     }
     if (settings.paymentMethods.includes("manual")) {
       list.push({
         id: "manual",
-        label: t("pos.manual"),
-        description: "Custom method",
+        label: tRoot("pos.manual"),
+        description: t("manualDesc"),
         icon: <Tag className="h-4 w-4" />,
       });
     }
+    // Store credit is held on the server at the moment of sale, so it needs
+    // the connection — and an account that has some.
+    if (!isOffline && !isBalance && storeCreditAvailable > 0) {
+      list.push({
+        id: "store_credit",
+        label: t("storeCredit"),
+        description: t("storeCreditDesc", { amount: fp(creditLeft) }),
+        icon: <Gift className="h-4 w-4" />,
+      });
+    }
     return list;
-  }, [settings.paymentMethods, isOffline, t]);
+  }, [settings.paymentMethods, isOffline, isBalance, storeCreditAvailable, creditLeft, fp, t, tRoot]);
 
   // Make sure selected method is valid
   useApplyOnChange([methods, selectedMethod], () => {
@@ -358,12 +438,8 @@ export function POSTakePaymentDialog({
     stripeElementStyle,
   ]);
 
-  // Dynamic quick-amount suggestions based on the order total
-  const quickAmounts = React.useMemo(() => getQuickCashAmounts(total), [total]);
-
-  const cash = parseFloat(cashTendered) || 0;
-  const change = Math.max(0, cash - total);
-  const cashShort = selectedMethod === "cash" && cash < total;
+  // Dynamic quick-amount suggestions based on what is left to pay
+  const quickAmounts = React.useMemo(() => getQuickCashAmounts(remaining), [remaining]);
 
   // Escape closes the dialog unless a charge is already in flight.
   React.useEffect(() => {
@@ -380,79 +456,119 @@ export function POSTakePaymentDialog({
 
   if (!open) return null;
 
-  const handleConfirm = async () => {
-    if (selectedMethod === "cash" && cashShort) return;
+  const isStripe = selectedMethod === "card" && cardSubMethod === "stripe";
+  const entered = money(Number.parseFloat(amountText) || 0);
+  // What this entry pays of the sale. Cash may be more (the rest is change);
+  // anything else is held to what is left, and store credit to what is held.
+  const applied = isStripe
+    ? remaining
+    : selectedMethod === "cash"
+      ? Math.min(entered, remaining)
+      : selectedMethod === "store_credit"
+        ? Math.min(entered, remaining, creditLeft)
+        : Math.min(entered, remaining);
+  const tooMuch =
+    !isStripe && selectedMethod !== "cash" && entered > remaining + 0.000001;
+  const tooMuchCredit =
+    selectedMethod === "store_credit" && entered > creditLeft + 0.000001;
+  const change = selectedMethod === "cash" ? Math.max(0, money(entered - remaining)) : 0;
+  const coversRest = applied > 0 && applied >= remaining - 0.000001;
+  // Paid in full by what is already on the list — an exchange's credit that
+  // covers the whole of the new sale.
+  const fullyTendered = tenders.length > 0 && remaining <= 0.000001;
+  const entryValid = applied > 0 && !tooMuch && !tooMuchCredit;
 
-    if (selectedMethod === "card" && cardSubMethod === "stripe") {
-      if (!settings.stripe?.enabled || !settings.stripe.configured) {
-        setStripeElementError("Stripe is not configured");
-        return;
-      }
-      const stripe = stripeRef.current;
-      if (!stripe || !cardNumberElementRef.current || !stripeElementReady) {
-        setStripeElementError("Stripe is not ready");
-        return;
-      }
+  const entryTender = (): POSTenderInput => {
+    const base: POSTenderInput = {
+      method: selectedMethod,
+      amount: money(applied),
+      reference: reference.trim() || undefined,
+    };
+    if (selectedMethod === "cash") base.tendered = entered;
+    if (selectedMethod === "card") base.cardSubMethod = "card_touch";
+    return base;
+  };
 
-      setStripeProcessing(true);
-      setStripeElementError(null);
-      try {
-        const intent = await onCreateStripeIntent();
-        // Read after the intent call, not before it: a remount in between
-        // leaves the earlier element destroyed, and Stripe then refuses a
-        // card it can no longer read ("make sure the Element you are
-        // attempting to use is mounted"). Nothing is charged either way.
-        const cardNumber = cardNumberElementRef.current;
-        if (!cardNumber) throw new Error("Stripe is not ready");
-        const confirmation = await stripe.confirmCardPayment(
-          intent.clientSecret,
-          {
-            payment_method: {
-              card: cardNumber,
-            },
-          },
-        );
+  const resetEntry = (left: number, method: PaymentMethodId = selectedMethod) => {
+    setAmountText(prefillFor(method, left));
+    setReference("");
+  };
 
-        if (confirmation.error) {
-          throw new Error(confirmation.error.message || "Payment failed");
-        }
+  const choose = (method: PaymentMethodId) => {
+    setSelectedMethod(method);
+    resetEntry(remaining, method);
+  };
 
-        const status = confirmation.paymentIntent?.status;
-        if (status !== "succeeded" && status !== "processing") {
-          throw new Error("Payment was not completed");
-        }
+  const addTender = () => {
+    if (!entryValid || coversRest) return;
+    const next = [...tenders, entryTender()];
+    setTenders(next);
+    resetEntry(remainingAfterTenders(total, next, currency));
+  };
 
-        const paymentIntentId =
-          confirmation.paymentIntent?.id || intent.paymentIntentId;
-        await onProcess(
-          "card_stripe",
-          total,
-          paymentIntentId,
-          undefined,
-          paymentIntentId,
-        );
-      } catch (error) {
-        setStripeElementError(
-          error instanceof Error ? error.message : "Stripe payment failed",
-        );
-      } finally {
-        setStripeProcessing(false);
-      }
+  const complete = async (deposit: boolean) => {
+    const list = applied > 0 && entryValid ? [...tenders, entryTender()] : tenders;
+    await onComplete(list, { deposit });
+  };
+
+  const handleStripe = async () => {
+    if (!settings.stripe?.enabled || !settings.stripe.configured) {
+      setStripeElementError(t("stripeNotConfigured"));
       return;
     }
+    const stripe = stripeRef.current;
+    if (!stripe || !cardNumberElementRef.current || !stripeElementReady) {
+      setStripeElementError(t("stripeLoading"));
+      return;
+    }
+    setStripeProcessing(true);
+    setStripeElementError(null);
+    try {
+      // The card pays the rest — and only the rest — so a sale abandoned after
+      // it is charged cannot exist: the charge completes it.
+      const intent = await onCreateStripeIntent(remaining);
+      // Read after the intent call, not before it: a remount in between
+      // leaves the earlier element destroyed, and Stripe then refuses a
+      // card it can no longer read ("make sure the Element you are
+      // attempting to use is mounted"). Nothing is charged either way.
+      const cardNumber = cardNumberElementRef.current;
+      if (!cardNumber) throw new Error(t("stripeLoading"));
+      const confirmation = await stripe.confirmCardPayment(intent.clientSecret, {
+        payment_method: { card: cardNumber },
+      });
+      if (confirmation.error) {
+        throw new Error(confirmation.error.message || t("stripeFailed"));
+      }
+      const status = confirmation.paymentIntent?.status;
+      if (status !== "succeeded" && status !== "processing") {
+        throw new Error(t("stripeFailed"));
+      }
+      const paymentIntentId = confirmation.paymentIntent?.id || intent.paymentIntentId;
+      await onComplete(
+        [
+          ...tenders,
+          {
+            method: "card",
+            amount: remaining,
+            cardSubMethod: "card_stripe",
+            stripePaymentIntentId: paymentIntentId,
+          },
+        ],
+        { deposit: false },
+      );
+    } catch (error) {
+      setStripeElementError(error instanceof Error ? error.message : t("stripeFailed"));
+    } finally {
+      setStripeProcessing(false);
+    }
+  };
 
-    // Tag the method with the card sub-method when applicable
-    const methodToSend =
-      selectedMethod === "card"
-        ? cardSubMethod === "touch"
-          ? "card_touch"
-          : "card_stripe"
-        : selectedMethod;
-    await onProcess(
-      methodToSend,
-      selectedMethod === "cash" ? cash : total,
-      reference.trim() || undefined,
-    );
+  const handlePrimary = async () => {
+    if (fullyTendered) return complete(false);
+    if (isStripe) return handleStripe();
+    if (!entryValid) return;
+    if (coversRest) return complete(false);
+    addTender();
   };
 
   const isCurrentlyProcessing = isProcessing || stripeProcessing;
@@ -461,18 +577,44 @@ export function POSTakePaymentDialog({
     settings.stripe.configured &&
     settings.stripe.publishableKey,
   );
-  const stripeDisabled =
-    selectedMethod === "card" &&
-    cardSubMethod === "stripe" &&
-    (!stripeConfigured || !stripeElementReady);
+  const stripeDisabled = isStripe && (!stripeConfigured || !stripeElementReady);
+
+  const methodLabel = (id: PaymentMethodId) =>
+    methods.find((method) => method.id === id)?.label ?? id;
 
   const confirmLabel = isCurrentlyProcessing
-    ? "Processing…"
-    : selectedMethod === "cash"
-      ? "Accept cash"
-      : selectedMethod === "card" && cardSubMethod === "touch"
-        ? `Charge ${fp(total)} on reader`
-        : `Charge ${fp(total)}`;
+    ? t("processing")
+    : fullyTendered
+      ? t("completeSale")
+      : isStripe
+      ? t("charge", { amount: fp(remaining) })
+      : !coversRest
+        ? t("addPayment", { method: methodLabel(selectedMethod), amount: fp(applied) })
+        : selectedMethod === "cash"
+          ? t("acceptCash")
+          : selectedMethod === "store_credit"
+            ? t("useCredit", { amount: fp(applied) })
+            : selectedMethod === "card"
+              ? t("chargeOnReader", { amount: fp(applied) })
+              : t("charge", { amount: fp(applied) });
+
+  // A deposit: something paid, something left, a customer to owe it, and a
+  // store that takes deposits. Never on the Stripe form, which pays the rest.
+  const depositPaid = money(paidSoFar + (entryValid ? applied : 0));
+  // Toward a balance, part of it is always fine: the rest simply stays owed.
+  const canDeposit = isBalance
+    ? depositPaid > 0 && depositPaid < total
+    : settings.allowDeposits === true &&
+      hasCustomer &&
+      !isStripe &&
+      depositPaid > 0 &&
+      depositPaid < total;
+  const depositNeedsCustomer =
+    !isBalance &&
+    settings.allowDeposits === true &&
+    !hasCustomer &&
+    depositPaid > 0 &&
+    depositPaid < total;
 
   // The prefix must track the store currency, so it is read back out of the
   // formatter rather than hardcoded.
@@ -481,6 +623,52 @@ export function POSTakePaymentDialog({
   // One shared label style keeps every field heading on the same rhythm.
   const fieldLabel =
     "mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground";
+
+  const amountField = (id: string, label: string, autoFocus: boolean) => (
+    <div>
+      <label className={fieldLabel} htmlFor={id}>
+        {label}
+      </label>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+          {currencySymbol}
+        </span>
+        <Input
+          id={id}
+          type="number"
+          min={0}
+          step="0.01"
+          inputMode="decimal"
+          value={amountText}
+          onChange={(e) => setAmountText(e.target.value)}
+          placeholder={String(remaining)}
+          className="h-12 rounded-xl pl-9 pr-4 text-base font-semibold tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          autoFocus={autoFocus}
+        />
+      </div>
+      {tooMuch ? (
+        <p className="mt-1.5 text-xs text-destructive">{t("tooMuch", { amount: fp(remaining) })}</p>
+      ) : tooMuchCredit ? (
+        <p className="mt-1.5 text-xs text-destructive">{t("tooMuchCredit", { amount: fp(creditLeft) })}</p>
+      ) : null}
+    </div>
+  );
+
+  const referenceField = (id: string, autoFocus = false) => (
+    <div>
+      <label className={fieldLabel} htmlFor={id}>
+        {t("referenceOptional")}
+      </label>
+      <Input
+        id={id}
+        value={reference}
+        onChange={(e) => setReference(e.target.value)}
+        placeholder={t("referencePlaceholder")}
+        className="h-11 rounded-xl text-sm"
+        autoFocus={autoFocus}
+      />
+    </div>
+  );
 
   return (
     <div
@@ -497,17 +685,17 @@ export function POSTakePaymentDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Take payment"
+        aria-label={isBalance ? t("balanceTitle") : t("title")}
         className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border bg-background shadow-2xl animate-in slide-in-from-bottom-4 duration-300 sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl sm:zoom-in-95"
       >
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-6 sm:py-4">
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-tight">
-              Take payment
+              {isBalance ? t("balanceTitle") : t("title")}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Draft · {itemCount} {itemCount === 1 ? "item" : "items"}
+              {t("draftItems", { count: itemCount })}
             </p>
           </div>
           <Button
@@ -516,7 +704,7 @@ export function POSTakePaymentDialog({
             className="-mr-1 h-8 w-8 shrink-0 rounded-full"
             onClick={() => onOpenChange(false)}
             disabled={isCurrentlyProcessing}
-            aria-label="Close"
+            aria-label={t("close")}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -536,7 +724,7 @@ export function POSTakePaymentDialog({
                     <button
                       key={m.id}
                       type="button"
-                      onClick={() => setSelectedMethod(m.id)}
+                      onClick={() => choose(m.id)}
                       disabled={isCurrentlyProcessing}
                       aria-pressed={active}
                       className={cn(
@@ -576,15 +764,61 @@ export function POSTakePaymentDialog({
 
             {/* Amount + method details */}
             <div className="space-y-4 p-4 sm:p-6">
-              {/* Total due */}
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Total due
-                </span>
-                <span className="text-2xl font-semibold tabular-nums tracking-tight">
-                  {fp(total)}
-                </span>
+              {/* Total, and what is left once some has been paid */}
+              <div className="space-y-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {tenders.length > 0 ? t("remaining") : t("totalDue")}
+                  </span>
+                  <span className="text-2xl font-semibold tabular-nums tracking-tight">
+                    {fp(remaining)}
+                  </span>
+                </div>
+                {tenders.length > 0 ? (
+                  <p className="text-right text-xs text-muted-foreground tabular-nums">
+                    {t("ofTotal", { paid: fp(paidSoFar), total: fp(total) })}
+                  </p>
+                ) : null}
               </div>
+
+              {/* The tenders taken so far, each removable until the sale is done */}
+              {tenders.length > 0 ? (
+                <div className="rounded-xl border">
+                  <p className="border-b px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("payments")}
+                  </p>
+                  <ul className="divide-y">
+                    {tenders.map((tender, index) => (
+                      <li key={index} className="flex items-center gap-2 px-3 py-2 text-sm">
+                        <span className="min-w-0 flex-1 truncate">
+                          {methodLabel(tender.method)}
+                          {tender.reference ? (
+                            <span className="ml-1.5 text-xs text-muted-foreground">
+                              {tender.reference}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="font-medium tabular-nums">{fp(tender.amount)}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-full"
+                          aria-label={t("remove")}
+                          disabled={isCurrentlyProcessing}
+                          onClick={() => {
+                            const next = tenders.filter((_, at) => at !== index);
+                            setTenders(next);
+                            resetEntry(remainingAfterTenders(total, next, currency));
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               {/* Discount note */}
               {discount ? (
@@ -592,8 +826,8 @@ export function POSTakePaymentDialog({
                   <Tag className="h-3.5 w-3.5 shrink-0" />
                   <span>
                     {discount.type === "percent"
-                      ? `${discount.value}% discount applied`
-                      : `${fp(discount.value)} discount applied`}
+                      ? t("discountPercent", { value: discount.value })
+                      : t("discountAmount", { amount: fp(discount.value) })}
                   </span>
                 </div>
               ) : null}
@@ -601,39 +835,19 @@ export function POSTakePaymentDialog({
               {/* Cash */}
               {selectedMethod === "cash" ? (
                 <>
-                  <div>
-                    <label className={fieldLabel} htmlFor="pos-cash-given">
-                      Cash given
-                    </label>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        {currencySymbol}
-                      </span>
-                      <Input
-                        id="pos-cash-given"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={cashTendered}
-                        onChange={(e) => setCashTendered(e.target.value)}
-                        placeholder={total.toFixed(2)}
-                        className="h-12 rounded-xl pl-9 pr-4 text-base font-semibold tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
+                  {amountField("pos-cash-given", t("cashGiven"), true)}
 
-                  {/* Exact total + the next standard notes. Two-up on phones so
+                  {/* What is left + the next standard notes. Two-up on phones so
                       four-figure amounts stay readable. */}
                   {quickAmounts.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {quickAmounts.map((amt) => {
-                        const isExact = Math.abs(amt - total) < 0.005;
+                        const isExact = Math.abs(amt - remaining) < 0.005;
                         return (
                           <button
                             key={amt}
                             type="button"
-                            onClick={() => setCashTendered(amt.toFixed(2))}
+                            onClick={() => setAmountText(String(amt))}
                             className={cn(
                               "h-10 rounded-xl border text-sm font-medium tabular-nums transition-colors",
                               isExact
@@ -648,19 +862,18 @@ export function POSTakePaymentDialog({
                     </div>
                   ) : null}
 
-                  {/* Change / shortfall — neutral surface, the number alone
-                      carries the state. */}
+                  {/* Change, or what this cash leaves to pay another way. */}
                   <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/40 px-4 py-3">
                     <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {cashShort ? "Still owed" : "Change due"}
+                      {coversRest ? t("changeDue") : t("stillOwed")}
                     </span>
                     <span
                       className={cn(
                         "text-base font-semibold tabular-nums",
-                        cashShort ? "text-destructive" : "text-foreground",
+                        coversRest ? "text-foreground" : "text-amber-600 dark:text-amber-400",
                       )}
                     >
-                      {fp(cashShort ? total - cash : change)}
+                      {fp(coversRest ? change : money(remaining - applied))}
                     </span>
                   </div>
                 </>
@@ -712,34 +925,23 @@ export function POSTakePaymentDialog({
 
                   {cardSubMethod === "touch" ? (
                     <div className="space-y-3">
-                      <div className="rounded-xl border border-dashed bg-muted/30 px-4 py-6 text-center">
+                      {amountField("pos-card-amount", t("amount"), false)}
+                      <div className="rounded-xl border border-dashed bg-muted/30 px-4 py-5 text-center">
                         <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-muted">
                           <Nfc className="h-5 w-5 animate-pulse text-muted-foreground" />
                         </span>
-                        <p className="mt-3 text-sm font-medium">
-                          Ready for tap or insert
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Customer taps or inserts their card on the reader.
-                        </p>
+                        <p className="mt-3 text-sm font-medium">{t("readyForTap")}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{t("readyForTapNote")}</p>
                       </div>
-                      <div>
-                        <label className={fieldLabel} htmlFor="pos-card-ref">
-                          Reference (optional)
-                        </label>
-                        <Input
-                          id="pos-card-ref"
-                          value={reference}
-                          onChange={(e) => setReference(e.target.value)}
-                          placeholder="Transaction ID, auth code, etc."
-                          className="h-11 rounded-xl text-sm"
-                        />
-                      </div>
+                      {referenceField("pos-card-ref")}
                     </div>
                   ) : (
                     <div className="space-y-3">
+                      <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                        {t("stripePaysRest", { amount: fp(remaining) })}
+                      </p>
                       <div>
-                        <label className={fieldLabel}>Card number</label>
+                        <label className={fieldLabel}>{t("cardNumber")}</label>
                         <div
                           className="relative cursor-text"
                           onClick={() => cardNumberElementRef.current?.focus()}
@@ -752,12 +954,10 @@ export function POSTakePaymentDialog({
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className={fieldLabel}>Expiry</label>
+                          <label className={fieldLabel}>{t("expiry")}</label>
                           <div
                             className="relative cursor-text"
-                            onClick={() =>
-                              cardExpiryElementRef.current?.focus()
-                            }
+                            onClick={() => cardExpiryElementRef.current?.focus()}
                           >
                             <div
                               ref={setCardExpiryMountEl}
@@ -766,7 +966,7 @@ export function POSTakePaymentDialog({
                           </div>
                         </div>
                         <div>
-                          <label className={fieldLabel}>CVC</label>
+                          <label className={fieldLabel}>{t("cvc")}</label>
                           <div
                             className="relative cursor-text"
                             onClick={() => cardCvcElementRef.current?.focus()}
@@ -779,41 +979,31 @@ export function POSTakePaymentDialog({
                         </div>
                       </div>
                       {stripeElementError ? (
-                        <p className="text-xs text-destructive">
-                          {stripeElementError}
-                        </p>
+                        <p className="text-xs text-destructive">{stripeElementError}</p>
                       ) : !stripeConfigured ? (
-                        <p className="text-xs text-destructive">
-                          Stripe is not configured in payment settings.
-                        </p>
+                        <p className="text-xs text-destructive">{t("stripeNotConfigured")}</p>
                       ) : !stripeElementReady ? (
-                        <p className="text-xs text-muted-foreground">
-                          Loading secure card fields…
-                        </p>
+                        <p className="text-xs text-muted-foreground">{t("stripeLoading")}</p>
                       ) : null}
-                      <p className="text-xs text-muted-foreground">
-                        Secured by Stripe — card details are tokenized on
-                        submit.
-                      </p>
+                      <p className="text-xs text-muted-foreground">{t("stripeSecured")}</p>
                     </div>
                   )}
                 </>
               ) : null}
 
-              {/* Bank / Manual */}
+              {/* Bank / Manual / Store credit */}
               {selectedMethod === "bank" || selectedMethod === "manual" ? (
-                <div>
-                  <label className={fieldLabel} htmlFor="pos-payment-ref">
-                    Reference (optional)
-                  </label>
-                  <Input
-                    id="pos-payment-ref"
-                    value={reference}
-                    onChange={(e) => setReference(e.target.value)}
-                    placeholder="Transaction ID, authorization code, etc."
-                    className="h-11 rounded-xl text-sm"
-                    autoFocus
-                  />
+                <div className="space-y-3">
+                  {amountField(`pos-${selectedMethod}-amount`, t("amount"), true)}
+                  {referenceField("pos-payment-ref")}
+                </div>
+              ) : null}
+              {selectedMethod === "store_credit" ? (
+                <div className="space-y-3">
+                  {amountField("pos-credit-amount", t("amount"), true)}
+                  <p className="text-xs text-muted-foreground">
+                    {t("storeCreditDesc", { amount: fp(creditLeft) })}
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -822,19 +1012,43 @@ export function POSTakePaymentDialog({
 
         {/* Footer — pinned so the charge action stays reachable while the body
             scrolls, and clear of the home indicator on phones. */}
-        <div className="shrink-0 border-t bg-background px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 sm:px-6 sm:pb-4">
+        <div className="shrink-0 space-y-2 border-t bg-background px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 sm:px-6 sm:pb-4">
           <Button
-            onClick={handleConfirm}
-            disabled={isCurrentlyProcessing || cashShort || stripeDisabled}
+            onClick={() => void handlePrimary()}
+            disabled={
+              isCurrentlyProcessing ||
+              (!fullyTendered && (stripeDisabled || (!isStripe && !entryValid)))
+            }
             className="h-12 w-full rounded-xl text-sm font-semibold"
           >
             {isCurrentlyProcessing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : !isStripe && !coversRest ? (
+              <Plus className="mr-2 h-4 w-4" />
             ) : selectedMethod === "card" && cardSubMethod === "touch" ? (
               <Nfc className="mr-2 h-4 w-4" />
             ) : null}
             {confirmLabel}
           </Button>
+          {canDeposit ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void complete(true)}
+              disabled={isCurrentlyProcessing || (applied > 0 && !entryValid)}
+              className="h-11 w-full rounded-xl text-sm"
+            >
+              <CalendarClock className="mr-2 h-4 w-4" />
+              {t(isBalance ? "takePart" : "takeDeposit", {
+                amount: fp(depositPaid),
+                due: fp(roundMoney(total - depositPaid)),
+              })}
+            </Button>
+          ) : depositNeedsCustomer ? (
+            <p className="text-center text-xs text-muted-foreground">
+              {t("depositNeedsCustomer")}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

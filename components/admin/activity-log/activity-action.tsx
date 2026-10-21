@@ -91,6 +91,7 @@ const ACTION_STYLES: Record<string, ActionStyle> = {
   EXPORT: { icon: Download, variant: "outline", tone: MUTED },
   BULK_ACTION: { icon: Layers, variant: "secondary", tone: "text-orange-500" },
   INVITE_SENT: { icon: Send, variant: "secondary", tone: "text-blue-500" },
+  ACCESS_DENIED: { icon: ShieldX, variant: "destructive", tone: "text-red-500" },
 };
 
 const FALLBACK_STYLE: ActionStyle = {

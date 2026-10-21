@@ -4,6 +4,7 @@ import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { ProductForm } from "@/components/admin/product-form";
 import { resolveProductFeatures } from "@/lib/products/product-features";
 import { getSettingsLean } from "@/models/settings.model";
+import { taxClassOptions, vendorTaxLock } from "@/lib/tax/tax-settings";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -19,9 +20,10 @@ export default async function VendorEditProductPage({ params }: PageProps) {
 
   // Settings → Products decides which formats, pre-orders and quotes the
   // editor offers; read here so the form is right on its first paint.
-  const productFeatures = resolveProductFeatures(await getSettingsLean());
+  const settings = await getSettingsLean();
+  const productFeatures = resolveProductFeatures(settings);
 
   return (
-    <ProductForm productId={id} isVendor productFeatures={productFeatures} />
+    <ProductForm productId={id} isVendor productFeatures={productFeatures} taxClasses={taxClassOptions(settings.tax)} taxLock={vendorTaxLock(settings.tax)} />
   );
 }

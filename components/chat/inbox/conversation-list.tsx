@@ -112,6 +112,10 @@ export function ConversationList({
               viewerMode === "store"
                 ? conversation.contact.name
                 : conversation.ownerName || labels.storeSupport;
+            const avatarImage =
+              viewerMode === "store"
+                ? conversation.contact.image
+                : conversation.ownerImage;
             return (
               <button
                 key={conversation._id}
@@ -125,9 +129,9 @@ export function ConversationList({
               >
                 <span className="relative shrink-0">
                   <Avatar className="size-12">
-                    {viewerMode === "store" && conversation.contact.image ? (
+                    {avatarImage ? (
                       <AvatarImage
-                        src={conversation.contact.image}
+                        src={avatarImage}
                         alt={displayName}
                       />
                     ) : null}

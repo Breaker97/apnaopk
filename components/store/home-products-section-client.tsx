@@ -357,7 +357,7 @@ export function HomeProductsSectionClient({
                     <Link
                       href={allCategoriesHref}
                       onClick={() => setIsCategoryMenuOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-sm font-semibold text-primary"
+                      className="block rounded-lg px-3 py-2 text-sm font-semibold text-store-link"
                     >
                       {allCategoriesLabel}
                     </Link>

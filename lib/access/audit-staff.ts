@@ -52,6 +52,10 @@ interface StaffAuditSnapshot {
   jobTitle: string;
   startDate: string;
   notes: string;
+  /** The member's team role by name ("" for a vendor's staff, who have none). */
+  teamRole: string;
+  /** Full access: the Administrator role, or the Owner. */
+  fullAccess: boolean;
 }
 
 const text = (value: unknown): string =>
@@ -120,6 +124,8 @@ export function staffAuditSnapshot(
     jobTitle?: unknown;
     startDate?: unknown;
     notes?: unknown;
+    teamRole?: unknown;
+    fullAccess?: unknown;
   },
 ): StaffAuditSnapshot {
   return {
@@ -135,6 +141,8 @@ export function staffAuditSnapshot(
     jobTitle: text(profile.jobTitle),
     startDate: dayOf(profile.startDate),
     notes: text(profile.notes),
+    teamRole: text(profile.teamRole),
+    fullAccess: profile.fullAccess === true,
   };
 }
 
@@ -161,10 +169,22 @@ export function auditStaffCreated(
     fulfillmentRegions?: unknown;
     /** The address already had a customer account, which was given a team role. */
     fromCustomer?: boolean;
+    /** The team role they were given, by name. */
+    teamRole?: string | null;
+    /** Given full access (the Administrator role). */
+    fullAccess?: boolean;
   },
 ) {
   const account = details.account ?? "staff";
   const permissions = permissionList(details.permissions);
+  const teamRole = text(details.teamRole);
+  const fullAccess = details.fullAccess === true;
+  const access = {
+    ...(teamRole ? { teamRole } : {}),
+    ...(account === "administrator" ? { fullAccess } : {}),
+  };
+  const onRole = teamRole ? ` on the ${teamRole} role` : "";
+  const holding = fullAccess ? "full access" : plural(permissions.length, "permission");
   const department = text(details.department);
   const scope = {
     vendorIds: idList(details.vendorIds),
@@ -188,6 +208,8 @@ export function auditStaffCreated(
               email: member.email,
               role: "admin",
               status: details.status,
+              ...access,
+              ...(fullAccess ? {} : { permissions }),
               ...(department ? { department } : {}),
             }
           : {
@@ -196,17 +218,15 @@ export function auditStaffCreated(
               role: "staff",
               status: details.status,
               isActive: details.isActive !== false,
+              ...access,
               permissions,
               ...(department ? { department } : {}),
               ...given,
             },
       summary:
         account === "administrator"
-          ? `Added administrator ${labelOf(member)}${origin}`
-          : `Added staff member ${labelOf(member)} with ${plural(
-              permissions.length,
-              "permission",
-            )}${origin}`,
+          ? `Added administrator ${labelOf(member)}${onRole} with ${holding}${origin}`
+          : `Added staff member ${labelOf(member)}${onRole} with ${holding}${origin}`,
     },
     ...(details.fromCustomer ? { metadata: { convertedFromCustomer: true } } : {}),
   });
@@ -275,10 +295,42 @@ export async function auditStaffUpdated(
   const target = targetOf(member);
   const who = labelOf({ ...member, name: after.name });
 
-  const added = after.permissions.filter(
+  // Their role, and full access given or taken: its own row, first.
+  const roleMoved = before.teamRole !== after.teamRole || before.fullAccess !== after.fullAccess;
+  if (roleMoved) {
+    const said = (snapshot: StaffAuditSnapshot) =>
+      `${snapshot.teamRole || "no role"} (${
+        snapshot.fullAccess ? "full access" : plural(snapshot.permissions.length, "permission")
+      })`;
+    // Full access lists nothing; the other side's list is what they held or
+    // now hold.
+    const side = (snapshot: StaffAuditSnapshot) => ({
+      teamRole: snapshot.teamRole,
+      fullAccess: snapshot.fullAccess,
+      ...(snapshot.fullAccess ? {} : { permissions: snapshot.permissions }),
+    });
+    await audit(context, {
+      action: "ROLE_CHANGE",
+      resource: "user",
+      ...target,
+      changes: {
+        before: side(before),
+        after: side(after),
+        fields: [
+          "teamRole",
+          ...(before.fullAccess !== after.fullAccess ? ["fullAccess"] : []),
+          ...(before.fullAccess !== after.fullAccess ? ["permissions"] : []),
+        ],
+        summary: `Changed the team role of ${who} from ${said(before)} to ${said(after)}`,
+      },
+    });
+  }
+
+  // Full access lists no permissions: a move to or from it is the role row's.
+  const added = before.fullAccess || after.fullAccess ? [] : after.permissions.filter(
     (permission) => !before.permissions.includes(permission),
   );
-  const removed = before.permissions.filter(
+  const removed = before.fullAccess || after.fullAccess ? [] : before.permissions.filter(
     (permission) => !after.permissions.includes(permission),
   );
   if (added.length > 0 || removed.length > 0) {

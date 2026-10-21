@@ -1,12 +1,12 @@
 import { connectDB } from "@/lib/db";
-import { USER_ROLES } from "@/config/app.config";
-import { User } from "@/models";
+import { getSettingsLean } from "@/models";
 import { successResponse, createdResponse } from "@/lib/api/response";
-import { AuthorizationError, ValidationError } from "@/lib/api/errors";
+import { AuthorizationError } from "@/lib/api/errors";
 import { canAccessPOS } from "@/lib/access/rbac";
-import { sanitizeSearchString, validateBody } from "@/lib/api/validate";
+import { validateBody } from "@/lib/api/validate";
 import { notifyAdminsNewCustomer } from "@/lib/notifications/notifications";
 import { withApi } from "@/lib/api/handler";
+import { createPOSCustomer, searchPOSCustomers } from "@/lib/pos/pos-customers";
 import * as z from "zod";
 
 const PosCustomerSchema = z.object({
@@ -16,96 +16,53 @@ const PosCustomerSchema = z.object({
 });
 
 /**
- * GET /api/pos/customers
- * Search customers for POS order assignment
+ * GET /api/pos/customers?search=
+ *
+ * Accounts and guest customers for the till to ring a sale up for — see
+ * lib/pos/pos-customers.ts for the two kinds.
  */
 export const GET = withApi(
-  { auth: "user" },
+  { auth: "user", rateLimit: { action: "pos:customers:search", preset: "lenient" } },
   async ({ request, session }) => {
     if (!(await canAccessPOS(session.user))) throw new AuthorizationError();
-
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const rawSearch = (searchParams.get("search") || "").trim();
-
-    if (rawSearch.length < 2) {
-      return successResponse([]);
-    }
-    const search = sanitizeSearchString(rawSearch);
-
-    // Customers only. Without the role filter a cashier could type a common
-    // name into POS search and enumerate admin and vendor emails and phone
-    // numbers — everything needed to target the store's own accounts.
-    const customers = await User.find({
-      role: USER_ROLES.CUSTOMER,
-      $or: [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-      ],
-    })
-      .select("name email phone image")
-      .limit(10)
-      .lean();
-
-    return successResponse(customers);
+    const settings = await getSettingsLean();
+    return successResponse(
+      await searchPOSCustomers(searchParams.get("search") || "", settings),
+    );
   },
 );
 
 /**
  * POST /api/pos/customers
- * Create a new customer from POS terminal
+ *
+ * A name and an email OR a phone number. A phone-only customer is kept as a
+ * guest record keyed by the number, so a walk-in known only by their number
+ * can be recorded at last.
  */
 export const POST = withApi(
-  { auth: "user" },
+  { auth: "user", rateLimit: { action: "pos:customers:create", preset: "lenient" } },
   async ({ request, session }) => {
     if (!(await canAccessPOS(session.user))) throw new AuthorizationError();
-
     await connectDB();
 
-    const { name, email, phone } = await validateBody(request, PosCustomerSchema);
+    const body = await validateBody(request, PosCustomerSchema);
+    const settings = await getSettingsLean();
+    const { customer, created } = await createPOSCustomer({ ...body, settings });
 
-    if (!name || !name.trim()) {
-      throw new ValidationError("Customer name is required");
+    if (created) {
+      await notifyAdminsNewCustomer({
+        customerId: customer._id,
+        name: customer.name,
+        email: customer.email ?? customer.phone ?? "",
+        createdBy: session.user.id,
+      }).catch((error) =>
+        console.error("Failed to notify admins of a POS customer:", error),
+      );
+      return createdResponse(customer);
     }
-    if (!email || !email.trim()) {
-      throw new ValidationError("Customer email is required");
-    }
-
-    // Check if email already exists
-    const existing = await User.findOne({ email: email.toLowerCase().trim() })
-      .select("name email phone image")
-      .lean();
-
-    if (existing) {
-      // Return existing customer instead of throwing error
-      return successResponse(existing);
-    }
-
-    // Create new customer
-    const newCustomer = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      phone: phone?.trim() || undefined,
-      emailVerified: false,
-    });
-
-    const customerData = {
-      _id: newCustomer._id,
-      name: newCustomer.name,
-      email: newCustomer.email,
-      phone: newCustomer.phone,
-      image: newCustomer.image,
-    };
-
-    await notifyAdminsNewCustomer({
-      customerId: newCustomer._id.toString(),
-      name: newCustomer.name,
-      email: newCustomer.email,
-      createdBy: session.user.id,
-    });
-
-    return createdResponse(customerData);
+    return successResponse(customer);
   },
 );

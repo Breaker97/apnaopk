@@ -151,7 +151,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
     if (canceled) {
       toast.info(
         label(
-          "vendor.commission.canceled",
+          "vendor.commissionCard.canceled",
           "Payment was canceled. The invoice is still open.",
         ),
       );
@@ -172,9 +172,9 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       .then(({ paid }) => {
         toast[paid ? "success" : "info"](
           paid
-            ? label("vendor.commission.settled", "Commission invoice settled.")
+            ? label("vendor.commissionCard.settled", "Commission invoice settled.")
             : label(
-                "vendor.commission.pendingInfo",
+                "vendor.commissionCard.pendingInfo",
                 "Payment is still processing — the invoice clears automatically once confirmed.",
               ),
         );
@@ -184,7 +184,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
           error instanceof Error
             ? error.message
             : label(
-                "vendor.commission.verifyFailed",
+                "vendor.commissionCard.verifyFailed",
                 "We could not confirm that payment yet.",
               ),
         ),
@@ -211,7 +211,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
             setIsPolling(false);
             setPayingInvoice(null);
             toast.success(
-              label("vendor.commission.settled", "Commission invoice settled."),
+              label("vendor.commissionCard.settled", "Commission invoice settled."),
             );
             await load();
             router.refresh();
@@ -225,7 +225,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       setPayingInvoice(null);
       toast.error(
         label(
-          "vendor.commission.pollTimeout",
+          "vendor.commissionCard.pollTimeout",
           "We could not confirm the payment yet. The invoice clears automatically once it is confirmed.",
         ),
       );
@@ -276,7 +276,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
             callbackUrl: response.callbackUrl ?? "",
             prefill: response.prefill,
             canceledMessage: label(
-              "vendor.commission.canceled",
+              "vendor.commissionCard.canceled",
               "Payment was canceled. The invoice is still open.",
             ),
           }),
@@ -287,7 +287,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       if (response.type === "polling") {
         toast.info(
           label(
-            "vendor.commission.checkPhone",
+            "vendor.commissionCard.checkPhone",
             "Check your phone and approve the payment request.",
           ),
         );
@@ -296,14 +296,14 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
       }
 
       throw new Error(
-        label("vendor.commission.failed", "Failed to start the payment"),
+        label("vendor.commissionCard.failed", "Failed to start the payment"),
       );
     } catch (error) {
       toast.error(
         platformPaymentErrorMessage(
           error,
           label,
-          label("vendor.commission.failed", "Failed to start the payment"),
+          label("vendor.commissionCard.failed", "Failed to start the payment"),
         ),
       );
     } finally {
@@ -335,11 +335,11 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Banknote className="h-4 w-4" />
-            {label("vendor.commission.title", "Commission you owe")}
+            {label("vendor.commissionCard.title", "Commission you owe")}
           </CardTitle>
           <CardDescription>
             {label(
-              "vendor.commission.subtitle",
+              "vendor.commissionCard.subtitle",
               "Commission on sales you collected yourself — cash, COD or your own terminal — so it could not be deducted from a payout.",
             )}
           </CardDescription>
@@ -372,7 +372,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
                     setMethod(methods.length === 1 ? methods[0] : null);
                   }}
                 >
-                  {label("vendor.commission.payNow", "Pay now")}
+                  {label("vendor.commissionCard.payNow", "Pay now")}
                 </Button>
               </div>
             ))}
@@ -380,7 +380,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
           {methods.length === 0 ? (
             <p className="pt-3 text-sm text-muted-foreground">
               {label(
-                "vendor.commission.noMethods",
+                "vendor.commissionCard.noMethods",
                 "No payment method is available for this. Contact the marketplace admin to settle it another way.",
               )}
             </p>
@@ -398,7 +398,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {label("vendor.commission.dialogTitle", "Settle commission")}
+              {label("vendor.commissionCard.dialogTitle", "Settle commission")}
             </DialogTitle>
             <DialogDescription>
               {payingInvoice
@@ -414,7 +414,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
                 {label(
-                  "vendor.commission.checkPhone",
+                  "vendor.commissionCard.checkPhone",
                   "Check your phone and approve the payment request.",
                 )}
               </p>
@@ -447,7 +447,7 @@ export function VendorCommissionCard({ locale }: { locale: string }) {
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : null}
-                  {label("vendor.commission.continue", "Continue to payment")}
+                  {label("vendor.commissionCard.continue", "Continue to payment")}
                 </Button>
               </div>
             </div>

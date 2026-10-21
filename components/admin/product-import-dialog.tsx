@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type DragEvent } from "react";
+import { useId, useRef, useState, type DragEvent } from "react";
 import { useTranslations } from "next-intl";
 import {
   ChevronDown,
@@ -92,6 +92,9 @@ const COLUMN_GUIDE: Array<{
   { column: "weightUnit" },
   { column: "countryOfOrigin" },
   { column: "hsCode" },
+  { column: "chargeTax" },
+  { column: "taxClass" },
+  { column: "taxRate" },
   { column: "barcode" },
   { column: "vendorId", adminOnly: true },
   { column: "vendorSlug", adminOnly: true },
@@ -142,6 +145,7 @@ export function ProductImportDialog({
 }: ProductImportDialogProps) {
   const t = useTranslations("admin.productsDataTable.importDialog");
   const inputId = useId();
+  const importRequest = useRef<{ file: File; key: string } | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -208,7 +212,8 @@ export function ProductImportDialog({
     try {
       const body = new FormData();
       body.append("file", file);
-      const response = await fetch(endpoint, { method: "POST", body });
+      if (importRequest.current?.file !== file) importRequest.current = { file, key: crypto.randomUUID() };
+      const response = await fetch(endpoint, { method: "POST", body, headers: { "Idempotency-Key": importRequest.current.key } });
       const payload = (await response.json().catch(() => null)) as {
         success?: boolean;
         data?: ProductImportResult;
@@ -273,6 +278,7 @@ export function ProductImportDialog({
           <DialogDescription className="break-words">
             {result ? result.fileName : t("description")}
           </DialogDescription>
+          {audience === "admin" && <p className="text-sm text-muted-foreground">{t("inventoryClassification")}</p>}
         </DialogHeader>
 
         {data ? (

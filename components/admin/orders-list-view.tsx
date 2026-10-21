@@ -1,3 +1,4 @@
+import type { StaffResourceActions } from "@/lib/access/staff-resource-actions";
 import { Suspense } from "react";
 import { AdminStatsStripSkeleton } from "@/components/admin/admin-stats-strip";
 import { OrdersDataTable } from "@/components/admin/orders-data-table";
@@ -12,6 +13,7 @@ interface OrdersListViewProps {
   locale: string;
   area: "admin" | "staff";
   readOnly?: boolean;
+  actionAccess?: StaffResourceActions;
   staffScope?: StaffAccessScope | null;
   searchParams: SearchParams;
 }
@@ -32,6 +34,7 @@ export function OrdersListView({
   locale,
   area,
   readOnly,
+  actionAccess,
   staffScope,
   searchParams,
 }: OrdersListViewProps) {
@@ -53,6 +56,7 @@ export function OrdersListView({
           locale={locale}
           area={area}
           readOnly={readOnly}
+          actionAccess={actionAccess}
           staffScope={staffScope}
           query={query}
         />
@@ -93,12 +97,14 @@ async function OrdersTable({
   locale,
   area,
   readOnly,
+  actionAccess,
   staffScope,
   query,
 }: {
   locale: string;
   area: "admin" | "staff";
   readOnly?: boolean;
+  actionAccess?: StaffResourceActions;
   staffScope?: StaffAccessScope | null;
   query: OrderListParams;
 }) {
@@ -109,6 +115,7 @@ async function OrdersTable({
       locale={locale}
       area={area}
       readOnly={readOnly}
+          actionAccess={actionAccess}
       data={JSON.parse(JSON.stringify(list.items))}
       pagination={{
         page: list.page,

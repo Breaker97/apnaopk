@@ -32,6 +32,7 @@ import {
   preorderOutstandingAfterCoupon,
   type PreorderSplitLine,
 } from "@/lib/orders/preorder-coupon-split";
+import { lineTaxGetters } from "@/lib/tax/checkout-tax";
 import {
   buildVendorSubOrders,
   getOrderItemVendorId,
@@ -40,6 +41,11 @@ import {
   type SubOrderVendor,
 } from "@/lib/orders/order-vendors";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
+import {
+  orderLineVariantSnapshot,
+  type OrderLineProductSource,
+  type OrderLineVariantSource,
+} from "@/lib/orders/order-line-variant";
 import {
   buildOrderItemCustomsSnapshot,
   type ProductShippingData,
@@ -61,13 +67,23 @@ export interface CheckoutCartItem {
     _id: string;
     name: string;
     price: number;
+    /** Unit cost read at checkout; undefined means no cost was recorded. */
+    cost?: number | null;
     images?: string[];
     vendorId: string | { _id: string };
     sku?: string;
     slug?: string;
     shipping?: ProductShippingData;
+    /** Read with `options` for the line's variant snapshot (`orderLineVariantSnapshot`). */
+    comparePrice?: number | null;
+    options?: OrderLineProductSource["options"];
     variants?: Array<
-      VariantShippingData & { _id: { toString: () => string }; finalSale?: boolean }
+      VariantShippingData &
+        Omit<OrderLineVariantSource, "_id"> & {
+          _id: { toString: () => string };
+          cost?: number | null;
+          finalSale?: boolean;
+        }
     >;
     /**
      * Read to mark the order line final sale — see lib/returns/final-sale.ts —
@@ -181,6 +197,7 @@ export async function buildOrderDocument(params: {
   /** Which cart this gateway attempt came from, and what it was for. */
   checkoutCartId?: unknown;
   checkoutFingerprint?: string;
+  inventoryReservationSourceId?: string;
   /** The gateway's payment page, kept so a retry can send the shopper back to it. */
   gatewayCheckoutUrl?: string;
   paystackReference?: string;
@@ -330,6 +347,11 @@ export async function buildOrderDocument(params: {
   const couponShareByLine = new Map<CheckoutCartItem, number | undefined>(
     items.map((item, index) => [item, couponLineShares?.[index]]),
   );
+  // The variant as the shopper bought it, on the order line and its
+  // consignment's line alike.
+  const variantSnapshotByLine = new Map(
+    items.map((item) => [item, orderLineVariantSnapshot(item.productId, item.variantId)]),
+  );
 
   const vendorContext = await resolveOrderVendorContext({
     isMultiVendorEnabled,
@@ -357,7 +379,23 @@ export async function buildOrderDocument(params: {
     orderSettings,
   );
   ruleCollectionsRead.catch(() => undefined);
+  // Lines taxed at their own rates record the tax they carried, so a return
+  // of one hands back exactly its tax (lib/tax/checkout-tax.ts).
+  const taxGetters = await lineTaxGetters(items, {
+    line: (item) => ({
+      productId: item.productId._id,
+      vendorId: couponVendorKey(item.productId.vendorId),
+      price: item.price,
+      quantity: item.quantity,
+    }),
+    couponShare: couponLineShares ? (item) => couponShareByLine.get(item) : null,
+    goodsDiscount: isFreeShippingCouponType(coupon?.type) ? 0 : discount,
+    tax,
+    storeRate: orderSettings.orders?.taxRate ?? 0,
+    currency: currency || "USD",
+  });
   const subOrders = await buildVendorSubOrders(vendorGroups, {
+    ...taxGetters,
     vendors: params.subOrderVendors,
     codCollectedByDefault: orderSettings.shipping?.codCollectedBy,
     currency: orderSettings.general?.defaultCurrency || "USD",
@@ -396,6 +434,7 @@ export async function buildOrderDocument(params: {
     getPreorderSupplierEta: (item) => item.preorderSupplierEta,
     getPreorderBatchName: (item) => item.preorderBatchName,
     getCouponDiscount: (item) => couponShareByLine.get(item),
+    getVariantSnapshot: (item) => variantSnapshotByLine.get(item) ?? {},
     getCustoms: (item) => {
       const variant = item.variantId
         ? item.productId.variants?.find(
@@ -479,6 +518,7 @@ export async function buildOrderDocument(params: {
   // itself being the commitment.
   const ruleCollections = await ruleCollectionsRead;
   const orderDocument = {
+    inventoryReservationSourceId: params.inventoryReservationSourceId,
     customerId,
     guestEmail,
     currency: currency || "USD",
@@ -523,6 +563,11 @@ export async function buildOrderDocument(params: {
         preorderSupplierEta: item.preorderSupplierEta,
         preorderBatchName: item.preorderBatchName,
         couponDiscount: couponShareByLine.get(item),
+        // The tax this line carried, as its consignment line records it — a
+        // return of the line reads it from here.
+        taxRate: taxGetters.getTaxRate?.(item),
+        tax: taxGetters.getTax?.(item),
+        taxParts: taxGetters.getTaxParts?.(item),
         customs: buildOrderItemCustomsSnapshot({
           productShipping: item.productId.shipping,
           variantShipping: item.variantId
@@ -532,6 +577,7 @@ export async function buildOrderDocument(params: {
               )
             : undefined,
         }),
+        ...variantSnapshotByLine.get(item),
       })),
     subOrders,
     shippingAddress,

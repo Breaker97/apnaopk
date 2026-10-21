@@ -6,8 +6,8 @@
     "isDefault": true,
     "storeName": "Storify",
     "slug": "main-store",
-    "description": "Multi-vendor E-commerce Platform",
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003217992-uyocld/logo.svg",
+    "description": "Storify is a self-hosted Next.js eCommerce platform for launching single-vendor stores",
+    "logo": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791741662703-3c2e1b479e44d8635a28e0812d3ca63e/storify_logo.svg",
     "banner": "/placeholder-vendor.png",
     "status": "approved",
     "storeActive": true,
@@ -56,27 +56,28 @@
     ],
     "permissionOverrides": [],
     "address": {
-      "street": "123 Main Street",
-      "city": "New York",
-      "state": "NY",
-      "postalCode": "10001",
+      "street": "215 Clayton St, San Francisco",
+      "city": "San Francisco",
+      "state": "CA",
+      "postalCode": "94117",
       "country": "USA",
       "coordinates": {
-        "lat": 40.7577038,
-        "lng": -73.9536363,
-        "formatted": "Main Street, Roosevelt Island, Manhattan Community Board 8, Manhattan, New York County, New York, 10044, United States",
-        "geocodedAt": "2026-09-07T11:04:10.464Z"
+        "lat": 37.7732431,
+        "lng": -122.449507,
+        "formatted": "215;217, Clayton Street, Panhandle, San Francisco, California, 94177, United States",
+        "geocodedAt": "2026-09-17T05:59:19.946Z"
       },
       "geo": {
         "type": "Point",
         "coordinates": [
-          -73.9536363,
-          40.7577038
+          -122.449507,
+          37.7732431
         ]
       }
     },
     "socialLinks": {
-      "instagram": "https://instagram.com/techgadgets"
+      "instagram": "https://instagram.com/techgadgets",
+      "website": ""
     },
     "notificationPreferences": {
       "newOrders": true,
@@ -123,9 +124,8 @@
       "$date": "2026-08-27T17:50:57.382Z"
     },
     "updatedAt": {
-      "$date": "2026-09-07T11:04:10.467Z"
-    },
-    "__v": 0
+      "$date": "2026-10-12T06:03:14.090Z"
+    }
   },
   {
     "_id": {
@@ -238,18 +238,24 @@
     "createdAt": {
       "$date": "2026-08-28T02:21:11.539Z"
     },
-    "updatedAt": {
-      "$date": "2026-08-28T02:21:11.539Z"
+    "preorder": {
+      "enabled": false,
+      "note": "Verification run",
+      "requestedAt": {
+        "$date": "2026-10-05T00:58:43.427Z"
+      }
     },
-    "__v": 0
+    "updatedAt": {
+      "$date": "2026-10-14T04:52:21.106Z"
+    }
   },
   {
     "_id": {
       "$oid": "6a97d80da843a901df252b96"
     },
     "isDefault": false,
-    "storeName": "Nova Mobile Hub",
-    "slug": "nova-mobile-hub",
+    "storeName": "GeoTech",
+    "slug": "geotech",
     "description": "Nova Mobile Hub offers the latest smartphones, tablets, mobile accessories and dependable charging solutions from popular technology brands.",
     "status": "approved",
     "storeActive": true,
@@ -339,7 +345,7 @@
     },
     "payoutSettings": {
       "schedule": "weekly",
-      "minimumAmount": 0
+      "minimumAmount": 500
     },
     "storeVisibility": {
       "addressDisplay": "city_country",
@@ -364,22 +370,85 @@
       "$date": "2026-09-02T08:02:21.456Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T08:31:11.053Z"
+      "$date": "2026-10-12T11:49:36.419Z"
     },
     "__v": 0,
     "shipping": {
-      "codCollectedBy": "inherit"
+      "codCollectedBy": "inherit",
+      "carriers": {
+        "mode": "platform",
+        "shippo": {
+          "enabled": true,
+          "mode": "test"
+        },
+        "shiprocket": {
+          "enabled": false
+        }
+      },
+      "delivery": {
+        "processingDaysMin": 3,
+        "processingDaysMax": 7,
+        "showEstimatedDelivery": true
+      },
+      "enabled": true,
+      "weightUnit": "kg",
+      "zoneRates": [
+        {
+          "zoneId": "e7025f05-bfec-47b2-91d4-3d11f8492fd7",
+          "rates": [
+            {
+              "id": "eebfc4f8-afd3-4cac-b400-d9f33e70c427",
+              "name": "Standard",
+              "type": "flat",
+              "price": 15.99,
+              "freeOver": 50,
+              "minDays": 4,
+              "maxDays": 7,
+              "active": true
+            },
+            {
+              "id": "8f54f843-13e2-4e0c-bddc-4952ba7c45e7",
+              "name": "Express",
+              "type": "flat",
+              "price": 35,
+              "minDays": 1,
+              "maxDays": 2,
+              "active": true
+            },
+            {
+              "id": "476c9a43-9c59-4d4d-b809-248779d545e5",
+              "name": "Free Standard",
+              "type": "free_over",
+              "price": 0,
+              "freeOver": 75,
+              "minDays": 3,
+              "maxDays": 5,
+              "active": true
+            }
+          ]
+        }
+      ],
+      "zones": []
     },
-    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a97d80da843a901df252b96/2026/09/1788337784655-fpala6/banner.webp",
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a97d80da843a901df252b96/2026/09/1788337689906-10rrw7/profile.webp"
+    "banner": "https://cdn-storify.neurolight.studio/uploads/vendor/6a97d80da843a901df252b96/2026/10/1791521017466-efa8f8f0cdaadb81ce11383d9580dbcf/f8ede0db-7848-42c7-93f1-90ece2116c1c.png",
+    "logo": "https://cdn-storify.neurolight.studio/uploads/vendor/6a97d80da843a901df252b96/2026/10/1791518940402-9db2a88d0f5a5ab0119261925ef35442/Group_1000004770__1_.png",
+    "preorder": {
+      "approvedAt": {
+        "$date": "2026-09-29T11:06:47.357Z"
+      },
+      "approvedBy": {
+        "$oid": "6a90f09391e0057e1944ee98"
+      },
+      "enabled": true
+    }
   },
   {
     "_id": {
       "$oid": "6a980391ad6869b1f3756d93"
     },
     "isDefault": false,
-    "storeName": "Pixel Forge Computing",
-    "slug": "pixel-forge-computing",
+    "storeName": "Electronica XR",
+    "slug": "electronica-xr",
     "description": "Pixel Forge Computing provides laptops, desktop components, gaming accessories and reliable computing equipment for work and entertainment.",
     "status": "approved",
     "storeActive": true,
@@ -494,26 +563,35 @@
       "$date": "2026-09-02T11:08:01.435Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T11:43:27.685Z"
+      "$date": "2026-10-09T04:02:39.353Z"
     },
     "__v": 0,
     "shipping": {
       "codCollectedBy": "inherit"
     },
-    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980391ad6869b1f3756d93/2026/09/1788348490097-8aa0y3/banner.webp",
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980391ad6869b1f3756d93/2026/09/1788348476566-xynbnv/logo.webp"
+    "banner": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791518551376-fcfd76e980b48d02c3448c7313391a74/e8da8c02-7447-4335-9373-4f754581fcd7.png",
+    "logo": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791442849744-fefd64cbe6f0aba817b0671c7b93fdbd/Group_1000004769__2_.png",
+    "preorder": {
+      "approvedAt": {
+        "$date": "2026-09-18T09:42:38.698Z"
+      },
+      "approvedBy": {
+        "$oid": "6a90f09391e0057e1944ee98"
+      },
+      "enabled": true
+    }
   },
   {
     "_id": {
       "$oid": "6a980fbe60a6ffabdb09e524"
     },
     "isDefault": false,
-    "storeName": "Sonic Circuit Audio",
-    "slug": "sonic-circuit-audio",
+    "storeName": "Haier",
+    "slug": "haier",
     "description": "Sonic Circuit Audio supplies quality headphones, speakers, microphones and home audio equipment for music, gaming and professional use.",
     "status": "approved",
     "storeActive": true,
-    "verified": false,
+    "verified": true,
     "commission": 10,
     "commissionSource": "manual",
     "rating": 0,
@@ -557,7 +635,17 @@
       "access_pos",
       "access_ai_studio"
     ],
-    "permissionOverrides": [],
+    "permissionOverrides": [
+      {
+        "permission": "access_ai_studio",
+        "mode": "grant",
+        "grantedBy": "6a90f09391e0057e1944ee98",
+        "grantedAt": {
+          "$date": "2026-09-07T12:36:12.199Z"
+        },
+        "expiresAt": null
+      }
+    ],
     "address": {
       "street": "1847 Willow Creek Avenue",
       "city": "Austin",
@@ -624,27 +712,110 @@
       "$date": "2026-09-02T11:59:58.894Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T12:41:17.282Z"
+      "$date": "2026-10-15T19:38:39.870Z"
     },
     "__v": 0,
     "shipping": {
-      "codCollectedBy": "inherit"
+      "enabled": true,
+      "weightUnit": "kg",
+      "carriers": {
+        "mode": "platform",
+        "shippo": {
+          "enabled": false,
+          "mode": "test"
+        },
+        "shiprocket": {
+          "enabled": false
+        }
+      },
+      "codCollectedBy": "inherit",
+      "delivery": {
+        "processingDaysMin": 2,
+        "processingDaysMax": 5,
+        "showEstimatedDelivery": true
+      },
+      "zones": [],
+      "zoneRates": [
+        {
+          "zoneId": "e7025f05-bfec-47b2-91d4-3d11f8492fd7",
+          "rates": [
+            {
+              "id": "1c81ea6e-4051-49e0-8767-47fef56513f4",
+              "name": "Economy",
+              "type": "flat",
+              "price": 6,
+              "minDays": 5,
+              "maxDays": 8,
+              "active": true
+            },
+            {
+              "id": "c234da17-44e6-47d1-8b02-0368e1263809",
+              "name": "Standard",
+              "type": "flat",
+              "price": 14,
+              "freeOver": 50,
+              "minDays": 3,
+              "maxDays": 5,
+              "active": true
+            },
+            {
+              "id": "ac0421f7-2389-49ad-a50b-69115af6c4bf",
+              "name": "Express",
+              "type": "flat",
+              "price": 35.99,
+              "minDays": 1,
+              "maxDays": 2,
+              "active": true
+            },
+            {
+              "id": "cf31f0bf-81d8-4b08-be8b-2bae29baa478",
+              "name": "Free Standard",
+              "type": "free_over",
+              "price": 0,
+              "freeOver": 65,
+              "minDays": 3,
+              "maxDays": 5,
+              "active": true
+            }
+          ]
+        }
+      ],
+      "fallbackRate": {
+        "enabled": false,
+        "name": "Standard",
+        "price": 0
+      },
+      "localPickup": {
+        "enabled": false,
+        "locations": [],
+        "weeklyHours": [],
+        "blackoutDates": []
+      }
     },
-    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980fbe60a6ffabdb09e524/2026/09/1788352849667-jhyeee/banner.webp",
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a980fbe60a6ffabdb09e524/2026/09/1788352842564-ix8cse/logo.webp"
+    "logo": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980fbe60a6ffabdb09e524/2026/10/1791523894470-337605216ee915b2ba9c9d768d102fd1/Group_1000004772__1_.png",
+    "preorder": {
+      "approvedAt": {
+        "$date": "2026-09-11T07:59:10.225Z"
+      },
+      "approvedBy": {
+        "$oid": "6a90f09391e0057e1944ee98"
+      },
+      "enabled": true
+    },
+    "banner": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980fbe60a6ffabdb09e524/2026/10/1791526095334-08e1ba5735e2cfb790ef4044e617c843/6a7053fa-7dd0-49c6-b26f-8f7502354ebe.png"
   },
   {
     "_id": {
       "$oid": "6a9843bb5a9a9f71175330f7"
     },
     "isDefault": false,
-    "storeName": "Smart Haven Electronics",
-    "slug": "smart-haven-electronics",
-    "description": "Smart Haven Electronics brings practical smart-home devices, wearable technology and entertainment electronics together in one convenient store.",
+    "storeName": "Nexora",
+    "slug": "nexora",
+    "description": "Nexora brings practical smart-home devices, wearable technology and entertainment electronics together in one convenient store.",
     "status": "approved",
     "storeActive": true,
     "verified": false,
-    "commission": 10,
+    "commission": 15,
     "commissionSource": "manual",
     "rating": 0,
     "totalSales": 0,
@@ -754,13 +925,13 @@
       "$date": "2026-09-02T15:41:47.488Z"
     },
     "updatedAt": {
-      "$date": "2026-09-02T15:52:03.347Z"
+      "$date": "2026-10-09T05:21:01.970Z"
     },
     "__v": 0,
     "shipping": {
       "codCollectedBy": "inherit"
     },
-    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a9843bb5a9a9f71175330f7/2026/09/1788364284219-q7moe6/banner.webp",
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a9843bb5a9a9f71175330f7/2026/09/1788364279029-bv0ggh/logo.webp"
+    "banner": "https://cdn-storify.neurolight.studio/uploads/vendor/6a9843bb5a9a9f71175330f7/2026/10/1791523152331-0e01bdc92737bc166b870532c95c7099/1535a31c-5613-471e-86a4-33448db2265f.png",
+    "logo": "https://cdn-storify.neurolight.studio/uploads/vendor/6a9843bb5a9a9f71175330f7/2026/10/1791521424781-88571404d7c9cae0f98b4a1aa54f31f0/Group_1000004771.png"
   }
 ]

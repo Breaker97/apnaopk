@@ -75,7 +75,7 @@ const sortOptions: Array<{ label: string; value: SortValue }> = [
 // listing every category (stores can have hundreds), which wraps into a wall of
 // chips. Categories arrive pre-sorted by admin `order` then name, so the first
 // few are the curated/top ones.
-const MAX_CATEGORY_TABS = 7;
+const MAX_CATEGORY_TABS = 6;
 
 // Phones swap the chip row for one dropdown; its list is capped as well so the
 // menu stays a short pick-list, with an "All Categories" link for the rest.
@@ -440,7 +440,7 @@ export function HomeProductsSectionInfinite({
                     <Link
                       href={allCategoriesHref}
                       onClick={() => setIsCategoryMenuOpen(false)}
-                      className="block rounded-lg px-3 py-2 text-sm font-semibold text-primary"
+                      className="block rounded-lg px-3 py-2 text-sm font-semibold text-store-link"
                     >
                       {allCategoriesLabel}
                     </Link>

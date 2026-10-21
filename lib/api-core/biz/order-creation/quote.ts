@@ -6,7 +6,8 @@ import { staffLocationIds } from "@/lib/api-core/biz/scope";
 import { toMoney } from "@/lib/api-core/shop/money";
 import { countryCodeForValue, isCountryAllowed } from "@/lib/intl/country-availability";
 import { productTracksStock, productAllowsOversell } from "@/lib/products/stock-policy";
-import { priceAdminOrder, type ResolvedAdminOrderLine } from "@/lib/orders/create-admin-order";
+import { priceManualOrder, type ResolvedAdminOrderLine } from "@/lib/orders/create-admin-order";
+import { storeTaxRateAt } from "@/lib/tax/tax-settings";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
 import { creationProductOwner, loadCreationOptions } from "./options";
 import { resolveCreationCustomer } from "./customers";
@@ -77,8 +78,12 @@ export async function prepareManualOrder(context: CreationContext, draft: Manual
       cost: resolveOrderItemCost({ product, variant }) };
   });
   if (delivery.kind === "pickup" && lines.some((line) => String(line.owner._id) !== String(location?.vendorId))) creationRefusal("DELIVERY_NOT_ALLOWED", "All collection items must belong to this location's store.");
-  const totals = priceAdminOrder({ lines, currency: options.currency, shippingCost: draft.shippingCost ?? 0,
-    discount: draft.discount ?? 0, taxRate: draft.taxRate ?? 0 });
+  // A typed taxRate taxes the whole order; left out, each line is taxed at its
+  // product's rate, as a checkout is. Settings are read raw here, so the
+  // store's rate in effect now is worked out (lib/tax/tax-settings.ts).
+  const { plan: taxPlan, ...totals } = await priceManualOrder({ lines, currency: options.currency,
+    shippingCost: draft.shippingCost ?? 0, discount: draft.discount ?? 0, taxRate: draft.taxRate,
+    storeRate: storeTaxRateAt(settings.tax, Date.now(), Number(settings.orders?.taxRate) || 0) });
   if (delivery.kind === "pickup" && totals.shippingCost !== 0) creationRefusal("DELIVERY_NOT_ALLOWED", "Collection orders do not have a delivery charge.");
   const signature = createHash("sha256").update(JSON.stringify({
     scope: context.scope, options, totals, customer, address,
@@ -89,7 +94,7 @@ export async function prepareManualOrder(context: CreationContext, draft: Manual
     commissionDefault: settings.orders?.commission?.vendorRate, codDefault: settings.shipping?.codCollectedBy,
     location: location ? { id: String(location._id), owner: String(location.vendorId || ""), updatedAt: location.updatedAt } : null,
   })).digest("hex");
-  return { ...policy, lines, totals, customer, delivery, payment, location, signature,
+  return { ...policy, lines, totals, taxPlan, customer, delivery, payment, location, signature,
     shippingAddress: storedOrderAddress(address), billingAddress: storedOrderAddress(draft.billingAddress || address) };
 }
 export async function quoteManualOrder(context: CreationContext, draft: ManualOrderDraftRequest): Promise<ManualOrderQuote> {

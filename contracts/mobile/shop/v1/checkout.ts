@@ -5,6 +5,8 @@
  * the first answer instead of a second order.
  *
  * The flow:
+ * 0. GET /checkout/fulfillment for the cart's delivery/pickup options. For
+ *    pickup choose an available branch and send `pickupLocationId` throughout.
  * 1. POST /checkout/quote, again whenever the shopper changes something that
  *    could change the bill (address, delivery option, coupon). The answer is
  *    the order as it would be placed: live prices, delivery, totals, which
@@ -66,7 +68,7 @@ export const CHECKOUT_REASONS = [
   "PRE_ORDER",
   /** The store does not sell these lines inside the app (digital goods): `CheckoutLinesDetails`. */
   "NOT_PURCHASABLE_IN_APP",
-  /** Collecting from a branch is not offered in the app yet. */
+  /** Reserved for older servers that cannot take pickup orders. */
   "PICKUP_NOT_SUPPORTED",
   /** The store does not deliver to this address. */
   "SHIPPING_UNAVAILABLE",
@@ -119,12 +121,13 @@ const QuoteAddressBody = z.object({
  * POST /checkout/quote. Everything is optional: ask while the shopper fills
  * the form in. Without a delivery address (street, city and country) the
  * quote is priced without delivery (`CheckoutShipping.status`
- * NEEDS_ADDRESS).
+ * NEEDS_ADDRESS). Pickup requires a selected `pickupLocationId`; send the
+ * shopper's address details as `billingAddress` instead.
  */
 export const CheckoutQuoteRequest = z.object({
-  /** Where to deliver. Leave out for a cart that ships nothing. */
+  /** Where to deliver. Leave out for pickup or a cart that ships nothing. */
   shippingAddress: QuoteAddressBody.optional(),
-  /** Defaults to the delivery address. A cart that ships nothing needs only this. */
+  /** Defaults to the delivery address. Pickup and digital carts use this for the shopper's details. */
   billingAddress: QuoteAddressBody.optional(),
   /** Defaults to the signed-in shopper's. */
   email: z.string().max(254).optional(),
@@ -134,8 +137,10 @@ export const CheckoutQuoteRequest = z.object({
   selectedShippingOptionId: z.string().max(100).optional(),
   /** Seller id → `CheckoutShippingOption.id`, for an order its sellers ship. */
   vendorShippingSelections: z.record(z.string(), z.string().max(100)).optional(),
-  /** "pickup" is refused in v1 (PICKUP_NOT_SUPPORTED). */
+  /** Defaults to delivery. GET /checkout/fulfillment says which methods the cart allows. */
   fulfillmentMethod: z.enum(["delivery", "pickup"]).optional(),
+  /** Required for pickup: an available branch from GET /checkout/fulfillment. */
+  pickupLocationId: z.string().trim().min(1).max(100).optional(),
   customerNote: z.string().max(2000).optional(),
   /** `CheckoutCustomField.id` → the answer. */
   customFields: z
@@ -222,7 +227,7 @@ export const CheckoutSellerShipping = z.object({
 export type CheckoutSellerShipping = z.infer<typeof CheckoutSellerShipping>;
 
 export const CHECKOUT_SHIPPING_STATUSES = [
-  /** Nothing in the cart ships. */
+  /** Nothing needs delivery: a pickup order, or nothing in the cart ships. */
   "NOT_REQUIRED",
   /** Street, city and country are needed before delivery can be priced. */
   "NEEDS_ADDRESS",
@@ -241,6 +246,37 @@ export const CheckoutShipping = z.object({
   sellers: z.array(CheckoutSellerShipping),
 });
 export type CheckoutShipping = z.infer<typeof CheckoutShipping>;
+
+/** GET /checkout/fulfillment: the caller's own cart, without private branch details. */
+export const CheckoutFulfillmentOptions = z.object({
+  /** Seller policy only; delivery to the address is checked by the quote. */
+  deliveryAvailable: z.boolean(),
+  /** At least one branch can fulfill the whole cart. */
+  pickupAvailable: z.boolean(),
+  reason: z.enum(["cart_empty", "digital_only", "multi_vendor", "disabled", "not_configured", "out_of_stock"]).optional(),
+  vendor: z.object({ id: z.string(), name: z.string() }).optional(),
+  locations: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    pickupArea: z.string().optional(),
+    timeZone: z.string().optional(),
+    available: z.boolean(),
+    openingHours: z.array(z.object({ weekday: z.number().int().min(0).max(6), start: z.string(), end: z.string() })),
+  })),
+});
+export type CheckoutFulfillmentOptions = z.infer<typeof CheckoutFulfillmentOptions>;
+
+/** The selected pickup branch. Address and instructions are only in the resulting order. */
+export const CheckoutPickupSelection = z.object({
+  method: z.literal("pickup"),
+  pickup: z.object({
+    vendorId: z.string(),
+    pickupLocationId: z.string(),
+    pickupLocationName: z.string(),
+    pickupArea: z.string().optional(),
+  }),
+});
+export type CheckoutPickupSelection = z.infer<typeof CheckoutPickupSelection>;
 
 export const CheckoutCoupon = z.object({
   code: z.string(),
@@ -395,6 +431,7 @@ export const CheckoutQuote = z.object({
   lines: z.array(CheckoutQuoteLine),
   itemCount: z.number().int(),
   shipping: CheckoutShipping,
+  fulfillment: CheckoutPickupSelection.optional(),
   coupon: CheckoutCoupon.optional(),
   totals: CheckoutTotals,
   paymentMethods: z.array(CheckoutPaymentMethod),

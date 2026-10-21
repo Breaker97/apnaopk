@@ -1,1 +1,36 @@
-[]
+[
+  {
+    "_id": {
+      "$oid": "6acb8200728e196280d627cb"
+    },
+    "code": "WINTER15",
+    "type": "percentage",
+    "value": 15,
+    "minOrderAmount": 0,
+    "maxDiscount": null,
+    "usageLimit": null,
+    "usedCount": 0,
+    "perUserLimit": 1,
+    "startDate": {
+      "$date": "2026-10-11T00:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-10-30T00:00:00Z"
+    },
+    "status": "active",
+    "vendorId": {
+      "$oid": "6a0a98ed5d747a63e3255c0b"
+    },
+    "applicableProducts": [],
+    "applicableCategories": [],
+    "excludedProducts": [],
+    "listed": false,
+    "createdAt": {
+      "$date": "2026-10-11T12:33:04.969Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-11T12:33:04.969Z"
+    },
+    "__v": 0
+  }
+]

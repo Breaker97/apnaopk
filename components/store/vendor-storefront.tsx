@@ -1,4 +1,3 @@
-import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import { Suspense } from "react";
 import { X } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -8,7 +7,8 @@ import Link from "@/components/language/link";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { StickySidebar } from "@/components/ui/sticky-sidebar";
-import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
+import { CampaignBannerHost } from "@/components/store/campaign-banners/campaign-banner-host";
+import { getVendorStorefrontCampaignBanners } from "@/lib/campaign-banners/storefront";
 import { ProductGrid } from "@/components/products/product-grid";
 import { ProductFiltersLazy } from "@/components/products/product-filters-lazy";
 import { ProductFiltersMobileLazy } from "@/components/products/product-filters-mobile-lazy";
@@ -26,7 +26,11 @@ import {
   vendorLandingTab,
 } from "@/components/store/vendor-storefront-tabs";
 import { getStorefrontVendorReviews } from "@/lib/vendors/vendor-reviews";
-import { isFollowingVendor } from "@/lib/vendors/vendor-follow";
+import {
+  canFollowStores,
+  countVendorFollowers,
+  isFollowingVendor,
+} from "@/lib/vendors/vendor-follow";
 import { VendorFollowButton } from "@/components/store/vendor-follow-button";
 import { StorefrontChatButton } from "@/components/chat/storefront-chat-button";
 import { VendorExternalChannels } from "@/components/chat/vendor-external-channels";
@@ -177,13 +181,15 @@ export async function VendorStorefront({
   pageSettings,
   preview = false,
 }: VendorStorefrontProps) {
-  const { storeDefault } = await getLocaleRouting();
 
   const location = resolveRequestLocation(search);
-  const [t, filters, storefrontSettings] = await Promise.all([
+  const [t, filters, storefrontSettings, campaignBanners] = await Promise.all([
     getTranslations({ locale }),
     getStorefrontProductFilters({ vendor: vendor.slug }),
     getStorefrontSettings(),
+    // The vendor's own popups and bars. The draft preview is a builder canvas,
+    // not a page shoppers are shown promotions on.
+    preview ? [] : getVendorStorefrontCampaignBanners(vendor.id, locale),
   ]);
   const { headerSettings } = storefrontSettings;
 
@@ -318,10 +324,15 @@ export async function VendorStorefront({
   // Follow state is per-viewer, so it is resolved outside the cached vendor
   // payload — that cache is shared across every visitor.
   const session = await auth.api.getSession({ headers: await headers() });
-  const isFollowing = await isFollowingVendor({
-    vendorId: vendor.id,
-    userId: session?.user?.id,
-  });
+  // Shoppers only: an admin, team member or seller is not offered the button.
+  // A guest still sees it — the click takes them to sign in.
+  const showFollow = !session?.user || canFollowStores(session.user);
+  const [isFollowing, followerCount] = await Promise.all([
+    showFollow
+      ? isFollowingVendor({ vendorId: vendor.id, userId: session?.user?.id })
+      : false,
+    countVendorFollowers(vendor.id),
+  ]);
 
   // The address is formatted here, not in the cached data layer: country names
   // and line order are locale-dependent, and the vendor payload is cached once
@@ -394,6 +405,7 @@ export async function VendorStorefront({
     // The vendor's accent repaints buttons, rings and links on this page
     // only; the marketplace header and footer sit outside the wrapper.
     <div style={accentStyle(pageSettings.accentColor)}>
+    <CampaignBannerHost banners={campaignBanners} />
     <div
       className={
         activeTab === "home"
@@ -407,41 +419,33 @@ export async function VendorStorefront({
           own domain. */}
       {jsonLd ? <JsonLd data={jsonLd} /> : null}
 
-      {/* There is no /vendors index to link to, so the trail is short by
-          design — its job here is the way back out of a seller's storefront,
-          which nothing else on this page offers. */}
-      <StoreBreadcrumb
-        className="mb-4"
-        locale={locale}
-        storeDefault={storeDefault}
-        items={[{ label: vendor.storeName }]}
-      />
-
       <VendorStorefrontHeader
         vendor={vendor}
         location={address?.short}
         bannerSize={pageSettings.bannerSize}
         followAction={
-          <VendorFollowButton
-            slug={vendor.slug}
-            initialIsFollowing={isFollowing}
-            isAuthenticated={Boolean(session?.user?.id)}
-            locale={locale}
-            labels={{
-              follow: tr("vendor.storefront.follow", "Follow"),
-              following: tr("vendor.storefront.following", "Following"),
-              followed: tr("vendor.storefront.followed", "Following this store"),
-              unfollowed: tr(
-                "vendor.storefront.unfollowed",
-                "Unfollowed this store",
-              ),
-              loginRequired: tr(
-                "vendor.storefront.followLogin",
-                "Sign in to follow stores",
-              ),
-              error: tr("common.error", "Something went wrong"),
-            }}
-          />
+          showFollow ? (
+            <VendorFollowButton
+              slug={vendor.slug}
+              initialIsFollowing={isFollowing}
+              isAuthenticated={Boolean(session?.user?.id)}
+              locale={locale}
+              labels={{
+                follow: tr("vendor.storefront.follow", "Follow"),
+                following: tr("vendor.storefront.following", "Following"),
+                followed: tr("vendor.storefront.followed", "Following this store"),
+                unfollowed: tr(
+                  "vendor.storefront.unfollowed",
+                  "Unfollowed this store",
+                ),
+                loginRequired: tr(
+                  "vendor.storefront.followLogin",
+                  "Sign in to follow stores",
+                ),
+                error: tr("common.error", "Something went wrong"),
+              }}
+            />
+          ) : undefined
         }
         contactAction={
           <>
@@ -485,6 +489,14 @@ export async function VendorStorefront({
           sold: trv("vendor.storefront.sold", "{count} sold", {
             count: formatVendorCount(vendor.unitsSold, locale),
           }),
+          followers:
+            followerCount === 0
+              ? ""
+              : followerCount === 1
+                ? tr("vendor.storefront.oneFollower", "1 follower")
+                : trv("vendor.storefront.followers", "{count} followers", {
+                    count: formatVendorCount(followerCount, locale),
+                  }),
           ships: shipsLabel,
           pickupAvailable: tr(
             "vendor.storefront.pickupAvailable",

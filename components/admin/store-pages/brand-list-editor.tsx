@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { StoreSurfaceStyle } from "./section-preview-frame";
 import {
   DndContext,
   PointerSensor,
@@ -75,6 +76,7 @@ export function BrandListEditor({
   onSettingChange,
   onBlocksChange,
   locale,
+  storeSurface,
 }: {
   entry: SectionCatalogEntry;
   sectionId: string;
@@ -83,6 +85,8 @@ export function BrandListEditor({
   onSettingChange: (key: string, value: unknown) => void;
   onBlocksChange: (updater: (blocks: BlockInstance[]) => BlockInstance[]) => void;
   locale: string;
+  /** The active theme's compiled colours for the inline storefront preview. */
+  storeSurface?: StoreSurfaceStyle;
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
@@ -233,6 +237,8 @@ export function BrandListEditor({
              page color instead of the admin shell's gray. */
           <div
             className="store-surface overflow-hidden rounded-md border border-border bg-background"
+            {...(storeSurface?.attributes ?? {})}
+            style={storeSurface?.vars as React.CSSProperties | undefined}
             onClickCapture={(event) => event.preventDefault()}
           >
             <BrandListView

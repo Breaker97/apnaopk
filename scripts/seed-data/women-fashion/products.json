@@ -160,7 +160,7 @@
       "$date": "2026-09-13T11:11:27.597Z"
     },
     "updatedAt": {
-      "$date": "2026-09-13T19:59:18.800Z"
+      "$date": "2026-09-25T21:33:47.428Z"
     },
     "__v": 0,
     "comparePrice": 159,
@@ -332,7 +332,7 @@
       "$date": "2026-09-13T12:25:16.562Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T18:33:49.822Z"
+      "$date": "2026-09-25T21:33:47.394Z"
     },
     "__v": 0
   },
@@ -500,7 +500,7 @@
       "$date": "2026-09-13T12:27:25.271Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T18:33:36.187Z"
+      "$date": "2026-09-25T21:33:47.361Z"
     },
     "__v": 0
   },
@@ -671,7 +671,7 @@
       "$date": "2026-09-13T12:30:02.325Z"
     },
     "updatedAt": {
-      "$date": "2026-09-13T20:00:12.906Z"
+      "$date": "2026-09-25T21:33:47.337Z"
     },
     "__v": 0
   },
@@ -840,7 +840,7 @@
       "$date": "2026-09-13T12:31:58.751Z"
     },
     "updatedAt": {
-      "$date": "2026-09-13T20:00:25.178Z"
+      "$date": "2026-09-25T21:33:47.316Z"
     },
     "__v": 0,
     "comparePrice": 159,
@@ -1009,7 +1009,7 @@
       "$date": "2026-09-14T06:31:57.182Z"
     },
     "updatedAt": {
-      "$date": "2026-09-14T09:43:37.731Z"
+      "$date": "2026-09-25T21:33:47.293Z"
     },
     "__v": 0
   },
@@ -1169,7 +1169,7 @@
       "$date": "2026-09-15T13:40:37.929Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T18:34:10.262Z"
+      "$date": "2026-09-25T21:33:47.098Z"
     },
     "__v": 0
   },
@@ -1325,7 +1325,7 @@
       "$date": "2026-09-15T13:42:25.423Z"
     },
     "updatedAt": {
-      "$date": "2026-09-15T13:42:25.423Z"
+      "$date": "2026-09-25T21:33:47.082Z"
     },
     "__v": 0
   },
@@ -1459,7 +1459,7 @@
       "$date": "2026-09-15T13:49:30.917Z"
     },
     "updatedAt": {
-      "$date": "2026-09-15T13:51:17.541Z"
+      "$date": "2026-09-25T21:33:47.062Z"
     },
     "__v": 0
   },
@@ -1620,7 +1620,7 @@
       "$date": "2026-09-15T13:51:45.752Z"
     },
     "updatedAt": {
-      "$date": "2026-09-15T13:51:45.752Z"
+      "$date": "2026-09-25T21:33:47.043Z"
     },
     "__v": 0
   },
@@ -1765,7 +1765,7 @@
       "$date": "2026-09-15T13:53:04.913Z"
     },
     "updatedAt": {
-      "$date": "2026-09-15T13:53:04.913Z"
+      "$date": "2026-09-25T21:33:47.023Z"
     },
     "__v": 0
   },
@@ -1879,7 +1879,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a7e2f46abe23f278e16"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -1921,7 +1925,7 @@
       "$date": "2026-09-15T13:54:35.996Z"
     },
     "updatedAt": {
-      "$date": "2026-09-15T13:54:35.996Z"
+      "$date": "2026-09-25T21:33:46.997Z"
     },
     "__v": 0
   },
@@ -2082,7 +2086,7 @@
       "$date": "2026-09-16T09:15:11.933Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:17:56.567Z"
+      "$date": "2026-09-25T21:33:46.968Z"
     },
     "__v": 0
   },
@@ -2232,7 +2236,7 @@
       "$date": "2026-09-16T09:26:22.818Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:26:22.818Z"
+      "$date": "2026-09-25T21:33:46.937Z"
     },
     "__v": 0
   },
@@ -2382,7 +2386,7 @@
       "$date": "2026-09-16T09:28:57.646Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:28:57.646Z"
+      "$date": "2026-09-25T21:33:46.911Z"
     },
     "__v": 0
   },
@@ -2497,7 +2501,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a612f46abe23f278e15"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -2543,7 +2551,7 @@
       "$date": "2026-09-16T09:34:09.394Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:34:09.394Z"
+      "$date": "2026-09-25T21:33:46.893Z"
     },
     "__v": 0
   },
@@ -2647,7 +2655,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a332f46abe23f278e14"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -2693,7 +2705,7 @@
       "$date": "2026-09-16T09:38:41.489Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:38:41.489Z"
+      "$date": "2026-09-25T21:33:46.875Z"
     },
     "__v": 0
   },
@@ -2843,7 +2855,7 @@
       "$date": "2026-09-16T09:43:23.450Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:43:23.450Z"
+      "$date": "2026-09-25T21:33:46.855Z"
     },
     "__v": 0
   },
@@ -2993,7 +3005,7 @@
       "$date": "2026-09-16T09:47:09.554Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:47:09.554Z"
+      "$date": "2026-09-25T21:33:46.839Z"
     },
     "__v": 0
   },
@@ -3157,7 +3169,7 @@
       "$date": "2026-09-16T09:56:40.079Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T09:56:40.079Z"
+      "$date": "2026-09-25T21:33:46.822Z"
     },
     "__v": 0
   },
@@ -3318,7 +3330,7 @@
       "$date": "2026-09-16T10:02:16.136Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T10:07:24.466Z"
+      "$date": "2026-09-25T21:33:46.805Z"
     },
     "__v": 0
   },
@@ -3479,7 +3491,7 @@
       "$date": "2026-09-16T10:07:11.386Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T10:07:11.386Z"
+      "$date": "2026-09-25T21:33:46.790Z"
     },
     "__v": 0
   },
@@ -3629,7 +3641,7 @@
       "$date": "2026-09-16T10:18:38.173Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T18:33:24.176Z"
+      "$date": "2026-09-25T21:33:46.772Z"
     },
     "__v": 0
   },
@@ -3779,7 +3791,7 @@
       "$date": "2026-09-16T10:26:23.898Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T10:26:23.898Z"
+      "$date": "2026-09-25T21:33:46.749Z"
     },
     "__v": 0
   },
@@ -3929,7 +3941,7 @@
       "$date": "2026-09-16T10:30:37.941Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T10:30:37.941Z"
+      "$date": "2026-09-25T21:33:46.726Z"
     },
     "__v": 0
   },
@@ -4090,7 +4102,7 @@
       "$date": "2026-09-16T11:11:59.848Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:13:04.805Z"
+      "$date": "2026-09-25T21:33:46.707Z"
     },
     "__v": 0
   },
@@ -4262,7 +4274,7 @@
       "$date": "2026-09-16T11:17:13.887Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:17:13.887Z"
+      "$date": "2026-09-25T21:33:46.683Z"
     },
     "__v": 0
   },
@@ -4445,7 +4457,7 @@
       "$date": "2026-09-16T11:35:23.753Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:35:23.753Z"
+      "$date": "2026-09-25T21:33:46.662Z"
     },
     "__v": 0
   },
@@ -4593,7 +4605,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a962f46abe23f278e17"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -4639,7 +4655,7 @@
       "$date": "2026-09-16T11:39:58.438Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:40:33.161Z"
+      "$date": "2026-09-25T21:33:46.645Z"
     },
     "__v": 0
   },
@@ -4765,7 +4781,14 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aac03e9940694ca85477381"
+      },
+      {
+        "$oid": "6aaa9a612f46abe23f278e15"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -4811,7 +4834,7 @@
       "$date": "2026-09-16T11:44:08.290Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:44:08.290Z"
+      "$date": "2026-09-25T21:33:46.626Z"
     },
     "__v": 0
   },
@@ -4948,7 +4971,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aac03e9940694ca85477381"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -4994,7 +5021,7 @@
       "$date": "2026-09-16T11:49:24.764Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:49:24.764Z"
+      "$date": "2026-09-25T21:33:46.606Z"
     },
     "__v": 0
   },
@@ -5188,7 +5215,7 @@
       "$date": "2026-09-16T11:59:39.650Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T11:59:39.650Z"
+      "$date": "2026-09-25T21:33:46.586Z"
     },
     "__v": 0
   },
@@ -5371,7 +5398,7 @@
       "$date": "2026-09-16T12:03:44.313Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T12:03:44.313Z"
+      "$date": "2026-09-25T21:33:46.565Z"
     },
     "__v": 0
   },
@@ -5497,7 +5524,17 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aac03e9940694ca85477381"
+      },
+      {
+        "$oid": "6aaa9a332f46abe23f278e14"
+      },
+      {
+        "$oid": "6aaa9a7e2f46abe23f278e16"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -5543,7 +5580,7 @@
       "$date": "2026-09-16T12:13:41.545Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T12:13:41.545Z"
+      "$date": "2026-09-25T21:33:46.547Z"
     },
     "__v": 0
   },
@@ -5737,7 +5774,7 @@
       "$date": "2026-09-16T12:19:28.732Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T12:20:21.161Z"
+      "$date": "2026-09-25T21:33:46.531Z"
     },
     "__v": 0
   },
@@ -5931,7 +5968,7 @@
       "$date": "2026-09-16T12:31:40.158Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T12:31:40.158Z"
+      "$date": "2026-09-25T21:33:46.506Z"
     },
     "__v": 0
   },
@@ -6068,7 +6105,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aac03e9940694ca85477381"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -6114,7 +6155,7 @@
       "$date": "2026-09-16T12:35:57.824Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T12:35:57.824Z"
+      "$date": "2026-09-25T21:33:46.451Z"
     },
     "__v": 0
   },
@@ -6274,7 +6315,7 @@
       "$date": "2026-09-16T13:14:55.569Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:22:54.951Z"
+      "$date": "2026-09-25T21:33:46.420Z"
     },
     "__v": 0
   },
@@ -6434,7 +6475,7 @@
       "$date": "2026-09-16T13:17:44.053Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:22:54.951Z"
+      "$date": "2026-09-25T21:33:46.399Z"
     },
     "__v": 0
   },
@@ -6583,7 +6624,7 @@
       "$date": "2026-09-16T13:20:02.522Z"
     },
     "updatedAt": {
-      "$date": "2026-09-16T13:22:54.951Z"
+      "$date": "2026-09-25T21:33:46.377Z"
     },
     "__v": 0
   },
@@ -6709,7 +6750,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a612f46abe23f278e15"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -6755,7 +6800,7 @@
       "$date": "2026-09-17T04:37:32.770Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T04:37:32.770Z"
+      "$date": "2026-09-25T21:33:46.353Z"
     },
     "__v": 0
   },
@@ -6916,7 +6961,7 @@
       "$date": "2026-09-17T04:42:50.511Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T04:42:50.511Z"
+      "$date": "2026-09-25T21:33:46.322Z"
     },
     "__v": 0
   },
@@ -7077,7 +7122,7 @@
       "$date": "2026-09-17T04:55:15.595Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T04:56:08.497Z"
+      "$date": "2026-09-25T21:33:46.303Z"
     },
     "__v": 0
   },
@@ -7249,7 +7294,7 @@
       "$date": "2026-09-17T05:09:45.300Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T05:09:45.300Z"
+      "$date": "2026-09-25T21:33:46.287Z"
     },
     "__v": 0
   },
@@ -7421,7 +7466,7 @@
       "$date": "2026-09-17T05:17:50.641Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T05:17:50.641Z"
+      "$date": "2026-09-25T21:33:46.272Z"
     },
     "__v": 0
   },
@@ -7582,7 +7627,7 @@
       "$date": "2026-09-17T05:24:16.870Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T05:24:16.870Z"
+      "$date": "2026-09-25T21:47:35.025Z"
     },
     "__v": 0
   },
@@ -7743,7 +7788,7 @@
       "$date": "2026-09-17T05:28:34.820Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T05:28:34.820Z"
+      "$date": "2026-09-25T21:33:46.240Z"
     },
     "__v": 0
   },
@@ -7915,7 +7960,7 @@
       "$date": "2026-09-17T05:45:20.482Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T05:45:20.482Z"
+      "$date": "2026-09-25T21:33:46.216Z"
     },
     "__v": 0
   },
@@ -8044,7 +8089,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a332f46abe23f278e14"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -8090,7 +8139,7 @@
       "$date": "2026-09-17T05:57:08.714Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T05:57:08.714Z"
+      "$date": "2026-09-25T21:33:46.198Z"
     },
     "__v": 0
   },
@@ -8216,7 +8265,11 @@
       "$oid": "6aa685729e1a8ac7a89ff106"
     },
     "productType": "",
-    "collectionIds": [],
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a7e2f46abe23f278e16"
+      }
+    ],
     "tags": [],
     "attributes": [],
     "variants": [],
@@ -8262,7 +8315,7 @@
       "$date": "2026-09-17T06:08:46.682Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T06:08:46.682Z"
+      "$date": "2026-09-25T21:33:46.181Z"
     },
     "__v": 0
   },
@@ -8434,7 +8487,7 @@
       "$date": "2026-09-17T06:32:38.517Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T06:32:38.517Z"
+      "$date": "2026-09-25T21:33:46.160Z"
     },
     "__v": 0
   },
@@ -8551,7 +8604,7 @@
       "$date": "2026-09-17T07:55:00.889Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T08:06:36.977Z"
+      "$date": "2026-09-25T21:33:46.134Z"
     },
     "__v": 0
   },
@@ -8655,7 +8708,20 @@
     "featured": false,
     "rating": 0,
     "reviewCount": 0,
-    "locationInventory": [],
+    "locationInventory": [
+      {
+        "locationId": "6aad90bbaf46cdbcc4e75fb2",
+        "quantity": 20
+      },
+      {
+        "locationId": "6aad90bfaf46cdbcc4e75fb3",
+        "quantity": 0
+      },
+      {
+        "locationId": "6ab0283eaf46cdbcc4e763fc",
+        "quantity": 0
+      }
+    ],
     "priceRange": {
       "min": 255,
       "max": 255
@@ -8668,7 +8734,7 @@
       "$date": "2026-09-17T08:03:57.358Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T08:06:24.616Z"
+      "$date": "2026-09-25T21:33:46.115Z"
     },
     "__v": 0
   },
@@ -8796,7 +8862,7 @@
       "$date": "2026-09-17T08:13:22.494Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T08:13:22.494Z"
+      "$date": "2026-09-25T21:33:46.098Z"
     },
     "__v": 0
   },
@@ -8924,7 +8990,3614 @@
       "$date": "2026-09-17T08:18:56.047Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T08:18:56.047Z"
+      "$date": "2026-09-25T21:33:46.079Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaba51860c177e8c0c69cd3"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Myriad",
+    "title": "Myriad",
+    "slug": "myriad",
+    "handle": "myriad",
+    "description": "<p>Known as perfumery’s “black gold,” oud possesses a scent so rich and profound that it seems to contain all the others. An exceptional essence, a Maison Louis Vuitton exclusive, reveals the precious wood in all its beauty. Its perfect balance of woody, spicy and animal facets inspired Master Perfumer Jacques Cavallier Belletrud to accomplish a veritable feat: marry the power of oud with the airy, colorful aesthetic of the Les Extraits Collection. Concentrated to the extreme in this virtuoso creation, oud blends with a made-to-measure rose. Traversed by ethereal white musks, it extends its leathery accents into swirls of saffron and reveals its raw sensuality upon contact with cocoa. A myriad olfactory nuances, a tribute to Nature’s genius and to the fabulous diversity of Life.<br><br>Myriad is part of the Louis Vuitton Les Extraits Collection, expressing the encounter of two great creative minds. Through these six exceptional, highly concentrated fragrance treasures, Jacques Cavallier Belletrud reinvents the perfume extrait with boldness and fluidity.<br><br>Frank Gehry, one of the greatest architects of all time, designs his first perfume bottle. He began with Marc Newson’s original bottle, stretching the lines into curves. From his sculptural flourish emerges a transparent veil that appears to float in the air. The bottle is topped with a precious hand-polished metal cap like the splash of an airy, imaginary flower.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p>8.5 x 21.5 x 8.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Oud Wood</p></li><li><p>Centifolia Rose from Grasse</p></li><li><p>Cocoa</p></li><li><p>Saffron</p></li></ul><p>Available format:</p><ul><li><p>Spray 100ml</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 379,
+    "comparePrice": 499,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "MYR-D818",
+    "skuNormalized": "MYRD818",
+    "barcode": "2068778078001",
+    "barcodeNormalized": "2068778078001",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789633798856-q49mmv/louis-vuitton-myriad--LP0528_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789633799073-txw7lc/louis-vuitton-myriad--LP0528_PM1_Cropped_view.webp",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789633799015-esf6xc/louis-vuitton-myriad--LP0528_PM1_Ambiance_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "ec80acee-6507-4005-8e33-ee4a67b9f71d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789633798856-q49mmv/louis-vuitton-myriad--LP0528_PM2_Front_view.avif",
+        "filename": "louis-vuitton-myriad--LP0528_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "cf0ba2d7-9b71-413d-8801-7185b1fe841e",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789633799073-txw7lc/louis-vuitton-myriad--LP0528_PM1_Cropped_view.webp",
+        "filename": "louis-vuitton-myriad--LP0528_PM1_Cropped view.webp",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      },
+      {
+        "_id": "afe874b9-975d-47d2-9395-e2465aebe082",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789633799015-esf6xc/louis-vuitton-myriad--LP0528_PM1_Ambiance_view.avif",
+        "filename": "louis-vuitton-myriad--LP0528_PM1_Ambiance view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Myriad",
+      "metaDescription": "Known as perfumery’s “black gold,” oud possesses a scent so rich and profound that it seems to contain all the others. An exceptional essence, a Maison Louis...",
+      "handle": "myriad"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 379,
+      "max": 379
+    },
+    "compareAtPriceRange": {
+      "min": 499,
+      "max": 499
+    },
+    "createdAt": {
+      "$date": "2026-09-17T08:30:16.897Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:46.064Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaba64560c177e8c0c69cd4"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Ombre Nomade",
+    "title": "Ombre Nomade",
+    "slug": "ombre-nomade",
+    "handle": "ombre-nomade",
+    "description": "<p>As the day passes, the path of the sun creates shimmering patterns of shadow and light on the dunes. Whilst everything else seems motionless, the desert comes alive and draws the traveler into a passionate odyssey. Designed for lovers of rare essences, Ombre Nomade concentrates that sensation of infinity into one of the most mythical ingredients in perfumery, oud wood. A rebellious material, intoxicatingly beautiful, that the Master Perfumer Jacques Cavallier Belletrud has faceted with a hint of benzoin and raspberry accents. Far away, a smoky wisp of incense floats towards the heavens. Never has oud been so mystical.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p>6.5 x 14.7 x 6.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Oud Wood</p></li><li><p>Benzoin Balm</p></li><li><p>Incense</p></li></ul><p>Available formats:</p><ul><li><p>Spray 100 ml</p></li><li><p>Spray 200 ml</p></li><li><p>Travel Spray. Created to accompany any trip, this set includes a travel bottle as well as four 7.5ml cartridges. Designed with magnetic closures, these novel refills clip instinctively onto the atomizer. In moments, the travel bottle is primed and ready for a new adventure.</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 369,
+    "comparePrice": 399,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "ON-54BD",
+    "skuNormalized": "ON54BD",
+    "barcode": "2054879105852",
+    "barcodeNormalized": "2054879105852",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634077168-03tsvu/louis-vuitton-ombre-nomade--LP0529_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634077518-it2fun/louis-vuitton-ombre-nomade--LP0529_PM1_edito.webp",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634077371-ah5myi/louis-vuitton-ombre-nomade--LP0529_PM1_Cropped_worn_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "610b74dd-ef5a-418e-96a4-dba298004161",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634077168-03tsvu/louis-vuitton-ombre-nomade--LP0529_PM2_Front_view.avif",
+        "filename": "louis-vuitton-ombre-nomade--LP0529_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "62a38447-659d-47de-b786-549966f8bf96",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634077518-it2fun/louis-vuitton-ombre-nomade--LP0529_PM1_edito.webp",
+        "filename": "louis-vuitton-ombre-nomade--LP0529_PM1_edito.webp",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      },
+      {
+        "_id": "1991efa6-a88f-449b-8159-d851311bedc7",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634077371-ah5myi/louis-vuitton-ombre-nomade--LP0529_PM1_Cropped_worn_view.avif",
+        "filename": "louis-vuitton-ombre-nomade--LP0529_PM1_Cropped worn view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Ombre Nomade",
+      "metaDescription": "As the day passes, the path of the sun creates shimmering patterns of shadow and light on the dunes. Whilst everything else seems motionless, the desert come...",
+      "handle": "ombre-nomade"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 369,
+      "max": 369
+    },
+    "compareAtPriceRange": {
+      "min": 399,
+      "max": 399
+    },
+    "createdAt": {
+      "$date": "2026-09-17T08:35:17.141Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:46.049Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaba7e060c177e8c0c69cd9"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Ink Mark Louis Vuitton",
+    "title": "Ink Mark Louis Vuitton",
+    "slug": "ink-mark-louis-vuitton",
+    "handle": "ink-mark-louis-vuitton",
+    "description": "<p>The momentum of the hand tracing a thought onto paper, the profound aromas of black ink... Ink Mark draws inspiration from Chinese calligraphy, the art of line and spirit. In Shanghai, a city in perpetual motion where ancient traditions dialogue with urban energy, Jacques Cavallier Belletrud captured the force of a contemporary expression—that of ephemeral calligraphy, a pavement art comprised of poems traced out in water. Born of a wood slowly reduced to soot through an artisanal process, Chinese ink inspired a woody fragrance of great intensity. Its depth is found in the warm, creamy sandalwood that structures the composition. By contrast, white incense brings a pure, mineral touch. Amber notes gradually prolong movement, creating a distinctive trail.<br><br>Ink Mark is part of Perfumes of the World collection by Louis Vuitton, which continues its exploration of cultures and beauty with a new chapter: a trio of fragrances inspired by the Chinese art of living. Through three creations, the Maison extends an invitation to discover the rituals, craftsmanship and raw materials that nourish the spirit of travel. For the occasion, the silhouette of the apothecary-style bottle designed by Marc Newson meets the Chinese snuff bottle, an historic art object of timeless refinement. This small bottle, at once functional and precious, resonates with the tradition of the Maison that, since 1854, has brought beauty and utility together in iconic travel objects. The bottle is made of opalescent glass with changing reflections and crowned with a lacquered cap in deep hues. This chromatic pairing reflects the unique identity of each perfume.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p>29 x 14.7 x 6.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Sandalwood</p></li><li><p>Incense</p></li><li><p>Magnolia</p></li><li><p>Rose</p></li><li><p>Amber</p></li></ul><p>Format:</p><ul><li><p>Spray 100ml</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 269,
+    "comparePrice": 289,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "IMLV-906A",
+    "skuNormalized": "IMLV906A",
+    "barcode": "2026216191149",
+    "barcodeNormalized": "2026216191149",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459663-wbq4h4/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459711-6ixm9m/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Closeup_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459535-i8f302/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Interior_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459804-hue535/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459742-weyyz2/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Other_view2.avif"
+    ],
+    "media": [
+      {
+        "_id": "e4efa9ca-f511-4670-8257-1439ded67325",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459663-wbq4h4/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM2_Front_view.avif",
+        "filename": "louis-vuitton-ink-mark-louis-vuitton--LP0456_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "4cff1864-6f96-472a-add6-9f28816aa514",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459711-6ixm9m/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Closeup_view.avif",
+        "filename": "louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Closeup view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "5fe0f99c-fb4e-41a8-ae15-ff1047f0f2e4",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459535-i8f302/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Interior_view.avif",
+        "filename": "louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Interior view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "90d245bf-16db-41c1-98cc-aeedcd195ea2",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459804-hue535/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Side_view.avif",
+        "filename": "louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Side view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "3bca8af1-87e4-49da-a6ef-0dd506c013cc",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634459742-weyyz2/louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Other_view2.avif",
+        "filename": "louis-vuitton-ink-mark-louis-vuitton--LP0456_PM1_Other view2.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Ink Mark Louis Vuitton",
+      "metaDescription": "The momentum of the hand tracing a thought onto paper, the profound aromas of black ink... Ink Mark draws inspiration from Chinese calligraphy, the art of li...",
+      "handle": "ink-mark-louis-vuitton"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 269,
+      "max": 269
+    },
+    "compareAtPriceRange": {
+      "min": 289,
+      "max": 289
+    },
+    "createdAt": {
+      "$date": "2026-09-17T08:42:08.144Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:46.033Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aaba9ac60c177e8c0c69cdf"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "On the Beach",
+    "title": "On the Beach",
+    "slug": "on-the-beach",
+    "handle": "on-the-beach",
+    "description": "<p>We recommend selecting a sample of the fragrance you ordered, so that you can try it without opening the full-size bottle. That way, should you wish to, you can return your unopened bottle for reimbursement. Samples are subject to availability.<br><br><strong>Yuzu as dazzling as the summer sun at its zenith over the beach.</strong><br><br>The ecstasy of the sun, the rhythm of the sea and the gentle warmth of sand on the skin. Master perfumer Jacques Cavallier Belletrud blends the infinite emotions of a day spent on a sunny beach. Yuzu, a rare citrus from Japan, is a burst of bliss on the skin. Its surprising freshness and brightness glides into the softness of neroli. Thyme, rosemary, pink pepper, cloves… a sandy note of aromatic herbs perfects the olfactory landscape, while a veil of cypress brings generous, woody shade to a pure summer day.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p>6.5 x 14.7 x 6.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Yuzu</p></li><li><p>Neroli</p></li><li><p>Cypress</p></li></ul><p>Available formats:</p><ul><li><p>Spray 100 ml</p></li><li><p>Spray 200 ml</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 309,
+    "comparePrice": 349,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "OTB-4A37",
+    "skuNormalized": "OTB4A37",
+    "barcode": "2009275857386",
+    "barcodeNormalized": "2009275857386",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634949455-25af4m/louis-vuitton-on-the-beach--LP0481_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634950777-hipbqy/louis-vuitton-on-the-beach--LP0481_PM1_Interior_view.webp",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634949250-h68mcf/louis-vuitton-on-the-beach--LP0481_PM1_Detail_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634949634-cst7m8/louis-vuitton-on-the-beach--LP0481_PM1_Side_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "455dbf53-8d20-4542-bfaa-843804651f31",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634949455-25af4m/louis-vuitton-on-the-beach--LP0481_PM2_Front_view.avif",
+        "filename": "louis-vuitton-on-the-beach--LP0481_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "c3efd3a1-6071-4c0a-9715-fc83dba7398f",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634950777-hipbqy/louis-vuitton-on-the-beach--LP0481_PM1_Interior_view.webp",
+        "filename": "louis-vuitton-on-the-beach--LP0481_PM1_Interior view.webp",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      },
+      {
+        "_id": "2576c5f2-38cd-4857-8935-082d0c2ab7f3",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634949250-h68mcf/louis-vuitton-on-the-beach--LP0481_PM1_Detail_view.avif",
+        "filename": "louis-vuitton-on-the-beach--LP0481_PM1_Detail view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "07c8df20-c1e6-495b-a1ed-10ace8b99faf",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789634949634-cst7m8/louis-vuitton-on-the-beach--LP0481_PM1_Side_view.avif",
+        "filename": "louis-vuitton-on-the-beach--LP0481_PM1_Side view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "On the Beach",
+      "metaDescription": "We recommend selecting a sample of the fragrance you ordered, so that you can try it without opening the full-size bottle. That way, should you wish to, you...",
+      "handle": "on-the-beach"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 309,
+      "max": 309
+    },
+    "compareAtPriceRange": {
+      "min": 349,
+      "max": 349
+    },
+    "createdAt": {
+      "$date": "2026-09-17T08:49:48.420Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:46.013Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabad0960c177e8c0c69ce6"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Idylle Blossom Pendant, Rose Gold and Diamonds",
+    "title": "Idylle Blossom Pendant, Rose Gold and Diamonds",
+    "slug": "idylle-blossom-pendant-rose-gold-and-diamonds",
+    "handle": "idylle-blossom-pendant-rose-gold-and-diamonds",
+    "description": "<p>The exceptional jewels of the Idylle Blossom collection reinterpret the emblematic Monogram Flower, giving this historic Louis Vuitton signature an elegant contemporary twist. Combining the warm allure of 18-karat pink gold with the captivating gleam of meticulously set diamonds, this sumptuous pendant is a testament to exquisite craftsmanship. Overlapping layers of petals, each delicately hand-finished, surround a beautiful central diamond, creating powerful volumes with a delicate illusion of movement. This mesmerizing jewel makes a bold statement, elevating any look. Whether worn alone as a signature piece or in combination with other Idylle Blossom creations, it is a symbol of refined taste and lasting elegance.</p><p><br></p><ul><li><p>Rose gold 750/1000</p></li><li><p>1 brilliant-cut diamond, ~0.49ct</p></li><li><p>6 brilliant-cut diamonds totaling ~1.50ct</p></li><li><p>349 brilliant-cut diamonds totaling ~7.05ct</p></li><li><p>Length ~100cm</p></li><li><p>Sliding clasp to adjust the length</p></li></ul><p>For its pave-set diamonds Louis Vuitton selects diamonds with a colour of between F and G and a clarity of between VVS and VS for its Fine Jewelry pieces.</p><p><em>Each piece of Louis Vuitton Fine Jewelry is unique. Stone and metal weight information is provided for reference only and may vary slightly between pieces.</em></p>",
+    "shortDescription": "",
+    "price": 99,
+    "comparePrice": 109,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "IBPRG-6EA0",
+    "skuNormalized": "IBPRG6EA0",
+    "barcode": "2014744102485",
+    "barcodeNormalized": "2014744102485",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775915-ada1vi/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775898-85qvcd/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775571-yyjwqd/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Back_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775903-ud3omv/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775908-no1rpv/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Cropped_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "79154099-c2a8-4eb6-a80d-09d34c6c169b",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775915-ada1vi/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM2_Front_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "653590ae-41de-4cad-b79c-5aff4339753d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775898-85qvcd/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "37d57e97-e349-410c-9611-0a5c012140b9",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775571-yyjwqd/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Back_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Back view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "de1a88f2-2969-4817-9143-8bd0519ec95c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775903-ud3omv/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Side_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Side view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "1c270dea-0eac-4eaa-b3f2-3ee7fceb5750",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789635775908-no1rpv/louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Cropped_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-pendant-rose-gold-and-diamonds--Q03888_PM1_Cropped view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a332f46abe23f278e14"
+      }
+    ],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Idylle Blossom Pendant, Rose Gold and Diamonds",
+      "metaDescription": "The exceptional jewels of the Idylle Blossom collection reinterpret the emblematic Monogram Flower, giving this historic Louis Vuitton signature an elegant c...",
+      "handle": "idylle-blossom-pendant-rose-gold-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 99,
+      "max": 99
+    },
+    "compareAtPriceRange": {
+      "min": 109,
+      "max": 109
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:04:09.539Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-05T13:02:40.798Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabae2e60c177e8c0c69cf8"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Color Blossom XL Sun Pendant, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "title": "Color Blossom XL Sun Pendant, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "slug": "color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds",
+    "handle": "color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds",
+    "description": "<p>The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into18-karat (750/1000) pink gold, this precious pendant features a Sun motif carved from white mother-of-pearl, hand-polished to a high gloss. This pendant is encrusted with glistening diamonds, accented by brilliant round diamonds on the chain. Thanks to its sliding system, this exquisite pendant is a versatile piece, allowing the length to be easily adjusted. Months of work were necessary to perfect the stone’s subtle curves and sparkle. This delicate piece is an invitation to stack, mix or match with other models from the collection.</p><p><br></p><ul><li><p>Pink gold 750/1000</p></li><li><p>White mother-of-pearl</p></li><li><p>10 brilliant cut diamonds set on chain totaling ~0.44ct</p></li><li><p>112 brilliant cut diamonds totaling ~1.72ct</p></li><li><p>Sun motif size ~25mm</p></li><li><p>Length ~86cm with an adjustable sliding clasp</p></li><li><p>Hand-polished stone finish</p></li><li><p>Mirror-polished back engraved with the LV signature</p></li><li><p>This reference is Made in France</p></li></ul><p>For its pave-set diamonds Louis Vuitton selects diamonds with a colour of between F and G and a clarity of between VVS and VS for its Fine Jewelry pieces.</p>",
+    "shortDescription": "",
+    "price": 109,
+    "comparePrice": 129,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "CBXSP-E8B8",
+    "skuNormalized": "CBXSPE8B8",
+    "barcode": "2032212764096",
+    "barcodeNormalized": "2032212764096",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072846-z810sb/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072863-iedlx2/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072516-d9xph0/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Other_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072331-894ni7/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Back_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072689-z8josl/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072903-l6jft8/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Cropped_view.webp"
+    ],
+    "media": [
+      {
+        "_id": "936ce247-7c5e-4828-8ebe-39e2194c8ec2",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072846-z810sb/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM2_Front_view.avif",
+        "filename": "louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "0c4618f0-77f7-4705-9da2-7f6865e25d99",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072863-iedlx2/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "cf2dc004-1477-4c59-9975-07b55171da48",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072516-d9xph0/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Other_view.avif",
+        "filename": "louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Other view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "7d784b29-ce29-4c7f-98de-2b049a845e8c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072331-894ni7/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Back_view.avif",
+        "filename": "louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Back view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "3d941d35-427d-4dd4-a2da-c5b580088cd0",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072689-z8josl/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Side_view.avif",
+        "filename": "louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Side view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "0d09056b-98f0-442a-b6c8-f8f6ab1ea51a",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636072903-l6jft8/louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Cropped_view.webp",
+        "filename": "louis-vuitton-color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04156_PM1_Cropped view.webp",
+        "alt": "",
+        "position": 5,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a612f46abe23f278e15"
+      }
+    ],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Color Blossom XL Sun Pendant, Pink Gold, White Mother-of-Pearl and...",
+      "metaDescription": "The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into18-karat (750/1000)...",
+      "handle": "color-blossom-xl-sun-pendant-pink-gold-white-mother-of-pearl-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 109,
+      "max": 109
+    },
+    "compareAtPriceRange": {
+      "min": 129,
+      "max": 129
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:09:02.846Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.975Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabafb360c177e8c0c69cfc"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Vivienne large pendant, 3 golds & diamonds pavage",
+    "title": "Vivienne large pendant, 3 golds & diamonds pavage",
+    "slug": "vivienne-large-pendant-3-golds-diamonds-pavage",
+    "handle": "vivienne-large-pendant-3-golds-diamonds-pavage",
+    "description": "<p>House mascot Vivienne dazzles in 18-karat yellow, pink and white gold, brilliantly set with diamond pavé. Suspended from an adjustable pink-gold chain, this exceptional jewel can be worn as a pendant or, thanks to a fastening pin at the back, a brooch. The piece can also be displayed on its own – a precious and playful objet d'art.</p><p><br></p><ul><li><p>Yellow, Pink and White Gold (18 kt)</p></li><li><p>166 brilliant-cut diamonds totaling ~ 1.97 ct</p></li><li><p>Height: ~ 35 mm</p></li><li><p>Length: ~ 80 cm + Links at ~ 70 &amp; ~ 75 cm</p></li></ul><p>For its pave-set diamonds Louis Vuitton selects diamonds with a colour between F and G and a clarity between VVS and VS for its Fine Jewelry pieces.</p><p><em>Each piece of Louis Vuitton Fine Jewelry is unique. Stone and metal weight information is provided for reference only and may vary slightly between pieces.</em></p>",
+    "shortDescription": "",
+    "price": 79,
+    "comparePrice": 99,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "VLP3G-C7B9",
+    "skuNormalized": "VLP3GC7B9",
+    "barcode": "2095684067003",
+    "barcodeNormalized": "2095684067003",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636424085-su4fts/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM2_Front_view.webp",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636422898-0w6eog/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636411380-sbf1b1/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Interior2_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636413337-f5u6xc/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636421675-301yta/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Ambiance_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "b9f589ed-461b-4f36-ab71-afd2741a6288",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636424085-su4fts/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM2_Front_view.webp",
+        "filename": "louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM2_Front view.webp",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      },
+      {
+        "_id": "95e4441b-b4b6-48a2-a497-1e8374c4910f",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636422898-0w6eog/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "7888c21e-0a05-4311-97f7-e58f4b8f901f",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636411380-sbf1b1/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Interior2_view.avif",
+        "filename": "louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Interior2 view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "90a539b1-c0fe-4d4f-96a5-b40eeabea7ab",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636413337-f5u6xc/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Side_view.avif",
+        "filename": "louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Side view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "87cb045b-e8be-4d5b-9329-cb5c991494fa",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636421675-301yta/louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Ambiance_view.avif",
+        "filename": "louis-vuitton-vivienne-large-pendant-3-golds---diamonds-pavage--Q93799_PM1_Ambiance view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Vivienne large pendant, 3 golds & diamonds pavage",
+      "metaDescription": "House mascot Vivienne dazzles in 18-karat yellow, pink and white gold, brilliantly set with diamond pavé. Suspended from an adjustable pink-gold chain, this...",
+      "handle": "vivienne-large-pendant-3-golds-diamonds-pavage"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 79,
+      "max": 79
+    },
+    "compareAtPriceRange": {
+      "min": 99,
+      "max": 99
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:15:31.888Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.960Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabb10660c177e8c0c69cff"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Galaxie Necklace, White Gold and Diamonds",
+    "title": "Galaxie Necklace, White Gold and Diamonds",
+    "slug": "galaxie-necklace-white-gold-and-diamonds",
+    "handle": "galaxie-necklace-white-gold-and-diamonds",
+    "description": "<p>The bold yet feminine jewels of the Galaxie collection are a tribute to the Monogram Flower, a timeless Louis Vuitton icon that transcends styles and eras. With its architectural design, expertly crafted for a perfect supple fit, this necklace creates a striking interplay between the luster of 18-karat white gold and the dazzle of diamonds. The ideal ornament for daytime or evening looks, this exceptional jewel will stand the test of time while remaining true to its essence.</p><p><br></p><ul><li><p>White gold 750/1000</p></li><li><p>20 navette-cut diamonds, ~3.40ct</p></li><li><p>452 diamonds, ~7.98ct</p></li><li><p>Length ~41cm</p></li><li><p>Invisible clasp</p></li></ul><p>Each piece of Louis Vuitton Fine Jewelry is unique. Stone and metal weight information is provided for reference only and may vary slightly between pieces.</p>",
+    "shortDescription": "",
+    "price": 139,
+    "comparePrice": 149,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "GNWGA-3D39",
+    "skuNormalized": "GNWGA3D39",
+    "barcode": "2062466662114",
+    "barcodeNormalized": "2062466662114",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786780-omsdhd/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Detail_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786639-vrr94l/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786846-al9kff/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786743-hvxdh1/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Cropped_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "5291695f-fd51-4894-845e-beba5d773ddc",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786780-omsdhd/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Detail_view.avif",
+        "filename": "louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Detail view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "e34f860f-ea34-458c-a70c-44f05bc3489e",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786639-vrr94l/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "cecb705e-7942-428a-8c3d-8577fac5938a",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786846-al9kff/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM2_Front_view.avif",
+        "filename": "louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM2_Front view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "f71b1ab0-7029-4c00-bf0c-a4ef43cbd024",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789636786743-hvxdh1/louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Cropped_view.avif",
+        "filename": "louis-vuitton-galaxie-necklace-white-gold-and-diamonds--Q94969_PM1_Cropped view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Galaxie Necklace, White Gold and Diamonds",
+      "metaDescription": "The bold yet feminine jewels of the Galaxie collection are a tribute to the Monogram Flower, a timeless Louis Vuitton icon that transcends styles and eras. W...",
+      "handle": "galaxie-necklace-white-gold-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 139,
+      "max": 139
+    },
+    "compareAtPriceRange": {
+      "min": 149,
+      "max": 149
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:21:10.582Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.944Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabb2d060c177e8c0c69d03"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Color Blossom M Star Pendant, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "title": "Color Blossom M Star Pendant, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "slug": "color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds",
+    "handle": "color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds",
+    "description": "<p>The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into18-karat (750/1000) pink gold, this precious pendant features a Star motif carved from white mother-of-pearl, hand-polished to a high gloss. This pendant is encrusted with glistening diamonds, accented by a brilliant round diamond on the chain. Months of work were necessary to perfect the stone’s subtle curves and sparkle. This delicate piece is an invitation to stack, mix or match with other models from the collection.</p><p><br></p><ul><li><p>Pink gold 750/1000</p></li><li><p>White mother-of-pearl</p></li><li><p>33 brilliant cut diamonds totaling ~0.22ct</p></li><li><p>1 brilliant-cut diamond ~0,044ct</p></li><li><p>Star motif size ~18.5mm</p></li><li><p>Length ~42cm with an adjustable ring at ~38cm and ~40cm</p></li><li><p>Hand-polished stone finish</p></li><li><p>Mirror-polished back engraved with the LV signature</p></li><li><p>This reference is Made in France</p></li></ul><p>For its pave-set diamonds Louis Vuitton selects diamonds with a colour of between F and G and a clarity of between VVS and VS for its Fine Jewelry pieces.</p><p><em>Each piece of Louis Vuitton Fine Jewelry is unique. All the stones in the Color Blossom collection are meticulously selected by our experts. Due to their natural origin, the colors may vary from one creation to another.</em></p><p><em>Stone and metal weight information is provided for reference only and may vary slightly between pieces.</em></p>",
+    "shortDescription": "",
+    "price": 169,
+    "comparePrice": 189,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "CBMSP-D6B5",
+    "skuNormalized": "CBMSPD6B5",
+    "barcode": "2027613045660",
+    "barcodeNormalized": "2027613045660",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258456-gxyy36/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258661-86wxm7/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258381-i5cigo/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Back_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258451-lu7qnr/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Other_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258653-p8uxa8/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258645-6hfikm/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Cropped_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "6f9ab1f9-6d37-496c-8c9d-2ccf622edba1",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258456-gxyy36/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Side_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Side view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "d2ad7391-4c41-4866-9e80-8ebf57a67561",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258661-86wxm7/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "7a400eef-1166-472e-84d8-3cd1ee5c89d2",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258381-i5cigo/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Back_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Back view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "c89f74be-122c-4fe1-91c9-4e877161b6a2",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258451-lu7qnr/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Other_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Other view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "15efa75a-7a6d-4ede-9923-f3ac6d9a1702",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258653-p8uxa8/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM2_Front_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM2_Front view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "387e6d6d-0a64-4c80-bab3-d26c85af12d0",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637258645-6hfikm/louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Cropped_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q04155_PM1_Cropped view.avif",
+        "alt": "",
+        "position": 5,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a962f46abe23f278e17"
+      }
+    ],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Color Blossom M Star Pendant, Pink Gold, White Mother-of-Pearl and...",
+      "metaDescription": "The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into18-karat (750/1000)...",
+      "handle": "color-blossom-m-star-pendant-pink-gold-white-mother-of-pearl-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 169,
+      "max": 169
+    },
+    "compareAtPriceRange": {
+      "min": 189,
+      "max": 189
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:28:48.467Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.926Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabb3e660c177e8c0c69d10"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Idylle Blossom Twist Bracelet, Yellow Gold",
+    "title": "Idylle Blossom Twist Bracelet, Yellow Gold",
+    "slug": "idylle-blossom-twist-bracelet-yellow-gold",
+    "handle": "idylle-blossom-twist-bracelet-yellow-gold",
+    "description": "<p>Identifiable, feminine and playful, the Idylle Blossom collection enlivens the Monogram flowers, created in 1896 by Georges-Louis Vuitton. These bracelets are totally “shape memory” owing to its incredible flexibility. Blooming in white, pink or yellow gold, the 3 exquisite flowers can be mixed in a personal precious bouquet or for wearing separately, lighting up the silhouette of trendy and confident Louis Vuitton women.</p><p><br></p><ul><li><p>Yellow gold (18 kt)</p></li><li><p>1 brilliant-cut diamond ~ 0.06 ct</p></li><li><p>Motif: ~ 11 mm</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 139,
+    "comparePrice": 149,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "IBTBY-F2BD",
+    "skuNormalized": "IBTBYF2BD",
+    "barcode": "2001093078851",
+    "barcodeNormalized": "2001093078851",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637538489-y2a613/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637539661-na45oy/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Ambiance_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637538069-oc3y9u/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Other_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637539834-7d6swu/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Worn_view.webp"
+    ],
+    "media": [
+      {
+        "_id": "5e583ea5-75ec-4101-9c81-4e76eeb3955d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637538489-y2a613/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM2_Front_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "cd99595e-4c94-46e2-b63e-3a4eec0af649",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637539661-na45oy/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Ambiance_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Ambiance view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "97d5b22a-2c7e-45a5-9033-1f5ff8f3f98d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637538069-oc3y9u/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Other_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Other view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "dadcf0b0-31c7-4bc0-a3a2-78bcb62a3ad1",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637539834-7d6swu/louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Worn_view.webp",
+        "filename": "louis-vuitton-idylle-blossom-twist-bracelet-yellow-gold--Q95529_PM1_Worn view.webp",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Idylle Blossom Twist Bracelet, Yellow Gold",
+      "metaDescription": "Identifiable, feminine and playful, the Idylle Blossom collection enlivens the Monogram flowers, created in 1896 by Georges-Louis Vuitton. These bracelets ar...",
+      "handle": "idylle-blossom-twist-bracelet-yellow-gold"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 139,
+      "max": 139
+    },
+    "compareAtPriceRange": {
+      "min": 149,
+      "max": 149
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:33:26.410Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.907Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabb4d360c177e8c0c69d14"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Idylle Blossom Paved Ring, 3 Golds And Diamonds",
+    "title": "Idylle Blossom Paved Ring, 3 Golds And Diamonds",
+    "slug": "idylle-blossom-paved-ring-3-golds-and-diamonds",
+    "handle": "idylle-blossom-paved-ring-3-golds-and-diamonds",
+    "description": "<p>Playfully feminine, the Idylle Blossom paved ring brings life to the Monogram Flowers, created over a hundred years ago by Georges-Louis Vuitton. Cast from 18-karat white, pink, and yellow gold, the three blossoms are covered with more than 150 pavé diamonds. The precious stones are a sparkling celebration of the collection’s tenth anniversary.</p><p><br></p><ul><li><p>Yellow, white and pink gold (18 kt)</p></li><li><p>151 brilliant-cut diamonds totaling ~ 0.67 ct</p></li><li><p>Flower motifs: between ~ 8.5 &amp; ~ 10 mm</p></li><li><p>This ring is sold as a set of three different bands that can be worn on their own or stacked.</p></li></ul><p>For its pave-set diamonds Louis Vuitton selects diamonds with a colour of between F and G and a clarity of between VVS and VS for its Fine Jewelry pieces.</p><p><em>Each piece of Louis Vuitton Fine Jewelry is unique. Stone and metal weight information is provided for reference only and may vary slightly between pieces.</em></p>",
+    "shortDescription": "",
+    "price": 79,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "IBPR3-0C7F",
+    "skuNormalized": "IBPR30C7F",
+    "barcode": "2083701123245",
+    "barcodeNormalized": "2083701123245",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825454-ia4onm/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825572-hk8why/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825567-ixwlfn/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Ambiance_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825380-ozpbnk/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Other_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825467-cpk23u/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Side_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "87ee45a0-ad39-45ce-b4dd-1ac269db480a",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825454-ia4onm/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM2_Front_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "5378e341-7b83-4a6a-85ce-e5a4e30d04bf",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825572-hk8why/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "efd5ec5d-60ef-4964-908c-26ebd74558e9",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825567-ixwlfn/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Ambiance_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Ambiance view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "206e0e3d-4f6e-482d-9f6a-ea55d7b2c0e1",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825380-ozpbnk/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Other_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Other view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "c3933a8a-1d83-4f9e-ac7d-a8b8e9d01af3",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789637825467-cpk23u/louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Side_view.avif",
+        "filename": "louis-vuitton-idylle-blossom-paved-ring-3-golds-and-diamonds--Q9R75A_PM1_Side view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Idylle Blossom Paved Ring, 3 Golds And Diamonds",
+      "metaDescription": "Playfully feminine, the Idylle Blossom paved ring brings life to the Monogram Flowers, created over a hundred years ago by Georges-Louis Vuitton. Cast from 1...",
+      "handle": "idylle-blossom-paved-ring-3-golds-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 79,
+      "max": 79
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:37:23.590Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.888Z"
+    },
+    "__v": 0,
+    "comparePrice": 99,
+    "compareAtPriceRange": {
+      "min": 99,
+      "max": 99
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6aabb5ba60c177e8c0c69d16"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Le Damier de Louis Vuitton Small Ring, Rose Gold and Diamonds",
+    "title": "Le Damier de Louis Vuitton Small Ring, Rose Gold and Diamonds",
+    "slug": "le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds",
+    "handle": "le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds",
+    "description": "<p>The graphic genderless style of Le Damier de Louis Vuitton ring makes it a unique combination of contemporary artistry and classic heritage. Delicately crafted in hand-polished 18-karat rose gold set with radiant diamonds, its design evokes the House’s iconic Damier motif, a timeless symbol of infinity created by Louis and Georges-Louis Vuitton in 1888. Designed to be combined with other jewels, this exceptional ring is meant to be worn every day – and never taken off, becoming an authentic second skin.</p><p><br></p><ul><li><p>Rose Gold 750/1000</p></li><li><p>28 brilliant-cut diamonds totaling ~0.39ct</p></li><li><p>Width ~3.5mm</p></li><li><p>Hand-polished finish</p></li></ul><p>For its pave-set diamonds Louis Vuitton selects diamonds with a colour of between F and G and a clarity of between VVS and VS for its Fine Jewelry pieces.</p><p><em>Each piece of Louis Vuitton Fine Jewelry is unique. Stone and metal weight information is provided for reference only and may vary slightly between pieces.</em></p><p><em>Specifications given for size 52</em></p>",
+    "shortDescription": "",
+    "price": 59,
+    "comparePrice": 69,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "LDDLV-0DD6",
+    "skuNormalized": "LDDLV0DD6",
+    "barcode": "2081782635169",
+    "barcodeNormalized": "2081782635169",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789638029705-wo90eu/louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789638029817-ghufka/louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789638029734-016r64/louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM1_Side_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "9d4bdd87-1058-4768-9df3-c89a56e7269d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789638029705-wo90eu/louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM2_Front_view.avif",
+        "filename": "louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "6b4a5c1f-b44b-4767-9b1a-7a16d07f1216",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789638029817-ghufka/louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "318b331f-a7a0-4834-81dc-f5f6ea523144",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789638029734-016r64/louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM1_Side_view.avif",
+        "filename": "louis-vuitton-le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds--Q9Y54F_PM1_Side view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Le Damier de Louis Vuitton Small Ring, Rose Gold and Diamonds",
+      "metaDescription": "The graphic genderless style of Le Damier de Louis Vuitton ring makes it a unique combination of contemporary artistry and classic heritage. Delicately craft...",
+      "handle": "le-damier-de-louis-vuitton-small-ring-rose-gold-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 59,
+      "max": 59
+    },
+    "compareAtPriceRange": {
+      "min": 69,
+      "max": 69
+    },
+    "createdAt": {
+      "$date": "2026-09-17T09:41:14.753Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.870Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabc12d60c177e8c0c69d32"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Color Blossom M Star Multi-Motif Earrings, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "title": "Color Blossom M Star Multi-Motif Earrings, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "slug": "color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds",
+    "handle": "color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds",
+    "description": "<p>The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into 18-karat pink gold, these precious earrings feature Star motifs encrusted with ghlistening diamonds and white mother-of-pearl, accented by brilliant round diamonds. Months of work were necessary to perfect the stones’ subtle curves and sparkle. Irresistibly feminine, these jewels cast a dazzling light with every graceful movement of the head. These delicate earrings are an invitation to stack, mix or match with other models from the collection.</p><p><br></p><ul><li><p>Pink gold 750/1000</p></li><li><p>White mother-of-pearl</p></li><li><p>50 brilliant-cut diamonds totaling ~0.5ct</p></li><li><p>2 motifs</p></li><li><p>Star motif size ~17mm</p></li><li><p>Length ~3.5cm</p></li><li><p>Racket system</p></li><li><p>Hand-polished stone finish</p></li><li><p>Mirror-polished back engraved with the LV signature</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 79,
+    "comparePrice": 99,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "CBMSM-CD7D",
+    "skuNormalized": "CBMSMCD7D",
+    "barcode": "2069041554512",
+    "barcodeNormalized": "2069041554512",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789640955517-f54swq/louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789640955895-ulruew/louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789640956050-smjenv/louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM1_Cropped_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "b209a6d6-2643-4330-9ad4-bd2ac966d35a",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789640955517-f54swq/louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM2_Front_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "4394e0a3-c1b5-477a-80c3-4e5f24d9219c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789640955895-ulruew/louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "06912cae-68ea-4c4a-94e5-100d6804e584",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789640956050-smjenv/louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM1_Cropped_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds--Q06489_PM1_Cropped view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "size": 254860,
+        "width": 1090,
+        "height": 1090,
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a7e2f46abe23f278e16"
+      }
+    ],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Color Blossom M Star Multi-Motif Earrings, Pink Gold, White Mother-...",
+      "metaDescription": "The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into 18-karat pink gold...",
+      "handle": "color-blossom-m-star-multi-motif-earrings-pink-gold-white-mother-of-pearl-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 79,
+      "max": 79
+    },
+    "compareAtPriceRange": {
+      "min": 99,
+      "max": 99
+    },
+    "createdAt": {
+      "$date": "2026-09-17T10:30:05.104Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.854Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabc63460c177e8c0c69d3a"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "LV Diamonds Paved Hoops, LV Monogram Star cut",
+    "title": "LV Diamonds Paved Hoops, LV Monogram Star cut",
+    "slug": "lv-diamonds-paved-hoops-lv-monogram-star-cut",
+    "handle": "lv-diamonds-paved-hoops-lv-monogram-star-cut",
+    "description": "<p>The LV Diamonds pavé hoops showcase the Maison’s exceptional jewelry savoir-faire. Cast from 18-karat white gold, these earrings feature an LV Monogram Star cut diamond, with the hoops adorned with brilliant round-cut diamonds. For a distinctive signature touch, the center stone basket is modeled after the stylized flowers of Louis Vuitton’s legendary Monogram pattern. Playful and easy to mix and match, these hoops make a memorable gift to be cherished forever. This piece is accompanied by an LV Diamonds Certificate, a unique and immutable digital record of the central diamond’s characteristics and its journey, from extraction to final setting. This secure certificate is powered by Aura Blockchain Consortium technology.</p><p><br></p><ul><li><p>White Gold 750/1000</p></li><li><p>2 Monogram Star cut diamonds, total ~2.00cts</p></li><li><p>48 diamonds, ~0.50ct</p></li><li><p>Width ~3mm</p></li><li><p>Alpa system</p></li><li><p>Sold by pair</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 69,
+    "comparePrice": 79,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "LDPHL-347E",
+    "skuNormalized": "LDPHL347E",
+    "barcode": "2056612215132",
+    "barcodeNormalized": "2056612215132",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249162-586ybw/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Back_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249337-ka3v3f/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Cropped_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249175-xtam8t/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249275-bdlu3j/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249357-8ie9v5/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM2_Front_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "5e377c75-9b60-49ba-8f30-9f40d974f597",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249162-586ybw/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Back_view.avif",
+        "filename": "louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Back view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "b0ab5571-392f-4918-a6d9-b28b00f922ab",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249337-ka3v3f/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Cropped_view.avif",
+        "filename": "louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Cropped view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "2f237041-d3ca-4e13-a1ca-d62617ac61dc",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249175-xtam8t/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Side_view.avif",
+        "filename": "louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Side view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "d77b2987-76f6-49d1-8a06-0440155e955a",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249275-bdlu3j/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM1_Worn view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "0b4314dd-3fc4-432b-ba7e-0bf46b5e6290",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642249357-8ie9v5/louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM2_Front_view.avif",
+        "filename": "louis-vuitton-lv-diamonds-paved-hoops-lv-monogram-star-cut--QE1168_PM2_Front view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "LV Diamonds Paved Hoops, LV Monogram Star cut",
+      "metaDescription": "The LV Diamonds pavé hoops showcase the Maison’s exceptional jewelry savoir-faire. Cast from 18-karat white gold, these earrings feature an LV Monogram Star...",
+      "handle": "lv-diamonds-paved-hoops-lv-monogram-star-cut"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 69,
+      "max": 69
+    },
+    "compareAtPriceRange": {
+      "min": 79,
+      "max": 79
+    },
+    "createdAt": {
+      "$date": "2026-09-17T10:51:32.461Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.838Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabc73b60c177e8c0c69d3b"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Color Blossom BB Star Multi-Motif Bracelet, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "title": "Color Blossom BB Star Multi-Motif Bracelet, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "slug": "color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds",
+    "handle": "color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds",
+    "description": "<p>The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into 18-karat pink gold, this precious bracelet features Star motifs carved from white mother-of-pearl, hand-polished to a high gloss and accented by brilliant round diamonds on the chain. Months of work were necessary to perfect the stones’ subtle curves and sparkle. This delicate bracelet is an invitation to stack, mix or match with other models from the collection.</p><p><br></p><ul><li><p>Pink gold 750/1000</p></li><li><p>White mother-of-pearl</p></li><li><p>3 brilliant-cut diamonds totaling ~0.1ct</p></li><li><p>4 motifs</p></li><li><p>Star motif size ~14mm</p></li><li><p>Length ~18cm with adjustable links at ~16.5cm and ~15.5cm</p></li><li><p>Hand-polished stone finish</p></li><li><p>Mirror-polished back engraved with the LV signature</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 109,
+    "comparePrice": 129,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "CBBSM-042F",
+    "skuNormalized": "CBBSM042F",
+    "barcode": "2060717077557",
+    "barcodeNormalized": "2060717077557",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642503956-5smqjc/louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642504494-y88z8h/louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM1_Worn_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642504518-a19adt/louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM1_Cropped_view.webp"
+    ],
+    "media": [
+      {
+        "_id": "89e53f2d-693b-4170-86eb-22d012d32761",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642503956-5smqjc/louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM2_Front_view.avif",
+        "filename": "louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "9c41018f-cc16-4afd-ac53-caa02ead5a05",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642504494-y88z8h/louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM1_Worn view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "d2273c12-1d14-496d-83a9-47b341a1811b",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642504518-a19adt/louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM1_Cropped_view.webp",
+        "filename": "louis-vuitton-color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds--Q05569_PM1_Cropped view.webp",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/webp",
+        "size": 349922,
+        "width": 1090,
+        "height": 1090,
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Color Blossom BB Star Multi-Motif Bracelet, Pink Gold, White Mother...",
+      "metaDescription": "The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into 18-karat pink gold...",
+      "handle": "color-blossom-bb-star-multi-motif-bracelet-pink-gold-white-mother-of-pearl-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 109,
+      "max": 109
+    },
+    "compareAtPriceRange": {
+      "min": 129,
+      "max": 129
+    },
+    "createdAt": {
+      "$date": "2026-09-17T10:55:55.467Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.821Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabc85013c31b1b59ea11a5"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Color Blossom M Star Multi-Motif Pendant, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "title": "Color Blossom M Star Multi-Motif Pendant, Pink Gold, White Mother-of-Pearl and Diamonds",
+    "slug": "color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds",
+    "handle": "color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds",
+    "description": "<p>The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into 18-karat pink gold, this precious pendant features two Star motifs, one paved with hand-set diamonds, the second inlaid with finely carved mother-of-pearl. Months of work were necessary to perfect the stone’s subtle curves and sparkle. This delicate pendant is an invitation to stack, mix or match with other models from the collection.</p><p><br></p><ul><li><p>Pink gold 750/1000</p></li><li><p>White mother-of-pearl</p></li><li><p>25 brilliant-cut diamonds totaling ~0.2ct</p></li><li><p>2 motifs</p></li><li><p>Pavé Star motif size ~14mm</p></li><li><p>White mother-of-pearl Star motif size ~17mm</p></li><li><p>Length ~41cm with an adjustable link at ~38cm</p></li><li><p>Hand-polished stone finish</p></li><li><p>Mirror-polished back engraved with the LV signature</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 219,
+    "comparePrice": 239,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "CBMSM-DDC5",
+    "skuNormalized": "CBMSMDDC5",
+    "barcode": "2049976598508",
+    "barcodeNormalized": "2049976598508",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789428-r52hm7/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789640-hcw5xi/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Cropped_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789118-zdjyyb/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Interior2_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789233-730gyz/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789662-mapckb/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Worn_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "27b787ca-94c1-4261-b0d8-fd1ec4717684",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789428-r52hm7/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM2_Front_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "a95f840a-ecf4-4116-8d90-eef5228cb110",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789640-hcw5xi/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Cropped_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Cropped view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "1e0f6b30-d095-4ca8-8439-cf65bc74b3ab",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789118-zdjyyb/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Interior2_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Interior2 view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "daf29f41-a5a2-4c02-a409-3991860eba65",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789233-730gyz/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Side_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Side view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "bd7a4f38-5898-452b-8de3-1976bd324936",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789642789662-mapckb/louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Worn_view.avif",
+        "filename": "louis-vuitton-color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds--Q94676_PM1_Worn view.avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa83f9c788a88577046258f"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Color Blossom M Star Multi-Motif Pendant, Pink Gold, White Mother-o...",
+      "metaDescription": "The Color Blossom pieces celebrate the emblematic Monogram Flower, designed in 1896 by Georges-Louis Vuitton, son of the founder. Set into 18-karat pink gold...",
+      "handle": "color-blossom-m-star-multi-motif-pendant-pink-gold-white-mother-of-pearl-and-diamonds"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 219,
+      "max": 219
+    },
+    "compareAtPriceRange": {
+      "min": 239,
+      "max": 239
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:00:32.677Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.802Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabcae813c31b1b59ea11ab"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Imagination",
+    "title": "Imagination",
+    "slug": "imagination",
+    "handle": "imagination",
+    "description": "<p>Available exclusively on louisvuitton.com and in selected Louis Vuitton stores.<br><br>We recommend selecting a sample of the fragrance you ordered, so that you can try it without opening the full-size bottle. That way, should you wish to, you can return your unopened bottle for reimbursement. Samples are subject to availability.<br><br><strong>The unprecedented attraction of amber and tea for imagination to take flight.</strong><br><br>Imagination. The key to the audacity, success and drive of the creatives who make the wildest dreams a reality. An immaterial energy that is nurtured by travel and experiences that forge a new state of mind. A creative impulse that has always guided Jacques Cavallier Belletrud.<br>With an over-generous dose of Ambrox — perfumery’s white gold — the Master Perfumer reinvents the ambery accord to express a sensual and contemporary masculine elegance. Its contrasts appear upon contact with noble citrus and black tea from China extracted with CO2, a magical ingredient that carries within it the soul of travel. With Imagination, the spirit rises, escapes and conquers new paths of freedom.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p>6.5 x 14.7 x 6.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Amber</p></li><li><p>Black Tea</p></li><li><p>Bergamot</p></li></ul><p>Available formats:</p><ul><li><p>Spray 100 ml</p></li><li><p>Spray 200 ml</p></li><li><p>Travel Spray. Created to accompany any trip, this set includes a travel bottle as well as four 7.5ml cartridges. Designed with magnetic closures, these novel refills clip instinctively onto the atomizer. In moments, the travel bottle is primed and ready for a new adventure.</p></li><li><p>Travel Spray refills. Refills to be used exclusively with the Louis Vuitton Travel Spray.</p></li></ul><p>Ingredients:<br></p>",
+    "shortDescription": "",
+    "price": 279,
+    "comparePrice": 299,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "IMA-F87D",
+    "skuNormalized": "IMAF87D",
+    "barcode": "2006608813019",
+    "barcodeNormalized": "2006608813019",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429675-erbzs3/louis-vuitton-imagination--LP0476_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429812-o3de26/louis-vuitton-imagination--LP0476_PM1_Interior_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429644-8re3ya/louis-vuitton-imagination--LP0476_PM1_Side_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429824-1sagxr/louis-vuitton-imagination--LP0476_PM1_Detail_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "3555c3b9-a670-4cae-bd6d-d8997c3e6a3b",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429675-erbzs3/louis-vuitton-imagination--LP0476_PM2_Front_view.avif",
+        "filename": "louis-vuitton-imagination--LP0476_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "9f05663f-3410-4412-a7f9-01f36e39fd1c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429812-o3de26/louis-vuitton-imagination--LP0476_PM1_Interior_view.avif",
+        "filename": "louis-vuitton-imagination--LP0476_PM1_Interior view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "193dc94a-1569-4494-b9ac-e56594c9a5f1",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429644-8re3ya/louis-vuitton-imagination--LP0476_PM1_Side_view.avif",
+        "filename": "louis-vuitton-imagination--LP0476_PM1_Side view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "df1e497e-fba9-4741-a448-498d50456bb9",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643429824-1sagxr/louis-vuitton-imagination--LP0476_PM1_Detail_view.avif",
+        "filename": "louis-vuitton-imagination--LP0476_PM1_Detail view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Imagination",
+      "metaDescription": "Available exclusively on louisvuitton.com and in selected Louis Vuitton stores. We recommend selecting a sample of the fragrance you ordered, so that you can...",
+      "handle": "imagination"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 279,
+      "max": 279
+    },
+    "compareAtPriceRange": {
+      "min": 299,
+      "max": 299
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:11:36.568Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-05T13:02:40.798Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabcc0913c31b1b59ea11ae"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Météore",
+    "title": "Météore",
+    "slug": "mtore",
+    "handle": "mtore",
+    "description": "<p>Available exclusively on louisvuitton.com and in selected Louis Vuitton stores.<br><br>We recommend selecting a sample of the fragrance you ordered, so that you can try it without opening the full-size bottle. That way, should you wish to, you can return your unopened bottle for reimbursement. Samples are subject to availability.<br><br><strong>The sizzle of spicy mandarin awakens boundless energy.</strong><br><br>A magnetic name that evokes power and light. A fragrance that arouses fascination in its wake, like the dazzlingly flamboyant clouds that so captivate humankind. To capture such exhilarating energy, Master Perfumer Jacques Cavallier Belletrud chose the Sicilian mandarin. An ingredient of such exceptional quality, it infuses the perfume’s heart with ethereal freshness, resonating as it comes into contact with a trio of peppers. As a signature, Java vetiver reveals its noblest facets — at once fresh, earthy and ambery — making the enchantment complete. In fusing elements of sky and Earth, Météore reveals a contemporary elegance that knows no limit.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p>6.5 x 14.7 x 6.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Mandarin</p></li><li><p>Lavender</p></li><li><p>Sichuan Pepper</p></li></ul><p>Available formats:</p><ul><li><p>Spray 100 ml</p></li><li><p>Spray 200 ml</p></li><li><p>Travel Spray. Created to accompany any trip, this set includes a travel bottle as well as four 7.5ml cartridges. Designed with magnetic closures, these novel refills clip instinctively onto the atomiser. In moments, the travel bottle is primed and ready for a new adventure</p></li><li><p>Travel Spray refills. Refills to be used exclusively with the Louis Vuitton Travel Spray</p></li></ul><p>Ingredients:</p>",
+    "shortDescription": "",
+    "price": 319,
+    "comparePrice": 349,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "MTO-3E13",
+    "skuNormalized": "MTO3E13",
+    "barcode": "2003229394330",
+    "barcodeNormalized": "2003229394330",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 19,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643742962-cx2fas/louis-vuitton-meteore--LP0471_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643742916-ylp9oh/louis-vuitton-meteore--LP0471_PM1_Interior_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643743106-tbwgc7/louis-vuitton-meteore--LP0471_PM1_Side_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "d6745325-45e5-472d-ab8f-05fa62951a33",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643742962-cx2fas/louis-vuitton-meteore--LP0471_PM2_Front_view.avif",
+        "filename": "louis-vuitton-meteore--LP0471_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "e3ab0648-1588-42b8-96a5-a231e76dd5b5",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643742916-ylp9oh/louis-vuitton-meteore--LP0471_PM1_Interior_view.avif",
+        "filename": "louis-vuitton-meteore--LP0471_PM1_Interior view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "bc79ea4c-b56d-4c80-8b8d-9e6e1a87aff2",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789643743106-tbwgc7/louis-vuitton-meteore--LP0471_PM1_Side_view.avif",
+        "filename": "louis-vuitton-meteore--LP0471_PM1_Side view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Météore",
+      "metaDescription": "Available exclusively on louisvuitton.com and in selected Louis Vuitton stores. We recommend selecting a sample of the fragrance you ordered, so that you can...",
+      "handle": "mtore"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 319,
+      "max": 319
+    },
+    "compareAtPriceRange": {
+      "min": 349,
+      "max": 349
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:16:25.300Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.762Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabcf7a13c31b1b59ea11b7"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Nuit de Feu",
+    "title": "Nuit de Feu",
+    "slug": "nuit-de-feu",
+    "handle": "nuit-de-feu",
+    "description": "<p>Available exclusively on louisvuitton.com and in selected Louis Vuitton stores.<br><br>We recommend selecting a sample of the fragrance you ordered, so that you can try it without opening the full-size bottle. Samples are subject to availability.<br><br><strong>In the dark of night, scents of incense rise from the shadowy hollows in the dunes.</strong><br><br>Plunged into the icy night, the desert seems frozen under an endlessly star-studded sky. In the heart of this darkness, a camp fire is crackling, its dancing flames warm the travelers, its smoke curling upwards into the sky. This moment, this scent of eternity, has inspired the Master Perfumer Jacques Cavallier Belletrud to create a vibrant tribute to incense, a sacred scent revered down the ages and across cultures. It is the signature ingredient in Nuit de Feu, with three exceptional essences in its trail. Softened by an exclusive infusion of natural leather, and glorified by a powerful musk accord, the incense molds the mystical scrolls of oud wood into a perfume that resonates with the history of the world.<br><br>The bottle is refillable in stores equipped with a perfume fountain.</p><p><br></p><p>Key notes:</p><ul><li><p>Incense</p></li><li><p>Leather Infusion</p></li><li><p>Oud Wood</p></li></ul><p>Available formats:</p><ul><li><p>Spray 100 ml</p></li><li><p>Spray 200 ml</p></li><li><p>Travel Spray. Created to accompany any trip, this set includes a travel bottle as well as four 7.5ml cartridges. Designed with magnetic closures, these novel refills clip instinctively onto the atomizer. In moments, the travel bottle is primed and ready for a new adventure.</p></li><li><p>Travel Spray refills. Refills to be used exclusively with the Louis Vuitton Travel Spray.</p></li></ul><p>Ingredients:</p><p>ALCOHOL, PARFUM (FRAGRANCE), AQUA (WATER), BUTYL METHOXYDIBENZOYLMETHANE, TRIETHYL CITRATE, LIMONENE, PENTAERYTHRITYL TETRA-DI-T-BUTYL HYDROXYHYDROCINNAMATE, LINALOOL, FARNESOL, CI 42090 (BLUE 1), CI 60730 (EXT. VIOLET 2), CI 19140 (YELLOW 5)</p><p>Disclaimer: Louis Vuitton product ingredient listings are updated periodically. Before using a Louis Vuitton product, please read the ingredient list on the packaging of your product to be sure that the ingredients are appropriate for your personal use.</p>",
+    "shortDescription": "",
+    "price": 399,
+    "comparePrice": 429,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "NDF-F38A",
+    "skuNormalized": "NDFF38A",
+    "barcode": "2072369576678",
+    "barcodeNormalized": "2072369576678",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622220-gx6yod/louis-vuitton-nuit-de-feu--LP0167_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622611-wx4dms/louis-vuitton-nuit-de-feu--LP0167_PM1_Interior_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622069-7abfue/louis-vuitton-nuit-de-feu--LP0167_PM1_Detail_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622592-3tvcsj/louis-vuitton-nuit-de-feu--LP0167_PM1_Side_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "aa725474-1997-4ca0-b58b-93d1c20a7918",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622220-gx6yod/louis-vuitton-nuit-de-feu--LP0167_PM2_Front_view.avif",
+        "filename": "louis-vuitton-nuit-de-feu--LP0167_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "1a7e90a8-722b-4a64-9fa6-aa5797afe975",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622611-wx4dms/louis-vuitton-nuit-de-feu--LP0167_PM1_Interior_view.avif",
+        "filename": "louis-vuitton-nuit-de-feu--LP0167_PM1_Interior view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "94de9bc5-823a-4178-bb9e-47a89c2e76e3",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622069-7abfue/louis-vuitton-nuit-de-feu--LP0167_PM1_Detail_view.avif",
+        "filename": "louis-vuitton-nuit-de-feu--LP0167_PM1_Detail view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "454c41ed-3b89-4a40-b95d-e41f793b61fc",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644622592-3tvcsj/louis-vuitton-nuit-de-feu--LP0167_PM1_Side_view.avif",
+        "filename": "louis-vuitton-nuit-de-feu--LP0167_PM1_Side view.avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Nuit de Feu",
+      "metaDescription": "Available exclusively on louisvuitton.com and in selected Louis Vuitton stores. We recommend selecting a sample of the fragrance you ordered, so that you can...",
+      "handle": "nuit-de-feu"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 399,
+      "max": 399
+    },
+    "compareAtPriceRange": {
+      "min": 429,
+      "max": 429
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:31:06.779Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.740Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabd06c13c31b1b59ea11bb"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Rhapsody",
+    "title": "Rhapsody",
+    "slug": "rhapsody",
+    "handle": "rhapsody",
+    "description": "<p>Available exclusively on louisvuitton.com and in selected Louis Vuitton stores.<br><br>We recommend selecting a sample of the fragrance you ordered, so that you can try it without opening the full-size bottle. That way, should you wish to, you can return your unopened bottle for reimbursement. Samples are subject to availability.<br><br><strong>The sophistication of chypre illuminates the infinite horizon.</strong><br><br>Where the horizon stretches out to infinity, an extraordinary journey begins : captivating, exhilarating. This is where everything begins, and where everything is reborn in a perpetual olfactory alchemy. The master perfumer Jacques Cavallier Belletrud reinvents one of the most sophisticated accords in perfumery – chypre – to elevate its DNA. Radiant Jasmine grandiflorum mingles with ylang ylang to transfigure patchouli and wreathe it in light. Woody notes and vetiver intensify the structure for chiaroscuro relief, while fresh, clear maté intensifies the verdant character of this exquisitely crafted perfume. The quintessence of elegance.<br><br>Rhapsody is part of the louis vuitton les extraits collection, expressing the encounter of two great creative minds. Through these five exceptional, highly concentrated fragrance treasures, jacques cavallier belletrud reinvents the perfume extrait with boldness and fluidity.<br><br>Frank gehry, one of the greatest architects of all time, designs his first perfume bottle. He began with marc newson’s original bottle, stretching the lines into curves. From his sculptural flourish emerges a transparent veil that appears to float in the air. The bottle is topped with a precious hand-polished metal cap like the splash of an airy, imaginary flower.</p><p>8.5 x 21.5 x 8.5 cm<br>(Length x Height x Width)</p><p>Key notes:</p><ul><li><p>Jasmine from Grasse</p></li><li><p>Patchouli</p></li><li><p>Ylang Ylang</p></li><li><p>Mate</p></li></ul><p>The bottle is refillable in stores equipped with a perfume fountain.</p><p>Format:</p><ul><li><p>Spray 100 ml</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 369,
+    "comparePrice": 399,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "RHA-4CF7",
+    "skuNormalized": "RHA4CF7",
+    "barcode": "2097917469158",
+    "barcodeNormalized": "2097917469158",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 20,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644860018-g40c5j/louis-vuitton-rhapsody--LP0525_PM2_Front_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644859961-94038o/louis-vuitton-rhapsody--LP0525_PM1_Interior_view.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644859983-ic9e9g/louis-vuitton-rhapsody--LP0525_PM1_Side_view.avif"
+    ],
+    "media": [
+      {
+        "_id": "5466894e-9528-4c45-9016-24be885691e0",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644860018-g40c5j/louis-vuitton-rhapsody--LP0525_PM2_Front_view.avif",
+        "filename": "louis-vuitton-rhapsody--LP0525_PM2_Front view.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "6a9f88f0-5975-4bf3-ab0e-d2f64dae9f0c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644859961-94038o/louis-vuitton-rhapsody--LP0525_PM1_Interior_view.avif",
+        "filename": "louis-vuitton-rhapsody--LP0525_PM1_Interior view.avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "587093e3-7657-4593-ac3d-b915496f0e79",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789644859983-ic9e9g/louis-vuitton-rhapsody--LP0525_PM1_Side_view.avif",
+        "filename": "louis-vuitton-rhapsody--LP0525_PM1_Side view.avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa9160afac64f7f6187ed1a"
+    },
+    "brand": {
+      "$oid": "6aa7a849197ff91b01f8635e"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Rhapsody",
+      "metaDescription": "Available exclusively on louisvuitton.com and in selected Louis Vuitton stores. We recommend selecting a sample of the fragrance you ordered, so that you can...",
+      "handle": "rhapsody"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": false
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 369,
+      "max": 369
+    },
+    "compareAtPriceRange": {
+      "min": 399,
+      "max": 399
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:35:08.126Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.717Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabd2d313c31b1b59ea11bc"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Patent leather loafers",
+    "title": "Patent leather loafers",
+    "slug": "patent-leather-loafers",
+    "handle": "patent-leather-loafers",
+    "description": "<p>A timeless classic is reinterpreted with a contemporary design. These block heel loafers combine classic shapes and details with square lines that add character to the silhouette. The glossy finish of patent leather emphasizes the footwear, decorated with the lettering logo.</p><ul><li><p>Product code: 1D574O_H27_F0002_F_040</p></li><li><p>Upper with patent leather band</p></li><li><p>Screen-printed logo</p></li><li><p>Leather and rubber heel with metal lettering logo</p></li><li><p>Patent leather-covered heel, height 40 mm</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 369,
+    "comparePrice": 409,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "PLL-B4C5",
+    "skuNormalized": "PLLB4C5",
+    "barcode": "2050956383946",
+    "barcodeNormalized": "2050956383946",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 7,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449515-7x5gpe/cq5dam.web.hebebed.2400.2400__6_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449701-5p9dua/cq5dam.web.hebebed.2400.2400__7_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449709-hjskd2/cq5dam.web.hebebed.2400.2400__8_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449689-3902o3/cq5dam.web.hebebed.2400.2400__9_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449936-j7jyn5/cq5dam.web.hebebed.2400.2400__10_.avif"
+    ],
+    "media": [
+      {
+        "_id": "e14a3151-916c-44e2-a67b-461af1a2ba48",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449515-7x5gpe/cq5dam.web.hebebed.2400.2400__6_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (6).avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "d2ea3a46-82b6-4a5c-acc7-6b490babc27c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449701-5p9dua/cq5dam.web.hebebed.2400.2400__7_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (7).avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "c16a8d2f-54bd-4bbb-ad40-0f4e55acafb0",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449709-hjskd2/cq5dam.web.hebebed.2400.2400__8_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (8).avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "ac8c2dea-5dca-4fde-b0d9-f5eca5c3fde4",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449689-3902o3/cq5dam.web.hebebed.2400.2400__9_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (9).avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "7b4e45c4-1308-4b50-8025-f9c498ef4c1d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645449936-j7jyn5/cq5dam.web.hebebed.2400.2400__10_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (10).avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa7a304197ff91b01f8635d"
+    },
+    "brand": {
+      "$oid": "6aa685729e1a8ac7a89ff106"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Patent leather loafers",
+      "metaDescription": "A timeless classic is reinterpreted with a contemporary design. These block heel loafers combine classic shapes and details with square lines that add charac...",
+      "handle": "patent-leather-loafers"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [
+      {
+        "locationId": "6aad90bbaf46cdbcc4e75fb2",
+        "quantity": 4
+      },
+      {
+        "locationId": "6aad90bfaf46cdbcc4e75fb3",
+        "quantity": 3
+      }
+    ],
+    "priceRange": {
+      "min": 369,
+      "max": 369
+    },
+    "compareAtPriceRange": {
+      "min": 409,
+      "max": 409
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:45:23.047Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:40:58.798Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabd44eaf46cdbcc4e75bfb"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Nappa leather platform sandals",
+    "title": "Nappa leather platform sandals",
+    "slug": "nappa-leather-platform-sandals",
+    "handle": "nappa-leather-platform-sandals",
+    "description": "<p>The design of these sandals combines timeless feminine lines and bold details. The nappa leather platform sandal with column heel has an ankle strap and screen-printed logo that complete the style with an elegant, contemporary note.</p><ul><li><p>Product code: 1XP48B_038_F0236_F_E115</p></li><li><p>Upper with ankle strap and logo-engraved metal buckle</p></li><li><p>Screen-printed logo</p></li><li><p>Leather and rubber sole with metal lettering logo</p></li><li><p>Leather-covered heel, height 115 mm</p></li><li><p>Leather-covered platform, height 40 mm</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 400,
+    "comparePrice": 429,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "NLPS-677B",
+    "skuNormalized": "NLPS677B",
+    "barcode": "2085009778608",
+    "barcodeNormalized": "2085009778608",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 1,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836116-8s7z8i/cq5dam.web.hebebed.2400.2400.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645835963-rdc5l1/cq5dam.web.hebebed.2400.2400__1_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645835984-tq2m1m/cq5dam.web.hebebed.2400.2400__12_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836091-l0yuzh/cq5dam.web.hebebed.2400.2400__3_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836109-mzn6db/cq5dam.web.hebebed.2400.2400__2_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836129-ygj4ln/cq5dam.web.hebebed.2400.2400__4_.avif"
+    ],
+    "media": [
+      {
+        "_id": "cf8deb1d-d628-49fd-97f3-f007d0024250",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836116-8s7z8i/cq5dam.web.hebebed.2400.2400.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "c160e62d-4e02-48ad-906c-f6ee7ce8fe80",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645835963-rdc5l1/cq5dam.web.hebebed.2400.2400__1_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (1).avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "a02d78c4-6e2c-464f-9121-24de9fabece5",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645835984-tq2m1m/cq5dam.web.hebebed.2400.2400__12_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (12).avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "2df0d966-f23a-4445-b672-630ff40e90cb",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836091-l0yuzh/cq5dam.web.hebebed.2400.2400__3_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (3).avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "d9870c41-9bf6-4fa0-a2a7-47d6c7569af0",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836109-mzn6db/cq5dam.web.hebebed.2400.2400__2_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (2).avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "72c6131f-ee96-4f33-9755-e691c532428d",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789645836129-ygj4ln/cq5dam.web.hebebed.2400.2400__4_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (4).avif",
+        "alt": "",
+        "position": 5,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa7a304197ff91b01f8635d"
+    },
+    "brand": {
+      "$oid": "6aa685729e1a8ac7a89ff106"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Nappa leather platform sandals",
+      "metaDescription": "The design of these sandals combines timeless feminine lines and bold details. The nappa leather platform sandal with column heel has an ankle strap and scre...",
+      "handle": "nappa-leather-platform-sandals"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [
+      {
+        "locationId": "6aad90bbaf46cdbcc4e75fb2",
+        "quantity": 0
+      },
+      {
+        "locationId": "6aad90bfaf46cdbcc4e75fb3",
+        "quantity": 1
+      }
+    ],
+    "priceRange": {
+      "min": 400,
+      "max": 400
+    },
+    "compareAtPriceRange": {
+      "min": 429,
+      "max": 429
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:51:42.348Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-06T05:19:01.557Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabd59aaf46cdbcc4e75bfd"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Shuffle nubuck leather loafers",
+    "title": "Shuffle nubuck leather loafers",
+    "slug": "shuffle-nubuck-leather-loafers",
+    "handle": "shuffle-nubuck-leather-loafers",
+    "description": "<p>The Prada shoe collection explores new silhouettes to reinterpret classic styles with a contemporary attitude. These loafers feature a lightweight, deconstructed silhouette, emphasized by the soft nubuck leather enriched by the logo.</p><ul><li><p>Product code: 1D051O_037_F0F24_F_010</p></li><li><p>Upper with leather band</p></li><li><p>Screen-printed logo</p></li><li><p>Rubber sole with hot-stamped logo</p></li><li><p>Leather-covered heel, height 10 mm</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 319,
+    "comparePrice": 349,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "SNLL-E1A6",
+    "skuNormalized": "SNLLE1A6",
+    "barcode": "2092191204747",
+    "barcodeNormalized": "2092191204747",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 3,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215443-sq09g0/cq5dam.web.hebebed.2400.2400.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215432-hlmxxx/cq5dam.web.hebebed.2400.2400__1_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215250-f4p9nc/cq5dam.web.hebebed.2400.2400__3_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215407-pxasxu/cq5dam.web.hebebed.2400.2400__5_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215547-1s9wae/cq5dam.web.hebebed.2400.2400__4_.avif"
+    ],
+    "media": [
+      {
+        "_id": "0597a67b-cf2d-4e0a-9e25-3f1fbf16bb68",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215443-sq09g0/cq5dam.web.hebebed.2400.2400.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "f6fdbad7-354b-4e2e-87f1-705f1fd661aa",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215432-hlmxxx/cq5dam.web.hebebed.2400.2400__1_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (1).avif",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "530343e7-7a83-4a51-b69d-88f20656f219",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215250-f4p9nc/cq5dam.web.hebebed.2400.2400__3_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (3).avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "3030aef0-e734-4881-9dfc-a0de61caabed",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215407-pxasxu/cq5dam.web.hebebed.2400.2400__5_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (5).avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "bbfd932c-8ca5-4cf3-8a04-b111e81072f1",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646215547-1s9wae/cq5dam.web.hebebed.2400.2400__4_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (4).avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa7a304197ff91b01f8635d"
+    },
+    "brand": {
+      "$oid": "6aa685729e1a8ac7a89ff106"
+    },
+    "productType": "",
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a962f46abe23f278e17"
+      }
+    ],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Shuffle nubuck leather loafers",
+      "metaDescription": "The Prada shoe collection explores new silhouettes to reinterpret classic styles with a contemporary attitude. These loafers feature a lightweight, deconstru...",
+      "handle": "shuffle-nubuck-leather-loafers"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [
+      {
+        "locationId": "6aad90bbaf46cdbcc4e75fb2",
+        "quantity": 0
+      },
+      {
+        "locationId": "6aad90bfaf46cdbcc4e75fb3",
+        "quantity": 3
+      }
+    ],
+    "priceRange": {
+      "min": 319,
+      "max": 319
+    },
+    "compareAtPriceRange": {
+      "min": 349,
+      "max": 349
+    },
+    "createdAt": {
+      "$date": "2026-09-17T11:57:14.912Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-25T21:33:45.660Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6aabd75aaf46cdbcc4e75c03"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Leather loafers",
+    "title": "Leather loafers",
+    "slug": "leather-loafers-1789646682716",
+    "handle": "leather-loafers-1789646682716",
+    "description": "<p>These leather loafers feature a tapered silhouette with classic details. The low-heeled, round-toe style emphasized by soft stitching is embellished with the lettering logo.</p><ul><li><p>Product code: 1D175O_007_F0304_F_020</p></li><li><p>Upper with leather band</p></li><li><p>Screen-printed logo</p></li><li><p>Rubber sole with hot-stamped logo</p></li><li><p>Leather-covered heel, height 20 mm</p></li></ul><p></p>",
+    "shortDescription": "",
+    "price": 389,
+    "comparePrice": 400,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "LL-EBE8",
+    "skuNormalized": "LLEBE8",
+    "barcode": "2094027441753",
+    "barcodeNormalized": "2094027441753",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 19,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551541-2ody5h/cq5dam.web.hebebed.2400.2400.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551848-m136p5/cq5dam.web.hebebed.2400.2400.webp",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551561-7es2mz/cq5dam.web.hebebed.2400.2400__2_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551614-3cmtrs/cq5dam.web.hebebed.2400.2400__6_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551778-ya6blb/cq5dam.web.hebebed.2400.2400__1_.avif",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646552040-ur7swc/cq5dam.web.hebebed.2400.2400__3_.avif"
+    ],
+    "media": [
+      {
+        "_id": "1f146841-32e4-4ca2-b00e-778b3bca086f",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551541-2ody5h/cq5dam.web.hebebed.2400.2400.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400.avif",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "cfd773a2-442a-4d99-834b-2d6ff9ed6998",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551848-m136p5/cq5dam.web.hebebed.2400.2400.webp",
+        "filename": "cq5dam.web.hebebed.2400.2400.webp",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/webp",
+        "fit": "auto"
+      },
+      {
+        "_id": "3b91d0a9-73e4-42e6-b638-3724a378dd2c",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551561-7es2mz/cq5dam.web.hebebed.2400.2400__2_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (2).avif",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "ea2dca86-41d8-49da-aaae-68bb9f4ccc45",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551614-3cmtrs/cq5dam.web.hebebed.2400.2400__6_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (6).avif",
+        "alt": "",
+        "position": 3,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "3ccea5a3-33ab-4dbf-ae8b-d707e290da66",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646551778-ya6blb/cq5dam.web.hebebed.2400.2400__1_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (1).avif",
+        "alt": "",
+        "position": 4,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      },
+      {
+        "_id": "9316b243-3695-49a4-a92b-7d95642e7c65",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789646552040-ur7swc/cq5dam.web.hebebed.2400.2400__3_.avif",
+        "filename": "cq5dam.web.hebebed.2400.2400 (3).avif",
+        "alt": "",
+        "position": 5,
+        "mimeType": "image/avif",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa7a304197ff91b01f8635d"
+    },
+    "brand": {
+      "$oid": "6aa685729e1a8ac7a89ff106"
+    },
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Leather loafers",
+      "metaDescription": "These leather loafers feature a tapered silhouette with classic details. The low-heeled, round-toe style emphasized by soft stitching is embellished with the...",
+      "handle": "leather-loafers-1789646682716"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 389,
+      "max": 389
+    },
+    "compareAtPriceRange": {
+      "min": 400,
+      "max": 400
+    },
+    "createdAt": {
+      "$date": "2026-09-17T12:04:42.736Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-05T13:02:40.797Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6ab101e410060cae37a54863"
+    },
+    "vendorId": {
+      "$oid": "6aa64af98f4f4b5c44c67b26"
+    },
+    "productSource": "admin",
+    "name": "Mustard Brown Hooded Utility Coat Dress",
+    "title": "Mustard Brown Hooded Utility Coat Dress",
+    "slug": "mustard-brown-hooded-utility-coat-dress",
+    "handle": "mustard-brown-hooded-utility-coat-dress",
+    "description": "<p>Stay effortlessly stylish with this <strong>Brown Hooded Longline Jacket</strong>, designed with a modern relaxed fit and functional detailing. Featuring a high-neck hooded collar, front zip closure, practical zip pockets, and an adjustable hem, it combines everyday comfort with a clean contemporary look. Its versatile brown tone pairs beautifully with dresses, denim, or casual outfits, making it a great choice for transitional weather and daily wear.</p><p>Lightweight and comfortable fabric, longline silhouette, hooded high-neck design, front zipper closure, functional side pockets, adjustable cuffs, and a versatile casual style suitable for everyday outfits.</p>",
+    "shortDescription": "",
+    "price": 329,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "MBHUC-CC17",
+    "skuNormalized": "MBHUCCC17",
+    "barcode": "2031828804073",
+    "barcodeNormalized": "2031828804073",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 10,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "locationInventory": [],
+    "images": [
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789985747096-dw5ftz/55ed118f-ba43-4ee1-84b0-2f4130658e2a.png",
+      "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789987688181-8jr7fa/d759b6ed-80c0-47d5-861e-46410bc3130b.png"
+    ],
+    "media": [
+      {
+        "_id": "2a5ea650-825b-4d5f-8511-6c9a6aa69d64",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789985747096-dw5ftz/55ed118f-ba43-4ee1-84b0-2f4130658e2a.png",
+        "filename": "55ed118f-ba43-4ee1-84b0-2f4130658e2a.png",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "3b3650dd-7398-4d03-86c2-a6738da46f2b",
+        "type": "image",
+        "url": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789987688181-8jr7fa/d759b6ed-80c0-47d5-861e-46410bc3130b.png",
+        "filename": "d759b6ed-80c0-47d5-861e-46410bc3130b.png",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/png",
+        "size": 1413690,
+        "width": 1122,
+        "height": 1402,
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6aa7955c714b90af7520cb3c"
+    },
+    "brand": {
+      "$oid": "6aa685729e1a8ac7a89ff106"
+    },
+    "productType": "",
+    "collectionIds": [
+      {
+        "$oid": "6aaa9a962f46abe23f278e17"
+      }
+    ],
+    "tags": [],
+    "attributes": [],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Mustard Brown Hooded Utility Coat Dress",
+      "metaDescription": "Stay effortlessly stylish with this Brown Hooded Longline Jacket , designed with a modern relaxed fit and functional detailing. Featuring a high-neck hooded...",
+      "handle": "mustard-brown-hooded-utility-coat-dress"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "priceRange": {
+      "min": 329,
+      "max": 329
+    },
+    "createdAt": {
+      "$date": "2026-09-21T10:07:32.973Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-26T21:15:20.274Z"
     },
     "__v": 0
   }

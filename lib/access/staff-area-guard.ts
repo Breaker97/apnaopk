@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/db";
 import { StaffProfile, User } from "@/models";
 import type { StaffPermission } from "@/config/permissions.config";
 import { normalizeStaffScope } from "@/lib/access/staff-scope";
-import { effectiveStaffPermissions } from "@/lib/access/staff-authz";
+import { sellerCappedStaffPermissions } from "@/lib/access/staff-authz";
 import { isVendorOwnedStaffProfile } from "@/lib/access/staff-ownership";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
 import { localeHref } from "@/lib/i18n/locale-routing";
@@ -57,7 +57,7 @@ export async function requireStaffAreaAccess(params: {
     redirect("/forbidden");
   }
 
-  const staffPermissions = effectiveStaffPermissions(
+  const staffPermissions = await sellerCappedStaffPermissions(
     profile as { permissions?: unknown; managedBy?: unknown; vendorIds?: unknown[] },
   );
   const staffScope = normalizeStaffScope({

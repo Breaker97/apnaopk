@@ -1,5 +1,5 @@
 import type { Db } from "mongodb";
-import { DEMO_ACCOUNTS } from "@/config/demo-credentials";
+import { DEMO_ACCOUNTS, DEMO_TEMPLATE_VENDORS } from "@/config/demo-credentials";
 
 /**
  * Demo seeding and resets refuse a real store.
@@ -16,12 +16,17 @@ import { DEMO_ACCOUNTS } from "@/config/demo-credentials";
 const ALLOW_REAL_STORE_FLAG = "--allow-real-store";
 const ALLOW_REAL_STORE_ENV = "STORIFY_ALLOW_REAL_STORE";
 
-const DEMO_EMAILS = Object.values(DEMO_ACCOUNTS).map((account) =>
+const ALL_DEMO_ACCOUNTS = [
+  ...Object.values(DEMO_ACCOUNTS),
+  ...Object.values(DEMO_TEMPLATE_VENDORS),
+];
+
+const DEMO_EMAILS = ALL_DEMO_ACCOUNTS.map((account) =>
   account.email.toLowerCase(),
 );
 
 /** The published demo passwords, which no real account may use. */
-export const DEMO_PASSWORDS: readonly string[] = Object.values(DEMO_ACCOUNTS).map(
+export const DEMO_PASSWORDS: readonly string[] = ALL_DEMO_ACCOUNTS.map(
   (account) => account.password,
 );
 

@@ -254,6 +254,18 @@
   "account": {
     "welcome": "Welcome back, {name}!",
     "overviewDesc": "Your account at a glance",
+    "overview": {
+      "needsAttention": "Needs your attention",
+      "actionNeeded": "Action needed",
+      "addressTitle": "We can't deliver to your address",
+      "addressDeadline": "Shipping is paused, correct it by {date}",
+      "addressPaused": "Shipping is paused until the address is corrected",
+      "fixAddress": "Fix address",
+      "paymentDue": "Payment due",
+      "payBy": "Pay by {date}",
+      "moreInProgress": "{count} more in progress",
+      "plusMore": "+{count} more"
+    },
     "totalOrders": "Total Orders",
     "pendingOrders": "Pending Orders",
     "wishlistItems": "Wishlist Items",
@@ -403,6 +415,10 @@
     "marketingPreferences": "Marketing Preferences",
     "marketingOptIn": "Marketing Emails",
     "marketingOptInDesc": "Receive marketing communications and special offers",
+    "groupOrders": "Your orders",
+    "groupWishlist": "Your wishlist",
+    "groupNews": "News and offers",
+    "marketingOptInHint": "Turn this off to unsubscribe from all marketing emails.",
     "pushNotifications": "App Notifications",
     "pushOrderUpdates": "Orders & Returns",
     "pushOrderUpdatesDesc": "Your orders, payments, returns, quotes and store credit",
@@ -482,7 +498,8 @@
     "blog": "Blog",
     "getHelp": "Get Help",
     "contact": "Contact",
-    "compare": "Compare"
+    "compare": "Compare",
+    "inbox": "Inbox"
   },
   "productsPage": {
     "empty": "No products found",
@@ -551,7 +568,10 @@
   "storeCategoriesPage": {
     "searchPlaceholder": "Search categories...",
     "subtitle": "Browse every product category in one place.",
-    "viewProducts": "View products"
+    "viewProducts": "View products",
+    "count": "{count, plural, one {# category} other {# categories}}",
+    "perRowGroup": "Categories per row",
+    "perRow": "{count} per row"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# product} other {# products}}",
@@ -694,6 +714,7 @@
     "heroSubtitle": "Discover amazing products from verified vendors. Shop with confidence and enjoy seamless delivery right to your doorstep.",
     "shopByCategory": "Shop by Category",
     "shopByCategoryDescription": "Browse our wide selection of products organized by category",
+    "shopAllInCategory": "Shop All {name}",
     "viewAllCategories": "View All Categories",
     "whyChooseUs": "Why Choose {storeName}?",
     "whyChooseUsDescription": "We provide the best shopping experience with features designed for you",
@@ -783,6 +804,20 @@
     "support247Description": "Round-the-clock customer assistance"
   },
   "store": {
+    "campaignBanner": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "title": "Special offer",
+      "successTitle": "You're in!",
+      "successText": "Check your inbox to confirm your subscription.",
+      "yourCode": "Your code",
+      "emailPlaceholder": "Your email address",
+      "emailLabel": "Email address",
+      "subscribe": "Subscribe",
+      "consent": "By subscribing you agree to get marketing emails. Unsubscribe any time.",
+      "signupFailed": "We could not sign you up. Please try again.",
+      "invalidEmail": "Enter a valid email address"
+    },
     "discoverNewArrivals": "Discover our new arrivals",
     "newArrivalsDescription": "Fresh products added every week",
     "collections": "Collections"
@@ -951,7 +986,8 @@
     "quoteCompanyOptional": "Company (optional)",
     "quoteMessageOptional": "Message (optional)",
     "quoteMessagePlaceholder": "Quantities, delivery date, specification…",
-    "finalSale": "Final sale — this item can't be returned"
+    "finalSale": "Final sale — this item can't be returned",
+    "percentOff": "{percent}% OFF"
   },
   "reviews": {
     "basedOn": "Based on {count} reviews",
@@ -1108,6 +1144,11 @@
       "deliveryHint": "Shipped to your address",
       "pickupHint": "Collect from the store, no shipping fee",
       "deliveryOnly": "This cart has items from multiple stores, so only delivery is available.",
+      "pickupOnlyHint": "This store offers pickup only. Collect your order at a pickup location.",
+      "noOptions": "No delivery or pickup option is available for this cart. For pickup-only items, order from one store at a time or contact the store.",
+      "availabilityFailed": "We couldn't load delivery and pickup options. Refresh the page to try again.",
+      "noBranchHasEverything": "No collection point has every item in your order right now. Choose delivery, or remove an item to collect the rest.",
+      "noBranchPickupOnly": "No collection point has every item in your order right now. Remove unavailable items or contact the store.",
       "chooseLocation": "Choose pickup location",
       "chooseLocationHint": "Choose a branch to see its available pickup times.",
       "pickupAt": "Pick up at:",
@@ -1549,6 +1590,19 @@
     "aiStudio": "AI Studio"
   },
   "admin": {
+    "responsive": {
+      "device": "Screen size",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile",
+      "container": "Content dimensions",
+      "width": "Max width",
+      "widthHint": "0 uses the theme width. Changes apply only to the selected screen size.",
+      "padding": "Padding",
+      "logoWidth": "Logo width",
+      "compactHeader": "Mobile and tablet use the compact logo, cart and search header. Set their content width, padding and logo width above.",
+      "footerHint": "Width, padding and logo size apply only to the selected screen size. Content and other styling are shared."
+    },
     "csvImport": {
       "wrongType": "Choose a .csv file.",
       "fileTooLarge": "This file is larger than {size} MB. Split it into smaller files and import them one at a time.",
@@ -2011,6 +2065,10 @@
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "Returns (30 days)",
+          "description": "{count} still open"
+        },
         "needsReview": {
           "title": "Needs review",
           "description": "Approve or reject"
@@ -2678,6 +2736,1175 @@
         "card": "Card"
       }
     },
+    "campaignBanners": {
+      "title": "Campaign Banners",
+      "loading": "Loading campaign banner",
+      "readOnly": "You can look at these campaign banners, but your access does not include changing them.",
+      "searchPlaceholder": "Search campaign banners",
+      "empty": "No campaign banners yet. Create one to show an offer on your store.",
+      "emptyFiltered": "No campaign banners match.",
+      "notFound": "This campaign banner could not be found.",
+      "tabs": {
+        "all": "All",
+        "live": "Live",
+        "scheduled": "Scheduled",
+        "draft": "Draft",
+        "paused": "Paused",
+        "ended": "Ended"
+      },
+      "state": {
+        "draft": "Draft",
+        "paused": "Paused",
+        "scheduled": "Scheduled",
+        "live": "Live",
+        "ended": "Ended"
+      },
+      "statusOption": {
+        "draft": "Draft",
+        "active": "Active",
+        "paused": "Paused"
+      },
+      "type": {
+        "popup": "Popup",
+        "bar": "Bar"
+      },
+      "devices": {
+        "desktop": "Desktop",
+        "mobile": "Mobile",
+        "both": "Desktop and mobile"
+      },
+      "table": {
+        "name": "Banner",
+        "type": "Type",
+        "status": "Status",
+        "schedule": "Schedule",
+        "devices": "Devices",
+        "priority": "Priority",
+        "actions": "Actions"
+      },
+      "schedule": {
+        "always": "Always",
+        "from": "From {start}",
+        "until": "Until {end}",
+        "range": "{start} → {end}"
+      },
+      "actions": {
+        "add": "New campaign banner",
+        "edit": "Edit",
+        "view": "View",
+        "duplicate": "Duplicate",
+        "pause": "Pause",
+        "activate": "Activate",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "save": "Save",
+        "back": "Back"
+      },
+      "confirm": {
+        "deleteTitle": "Delete this campaign banner?",
+        "deleteDescription": "\"{name}\" will stop showing on your store and cannot be recovered."
+      },
+      "toast": {
+        "loadFailed": "Could not load campaign banners",
+        "saved": "Saved",
+        "created": "Campaign banner created",
+        "deleted": "Campaign banner deleted",
+        "duplicated": "Copy created as a draft",
+        "paused": "Paused",
+        "resumed": "Turned on",
+        "saveFailed": "Could not save the campaign banner",
+        "deleteFailed": "Could not delete the campaign banner",
+        "updateFailed": "Could not update the campaign banner"
+      },
+      "preview": {
+        "title": "Preview",
+        "device": "Preview device",
+        "desktop": "Desktop",
+        "mobile": "Mobile",
+        "empty": "Add a headline, text or an image to see the preview.",
+        "codeAfterSignup": "Visitors see the code after they sign up."
+      },
+      "form": {
+        "editTitle": "Edit campaign banner",
+        "addTitle": "New campaign banner",
+        "sections": {
+          "basics": "Basics",
+          "content": "Content",
+          "offer": "Offer",
+          "signup": "Email signup",
+          "display": "When and where it shows",
+          "schedule": "Schedule"
+        },
+        "modes": {
+          "image": "Only image content",
+          "content": "Content with image"
+        },
+        "modeHints": {
+          "image": "The popup shows just the picture, nothing else. Text, button, offer and signup set on the other tab are kept but not shown.",
+          "content": "The picture sits beside a headline, text and a button. You can also add an offer or a signup form below."
+        },
+        "fields": {
+          "name": "Name",
+          "type": "Type",
+          "status": "Status",
+          "priority": "Priority",
+          "imageDesktop": "Desktop image",
+          "imageMobile": "Mobile image",
+          "imageAlt": "Image description",
+          "imageScale": "Picture size",
+          "headline": "Headline",
+          "body": "Text",
+          "ctaLabel": "Button text",
+          "ctaHref": "Button link",
+          "backgroundColor": "Background colour",
+          "textColor": "Text colour",
+          "buttonColor": "Button colour",
+          "buttonTextColor": "Button text colour",
+          "barPosition": "Bar position",
+          "coupon": "Coupon",
+          "countdown": "Countdown",
+          "countdownEnds": "Countdown ends",
+          "signup": "Collect email addresses",
+          "signupPlaceholder": "Email box text",
+          "signupButton": "Button text",
+          "signupConsent": "Consent text",
+          "signupSuccessTitle": "Headline after signup",
+          "signupSuccessText": "Text after signup",
+          "page": "Page",
+          "devices": "Devices",
+          "trigger": "Opens",
+          "frequency": "Shown",
+          "start": "Starts",
+          "end": "Ends"
+        },
+        "hints": {
+          "name": "Only you see this name, visitors do not.",
+          "status": "A draft or paused banner is not shown on the store.",
+          "priority": "When several banners match, the higher number goes first. 0 to 100.",
+          "imageMobile": "If you leave it empty, the desktop image is used on phones too.",
+          "imageScale": "As a percentage of the picture's own size. 100% shows it as uploaded, never wider than the screen.",
+          "ctaHref": "For example /collections/sale or https://…",
+          "ctaHrefVendor": "Link to a page on your store, starting with /.",
+          "coupon": "Pick a discount. The banner is hidden when it has ended or been switched off.",
+          "countdown": "Shows how long is left until the offer ends.",
+          "countdownEnds": "Leave empty to count down to the end of the schedule.",
+          "signup": "Visitors who enter an email get a confirmation email, then the coupon code is shown.",
+          "signupConsent": "Leave empty to use the standard wording.",
+          "start": "Leave empty to start right away.",
+          "end": "Leave empty to keep it running until you turn it off."
+        },
+        "placeholders": {
+          "name": "e.g. Sale popup",
+          "headline": "e.g. 20% off everything",
+          "ctaLabel": "e.g. Shop now"
+        },
+        "typeHint": {
+          "popup": "Opens over the page",
+          "bar": "A slim strip, top or bottom"
+        },
+        "upload": {
+          "title": "Add an image",
+          "desktop": "For desktop",
+          "mobile": "For phones",
+          "replace": "Replace",
+          "remove": "Remove",
+          "cancel": "Cancel"
+        },
+        "useTheme": "Use theme colour",
+        "themeColour": "Theme colour",
+        "barPosition": {
+          "top": "Top",
+          "bottom": "Bottom"
+        },
+        "coupon": {
+          "none": "No coupon",
+          "empty": "No active discounts"
+        },
+        "page": {
+          "home": "Home page",
+          "vendor": "Your store page"
+        },
+        "trigger": {
+          "immediate": "Right away",
+          "delay": "After a delay",
+          "scroll": "After scrolling",
+          "seconds": "seconds",
+          "percent": "% of the page"
+        },
+        "frequency": {
+          "session": "Once per visit",
+          "days": "Again after it is closed",
+          "daysUnit": "days"
+        },
+        "warnings": {
+          "mobileImmediate": "A popup that opens at once on phones can lower your Google search ranking. Pick a short delay or a scroll trigger."
+        },
+        "timezone": "Times use your time zone: {zone}.",
+        "problems": {
+          "name": "A banner needs a name",
+          "endBeforeStart": "The end must be after the start",
+          "needsContent": "Add a headline, text or an image before turning a banner on",
+          "needsImage": "Add a picture before turning on a popup that is only an image",
+          "ctaNeedsLink": "A button needs a link",
+          "countdownNeedsEnd": "A countdown needs an end date",
+          "linkInvalid": "The button link must be a page on this site, starting with /, or a full https:// address",
+          "linkVendor": "The button link must point to a page on your store, starting with /"
+        },
+        "actions": {
+          "resetImageScale": "Reset to 100%"
+        }
+      }
+    },
+    "invoiceTemplates": {
+      "preview": {
+        "title": "Template preview",
+        "description": "Pages at real size, filled with sample data or a real order. Previewing and printing never change an order.",
+        "sampleBanner": "SAMPLE DATA — not a real order",
+        "pageInfo": "{width} × {height} mm · {pages, plural, one {# page} other {# pages}} · {zoom}%",
+        "printHint": "In the print dialog choose Scale 100% (Actual size), Margins None, and turn off Headers and footers, so the paper matches the template.",
+        "preset": "Preset",
+        "language": "Template language",
+        "languages": {
+          "en": "English",
+          "bn": "বাংলা"
+        },
+        "categories": {
+          "online": "Online Order Invoice",
+          "pos": "POS Invoice",
+          "sticker": "Sticker"
+        },
+        "source": "Data",
+        "sampleData": "Sample data",
+        "realOrder": "Real order",
+        "sampleSize": "Sample order",
+        "itemCount": "{count, plural, one {# item} other {# items}}",
+        "orderNumber": "Order number",
+        "orderPlaceholder": "e.g. ORD-100042",
+        "load": "Load",
+        "orderLoaded": "Showing order {number}",
+        "orderError": {
+          "notFound": "No order with that number, or you can't view it.",
+          "failed": "The order couldn't be loaded. Try again."
+        },
+        "print": "Print",
+        "printing": "Preparing…",
+        "close": "Close",
+        "testPrint": {
+          "button": "Test print",
+          "title": "Test print",
+          "titleNamed": "Test print: {name}",
+          "description": "The template as it is now, at real size. Nothing is saved."
+        },
+        "printFailed": {
+          "unavailable": "Printing isn't available here.",
+          "iframe": "The print window couldn't be opened. Try again.",
+          "fonts": "The fonts didn't load, so nothing was printed. Try again.",
+          "render": "The template couldn't be drawn for printing."
+        },
+        "flow": {
+          "clipped": "{count, plural, one {# item row doesn't} other {# item rows don't}} fit the room the table has on its page and will print cut off. Make the rows shorter or give the table more room.",
+          "dropped": "{count, plural, one {# item row is} other {# item rows are}} left out: this order would need more than {max} pages."
+        }
+      },
+      "manager": {
+        "title": "Invoice Settings",
+        "description": "Design what gets printed for an order. Each category has one default template, and real prints use it.",
+        "tabs": {
+          "online": "Online Order Invoice",
+          "pos": "POS Invoice",
+          "sticker": "Sticker"
+        },
+        "hints": {
+          "online": "Printed from the order page with Print invoice. The customer's downloaded PDF, the order email and the mobile app keep the standard invoice.",
+          "pos": "Printed by the POS terminal for receipts and reprints.",
+          "sticker": "Printed for each consignment in place of the standard internal shipping label. Labels issued by a courier are never changed."
+        },
+        "defaultStatus": "Default: {name}. Real prints in this category use it.",
+        "noDefaultStatus": "No default set. This category prints the standard output until you set a default.",
+        "defaultBadge": "Default",
+        "presetBadge": "Preset",
+        "builtInBadge": "Built-in",
+        "blankCard": {
+          "description": "Start from an empty page.",
+          "create": "Create"
+        },
+        "updated": "Updated {date}",
+        "pageSize": "{width} × {height} mm",
+        "rollSize": "{width} mm roll",
+        "sizeNames": {
+          "a4-portrait": "A4 portrait",
+          "a4-landscape": "A4 landscape",
+          "a5-portrait": "A5 portrait",
+          "a5-landscape": "A5 landscape",
+          "thermal-80": "Thermal 80 mm",
+          "thermal-58": "Thermal 58 mm",
+          "sticker-100x150": "Sticker 100 × 150",
+          "sticker-76x102": "Sticker 76 × 102",
+          "sticker-51x76": "Sticker 51 × 76",
+          "custom": "Custom size"
+        },
+        "openTemplate": "Open {name}",
+        "limitReached": "You can keep up to {max} templates in a category. Delete one to add another.",
+        "loading": "Loading templates…",
+        "loadError": "The templates couldn't be loaded.",
+        "actions": {
+          "new": "New template",
+          "blank": "Blank template",
+          "edit": "Edit",
+          "preview": "Preview",
+          "more": "More actions for {name}",
+          "rename": "Rename",
+          "duplicate": "Duplicate",
+          "setDefault": "Set as default",
+          "saveAsTemplate": "Save as template",
+          "removeDefault": "Remove default",
+          "restorePreset": "Restore preset",
+          "delete": "Delete",
+          "cancel": "Cancel",
+          "retry": "Try again"
+        },
+        "presets": {
+          "standard-invoice": "The store's own invoice. It prints when no template is set as default.",
+          "standard-receipt": "The till's own receipt. It prints when no template is set as default.",
+          "minimal": "Clean, thin rules, lots of white space.",
+          "bold-cod": "Large cash-to-collect badge and heavy headings.",
+          "premium": "Logo-led header, accent colour, boxed sections.",
+          "compact-a5": "Dense layout for small printers.",
+          "compact-thermal": "Dense rows, totals, payments and a QR code.",
+          "thermal-58": "Narrow version for 58 mm rolls.",
+          "courier-label": "Big recipient block, barcode, QR code, courier and tracking.",
+          "cod-sticker": "Recipient, cash to collect and a barcode."
+        },
+        "rename": {
+          "title": "Rename template",
+          "label": "Template name",
+          "required": "Enter a name.",
+          "tooLong": "Use at most {max} characters."
+        },
+        "confirm": {
+          "deleteTitle": "Delete this template?",
+          "deleteDescription": "“{name}” will be deleted. This can't be undone.",
+          "deleteDefaultDescription": "“{name}” is the default for {category}. If you delete it, {category} goes back to the standard print. This can't be undone.",
+          "restoreTitle": "Restore the preset layout?",
+          "restoreDescription": "The design of “{name}” goes back to the preset it was made from. Your changes to its layout are lost; the name and default status stay."
+        },
+        "toast": {
+          "loadFailed": "The templates couldn't be loaded.",
+          "failed": "That didn't work. Try again.",
+          "conflict": "This template was changed elsewhere. The list has been refreshed.",
+          "gone": "This template no longer exists. The list has been refreshed.",
+          "renamed": "Renamed to “{name}”.",
+          "duplicated": "Created “{name}”.",
+          "created": "Created “{name}”.",
+          "defaultSet": "“{name}” is now the default for {category}.",
+          "defaultRemoved": "“{name}” is no longer the default. {category} prints the standard output.",
+          "restored": "“{name}” was restored to its preset.",
+          "deleted": "“{name}” was deleted.",
+          "deletedDefault": "“{name}” was deleted. {category} prints the standard output."
+        },
+        "vendor": {
+          "description": "Design what gets printed for your orders. Each category can have one default template of your own; without one, your prints use the marketplace's default, or the standard output.",
+          "hints": {
+            "online": "Printed from your order page with Print invoice, for your part of the order. The customer's downloaded PDF, the order email and the mobile app keep the standard invoice.",
+            "pos": "Printed by your POS terminal for receipts and reprints.",
+            "sticker": "Printed for each of your parcels in place of the standard internal shipping label. Labels issued by a courier are never changed."
+          },
+          "noDefaultStatus": "No default of your own. This category prints with the marketplace's default template, or the standard output if there is none.",
+          "toast": {
+            "defaultRemoved": "“{name}” is no longer your default. {category} prints with the marketplace's default, or the standard output.",
+            "deletedDefault": "“{name}” was deleted. {category} prints with the marketplace's default, or the standard output."
+          },
+          "confirm": {
+            "deleteDefaultDescription": "“{name}” is your default for {category}. If you delete it, {category} prints with the marketplace's default, or the standard output. This can't be undone."
+          }
+        }
+      },
+      "draft": {
+        "back": "Back to templates",
+        "unsaved": "Not saved yet",
+        "nameLabel": "Template name",
+        "nameRequired": "Enter a name for the template.",
+        "blankName": "Untitled template",
+        "save": "Save template",
+        "saved": "“{name}” was saved.",
+        "saveFailed": "The template couldn't be saved.",
+        "testPrint": "Test print",
+        "demoTitle": "Demo mode",
+        "demoBanner": "Saving is switched off on this demo site. You can look around and print a test page.",
+        "refusedTitle": "Not saved",
+        "refusedBody": "This template was not saved: saving is switched off on this demo site. Nothing was created.",
+        "viewOnlyTitle": "View only",
+        "viewOnlyBody": "You can look at this template and print a test page, but you don't have permission to save changes to templates."
+      },
+      "editor": {
+        "back": "Templates",
+        "unsaved": "Unsaved changes",
+        "undo": "Undo (Ctrl+Z)",
+        "redo": "Redo (Ctrl+Shift+Z)",
+        "pageView": {
+          "label": "Pages",
+          "single": "Single page",
+          "flow": "First, middle and last pages"
+        },
+        "zoom": {
+          "label": "Zoom",
+          "in": "Zoom in",
+          "out": "Zoom out",
+          "fit": "Fit",
+          "fitLabel": "Fit the page in view",
+          "value": "{value}%",
+          "menu": "Zoom: {value}%"
+        },
+        "panels": {
+          "showPalette": "Show elements",
+          "hidePalette": "Hide elements",
+          "showPanel": "Show properties",
+          "hidePanel": "Hide properties"
+        },
+        "palette": {
+          "title": "Add to canvas",
+          "hint": "Click to add in the middle of the view, or drag onto the page.",
+          "smart": "Smart blocks",
+          "basic": "Basic",
+          "limit": "A template can hold up to {max} elements.",
+          "items": {
+            "businessHeader": "Business header",
+            "customerAddress": "Customer address",
+            "orderSummary": "Order summary",
+            "productTable": "Product table",
+            "priceSummary": "Price summary",
+            "codBadge": "COD badge",
+            "smartBarcode": "Barcode",
+            "smartQr": "QR code",
+            "deliveryMethod": "Delivery method",
+            "notes": "Notes",
+            "divider": "Divider",
+            "logo": "Logo",
+            "productRows": "Product rows",
+            "text": "Text",
+            "image": "Logo / image",
+            "barcode": "Barcode",
+            "qr": "QR",
+            "line": "Line",
+            "box": "Box",
+            "products": "Products"
+          },
+          "descriptions": {
+            "businessHeader": "Store name, phone, address and logo",
+            "customerAddress": "Name, phone and address",
+            "orderSummary": "Order number and date",
+            "productTable": "Name, SKU, qty, unit price and line total; continues across pages",
+            "priceSummary": "Subtotal, delivery, discount, paid and due; last page",
+            "codBadge": "Cash to collect; last page",
+            "smartBarcode": "Order number (stickers: tracking number)",
+            "smartQr": "Tracking link",
+            "deliveryMethod": "Method, courier and tracking number",
+            "notes": "The customer's note",
+            "divider": "A rule across the printable width",
+            "logo": "The store's logo",
+            "productRows": "Name, SKU and qty in compact rows; continues across pages",
+            "text": "Fixed text, the same on every print",
+            "image": "A picture from the media library",
+            "barcode": "A fixed sample value",
+            "qr": "The store's website",
+            "line": "A horizontal line",
+            "box": "A box with a thin border",
+            "products": "Name, qty and total; plain"
+          }
+        },
+        "types": {
+          "text": "Text",
+          "image": "Image",
+          "barcode": "Barcode",
+          "qr": "QR code",
+          "line": "Line",
+          "box": "Box",
+          "businessHeader": "Business header",
+          "customerAddress": "Customer address",
+          "orderSummary": "Order summary",
+          "productTable": "Product table",
+          "productRows": "Product rows",
+          "priceSummary": "Price summary",
+          "codBadge": "COD badge",
+          "deliveryMethod": "Delivery method",
+          "notes": "Notes"
+        },
+        "showOn": {
+          "every": "Every page",
+          "first": "First page",
+          "last": "Last page",
+          "notFirst": "Every page but the first"
+        },
+        "canvas": {
+          "label": "Template canvas",
+          "instructions": "Click an element to select it and drag to move it. Tab moves between elements; arrow keys nudge by 1 mm (Shift: 10 mm); Delete removes; Ctrl+D duplicates; Esc deselects; Ctrl+Z undoes.",
+          "badge": "{width} × {height} mm · {zoom}%",
+          "badgeRoll": "{width} mm roll · {height} mm now · {zoom}%",
+          "page": "Page {number} of {count}",
+          "continued": "Continued from page 1",
+          "locked": "Locked",
+          "outOfBounds": "outside the printable area",
+          "handles": {
+            "nw": "Resize {name} from the top-left corner",
+            "n": "Resize {name} from the top edge",
+            "ne": "Resize {name} from the top-right corner",
+            "e": "Resize {name} from the right edge",
+            "se": "Resize {name} from the bottom-right corner",
+            "s": "Resize {name} from the bottom edge",
+            "sw": "Resize {name} from the bottom-left corner",
+            "w": "Resize {name} from the left edge",
+            "rotate": "Rotate {name}"
+          }
+        },
+        "announce": {
+          "one": "{name} selected",
+          "many": "{count} elements selected",
+          "none": "Selection cleared"
+        },
+        "arrange": {
+          "label": "Arrange",
+          "nothingSelected": "Select an element on the page to move, align or arrange it.",
+          "align": "Align",
+          "alignTo": "Align to",
+          "toPage": "Page",
+          "toSelection": "Selection",
+          "left": "Align left",
+          "centre": "Align horizontal centres",
+          "right": "Align right",
+          "top": "Align top",
+          "middle": "Align vertical middles",
+          "bottom": "Align bottom",
+          "distribute": "Distribute",
+          "distributeH": "Distribute horizontally (3 or more)",
+          "distributeV": "Distribute vertically (3 or more)",
+          "order": "Layer order",
+          "front": "Bring to front",
+          "forward": "Bring forward",
+          "backward": "Send backward",
+          "back": "Send to back",
+          "element": "Element",
+          "duplicate": "Duplicate (Ctrl+D)",
+          "lock": "Lock",
+          "unlock": "Unlock",
+          "hide": "Hide",
+          "show": "Show",
+          "delete": "Delete (Del)",
+          "selectedCount": "{count} selected"
+        },
+        "panel": {
+          "title": "Properties",
+          "tabs": "Panels",
+          "design": "Design",
+          "layers": "Layers",
+          "page": "Page",
+          "size": "Paper size",
+          "width": "Width",
+          "height": "Height",
+          "designHeight": "Design height",
+          "heightMode": "Page length",
+          "heightModes": {
+            "fixed": "Fixed page",
+            "auto": "Grows with content (roll)"
+          },
+          "minHeight": "Shortest print",
+          "margins": "Margins",
+          "marginTop": "Top",
+          "marginRight": "Right",
+          "marginBottom": "Bottom",
+          "marginLeft": "Left",
+          "grid": "Snap grid",
+          "gridValue": "{value} mm",
+          "background": "Background",
+          "defaultFont": "Default font",
+          "formats": "Formats",
+          "formatsHint": "How amounts, dates and digits print, unless an element says otherwise.",
+          "amount": "Amounts",
+          "amounts": {
+            "symbol": "Symbol (৳3,150)",
+            "plain": "Plain (3150)",
+            "fixed2": "Two decimals (3150.00)"
+          },
+          "amountSuffix": "After every amount",
+          "amountSuffixPlaceholder": "e.g. /=",
+          "date": "Dates",
+          "digits": "Digits",
+          "digitSets": {
+            "latin": "Latin (123)",
+            "bengali": "Bangla (১২৩)"
+          },
+          "position": "Position & size",
+          "x": "X",
+          "y": "Y",
+          "rotation": "Rotation",
+          "showOn": "Prints on",
+          "unitMm": "mm",
+          "unitDeg": "°",
+          "locked": "Locked. Unlock it to move or resize it.",
+          "many": "{count} elements selected",
+          "manyHint": "Select one element to change its position and size. Arrange above the canvas works on all of them.",
+          "review": "Review"
+        },
+        "name": {
+          "rename": "Rename “{name}”",
+          "taken": "Another template in this category already has this name."
+        },
+        "size": {
+          "label": "Paper size",
+          "menu": "Paper size: {size}",
+          "option": "{name} · {size}",
+          "custom": "Custom size…",
+          "customTitle": "Custom paper size",
+          "customDescription": "Width {minWidth}–{maxWidth} mm and height {minHeight}–{maxHeight} mm. Elements stay where they are.",
+          "width": "Width (mm)",
+          "height": "Height (mm)",
+          "apply": "Apply",
+          "cancel": "Cancel"
+        },
+        "warnings": {
+          "label": "{count, plural, =0 {No warnings} one {# warning} other {# warnings}}",
+          "hint": "Opens Review and selects the first thing to look at. Click again for the next one.",
+          "none": "Nothing to review. Click to open Review."
+        },
+        "reset": {
+          "button": "Reset",
+          "title": "Reset the template?",
+          "description": "Choose what to put back. You can undo it, and nothing is saved until you press Save.",
+          "discard": "Discard unsaved changes",
+          "discardHint": "Back to the last saved version, name included.",
+          "discardDraftHint": "Back to how this new template started.",
+          "preset": "Restore preset layout",
+          "presetHint": "The preset “{preset}” as it ships: every element and the page setup.",
+          "styles": "Reset styles only",
+          "stylesHint": "Fonts, colours, borders and spacing go back to their starting look. Text, data, positions and the page stay.",
+          "cancel": "Cancel"
+        },
+        "save": {
+          "saving": "Saving…",
+          "saved": "Saved",
+          "more": "More save options",
+          "saveAs": "Save as…",
+          "copied": "Saved a copy as “{name}”.",
+          "saveAndSetDefault": "Save & set as default",
+          "defaultFailed": "“{name}” was saved, but it couldn't be made the default. Use Set as default on the template list."
+        },
+        "saveAs": {
+          "title": "Save as a new template",
+          "description": "A copy of this design, with your changes, under a new name. “{name}” stays as it was last saved.",
+          "label": "Name of the copy",
+          "defaultName": "{name} (copy)",
+          "submit": "Save copy",
+          "cancel": "Cancel"
+        },
+        "conflict": {
+          "title": "This template was changed elsewhere",
+          "description": "Someone saved “{name}” after you opened it. Reload to see their version (your changes here are lost), or overwrite it with yours.",
+          "restoredDescription": "“{name}” was saved again after the copy you restored was made. Reload to see the saved version (the restored changes here are lost), or overwrite it with yours.",
+          "reload": "Reload",
+          "overwrite": "Overwrite",
+          "cancel": "Cancel"
+        },
+        "leave": {
+          "title": "Leave without saving?",
+          "description": "Your changes to this template aren't saved. If you leave now, they are lost here; this browser keeps a copy you can restore when you open the template again.",
+          "confirm": "Leave",
+          "cancel": "Stay"
+        },
+        "recovery": {
+          "title": "Unsaved changes found",
+          "body": "This browser kept changes to this template from {time} that were never saved.",
+          "stale": "The template has been saved again since then; restoring puts your older copy on the canvas.",
+          "staleSave": "Saving it afterwards asks before it replaces the newer version.",
+          "restore": "Restore them",
+          "discard": "Discard"
+        },
+        "layers": {
+          "title": "Layers",
+          "hint": "The top of the list prints on top. Drag a row, or use its menu, to change the order.",
+          "empty": "No elements yet. Add some from the left.",
+          "drag": "Reorder {name}",
+          "hide": "Hide {name}",
+          "show": "Show {name}",
+          "lock": "Lock {name}",
+          "unlock": "Unlock {name}",
+          "more": "More for {name}",
+          "rename": "Rename",
+          "renameLabel": "Layer name",
+          "duplicate": "Duplicate",
+          "up": "Move up",
+          "down": "Move down",
+          "hidden": "Hidden",
+          "locked": "Locked",
+          "instructions": "To reorder, press Space or Enter on a row's handle, move it with the arrow keys, then press Space or Enter to drop it. Esc cancels.",
+          "picked": "Picked up {name}.",
+          "over": "{name} is at position {position} of {count}.",
+          "dropped": "{name} dropped at position {position} of {count}.",
+          "cancelled": "Reordering cancelled; {name} is back where it was."
+        },
+        "props": {
+          "sections": {
+            "content": "Content",
+            "typography": "Text",
+            "colours": "Colours",
+            "border": "Border & spacing",
+            "format": "Amounts, dates & digits",
+            "stylePreset": "Style"
+          },
+          "header": {
+            "title": "Element",
+            "name": "Name",
+            "visible": "Prints on the page",
+            "locked": "Lock position and size",
+            "duplicate": "Duplicate",
+            "delete": "Delete",
+            "unlockToDelete": "Unlock it to delete it."
+          },
+          "content": {
+            "question": "What should this show?",
+            "fixed": "Fixed text",
+            "field": "Data field",
+            "fixedHelp": "This block prints the same text on every order.",
+            "fieldHelp": "Each printed copy fills this in from the order.",
+            "text": "Text",
+            "dataField": "Data field",
+            "pickerPlaceholder": "Choose a field",
+            "pickerSearch": "Search fields...",
+            "pickerEmpty": "No field matches",
+            "before": "Text before",
+            "after": "Text after",
+            "fallback": "If empty, print",
+            "fallbackPlaceholder": "Nothing",
+            "sample": "Sample",
+            "sampleEmpty": "Prints nothing for the sample order.",
+            "internalTag": "internal",
+            "notHereTag": "no data here",
+            "notPrintedTag": "not printed on your papers",
+            "notHere": "This field has no data in {category} templates, so it will print nothing there.",
+            "categories": {
+              "online": "online invoice",
+              "pos": "POS receipt",
+              "sticker": "sticker"
+            },
+            "groups": {
+              "order": "Order",
+              "customer": "Customer",
+              "money": "Amounts",
+              "delivery": "Delivery",
+              "items": "Products",
+              "store": "Store",
+              "pos": "POS",
+              "page": "Page",
+              "item": "Product line"
+            }
+          },
+          "typography": {
+            "font": "Font",
+            "fontDefault": "Template default ({font})",
+            "size": "Size",
+            "lineHeight": "Line height",
+            "weight": "Weight",
+            "weights": {
+              "400": "Normal",
+              "500": "Medium",
+              "600": "Semibold",
+              "700": "Bold"
+            },
+            "fontStyle": "Style",
+            "fontStyles": {
+              "normal": "Upright",
+              "italic": "Italic"
+            },
+            "align": "Alignment",
+            "aligns": {
+              "left": "Align text left",
+              "center": "Centre text",
+              "right": "Align text right"
+            },
+            "verticalAlign": "Vertical alignment",
+            "verticals": {
+              "top": "Top",
+              "middle": "Middle",
+              "bottom": "Bottom"
+            },
+            "shrink": "Shrink text to fit",
+            "shrinkHelp": "Makes the text smaller, down to 6 px, to fit the box. Past that it wraps and is cut off, and Review warns you.",
+            "unitPx": "px",
+            "unitTimes": "×",
+            "specimen": "Aa আ ৳123"
+          },
+          "colours": {
+            "text": "Text colour",
+            "background": "Background",
+            "noFill": "No fill"
+          },
+          "border": {
+            "width": "Border width",
+            "thickness": "Thickness",
+            "style": "Border style",
+            "styles": {
+              "none": "None",
+              "solid": "Solid",
+              "dashed": "Dashed",
+              "dotted": "Dotted"
+            },
+            "color": "Border colour",
+            "radius": "Corner radius",
+            "padding": "Padding",
+            "gap": "Gap",
+            "unitPx": "px",
+            "unitMm": "mm"
+          },
+          "format": {
+            "hint": "Only for this element. Leave on “Same as template” to follow the template's settings.",
+            "sameAsTemplate": "Same as template ({value})"
+          },
+          "stylePreset": {
+            "hint": "Changes the look only. The text, data field and settings of this element stay as they are.",
+            "specimen": "Aa ৳1,250",
+            "names": {
+              "minimal": "Minimal",
+              "boldCod": "Bold COD",
+              "premium": "Premium",
+              "compact": "Compact",
+              "courierLabel": "Courier Label"
+            },
+            "reset": "Reset to default style",
+            "resetHint": "Puts the look back to where this element started. Its content and data field are kept."
+          },
+          "sortable": {
+            "instructions": "To reorder, focus the handle and press Space, then use the arrow keys and press Space again. Or press the Up or Down arrow on the handle to move one place.",
+            "picked": "Picked up {name}.",
+            "over": "{name} is now at position {position} of {count}.",
+            "dropped": "{name} dropped at position {position} of {count}.",
+            "cancelled": "Moving {name} was cancelled.",
+            "drag": "Reorder {name}",
+            "dragHint": "Drag, or press the Up or Down arrow"
+          },
+          "config": {
+            "titles": {
+              "businessHeader": "Business details",
+              "customerAddress": "Customer details",
+              "orderSummary": "Order details",
+              "deliveryMethod": "Delivery details",
+              "productTable": "Columns and table",
+              "productRows": "Product lines",
+              "priceSummary": "Amounts",
+              "codBadge": "Cash on delivery",
+              "notes": "Note",
+              "barcode": "Barcode",
+              "qr": "QR code",
+              "image": "Picture",
+              "line": "Line"
+            },
+            "fields": {
+              "list": "Fields",
+              "show": "Show {name}",
+              "labelFor": "Label for {name}",
+              "noLabel": "No label",
+              "notHere": "no data here",
+              "search": "Search...",
+              "searchEmpty": "Nothing left to add"
+            },
+            "businessHeader": {
+              "logoPlacement": "Logo",
+              "placements": {
+                "left": "Left of the text",
+                "right": "Right of the text",
+                "top": "Above the text",
+                "none": "Don't print"
+              }
+            },
+            "customerAddress": {
+              "title": "Heading",
+              "titlePlaceholder": "For example: Bill to",
+              "multiline": "One line for each part of the address",
+              "longAddress": "A long address",
+              "longAddresses": {
+                "wrap": "Wraps onto more lines",
+                "shrink": "Shrinks to fit the box"
+              }
+            },
+            "summary": {
+              "labelAlign": "Labels",
+              "valueAlign": "Values",
+              "sides": {
+                "left": "Left",
+                "right": "Right"
+              }
+            },
+            "cod": {
+              "amountSource": "Amount to show",
+              "sources": {
+                "cod": "Cash to collect",
+                "due": "Amount due",
+                "total": "Order total"
+              },
+              "label": "Label",
+              "labelPlaceholder": "Default label",
+              "whenPaid": "When nothing is left to collect",
+              "paid": {
+                "showPaid": "Show a stamp",
+                "hide": "Print nothing"
+              },
+              "paidLabel": "Stamp text",
+              "paidPlaceholder": "PAID"
+            },
+            "notes": {
+              "source": "What to print",
+              "sources": {
+                "customerNote": "The customer's note",
+                "internalNote": "The internal note (staff)",
+                "fixed": "Fixed text"
+              },
+              "internalWarning": "The internal note is written for staff. It will print on paper the customer may see.",
+              "internalVendorWarning": "The internal note is written for the marketplace's staff, so it never prints on your papers. Choose another source.",
+              "text": "Text",
+              "title": "Heading",
+              "titlePlaceholder": "No heading"
+            },
+            "line": {
+              "orientation": "Direction",
+              "horizontal": "Horizontal",
+              "vertical": "Vertical",
+              "hint": "Thickness, style and colour are under Border and spacing.",
+              "turnsBox": "Changing direction turns the line's box (width and height swap) so it still shows."
+            },
+            "table": {
+              "columns": "Columns",
+              "add": "Add a column",
+              "addNone": "Every column is in use",
+              "headingFor": "Heading of {name}",
+              "alignFor": "Alignment of {name}",
+              "remove": "Remove {name}",
+              "last": "A table needs at least one column.",
+              "widthAuto": "Auto",
+              "widthTotal": "Widths claim {total}% of the table. Columns without a width share the rest.",
+              "widthFull": "The other columns already take 100 %. Clear one of their widths to give this column one.",
+              "aligns": {
+                "left": "Align left",
+                "center": "Centre",
+                "right": "Align right"
+              },
+              "showHeader": "Show a heading row",
+              "lines": "Lines",
+              "lineModes": {
+                "grid": "Grid",
+                "rows": "Between rows",
+                "none": "None"
+              },
+              "cells": "Long text in a cell",
+              "cellModes": {
+                "wrap": "Wraps onto more lines",
+                "oneLine": "One line, cut off"
+              },
+              "headerFill": "Heading row fill",
+              "headerColor": "Heading row text",
+              "stripe": "Alternate rows fill"
+            },
+            "rows": {
+              "fields": "Shown on each line",
+              "add": "Add a field",
+              "addNone": "Every field is in use",
+              "remove": "Remove {name}",
+              "last": "A line needs at least one field.",
+              "quantity": "Quantity",
+              "quantityFormats": {
+                "times": "×2",
+                "pcs": "2 pcs"
+              },
+              "showMore": "Show “+ N more” when lines don't fit",
+              "showMoreHint": "Only when the block doesn't continue on the next page (see Page flow)."
+            },
+            "priceRows": {
+              "rows": "Rows",
+              "add": "Add a row",
+              "addNone": "Every row is in use",
+              "remove": "Remove {name}",
+              "last": "A summary needs at least one row.",
+              "labelFor": "Label of {name}",
+              "flags": {
+                "hideWhenZero": "Hide when zero",
+                "asDeduction": "Show as a deduction",
+                "bold": "Bold"
+              },
+              "flagFor": {
+                "hideWhenZero": "Hide {name} when zero",
+                "asDeduction": "Show {name} as a deduction",
+                "bold": "Make {name} bold"
+              }
+            },
+            "barcode": {
+              "sizeHint": "Width and height are under Position and size. The bars scale to the width.",
+              "source": "Encodes",
+              "sources": {
+                "orderNumber": "The order number",
+                "trackingNumber": "The tracking number",
+                "fixed": "Fixed text"
+              },
+              "value": "Value",
+              "format": "Format",
+              "formats": {
+                "code128": "Code 128",
+                "ean13": "EAN-13",
+                "upca": "UPC-A"
+              },
+              "boundHint": "An order or tracking number is always Code 128. EAN-13 and UPC-A are for fixed numbers.",
+              "formatHints": {
+                "code128": "Use English letters, digits and common symbols only.",
+                "ean13": "Use exactly 13 digits, the last one a correct check digit.",
+                "upca": "Use exactly 12 digits, the last one a correct check digit."
+              },
+              "showText": "Print the value under the bars",
+              "textSize": "Text size",
+              "encodes": "Encodes: {value}",
+              "encodesSample": "The sample order would encode: {value}",
+              "narrowest": "Narrowest bar at print size: {width} mm",
+              "issues": {
+                "emptyFixed": "Enter a value to encode. Until then nothing prints.",
+                "emptyBound": "The sample order has no {source}. An order without one prints no barcode.",
+                "invalid": "{format} can't encode this value. {hint}",
+                "formatNotAllowed": "{format} is only for fixed numbers. Choose Code 128, or switch to fixed text.",
+                "renderFailed": "This barcode can't be drawn. Check the value and the format.",
+                "tooSmall": "The narrowest bar is {width} mm wide at this size. Scanners need at least {min} mm. Make the barcode wider, or shorten the value."
+              },
+              "nouns": {
+                "orderNumber": "order number",
+                "trackingNumber": "tracking number"
+              }
+            },
+            "qr": {
+              "sizeHint": "Width and height are under Position and size. The code is a square, as big as the smaller side. Under {min} mm a phone may not scan it.",
+              "source": "Opens",
+              "sources": {
+                "trackingLink": "The courier's tracking link",
+                "orderTrackingPage": "The store's order tracking page",
+                "storeWebsite": "The store's website",
+                "fixed": "A fixed address"
+              },
+              "url": "Address",
+              "errorCorrection": "Error correction",
+              "levels": {
+                "L": "L (7%)",
+                "M": "M (15%)",
+                "Q": "Q (25%)",
+                "H": "H (30%)"
+              },
+              "quietZone": "Quiet zone",
+              "unitModules": "modules",
+              "encodes": "Opens: {value}",
+              "encodesSample": "The sample order would open: {value}",
+              "issues": {
+                "emptyFixed": "Enter an address. Until then nothing prints.",
+                "emptyBound": "The sample order has no {source}. An order without one prints no QR code.",
+                "invalid": "This can't be made into a QR code. It may be too long.",
+                "badUrl": "Use an address that starts with http:// or https://. Anything else can't be saved.",
+                "tooSmall": "The code is {size} mm wide. Under {min} mm a phone may not scan it. Make it bigger."
+              },
+              "nouns": {
+                "trackingLink": "tracking link",
+                "orderTrackingPage": "tracking page address",
+                "storeWebsite": "website address"
+              }
+            },
+            "image": {
+              "source": "Picture",
+              "sources": {
+                "storeLogo": "Store logo",
+                "media": "Media library"
+              },
+              "logoHint": "Prints the logo from Settings. If the store has none, nothing prints.",
+              "logoHintName": "Prints the logo from Settings. If the store has none, its name prints instead.",
+              "nameWhenNoLogo": "Store name when there is no logo",
+              "choose": "Choose a picture",
+              "replace": "Replace",
+              "remove": "Remove",
+              "cancel": "Cancel",
+              "fit": "Fit",
+              "fits": {
+                "contain": "Fit inside the box",
+                "cover": "Fill the box and crop",
+                "stretch": "Stretch to the box"
+              }
+            }
+          },
+          "flow": {
+            "title": "Page flow",
+            "hint": "What happens when there are more lines than fit on the page.",
+            "enabled": "Continue on the next page",
+            "repeatHeader": "Repeat the heading on each page",
+            "continuationTop": "Next pages start at",
+            "automatic": "Automatic",
+            "auto": "Auto",
+            "unitMm": "mm",
+            "rowsPerPage": "Lines per page",
+            "pages": {
+              "first": "First",
+              "middle": "Middle",
+              "last": "Last"
+            }
+          }
+        },
+        "review": {
+          "warnings": "Warnings",
+          "none": "Nothing to fix: everything is inside the page, nothing overlaps, and the codes can be drawn.",
+          "summary": "{count, plural, one {# thing to look at} other {# things to look at}}. Click one to select it on the page.",
+          "select": "Select on the page",
+          "categories": {
+            "online": "online invoice",
+            "pos": "POS receipt",
+            "sticker": "sticker"
+          },
+          "sources": {
+            "orderNumber": "order number",
+            "trackingNumber": "tracking number",
+            "trackingLink": "tracking link",
+            "orderTrackingPage": "tracking page address",
+            "storeWebsite": "website address"
+          },
+          "rules": {
+            "outOfBounds": "“{name}” reaches outside the printable area. Move or resize it, or change the margins.",
+            "overlap": "“{name}” and “{other}” overlap.",
+            "fieldUnavailable": "“{name}” shows “{field}”, which {category} templates never have data for, so it prints nothing.",
+            "sourceUnavailable": "“{name}” uses the {source}, which {category} orders never have, so nothing prints.",
+            "barcodeEmpty": "“{name}” has no value to encode, so no barcode prints.",
+            "barcodeInvalid": "“{name}”: {format} can't encode its value. {hint}",
+            "barcodeFormat": "“{name}”: {format} is only for fixed numbers. Choose Code 128, or switch to fixed text.",
+            "barcodeRender": "“{name}” can't be drawn. Check its value and format.",
+            "barcodeTooSmall": "“{name}”: the narrowest bar is {width} mm wide and scanners need {min} mm. Make it wider or shorten the value.",
+            "qrEmpty": "“{name}” has no address to open, so no QR code prints.",
+            "qrBadUrl": "“{name}” has an address that can't be saved. It must start with http:// or https://.",
+            "qrInvalid": "“{name}” can't be made into a QR code. Its address may be too long.",
+            "qrTooSmall": "“{name}” is {size} mm wide. A phone may not scan a QR code under {min} mm.",
+            "textOverflow": "The text in “{name}” still doesn't fit its box at the smallest size (6 px). Make the box bigger or shorten the text."
+          },
+          "preview": {
+            "title": "Preview",
+            "source": "What to preview",
+            "sample": "Sample data",
+            "order": "A real order",
+            "items": "Sample order size",
+            "itemCount": "{count, plural, one {# product} other {# products}}",
+            "orderNumber": "Order number",
+            "orderPlaceholder": "For example ORD-100042",
+            "load": "Load",
+            "loading": "Loading the order...",
+            "loaded": "Showing order {number}.",
+            "notFound": "No order “{ref}” was found, or you can't see it.",
+            "failed": "The order couldn't be loaded. Try again.",
+            "readOnly": "Read-only: the order is only read, never changed.",
+            "showingSample": "Until an order is loaded, the sample data is shown."
+          }
+        }
+      },
+      "orderPrint": {
+        "printInvoice": "Print invoice",
+        "printSticker": "Print sticker",
+        "fallback": {
+          "noDefault": "There is no default template for this any more, so it printed the standard way.",
+          "failed": "Couldn't print with the template, so it printed the standard way.",
+          "receipt": "Couldn't print the receipt with the template, so the standard receipt printed."
+        }
+      }
+    },
     "sidebar": {
       "dashboard": "Dashboard",
       "overview": "Overview",
@@ -2713,7 +3940,6 @@
       "pos": "Point of Sale",
       "staff": "Team",
       "shipping": "Shipping",
-      "posStaff": "Staff",
       "posLocations": "Locations",
       "addPage": "Add Page",
       "navigation": "Navigation",
@@ -2731,10 +3957,12 @@
       "expenses": "Expenses",
       "finance": "Finance",
       "financeOverview": "Overview",
+      "inventoryLedger": "Inventory and ledger",
       "receivables": "Receivables",
       "financeReports": "Reports",
       "customize": "Customize",
       "sliders": "Sliders",
+      "campaignBanners": "Campaign Banner",
       "quotes": "Quotes",
       "traffic": "Traffic",
       "searchInsights": "Search insights",
@@ -2747,7 +3975,6 @@
     },
     "pos": "Point of Sale",
     "posLocations": "POS Locations",
-    "posStaff": "POS Staff",
     "dashboardSubtitle": "Welcome back! Here's what's happening.",
     "editProduct": "Edit Product",
     "updateProductInfo": "Update product information",
@@ -3199,6 +4426,19 @@
         "loadingCategories": "Loading categories…",
         "categoriesUnavailable": "Categories could not be loaded. Use Retry above.",
         "saveBlocked": "The product can be saved once the categories, brands and stock locations have loaded."
+      },
+      "leave": {
+        "title": "Leave without saving?",
+        "descriptionNew": "This product isn't saved yet. If you leave now, what you entered is lost here; this browser keeps a copy you can restore the next time you add a product.",
+        "descriptionEdit": "Your changes to this product aren't saved. If you leave now, they are lost.",
+        "confirm": "Leave",
+        "cancel": "Stay"
+      },
+      "draft": {
+        "title": "Unsaved product found",
+        "body": "This browser kept a product from {time} that was never saved.",
+        "restore": "Restore it",
+        "discard": "Discard"
       }
     },
     "settings": {
@@ -3461,7 +4701,7 @@
             "ses": "Amazon SES",
             "other": "Other"
           },
-          "docs": "Full walkthrough: docs/EMAIL_SETUP.md",
+          "docs": "Full walkthrough: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "Turn on 2-Step Verification for the Google account you will send from.",
             "step2": "Create an app password named {storeName} and copy the 16-letter password. Google shows it only once.",
@@ -3683,6 +4923,10 @@
             "preorderAccess": {
               "title": "Pre-order access",
               "hint": "Approved, declined or withdrawn"
+            },
+            "payouts": {
+              "title": "Payouts",
+              "hint": "Prepared, sent, returned or cancelled"
             }
           },
           "customer": {
@@ -3770,9 +5014,8 @@
       },
       "orders": {
         "title": "Order Settings",
-        "description": "Order numbers, tax and returns.",
+        "description": "Order numbers, shipping and returns.",
         "prefix": "Order number prefix",
-        "taxRate": "Tax rate",
         "shippingCost": "Standard shipping",
         "freeShippingThreshold": "Free shipping from",
         "shippingHandledByZones": "Rates come from your shipping zones.",
@@ -3820,7 +5063,6 @@
         "finalSaleCollectionsHint": "Products in these collections are final sale: shoppers can't return them. Orders already placed keep the rules they were sold under.",
         "ordersHeading": "Orders",
         "prefixExample": "Orders read like <strong>{example}</strong>.",
-        "taxRateHint": "Added to orders at checkout and in POS.",
         "shipping": "Shipping",
         "shippingLink": "Shipping & Delivery",
         "shippingCostHint": "What an order pays for delivery while shipping zones are off.",
@@ -3836,7 +5078,18 @@
         "commissionSummaryLabel": "Commission and minimum payout",
         "commissionSummary": "{rate}% commission, {amount} minimum payout.",
         "vendorConfigLink": "Vendor configuration",
-        "refundAdminFeeUpTo": "% up to"
+        "refundAdminFeeUpTo": "% up to",
+        "tax": "Tax",
+        "taxMoved": "Tax rates, tax classes and your registration are now in Tax Settings.",
+        "taxLink": "Open Tax Settings"
+      },
+      "invoices": {
+        "title": "Invoice Settings",
+        "entry": {
+          "title": "Invoices, receipts and stickers",
+          "description": "Design what your store prints and choose the default template for each.",
+          "action": "Open Invoice Settings"
+        }
       },
       "seo": {
         "title": "SEO Settings",
@@ -4404,7 +5657,20 @@
         "soundPayment": "Payment accepted",
         "soundOrderComplete": "Sale complete",
         "soundError": "Error or stock warning",
-        "soundPlay": "Play the sound: {sound}"
+        "soundPlay": "Play the sound: {sound}",
+        "offlineWindow": "Offline selling window",
+        "offlineWindowHint": "How long a register keeps selling with no connection after it last reached the server. After that it locks until it can sign in again. Between {min} and {max} hours.",
+        "offlineWindowUnit": "hours",
+        "allowDeposits": "Allow deposits",
+        "allowDepositsDesc": "The till may take part of a sale now and the rest later, for a sale with a customer attached. The goods are set aside, and the sale is booked once it is paid off.",
+        "requireOpenRegister": "Require an open drawer to sell",
+        "requireOpenRegisterDesc": "Each register must open its drawer with a float before it can take a sale, so every sale lands in a session that is counted at closing.",
+        "pricesIncludeTax": "Prices include tax",
+        "openCashDrawer": "Open the cash drawer",
+        "openCashDrawerDesc": "Kick the cash drawer open when cash changes hands at the till. Needs QZ Tray and a receipt printer with a drawer port; each register picks its printer from its drawer menu.",
+        "pricesIncludeTaxMovedOn": "On: shelf prices already include tax. This switch is now in Tax Settings.",
+        "pricesIncludeTaxMovedOff": "Off: tax is added to shelf prices. This switch is now in Tax Settings.",
+        "pricesIncludeTaxLink": "Open Tax Settings"
       },
       "vendorPermissions": {
         "title": "Marketplace policy",
@@ -4461,13 +5727,15 @@
           "rateLabel": "Commission rate",
           "rateDescription": "Percentage the platform keeps on each vendor sale.",
           "minWithdrawalLabel": "Minimum withdrawal amount",
-          "minWithdrawalDescription": "Smallest balance a vendor can request as a payout, in your store currency.",
+          "minWithdrawalDescription": "Smallest balance a payout is made for, in your store currency.",
           "byCurrencyLabel": "Minimum in other currencies",
           "byCurrencyDescription": "Payouts in a currency other than {currency} use their own minimum. A currency not listed here has no minimum.",
           "byCurrencyAmount": "Minimum payout in {currency}",
           "byCurrencyRemove": "Remove the {currency} minimum",
           "byCurrencyCode": "Currency code",
-          "byCurrencyAdd": "Add currency"
+          "byCurrencyAdd": "Add currency",
+          "autoPayoutDraftsLabel": "Prepare payouts on each seller's schedule",
+          "autoPayoutDraftsDescription": "On a seller's payout day (weekly, every two weeks or monthly, as they chose) a payout is drawn up when they have enough to pay. You still send the money and mark it paid."
         },
         "paymentMethods": {
           "title": "Subscription payment methods",
@@ -4576,7 +5844,7 @@
         },
         "setup": {
           "title": "{provider} setup guide",
-          "docs": "Full walkthrough: docs/STORAGE_SETUP.md",
+          "docs": "Full walkthrough: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "Copy",
           "copyFailed": "Unable to copy",
           "console": {
@@ -4761,7 +6029,7 @@
           "step6": "After the first fetch, Catalog → Issues lists any item Meta rejected.",
           "caution": "After generating a new URL, change the URL of the existing data source. A second data source would list every product twice.",
           "link": "Open Commerce Manager",
-          "docs": "Full walkthrough: docs/META_CATALOG.md"
+          "docs": "Full walkthrough: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook and Instagram get your product changes within minutes through Meta's Catalog API.",
         "source": {
@@ -4841,7 +6109,7 @@
             "caution": "Treat the token like a password. If it is revoked or expires, live sync pauses and admins are notified.",
             "off": "Turning live sync off leaves the items already in Meta as they are. Remove them in Commerce Manager if you no longer want them.",
             "link": "Open Business settings",
-            "docs": "Full walkthrough: docs/META_CATALOG.md"
+            "docs": "Full walkthrough: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -5165,6 +6433,221 @@
       "saveBar": {
         "unsaved": "Unsaved changes",
         "discard": "Discard"
+      },
+      "tax": {
+        "title": "Tax Settings",
+        "description": "What you charge, where you are registered, and how tax is worked out.",
+        "tabsLabel": "Tax settings sections",
+        "moreOptions": "More options",
+        "tabs": {
+          "rates": "Rates",
+          "registration": "Registration",
+          "calculation": "Calculation",
+          "vendors": "Vendors"
+        },
+        "links": {
+          "report": "Tax report",
+          "invoices": "Invoice settings"
+        },
+        "registrationMissingLabel": "Registration number missing",
+        "rates": {
+          "description": "What each class is charged. Products with no class are charged the Standard rate.",
+          "notCharging": "Not charging tax",
+          "notChargingHint": "Every rate is 0%, so no sale is taxed. Set the Standard rate below to start charging tax.",
+          "removedClass": "Some products use a class that no longer exists",
+          "removedClassHint": "{products, plural, one {# product} other {# products}} and {categories, plural, one {# category} other {# categories}} are filed under a removed class, so they are charged the standard rate. Choose a class for them in their editors.",
+          "default": "Default",
+          "partsBadge": "{count, plural, one {# part} other {# parts}}",
+          "neverCharged": "Never charged",
+          "noRate": "No rate yet. Charged the Standard rate until you set one.",
+          "rateLabel": "{name} rate",
+          "rateTotalLabel": "{name} rate, the total of its parts",
+          "expandLabel": "Options for {name}",
+          "usageProducts": "{count, plural, one {# product} other {# products}}",
+          "usageCategories": "{count, plural, one {# category} other {# categories}}",
+          "next": "Changes to {rate} on {date}",
+          "name": "Name",
+          "note": "Note",
+          "optional": "optional",
+          "notePlaceholder": "What goes in this class",
+          "partsTitle": "Rate parts",
+          "total": "Total {rate}",
+          "partName": "Part name",
+          "partRate": "Part rate",
+          "partPlaceholder1": "State",
+          "partPlaceholder2": "County",
+          "partPlaceholder3": "City",
+          "compound": "Charged on top of the parts above",
+          "compoundHint": "Parts add up, as a state, a county and a city sales tax do. A part charged on top is worked out on the price plus the parts above it.",
+          "addPart": "Add a part",
+          "splitIntoParts": "Split into parts",
+          "removePart": "Remove this part",
+          "scheduleTitle": "Scheduled change",
+          "scheduleAdd": "Schedule a change",
+          "startsOn": "Starts on",
+          "newRate": "New rate",
+          "removeScheduled": "Remove this scheduled change",
+          "earlierTitle": "Earlier rates",
+          "earlierLine": "{rate} from {date}",
+          "fromStart": "From the start",
+          "removeEarlier": "Remove this earlier rate",
+          "removeClass": "Remove class",
+          "removeClassInUse": "{products, plural, one {# product} other {# products}} and {categories, plural, one {# category} other {# categories}} use this class. Once it is removed, they are charged the standard rate.",
+          "removeClassHint": "Its rates are removed with it.",
+          "addClass": "Add a class",
+          "newName": "Class name",
+          "newNamePlaceholder": "Books",
+          "classRate": "Rate",
+          "add": "Add class",
+          "cancel": "Cancel",
+          "full": "You can add up to {count} classes.",
+          "untaxedNote": "{count, plural, one {# product is} other {# products are}} set to not charge tax.",
+          "customNote": "{products, plural, one {# product} other {# products}} and {categories, plural, one {# category} other {# categories}} set a custom rate of their own. It does not follow the rates here; filing them under a class keeps them in step."
+        },
+        "registration": {
+          "description": "Where your store is registered for tax. Every sale is taxed at this region's rates.",
+          "missing": "No registration number",
+          "missingHint": "You charge tax but have not added your tax registration, such as your sales tax permit number.",
+          "country": "Country",
+          "name": "Region name",
+          "optional": "optional",
+          "nameHint": "The country's name is shown when this is empty.",
+          "registrationLabel": "Registration name",
+          "registrationLabelPlaceholder": "Sales tax permit",
+          "registrationLabelHint": "What your tax authority calls it: Sales tax permit, Seller's permit.",
+          "registrationNumber": "Registration number",
+          "registrationNumberHint": "The number your tax authority issued you."
+        },
+        "calculation": {
+          "posTitle": "Point of sale",
+          "posDescription": "How shelf prices at the till are read.",
+          "posPricesIncludeTax": "Shelf prices include tax",
+          "posPricesIncludeTaxDesc": "The till charges the price on the shelf and shows the tax inside it, instead of adding tax on top.",
+          "rulesTitle": "How tax is worked out",
+          "rulesDescription": "These rules apply to every sale. There is nothing to set here.",
+          "chainTitle": "A product is charged the first of these that is set",
+          "chain": {
+            "own": "Its own custom rate",
+            "class": "Its tax class",
+            "category": "Its category's rate",
+            "standard": "The Standard rate"
+          },
+          "facts": {
+            "online": {
+              "label": "Online store",
+              "text": "In the online store, prices are shown without tax; tax is added at checkout."
+            },
+            "discounts": {
+              "label": "Discounts",
+              "text": "Tax is charged on what the shopper pays, after discounts and coupons."
+            },
+            "shipping": {
+              "label": "Shipping",
+              "text": "Shipping and customs duty are not taxed."
+            },
+            "region": {
+              "label": "Region",
+              "text": "Every sale is taxed at your region's rates, whatever the shopper's address."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "Standard",
+            "description": "Most goods. Its rate is your store's tax rate."
+          },
+          "reduced": {
+            "name": "Reduced",
+            "description": "Goods your law taxes at a lower rate."
+          },
+          "zero": {
+            "name": "Zero-rated",
+            "description": "Taxable goods charged at 0%."
+          },
+          "exempt": {
+            "name": "Exempt",
+            "description": "Goods outside tax altogether."
+          }
+        },
+        "picker": {
+          "label": "Tax",
+          "inheritCategory": "Same as its category",
+          "inheritParent": "Same as its parent category",
+          "custom": "Custom rate",
+          "customRate": "Custom tax rate",
+          "customHint": "A custom rate wins over every class and does not follow rate changes in Tax Settings.",
+          "hint": "The class decides the rate, set in Settings → Tax Settings.",
+          "removedClass": "{key} (removed: standard rate)"
+        },
+        "vendors": {
+          "policyTitle": "Vendors' product tax",
+          "policyDescription": "Your store answers for the tax its marketplace collects. Choose who may change the tax of a vendor's products: Charge tax, the tax class and custom rates.",
+          "policy": {
+            "approval": "With your approval",
+            "approvalHint": "Vendors send a request, and you approve or decline it below. Until then their products keep their tax.",
+            "never": "Only you",
+            "neverHint": "Vendors see their products' tax but cannot change it or ask to.",
+            "free": "Vendors themselves",
+            "freeHint": "Vendors change the tax of their own products without asking."
+          },
+          "requestsTitle": "Tax change requests",
+          "requestsDescription": "Approving sets the asked-for tax on every product in the request. Declining keeps their tax and tells the vendor why.",
+          "pendingTab": "Waiting",
+          "decidedTab": "Answered",
+          "loading": "Loading requests…",
+          "empty": "No requests are waiting.",
+          "emptyDecided": "No requests have been answered yet.",
+          "loadFailed": "The requests could not be loaded",
+          "unknownStore": "Unknown store",
+          "requestedOn": "Requested {date}",
+          "asksFor": "Asks for",
+          "now": "now {tax}",
+          "moreProducts": "{count, plural, one {and # more product} other {and # more products}}",
+          "reason": "Reason",
+          "noteLabel": "Note to the vendor",
+          "noteRequiredHint": "required to decline",
+          "optional": "optional",
+          "notePlaceholder": "A short note for the vendor",
+          "addNote": "Add a note",
+          "noteRequired": "Write a note so the vendor knows why",
+          "approve": "Approve",
+          "decline": "Decline",
+          "cancel": "Cancel",
+          "sendDecline": "Send decline",
+          "approvedToast": "Tax change approved",
+          "declinedToast": "Request declined",
+          "decisionFailed": "The decision could not be saved",
+          "pending": "Waiting",
+          "approved": "Approved",
+          "declined": "Declined",
+          "withdrawn": "Withdrawn",
+          "decisionNote": "Note: {note}"
+        },
+        "request": {
+          "notCharged": "Not charged",
+          "inherit": "Same as its category",
+          "customRate": "Custom rate {rate}%",
+          "lockedLabel": "Tax",
+          "lockedApproval": "The store approves changes to this product's tax.",
+          "lockedNever": "The store manages this product's tax.",
+          "newProductApproval": "A new product is taxed as its category. Once it is saved you can ask for a different tax.",
+          "requestChange": "Request a change",
+          "pending": "Change requested: {tax}. Waiting for the store.",
+          "withdraw": "Withdraw",
+          "withdrawn": "Request withdrawn",
+          "withdrawFailed": "The request could not be withdrawn",
+          "dialogTitle": "Request a tax change",
+          "dialogDescription": "{count, plural, one {The store reviews your request. Until it approves, the product keeps its current tax.} other {The store reviews your request for # products. Until it approves, they keep their current tax.}}",
+          "chargeTax": "Charge tax",
+          "reason": "Why should the tax change?",
+          "reasonPlaceholder": "For example: these items are exempt from sales tax in our state.",
+          "reasonTooShort": "Add a sentence on why the tax should change.",
+          "send": "Send request",
+          "cancel": "Cancel",
+          "sent": "Request sent to the store",
+          "sendFailed": "The request could not be sent",
+          "bulkAction": "Request tax change"
+        }
       }
     },
     "addToCart": "Add to Cart",
@@ -5379,7 +6862,10 @@
           "vendorId": "The vendor a product belongs to, as in a vendor's export. Default: your own store.",
           "vendorSlug": "The vendor's store slug, e.g. green-leaf. Names the vendor when vendorId is empty.",
           "vendorEmail": "The email the vendor's owner signs in with. Names the vendor when vendorId is empty.",
-          "vendor": "The vendor's store name. Refused when two stores share it; use vendorSlug or vendorEmail then."
+          "vendor": "The vendor's store name. Refused when two stores share it; use vendorSlug or vendorEmail then.",
+          "chargeTax": "true or false: charge tax on this product. Default true.",
+          "taxClass": "A tax class from Tax Settings: standard, reduced, zero, exempt or one you added. Write inherit to use the category's tax again.",
+          "taxRate": "A custom tax rate in percent, such as 7.5. It takes the place of the tax class, so fill in taxClass or taxRate, not both."
         },
         "cancel": "Cancel",
         "submit": "Import products",
@@ -5399,7 +6885,8 @@
         "moreErrors": "…and {count} more in the downloadable list.",
         "downloadErrors": "Download error list",
         "importAnother": "Import another file",
-        "done": "Done"
+        "done": "Done",
+        "inventoryClassification": "New products’ initial quantities are recorded as opening inventory. Existing quantities are count corrections. Record purchases through Add stock; carried cost changes require a valuation preview."
       },
       "bulkActions": {
         "setActive": "Set active",
@@ -5477,7 +6964,9 @@
       "actions": {
         "export": "Export",
         "import": "Import",
-        "addCollection": "Add collection"
+        "addCollection": "Add collection",
+        "importExport": "Import / Export",
+        "downloadSample": "Download sample file"
       },
       "bulkActions": {
         "setActive": "Set active",
@@ -5516,6 +7005,67 @@
         "deleteBulkError": "Failed to delete some collections",
         "updateSuccess": "{count} collections updated",
         "updateError": "Failed to update {count} collections"
+      },
+      "importDialog": {
+        "title": "Import collections",
+        "description": "Add new collections or update existing ones in bulk from a CSV file.",
+        "sampleTitle": "Start from the sample file",
+        "sampleDescription": "It has the columns the import reads and two example collections, one manual and one automated. Replace the examples with your own, keep the first row as it is, and upload the file here.",
+        "sampleCsv": "Sample CSV",
+        "sampleFailed": "The sample file could not be downloaded",
+        "dropTitle": "Choose a file or drag it here",
+        "dropHint": "CSV · up to {rows} collections · {size} MB",
+        "removeFile": "Remove file",
+        "fileTooLarge": "This file is larger than {size} MB. Split it into smaller files.",
+        "wrongType": "Choose a .csv file.",
+        "rulesTitle": "How rows are imported",
+        "rules": {
+          "match": "A row with the id or slug of an existing collection updates that collection. A row with neither is matched by its title, and creates a new collection when nothing matches.",
+          "blank": "An empty cell keeps the collection's current value. A new collection starts as a manual draft.",
+          "products": "A manual collection lists its products by slug, SKU or name, separated by |. The products must already exist; a name that matches none is skipped and reported. An empty products cell keeps the current products.",
+          "conditions": "An automated collection needs at least one rule in the conditions column, written as JSON like the example in the column guide."
+        },
+        "columnsTitle": "Column guide",
+        "required": "Required for new collections",
+        "columns": {
+          "title": "Collection name.",
+          "slug": "The collection's web address. Made from the title when empty. Also finds the collection to update.",
+          "id": "Only in exported files. Finds the exact collection to update.",
+          "description": "Short plain-text description.",
+          "descriptionHtml": "Full description. HTML is allowed.",
+          "imageUrl": "A public image link (https://…) for the collection's cover.",
+          "imageAlt": "Alternative text for the cover image. Uses the title when empty.",
+          "collectionType": "manual or automated. New collections are manual unless the file says otherwise.",
+          "status": "active or draft. New collections are draft unless the file says otherwise.",
+          "products": "For manual collections: product slugs, SKUs or names separated by |, e.g. blue-shirt|red-shirt.",
+          "productIds": "Only in exported files: product ids separated by |. Used together with products.",
+          "conditions": "For automated collections: the rules as a JSON list. Fields: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all or any: whether a product must meet every rule or just one. Default all.",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc or created-desc.",
+          "position": "A number that orders this collection in lists. Lower comes first.",
+          "onlineStore": "true or false: show the collection in the online store. Default true.",
+          "pointOfSale": "true or false: show it at the point of sale. Default false.",
+          "seoPageTitle": "The title search engines show for the collection page.",
+          "seoMetaDescription": "The description search engines show for the collection page."
+        },
+        "cancel": "Cancel",
+        "submit": "Import collections",
+        "importing": "Importing… large files can take a minute. Keep this window open.",
+        "requestFailed": "The file could not be imported. Try again.",
+        "resultTitle": "Import finished",
+        "resultFailedTitle": "The file could not be imported",
+        "created": "Created",
+        "updated": "Updated",
+        "failed": "Failed",
+        "warnings": "Notes",
+        "errorsTitle": "Rows that were not imported",
+        "errorsHint": "Fix these rows in your file and import it again. Rows that were imported update the same collections instead of adding copies.",
+        "rowLabel": "Row {row}",
+        "fileLabel": "File",
+        "moreErrors": "…and {count} more in the downloadable list.",
+        "downloadErrors": "Download error list",
+        "importAnother": "Import another file",
+        "done": "Done"
       }
     },
     "categoriesDataTable": {
@@ -5986,7 +7536,168 @@
       "team_members_exported": "Team members exported",
       "team_members_could_not_be_exported": "Team members could not be exported",
       "vendors_exported": "Vendors exported",
-      "vendors_could_not_be_exported": "Vendors could not be exported"
+      "vendors_could_not_be_exported": "Vendors could not be exported",
+      "area": "Area",
+      "view": "View",
+      "manage": "Manage",
+      "failed_to_load_the_role": "Failed to load the role",
+      "name_is_required": "Name is required",
+      "failed_to_save_the_role": "Failed to save the role",
+      "role_updated": "Role updated",
+      "role_created": "Role created",
+      "failed_to_delete_the_role": "Failed to delete the role",
+      "role_deleted": "Role deleted",
+      "edit_role": "Edit role",
+      "new_role": "New role",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "A role is what its members may do. Changing it changes every member on it.",
+      "save_role": "Save role",
+      "role_details": "Role details",
+      "name": "Name",
+      "dashboard": "Dashboard",
+      "admin_dashboard": "Admin dashboard",
+      "staff_area": "Staff area",
+      "any_permission_in_the_admin_dashboard": "Any permission, in the admin dashboard",
+      "store_records_and_the_till_in_the_staff_area": "Store records and the till, in the staff area",
+      "every_permission": "Every permission",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "The Administrator always holds every permission, including ones added later. To limit an administrator, give them another role.",
+      "delete_this_role": "Delete this role?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "A role with members cannot be deleted; give them another role first.",
+      "roles": "Roles",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "What each kind of team member may do. Give a member a role on their page.",
+      "create_role": "Create role",
+      "built_in": "Built-in",
+      "members": "members",
+      "view_role": "View role",
+      "the_store_owner_always_holds_every_permission": "The store owner always holds every permission.",
+      "the_home_screen_s_figures": "The home screen's figures",
+      "returns_refunds": "Returns & refunds",
+      "quotes": "Quotes",
+      "price_requests_and_offers": "Price requests and offers",
+      "applications_stores_plans_and_commissions": "Applications, stores, plans and commissions",
+      "payouts": "Payouts",
+      "manage_sends_vendors_their_money": "Manage sends vendors their money",
+      "payments": "Payments",
+      "transactions_and_chargebacks": "Transactions and chargebacks",
+      "finance": "Finance",
+      "ledger_expenses_periods_and_reports": "Ledger, expenses, periods and reports",
+      "marketing": "Marketing",
+      "boosts": "Boosts",
+      "sponsored_products": "Sponsored products",
+      "online_store": "Online store",
+      "theme_pages_menus_sliders_checkout": "Theme, pages, menus, sliders, checkout",
+      "blog": "Blog",
+      "posts_categories_comments": "Posts, categories, comments",
+      "ai_sales_agent": "AI sales agent",
+      "its_settings_and_conversations": "Its settings and conversations",
+      "ai_studio": "AI Studio",
+      "all_accounts": "All accounts",
+      "every_sign_in_on_the_store": "Every sign-in on the store",
+      "settings": "Settings",
+      "store_settings": "Store settings",
+      "sensitive_settings": "Sensitive settings",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "Payment gateways, storage, email/SMS providers, sign-in, security, carriers",
+      "activity_log": "Activity log",
+      "who_did_what": "Who did what",
+      "team": "Team",
+      "manage_adds_and_edits_members_within_your_own_permissions": "Manage adds and edits members, within your own permissions",
+      "create_and_change_roles": "Create and change roles",
+      "member": "member",
+      "permission": "permission",
+      "abandoned_checkouts": "Abandoned checkouts",
+      "added_for_this_member": "Added for this member",
+      "all_vendors_and_locations_including_ones_added_later": "All vendors and locations, including ones added later",
+      "also_catalogues_for_ads": "Also catalogues for ads",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "Answers the inbox and looks up orders and customers",
+      "brands": "Brands",
+      "campaign_banners": "Campaign banners",
+      "can": "Can",
+      "can_sign_in_and_work": "Can sign in and work.",
+      "can_t": "Can't",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "Can't sign in or reset their password. For someone who left on bad terms.",
+      "can_t_sign_in_turn_back_on_any_time": "Can't sign in. Turn back on any time.",
+      "cashier": "Cashier",
+      "catalog": "Catalog",
+      "categories": "Categories",
+      "changed": "Changed",
+      "changed_from_the_role": "Changed from the role",
+      "create": "Create",
+      "creating_and_cancelling_orders_stays_with_the_store": "Creating and cancelling orders stays with the store",
+      "customer_accounts_are_changed_by_the_store": "Customer accounts are changed by the store",
+      "discounts_gift_cards": "Discounts & gift cards",
+      "every_staff_permission": "Every staff permission",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "Everything a member of the admin dashboard can be given, by area.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "Everything a member of the staff area can be given, by area.",
+      "everything_except_deleting_records": "Everything except deleting records",
+      "everything_in_the_staff_area_deleting_included": "Everything in the staff area, deleting included",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "Everything this role can be given, by area. Dashed boxes differ from the role.",
+      "everywhere": "Everywhere",
+      "gives_access": "Gives access",
+      "inbox": "Inbox",
+      "invite": "Invite",
+      "manage_the_till": "Manage the till",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "Manage the till covers discounts, till reports and counters",
+      "moderate": "Moderate",
+      "money": "Money",
+      "moves_money": "Moves money",
+      "new_team_member": "New team member",
+      "nothing_yet": "Nothing yet",
+      "online_store_reports": "Online store & reports",
+      "only_in_the_admin_dashboard": "Only in the admin dashboard",
+      "only_these": "Only these",
+      "open_past_the_return_window": "Open past the return window",
+      "pause": "Pause",
+      "paused": "Paused",
+      "permissions_given": "Permissions given",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "Pick Manager or Administrator to give any of these. Staff work in the staff area and at the till.",
+      "pick_vendors_locations_or_regions_below": "Pick vendors, locations or regions below",
+      "point_of_sale": "Point of Sale",
+      "popups_and_bars_on_the_home_page": "Popups and bars on the Home page",
+      "refund": "Refund",
+      "refund_sends_money_back_to_the_customer": "Refund sends money back to the customer",
+      "reply": "Reply",
+      "reviews": "Reviews",
+      "rings_up_sales_at_the_register": "Rings up sales at the register",
+      "role_name": "Role name",
+      "role_name_e_g_floor_lead": "Role name, e.g. Floor lead",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "Roles you create on the Roles screen show up here as more cards.",
+      "sales_associate": "Sales associate",
+      "save_as_a_role": "Save as a role",
+      "scope": "Scope",
+      "secrets": "Secrets",
+      "selling": "Selling",
+      "send_recovery_emails": "Send recovery emails",
+      "shift_lead": "Shift lead",
+      "staff_area_pos": "Staff area & POS",
+      "start_from": "Start from",
+      "store_admin": "Store admin",
+      "summary": "Summary",
+      "support_agent": "Support agent",
+      "taken_away_for_this_member": "Taken away for this member",
+      "the_books": "The books",
+      "the_register_orders_customers_and_the_inbox": "The register, orders, customers and the inbox",
+      "use": "Use",
+      "use_the_register": "Use the register",
+      "watch": "Watch",
+      "what_this_staff_member_can_do_by_area": "What this staff member can do, by area.",
+      "where_they_work": "Where they work",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "Where they work and what they start with. You can change any permission below for this member.",
+      "works_in_the_admin_dashboard": "Works in the admin dashboard",
+      "works_in_the_staff_area_and_at_the_till": "Works in the staff area and at the till",
+      "writes_copy_and_images_with_the_store_s_ai_key": "Writes copy and images with the store's AI key",
+      "anything_only_in_the_admin_dashboard": "anything only in the admin dashboard",
+      "this_member": "this member",
+      "by_role": "By role",
+      "add_members": "Add members",
+      "change_roles": "Change roles",
+      "change_permissions": "Change permissions",
+      "only_the_store_owner_gives_these_manage_edits_details_and_status_sends_invitations_and_removes_members": "Only the store owner gives these. Manage edits details and status, sends invitations and removes members",
+      "create_and_change_roles_only_the_store_owner_gives_this": "Create and change roles. Only the store owner gives this",
+      "only_the_store_owner_can_give_this": "Only the store owner can give this",
+      "you_cannot_give_a_permission_you_do_not_have": "You cannot give a permission you do not have",
+      "only_the_roles_you_may_give_are_shown_full_access_and_the_power_to_manage_the_team_are_given_by_the_store_owner": "Only the roles you may give are shown. Full access and the power to manage the team are given by the store owner.",
+      "roles_it_can_give": "Roles it can give",
+      "a_member_on_this_role_who_may_add_people_or_change_roles_gives_only_these_full_access_is_yours_alone_to_give": "A member on this role who may add people or change roles gives only these. Full access is yours alone to give.",
+      "only_the_store_owner_decides_which_roles_a_role_can_give": "Only the store owner decides which roles a role can give."
     },
     "customersPage": {
       "stats": {
@@ -6259,13 +7970,35 @@
         "showYear": "Show year",
         "showStoreName": "Show store name",
         "imageUrl": "Image URL",
-        "imageAlt": "Alt text"
+        "imageAlt": "Alt text",
+        "alignHorizontal": "Horizontal alignment",
+        "alignVertical": "Vertical alignment",
+        "paddingTop": "Padding top",
+        "paddingRight": "Padding right",
+        "paddingBottom": "Padding bottom",
+        "paddingLeft": "Padding left",
+        "paddingX": "Left and right",
+        "paddingY": "Top and bottom",
+        "paddingSides": "Edit each side",
+        "paddingPairs": "Edit as pairs",
+        "inherit": "Inherit",
+        "clearColor": "Reset to inherit",
+        "menuNone": "Own links",
+        "menuInactive": "inactive",
+        "manageMenus": "Manage menus",
+        "paymentsHint": "One strip of card marks, as a single image. Without artwork the block stays empty on the storefront."
       },
       "toast": {
         "saved": "Footer saved",
         "saveFailed": "Saving failed",
         "loadFailed": "Could not load the footer",
         "columnFull": "That column is full — remove an item first"
+      },
+      "justify": {
+        "start": "Start",
+        "center": "Center",
+        "end": "End",
+        "between": "Space Between"
       }
     },
     "headerStudio": {
@@ -6684,6 +8417,7 @@
         "swatch": "Swatch",
         "brand": "Brand",
         "name": "Product Name",
+        "variant": "Variant name",
         "category": "Category",
         "price": "Price",
         "delivery": "Delivery info",
@@ -6766,6 +8500,7 @@
       "typographyRows": {
         "brand": "Brand Text",
         "product": "Product Text",
+        "variant": "Variant Name Text",
         "category": "Category Text",
         "price": "Price Text",
         "discounted": "Discounted Price Text",
@@ -7119,6 +8854,7 @@
         "limitReached": "Full — the storefront panel has no room for more.",
         "preview": "Storefront preview",
         "previewHint": "Hover a category to open its panel. This is the storefront component itself, not a mock-up.",
+        "shopAll": "Shop All {name}",
         "viewAllCategories": "View All Categories",
         "viewAll": "View all"
       },
@@ -7927,15 +9663,28 @@
       "createSection": {
         "title": "Create Payout",
         "selectVendor": "Select vendor",
-        "periodStart": "Period start",
+        "periodStart": "Period start (optional)",
         "periodEnd": "Period end",
         "creating": "Creating...",
         "create": "Create",
-        "optionalNote": "Optional note"
+        "optionalNote": "Optional note",
+        "description": "Pays a seller what is payable now: delivered sales past their return window, less anything they owe.",
+        "searchVendor": "Search sellers",
+        "noVendor": "No seller found",
+        "searching": "Searching…",
+        "vendorMissing": "This seller no longer exists",
+        "suspended": "Suspended — payouts are frozen",
+        "startHint": "Leave empty to include every payable sale up to the end date.",
+        "frozen": "This seller is suspended, so payouts are frozen. Their sales keep counting until they are restored.",
+        "belowMinimum": "{amount} is below the {minimum} minimum payout.",
+        "orderCount": "{count, plural, one {# order} other {# orders}} in this payout.",
+        "moreThanMax": "Only the oldest {count} payable orders fit in one payout; the rest go in the next one.",
+        "sellerConfirmed": "{count, plural, one {# delivery was} other {# deliveries were}} confirmed by the seller, not a carrier.",
+        "commissionLeft": "{amount} of commission the seller owes did not fit in this payout and stays owed."
       },
       "listSection": {
         "title": "Payout Runs",
-        "searchPlaceholder": "Search payout number",
+        "searchPlaceholder": "Search payout number or seller",
         "allStatuses": "All statuses",
         "columns": {
           "payout": "Payout",
@@ -7959,9 +9708,20 @@
         "pageOf": "Page {page} of {totalPages}"
       },
       "toast": {
-        "requiredFields": "Vendor, period start, and period end are required.",
+        "requiredFields": "Choose a seller and an end date.",
         "createSuccess": "Payout created.",
         "createError": "Failed to create payout"
+      },
+      "sendTo": {
+        "title": "Send to",
+        "missing": "No bank account on file. Ask the seller to add one in their settings, or pay by cash or gateway.",
+        "accountName": "Account name",
+        "accountNumber": "Account number",
+        "bankName": "Bank",
+        "routingNumber": "Routing number",
+        "swiftCode": "SWIFT",
+        "show": "Show account number",
+        "copy": "Copy {field}"
       }
     },
     "paymentTransactionsPage": {
@@ -8055,6 +9815,21 @@
         "gateway_refused_request": "Provider refused the request",
         "processing_error": "Provider error",
         "unknown": "Not recognised"
+      },
+      "paypalReview": {
+        "report": "PayPal report",
+        "pending": "Needs review",
+        "done": "Reconciled",
+        "review": "Review PayPal movement",
+        "description": "No additional money has been counted. Check the PayPal statement before deciding whether this report describes an existing transaction or a separate movement.",
+        "result": "What does the statement show?",
+        "same": "The same money already recorded",
+        "independent": "A separate money movement",
+        "matching": "Existing transaction",
+        "reference": "PayPal statement reference and evidence",
+        "confirm": "Confirm reconciliation",
+        "resolved": "PayPal movement reconciled",
+        "failed": "The PayPal review could not be saved"
       }
     },
     "seoChecklist": {
@@ -9417,6 +11192,7 @@
         "tag": "Tags"
       },
       "selectCoupon": "Select a discount…",
+      "searchCoupons": "Search discounts…",
       "noCoupons": "No active discounts yet",
       "countdown": {
         "layoutTitle": "Pick a deals layout",
@@ -9626,7 +11402,8 @@
           "home": "Home",
           "products": "Products",
           "cart": "Cart",
-          "search": "Search"
+          "search": "Search",
+          "product": "Product page"
         }
       },
       "launchTitle": "Theme settings",
@@ -9649,6 +11426,10 @@
         "description": "The All Categories rail: build category flyouts with links, images, and promos."
       }
     },
+    "customizeHub": {
+      "title": "Customize",
+      "description": "Choose a storefront page to customize."
+    },
     "branding": {
       "globalHint": "Your brand is global — it survives switching themes and is used by the storefront, the dashboard, checkout and emails.",
       "assetsTitle": "Brand assets",
@@ -9666,7 +11447,7 @@
       "customPresetName": "Custom {number}",
       "preview": {
         "title": "Preview",
-        "subtitle": "how your colors apply across the app",
+        "subtitle": "how your brand colors apply",
         "primary": "Primary",
         "secondary": "Secondary",
         "accent": "Accent",
@@ -9684,28 +11465,20 @@
       "save": "Save",
       "saved": "Theme settings saved",
       "saveFailed": "Saving failed",
-      "brandScope": "Your brand, shared by every theme and used by the storefront, the dashboard, checkout and emails. A role below can reference it.",
       "resetGroup": "Reset group",
       "resetAll": "Reset all to theme defaults",
       "resetAllTitle": "Reset every setting?",
-      "resetAllDescription": "Every group goes back to the theme’s own defaults. Nothing is saved until you press Save.",
       "preview": "Preview",
       "controls": "Settings",
-      "brandRef": "Brand",
-      "useReference": "Use a brand color",
       "setCustom": "Set a custom color",
       "contrastHint": "Contrast against its surface",
       "modeLight": "Light",
       "modeDark": "Dark",
-      "darkAuto": "Dark mode is derived from your light colors.",
-      "darkEdit": "Edit dark separately",
-      "darkCustom": "Dark mode has its own colors.",
-      "darkBackToAuto": "Derive from light again",
       "leaveGuard": "You have unsaved theme changes.",
       "groups": {
         "colors": {
           "label": "Colors",
-          "description": "Your brand, and what this theme does with it. One scheme per mode; a role can reference a brand color or hold its own."
+          "description": "Only {theme} uses these colors. Your other themes keep their own."
         },
         "type": {
           "label": "Typography",
@@ -9739,7 +11512,195 @@
         "dm-serif-display": "Headlines only (one weight)",
         "noto-sans-bengali": "Bengali + Latin, sans",
         "noto-serif-bengali": "Bengali + Latin, serif"
-      }
+      },
+      "resetColors": "Reset theme colors",
+      "advancedColors": "Advanced",
+      "invalidColor": "Enter a valid hex or RGB color. Preview keeps the last valid color.",
+      "sourceAuto": "Auto",
+      "sourceCustom": "Custom",
+      "contrastPass": "Pass",
+      "contrastLow": "Low",
+      "colorRoles": {
+        "accent": {
+          "label": "Accent",
+          "hint": "The Featured label on product cards and badges in the store menu."
+        },
+        "border": {
+          "label": "Dividers",
+          "hint": "Lines between sections and around cards."
+        },
+        "onAccent": {
+          "label": "Text on accent",
+          "hint": "Labels on the accent colour."
+        },
+        "accentSurface": {
+          "label": "Accent background",
+          "hint": "A soft tint of the accent behind promotional text."
+        },
+        "onAccentSurface": {
+          "label": "Text on accent background",
+          "hint": "Text on the accent tint."
+        },
+        "hoverSurface": {
+          "label": "Hover background",
+          "hint": "Menus and buttons under the pointer."
+        },
+        "onHover": {
+          "label": "Text on hover",
+          "hint": "Labels on the hover background."
+        },
+        "selectedSurface": {
+          "label": "Selected background",
+          "hint": "Checked items in dropdowns and the active row in menus."
+        },
+        "onSelected": {
+          "label": "Text on selected",
+          "hint": "Labels on the selected background."
+        },
+        "focusRing": {
+          "label": "Focus ring",
+          "hint": "The outline keyboard users follow."
+        },
+        "fieldBorder": {
+          "label": "Input borders",
+          "hint": "Checkout fields, forms and dropdowns. The header search box has its own border in Header Studio."
+        },
+        "onSale": {
+          "label": "Text on sale",
+          "hint": "Labels on solid discount badges."
+        },
+        "saleText": {
+          "label": "Sale text",
+          "hint": "Sale prices and savings on the page."
+        },
+        "saleSurface": {
+          "label": "Sale background",
+          "hint": "Behind the discount chips beside prices."
+        },
+        "onSaleSurface": {
+          "label": "Text on sale background",
+          "hint": "Text on the sale tint."
+        },
+        "background": {
+          "label": "Background",
+          "hint": "Behind every page."
+        },
+        "surface": {
+          "label": "Cards & menus",
+          "hint": "Panels, popovers, dropdowns and menus."
+        },
+        "surfaceAlt": {
+          "label": "Bands & chips",
+          "hint": "Banded sections, image backgrounds and neutral chips."
+        },
+        "text": {
+          "label": "Text",
+          "hint": "Headings and body copy."
+        },
+        "textMuted": {
+          "label": "Secondary text",
+          "hint": "Captions, categories, placeholders."
+        },
+        "primary": {
+          "label": "Primary button",
+          "hint": "Main buttons, the cart count and active-tab lines."
+        },
+        "onPrimary": {
+          "label": "Text on primary",
+          "hint": "Labels on primary buttons."
+        },
+        "secondary": {
+          "label": "Secondary button",
+          "hint": "Add to cart and the other second buttons."
+        },
+        "onSecondary": {
+          "label": "Text on secondary",
+          "hint": "The label on Add to cart."
+        },
+        "sale": {
+          "label": "Sale",
+          "hint": "Discount badges and sale prices."
+        },
+        "rating": {
+          "label": "Rating stars",
+          "hint": "Review stars."
+        },
+        "link": {
+          "label": "Links",
+          "hint": "Links, \"View all\" and the active menu item: text in the primary colour, kept readable."
+        },
+        "skeleton": {
+          "label": "Loading placeholder",
+          "hint": "The grey blocks shown while a page loads."
+        }
+      },
+      "previewLoading": "Connecting live preview…",
+      "previewOutdated": "Refresh preview to load the latest color engine.",
+      "refreshPreview": "Refresh preview",
+      "cannotVerifyColor": "Cannot verify this custom color expression. Check the preview in both modes.",
+      "presets": {
+        "default": "Blue",
+        "cyan": "Cyan",
+        "purple": "Purple",
+        "blue": "Black",
+        "orange": "Orange",
+        "red": "Red"
+      },
+      "colorMode": "Color mode",
+      "darkFollows": "Dark follows your light colors automatically. Click a color to set it only for dark.",
+      "advancedLowContrast": "A color here is hard to read",
+      "sections": {
+        "page": "Page",
+        "text": "Text",
+        "sales": "Sales & ratings",
+        "lines": "Lines",
+        "states": "States",
+        "soft": "Soft backgrounds"
+      },
+      "sourceDefault": "Theme default",
+      "colorSource": "Color source",
+      "autoDarkHint": "Follows your light colors, adjusted so it shows on a dark page.",
+      "defaultHint": "The theme's own color, chosen to read well with the rest.",
+      "usedFor": "Used for",
+      "useReadable": "Use {color}",
+      "backToAuto": "Back to auto",
+      "resetToDefault": "Reset to theme default",
+      "textAuto": "Automatic text color",
+      "accentUse": "Featured & menu labels",
+      "saleUse": "Discounts & sale prices",
+      "lowContrastOn": "Hard to see on {surface} ({ratio}:1). Aim for {minimum}:1.",
+      "themeChanged": "Another theme was made active while you were editing. Reopen the editor for it.",
+      "conflictKeepDraft": "Someone else saved these settings while you were editing. Save again to replace their changes with yours, or Discard to load theirs.",
+      "darkOwnHint": "Dark mode keeps its own colour here ({color}), so it does not follow this one. Change it on the Dark tab.",
+      "keyColorsTitle": "Key colors",
+      "keyColorsHint": "Point at one to see it in the preview",
+      "keyColors": {
+        "primary": {
+          "label": "Primary",
+          "sample": "Buy now"
+        },
+        "secondary": {
+          "label": "Secondary",
+          "sample": "Add to cart"
+        },
+        "accent": {
+          "label": "Accent",
+          "sample": "Featured"
+        },
+        "skeleton": {
+          "label": "Loading"
+        }
+      },
+      "themeDefaultNamed": "{theme} default",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "Palettes",
+      "saveAsPalette": "Save as palette",
+      "resetToNamed": "Back to {name}",
+      "themeOnly": "{theme} only",
+      "moreColors": "More colors",
+      "advancedHintStates": "Hover, selection, focus, sale background",
+      "resetAllDescriptionTheme": "Every group, colors included, goes back to {theme}’s own defaults. Your other themes are not touched. Nothing is saved until you press Save.",
+      "previewShowing": "Marking where {color} is used"
     },
     "searchInsights": {
       "title": "Search insights",
@@ -9772,7 +11733,7 @@
       "enterFullscreen": "Enter fullscreen",
       "exitFullscreen": "Exit fullscreen",
       "reset": "Reset to defaults",
-      "personalNote": "Only for you, in this browser. Your store's logos, colours and default look are set in Online Store → Themes → Branding.",
+      "personalNote": "Only for you, in this browser. Your store's logos and default look are set in Online Store → Themes → Branding, its colors in Theme settings.",
       "darkMode": "Dark mode",
       "contrast": "Contrast",
       "rtl": "Right to left",
@@ -9780,7 +11741,12 @@
       "sidebar": "Sidebar",
       "sidebarColor": "Color",
       "sidebarIntegrate": "Integrate",
-      "sidebarApparent": "Apparent"
+      "sidebarApparent": "Apparent",
+      "sidebarPaint": "Paint the sidebar with",
+      "sidebarPaintPrimary": "Primary",
+      "sidebarPaintSecondary": "Secondary",
+      "sidebarPaintHint": "Uses your live theme's colors.",
+      "sidebarPaintChange": "Change them"
     },
     "vendorLandingPage": {
       "title": "Landing page",
@@ -9899,7 +11865,8 @@
         "REFUND": "Refund",
         "EXPORT": "Export",
         "BULK_ACTION": "Bulk action",
-        "INVITE_SENT": "Invite sent"
+        "INVITE_SENT": "Invite sent",
+        "ACCESS_DENIED": "Access denied"
       },
       "resources": {
         "user": "User",
@@ -9935,9 +11902,12 @@
         "brand": "Brand",
         "globalVariant": "Global variant",
         "slider": "Slider",
+        "campaignBanner": "Campaign banner",
+        "invoiceTemplate": "Invoice template",
         "menu": "Menu",
         "blogPost": "Blog post",
-        "blogCategory": "Blog category"
+        "blogCategory": "Blog category",
+        "teamRole": "Team role"
       },
       "empty": {
         "noActivityTitle": "No activity yet",
@@ -10151,6 +12121,124 @@
       "finishedWithFailures": "{failed} of {total} account emails couldn't be sent.",
       "retry": "Retry",
       "dismiss": "Dismiss"
+    },
+    "categoryForm": {
+      "taxRate": "Tax"
+    },
+    "themeColors": {
+      "title": "Theme colors",
+      "refs": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "accent": "Accent",
+        "background": "Background",
+        "surface": "Cards",
+        "surfaceAlt": "Bands & chips",
+        "text": "Text",
+        "textMuted": "Secondary text",
+        "border": "Dividers"
+      },
+      "following": "Follows the theme's {name}. Change it in Theme settings → Colors.",
+      "followingShort": "Theme · {name}",
+      "hint": "Pick a theme color to follow Theme settings → Colors.",
+      "pick": "Use a theme color"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "Failed to load payout summary",
+      "loadPayoutsError": "Failed to load payouts",
+      "columns": {
+        "payout": "Payout",
+        "period": "Period",
+        "status": "Status",
+        "netAmount": "Net amount"
+      },
+      "bankMissingTitle": "No payout account on file",
+      "bankMissing": "Missing: {fields}. A payout can only be paid by cash or gateway until the details are added on the Business tab.",
+      "frozenTitle": "Payouts are frozen",
+      "frozen": "This seller is suspended. Their sales keep counting, but nothing is paid out until they are restored.",
+      "owedNow": "Owed now",
+      "owedNowHint": "What a payout created now would carry: delivered, paid sales past their return window, less what the seller owes.",
+      "createPayout": "Create payout",
+      "noneAwaiting": "No delivered, paid orders are awaiting payout.",
+      "nothingPayable": "{count, plural, one {# eligible order} other {# eligible orders}}, but refunds and discounts leave nothing payable.",
+      "across": "Across {count, plural, one {# order} other {# orders}} · {gross} gross less {commission} commission. Refunds and discounts are already deducted.",
+      "belowMinimumTitle": "Below the minimum withdrawal",
+      "belowMinimum": "Payouts must be at least {minimum}. Creating one now would be rejected.",
+      "commissionLeft": "{amount} of commission the seller owes on cash sales does not fit in the next payout and stays owed.",
+      "overpaidTitle": "{amount} paid for sales refunded afterwards",
+      "overpaidRecovered": "{amount} of it is already taken off the figure above. Anything left comes off later payouts.",
+      "overpaidLater": "It comes off the seller's next payout, or record a repayment if they pay it back.",
+      "otherCurrenciesTitle": "Balances in {currencies}",
+      "otherCurrencies": "This seller has also traded in {currencies}. Those balances are not in the figures above and need a payout of their own — currencies are never added together.",
+      "trade": "Trade",
+      "tradeHint": "What this seller sold, across every non-cancelled order, in {currency}",
+      "grossSales": "Gross sales",
+      "vendorEarnings": "Seller earnings",
+      "vendorEarningsHint": "gross less commission",
+      "paidOut": "Paid out",
+      "pendingAmount": "{amount} pending",
+      "platformRevenue": "Platform revenue from this seller",
+      "platformRevenueHint": "Commission and retained shipping from their sales, plus the subscription fees they paid. Revenue before platform costs.",
+      "commission": "Commission",
+      "commissionHint": "on delivered, paid sales, net of refunds",
+      "subscriptions": "Subscriptions",
+      "invoicesPaid": "{paid} of {total} invoices paid",
+      "noInvoices": "no invoices",
+      "shipping": "Shipping",
+      "shippingHint": "retained, not paid out",
+      "total": "Total",
+      "history": "Payout history",
+      "historyHint": "Payouts recorded for this seller, newest first",
+      "historyEmpty": "No payouts have been created for this seller yet",
+      "repayment": {
+        "open": "Record a repayment",
+        "listTitle": "Paid back by hand",
+        "undo": "Undo",
+        "voidReason": "Why is this repayment being undone?",
+        "voided": "Repayment undone",
+        "failed": "Could not save the repayment",
+        "title": "Record a repayment",
+        "description": "Money the seller paid back for sales refunded after their payout. It comes off what they owe, so later payouts stop recovering it.",
+        "amount": "Amount ({currency})",
+        "receivedInto": "Received into",
+        "receivedAt": "Day it arrived",
+        "reference": "Reference",
+        "note": "Note",
+        "cancel": "Cancel",
+        "save": "Record repayment",
+        "saving": "Saving…",
+        "recorded": "Repayment recorded"
+      }
+    },
+    "colorPicker": {
+      "format": "Color format",
+      "opacity": "Opacity",
+      "value": "Color value",
+      "saved": "Saved colors",
+      "save": "Save this color",
+      "use": "Use {color}",
+      "remove": "Remove {color}"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {# change from the role} other {# changes from the role}}",
+      "changesFromRole": "{count, plural, one {# change from {role}} other {# changes from {role}}} for this member only",
+      "resetTo": "Reset to {role}",
+      "matchesRole": "Matches {role}. Tick or untick anything to change it for {name} only.",
+      "roleSaved": "\"{name}\" is now a role, and this member is on it."
+    },
+    "tagInput": {
+      "placeholder": "Add a tag",
+      "selected": "{tag} selected. Press Backspace to remove it.",
+      "duplicate": "{tag} is already added",
+      "tooLong": "A tag can be up to {max} characters",
+      "tooMany": "You can add up to {max} tags",
+      "added": "Added {tag}",
+      "removed": "Removed {tag}",
+      "remove": "Remove {tag}"
+    },
+    "accountMenu": {
+      "myAccount": "My Account",
+      "version": "Version {version}"
     }
   },
   "vendor": {
@@ -10261,6 +12349,7 @@
     "totalOrders": "Total Orders",
     "openOrdersCount": "{count} open",
     "activeProducts": "Active Products",
+    "followers": "Followers",
     "totalProducts": "Total Products",
     "commission": "Commission Paid",
     "pendingOrders": "Pending Orders",
@@ -10288,6 +12377,15 @@
     "settingsDesc": "Manage your store settings and preferences",
     "storeProfile": "Store Profile",
     "storeProfileDesc": "Manage your store details and branding",
+    "fulfillmentSettings": {
+      "title": "Order fulfillment",
+      "description": "Choose how customers receive your physical products. You can offer one option or both.",
+      "delivery": "Delivery only",
+      "pickup": "Pickup at store only",
+      "both": "Delivery and pickup",
+      "pickupHint": "Pickup uses your active pickup locations and their available stock. Add a location with an address before saving pickup only.",
+      "locations": "Manage pickup locations"
+    },
     "payment": "Payment",
     "paymentSettings": "Payment Settings",
     "paymentSettingsDesc": "Manage your payment methods and payouts",
@@ -10341,7 +12439,6 @@
       "teamAccountTitle": "This account belongs to the store team",
       "teamAccountDesc": "Admin and staff accounts cannot apply as a vendor. To open a store, sign out and apply with a customer account."
     },
-    "viewStore": "View Store",
     "viewOrders": "Orders",
     "last30Days": "Last 30 Days",
     "productSummary": "Product Status",
@@ -10539,7 +12636,17 @@
       "messagingChannelsDesc": "Choose how buyers can contact your store. These settings are independent from whether your address phone number is public.",
       "shareButtons": "Share Buttons",
       "storeSlug": "Store slug",
-      "storeSlugHelp": "Used in your public shop URL."
+      "storeSlugHelp": "Used in your public shop URL.",
+      "changeEmail": "Change",
+      "changeEmailTitle": "Change your email",
+      "changeEmailDescription": "You will sign in with the new email. We will let your current email know about the change.",
+      "newEmail": "New email",
+      "currentPasswordForEmail": "Current password",
+      "updateEmail": "Update email",
+      "emailChanged": "Email updated. Sign in with your new email from now on.",
+      "emailChangeFailed": "Failed to update email",
+      "phoneInvalid": "Enter a valid phone number",
+      "payoutScheduleHint": "On your payout day the store prepares a payout of what is ready, once it reaches your minimum and the store's. The store then sends it to the account above."
     },
     "quickLinks": {
       "dashboardDescription": "Return to your vendor dashboard overview.",
@@ -10584,6 +12691,8 @@
       "notFound": "Vendor storefront not found.",
       "productCountInStore": "{count, plural, one {# product in this store} other {# products in this store}}",
       "sold": "{count} sold",
+      "followers": "{count} followers",
+      "oneFollower": "1 follower",
       "shipsIn": "Ships in {min}–{max} days",
       "shipsInSameDay": "Ships same day",
       "pickupAvailable": "Pickup available",
@@ -10814,6 +12923,78 @@
       "memberFallback": "Team member",
       "emptyMineDescription": "What you change in your store is recorded here.",
       "emptyStaffDescription": "What your team changes in your store is recorded here."
+    },
+    "payoutDetail": {
+      "back": "Payouts",
+      "period": "Sales ordered {start} – {end}",
+      "noteFromStore": "Note from the store",
+      "grossSales": "Gross sales",
+      "grossSalesHint": "your share of the orders below",
+      "commission": "Commission",
+      "shipping": "Delivery charges",
+      "shippingHint": "charged to shoppers for parcels you delivered",
+      "adjustment": {
+        "recoveryDeducted": "Refund recovery",
+        "recoveryDeductedHint": "paid to you earlier on orders refunded since",
+        "recoveryReturned": "Recovery returned",
+        "recoveryReturnedHint": "a refund recovered earlier was undone",
+        "reserveHeld": "Pre-order reserve held",
+        "reserveHeldHint": "held back against a late chargeback",
+        "reserveReleased": "Pre-order reserve released",
+        "reserveReleasedHint": "held on an earlier payout, now released",
+        "reserveCreditDeducted": "Reserve recovered",
+        "reserveCreditDeductedHint": "a released reserve whose payout came back",
+        "reserveCreditReturned": "Reserve recovery returned",
+        "reserveCreditReturnedHint": "handed back after its payout was paid again",
+        "commissionOffset": "Commission on cash sales",
+        "commissionOffsetHint": "owed on sales you collected yourself, settled here instead of invoiced",
+        "commissionCredit": "Store promotions on cash sales",
+        "commissionCreditHint": "discounts the store paid for beyond the commission you owed"
+      },
+      "reserveUntil": "released on {date}",
+      "otherAdjustments": "Other adjustments",
+      "otherAdjustmentsHint": "refund recoveries and pre-order reserve movements",
+      "netPayout": "Net payout",
+      "sentOn": "Sent {date}",
+      "reference": "reference {reference}",
+      "returnedOn": "Came back {date} — the sales in it are back in your balance",
+      "history": "What happened",
+      "returnedStep": "Money came back",
+      "orders": "Orders in this payout",
+      "order": "Order",
+      "placed": "Placed",
+      "yourShare": "Your share",
+      "afterCommission": "After commission",
+      "noOrders": "No orders linked to this payout."
+    },
+    "suspendedMoney": {
+      "title": "Your money",
+      "frozen": "Payouts are paused while your account is suspended. Your sales keep counting and are paid once access is restored.",
+      "ready": "Ready for a payout",
+      "held": "Still on its way or in the return window",
+      "payouts": "Latest payouts",
+      "status": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "paid": "Paid",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      }
+    },
+    "commissionCard": {
+      "canceled": "Payment was canceled. The invoice is still open.",
+      "settled": "Commission invoice settled.",
+      "pendingInfo": "Payment is still processing — the invoice clears automatically once confirmed.",
+      "verifyFailed": "We could not confirm that payment yet.",
+      "pollTimeout": "We could not confirm the payment yet. The invoice clears automatically once it is confirmed.",
+      "checkPhone": "Check your phone and approve the payment request.",
+      "failed": "Failed to start the payment",
+      "title": "Commission you owe",
+      "subtitle": "Commission on sales you collected yourself — cash, COD or your own terminal — so it could not be deducted from a payout.",
+      "payNow": "Pay now",
+      "noMethods": "No payment method is available for this. Contact the marketplace admin to settle it another way.",
+      "dialogTitle": "Settle commission",
+      "continue": "Continue to payment"
     }
   },
   "footer": {
@@ -10870,7 +13051,19 @@
     "searchCustomers": "Search by name, email, or phone...",
     "addNote": "Add a note to this order...",
     "subtotal": "Subtotal",
-    "tax": "Tax",
+    "tax": {
+      "label": "Tax",
+      "included": "Tax (included)",
+      "exempt": "Tax exempt",
+      "exemptWith": "Tax exempt · {reason}",
+      "exemptTitle": "Tax-exempt sale",
+      "exemptIntro": "Sell this sale without tax. The reason is kept on the order and printed on the receipt.",
+      "exemptReason": "Reason (required)",
+      "exemptReference": "Exemption certificate number (optional)",
+      "exemptApply": "Sell tax-free",
+      "exemptRemove": "Charge tax",
+      "close": "Close"
+    },
     "total": "Total",
     "charge": "Charge",
     "billAndPayment": "Bill & Payment",
@@ -10910,10 +13103,463 @@
       "emailPlaceholder": "customer@example.com",
       "phone": "Phone",
       "phonePlaceholder": "Enter phone number",
-      "nameEmailRequired": "Name and email are required",
       "created": "Customer created successfully",
       "createError": "Failed to create customer",
-      "save": "Save Customer"
+      "save": "Save Customer",
+      "nameContactRequired": "Enter the customer's name, and an email or a phone number",
+      "contactHint": "An email or a phone number is enough. A customer with only a phone number is kept without an account.",
+      "marketingOptIn": "Customer agreed to receive news and offers by email"
+    },
+    "offline": {
+      "bannerOffline": "Offline — sales are being queued",
+      "bannerStockAge": "Stock shown is from {age}",
+      "bannerSignedOut": "Signed out — sign in again to sync",
+      "bannerSignedOutNote": "Queued sales stay saved on this device.",
+      "bannerBackOnline": "Back online",
+      "waitingToSync": "{count, plural, one {# sale waiting to sync} other {# sales waiting to sync}}",
+      "needsReview": "{count, plural, one {# needs review} other {# need review}}",
+      "review": "Review",
+      "signIn": "Sign in",
+      "syncNow": "Sync now",
+      "lockedTitle": "Reconnect to keep selling",
+      "lockedLastSeen": "This register last reached the server {time}. For security it stays locked until it can sign in again.",
+      "lockedNever": "This register has not reached the server on this device yet, so it cannot be used offline.",
+      "lockedQueued": "{count, plural, one {<strong>#</strong> offline sale is still saved on this device and will sync automatically once you are back online.} other {<strong>#</strong> offline sales are still saved on this device and will sync automatically once you are back online.}} Do not clear the browser data.",
+      "waitingForConnection": "Waiting for a connection…",
+      "reviewTitle": "Sales the server refused",
+      "reviewDescription": "Each of these was paid for at the counter. Fix the cause and send it again, or discard it once it has been recorded by hand.",
+      "reviewLabel": "Offline sales needing review",
+      "reviewEmpty": "Nothing left to review.",
+      "reviewReceipt": "Receipt {number}",
+      "reviewTaken": "Taken {time}",
+      "reviewAttempts": "{count, plural, one {# attempt} other {# attempts}}",
+      "reviewServerSaid": "Server said: {message}",
+      "reviewDiscard": "Discard",
+      "reviewSendAgain": "Send again",
+      "close": "Close",
+      "anotherCounter": "Another counter",
+      "discardTitle": "Discard this sale from the queue?",
+      "discardDescription": "Receipt {number} will never be sent to the server. Only do this once the sale has been recorded another way — the customer is holding that receipt.",
+      "savedOffline": "Saved offline — receipt {number}",
+      "savedOfflineNote": "It will sync automatically when the connection returns.",
+      "outboxFull": "This register has too many unsynced sales. Reconnect to sync before taking more.",
+      "noStorage": "This browser cannot store offline sales, so the sale was not taken.",
+      "readerOnly": "Reader only",
+      "touchOrStripe": "Touch or Stripe"
+    },
+    "counter": {
+      "unavailable": "Counter unavailable",
+      "sharedStock": "Shared stock",
+      "finishSaleFirst": "Finish or cancel the current sale first",
+      "changeCounter": "Selling from {name}. Change counter",
+      "sellingFrom": "Selling from",
+      "sellingAt": "Selling at {name}",
+      "findCounter": "Find a counter...",
+      "noMatch": "No counter matches that.",
+      "heldCount": "{count} held",
+      "activeCount": "{count} active",
+      "deactivated": "Current counter was deactivated",
+      "pickerTitle": "Which counter are you at?",
+      "pickerNote": "Stock, held sales and every receipt printed on this register follow this choice.",
+      "findYourCounter": "Find your counter...",
+      "recentOnDevice": "Recent on this device",
+      "otherCounters": "Other counters",
+      "defaultLocation": "Default location",
+      "startSellingAt": "Start selling at {name}",
+      "pickCounter": "Pick a counter",
+      "signedInAs": "Signed in as {name}",
+      "signedIn": "Signed in",
+      "shortcutsMany": "<key>1</key>–<key>9</key> for the first nine, type to find the rest,",
+      "shortcutsFew": "Press <key>1</key>–<key>{last}</key> to pick,",
+      "shortcutEnter": "<key>Enter</key> to start",
+      "sellFromShared": "Sell from shared stock instead",
+      "switchLabel": "Switch counter",
+      "switchTitle": "Switch counter with a sale open?",
+      "switchUnits": "{count, plural, one {# unit} other {# units}} on the counter, priced and stocked for {from}.",
+      "switchChecking": "Checking what {to} can cover…",
+      "switchRemovedOne": "<b>{name}</b> has <b>no stock at {to}</b> — it would drop off the sale.",
+      "switchRemovedMany": "<b>{name}</b> and {others} more have <b>no stock at {to}</b> — they would drop off the sale.",
+      "switchReduced": "{count, plural, one {# line would be reduced to the stock {to} actually holds.} other {# lines would be reduced to the stock {to} actually holds.}}",
+      "switchAllAvailable": "Every line on this sale is available at {to}.",
+      "switchHeldStay": "{count, plural, one {# sale held here stays at {from}. You will not see it from {to}.} other {# sales held here stay at {from}. You will not see them from {to}.}}",
+      "switchHeldStayNone": "Sales held here stay at {from}. You will not see them from {to}.",
+      "switchReceiptChanges": "Stock counts and the receipt footer change to {to} from the next line.",
+      "switchHold": "Hold this sale, then switch",
+      "switchRecheck": "Switch and re-check stock",
+      "switchRemovesAll": "Removes all {total}",
+      "switchKeeps": "Keeps {kept} of {total} lines",
+      "switchStay": "Stay at {from}",
+      "nowSellingFrom": "Now selling from {name}",
+      "nowSellingShared": "Now selling from shared stock",
+      "probeFailed": "Could not check stock at that counter. The register has not moved.",
+      "holdFailed": "The sale could not be held. The register has not moved.",
+      "rechecked": "Sale re-checked · {changes}",
+      "holdLabel": "Counter change → {name}",
+      "heldBehind": "{count, plural, one {<b># sale</b> still held at {name}} other {<b># sales</b> still held at {name}}}",
+      "goBackTo": "Go back to {name}",
+      "dismiss": "Dismiss",
+      "saleBlocked": "This counter is no longer available. Pick another before taking payment."
+    },
+    "scan": {
+      "closeDialogFirst": "Close the open dialog, then scan again.",
+      "multipleMatches": "Multiple products match this code. Please fix duplicate SKU or barcode values.",
+      "noMatch": "No product found for the scanned code.",
+      "lookupFailed": "Unable to look up the scanned code."
+    },
+    "held": {
+      "removed": "{count, plural, one {# line removed} other {# lines removed}}",
+      "repriced": "{count} repriced",
+      "reduced": "{count} reduced to available stock",
+      "resumed": "Held order resumed",
+      "resumedWithChanges": "Held order resumed · {changes}",
+      "nothingAvailable": "None of the items on this held order are still available. It has been left on the register.",
+      "recheckFailed": "Could not check current prices and stock. The held order is still on the register.",
+      "finishFirst": "Finish or hold the current sale before resuming another.",
+      "holdFailed": "Could not hold this order. The sale is still in the cart.",
+      "holdFull": "This register already has {max} held orders. Resume or delete one first.",
+      "orderHeld": "Order held",
+      "orderHeldLabel": "Order held · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "Only a seat that manages the POS can give a discount",
+      "cashMustCover": "Cash tendered must cover the order total",
+      "noReceipt": "No receipt data available",
+      "printPreviewFailed": "Unable to open print preview",
+      "noInvoice": "No invoice is available for this order",
+      "invoicePopupBlocked": "Unable to open invoice. Please allow popups."
+    },
+    "complete": {
+      "title": "Sale complete",
+      "items": "{count, plural, one {# item} other {# items}}",
+      "soldAt": "Sold at {name}",
+      "viewReceipt": "View receipt",
+      "printReceipt": "Print receipt",
+      "newSale": "New sale",
+      "emailReceipt": "Email receipt",
+      "textReceipt": "Text receipt",
+      "send": "Send",
+      "cancel": "Cancel",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "Customer's phone number",
+      "sentEmail": "Receipt emailed to {to}",
+      "sentSms": "Receipt texted to {to}",
+      "alreadySent": "Already sent to {to} a moment ago",
+      "sendFailed": "The receipt could not be sent",
+      "offlineHint": "Receipts can be sent and viewed once this sale has synced."
+    },
+    "pay": {
+      "title": "Take payment",
+      "balanceTitle": "Collect balance",
+      "draftItems": "{count, plural, one {Draft · # item} other {Draft · # items}}",
+      "close": "Close",
+      "totalDue": "Total due",
+      "remaining": "Left to pay",
+      "ofTotal": "{paid} paid of {total}",
+      "payments": "Payments",
+      "remove": "Remove",
+      "discountPercent": "{value}% discount applied",
+      "discountAmount": "{amount} discount applied",
+      "cashDesc": "With change",
+      "bank": "Bank transfer",
+      "bankDesc": "With reference",
+      "manualDesc": "Custom method",
+      "storeCredit": "Store credit",
+      "storeCreditDesc": "{amount} available",
+      "split": "Split",
+      "cashGiven": "Cash given",
+      "amount": "Amount",
+      "changeDue": "Change due",
+      "stillOwed": "Still to pay another way",
+      "tooMuch": "No more than {amount} is left to pay",
+      "tooMuchCredit": "Only {amount} of store credit is available",
+      "touch": "Touch",
+      "touchDesc": "Tap or insert card on reader",
+      "stripe": "Stripe",
+      "stripeDesc": "Card details form",
+      "readyForTap": "Ready for tap or insert",
+      "readyForTapNote": "Customer taps or inserts their card on the reader.",
+      "referenceOptional": "Reference (optional)",
+      "referencePlaceholder": "Transaction ID, authorization code, etc.",
+      "stripePaysRest": "The card pays the rest: {amount}",
+      "cardNumber": "Card number",
+      "expiry": "Expiry",
+      "cvc": "CVC",
+      "stripeNotConfigured": "Stripe is not configured in payment settings.",
+      "stripeLoading": "Loading secure card fields…",
+      "stripeSecured": "Secured by Stripe — card details are tokenized on submit.",
+      "stripeFailed": "The card payment did not go through",
+      "processing": "Processing…",
+      "acceptCash": "Accept cash",
+      "charge": "Charge {amount}",
+      "chargeOnReader": "Charge {amount} on reader",
+      "useCredit": "Pay {amount} with store credit",
+      "addPayment": "Add {method} payment of {amount}",
+      "takeDeposit": "Take {amount} as a deposit, {due} due later",
+      "takePart": "Take {amount} now, {due} still owed",
+      "depositNeedsCustomer": "Attach a customer to take a deposit",
+      "depositTaken": "Deposit taken for {number}. {due} still to pay.",
+      "completeSale": "Complete sale"
+    },
+    "sales": {
+      "title": "Sales",
+      "close": "Close",
+      "back": "Back",
+      "searchPlaceholder": "Receipt number or phone number",
+      "dueOnly": "Balance due only",
+      "empty": "No sales found.",
+      "recentHint": "Latest sales at this counter",
+      "selectHint": "Choose a sale to see it.",
+      "offline": "Finding a sale needs a connection.",
+      "loadFailed": "The sales could not be loaded",
+      "balanceDue": "{amount} due",
+      "balanceDueLabel": "Balance due",
+      "items": "Items",
+      "payments": "Payments",
+      "total": "Total",
+      "refunded": "Refunded",
+      "split": "Split",
+      "collectBalance": "Collect balance · {amount}",
+      "collectFailed": "The payment could not be taken",
+      "balancePaid": "Balance paid. The sale is complete.",
+      "balancePart": "Payment taken. {due} still to pay.",
+      "print": "Print receipt",
+      "viewInvoice": "View invoice"
+    },
+    "register": {
+      "title": "Cash drawer",
+      "openChip": "Drawer open",
+      "closedChip": "Drawer closed",
+      "openToSell": "Open the cash drawer before taking a sale.",
+      "close": "Close",
+      "failed": "The drawer could not be updated",
+      "offline": "Opening, closing and moving cash need a connection. Sales keep going into the open drawer.",
+      "openIntro": "Count the cash in the drawer before the first sale and enter it as the float.",
+      "openingFloat": "Opening float",
+      "openRegister": "Open drawer",
+      "opened": "Drawer opened",
+      "openedAt": "Opened {time}",
+      "salesCount": "Sales",
+      "grossSales": "Sales total",
+      "cashSales": "Cash sales",
+      "cashIn": "Cash in",
+      "cashOut": "Cash out",
+      "cashRefunds": "Cash refunds",
+      "expectedCash": "Expected in drawer",
+      "countedCash": "Counted cash",
+      "variance": "Variance",
+      "balanced": "Balanced",
+      "over": "Over",
+      "short": "Short",
+      "cashInIntro": "Cash put into the drawer that is not a sale, such as change from the safe.",
+      "cashOutIntro": "Cash taken out that is not a refund, such as a drop to the safe or a paid-out expense.",
+      "amount": "Amount",
+      "reason": "Reason",
+      "reasonPlaceholder": "Reason (required)",
+      "cashAdded": "Cash added to the drawer",
+      "cashRemoved": "Cash taken from the drawer",
+      "back": "Back",
+      "note": "Closing note",
+      "notePlaceholder": "Note for the closing report (optional)",
+      "queuedFirst": "{count, plural, one {# sale is} other {# sales are}} still waiting to sync. Close the drawer once they have.",
+      "closeRegister": "Close drawer",
+      "closed": "Drawer closed",
+      "xReport": "X report",
+      "zReport": "Z report",
+      "printX": "Print X report",
+      "printZ": "Print Z report",
+      "printBlocked": "The report window was blocked. Allow pop-ups for this site to print.",
+      "reportOpened": "Opened",
+      "reportClosed": "Closed",
+      "tender": {
+        "cash": "Cash",
+        "card": "Card",
+        "bank": "Bank transfer",
+        "manual": "Other",
+        "store_credit": "Store credit"
+      },
+      "noSale": "No sale",
+      "noSaleIntro": "Open the drawer without a sale, for change or a check. The reason is kept with the drawer's report.",
+      "noSaleDone": "Drawer opened",
+      "printer": "Drawer printer",
+      "printerIntro": "The cash drawer opens through the receipt printer it is plugged into, using QZ Tray on this computer. Choose that printer.",
+      "printerFind": "Find printers",
+      "printerQzMissing": "QZ Tray is not running on this computer",
+      "printerNone": "No drawer on this register",
+      "printerPin": "Drawer pin",
+      "printerTest": "Test",
+      "printerTestFailed": "The drawer did not open. Check the printer and QZ Tray.",
+      "printerSave": "Save",
+      "printerSaved": "Drawer printer saved for this register",
+      "printerNotSet": "Set up the drawer printer first",
+      "printerCurrent": "Drawer: {name}",
+      "printerSetUp": "Set up drawer printer"
+    },
+    "returns": {
+      "action": "Return items",
+      "title": "Return items",
+      "close": "Close",
+      "offline": "Returns need a connection. Take the return once the register is back online.",
+      "loadFailed": "This sale's items could not be loaded",
+      "previewFailed": "The refund could not be worked out",
+      "failed": "The return could not be taken",
+      "nothingReturnable": "Nothing on this sale can be returned.",
+      "returnable": "{count} returnable",
+      "blockedFinalSale": "Final sale",
+      "blockedWindow": "Return window closed",
+      "blockedOther": "Not returnable",
+      "less": "One fewer",
+      "more": "One more",
+      "condition": "Condition",
+      "conditions": {
+        "new": "Unopened",
+        "opened": "Opened, sellable",
+        "damaged": "Damaged",
+        "missing_parts": "Missing parts",
+        "unusable": "Unusable"
+      },
+      "restockHint": "Unopened and opened items go back into this counter's stock.",
+      "reason": "Reason",
+      "reasons": {
+        "wrong_size_or_variant": "Wrong size or variant",
+        "damaged_or_defective": "Damaged or defective",
+        "not_as_described": "Not as described",
+        "wrong_item_received": "Wrong item",
+        "arrived_late": "Arrived late",
+        "changed_mind": "Changed their mind",
+        "other": "Other"
+      },
+      "note": "Note",
+      "notePlaceholder": "Note (optional)",
+      "noteRequired": "Say what is wrong (required)",
+      "refundTo": "Refund to",
+      "methods": {
+        "cash": "Cash from the drawer",
+        "card": "Card, by hand",
+        "bank": "Bank transfer",
+        "original": "Back to the card",
+        "store_credit": "Store credit",
+        "exchange": "Exchange",
+        "later": "Refund later"
+      },
+      "adminOnly": "Refunds are made by an administrator. The return is recorded now and the refund waits for them under Returns.",
+      "exchangeHint": "The refund pays toward a new sale rung up next.",
+      "laterHint": "The return is recorded now. Refund it later from Returns.",
+      "refundTotal": "Refund",
+      "restockingFee": "Includes a restocking fee of {amount}",
+      "submit": "Take return",
+      "done": "Return {numbers} taken",
+      "doneRefunded": "{amount} refunded.",
+      "doneCash": "Give the customer {amount} from the drawer.",
+      "doneCredit": "{amount} added to the customer's store credit.",
+      "creditBack": "{amount} went back to the customer's store credit, which paid for part of the sale.",
+      "doneLater": "The refund waits for an administrator.",
+      "doneExchange": "{amount} goes toward the new sale.",
+      "print": "Print return slip",
+      "printBlocked": "The slip window was blocked. Allow pop-ups for this site to print.",
+      "slipTitle": "Return",
+      "slipSale": "Sale",
+      "exchangeReference": "Exchange {numbers}",
+      "exchangeBanner": "Exchange credit {amount}",
+      "exchangeDismiss": "Drop the exchange credit",
+      "exchangeDismissHint": "Not used: give the customer {amount} in cash from the drawer."
+    },
+    "operator": {
+      "title": "Cashier",
+      "close": "Close",
+      "offline": "Switching cashier needs a connection. The till stays with whoever is working it.",
+      "loadFailed": "The cashiers could not be loaded",
+      "failed": "That did not work. Try again.",
+      "workingNow": "Working the till",
+      "switchBack": "Back to {name}",
+      "takeOver": "Take over the till",
+      "nobody": "No colleague has set a register PIN yet. Each person sets their own while signed in.",
+      "pin": "PIN",
+      "switch": "Switch cashier",
+      "switched": "{name} is working the till",
+      "setPin": "Set my register PIN",
+      "changePin": "Change my register PIN",
+      "pinIntro": "{name}, choose a PIN of 4 to 8 digits. Colleagues use theirs to take over this till.",
+      "newPin": "New PIN",
+      "confirmPin": "PIN again",
+      "pinMismatch": "The two PINs are not the same",
+      "savePin": "Save PIN",
+      "pinSaved": "Your register PIN is set",
+      "back": "Back"
+    },
+    "reports": {
+      "navLabel": "POS reports",
+      "title": "Till reports",
+      "subtitle": "Sales by cashier and counter, money taken by tender, and how each drawer's count came out.",
+      "loadFailed": "The report could not be loaded",
+      "period": "Period",
+      "presets": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "week": "Last 7 days",
+        "month": "Last 30 days",
+        "thisMonth": "This month"
+      },
+      "counter": "Counter",
+      "allCounters": "All counters",
+      "refresh": "Refresh",
+      "export": "Export CSV",
+      "empty": "No sales in this period.",
+      "noSessions": "No drawer was opened in this period.",
+      "stats": {
+        "sales": "Sales",
+        "items": "{count, plural, one {# item} other {# items}} sold",
+        "gross": "Sales total",
+        "discounts": "{amount} in discounts",
+        "net": "Net of refunds",
+        "refunds": "{amount} refunded",
+        "average": "Average sale",
+        "balanceDue": "{amount} still owed on deposits"
+      },
+      "byCashier": "By cashier",
+      "byCounter": "By counter",
+      "byTender": "Money in by tender",
+      "sessions": "Drawer sessions",
+      "unknownCashier": "Unknown cashier",
+      "noCounter": "No counter",
+      "open": "Open",
+      "payments": "{count, plural, one {# payment} other {# payments}}",
+      "tenders": {
+        "cash": "Cash",
+        "card": "Card",
+        "bank": "Bank transfer",
+        "manual": "Other",
+        "store_credit": "Store credit"
+      },
+      "columns": {
+        "name": "Name",
+        "sales": "Sales",
+        "items": "Items",
+        "gross": "Sales total",
+        "discounts": "Discounts",
+        "refunds": "Refunds",
+        "net": "Net",
+        "average": "Average",
+        "tender": "Tender",
+        "payments": "Payments",
+        "amount": "Amount",
+        "session": "Session",
+        "counter": "Counter",
+        "openedBy": "Opened by",
+        "opened": "Opened",
+        "closed": "Closed",
+        "expected": "Expected cash",
+        "counted": "Counted",
+        "variance": "Variance"
+      }
+    },
+    "quickKeys": {
+      "tab": "Favourites",
+      "empty": "No quick keys yet",
+      "emptyManager": "Star a product in the grid to put it here for every till.",
+      "emptyCashier": "Whoever manages the POS can star products to put them here.",
+      "add": "Add to favourites",
+      "remove": "Remove from favourites",
+      "failed": "The favourites were not saved"
     }
   },
   "locations": {
@@ -10954,7 +13600,17 @@
     "deleteError": "Failed to delete location",
     "updateError": "Failed to update location",
     "saveError": "Failed to save location",
-    "actions": "Actions"
+    "actions": "Actions",
+    "deliveryOrder": "Delivery order",
+    "deliveryOrderHint": "Online orders ship from the 1st location that has stock, then the 2nd, and so on.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "No delivery",
+    "services": "Services",
+    "pickup": "Pickup",
+    "returns": "Returns",
+    "noTill": "No till",
+    "shipSooner": "Ship from here sooner",
+    "shipLater": "Ship from here later"
   },
   "toast": {
     "createdSuccess": "{resource} created successfully",
@@ -11625,7 +14281,10 @@
     "loadOlderConversations": "Load older conversations",
     "attachments": {
       "alt": "Chat attachment",
-      "open": "Open attachment"
+      "open": "Open attachment",
+      "view": "View full image",
+      "openNewTab": "Open in new tab",
+      "download": "Download"
     },
     "assignment": {
       "label": "Assigned agent",
@@ -11720,7 +14379,7 @@
       "webhookUrlNotPublic": "Meta only accepts a public HTTPS callback. Open this page on your live domain — or a tunnel — before registering it.",
       "setup": {
         "title": "{provider} setup guide",
-        "docs": "Full walkthrough: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "Full walkthrough: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Create a Meta app and add the WhatsApp product to it.",
           "config": "Create a Facebook Login for Business configuration granting these permissions, and put its ID in META_WHATSAPP_CONFIGURATION_ID.",
@@ -11811,6 +14470,7 @@
     "noLinks": "No links shared yet",
     "subject": "Subject",
     "viewProduct": "View product",
+    "removeAttachment": "Remove attachment",
     "messageProduct": {
       "open": "Open {name}",
       "priceOnRequest": "Price on request"
@@ -12140,6 +14800,10 @@
       "title": "Expenses",
       "add": "Record expense",
       "editTitle": "Edit expense",
+      "void": "Void expense",
+      "voided": "Expense voided",
+      "voidHint": "Remove this expense from your totals. Its original details and the reason will stay in your records.",
+      "voidReason": "Reason",
       "dialogSubtitle": "Costs the store pays out — rent, salaries, advertising, anything no order or payout already records.",
       "date": "Date",
       "amount": "Amount",
@@ -12258,6 +14922,8 @@
       "processing_fees": "Payment fees",
       "shipping_cost": "Shipping labels",
       "cost_of_goods": "Cost of goods",
+      "opening_inventory_equity": "Opening inventory equity",
+      "inventory_adjustments": "Inventory adjustments",
       "promotions": "Store-funded discounts and credit",
       "chargeback_losses": "Chargeback losses",
       "operating_expense": "Operating expenses",
@@ -12315,8 +14981,8 @@
       "cancelledBalancesHint": "Never paid, so nothing was refunded",
       "costGapShort": "No cost recorded for {share} of product sales — net is before their cost of goods",
       "costGapTitle": "Cost of goods is missing for {amount} of product sales ({share})",
-      "costGapBody": "Those products have no cost recorded, so what they cost is not in Costs and Net is higher than the real profit. Add a cost to the product to count it from its next sale.",
-      "holding": "What the business is holding",
+      "costGapBody": "Some sales still need a recorded cost, stock allocation, or a linked expense. Net includes only recognized costs. Review Inventory and ledger to see what remains.",
+      "holding": "Holding",
       "holdingHint": "As things stand now",
       "holdingAsOf": "As of {date}",
       "cashTotal": "Cash across all accounts",
@@ -12331,7 +14997,38 @@
       "commissionCreditHint": "Refunded after the commission was invoiced — comes off their next invoice",
       "costsHint": "Payment fees and shipping labels arrive on their own. Rent and salaries have to be entered under Expenses.",
       "storeCredit": "Store credit held by shoppers",
-      "storeCreditHint": "Given on refunds and by the store, not spent yet"
+      "storeCreditHint": "Given on refunds and by the store, not spent yet",
+      "netSalesWithCost": "Net product sales with cost recorded",
+      "netSalesWithoutCost": "Net product sales without cost recorded",
+      "productCogs": "Product cost of goods",
+      "productGrossProfit": "Product gross profit — recognized costs",
+      "productProfitBasis": "Uses original order costs and recorded cost sources. Uncosted sales and their refunds are excluded from gross profit; inventory valuation adjustments are included separately in Net.",
+      "deferredCostUnits": "Sale units awaiting cost allocation",
+      "unattributedRefunds": "Refunds awaiting original-line attribution",
+      "postingPendingTitle": "Bookkeeping needs completion",
+      "postingPendingBody": "Net and product profit currently include only verified posted entries. Recorded changes are still pending or need review; open Inventory and ledger for their status.",
+      "pendingCount": "Pending",
+      "conflictCount": "Needs review",
+      "summarySubtitle": "Income, costs and balances in one place. Follow stock value and review the entries behind your numbers.",
+      "reportingPeriod": "Reporting period",
+      "emptyGuidance": "Try a wider reporting period, or record your stock purchases and expenses to start building your financial picture.",
+      "balanceReviewTitle": "Balances need review",
+      "balanceReviewHint": "Review the source records before recording a correction. Inventory balances can need opening stock, cost allocations or pending entries.",
+      "inventoryBalanceIssue": "Recorded stock costs exceed the inventory value added to the ledger",
+      "reviewInventoryLedger": "Review inventory and ledger",
+      "productProfitTitle": "Product profitability",
+      "recognizedCostsOnly": "Based on sales with recognized costs",
+      "stockBelowZeroTitle": "Stock on hand is below zero",
+      "stockBelowZeroBody": "The ledger has taken out more stock cost than it ever put in. Usually this is opening stock that hasn't been moved in yet.",
+      "reviewInInventoryLedger": "Review in Inventory and ledger",
+      "noIncomeYet": "No income in this period.",
+      "recordCosts": "Record rent, salaries or other costs",
+      "productProfit": "Product profit",
+      "grossProfitLine": "gross profit, a {margin} margin on {sales} of sales with a recorded cost",
+      "noCostedSales": "No sales with a recorded cost in this period yet.",
+      "uncostedSales": "{amount} of product sales ({share}) have no cost yet, so they're not in this profit.",
+      "setCosts": "Set costs",
+      "pageSubtitle": "Income, costs and balances for the period you pick."
     },
     "receivables": {
       "title": "Owed to and from vendors",
@@ -12342,7 +15039,13 @@
       "emptyBody": "Balances appear as orders are paid: the platform holds a vendor's share until a payout clears, and a vendor who collects cash themselves owes the commission on it.",
       "collectNote": "Read from the ledger, so a sale counts from the moment its money arrives. Payouts shows what is payable today.",
       "overpaidTitle": "Paid out more than was ever held",
-      "overpaidHint": "A payout settled a sale whose money the vendor had collected themselves. New payouts can no longer do this; the balance already recorded is cleared with an adjustment on the Finance overview."
+      "overpaidHint": "A payout settled a sale whose money the vendor had collected themselves. New payouts can no longer do this; the balance already recorded is cleared with an adjustment on the Finance overview.",
+      "owedBackTitle": "Sellers who owe money back",
+      "owedBackHint": "Usually a refund after the seller was already paid. It comes off their next payout on its own, or record a repayment on the seller's Payouts tab if they pay it back. Do not post an adjustment as well — that would recover it twice.",
+      "heldForVendors": "You are holding for vendors",
+      "commissionTheyOwe": "Commission they owe you",
+      "netToSettle": "Net still to settle",
+      "netHint": "What the books owe on balance — a payout sends only the delivered part"
     },
     "statement": {
       "title": "Your finances",
@@ -12371,7 +15074,13 @@
         "commission": "Commission",
         "boost": "Boost",
         "subscription": "Subscription",
-        "other": "Adjustment"
+        "other": "Adjustment",
+        "payout_returned": "Payout returned",
+        "refund_reversed": "Refund reversed",
+        "commission_settled": "Commission settled from payout",
+        "promotion_credit": "Promotion credit",
+        "delivery_label": "Delivery label",
+        "repayment": "You paid back"
       },
       "heldChange": "Held for you",
       "owedChange": "You owe",
@@ -12383,7 +15092,29 @@
       "owedTitle": "Owed to the marketplace",
       "owedSubtitle": "Commission on orders you collected yourself. The money is already yours; this is what you owe on it.",
       "owedEmpty": "You owe nothing for this period.",
-      "owedOrders": "Orders"
+      "owedOrders": "Orders",
+      "periodLabel": "This period",
+      "otherMovements": "Other balance movements",
+      "balanceAtEndHint": "Your balance at the end of the selected period",
+      "pagination": "Statement pages",
+      "pageEntries": "Showing {from}–{to} of {total} entries. Balances cover the whole period.",
+      "allCurrencies": "Show all currencies",
+      "emptyPage": "No entries in this currency on this page.",
+      "chargedOrders": "Orders charged this period",
+      "debtBroughtForward": "Debt brought forward",
+      "debtMovement": "Change this period",
+      "earlierActivity": "View earlier activity",
+      "noDebtMovement": "No commission movements in this period.",
+      "filterAll": "All",
+      "filterLabel": "Filter activity",
+      "filterEmpty": "Nothing of this kind among the latest entries.",
+      "showingLatest": "Showing the latest {shown} of {total} entries",
+      "filter": {
+        "sales": "Sales",
+        "refunds": "Refunds",
+        "payouts": "Payouts",
+        "commission": "Commission"
+      }
     },
     "reports": {
       "title": "Reports",
@@ -12395,7 +15126,10 @@
       "taxNet": "Owed onward",
       "noTax": "No tax was charged in this period.",
       "exportLedger": "Ledger CSV",
-      "exportExpenses": "Expenses CSV"
+      "exportExpenses": "Expenses CSV",
+      "taxPartsTitle": "By tax",
+      "taxPartUnnamed": "Tax",
+      "taxPartsHint": "Charged on orders placed in this period, before refunds. Orders from before each line's tax was recorded are not included."
     },
     "periods": {
       "title": "Closed months",
@@ -12442,7 +15176,8 @@
       "vendorHint": "Required: this balance is reported per vendor as well as in total, and both have to move together.",
       "currency": "Currency",
       "currencyHint": "The currency the balance was recorded in — a correction in another one opens a new balance instead of fixing this one.",
-      "taxPaid": "Collected tax was paid to the tax authority"
+      "taxPaid": "Collected tax was paid to the tax authority",
+      "stockManagedHint": "Stock quantity, value and sale costs are managed through Inventory and ledger so the stock records stay in sync."
     },
     "balance": {
       "title": "What you are owed",
@@ -12455,7 +15190,26 @@
       "reserveHint": "Released from {date}",
       "reserveUndated": "Released with a later payout",
       "owedBack": "Owed back to the store",
-      "owedBackHint": "Paid to you on orders refunded since; it comes off your next payout"
+      "owedBackHint": "Paid to you on orders refunded since; it comes off your next payout",
+      "tooManyOrders": "More than 500 orders are ready: the store pays them in parts, oldest first",
+      "frozen": "Payouts are paused while your account is suspended. Your sales keep counting.",
+      "inPayout": "In a payout being prepared",
+      "inPayoutHint": "{numbers} — on its way to you",
+      "notDelivered": "Not delivered yet",
+      "notDeliveredHint": "{count} paid orders on their way; the return window starts at delivery",
+      "awaitingBalance": "Pre-orders awaiting their balance",
+      "awaitingBalanceHint": "Payable once the shopper pays the rest and the goods are delivered",
+      "commissionLeft": "Commission still to settle",
+      "commissionLeftHint": "On sales you collected yourself; it comes off a later payout or an invoice",
+      "owedBackLater": "Still owed back to the store",
+      "owedBackLaterHint": "Paid to you on orders refunded since; more than the next payout can take, so it comes off later ones",
+      "nextPayout": "Estimated next payout",
+      "nothingReady": "Nothing ready yet",
+      "paused": "Payouts paused",
+      "belowMinimumPill": "Below the minimum",
+      "howCalculated": "How this is worked out",
+      "onItsWay": "On its way to you",
+      "nothingOnWay": "Nothing on its way yet. Paid orders show up here until they are ready for a payout."
     },
     "reliability": {
       "breakdown": "Payout breakdown",
@@ -12485,6 +15239,84 @@
       "collectionScope": "Customer money collected, including vendor collections",
       "estimatedCollections": "Includes {count} estimated historical receipts",
       "asOf": "Estimate as of {date}"
+    },
+    "navigation": {
+      "label": "Finance sections",
+      "overview": "Overview",
+      "expenses": "Expenses",
+      "reports": "Reports"
+    },
+    "payout": {
+      "changedElsewhere": "This payout changed. It has been reloaded.",
+      "updated": "Payout updated.",
+      "notFound": "Payout not found.",
+      "backToPayouts": "Payouts",
+      "ordersUpTo": "Orders up to {date}",
+      "orderCount": "{count} orders",
+      "requote": "Orders in this payout changed after it was made. Cancel it and create a new one.",
+      "frozen": "This seller is suspended, so this payout cannot be sent. Restore the seller, or cancel the payout.",
+      "howItWasWorkedOut": "How this payout was worked out",
+      "grossSales": "Gross sales",
+      "grossSalesHint": "the vendor's share of the orders below",
+      "commission": "Commission",
+      "ofGross": "of gross",
+      "shippingAmount": "Delivery charges",
+      "shippingAmountHint": "charged to shoppers for parcels the vendor delivered",
+      "reserveUntil": "released on {date}",
+      "commissionOffset": "Commission on cash sales",
+      "commissionOffsetHint": "owed on sales the vendor took the money for, deducted here instead of invoiced",
+      "commissionCredit": "Store promotions on cash sales",
+      "commissionCreditHint": "discounts the store paid for on sales the vendor collected, beyond the commission they owed",
+      "otherAdjustments": "Other adjustments",
+      "otherAdjustmentsHint": "refund recoveries and pre-order reserve movements",
+      "netPayout": "Net payout",
+      "paidOn": "Paid {date}",
+      "reference": "Payment reference",
+      "noReference": "No payment reference recorded",
+      "returnedOn": "Came back {date} — the vendor is owed it again",
+      "statusTitle": "Status",
+      "returnedStep": "Money came back",
+      "notRecorded": "Not recorded",
+      "notYet": "Not yet",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "Not recorded",
+      "note": "Note",
+      "noteReturnedHint": "— required: why the money came back",
+      "noteHint": "— kept on the payout and visible to the vendor",
+      "returnedOnLabel": "Day the money came back",
+      "noTransfer": "No transfer — settled against commission",
+      "noTransferHint": "Nothing is sent: the seller's earnings are fully settled against the commission they owe.",
+      "returnedWarning": "Use this only when the bank sent the money back. The ledger entry is reversed, the vendor is owed it again, and these sales go back into the next payout.",
+      "saveWarning": "Marking a payout paid posts a ledger entry and settles the orders behind it. It cannot be unposted — a mistake is corrected with an adjustment.",
+      "noChanges": "No changes yet",
+      "ordersTitle": "Orders in this payout",
+      "ordersHint": "Everything delivered and unpaid up to {date}",
+      "order": "Order",
+      "placed": "Placed",
+      "orderStatus": "Order status",
+      "payment": "Payment",
+      "vendorShare": "Vendor's share",
+      "vendorEarnings": "After commission",
+      "noOrders": "No orders linked to this payout.",
+      "sellerShareNote": "The seller's share of the goods on each order adds up to gross sales; after commission it adds up to the net payout. Shipping and tax the store collected are not part of it.",
+      "adjustment": {
+        "recoveryDeducted": "Refund recovery",
+        "recoveryDeductedHint": "paid earlier on orders refunded since",
+        "recoveryReturned": "Recovery returned",
+        "recoveryReturnedHint": "a refund recovered earlier was undone",
+        "reserveHeld": "Pre-order reserve held",
+        "reserveHeldHint": "held back against a late chargeback",
+        "reserveReleased": "Pre-order reserve released",
+        "reserveReleasedHint": "held on an earlier payout, now matured",
+        "reserveCreditDeducted": "Reserve recovered",
+        "reserveCreditDeductedHint": "a released reserve whose payout came back",
+        "reserveCreditReturned": "Reserve recovery returned",
+        "reserveCreditReturnedHint": "handed back after its payout was paid again",
+        "commissionOffset": "Commission on cash sales",
+        "commissionOffsetHint": "owed on sales the seller took the money for",
+        "commissionCredit": "Store promotions on cash sales",
+        "commissionCreditHint": "discounts the store paid for beyond the commission owed"
+      }
     }
   },
   "install": {
@@ -12583,5 +15415,318 @@
     "short": "Compare",
     "bar": "Compare {count}",
     "clear": "Clear"
+  },
+  "inventoryFinance": {
+    "postingPending": "Saved; ledger posting is pending",
+    "saved": "Inventory saved",
+    "currency": "Currency",
+    "asOf": "Balances as of",
+    "refresh": "Refresh",
+    "history": "Movement history",
+    "title": "Inventory and ledger",
+    "basis": "Book value includes owned stock at fixed cost and purchase funding awaiting allocation. Available value covers current sellable stock.",
+    "inTransit": "Owned in transit",
+    "missingCost": "Cost missing",
+    "deferredCost": "Deferred sale cost units",
+    "migration": "Existing products keep their previous stock records until opening balances are migrated. A difference can remain visible here during this transition.",
+    "retry": "Retry",
+    "product": "Product",
+    "owned": "Owned units",
+    "reserved": "Reserved, uncosted",
+    "held": "Held",
+    "bookValue": "Book value",
+    "actions": "Actions",
+    "mainSku": "Main SKU",
+    "unassigned": "Unassigned location",
+    "receive": "Add stock",
+    "adjust": "Adjust count",
+    "revalue": "Change cost",
+    "quantityChange": "Quantity change",
+    "accountingDate": "Accounting date",
+    "more": "Load more",
+    "quantity": "Quantity",
+    "purchasePrice": "Actual unit purchase price",
+    "fixedCost": "Fixed unit cost",
+    "payment": "How was this stock paid for?",
+    "unpaid": "Unpaid bill",
+    "paid": "Already paid",
+    "alreadyRecorded": "Expense already recorded",
+    "paidFrom": "Recorded payment account",
+    "bank": "Bank",
+    "cash": "Cash",
+    "gateway": "Gateway",
+    "paymentDate": "Payment date",
+    "recordOnly": "This records a payment you made; it does not send money.",
+    "expense": "Existing stock purchase",
+    "chooseExpense": "Choose an expense",
+    "mode": "Adjustment mode",
+    "adjustBy": "Adjust by",
+    "setTo": "Set to",
+    "field": "Counted state",
+    "available": "Available",
+    "onHand": "On hand",
+    "reason": "Reason",
+    "disposition": "Damage disposition",
+    "writeOffHeld": "Write off held stock",
+    "writeOff": "Write off",
+    "hold": "Hold / quarantine",
+    "releaseHold": "Release held stock",
+    "openingCost": "This establishes the missing cost of recorded opening stock against opening equity; it does not create current profit.",
+    "note": "Note / explanation",
+    "valueChange": "Book value change",
+    "purchaseAmount": "Recorded purchase amount",
+    "variance": "Inventory adjustment",
+    "saving": "Saving…",
+    "confirm": "Confirm and save",
+    "preview": "Preview changes",
+    "costConfirmation": "Confirm this fixed-cost valuation change. Original order costs stay unchanged.",
+    "status": {
+      "synced": "Synced",
+      "posting_pending": "Posting pending",
+      "cost_missing": "Cost missing",
+      "cost_deferred": "Cost deferred",
+      "cost_source_missing": "Cost source missing",
+      "needs_review": "Needs review",
+      "migration_required": "Opening balances pending",
+      "pending": "Posting pending",
+      "conflict": "Needs review",
+      "complete": "Posted"
+    },
+    "reasonLabel": {
+      "count": "Stock count",
+      "correction": "Correction",
+      "damaged": "Damaged",
+      "theft_loss": "Theft / loss",
+      "promotion_donation": "Promotion / donation",
+      "return_received": "Return received, awaiting restock",
+      "opening": "Opening stock",
+      "received": "Stock received",
+      "reserve": "Reserved for an order",
+      "release": "Reservation released",
+      "sale_costed": "Sold",
+      "return_restock": "Return restocked",
+      "transfer": "Stock transfer",
+      "cost_revaluation": "Cost changed",
+      "historical_reconciliation": "Brought into sync"
+    },
+    "all": "All",
+    "financialState": "Financial state",
+    "actor": "Actor ID",
+    "historyFrom": "History from",
+    "beforeAfter": "Quantity before → after",
+    "historicalAvailable": "Available value at the selected accounting timestamp",
+    "currentPositions": "The SKU table and Available value show current positions.",
+    "fxIssue": "Sale units awaiting an evidenced currency conversion",
+    "nonphysicalCosts": "Digital / untracked cost sources",
+    "nonphysicalHint": "Unit costs are margin estimates until a recorded expense is linked. Linking reclassifies that expense into COGS and does not add another expense or physical Inventory.",
+    "loadSources": "Load recorded expenses",
+    "linkedCost": "Allocated recorded cost",
+    "linkSource": "Link recorded cost",
+    "reverseReceipt": "Correct unused receipt",
+    "correctionNote": "Explain the receipt cancellation and recorded refund/bill cancellation:",
+    "reverseReceiptConfirm": "Reverse this untouched receipt and its recorded funding? This records a refund or cancelled bill; it does not send money.",
+    "stateLabel": {
+      "owned_available": "Owned available",
+      "owned_reserved_uncosted": "Reserved, uncosted",
+      "owned_unavailable": "Owned held",
+      "owned_in_transit": "Owned in transit",
+      "sale_costed": "Sale cost recognized",
+      "returned_unvalued": "Returned, awaiting restock",
+      "written_off": "Written off"
+    },
+    "boundedPositions": "Showing the first {count} SKU/location positions. Open this view from a product’s Inventory control to narrow the table; the totals above cover every position.",
+    "subtitle": "What your stock is worth at cost, and whether the ledger agrees.",
+    "backInventory": "Back to inventory",
+    "financeOverview": "Finance overview",
+    "currentBalance": "Current balance",
+    "balanceTime": "Accounting balance time",
+    "useCurrent": "Show current balance",
+    "useNow": "Use current time",
+    "now": "Now",
+    "paymentTime": "Payment time",
+    "historyTime": "History start time",
+    "clearDate": "Clear date",
+    "filteredScope": "Showing one product or location",
+    "updated": "Updated",
+    "loading": "Loading…",
+    "tryAgain": "Try again",
+    "availableValue": "Available stock value",
+    "postedValue": "Posted ledger inventory",
+    "pendingEffect": "Pending inventory effect",
+    "difference": "Unexplained difference",
+    "funding": "Funding awaiting allocation",
+    "availableValueHint": "Current sellable stock at fixed cost",
+    "bookValueHint": "Owned stock plus unallocated purchase funding",
+    "postedValueHint": "Inventory entries recorded in the ledger",
+    "differenceHint": "Difference after pending entries are included",
+    "balanceComparison": "Balance comparison",
+    "expectedLedger": "Ledger balance after pending entries",
+    "reviewDetails": "Review details",
+    "missingCostUnits": "Units missing a cost",
+    "stockTab": "Stock",
+    "reviewTab": "Ledger review",
+    "stockPositions": "Stock positions",
+    "stockHint": "Current owned stock by product and location. Costs shown here are fixed unit costs.",
+    "searchStock": "Search product, SKU or location",
+    "reservedShort": "Reserved",
+    "noSearchResults": "No matching stock positions",
+    "searchHint": "Try another product, SKU or location. Summary balances still cover the full selected scope.",
+    "clearSearch": "Clear search",
+    "noPositions": "No stock positions yet",
+    "noPositionsHint": "Stock you receive or move in shows up here.",
+    "openingBalancesPending": "Opening stock balances are pending",
+    "legacyEmptyHint": "Your existing products still use their previous stock records. Their positions will appear here after the planned balance migration.",
+    "viewInventory": "View inventory",
+    "positions": "positions",
+    "products": "products",
+    "reservedHint": "Reserved units remain owned until their sale cost is recognized.",
+    "historicalHint": "Viewing past accounting balances. Stock positions below are current; return to the current balance to make changes.",
+    "enterDetails": "Enter details",
+    "reviewAndSave": "Review and save",
+    "quantityDelta": "Units to add or remove",
+    "signedQuantityHint": "Use a negative number to remove units, or a positive number to add them.",
+    "newFixedCost": "New fixed unit cost",
+    "noExpenses": "No matching stock purchase expenses in this currency. Record the purchase in Expenses first.",
+    "revalueHint": "The new cost applies to currently owned stock. Original order costs stay unchanged.",
+    "noteHint": "Describe why this change is needed",
+    "previewSummary": "Changes to be recorded",
+    "position": "Position",
+    "cancel": "Cancel",
+    "historyHint": "See how each stock change affected quantity, value and the ledger.",
+    "allReasons": "All reasons",
+    "allStates": "All states",
+    "allDates": "All dates",
+    "advancedFilters": "Advanced filters",
+    "actorHint": "Find changes made by a specific staff or system actor.",
+    "clearFilters": "Clear filters",
+    "loadingHistory": "Loading movements…",
+    "movement": "Movement",
+    "movements": "movements",
+    "ledgerStatus": "Ledger status",
+    "details": "Details",
+    "reference": "Reference",
+    "noMovements": "No stock changes yet",
+    "noMovementsFiltered": "No stock changes match these filters",
+    "noMovementsHint": "Receipts, counts, sales and returns show up here as they happen.",
+    "reviewDifferenceHint": "Book value less the ledger balance after pending entries.",
+    "fundingHint": "Recorded stock purchases waiting to be linked to received stock.",
+    "costAttention": "Stock and cost checks",
+    "missingCostHint": "Review fixed costs and original sale costs to identify units whose cost is still missing.",
+    "deferredCostHint": "These sale costs await a stock allocation. Review stock receipts and availability.",
+    "negativeStock": "Units oversold",
+    "reviewStock": "Review stock",
+    "ledgerPostings": "Ledger postings",
+    "ledgerPostingsHint": "Stock changes that are waiting to post, or need a bookkeeping review.",
+    "recordedChange": "Recorded change {number}",
+    "pendingHint": "The stock change is saved. Its ledger entry is still waiting to complete.",
+    "conflictHint": "This entry needs review before it can be posted.",
+    "noPending": "No pending ledger postings",
+    "noPendingHint": "There are no recorded changes waiting to post in this scope. Other balance or cost checks are shown separately.",
+    "unitsAwaitingCost": "units awaiting a recorded cost",
+    "estimatedCost": "Estimated cost",
+    "recordedExpense": "Recorded expense",
+    "noSourceExpenses": "No eligible recorded expenses in this currency. Record the expense first, then link its cost here.",
+    "confirmCorrection": "Confirm correction",
+    "reloadPosition": "Reload the current stock position first.",
+    "loadError": "Could not load inventory.",
+    "historyError": "Could not load stock changes.",
+    "expensesError": "Could not load expenses.",
+    "saveError": "Could not save inventory.",
+    "correctionError": "Could not correct receipt.",
+    "sourceError": "Could not link the cost source.",
+    "retryError": "Could not retry posting.",
+    "statusHint": {
+      "synced": "Inventory book value matches the posted ledger balance.",
+      "posting_pending": "Recorded changes are waiting to reach the ledger. Their expected effect is included below.",
+      "cost_missing": "Some stock or sale units have no recorded cost. Review their costs before relying on the margin.",
+      "cost_deferred": "Some sale costs are waiting for stock allocation. Review stock receipts and availability.",
+      "cost_source_missing": "Some digital or untracked sales still need a recorded expense linked to their cost.",
+      "needs_review": "The inventory book value and expected ledger balance need a closer review.",
+      "migration_required": "Existing stock is awaiting opening balances. Its previous records remain active, so this view can show a difference until migration."
+    },
+    "showAllStock": "Show all stock",
+    "pastNote": "The stock list below is today's. The value above is for {date}.",
+    "today": "Today",
+    "asOfToday": "Today",
+    "asOfMonthEnd": "End of last month",
+    "asOfYearEnd": "End of last year",
+    "asOfDate": "As of {date}",
+    "asOfNow": "As of today",
+    "asOfTitle": "As of",
+    "asOfCustom": "Pick a date",
+    "asOfNowSummary": "Balances right now",
+    "asOfSummary": "Balances at the end of {date}",
+    "apply": "Apply",
+    "segmentReady": "Ready to sell",
+    "segmentReserved": "Reserved for orders",
+    "segmentHeld": "Held",
+    "segmentTransit": "In transit",
+    "segmentFunding": "Paid for, not received",
+    "atEndOf": "At the end of {date}",
+    "noPositionsIn": "No stock positions in {currency} yet",
+    "stockCounts": "{units, plural, one {# unit} other {# units}} · {skus, plural, one {# SKU} other {# SKUs}} · {locations, plural, one {# location} other {# locations}}",
+    "stockValue": "Stock value",
+    "stockValueOn": "Stock value on {date}",
+    "matchesLedger": "Matches the ledger",
+    "offBy": "Off by {amount}",
+    "showMath": "Show the math",
+    "hideMath": "Hide the math",
+    "mathYourStock": "Your stock",
+    "mathLedger": "The ledger",
+    "mathOwned": "Stock at cost",
+    "mathPosted": "Posted to inventory",
+    "mathPending": "Waiting to post · {count, plural, one {# change} other {# changes}}",
+    "mathLedgerTotal": "Ledger total",
+    "noDifference": "No difference.",
+    "ledgerLower": "The ledger is {amount} lower than your stock.",
+    "ledgerHigher": "The ledger is {amount} higher than your stock.",
+    "needsAttention": "Needs attention",
+    "attentionLegacyTitle": "Opening stock for {count, plural, one {# product hasn’t} other {# products haven’t}} been moved in yet",
+    "attentionLegacyBody": "Their stock is still in the old records, so it isn’t valued here, and the ledger can’t match until it is.",
+    "attentionLegacyChip": "Comes with the balance migration",
+    "attentionConflictTitle": "{count, plural, one {# stock change couldn’t} other {# stock changes couldn’t}} reach the ledger",
+    "attentionConflictBody": "Their ledger entries don’t match what was recorded, so they need a bookkeeping review.",
+    "attentionPendingTitle": "{count, plural, one {# stock change is} other {# stock changes are}} waiting to reach the ledger",
+    "attentionPendingBody": "They’re saved in stock; their ledger entries didn’t finish. Retrying is safe.",
+    "attentionNoCostTitle": "{count, plural, one {# unit has} other {# units have}} no cost",
+    "attentionNoCostOne": "{product} at {location} counts as {zero} until you set a cost.",
+    "attentionNoCostBody": "Stock with no cost counts as {zero} until you set one.",
+    "attentionSourcesTitle": "{count, plural, one {# digital sale needs its} other {# digital sales need their}} cost",
+    "attentionSourcesBody": "Link the expense that paid for them, so their cost of goods is right.",
+    "attentionDeferredTitle": "{count, plural, one {# sold unit is} other {# sold units are}} waiting for stock",
+    "attentionDeferredBody": "They were sold before the stock was received. Their cost posts once it arrives.",
+    "attentionFxTitle": "{count, plural, one {# sold unit needs} other {# sold units need}} an exchange rate",
+    "attentionFxBody": "Their cost is in another currency, so it can’t post until the rate is recorded.",
+    "attentionOversoldTitle": "{count, plural, one {# unit is} other {# units are}} oversold",
+    "attentionOversoldBody": "More was sold than was in stock. Count the stock and adjust it to correct this.",
+    "attentionOversoldBodyReadOnly": "More was sold than was in stock. Someone who can adjust stock needs to count it.",
+    "review": "Review",
+    "setCost": "Set cost",
+    "showThem": "Show them",
+    "linkExpense": "Link expense",
+    "sourceLine": "{count, plural, one {# unit} other {# units}} · estimated {estimate}",
+    "historyTab": "History",
+    "location": "Location",
+    "unitCost": "Unit cost",
+    "noCost": "No cost",
+    "hasCost": "Has a cost",
+    "costFilter": "Cost",
+    "unitsWithoutCost": "{count} without a cost",
+    "value": "Value",
+    "switchToToday": "Switch “As of” to today to make changes",
+    "date": "Date",
+    "whatHappened": "What happened",
+    "units": "Units",
+    "unitsHeld": "{count} held",
+    "ledger": "Ledger",
+    "ledgerPosted": "Posted",
+    "ledgerWaiting": "Waiting to post",
+    "ledgerReview": "Needs review",
+    "quantityBeforeAfter": "Quantity",
+    "valueBeforeAfter": "Value",
+    "doneBy": "Done by",
+    "detailPayment": "Payment",
+    "detailNote": "Note",
+    "searchHistory": "Search product, SKU or order"
   }
 }

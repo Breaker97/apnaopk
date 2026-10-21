@@ -508,7 +508,7 @@
             "ses": "Amazon SES",
             "other": "Diğer"
           },
-          "docs": "Tam anlatım: docs/EMAIL_SETUP.md",
+          "docs": "Tam anlatım: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "Gönderim yapacağınız Google hesabında 2-Step Verification özelliğini açın.",
             "step2": "{storeName} adında bir uygulama şifresi oluşturun ve 16 harfli şifreyi kopyalayın. Google bu şifreyi yalnızca bir kez gösterir.",
@@ -686,6 +686,10 @@
             "preorderAccess": {
               "title": "Ön sipariş erişimi",
               "hint": "Onaylandı, reddedildi veya geri alındı"
+            },
+            "payouts": {
+              "title": "Hakedişler",
+              "hint": "Hazırlandı, gönderildi, geri döndü veya iptal edildi"
             }
           },
           "customer": {
@@ -773,9 +777,8 @@
       },
       "orders": {
         "title": "Sipariş Ayarları",
-        "description": "Sipariş numaraları, vergi ve iadeler.",
+        "description": "Sipariş numaraları, kargo ve iadeler.",
         "prefix": "Sipariş numarası ön eki",
-        "taxRate": "Vergi oranı",
         "shippingCost": "Standart kargo",
         "freeShippingThreshold": "Ücretsiz kargo alt sınırı",
         "shippingHandledByZones": "Ücretler kargo bölgelerinizden gelir.",
@@ -823,7 +826,6 @@
         "shippingRefundNever": "Asla",
         "ordersHeading": "Siparişler",
         "prefixExample": "Sipariş numaraları <strong>{example}</strong> şeklinde görünür.",
-        "taxRateHint": "Ödeme adımında ve POS'ta siparişlere eklenir.",
         "shipping": "Kargo",
         "shippingLink": "Kargo ve Teslimat",
         "shippingCostHint": "Kargo bölgeleri kapalıyken bir siparişin teslimat için ödediği tutar.",
@@ -839,7 +841,18 @@
         "commissionSummaryLabel": "Komisyon ve en düşük ödeme",
         "commissionSummary": "%{rate} komisyon, en düşük ödeme {amount}.",
         "vendorConfigLink": "Satıcı yapılandırması",
-        "refundAdminFeeUpTo": "% oranında, en fazla"
+        "refundAdminFeeUpTo": "% oranında, en fazla",
+        "tax": "Vergi",
+        "taxMoved": "Vergi oranları, vergi sınıfları ve vergi kaydınız artık Vergi Ayarları'nda.",
+        "taxLink": "Vergi Ayarları'nı aç"
+      },
+      "invoices": {
+        "title": "Fatura Ayarları",
+        "entry": {
+          "title": "Faturalar, fişler ve etiketler",
+          "description": "Mağazanızın yazdırdıklarını tasarlayın ve her tür için varsayılan şablonu seçin.",
+          "action": "Fatura Ayarlarını aç"
+        }
       },
       "seo": {
         "title": "SEO Ayarları",
@@ -1407,7 +1420,20 @@
         "soundPayment": "Ödeme kabul edildi",
         "soundOrderComplete": "Satış tamamlandı",
         "soundError": "Hata veya stok uyarısı",
-        "soundPlay": "Sesi çal: {sound}"
+        "soundPlay": "Sesi çal: {sound}",
+        "offlineWindow": "Çevrimdışı satış süresi",
+        "offlineWindowHint": "Bir kasanın sunucuya son ulaşmasından sonra bağlantı olmadan ne kadar süre satış yapmaya devam edeceği. Bu sürenin ardından yeniden oturum açabilene kadar kilitlenir. {min} ile {max} saat arasında.",
+        "offlineWindowUnit": "saat",
+        "allowDeposits": "Kaporaya izin ver",
+        "allowDepositsDesc": "Kasa, müşteri eklenmiş bir satışta tutarın bir kısmını şimdi, kalanını sonra alabilir. Ürünler ayrılır ve satış tamamen ödendiğinde kayda geçer.",
+        "requireOpenRegister": "Satış için açık çekmece zorunlu",
+        "requireOpenRegisterDesc": "Her kasa, satış almadan önce çekmecesini bir açılış bakiyesiyle açmalıdır; böylece her satış kapanışta sayılan bir oturuma düşer.",
+        "pricesIncludeTax": "Fiyatlara vergi dahil",
+        "openCashDrawer": "Para çekmecesini aç",
+        "openCashDrawerDesc": "Kasada nakit el değiştirdiğinde para çekmecesini açar. QZ Tray ve çekmece bağlantı noktalı bir fiş yazıcısı gerekir; her kasa yazıcısını çekmece menüsünden seçer.",
+        "pricesIncludeTaxMovedOn": "Açık: Raf fiyatlarına vergi zaten dahil. Bu ayar artık Vergi Ayarları'nda.",
+        "pricesIncludeTaxMovedOff": "Kapalı: Vergi raf fiyatlarına eklenir. Bu ayar artık Vergi Ayarları'nda.",
+        "pricesIncludeTaxLink": "Vergi Ayarları'nı aç"
       },
       "vendorPermissions": {
         "title": "Pazar yeri politikası",
@@ -1491,7 +1517,7 @@
         },
         "setup": {
           "title": "{provider} kurulum rehberi",
-          "docs": "Tam anlatım: docs/STORAGE_SETUP.md",
+          "docs": "Tam anlatım: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "Kopyala",
           "copyFailed": "Kopyalanamadı",
           "console": {
@@ -1621,7 +1647,7 @@
           "step6": "İlk alımdan sonra Catalog → Issues, Meta'nın reddettiği tüm ürünleri listeler.",
           "caution": "Yeni bir URL oluşturduktan sonra mevcut veri kaynağının URL'sini değiştirin. İkinci bir veri kaynağı her ürünü iki kez listeler.",
           "link": "Commerce Manager'ı aç",
-          "docs": "Tam anlatım: docs/META_CATALOG.md"
+          "docs": "Tam anlatım: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook ve Instagram, ürün değişikliklerinizi Meta'nın Catalog API'si üzerinden dakikalar içinde alır.",
         "source": {
@@ -1701,7 +1727,7 @@
             "caution": "Belirteci bir şifre gibi koruyun. İptal edilirse veya süresi dolarsa canlı eşitleme duraklar ve yöneticilere bildirim gönderilir.",
             "off": "Canlı eşitlemeyi kapatmak, Meta'da zaten bulunan ürünleri olduğu gibi bırakır. Artık istemiyorsanız onları Commerce Manager'dan kaldırın.",
             "link": "Business settings'i aç",
-            "docs": "Tam anlatım: docs/META_CATALOG.md"
+            "docs": "Tam anlatım: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -1882,11 +1908,13 @@
           "byCurrencyLabel": "Diğer para birimlerinde en düşük tutar",
           "byCurrencyRemove": "{currency} en düşük tutarını kaldır",
           "description": "Planı olmayan satıcılara uygulanır. Sipariş Ayarları altında da düzenlenebilir.",
-          "minWithdrawalDescription": "Bir satıcının ödeme olarak talep edebileceği en küçük bakiye, mağaza para biriminizde.",
+          "minWithdrawalDescription": "Hakediş yapılabilecek en küçük bakiye, mağaza para biriminizde.",
           "minWithdrawalLabel": "En düşük çekim tutarı",
           "rateDescription": "Platformun her satıcı satışından aldığı yüzde.",
           "rateLabel": "Komisyon oranı",
-          "title": "Varsayılan komisyon"
+          "title": "Varsayılan komisyon",
+          "autoPayoutDraftsLabel": "Hakedişleri her satıcının programına göre hazırla",
+          "autoPayoutDraftsDescription": "Satıcının hakediş gününde (seçtiği şekilde haftalık, iki haftada bir veya aylık), ödenecek yeterli tutar varsa bir hakediş hazırlanır. Parayı göndermek ve ödendi olarak işaretlemek yine size kalır."
         },
         "description": "Satıcılar için kayıt, onay ve abonelik planı politikası.",
         "documents": {
@@ -2213,6 +2241,221 @@
       "saveBar": {
         "unsaved": "Kaydedilmemiş değişiklikler",
         "discard": "Vazgeç"
+      },
+      "tax": {
+        "title": "Vergi Ayarları",
+        "description": "Aldığınız vergi, kayıtlı olduğunuz yer ve verginin nasıl hesaplandığı.",
+        "tabsLabel": "Vergi ayarları bölümleri",
+        "moreOptions": "Diğer seçenekler",
+        "tabs": {
+          "rates": "Oranlar",
+          "registration": "Kayıt",
+          "calculation": "Hesaplama",
+          "vendors": "Satıcılar"
+        },
+        "links": {
+          "report": "Vergi raporu",
+          "invoices": "Fatura ayarları"
+        },
+        "registrationMissingLabel": "Kayıt numarası yok",
+        "rates": {
+          "description": "Her sınıfa uygulanan oran. Sınıfı olmayan ürünlere standart oran uygulanır.",
+          "notCharging": "Vergi alınmıyor",
+          "notChargingHint": "Tüm oranlar 0%, bu nedenle hiçbir satıştan vergi alınmaz. Vergi almaya başlamak için aşağıda standart oranı belirleyin.",
+          "removedClass": "Bazı ürünler artık mevcut olmayan bir sınıfı kullanıyor",
+          "removedClassHint": "{products, plural, one {# ürün} other {# ürün}} ve {categories, plural, one {# kategori} other {# kategori}} kaldırılmış bir sınıfa atanmış, bu yüzden bunlara standart oran uygulanıyor. Her birinin düzenleyicisinden bir sınıf seçin.",
+          "default": "Varsayılan",
+          "partsBadge": "{count, plural, one {# bileşen} other {# bileşen}}",
+          "neverCharged": "Hiçbir zaman vergi alınmaz",
+          "noRate": "Henüz oran yok. Siz bir oran belirleyene kadar standart oran uygulanır.",
+          "rateLabel": "{name} oranı",
+          "rateTotalLabel": "{name} oranı, bileşenlerinin toplamı",
+          "expandLabel": "{name} seçenekleri",
+          "usageProducts": "{count, plural, one {# ürün} other {# ürün}}",
+          "usageCategories": "{count, plural, one {# kategori} other {# kategori}}",
+          "next": "{date} tarihinde {rate} olacak",
+          "name": "Ad",
+          "note": "Not",
+          "optional": "isteğe bağlı",
+          "notePlaceholder": "Bu sınıfa neler girer",
+          "partsTitle": "Oran bileşenleri",
+          "total": "Toplam {rate}",
+          "partName": "Bileşen adı",
+          "partRate": "Bileşen oranı",
+          "partPlaceholder1": "Eyalet",
+          "partPlaceholder2": "İlçe",
+          "partPlaceholder3": "Şehir",
+          "compound": "Üstteki bileşenlerin üzerine uygulanır",
+          "compoundHint": "Bileşenler, eyalet, ilçe ve şehir satış vergilerinde olduğu gibi toplanır. Üzerine uygulanan bir bileşen, fiyat ile üstündeki bileşenlerin toplamı üzerinden hesaplanır.",
+          "addPart": "Bileşen ekle",
+          "splitIntoParts": "Bileşenlere ayır",
+          "removePart": "Bu bileşeni kaldır",
+          "scheduleTitle": "Planlanan değişiklik",
+          "scheduleAdd": "Değişiklik planla",
+          "startsOn": "Başlangıç tarihi",
+          "newRate": "Yeni oran",
+          "removeScheduled": "Bu planlanan değişikliği kaldır",
+          "earlierTitle": "Önceki oranlar",
+          "earlierLine": "{date} tarihinden itibaren {rate}",
+          "fromStart": "Başlangıçtan itibaren",
+          "removeEarlier": "Bu önceki oranı kaldır",
+          "removeClass": "Sınıfı kaldır",
+          "removeClassInUse": "Bu sınıfı {products, plural, one {# ürün} other {# ürün}} ve {categories, plural, one {# kategori} other {# kategori}} kullanıyor. Sınıf kaldırıldıktan sonra bunlara standart oran uygulanır.",
+          "removeClassHint": "Sınıfın oranları da onunla birlikte kaldırılır.",
+          "addClass": "Sınıf ekle",
+          "newName": "Sınıf adı",
+          "newNamePlaceholder": "Kitaplar",
+          "classRate": "Oran",
+          "add": "Sınıf ekle",
+          "cancel": "İptal",
+          "full": "En fazla {count} sınıf ekleyebilirsiniz.",
+          "untaxedNote": "{count, plural, one {# ürün} other {# ürün}} vergi almayacak şekilde ayarlı.",
+          "customNote": "{products, plural, one {# ürün} other {# ürün}} ve {categories, plural, one {# kategori} other {# kategori}} kendi özel oranını kullanıyor. Bu oran buradaki oranları izlemez; bunları bir sınıfa taşımak uyumlu kalmalarını sağlar."
+        },
+        "registration": {
+          "description": "Mağazanızın vergi kaydının bulunduğu yer. Her satış bu bölgenin oranlarıyla vergilendirilir.",
+          "missing": "Kayıt numarası yok",
+          "missingHint": "Vergi alıyorsunuz ancak vergi kaydınızı (ör. satış vergisi izni numaranızı) henüz eklemediniz.",
+          "country": "Ülke",
+          "name": "Bölge adı",
+          "optional": "isteğe bağlı",
+          "nameHint": "Boş bırakılırsa ülkenin adı gösterilir.",
+          "registrationLabel": "Kayıt adı",
+          "registrationLabelPlaceholder": "Satış vergisi izni",
+          "registrationLabelHint": "Vergi idarenizin bu kayda verdiği ad: Satış vergisi izni, Satıcı izni.",
+          "registrationNumber": "Kayıt numarası",
+          "registrationNumberHint": "Vergi idarenizin size verdiği numara."
+        },
+        "calculation": {
+          "posTitle": "Satış Noktası",
+          "posDescription": "Kasada raf fiyatlarının nasıl yorumlandığı.",
+          "posPricesIncludeTax": "Raf fiyatlarına vergi dahil",
+          "posPricesIncludeTaxDesc": "Kasa, vergiyi fiyatın üzerine eklemek yerine raftaki fiyatı tahsil eder ve vergiyi bu fiyatın içinde gösterir.",
+          "rulesTitle": "Vergi nasıl hesaplanır",
+          "rulesDescription": "Bu kurallar her satışa uygulanır. Burada ayarlanacak bir şey yok.",
+          "chainTitle": "Bir ürün, bunlardan ayarlanmış ilkiyle vergilendirilir",
+          "chain": {
+            "own": "Kendi özel oranı",
+            "class": "Vergi sınıfı",
+            "category": "Kategorisinin oranı",
+            "standard": "Standart oran"
+          },
+          "facts": {
+            "online": {
+              "label": "Online mağaza",
+              "text": "Online mağazada fiyatlar vergisiz gösterilir; vergi ödeme adımında eklenir."
+            },
+            "discounts": {
+              "label": "İndirimler",
+              "text": "Vergi, indirimler ve kuponlardan sonra müşterinin ödediği tutar üzerinden alınır."
+            },
+            "shipping": {
+              "label": "Kargo",
+              "text": "Kargo ücreti ve gümrük vergisinden vergi alınmaz."
+            },
+            "region": {
+              "label": "Bölge",
+              "text": "Müşterinin adresi ne olursa olsun, her satış bölgenizin oranlarıyla vergilendirilir."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "Standart",
+            "description": "Çoğu ürün. Oranı, mağazanızın vergi oranıdır."
+          },
+          "reduced": {
+            "name": "İndirimli",
+            "description": "Yasaya göre daha düşük oranla vergilendirilen ürünler."
+          },
+          "zero": {
+            "name": "Sıfır oranlı",
+            "description": "0% oranla vergilendirilen, vergiye tabi ürünler."
+          },
+          "exempt": {
+            "name": "Muaf",
+            "description": "Tamamen vergi dışında kalan ürünler."
+          }
+        },
+        "picker": {
+          "label": "Vergi",
+          "inheritCategory": "Kategorisiyle aynı",
+          "inheritParent": "Üst kategorisiyle aynı",
+          "custom": "Özel oran",
+          "customRate": "Özel vergi oranı",
+          "customHint": "Özel oran tüm sınıfların önüne geçer ve Vergi Ayarları'ndaki oran değişikliklerini izlemez.",
+          "hint": "Oranı sınıf belirler; oranlar Ayarlar → Vergi Ayarları'nda tanımlanır.",
+          "removedClass": "{key} (kaldırıldı: standart oran)"
+        },
+        "vendors": {
+          "policyTitle": "Satıcı ürünlerinin vergisi",
+          "policyDescription": "Pazar yerinizde tahsil edilen verginin sorumluluğu mağazanıza aittir. Bir satıcının ürünlerinin vergisini kimin değiştirebileceğini seçin: Vergi al, vergi sınıfı ve özel oranlar.",
+          "policy": {
+            "approval": "Sizin onayınızla",
+            "approvalHint": "Satıcılar talep gönderir, siz de aşağıda onaylar veya reddedersiniz. O zamana kadar ürünlerinin vergisi değişmez.",
+            "never": "Yalnızca siz",
+            "neverHint": "Satıcılar ürünlerinin vergisini görür ancak değiştiremez veya değişiklik talep edemez.",
+            "free": "Satıcıların kendisi",
+            "freeHint": "Satıcılar kendi ürünlerinin vergisini onay almadan değiştirir."
+          },
+          "requestsTitle": "Vergi değişikliği talepleri",
+          "requestsDescription": "Onaylamak, talepteki her ürüne istenen vergiyi uygular. Reddetmek vergiyi olduğu gibi bırakır ve satıcıya nedenini bildirir.",
+          "pendingTab": "Bekleyen",
+          "decidedTab": "Yanıtlanan",
+          "loading": "Talepler yükleniyor…",
+          "empty": "Bekleyen talep yok.",
+          "emptyDecided": "Henüz yanıtlanan talep yok.",
+          "loadFailed": "Talepler yüklenemedi",
+          "unknownStore": "Bilinmeyen mağaza",
+          "requestedOn": "Talep tarihi: {date}",
+          "asksFor": "İstenen",
+          "now": "şu an {tax}",
+          "moreProducts": "{count, plural, one {ve # ürün daha} other {ve # ürün daha}}",
+          "reason": "Neden",
+          "noteLabel": "Satıcıya not",
+          "noteRequiredHint": "reddetmek için gerekli",
+          "optional": "isteğe bağlı",
+          "notePlaceholder": "Satıcıya kısa bir not",
+          "addNote": "Not ekle",
+          "noteRequired": "Satıcının nedenini bilmesi için bir not yazın",
+          "approve": "Onayla",
+          "decline": "Reddet",
+          "cancel": "İptal",
+          "sendDecline": "Reddi gönder",
+          "approvedToast": "Vergi değişikliği onaylandı",
+          "declinedToast": "Talep reddedildi",
+          "decisionFailed": "Karar kaydedilemedi",
+          "pending": "Bekliyor",
+          "approved": "Onaylandı",
+          "declined": "Reddedildi",
+          "withdrawn": "Geri çekildi",
+          "decisionNote": "Not: {note}"
+        },
+        "request": {
+          "notCharged": "Vergi alınmıyor",
+          "inherit": "Kategorisiyle aynı",
+          "customRate": "Özel oran {rate}%",
+          "lockedLabel": "Vergi",
+          "lockedApproval": "Bu ürünün vergisindeki değişiklikleri mağaza onaylar.",
+          "lockedNever": "Bu ürünün vergisini mağaza yönetir.",
+          "newProductApproval": "Yeni bir ürün, kategorisine göre vergilendirilir. Kaydedildikten sonra farklı bir vergi talep edebilirsiniz.",
+          "requestChange": "Değişiklik talep et",
+          "pending": "Değişiklik talep edildi: {tax}. Mağazanın yanıtı bekleniyor.",
+          "withdraw": "Geri çek",
+          "withdrawn": "Talep geri çekildi",
+          "withdrawFailed": "Talep geri çekilemedi",
+          "dialogTitle": "Vergi değişikliği talep et",
+          "dialogDescription": "{count, plural, one {Mağaza talebinizi inceler. Onaylanana kadar ürün mevcut vergisini korur.} other {Mağaza # ürün için talebinizi inceler. Onaylanana kadar ürünler mevcut vergilerini korur.}}",
+          "chargeTax": "Vergi al",
+          "reason": "Vergi neden değişmeli?",
+          "reasonPlaceholder": "Örneğin: bu ürünler eyaletimizde satış vergisinden muaftır.",
+          "reasonTooShort": "Verginin neden değişmesi gerektiğini bir cümleyle açıklayın.",
+          "send": "Talebi gönder",
+          "cancel": "İptal",
+          "sent": "Talep mağazaya gönderildi",
+          "sendFailed": "Talep gönderilemedi",
+          "bulkAction": "Vergi değişikliği talep et"
+        }
       }
     },
     "homePageBuilder": {
@@ -2582,7 +2825,158 @@
       "team_members_exported": "Ekip üyeleri dışa aktarıldı",
       "team_members_could_not_be_exported": "Ekip üyeleri dışa aktarılamadı",
       "vendors_exported": "Satıcılar dışa aktarıldı",
-      "vendors_could_not_be_exported": "Satıcılar dışa aktarılamadı"
+      "vendors_could_not_be_exported": "Satıcılar dışa aktarılamadı",
+      "area": "Alan",
+      "view": "Görüntüle",
+      "manage": "Yönet",
+      "failed_to_load_the_role": "Rol yüklenemedi",
+      "name_is_required": "Ad zorunludur",
+      "failed_to_save_the_role": "Rol kaydedilemedi",
+      "role_updated": "Rol güncellendi",
+      "role_created": "Rol oluşturuldu",
+      "failed_to_delete_the_role": "Rol silinemedi",
+      "role_deleted": "Rol silindi",
+      "edit_role": "Rolü düzenle",
+      "new_role": "Yeni rol",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "Rol, üyelerinin neler yapabileceğidir. Değiştirmek tüm üyelerini değiştirir.",
+      "save_role": "Rolü kaydet",
+      "role_details": "Rol bilgileri",
+      "name": "Ad",
+      "dashboard": "Panel",
+      "admin_dashboard": "Yönetim paneli",
+      "staff_area": "Personel alanı",
+      "any_permission_in_the_admin_dashboard": "Yönetim panelinde her izin",
+      "store_records_and_the_till_in_the_staff_area": "Personel alanında mağaza kayıtları ve kasa",
+      "every_permission": "Tüm izinler",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "Yönetici, sonradan eklenenler dahil her zaman tüm izinlere sahiptir. Bir yöneticiyi sınırlamak için ona başka bir rol verin.",
+      "delete_this_role": "Bu rol silinsin mi?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "Üyesi olan bir rol silinemez; önce onlara başka bir rol verin.",
+      "roles": "Roller",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "Her tür ekip üyesinin neler yapabileceği. Üyeye kendi sayfasından rol verin.",
+      "create_role": "Rol oluştur",
+      "built_in": "Yerleşik",
+      "members": "üye",
+      "view_role": "Rolü görüntüle",
+      "the_store_owner_always_holds_every_permission": "Mağaza sahibi her zaman tüm izinlere sahiptir.",
+      "the_home_screen_s_figures": "Ana ekranın rakamları",
+      "returns_refunds": "İadeler ve geri ödemeler",
+      "quotes": "Teklifler",
+      "price_requests_and_offers": "Fiyat talepleri ve teklifler",
+      "applications_stores_plans_and_commissions": "Başvurular, mağazalar, planlar ve komisyonlar",
+      "payouts": "Ödemeler (satıcı)",
+      "manage_sends_vendors_their_money": "Yönet, satıcılara paralarını gönderir",
+      "payments": "Ödemeler",
+      "transactions_and_chargebacks": "İşlemler ve ters ibrazlar",
+      "finance": "Finans",
+      "ledger_expenses_periods_and_reports": "Defter, giderler, dönemler ve raporlar",
+      "marketing": "Pazarlama",
+      "boosts": "Öne çıkarmalar",
+      "sponsored_products": "Sponsorlu ürünler",
+      "online_store": "Online mağaza",
+      "theme_pages_menus_sliders_checkout": "Tema, sayfalar, menüler, sliderlar, ödeme",
+      "blog": "Blog",
+      "posts_categories_comments": "Yazılar, kategoriler, yorumlar",
+      "ai_sales_agent": "Yapay zeka satış asistanı",
+      "its_settings_and_conversations": "Ayarları ve konuşmaları",
+      "ai_studio": "Yapay zeka stüdyosu",
+      "all_accounts": "Tüm hesaplar",
+      "every_sign_in_on_the_store": "Mağazadaki her oturum açma",
+      "settings": "Ayarlar",
+      "store_settings": "Mağaza ayarları",
+      "sensitive_settings": "Hassas ayarlar",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "Ödeme sağlayıcıları, depolama, e-posta/SMS sağlayıcıları, oturum açma, güvenlik, kargo firmaları",
+      "activity_log": "Etkinlik günlüğü",
+      "who_did_what": "Kim ne yaptı",
+      "team": "Ekip",
+      "manage_adds_and_edits_members_within_your_own_permissions": "Yönet, kendi izinleriniz dahilinde üye ekler ve düzenler",
+      "create_and_change_roles": "Rol oluştur ve değiştir",
+      "member": "üye",
+      "permission": "izin",
+      "role": "Rol",
+      "abandoned_checkouts": "Terk edilen ödemeler",
+      "added_for_this_member": "Bu üye için eklendi",
+      "all_vendors_and_locations_including_ones_added_later": "Sonradan eklenenler dahil tüm satıcılar ve konumlar",
+      "also_catalogues_for_ads": "Reklam katalogları da",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "Gelen kutusunu yanıtlar, siparişlere ve müşterilere bakar",
+      "brands": "Markalar",
+      "campaign_banners": "Kampanya bannerları",
+      "can": "Yapabilir",
+      "can_sign_in_and_work": "Giriş yapıp çalışabilir.",
+      "can_t": "Yapamaz",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "Giriş yapamaz ve şifresini sıfırlayamaz. Kötü ayrılan biri için.",
+      "can_t_sign_in_turn_back_on_any_time": "Giriş yapamaz. İstediğiniz zaman yeniden açın.",
+      "cashier": "Kasiyer",
+      "catalog": "Katalog",
+      "categories": "Kategoriler",
+      "changed": "Değişti",
+      "changed_from_the_role": "Rolden farklı",
+      "create": "Oluştur",
+      "creating_and_cancelling_orders_stays_with_the_store": "Sipariş oluşturma ve iptal etme mağazada kalır",
+      "customer_accounts_are_changed_by_the_store": "Müşteri hesaplarını mağaza değiştirir",
+      "discounts_gift_cards": "İndirimler ve hediye kartları",
+      "every_staff_permission": "Tüm personel izinleri",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "Yönetim panelindeki bir üyeye verilebilecek her şey, alana göre.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "Personel alanındaki bir üyeye verilebilecek her şey, alana göre.",
+      "everything_except_deleting_records": "Kayıt silme dışında her şey",
+      "everything_in_the_staff_area_deleting_included": "Personel alanındaki her şey, silme dahil",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "Bu role verilebilecek her şey, alana göre. Kesik çizgili kutular rolden farklıdır.",
+      "everywhere": "Her yerde",
+      "gives_access": "Erişim verir",
+      "inbox": "Gelen kutusu",
+      "invite": "Davet",
+      "manage_the_till": "Kasayı yönet",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "Kasayı yönetmek indirimleri, kasa raporlarını ve tezgahları kapsar",
+      "moderate": "Denetle",
+      "money": "Para",
+      "moves_money": "Para aktarır",
+      "new_team_member": "Yeni ekip üyesi",
+      "nothing_yet": "Henüz bir şey yok",
+      "online_store_reports": "Online mağaza ve raporlar",
+      "only_in_the_admin_dashboard": "Yalnızca yönetim panelinde",
+      "only_these": "Yalnızca bunlar",
+      "open_past_the_return_window": "İade süresi geçince de aç",
+      "pause": "Duraklat",
+      "paused": "Duraklatıldı",
+      "permissions_given": "Verilen izinler",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "Bunlardan birini vermek için Manager veya Administrator seçin. Personel, personel alanında ve kasada çalışır.",
+      "pick_vendors_locations_or_regions_below": "Aşağıdan satıcı, konum veya bölge seçin",
+      "point_of_sale": "Satış noktası (POS)",
+      "popups_and_bars_on_the_home_page": "Ana sayfadaki açılır pencereler ve şeritler",
+      "refund": "İade et",
+      "refund_sends_money_back_to_the_customer": "İade, parayı müşteriye geri gönderir",
+      "reply": "Yanıtla",
+      "reviews": "Değerlendirmeler",
+      "rings_up_sales_at_the_register": "Kasada satış yapar",
+      "role_name": "Rol adı",
+      "role_name_e_g_floor_lead": "Rol adı, ör. Kat sorumlusu",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "Roller ekranında oluşturduğunuz roller burada ek kartlar olarak görünür.",
+      "sales_associate": "Satış danışmanı",
+      "save_as_a_role": "Rol olarak kaydet",
+      "scope": "Kapsam",
+      "secrets": "Gizli bilgiler",
+      "selling": "Satış",
+      "send_recovery_emails": "Kurtarma e-postaları gönder",
+      "shift_lead": "Vardiya sorumlusu",
+      "staff_area_pos": "Personel alanı ve POS",
+      "start_from": "Şuradan başla",
+      "store_admin": "Mağaza yönetimi",
+      "summary": "Özet",
+      "support_agent": "Destek temsilcisi",
+      "taken_away_for_this_member": "Bu üyeden alındı",
+      "the_books": "Muhasebe defterleri",
+      "the_register_orders_customers_and_the_inbox": "Kasa, siparişler, müşteriler ve gelen kutusu",
+      "use": "Kullan",
+      "use_the_register": "Kasayı kullan",
+      "watch": "Dikkat",
+      "what_this_staff_member_can_do_by_area": "Bu personelin yapabilecekleri, alana göre.",
+      "where_they_work": "Çalıştığı yer",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "Nerede çalışacağı ve neyle başlayacağı. Aşağıda bu üye için herhangi bir izni değiştirebilirsiniz.",
+      "works_in_the_admin_dashboard": "Yönetim panelinde çalışır",
+      "works_in_the_staff_area_and_at_the_till": "Personel alanında ve kasada çalışır",
+      "writes_copy_and_images_with_the_store_s_ai_key": "Mağazanın yapay zeka anahtarıyla metin ve görsel yazar",
+      "anything_only_in_the_admin_dashboard": "yalnızca yönetim panelindeki her şey",
+      "this_member": "bu üye",
+      "by_role": "Role göre"
     },
     "productForm": {
       "addProduct": "Ürün ekle",
@@ -2751,6 +3145,19 @@
         "loadingCategories": "Kategoriler yükleniyor…",
         "categoriesUnavailable": "Kategoriler yüklenemedi. Yukarıdaki Tekrar dene düğmesini kullanın.",
         "saveBlocked": "Ürün, kategoriler, markalar ve stok konumları yüklendiğinde kaydedilebilir."
+      },
+      "leave": {
+        "title": "Kaydetmeden ayrılsın mı?",
+        "descriptionNew": "Bu ürün henüz kaydedilmedi. Şimdi ayrılırsanız girdikleriniz burada kaybolur; bu tarayıcı, bir sonraki ürün eklemenizde geri yükleyebileceğiniz bir kopyayı saklar.",
+        "descriptionEdit": "Bu üründeki değişiklikleriniz kaydedilmedi. Şimdi ayrılırsanız kaybolurlar.",
+        "confirm": "Ayrıl",
+        "cancel": "Kal"
+      },
+      "draft": {
+        "title": "Kaydedilmemiş ürün bulundu",
+        "body": "Bu tarayıcı, {time} tarihli ve hiç kaydedilmemiş bir ürünü sakladı.",
+        "restore": "Geri yükle",
+        "discard": "Sil"
       }
     },
     "orderDetails": {
@@ -3422,7 +3829,10 @@
           "countryOfOrigin": "Ülke adı veya iki harfli kod, ör. BD.",
           "hsCode": "Gümrük tarife kodu.",
           "barcode": "EAN-13, UPC-A, GTIN-14 veya Code 128. Boşsa otomatik oluşturulur.",
-          "vendorId": "Ürünün ait olduğu satıcı, satıcı dışa aktarımında göründüğü gibi. Varsayılan: kendi mağazanız."
+          "vendorId": "Ürünün ait olduğu satıcı, satıcı dışa aktarımında göründüğü gibi. Varsayılan: kendi mağazanız.",
+          "chargeTax": "true veya false: bu üründen vergi al. Varsayılan true.",
+          "taxClass": "Vergi Ayarları'ndan bir vergi sınıfı: standard, reduced, zero, exempt veya eklediğiniz bir sınıf. Kategorinin vergisini yeniden kullanmak için inherit yazın.",
+          "taxRate": "Yüzde olarak özel vergi oranı, ör. 7.5. Vergi sınıfının yerine geçer; bu yüzden taxClass ya da taxRate alanlarından yalnızca birini doldurun, ikisini birden değil."
         },
         "title": "Ürünleri içe aktar",
         "description": "Bir CSV veya JSON dosyasından toplu olarak yeni ürün ekleyin ya da mevcut ürünleri güncelleyin.",
@@ -3503,7 +3913,9 @@
       "actions": {
         "export": "Dışa Aktar",
         "import": "İçe Aktar",
-        "addCollection": "Koleksiyon ekle"
+        "addCollection": "Koleksiyon ekle",
+        "importExport": "İçe / Dışa Aktar",
+        "downloadSample": "Örnek dosyayı indir"
       },
       "bulkActions": {
         "setActive": "Aktif yap",
@@ -3542,6 +3954,67 @@
         "deleteBulkError": "Bazı koleksiyonlar silinemedi",
         "updateSuccess": "{count} koleksiyon güncellendi",
         "updateError": "{count} koleksiyon güncellenemedi"
+      },
+      "importDialog": {
+        "title": "Koleksiyonları içe aktar",
+        "description": "Bir CSV dosyasından toplu olarak yeni koleksiyonlar ekleyin ya da mevcut koleksiyonları güncelleyin.",
+        "sampleTitle": "Örnek dosyayla başlayın",
+        "sampleDescription": "İçe aktarmanın okuduğu sütunları ve biri manual, biri automated olmak üzere iki örnek koleksiyonu içerir. Örnekleri kendi koleksiyonlarınızla değiştirin, ilk satırı olduğu gibi bırakın ve dosyayı buraya yükleyin.",
+        "sampleCsv": "Örnek CSV",
+        "sampleFailed": "Örnek dosya indirilemedi",
+        "dropTitle": "Bir dosya seçin veya buraya sürükleyin",
+        "dropHint": "CSV · en fazla {rows} koleksiyon · {size} MB",
+        "removeFile": "Dosyayı kaldır",
+        "fileTooLarge": "Bu dosya {size} MB'tan büyük. Dosyayı daha küçük dosyalara bölün.",
+        "wrongType": "Bir .csv dosyası seçin.",
+        "rulesTitle": "Satırlar nasıl içe aktarılır",
+        "rules": {
+          "match": "Mevcut bir koleksiyonun id veya slug değerini içeren satır o koleksiyonu günceller. İkisini de içermeyen satır title ile eşleştirilir; eşleşme yoksa yeni bir koleksiyon oluşturur.",
+          "blank": "Boş bir hücre, koleksiyonun mevcut değerini korur. Yeni bir koleksiyon manual taslak olarak başlar.",
+          "products": "Bir manual koleksiyon ürünlerini slug, SKU veya ad ile listeler, | ile ayrılmış şekilde. Ürünler önceden var olmalıdır; hiçbir ürünle eşleşmeyen ad atlanır ve raporlanır. Boş bir products hücresi mevcut ürünleri korur.",
+          "conditions": "Bir automated koleksiyon için conditions sütununda en az bir kural gerekir; kural, sütun kılavuzundaki örnekteki gibi JSON olarak yazılır."
+        },
+        "columnsTitle": "Sütun rehberi",
+        "required": "Yeni koleksiyonlar için zorunlu",
+        "columns": {
+          "title": "Koleksiyon adı.",
+          "slug": "Koleksiyonun web adresi. Boşsa title değerinden oluşturulur. Güncellenecek koleksiyonu bulmak için de kullanılır.",
+          "id": "Yalnızca dışa aktarılan dosyalarda bulunur. Güncellenecek koleksiyonu tam olarak bulur.",
+          "description": "Kısa, düz metin açıklama.",
+          "descriptionHtml": "Tam açıklama. HTML kullanılabilir.",
+          "imageUrl": "Koleksiyonun kapağı için herkese açık bir görsel bağlantısı (https://…).",
+          "imageAlt": "Kapak görseli için alternatif metin. Boşsa title kullanılır.",
+          "collectionType": "manual veya automated. Dosyada aksi belirtilmedikçe yeni koleksiyonlar manual olur.",
+          "status": "active veya draft. Dosyada aksi belirtilmedikçe yeni koleksiyonlar draft olur.",
+          "products": "manual koleksiyonlar için: | ile ayrılmış ürün slug'ları, SKU'ları veya adları, örn. blue-shirt|red-shirt.",
+          "productIds": "Yalnızca dışa aktarılan dosyalarda: | ile ayrılmış ürün id'leri. products ile birlikte kullanılır.",
+          "conditions": "automated koleksiyonlar için: kurallar JSON listesi olarak. Alanlar: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all veya any: bir ürünün her kuralı mı yoksa yalnızca birini mi karşılaması gerektiği. Varsayılan all.",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc veya created-desc.",
+          "position": "Bu koleksiyonu listelerde sıralayan bir sayı. Küçük olan önce gelir.",
+          "onlineStore": "true veya false: koleksiyonu online mağazada göster. Varsayılan true.",
+          "pointOfSale": "true veya false: satış noktasında göster. Varsayılan false.",
+          "seoPageTitle": "Arama motorlarının koleksiyon sayfası için gösterdiği başlık.",
+          "seoMetaDescription": "Arama motorlarının koleksiyon sayfası için gösterdiği açıklama."
+        },
+        "cancel": "İptal",
+        "submit": "Koleksiyonları içe aktar",
+        "importing": "İçe aktarılıyor… büyük dosyalar bir dakika sürebilir. Bu pencereyi açık tutun.",
+        "requestFailed": "Dosya içe aktarılamadı. Tekrar deneyin.",
+        "resultTitle": "İçe aktarma tamamlandı",
+        "resultFailedTitle": "Dosya içe aktarılamadı",
+        "created": "Oluşturulan",
+        "updated": "Güncellenen",
+        "failed": "Başarısız",
+        "warnings": "Notlar",
+        "errorsTitle": "İçe aktarılmayan satırlar",
+        "errorsHint": "Bu satırları dosyanızda düzeltip yeniden içe aktarın. Daha önce içe aktarılan satırlar kopya eklemek yerine aynı koleksiyonları günceller.",
+        "rowLabel": "Satır {row}",
+        "fileLabel": "Dosya",
+        "moreErrors": "…ve indirilebilir listede {count} tane daha.",
+        "downloadErrors": "Hata listesini indir",
+        "importAnother": "Başka bir dosya içe aktar",
+        "done": "Tamam"
       }
     },
     "ordersPage": {
@@ -3823,7 +4296,6 @@
       "pages": "Sayfalar",
       "pos": "Satış Noktası",
       "shipping": "Kargo",
-      "posStaff": "Personel",
       "posLocations": "Konumlar",
       "addPage": "Sayfa Ekle",
       "navigation": "Gezinme",
@@ -3841,6 +4313,7 @@
       "customize": "Özelleştir",
       "finance": "Finans",
       "financeOverview": "Genel bakış",
+      "inventoryLedger": "Envanter ve defter",
       "expenses": "Giderler",
       "receivables": "Alacaklar",
       "financeReports": "Raporlar",
@@ -3854,6 +4327,7 @@
       "mobileDescription": "Panelin her bölümüne bağlantılar.",
       "preorders": "Ön siparişler",
       "sliders": "Slaytlar",
+      "campaignBanners": "Kampanya bannerları",
       "staff": "Ekip",
       "toggle": "Kenar çubuğunu aç veya kapat",
       "vendorConfiguration": "Yapılandırma",
@@ -3864,7 +4338,6 @@
     },
     "pos": "Satış Noktası",
     "posLocations": "POS Konumları",
-    "posStaff": "POS Personeli",
     "dashboardSubtitle": "Tekrar hoş geldiniz! İşte olup bitenler.",
     "editProduct": "Ürünü Düzenle",
     "updateProductInfo": "Ürün bilgilerini güncelle",
@@ -4359,15 +4832,28 @@
       "createSection": {
         "title": "Hakediş Oluştur",
         "selectVendor": "Satıcı seçin",
-        "periodStart": "Dönem başlangıcı",
+        "periodStart": "Dönem başlangıcı (isteğe bağlı)",
         "periodEnd": "Dönem bitişi",
         "creating": "Oluşturuluyor...",
         "create": "Oluştur",
-        "optionalNote": "İsteğe bağlı not"
+        "optionalNote": "İsteğe bağlı not",
+        "description": "Satıcıya şu anda ödenebilecek tutarı öder: iade süresi geçmiş teslim edilmiş satışlar, satıcının borcu düşülerek.",
+        "searchVendor": "Satıcı ara",
+        "noVendor": "Satıcı bulunamadı",
+        "searching": "Aranıyor…",
+        "vendorMissing": "Bu satıcı artık mevcut değil",
+        "suspended": "Askıya alındı — hakedişler donduruldu",
+        "startHint": "Bitiş tarihine kadar ödenebilir tüm satışları dahil etmek için boş bırakın.",
+        "frozen": "Bu satıcı askıya alındığı için hakedişleri donduruldu. Satışları, hesabı yeniden açılana kadar sayılmaya devam eder.",
+        "belowMinimum": "{amount}, en düşük hakediş tutarı olan {minimum} altında.",
+        "orderCount": "Bu hakedişte {count, plural, one {# sipariş} other {# sipariş}} var.",
+        "moreThanMax": "Bir hakedişe yalnızca ödenebilir en eski {count} sipariş sığar; kalanlar bir sonrakine girer.",
+        "sellerConfirmed": "{count, plural, one {# teslimat} other {# teslimat}} kargo firması tarafından değil, satıcı tarafından onaylandı.",
+        "commissionLeft": "Satıcının borçlu olduğu {amount} komisyon bu hakedişe sığmadı ve borç olarak kalıyor."
       },
       "listSection": {
         "title": "Hakediş Dönemleri",
-        "searchPlaceholder": "Hakediş numarası ara",
+        "searchPlaceholder": "Hakediş numarası veya satıcı ara",
         "allStatuses": "Tüm durumlar",
         "columns": {
           "payout": "Hakediş",
@@ -4391,9 +4877,20 @@
         "pageOf": "Sayfa {page} / {totalPages}"
       },
       "toast": {
-        "requiredFields": "Satıcı, dönem başlangıcı ve dönem bitişi gereklidir.",
+        "requiredFields": "Bir satıcı ve bir bitiş tarihi seçin.",
         "createSuccess": "Hakediş oluşturuldu.",
         "createError": "Hakediş oluşturulamadı"
+      },
+      "sendTo": {
+        "title": "Gönderilecek hesap",
+        "missing": "Kayıtlı banka hesabı yok. Satıcıdan ayarlarına bir hesap eklemesini isteyin ya da nakit veya ödeme ağ geçidiyle ödeyin.",
+        "accountName": "Hesap adı",
+        "accountNumber": "Hesap numarası",
+        "bankName": "Banka",
+        "routingNumber": "Şube/Routing numarası",
+        "swiftCode": "SWIFT",
+        "show": "Hesap numarasını göster",
+        "copy": "Kopyala: {field}"
       }
     },
     "paymentTransactionsPage": {
@@ -5614,20 +6111,38 @@
         "settings": "Tema ayarları",
         "css": "Özel CSS"
       },
-      "customCss": {
-        "title": "Özel CSS"
-      },
       "preview": {
         "pages": {
+          "product": "Ürün sayfası",
+          "home": "Ana Sayfa",
           "products": "Ürünler",
           "cart": "Sepet",
-          "search": "Ara"
-        }
+          "search": "Arama"
+        },
+        "desktop": "Masaüstü",
+        "mobile": "Mobil",
+        "hint": "Canlı önizleme — kaydedilmemiş değişiklikleri gösterir.",
+        "open": "Mağazayı aç",
+        "title": "Mağaza önizlemesi",
+        "page": "Önizleme sayfası"
       },
-      "launchTitle": "Tema ayarları"
+      "customCss": {
+        "title": "Özel CSS",
+        "description": "Temanın kendi stillerinden sonra eklenen, her mağaza sayfasında geçerli kurallar. Tema başına kaydedilir — tema değiştirdiğinizde o temanın kendi stil sayfasına geçilir. Renkler, tipografi ve şekiller için Tema ayarlarını tercih edin; bunu, oradan ulaşılamayan ayrıntılar için kullanın.",
+        "hint": "Kuralları .store-surface kapsamında tutun; böylece yönetim paneline asla ulaşmazlar.",
+        "save": "CSS'i kaydet",
+        "saved": "Özel CSS kaydedildi"
+      },
+      "launchTitle": "Tema ayarları",
+      "launchDescription": "Etkin temanın renkleri, tipografisi, düzeni, şekilleri ve düğmeleri, mağazanızın canlı önizlemesinin yanında düzenlenir. Ayarlar tema başına kaydedilir — tema değiştirdiğinizde o temanın kendi ayarlarına geçilir.",
+      "launch": "Tema düzenleyiciyi aç"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "İade talepleri (30 gün)",
+          "description": "{count} hâlâ açık"
+        },
         "needsReview": {
           "title": "İnceleme bekliyor",
           "description": "Onayla veya reddet"
@@ -5688,7 +6203,7 @@
       "enterFullscreen": "Tam ekran",
       "exitFullscreen": "Tam ekrandan çık",
       "reset": "Varsayılanlara sıfırla",
-      "personalNote": "Yalnızca sizin için, bu tarayıcıda. Mağazanızın logoları, renkleri ve varsayılan görünümü Çevrimiçi Mağaza → Temalar → Marka bölümünde ayarlanır.",
+      "personalNote": "Yalnızca sizin için, bu tarayıcıda. Mağazanızın logoları ve varsayılan görünümü Çevrimiçi Mağaza → Temalar → Marka bölümünde, renkleri Tema ayarlarında ayarlanır.",
       "darkMode": "Koyu mod",
       "contrast": "Kontrast",
       "rtl": "Sağdan sola",
@@ -5696,7 +6211,12 @@
       "sidebar": "Kenar çubuğu",
       "sidebarColor": "Renk",
       "sidebarIntegrate": "Bütünleşik",
-      "sidebarApparent": "Belirgin"
+      "sidebarApparent": "Belirgin",
+      "sidebarPaint": "Kenar çubuğunun rengi",
+      "sidebarPaintPrimary": "Birincil",
+      "sidebarPaintSecondary": "İkincil",
+      "sidebarPaintHint": "Etkin temanızın renklerini kullanır.",
+      "sidebarPaintChange": "Değiştir"
     },
     "preorderAccess": {
       "vendorFallback": "Satıcı",
@@ -6105,6 +6625,7 @@
         "genericError": "Bir hata oluştu"
       },
       "mega": {
+        "shopAll": "Tüm {name} ürünlerini gör",
         "categories": "Kategoriler",
         "links": "Bağlantılar",
         "addCategory": "Kategori ekle",
@@ -6365,26 +6886,255 @@
         "title": "Alt Bilgi"
       }
     },
+    "customizeHub": {
+      "title": "Özelleştir",
+      "description": "Özelleştirmek için bir mağaza sayfası seçin."
+    },
     "themeEditor": {
+      "presets": {
+        "default": "Mavi",
+        "cyan": "Camgöbeği",
+        "purple": "Mor",
+        "blue": "Siyah",
+        "orange": "Turuncu",
+        "red": "Kırmızı"
+      },
+      "colorMode": "Renk modu",
+      "darkFollows": "Koyu mod, açık renklerinizi otomatik olarak izler. Yalnızca koyu mod için ayarlamak üzere bir renge tıklayın.",
+      "advancedColors": "Gelişmiş",
+      "advancedLowContrast": "Buradaki bir renk zor okunuyor",
+      "sections": {
+        "page": "Sayfa",
+        "text": "Metin",
+        "sales": "İndirimler ve puanlar",
+        "lines": "Çizgiler",
+        "states": "Durumlar",
+        "soft": "Yumuşak arka planlar"
+      },
+      "sourceDefault": "Tema varsayılanı",
+      "sourceAuto": "Otomatik",
+      "sourceCustom": "Özel",
+      "colorSource": "Renk kaynağı",
+      "autoDarkHint": "Açık renklerinizi izler ve koyu sayfada görünecek şekilde ayarlanır.",
+      "defaultHint": "Temanın kendi rengi; diğer renklerle iyi okunacak şekilde seçildi.",
+      "usedFor": "Kullanıldığı yerler",
+      "useReadable": "{color} kullan",
+      "backToAuto": "Otomatiğe dön",
+      "resetToDefault": "Tema varsayılanına sıfırla",
+      "textAuto": "Otomatik metin rengi",
+      "accentUse": "Öne Çıkan ve menü etiketleri",
+      "saleUse": "İndirimler ve indirimli fiyatlar",
+      "lowContrastOn": "{surface} üzerinde zor görünüyor ({ratio}:1). Hedef: {minimum}:1.",
+      "groups": {
+        "colors": {
+          "description": "Bu renkleri yalnızca {theme} kullanır. Diğer temalarınız kendi renklerini korur.",
+          "label": "Renkler"
+        },
+        "type": {
+          "label": "Tipografi",
+          "description": "Başlıklar, gövde metni ve düğmeler için yazı tipleri ve biçimleri."
+        },
+        "layout": {
+          "label": "Düzen",
+          "description": "Sayfa genişliği ve hero ile banner bölümlerinin devraldığı genel varsayılanlar."
+        },
+        "shape": {
+          "label": "Şekiller",
+          "description": "Köşeler, kenarlıklar ve gölgeler. Piksel cinsinden tam değerler."
+        },
+        "buttons": {
+          "label": "Düğmeler",
+          "description": "Eylem düğmelerinin boyutu ve davranışı."
+        }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "Arka plan",
+          "hint": "Her sayfanın arkasında."
+        },
+        "surface": {
+          "label": "Kartlar ve menüler",
+          "hint": "Paneller, açılır pencereler, açılır listeler ve menüler."
+        },
+        "surfaceAlt": {
+          "label": "Bantlar ve çipler",
+          "hint": "Bantlı bölümler, görsel arka planları ve nötr çipler."
+        },
+        "text": {
+          "label": "Metin",
+          "hint": "Başlıklar ve gövde metni."
+        },
+        "textMuted": {
+          "label": "İkincil metin",
+          "hint": "Açıklamalar, kategoriler, yer tutucular."
+        },
+        "border": {
+          "label": "Ayırıcılar",
+          "hint": "Bölümler arasındaki ve kartların çevresindeki çizgiler."
+        },
+        "primary": {
+          "label": "Birincil düğme",
+          "hint": "Ana düğmeler, sepet sayısı ve etkin sekme çizgileri."
+        },
+        "onPrimary": {
+          "label": "Birincil üzerindeki metin",
+          "hint": "Birincil düğmelerdeki etiketler."
+        },
+        "secondary": {
+          "label": "İkincil düğme",
+          "hint": "“Sepete Ekle” ve diğer ikincil düğmeler."
+        },
+        "onSecondary": {
+          "label": "İkincil üzerindeki metin",
+          "hint": "“Sepete Ekle” düğmesindeki etiket."
+        },
+        "accent": {
+          "label": "Vurgu",
+          "hint": "Ürün kartlarındaki Öne Çıkan etiketi ve mağaza menüsündeki rozetler."
+        },
+        "sale": {
+          "label": "İndirim",
+          "hint": "İndirim rozetleri ve indirimli fiyatlar."
+        },
+        "rating": {
+          "label": "Puan yıldızları",
+          "hint": "Değerlendirme yıldızları."
+        },
+        "link": {
+          "label": "Bağlantılar",
+          "hint": "Bağlantılar, “Tümünü Gör” ve etkin menü öğesi: birincil renkte, okunaklı tutulan metin."
+        },
+        "onAccent": {
+          "label": "Vurgu üzerindeki metin",
+          "hint": "Vurgu rengi üzerindeki etiketler."
+        },
+        "accentSurface": {
+          "label": "Vurgu arka planı",
+          "hint": "Promosyon metinlerinin arkasındaki açık vurgu tonu."
+        },
+        "onAccentSurface": {
+          "label": "Vurgu arka planındaki metin",
+          "hint": "Vurgu tonu üzerindeki metin."
+        },
+        "hoverSurface": {
+          "label": "Üzerine gelme arka planı",
+          "hint": "İmlecin altındaki menüler ve düğmeler."
+        },
+        "onHover": {
+          "label": "Üzerine gelindiğinde metin",
+          "hint": "Üzerine gelme arka planındaki etiketler."
+        },
+        "selectedSurface": {
+          "label": "Seçili arka plan",
+          "hint": "Açılır listelerde işaretli öğeler ve menülerdeki etkin satır."
+        },
+        "onSelected": {
+          "label": "Seçili üzerindeki metin",
+          "hint": "Seçili arka plandaki etiketler."
+        },
+        "focusRing": {
+          "label": "Odak halkası",
+          "hint": "Klavye kullanıcılarının izlediği çerçeve."
+        },
+        "fieldBorder": {
+          "label": "Alan kenarlıkları",
+          "hint": "Ödeme alanları, formlar ve açılır listeler. Üst bilgideki arama kutusunun kenarlığı Üst Bilgi Stüdyosu'nda ayrıca ayarlanır."
+        },
+        "onSale": {
+          "label": "İndirim üzerindeki metin",
+          "hint": "Dolgulu indirim rozetlerindeki etiketler."
+        },
+        "saleText": {
+          "label": "İndirim metni",
+          "hint": "Sayfadaki indirimli fiyatlar ve tasarruflar."
+        },
+        "saleSurface": {
+          "label": "İndirim arka planı",
+          "hint": "Fiyatların yanındaki indirim çiplerinin arkasında."
+        },
+        "onSaleSurface": {
+          "label": "İndirim arka planındaki metin",
+          "hint": "İndirim tonu üzerindeki metin."
+        },
+        "skeleton": {
+          "label": "Yükleme yer tutucusu",
+          "hint": "Sayfa yüklenirken görünen gri bloklar."
+        }
+      },
       "title": "Tema ayarları",
       "back": "Temalar",
       "unsaved": "Kaydedilmemiş değişiklikler",
+      "allSaved": "Tüm değişiklikler kaydedildi",
+      "discard": "Vazgeç",
       "save": "Kaydet",
       "saved": "Tema ayarları kaydedildi",
       "saveFailed": "Kaydetme başarısız",
+      "resetGroup": "Grubu sıfırla",
+      "resetAll": "Tümünü tema varsayılanlarına sıfırla",
+      "resetAllTitle": "Tüm ayarlar sıfırlansın mı?",
       "preview": "Önizleme",
       "controls": "Ayarlar",
-      "brandRef": "Marka",
+      "setCustom": "Özel renk belirle",
+      "contrastHint": "Bulunduğu yüzeye göre kontrast",
       "modeLight": "Açık",
       "modeDark": "Koyu",
-      "groups": {
-        "colors": {
-          "label": "Renkler"
+      "leaveGuard": "Kaydedilmemiş tema değişiklikleriniz var.",
+      "fonts": {
+        "inter": "Nötr, teknik, varsayılan",
+        "manrope": "Geometrik, modern perakende",
+        "dm-sans": "Yuvarlak, samimi",
+        "plus-jakarta-sans": "Yumuşak geometrik, yaşam tarzı",
+        "nunito": "Yuvarlak uçlar, eğlenceli",
+        "source-sans-3": "Hümanist, uzun metinler",
+        "space-grotesk": "Sıra dışı grotesk, teknoloji",
+        "playfair-display": "Yüksek kontrastlı, editoryal",
+        "lora": "Sakin, okunaklı serif",
+        "fraunces": "Yumuşak, sıcak, sağlıklı yaşam",
+        "cormorant-garamond": "Lüks, moda",
+        "dm-serif-display": "Yalnızca başlıklar (tek kalınlık)",
+        "noto-sans-bengali": "Bengalce + Latin, sans",
+        "noto-serif-bengali": "Bengalce + Latin, serif"
+      },
+      "resetColors": "Tema renklerini sıfırla",
+      "invalidColor": "Geçerli bir hex veya RGB rengi girin. Önizleme son geçerli rengi korur.",
+      "contrastPass": "Geçer",
+      "contrastLow": "Düşük",
+      "previewLoading": "Canlı önizlemeye bağlanılıyor…",
+      "previewOutdated": "En yeni renk motorunu yüklemek için önizlemeyi yenileyin.",
+      "refreshPreview": "Önizlemeyi yenile",
+      "cannotVerifyColor": "Bu özel renk ifadesi doğrulanamıyor. Önizlemeyi iki modda da kontrol edin.",
+      "themeChanged": "Siz düzenlerken başka bir tema etkinleştirildi. Düzenleyiciyi o tema için yeniden açın.",
+      "conflictKeepDraft": "Siz düzenlerken başka biri bu ayarları kaydetti. Onun değişikliklerini sizinkilerle değiştirmek için yeniden Kaydet'e, onunkileri yüklemek için Vazgeç'e basın.",
+      "darkOwnHint": "Koyu mod burada kendi rengini ({color}) kullanır, dolayısıyla bu rengi izlemez. “Koyu” sekmesinden değiştirin.",
+      "keyColorsTitle": "Ana renkler",
+      "keyColorsHint": "Önizlemede görmek için birinin üzerine gelin",
+      "keyColors": {
+        "primary": {
+          "label": "Birincil",
+          "sample": "Hemen satın al"
         },
-        "layout": {
-          "label": "Düzen"
+        "secondary": {
+          "label": "İkincil",
+          "sample": "Sepete ekle"
+        },
+        "accent": {
+          "label": "Vurgu",
+          "sample": "Öne çıkan"
+        },
+        "skeleton": {
+          "label": "Yükleme"
         }
-      }
+      },
+      "themeDefaultNamed": "{theme} varsayılanı",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "Paletler",
+      "saveAsPalette": "Palet olarak kaydet",
+      "resetToNamed": "Geri dön: {name}",
+      "themeOnly": "Yalnızca {theme}",
+      "moreColors": "Diğer renkler",
+      "advancedHintStates": "Üzerine gelme, seçim, odak, indirim arka planı",
+      "resetAllDescriptionTheme": "Renkler dahil her grup {theme} temasının kendi varsayılanlarına döner. Diğer temalarınıza dokunulmaz. Kaydet'e basana kadar hiçbir şey kaydedilmez.",
+      "previewShowing": "{color} renginin kullanıldığı yerler işaretleniyor"
     },
     "searchInsights": {
       "title": "Arama analizleri",
@@ -6443,7 +7193,8 @@
         "payout": "Hakediş",
         "brand": "Marka",
         "slider": "Slayt Gösterisi",
-        "menu": "Menü"
+        "menu": "Menü",
+        "teamRole": "Ekip rolü"
       },
       "empty": {
         "clearFilters": "Filtreleri temizle"
@@ -6467,6 +7218,124 @@
           }
         }
       }
+    },
+    "categoryForm": {
+      "taxRate": "Vergi"
+    },
+    "themeColors": {
+      "title": "Tema renkleri",
+      "refs": {
+        "primary": "Birincil",
+        "secondary": "İkincil",
+        "accent": "Vurgu",
+        "background": "Arka plan",
+        "surface": "Kartlar",
+        "surfaceAlt": "Bantlar ve çipler",
+        "text": "Metin",
+        "textMuted": "İkincil metin",
+        "border": "Ayırıcılar"
+      },
+      "following": "Temanın {name} rengini izler. Tema ayarları → Renkler bölümünden değiştirin.",
+      "followingShort": "Tema · {name}",
+      "hint": "Tema ayarları → Renkler'i izlemek için bir tema rengi seçin.",
+      "pick": "Tema rengi kullan"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "Hakediş özeti yüklenemedi",
+      "loadPayoutsError": "Hakedişler yüklenemedi",
+      "columns": {
+        "payout": "Hakediş",
+        "period": "Dönem",
+        "status": "Durum",
+        "netAmount": "Net tutar"
+      },
+      "bankMissingTitle": "Kayıtlı ödeme hesabı yok",
+      "bankMissing": "Eksik: {fields}. Bilgiler İşletme sekmesine eklenene kadar hakediş yalnızca nakit veya ödeme ağ geçidiyle ödenebilir.",
+      "frozenTitle": "Hakedişler donduruldu",
+      "frozen": "Bu satıcı askıya alındı. Satışları sayılmaya devam eder, ancak hesabı yeniden açılana kadar hiçbir ödeme yapılmaz.",
+      "owedNow": "Şu an ödenecek",
+      "owedNowHint": "Şimdi oluşturulacak bir hakedişin kapsayacağı tutar: iade süresi geçmiş, teslim edilmiş ve ödenmiş satışlar, satıcının borcu düşülerek.",
+      "createPayout": "Hakediş oluştur",
+      "noneAwaiting": "Hakediş bekleyen, teslim edilmiş ve ödenmiş sipariş yok.",
+      "nothingPayable": "{count, plural, one {# uygun sipariş} other {# uygun sipariş}} var, ancak iadeler ve indirimlerden sonra ödenecek bir şey kalmıyor.",
+      "across": "{count, plural, one {# sipariş} other {# sipariş}} genelinde · {gross} brüt, eksi {commission} komisyon. İadeler ve indirimler zaten düşüldü.",
+      "belowMinimumTitle": "En düşük çekim tutarının altında",
+      "belowMinimum": "Hakedişler en az {minimum} olmalıdır. Şimdi oluşturulan bir hakediş reddedilir.",
+      "commissionLeft": "Satıcının nakit satışlardan borçlu olduğu {amount} komisyon bir sonraki hakedişe sığmıyor ve borç olarak kalıyor.",
+      "overpaidTitle": "Sonradan iade edilen satışlar için ödenen {amount}",
+      "overpaidRecovered": "Bunun {amount} kadarı yukarıdaki tutardan zaten düşüldü. Kalanı sonraki hakedişlerden düşülür.",
+      "overpaidLater": "Satıcının bir sonraki hakedişinden düşülür; satıcı parayı geri öderse bir geri ödeme kaydedin.",
+      "otherCurrenciesTitle": "{currencies} cinsinden bakiyeler",
+      "otherCurrencies": "Bu satıcı {currencies} cinsinden de satış yaptı. Bu bakiyeler yukarıdaki tutarlara dahil değildir ve ayrı bir hakediş gerektirir — para birimleri asla toplanmaz.",
+      "trade": "Satışlar",
+      "tradeHint": "Bu satıcının iptal edilmemiş tüm siparişlerde sattıkları, {currency} cinsinden",
+      "grossSales": "Brüt satışlar",
+      "vendorEarnings": "Satıcı kazancı",
+      "vendorEarningsHint": "brüt eksi komisyon",
+      "paidOut": "Ödenen",
+      "pendingAmount": "{amount} beklemede",
+      "platformRevenue": "Bu satıcıdan elde edilen platform geliri",
+      "platformRevenueHint": "Satışlarından alınan komisyon ve tutulan kargo ücreti, artı ödediği abonelik ücretleri. Platform giderlerinden önceki gelir.",
+      "commission": "Komisyon",
+      "commissionHint": "teslim edilmiş ve ödenmiş satışlardan, iadeler düşülerek",
+      "subscriptions": "Abonelikler",
+      "invoicesPaid": "{total} faturadan {paid} tanesi ödendi",
+      "noInvoices": "fatura yok",
+      "shipping": "Kargo",
+      "shippingHint": "tutulur, satıcıya ödenmez",
+      "total": "Toplam",
+      "history": "Hakediş geçmişi",
+      "historyHint": "Bu satıcı için kaydedilen hakedişler, en yenisi önce",
+      "historyEmpty": "Bu satıcı için henüz hakediş oluşturulmadı",
+      "repayment": {
+        "open": "Geri ödeme kaydet",
+        "listTitle": "Elden geri ödenenler",
+        "undo": "Geri al",
+        "voidReason": "Bu geri ödeme neden geri alınıyor?",
+        "voided": "Geri ödeme geri alındı",
+        "failed": "Geri ödeme kaydedilemedi",
+        "title": "Geri ödeme kaydet",
+        "description": "Satıcının, hakedişinden sonra iade edilen satışlar için geri ödediği para. Borcundan düşülür, böylece sonraki hakedişlerden yeniden kesilmez.",
+        "amount": "Tutar ({currency})",
+        "receivedInto": "Yatırıldığı yer",
+        "receivedAt": "Ulaştığı gün",
+        "reference": "Referans",
+        "note": "Not",
+        "cancel": "İptal",
+        "save": "Geri ödemeyi kaydet",
+        "saving": "Kaydediliyor…",
+        "recorded": "Geri ödeme kaydedildi"
+      }
+    },
+    "colorPicker": {
+      "format": "Renk biçimi",
+      "opacity": "Opaklık",
+      "value": "Renk değeri",
+      "saved": "Kayıtlı renkler",
+      "save": "Bu rengi kaydet",
+      "use": "{color} kullan",
+      "remove": "{color} kaldır"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {rolden # fark} other {rolden # fark}}",
+      "changesFromRole": "{count, plural, one {{role} rolünden # fark} other {{role} rolünden # fark}}, yalnızca bu üye için",
+      "resetTo": "{role} rolüne sıfırla",
+      "matchesRole": "{role} ile aynı. Yalnızca {name} için değiştirmek üzere herhangi bir kutuyu işaretleyin veya kaldırın.",
+      "roleSaved": "\"{name}\" artık bir rol ve bu üye o rolde."
+    },
+    "tagInput": {
+      "placeholder": "Etiket ekle",
+      "selected": "{tag} seçildi. Kaldırmak için Geri Sil tuşuna basın.",
+      "duplicate": "{tag} zaten eklenmiş",
+      "tooLong": "Bir etiket en fazla {max} karakter olabilir",
+      "tooMany": "En fazla {max} etiket ekleyebilirsiniz",
+      "added": "{tag} eklendi",
+      "removed": "{tag} kaldırıldı",
+      "remove": "{tag} etiketini kaldır"
+    },
+    "accountMenu": {
+      "myAccount": "Hesabım",
+      "version": "Sürüm {version}"
     }
   },
   "vendor": {
@@ -6562,7 +7431,6 @@
       "teamAccountTitle": "Bu hesap mağaza ekibine ait",
       "teamAccountDesc": "Yönetici ve personel hesapları satıcı olarak başvuramaz. Mağaza açmak için çıkış yapın ve bir müşteri hesabıyla başvurun."
     },
-    "viewStore": "Mağazayı Görüntüle",
     "viewOrders": "Siparişler",
     "last30Days": "Son 30 Gün",
     "productSummary": "Ürün Durumu",
@@ -6736,7 +7604,17 @@
       "socialUrl": "Bağlantı",
       "socialAdd": "Bağlantı ekle",
       "socialRemove": "Bağlantıyı kaldır",
-      "shareButtons": "Paylaşım Düğmeleri"
+      "shareButtons": "Paylaşım Düğmeleri",
+      "changeEmail": "Değiştir",
+      "changeEmailTitle": "E-postanızı değiştirin",
+      "changeEmailDescription": "Bundan sonra yeni e-posta ile giriş yapacaksınız. Değişikliği mevcut e-postanıza bildireceğiz.",
+      "newEmail": "Yeni e-posta",
+      "currentPasswordForEmail": "Mevcut şifre",
+      "updateEmail": "E-postayı güncelle",
+      "emailChanged": "E-posta güncellendi. Bundan sonra yeni e-postanızla giriş yapın.",
+      "emailChangeFailed": "E-posta güncellenemedi",
+      "phoneInvalid": "Geçerli bir telefon numarası girin",
+      "payoutScheduleHint": "Hakediş gününüzde mağaza, hazır olan tutar hem sizin hem de mağazanın en düşük tutarına ulaştığında bir hakediş hazırlar. Ardından mağaza bunu yukarıdaki hesaba gönderir."
     },
     "quickLinks": {
       "dashboardDescription": "Satıcı gösterge paneli genel bakışınıza dönün.",
@@ -6904,6 +7782,78 @@
     },
     "activityLog": {
       "title": "Etkinlik günlüğü"
+    },
+    "payoutDetail": {
+      "back": "Hakedişler",
+      "period": "{start} – {end} arasında verilen siparişler",
+      "noteFromStore": "Mağazadan not",
+      "grossSales": "Brüt satışlar",
+      "grossSalesHint": "aşağıdaki siparişlerdeki payınız",
+      "commission": "Komisyon",
+      "shipping": "Teslimat ücretleri",
+      "shippingHint": "teslim ettiğiniz paketler için alışverişçilerden alınan",
+      "adjustment": {
+        "recoveryDeducted": "İade geri tahsilatı",
+        "recoveryDeductedHint": "daha önce size ödenen, sonradan iade edilen siparişler",
+        "recoveryReturned": "Geri tahsilat iadesi",
+        "recoveryReturnedHint": "daha önce geri tahsil edilen bir iade geri alındı",
+        "reserveHeld": "Ön sipariş rezervi tutuldu",
+        "reserveHeldHint": "geç gelebilecek bir ters ibraza karşı tutuldu",
+        "reserveReleased": "Ön sipariş rezervi serbest bırakıldı",
+        "reserveReleasedHint": "önceki bir hakedişte tutulmuştu, şimdi serbest bırakıldı",
+        "reserveCreditDeducted": "Rezerv geri tahsil edildi",
+        "reserveCreditDeductedHint": "hakedişi geri dönen, serbest bırakılmış bir rezerv",
+        "reserveCreditReturned": "Rezerv geri tahsilatı iade edildi",
+        "reserveCreditReturnedHint": "hakedişi yeniden ödendikten sonra geri verildi",
+        "commissionOffset": "Nakit satışların komisyonu",
+        "commissionOffsetHint": "parasını kendiniz tahsil ettiğiniz satışlardan borçlu olunan; faturalanmak yerine burada kapatıldı",
+        "commissionCredit": "Nakit satışlarda mağaza promosyonları",
+        "commissionCreditHint": "mağazanın, borçlu olduğunuz komisyonun üzerinde karşıladığı indirimler"
+      },
+      "reserveUntil": "{date} tarihinde serbest bırakılır",
+      "otherAdjustments": "Diğer düzeltmeler",
+      "otherAdjustmentsHint": "iade geri tahsilatları ve ön sipariş rezervi hareketleri",
+      "netPayout": "Net hakediş",
+      "sentOn": "{date} tarihinde gönderildi",
+      "reference": "referans {reference}",
+      "returnedOn": "{date} tarihinde geri döndü — içindeki satışlar bakiyenize geri eklendi",
+      "history": "Neler oldu",
+      "returnedStep": "Para geri döndü",
+      "orders": "Bu hakedişteki siparişler",
+      "order": "Sipariş",
+      "placed": "Verildiği tarih",
+      "yourShare": "Payınız",
+      "afterCommission": "Komisyon sonrası",
+      "noOrders": "Bu hakedişe bağlı sipariş yok."
+    },
+    "suspendedMoney": {
+      "title": "Paranız",
+      "frozen": "Hesabınız askıdayken hakedişler duraklatılır. Satışlarınız sayılmaya devam eder ve erişiminiz geri verildiğinde ödenir.",
+      "ready": "Hakedişe hazır",
+      "held": "Hâlâ yolda veya iade süresinde",
+      "payouts": "Son hakedişler",
+      "status": {
+        "pending": "Beklemede",
+        "processing": "İşleniyor",
+        "paid": "Ödendi",
+        "failed": "Başarısız",
+        "cancelled": "İptal Edildi"
+      }
+    },
+    "commissionCard": {
+      "canceled": "Ödeme iptal edildi. Fatura hâlâ açık.",
+      "settled": "Komisyon faturası kapatıldı.",
+      "pendingInfo": "Ödeme hâlâ işleniyor — onaylandığında fatura otomatik olarak kapanır.",
+      "verifyFailed": "Bu ödemeyi henüz doğrulayamadık.",
+      "pollTimeout": "Ödemeyi henüz doğrulayamadık. Onaylandığında fatura otomatik olarak kapanır.",
+      "checkPhone": "Telefonunuzu kontrol edin ve ödeme talebini onaylayın.",
+      "failed": "Ödeme başlatılamadı",
+      "title": "Borçlu olduğunuz komisyon",
+      "subtitle": "Kendiniz tahsil ettiğiniz satışların komisyonu — nakit, kapıda ödeme veya kendi POS cihazınız — bu yüzden bir hakedişten düşülemedi.",
+      "payNow": "Şimdi öde",
+      "noMethods": "Bunun için kullanılabilir bir ödeme yöntemi yok. Başka bir yolla ödemek için pazar yeri yöneticisiyle iletişime geçin.",
+      "dialogTitle": "Komisyonu öde",
+      "continue": "Ödemeye devam et"
     }
   },
   "aiSalesAgentAdmin": {
@@ -7517,6 +8467,18 @@
   "account": {
     "welcome": "Tekrar hoş geldiniz, {name}!",
     "overviewDesc": "Hesabınıza genel bakış",
+    "overview": {
+      "needsAttention": "Dikkatinizi gerektiriyor",
+      "actionNeeded": "İşlem gerekli",
+      "addressTitle": "Adresinize teslimat yapamıyoruz",
+      "addressDeadline": "Gönderim duraklatıldı, lütfen adresi {date} tarihine kadar düzeltin",
+      "addressPaused": "Adres düzeltilene kadar gönderim duraklatıldı",
+      "fixAddress": "Adresi düzelt",
+      "paymentDue": "Ödeme gerekli",
+      "payBy": "{date} tarihine kadar ödeyin",
+      "moreInProgress": "{count} sipariş daha yolda",
+      "plusMore": "+{count} daha"
+    },
     "totalOrders": "Toplam Sipariş",
     "pendingOrders": "Bekleyen Siparişler",
     "wishlistItems": "Favori Ürünler",
@@ -7775,7 +8737,8 @@
     "quoteMessageOptional": "Mesaj (isteğe bağlı)",
     "quoteMessagePlaceholder": "Miktar, teslim tarihi, teknik özellikler…",
     "itemsSold": "{count} satıldı",
-    "noDescription": "Açıklama mevcut değil."
+    "noDescription": "Açıklama mevcut değil.",
+    "percentOff": "%{percent} İNDİRİM"
   },
   "pos": {
     "searchProducts": "Ürün ara...",
@@ -7793,7 +8756,19 @@
     "searchCustomers": "Ad, e-posta veya telefon ile ara...",
     "addNote": "Bu siparişe not ekle...",
     "subtotal": "Ara Toplam",
-    "tax": "Vergi",
+    "tax": {
+      "label": "Vergi",
+      "included": "Vergi (dahil)",
+      "exempt": "Vergiden muaf",
+      "exemptWith": "Vergiden muaf · {reason}",
+      "exemptTitle": "Vergiden muaf satış",
+      "exemptIntro": "Bu satışı vergisiz yapın. Sebep siparişte saklanır ve fişe basılır.",
+      "exemptReason": "Sebep (zorunlu)",
+      "exemptReference": "Muafiyet belgesi numarası (isteğe bağlı)",
+      "exemptApply": "Vergisiz sat",
+      "exemptRemove": "Vergi al",
+      "close": "Kapat"
+    },
     "total": "Toplam",
     "charge": "Tahsil Et",
     "billAndPayment": "Fatura ve Ödeme",
@@ -7833,10 +8808,463 @@
       "emailPlaceholder": "musteri@ornek.com",
       "phone": "Telefon",
       "phonePlaceholder": "Telefon numarasını girin",
-      "nameEmailRequired": "Ad ve e-posta gereklidir",
       "created": "Müşteri başarıyla oluşturuldu",
       "createError": "Müşteri oluşturulamadı",
-      "save": "Müşteriyi Kaydet"
+      "save": "Müşteriyi Kaydet",
+      "nameContactRequired": "Müşterinin adını ve bir e-posta ya da telefon numarası girin",
+      "contactHint": "Bir e-posta ya da telefon numarası yeterlidir. Yalnızca telefonu olan müşteri hesapsız saklanır.",
+      "marketingOptIn": "Müşteri e-postayla haber ve teklif almayı kabul etti"
+    },
+    "offline": {
+      "bannerOffline": "Çevrimdışı — satışlar kuyruğa alınıyor",
+      "bannerStockAge": "Gösterilen stok {age} tarihli",
+      "bannerSignedOut": "Oturum kapandı — eşitlemek için yeniden oturum açın",
+      "bannerSignedOutNote": "Kuyruktaki satışlar bu cihazda kayıtlı kalır.",
+      "bannerBackOnline": "Yeniden çevrimiçi",
+      "waitingToSync": "{count, plural, one {# satış eşitlenmeyi bekliyor} other {# satış eşitlenmeyi bekliyor}}",
+      "needsReview": "{count, plural, one {# satış inceleme bekliyor} other {# satış inceleme bekliyor}}",
+      "review": "İncele",
+      "signIn": "Oturum aç",
+      "syncNow": "Şimdi eşitle",
+      "lockedTitle": "Satışa devam etmek için yeniden bağlanın",
+      "lockedLastSeen": "Bu kasa sunucuya en son {time} ulaştı. Güvenlik nedeniyle yeniden oturum açabilene kadar kilitli kalır.",
+      "lockedNever": "Bu kasa bu cihazda henüz sunucuya ulaşmadı, bu yüzden çevrimdışı kullanılamaz.",
+      "lockedQueued": "{count, plural, one {<strong>#</strong> çevrimdışı satış hâlâ bu cihazda kayıtlı ve yeniden çevrimiçi olduğunuzda otomatik olarak eşitlenecek.} other {<strong>#</strong> çevrimdışı satış hâlâ bu cihazda kayıtlı ve yeniden çevrimiçi olduğunuzda otomatik olarak eşitlenecek.}} Tarayıcı verilerini temizlemeyin.",
+      "waitingForConnection": "Bağlantı bekleniyor…",
+      "reviewTitle": "Sunucunun reddettiği satışlar",
+      "reviewDescription": "Bunların her biri tezgâhta ödendi. Nedeni düzeltip yeniden gönderin ya da elle kaydedildikten sonra silin.",
+      "reviewLabel": "İnceleme bekleyen çevrimdışı satışlar",
+      "reviewEmpty": "İncelenecek bir şey kalmadı.",
+      "reviewReceipt": "Fiş {number}",
+      "reviewTaken": "Alındı: {time}",
+      "reviewAttempts": "{count, plural, one {# deneme} other {# deneme}}",
+      "reviewServerSaid": "Sunucunun yanıtı: {message}",
+      "reviewDiscard": "Sil",
+      "reviewSendAgain": "Yeniden gönder",
+      "close": "Kapat",
+      "anotherCounter": "Başka bir tezgâh",
+      "discardTitle": "Bu satış kuyruktan silinsin mi?",
+      "discardDescription": "{number} numaralı fiş sunucuya asla gönderilmeyecek. Bunu yalnızca satış başka bir şekilde kaydedildikten sonra yapın — müşteri o fişi elinde tutuyor.",
+      "savedOffline": "Çevrimdışı kaydedildi — fiş {number}",
+      "savedOfflineNote": "Bağlantı geri geldiğinde otomatik olarak eşitlenecek.",
+      "outboxFull": "Bu kasada eşitlenmemiş çok fazla satış var. Daha fazla satış almadan önce bağlanıp eşitleyin.",
+      "noStorage": "Bu tarayıcı çevrimdışı satışları kaydedemiyor, bu yüzden satış alınmadı.",
+      "readerOnly": "Yalnızca kart okuyucu",
+      "touchOrStripe": "Temassız veya Stripe"
+    },
+    "counter": {
+      "unavailable": "Tezgâh kullanılamıyor",
+      "sharedStock": "Ortak stok",
+      "finishSaleFirst": "Önce mevcut satışı tamamlayın veya iptal edin",
+      "changeCounter": "{name} üzerinden satış yapılıyor. Tezgâhı değiştir",
+      "sellingFrom": "Satış yapılan yer",
+      "sellingAt": "{name} üzerinden satış",
+      "findCounter": "Tezgâh ara...",
+      "noMatch": "Eşleşen tezgâh yok.",
+      "heldCount": "{count} bekletiliyor",
+      "activeCount": "{count} etkin",
+      "deactivated": "Mevcut tezgâh devre dışı bırakıldı",
+      "pickerTitle": "Hangi tezgâhtasınız?",
+      "pickerNote": "Stok, bekletilen satışlar ve bu kasada yazdırılan her fiş bu seçime göre çalışır.",
+      "findYourCounter": "Tezgâhınızı arayın...",
+      "recentOnDevice": "Bu cihazda son kullanılanlar",
+      "otherCounters": "Diğer tezgâhlar",
+      "defaultLocation": "Varsayılan konum",
+      "startSellingAt": "{name} üzerinden satışa başla",
+      "pickCounter": "Bir tezgâh seçin",
+      "signedInAs": "{name} olarak oturum açıldı",
+      "signedIn": "Oturum açıldı",
+      "shortcutsMany": "İlk dokuz için <key>1</key>–<key>9</key>, gerisini bulmak için yazın,",
+      "shortcutsFew": "Seçmek için <key>1</key>–<key>{last}</key> tuşlarına basın,",
+      "shortcutEnter": "Başlamak için <key>Enter</key>",
+      "sellFromShared": "Bunun yerine ortak stoktan sat",
+      "switchLabel": "Tezgâh değiştir",
+      "switchTitle": "Açık bir satışla tezgâh değiştirilsin mi?",
+      "switchUnits": "Tezgâhta {count, plural, one {# ürün} other {# ürün}} var; fiyat ve stok {from} için hesaplandı.",
+      "switchChecking": "{to} tezgâhının neyi karşılayabileceği kontrol ediliyor…",
+      "switchRemovedOne": "<b>{name}</b> için <b>{to} tezgâhında stok yok</b> — satıştan çıkarılacak.",
+      "switchRemovedMany": "<b>{name}</b> ve {others} ürün daha için <b>{to} tezgâhında stok yok</b> — satıştan çıkarılacaklar.",
+      "switchReduced": "{count, plural, one {# satır, {to} tezgâhında gerçekten bulunan stoğa düşürülecek.} other {# satır, {to} tezgâhında gerçekten bulunan stoğa düşürülecek.}}",
+      "switchAllAvailable": "Bu satıştaki her satır {to} tezgâhında mevcut.",
+      "switchHeldStay": "{count, plural, one {Burada bekletilen # satış {from} tezgâhında kalır. {to} tezgâhından onu göremezsiniz.} other {Burada bekletilen # satış {from} tezgâhında kalır. {to} tezgâhından onları göremezsiniz.}}",
+      "switchHeldStayNone": "Burada bekletilen satışlar {from} tezgâhında kalır. {to} tezgâhından onları göremezsiniz.",
+      "switchReceiptChanges": "Bir sonraki satırdan itibaren stok sayıları ve fiş alt bilgisi {to} olarak değişir.",
+      "switchHold": "Bu satışı beklet, sonra değiştir",
+      "switchRecheck": "Değiştir ve stoku yeniden kontrol et",
+      "switchRemovesAll": "{total} satırın tümünü kaldırır",
+      "switchKeeps": "{total} satırdan {kept} tanesini korur",
+      "switchStay": "{from} tezgâhında kal",
+      "nowSellingFrom": "Artık {name} üzerinden satış yapılıyor",
+      "nowSellingShared": "Artık ortak stoktan satış yapılıyor",
+      "probeFailed": "O tezgâhın stoku kontrol edilemedi. Kasa değişmedi.",
+      "holdFailed": "Satış bekletilemedi. Kasa değişmedi.",
+      "rechecked": "Satış yeniden kontrol edildi · {changes}",
+      "holdLabel": "Tezgâh değişikliği → {name}",
+      "heldBehind": "{count, plural, one {<b># satış</b> hâlâ {name} tezgâhında bekletiliyor} other {<b># satış</b> hâlâ {name} tezgâhında bekletiliyor}}",
+      "goBackTo": "{name} tezgâhına dön",
+      "dismiss": "Kapat",
+      "saleBlocked": "Bu tezgâh artık kullanılamıyor. Ödeme almadan önce başka bir tezgâh seçin."
+    },
+    "scan": {
+      "closeDialogFirst": "Açık iletişim kutusunu kapatın, ardından yeniden okutun.",
+      "multipleMatches": "Bu kodla birden fazla ürün eşleşiyor. Lütfen yinelenen SKU veya barkod değerlerini düzeltin.",
+      "noMatch": "Okutulan kod için ürün bulunamadı.",
+      "lookupFailed": "Okutulan kod aranamadı."
+    },
+    "held": {
+      "removed": "{count, plural, one {# satır kaldırıldı} other {# satır kaldırıldı}}",
+      "repriced": "{count} satırın fiyatı güncellendi",
+      "reduced": "{count} satır mevcut stoğa düşürüldü",
+      "resumed": "Bekletilen sipariş sürdürüldü",
+      "resumedWithChanges": "Bekletilen sipariş sürdürüldü · {changes}",
+      "nothingAvailable": "Bu bekletilen siparişteki ürünlerin hiçbiri artık mevcut değil. Kasada bırakıldı.",
+      "recheckFailed": "Güncel fiyatlar ve stok kontrol edilemedi. Bekletilen sipariş hâlâ kasada.",
+      "finishFirst": "Başka bir satışı sürdürmeden önce mevcut satışı tamamlayın veya bekletin.",
+      "holdFailed": "Bu sipariş bekletilemedi. Satış hâlâ sepette.",
+      "holdFull": "Bu kasada zaten {max} bekletilen sipariş var. Önce birini sürdürün veya silin.",
+      "orderHeld": "Sipariş bekletildi",
+      "orderHeldLabel": "Sipariş bekletildi · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "Yalnızca POS'u yöneten bir kullanıcı indirim yapabilir",
+      "cashMustCover": "Alınan nakit, sipariş toplamını karşılamalıdır",
+      "noReceipt": "Fiş verisi yok",
+      "printPreviewFailed": "Baskı önizlemesi açılamadı",
+      "noInvoice": "Bu sipariş için fatura yok",
+      "invoicePopupBlocked": "Fatura açılamadı. Lütfen açılır pencerelere izin verin."
+    },
+    "complete": {
+      "title": "Satış tamamlandı",
+      "items": "{count, plural, one {# ürün} other {# ürün}}",
+      "soldAt": "{name} konumunda satıldı",
+      "viewReceipt": "Fişi görüntüle",
+      "printReceipt": "Fişi yazdır",
+      "newSale": "Yeni satış",
+      "emailReceipt": "Fişi e-postayla gönder",
+      "textReceipt": "Fişi SMS ile gönder",
+      "send": "Gönder",
+      "cancel": "İptal",
+      "emailPlaceholder": "musteri@example.com",
+      "phonePlaceholder": "Müşterinin telefon numarası",
+      "sentEmail": "Fiş {to} adresine e-postayla gönderildi",
+      "sentSms": "Fiş {to} numarasına SMS ile gönderildi",
+      "alreadySent": "Az önce {to} adresine zaten gönderildi",
+      "sendFailed": "Fiş gönderilemedi",
+      "offlineHint": "Bu satış eşitlendikten sonra fişler gönderilebilir ve görüntülenebilir."
+    },
+    "pay": {
+      "title": "Ödeme al",
+      "balanceTitle": "Kalan bakiyeyi al",
+      "draftItems": "{count, plural, one {Taslak · # ürün} other {Taslak · # ürün}}",
+      "close": "Kapat",
+      "totalDue": "Ödenecek toplam",
+      "remaining": "Kalan ödeme",
+      "ofTotal": "{total} tutarın {paid} kadarı ödendi",
+      "payments": "Ödemeler",
+      "remove": "Kaldır",
+      "discountPercent": "%{value} indirim uygulandı",
+      "discountAmount": "{amount} indirim uygulandı",
+      "cashDesc": "Para üstüyle",
+      "bank": "Banka havalesi",
+      "bankDesc": "Referansla",
+      "manualDesc": "Özel yöntem",
+      "storeCredit": "Mağaza kredisi",
+      "storeCreditDesc": "{amount} kullanılabilir",
+      "split": "Bölünmüş",
+      "cashGiven": "Verilen nakit",
+      "amount": "Tutar",
+      "changeDue": "Para üstü",
+      "stillOwed": "Kalanı başka bir yolla ödenecek",
+      "tooMuch": "Ödenecek {amount} tutarından fazlası kalmadı",
+      "tooMuchCredit": "Yalnızca {amount} mağaza kredisi var",
+      "touch": "Temassız",
+      "touchDesc": "Kartı okuyucuya dokundurun veya takın",
+      "stripe": "Stripe",
+      "stripeDesc": "Kart bilgileri formu",
+      "readyForTap": "Dokundurma veya takma için hazır",
+      "readyForTapNote": "Müşteri kartını okuyucuya dokundurur veya takar.",
+      "referenceOptional": "Referans (isteğe bağlı)",
+      "referencePlaceholder": "İşlem kimliği, onay kodu vb.",
+      "stripePaysRest": "Kalanı kart öder: {amount}",
+      "cardNumber": "Kart numarası",
+      "expiry": "Son kullanma",
+      "cvc": "CVC",
+      "stripeNotConfigured": "Stripe ödeme ayarlarında yapılandırılmamış.",
+      "stripeLoading": "Güvenli kart alanları yükleniyor…",
+      "stripeSecured": "Stripe ile güvende — kart bilgileri gönderimde tokenize edilir.",
+      "stripeFailed": "Kartla ödeme gerçekleşmedi",
+      "processing": "İşleniyor…",
+      "acceptCash": "Nakit al",
+      "charge": "{amount} tahsil et",
+      "chargeOnReader": "Okuyucuda {amount} tahsil et",
+      "useCredit": "{amount} tutarını mağaza kredisiyle öde",
+      "addPayment": "{amount} tutarında {method} ödemesi ekle",
+      "takeDeposit": "{amount} kapora al, {due} sonra ödenecek",
+      "takePart": "Şimdi {amount} al, {due} hâlâ borç",
+      "depositNeedsCustomer": "Kapora almak için bir müşteri ekleyin",
+      "depositTaken": "{number} için kapora alındı. {due} hâlâ ödenecek.",
+      "completeSale": "Satışı tamamla"
+    },
+    "sales": {
+      "title": "Satışlar",
+      "close": "Kapat",
+      "back": "Geri",
+      "searchPlaceholder": "Fiş numarası veya telefon numarası",
+      "dueOnly": "Yalnızca bakiyesi olanlar",
+      "empty": "Satış bulunamadı.",
+      "recentHint": "Bu kasadaki son satışlar",
+      "selectHint": "Görmek için bir satış seçin.",
+      "offline": "Satış bulmak için bağlantı gerekir.",
+      "loadFailed": "Satışlar yüklenemedi",
+      "balanceDue": "{amount} borç",
+      "balanceDueLabel": "Kalan bakiye",
+      "items": "Ürünler",
+      "payments": "Ödemeler",
+      "total": "Toplam",
+      "refunded": "İade edildi",
+      "split": "Bölünmüş",
+      "collectBalance": "Bakiyeyi al · {amount}",
+      "collectFailed": "Ödeme alınamadı",
+      "balancePaid": "Bakiye ödendi. Satış tamamlandı.",
+      "balancePart": "Ödeme alındı. {due} hâlâ ödenecek.",
+      "print": "Fişi yazdır",
+      "viewInvoice": "Faturayı görüntüle"
+    },
+    "register": {
+      "title": "Para çekmecesi",
+      "openChip": "Çekmece açık",
+      "closedChip": "Çekmece kapalı",
+      "openToSell": "Satış almadan önce para çekmecesini açın.",
+      "close": "Kapat",
+      "failed": "Çekmece güncellenemedi",
+      "offline": "Açma, kapama ve nakit hareketleri bağlantı gerektirir. Satışlar açık çekmeceye girmeye devam eder.",
+      "openIntro": "İlk satıştan önce çekmecedeki nakdi sayın ve açılış bakiyesi olarak girin.",
+      "openingFloat": "Açılış bakiyesi",
+      "openRegister": "Çekmeceyi aç",
+      "opened": "Çekmece açıldı",
+      "openedAt": "Açılış {time}",
+      "salesCount": "Satışlar",
+      "grossSales": "Toplam satış",
+      "cashSales": "Nakit satışlar",
+      "cashIn": "Nakit girişi",
+      "cashOut": "Nakit çıkışı",
+      "cashRefunds": "Nakit iadeler",
+      "expectedCash": "Çekmecede olması gereken",
+      "countedCash": "Sayılan nakit",
+      "variance": "Fark",
+      "balanced": "Denk",
+      "over": "Fazla",
+      "short": "Eksik",
+      "cashInIntro": "Satış olmadan çekmeceye konan nakit, örneğin kasadan getirilen bozuk para.",
+      "cashOutIntro": "İade olmadan çekilen nakit, örneğin kasaya bırakılan para veya ödenen bir gider.",
+      "amount": "Tutar",
+      "reason": "Sebep",
+      "reasonPlaceholder": "Sebep (zorunlu)",
+      "cashAdded": "Çekmeceye nakit eklendi",
+      "cashRemoved": "Çekmeceden nakit alındı",
+      "back": "Geri",
+      "note": "Kapanış notu",
+      "notePlaceholder": "Kapanış raporu için not (isteğe bağlı)",
+      "queuedFirst": "{count, plural, one {# satış} other {# satış}} hâlâ eşitlenmeyi bekliyor. Eşitlendikten sonra çekmeceyi kapatın.",
+      "closeRegister": "Çekmeceyi kapat",
+      "closed": "Çekmece kapatıldı",
+      "xReport": "X raporu",
+      "zReport": "Z raporu",
+      "printX": "X raporunu yazdır",
+      "printZ": "Z raporunu yazdır",
+      "printBlocked": "Rapor penceresi engellendi. Yazdırmak için bu sitenin açılır pencerelerine izin verin.",
+      "reportOpened": "Açılış",
+      "reportClosed": "Kapanış",
+      "tender": {
+        "cash": "Nakit",
+        "card": "Kart",
+        "bank": "Banka havalesi",
+        "manual": "Diğer",
+        "store_credit": "Mağaza kredisi"
+      },
+      "noSale": "Satış yok",
+      "noSaleIntro": "Para bozmak veya kontrol için çekmeceyi satış olmadan açın. Sebep çekmece raporunda saklanır.",
+      "noSaleDone": "Çekmece açıldı",
+      "printer": "Çekmece yazıcısı",
+      "printerIntro": "Para çekmecesi, bağlı olduğu fiş yazıcısı üzerinden bu bilgisayardaki QZ Tray ile açılır. O yazıcıyı seçin.",
+      "printerFind": "Yazıcıları bul",
+      "printerQzMissing": "QZ Tray bu bilgisayarda çalışmıyor",
+      "printerNone": "Bu kasada çekmece yok",
+      "printerPin": "Çekmece pini",
+      "printerTest": "Test et",
+      "printerTestFailed": "Çekmece açılmadı. Yazıcıyı ve QZ Tray'i kontrol edin.",
+      "printerSave": "Kaydet",
+      "printerSaved": "Bu kasa için çekmece yazıcısı kaydedildi",
+      "printerNotSet": "Önce çekmece yazıcısını ayarlayın",
+      "printerCurrent": "Çekmece: {name}",
+      "printerSetUp": "Çekmece yazıcısını ayarla"
+    },
+    "returns": {
+      "action": "Ürün iadesi al",
+      "title": "Ürün iadesi al",
+      "close": "Kapat",
+      "offline": "İadeler bağlantı gerektirir. Kasa yeniden çevrimiçi olduğunda iadeyi alın.",
+      "loadFailed": "Bu satışın ürünleri yüklenemedi",
+      "previewFailed": "İade tutarı hesaplanamadı",
+      "failed": "İade alınamadı",
+      "nothingReturnable": "Bu satıştan hiçbir şey iade edilemez.",
+      "returnable": "{count} iade edilebilir",
+      "blockedFinalSale": "Kesin satış",
+      "blockedWindow": "İade süresi doldu",
+      "blockedOther": "İade edilemez",
+      "less": "Bir eksik",
+      "more": "Bir fazla",
+      "condition": "Durum",
+      "conditions": {
+        "new": "Açılmamış",
+        "opened": "Açılmış, satılabilir",
+        "damaged": "Hasarlı",
+        "missing_parts": "Parçası eksik",
+        "unusable": "Kullanılamaz"
+      },
+      "restockHint": "Açılmamış ve açılmış ürünler bu kasanın stokuna geri döner.",
+      "reason": "Sebep",
+      "reasons": {
+        "wrong_size_or_variant": "Yanlış beden veya varyant",
+        "damaged_or_defective": "Hasarlı veya kusurlu",
+        "not_as_described": "Açıklandığı gibi değil",
+        "wrong_item_received": "Yanlış ürün",
+        "arrived_late": "Geç geldi",
+        "changed_mind": "Fikrini değiştirdi",
+        "other": "Diğer"
+      },
+      "note": "Not",
+      "notePlaceholder": "Not (isteğe bağlı)",
+      "noteRequired": "Sorunu yazın (zorunlu)",
+      "refundTo": "İade yöntemi",
+      "methods": {
+        "cash": "Çekmeceden nakit",
+        "card": "Kart, elle",
+        "bank": "Banka havalesi",
+        "original": "Karta geri",
+        "store_credit": "Mağaza kredisi",
+        "exchange": "Değişim",
+        "later": "Sonra iade et"
+      },
+      "adminOnly": "İadeleri bir yönetici yapar. İade şimdi kaydedilir ve para iadesi İadeler bölümünde onu bekler.",
+      "exchangeHint": "İade tutarı hemen ardından yapılan yeni bir satışa sayılır.",
+      "laterHint": "İade şimdi kaydedilir. Para iadesini daha sonra İadeler bölümünden yapın.",
+      "refundTotal": "İade",
+      "restockingFee": "{amount} yeniden stoklama ücreti dahil",
+      "submit": "İadeyi al",
+      "done": "{numbers} iadesi alındı",
+      "doneRefunded": "{amount} iade edildi.",
+      "doneCash": "Müşteriye çekmeceden {amount} verin.",
+      "doneCredit": "Müşterinin mağaza kredisine {amount} eklendi.",
+      "creditBack": "{amount}, satışın bir kısmını ödeyen müşterinin mağaza kredisine geri döndü.",
+      "doneLater": "Para iadesi bir yöneticiyi bekliyor.",
+      "doneExchange": "{amount} yeni satışa sayılır.",
+      "print": "İade fişini yazdır",
+      "printBlocked": "Fiş penceresi engellendi. Yazdırmak için bu sitenin açılır pencerelerine izin verin.",
+      "slipTitle": "İade",
+      "slipSale": "Satış",
+      "exchangeReference": "Değişim {numbers}",
+      "exchangeBanner": "Değişim kredisi {amount}",
+      "exchangeDismiss": "Değişim kredisini bırak",
+      "exchangeDismissHint": "Kullanılmadı: müşteriye çekmeceden {amount} nakit verin."
+    },
+    "operator": {
+      "title": "Kasiyer",
+      "close": "Kapat",
+      "offline": "Kasiyer değiştirmek bağlantı gerektirir. Kasa onu kullanan kişide kalır.",
+      "loadFailed": "Kasiyerler yüklenemedi",
+      "failed": "Olmadı. Tekrar deneyin.",
+      "workingNow": "Kasada çalışan",
+      "switchBack": "{name} kişisine dön",
+      "takeOver": "Kasayı devral",
+      "nobody": "Henüz hiçbir çalışma arkadaşı kasa PIN'i belirlemedi. Herkes oturum açıkken kendi PIN'ini belirler.",
+      "pin": "PIN",
+      "switch": "Kasiyeri değiştir",
+      "switched": "Kasada artık {name} çalışıyor",
+      "setPin": "Kasa PIN'imi belirle",
+      "changePin": "Kasa PIN'imi değiştir",
+      "pinIntro": "{name}, 4 ila 8 haneli bir PIN seçin. Çalışma arkadaşları bu kasayı kendi PIN'leriyle devralır.",
+      "newPin": "Yeni PIN",
+      "confirmPin": "PIN tekrar",
+      "pinMismatch": "İki PIN aynı değil",
+      "savePin": "PIN'i kaydet",
+      "pinSaved": "Kasa PIN'iniz belirlendi",
+      "back": "Geri"
+    },
+    "reports": {
+      "navLabel": "POS raporları",
+      "title": "Kasa raporları",
+      "subtitle": "Kasiyere ve kasaya göre satışlar, ödeme yöntemine göre alınan para ve her çekmecenin sayım sonucu.",
+      "loadFailed": "Rapor yüklenemedi",
+      "period": "Dönem",
+      "presets": {
+        "today": "Bugün",
+        "yesterday": "Dün",
+        "week": "Son 7 gün",
+        "month": "Son 30 gün",
+        "thisMonth": "Bu ay"
+      },
+      "counter": "Kasa",
+      "allCounters": "Tüm kasalar",
+      "refresh": "Yenile",
+      "export": "CSV dışa aktar",
+      "empty": "Bu dönemde satış yok.",
+      "noSessions": "Bu dönemde hiçbir çekmece açılmadı.",
+      "stats": {
+        "sales": "Satışlar",
+        "items": "{count, plural, one {# ürün} other {# ürün}} satıldı",
+        "gross": "Toplam satış",
+        "discounts": "{amount} indirim",
+        "net": "İadeler düşülmüş",
+        "refunds": "{amount} iade edildi",
+        "average": "Ortalama satış",
+        "balanceDue": "Kaporalarda {amount} hâlâ borç"
+      },
+      "byCashier": "Kasiyere göre",
+      "byCounter": "Kasaya göre",
+      "byTender": "Ödeme yöntemine göre gelen para",
+      "sessions": "Çekmece oturumları",
+      "unknownCashier": "Bilinmeyen kasiyer",
+      "noCounter": "Kasa yok",
+      "open": "Açık",
+      "payments": "{count, plural, one {# ödeme} other {# ödeme}}",
+      "tenders": {
+        "cash": "Nakit",
+        "card": "Kart",
+        "bank": "Banka havalesi",
+        "manual": "Diğer",
+        "store_credit": "Mağaza kredisi"
+      },
+      "columns": {
+        "name": "Ad",
+        "sales": "Satışlar",
+        "items": "Ürünler",
+        "gross": "Toplam satış",
+        "discounts": "İndirimler",
+        "refunds": "İadeler",
+        "net": "Net",
+        "average": "Ortalama",
+        "tender": "Ödeme yöntemi",
+        "payments": "Ödemeler",
+        "amount": "Tutar",
+        "session": "Oturum",
+        "counter": "Kasa",
+        "openedBy": "Açan",
+        "opened": "Açılış",
+        "closed": "Kapanış",
+        "expected": "Beklenen nakit",
+        "counted": "Sayılan",
+        "variance": "Fark"
+      }
+    },
+    "quickKeys": {
+      "tab": "Favoriler",
+      "empty": "Henüz hızlı tuş yok",
+      "emptyManager": "Tüm kasalarda burada görünmesi için ızgaradaki bir ürüne yıldız verin.",
+      "emptyCashier": "POS'u yöneten kişi ürünlere yıldız vererek onları buraya koyabilir.",
+      "add": "Favorilere ekle",
+      "remove": "Favorilerden çıkar",
+      "failed": "Favoriler kaydedilmedi"
     }
   },
   "orders": {
@@ -7984,7 +9412,17 @@
     "deleteError": "Konum silinemedi",
     "updateError": "Konum güncellenemedi",
     "saveError": "Konum kaydedilemedi",
-    "actions": "İşlemler"
+    "actions": "İşlemler",
+    "deliveryOrder": "Teslimat sırası",
+    "deliveryOrderHint": "Online siparişler stoğu olan 1. konumdan, ardından 2. konumdan ve bu şekilde sevk edilir.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "Teslimat yok",
+    "services": "Hizmetler",
+    "pickup": "Mağazadan teslim",
+    "returns": "İadeler",
+    "noTill": "Kasa yok",
+    "shipSooner": "Buradan daha erken gönder",
+    "shipLater": "Buradan daha geç gönder"
   },
   "cart": {
     "title": "Alışveriş Sepeti",
@@ -8069,6 +9507,10 @@
     "marketingPreferences": "Pazarlama Tercihleri",
     "marketingOptIn": "Pazarlama E-postaları",
     "marketingOptInDesc": "Pazarlama iletileri ve özel teklifler alın",
+    "groupOrders": "Siparişleriniz",
+    "groupWishlist": "İstek listeniz",
+    "groupNews": "Haberler ve fırsatlar",
+    "marketingOptInHint": "Tüm pazarlama e-postalarından çıkmak için bunu kapatın.",
     "totalSpent": "Toplam Harcama",
     "avgOrderValue": "Ort. Sipariş Tutarı",
     "memberSince": "Üyelik Tarihi",
@@ -8079,6 +9521,7 @@
     "heroSubtitle": "Onaylı satıcıların harika ürünlerini keşfedin. Güvenle alışveriş yapın ve kapınıza kadar kusursuz teslimatın keyfini çıkarın.",
     "shopByCategory": "Kategoriye Göre Alışveriş",
     "shopByCategoryDescription": "Kategorilere göre düzenlenmiş geniş ürün yelpazemize göz atın",
+    "shopAllInCategory": "Tüm {name} ürünlerini gör",
     "viewAllCategories": "Tüm Kategorileri Gör",
     "whyChooseUs": "Neden {storeName}?",
     "whyChooseUsDescription": "Sizin için tasarlanmış özelliklerle en iyi alışveriş deneyimini sunuyoruz",
@@ -8276,7 +9719,8 @@
     "blog": "Blog",
     "getHelp": "Yardım Al",
     "contact": "İletişim",
-    "compare": "Karşılaştır"
+    "compare": "Karşılaştır",
+    "inbox": "Gelen kutusu"
   },
   "productsPage": {
     "empty": "Ürün bulunamadı",
@@ -8313,7 +9757,10 @@
     "featuredProducts": "Öne Çıkan Ürünler"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "Kategorilerde ara..."
+    "searchPlaceholder": "Kategorilerde ara...",
+    "count": "{count, plural, other {# kategori}}",
+    "perRowGroup": "Satır başına kategori",
+    "perRow": "Satır başına {count}"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# ürün} other {# ürün}}",
@@ -8844,7 +10291,10 @@
     "loadOlderConversations": "Daha eski sohbetleri yükle",
     "attachments": {
       "alt": "Sohbet eki",
-      "open": "Eki aç"
+      "open": "Eki aç",
+      "view": "Resmin tamamını görüntüle",
+      "openNewTab": "Yeni sekmede aç",
+      "download": "İndir"
     },
     "assignment": {
       "label": "Atanan temsilci",
@@ -8892,7 +10342,7 @@
       "webhookUrlNotPublic": "Meta yalnızca herkese açık bir HTTPS geri arama adresi kabul eder. Kaydetmeden önce bu sayfayı canlı alan adınızda — ya da bir tünel üzerinden — açın.",
       "setup": {
         "title": "{provider} kurulum rehberi",
-        "docs": "Ayrıntılı anlatım: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "Ayrıntılı anlatım: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Bir Meta uygulaması oluşturun ve içine WhatsApp ürününü ekleyin.",
           "config": "Bu izinleri veren bir Facebook Login for Business yapılandırması oluşturun ve kimliğini META_WHATSAPP_CONFIGURATION_ID değişkenine yazın.",
@@ -9030,6 +10480,7 @@
     "noLinks": "Henüz bağlantı paylaşılmadı",
     "subject": "Konu",
     "viewProduct": "Ürünü görüntüle",
+    "removeAttachment": "Eki kaldır",
     "messageProduct": {
       "open": "{name} ürününü aç",
       "priceOnRequest": "Fiyat sorunuz"
@@ -9463,7 +10914,10 @@
     },
     "paidFrom": {
       "cash": "Nakit",
-      "other": "Diğer"
+      "other": "Diğer",
+      "bank": "Banka",
+      "gateway": "Ödeme ağ geçidi bakiyesi",
+      "unpaid": "Henüz ödenmedi"
     },
     "expenses": {
       "title": "Giderler",
@@ -9492,7 +10946,21 @@
       "orders": "{count} sipariş"
     },
     "receivables": {
-      "vendor": "Satıcı"
+      "vendor": "Satıcı",
+      "title": "Satıcılarla alacak ve borçlar",
+      "subtitle": "Bir satıcı adına tutulan para ile satıcının kendi tahsil ettiği satışlardan borçlu olduğu komisyon.",
+      "net": "Kapatılacak net tutar",
+      "emptyTitle": "Açık bakiye yok",
+      "emptyBody": "Bakiyeler siparişler ödendikçe görünür: platform, bir hakediş tamamlanana kadar satıcının payını tutar; nakdi kendisi tahsil eden satıcı ise bunun komisyonunu borçlanır.",
+      "collectNote": "Defterden okunur, bu yüzden bir satış parası geldiği andan itibaren sayılır. Hakedişler sayfası bugün ödenebilir olanı gösterir.",
+      "overpaidTitle": "Tutulandan fazlası ödendi",
+      "overpaidHint": "Bir hakediş, parasını satıcının kendisinin tahsil ettiği bir satışı kapattı. Yeni hakedişler artık bunu yapamaz; zaten kaydedilmiş bakiye, Finans genel bakış sayfasında bir düzeltme kaydıyla kapatılır.",
+      "owedBackTitle": "Geri borcu olan satıcılar",
+      "owedBackHint": "Genellikle satıcıya ödeme yapıldıktan sonra gelen bir iadedir. Satıcının bir sonraki hakedişinden kendiliğinden düşülür; satıcı parayı geri öderse satıcının Hakedişler sekmesinde bir geri ödeme kaydedin. Ayrıca bir düzeltme kaydı girmeyin — tutar iki kez tahsil edilir.",
+      "heldForVendors": "Satıcılar için tuttuğunuz",
+      "commissionTheyOwe": "Size borçlu oldukları komisyon",
+      "netToSettle": "Hâlâ kapatılacak net tutar",
+      "netHint": "Defterlere göre net borç — bir hakediş yalnızca teslim edilmiş kısmı gönderir"
     },
     "statement": {
       "date": "Tarih",
@@ -9500,13 +10968,46 @@
       "reference": "Referans",
       "amount": "Tutar",
       "kind": {
-        "sale": "İndirim",
+        "sale": "Satış",
         "refund": "İade",
         "commission": "Komisyon",
-        "other": "Düzeltme"
+        "other": "Düzeltme",
+        "payout": "Hakediş ödemesi",
+        "boost": "Öne çıkarma",
+        "subscription": "Abonelik",
+        "payout_returned": "Hakediş geri döndü",
+        "refund_reversed": "İade geri alındı",
+        "commission_settled": "Hakedişten kesilen komisyon",
+        "promotion_credit": "Promosyon kredisi",
+        "delivery_label": "Kargo etiketi",
+        "repayment": "Geri ödemeniz"
       },
       "statements": "Hesap dökümleri",
-      "owedOrders": "Siparişler"
+      "owedOrders": "Siparişler",
+      "title": "Finanslarınız",
+      "subtitle": "Ne kazandığınız, size ne ödendiği ve pazar yerinin sizin için ne tuttuğu.",
+      "opening": "Açılış bakiyesi",
+      "openingHint": "Bu dönemden önceden devreden",
+      "earned": "Kazanılan",
+      "earnedHint": "Komisyon sonrası satışlardaki payınız",
+      "paidOut": "Ödenen",
+      "closing": "Sizin için tutulan",
+      "closingHint": "Defterdeki bakiyeniz — yukarıdaki kart bir hakedişin ne gönderebileceğini gösterir",
+      "owed": "Borcunuz",
+      "owedHint": "Kendiniz tahsil ettiğiniz siparişlerin komisyonu",
+      "activity": "Hareketler",
+      "empty": "Bu dönemde hareket yok. Satışlar, iadeler ve hakedişler gerçekleştikçe burada görünür.",
+      "emptyTitle": "Henüz gösterilecek bir şey yok",
+      "emptyBody": "Hesap dökümünüz siparişler ödendikçe dolar. Her satış kazancınızı ekler; her hakediş bunu geri düşer.",
+      "heldChange": "Sizin için tutulan",
+      "owedChange": "Borcunuz",
+      "statementsSubtitle": "Bakiyenizi değiştiren her satış, iade ve hakediş.",
+      "seeAll": "Tam hesap dökümünü gör",
+      "export": "Dışa aktar",
+      "truncated": "{total} kaydın ilk {shown} tanesi gösteriliyor. Kalanını görmek için daha kısa bir dönem seçin — yukarıdaki bakiyeler her durumda tüm dönemi kapsar.",
+      "owedTitle": "Pazar yerine borcunuz",
+      "owedSubtitle": "Kendiniz tahsil ettiğiniz siparişlerin komisyonu. Para zaten sizde; bu, onun için borçlu olduğunuz tutar.",
+      "owedEmpty": "Bu dönem için borcunuz yok."
     },
     "reports": {
       "title": "Raporlar"
@@ -9514,6 +11015,101 @@
     "periods": {
       "month": "Ay",
       "reopen": "Yeniden aç"
+    },
+    "balance": {
+      "title": "Alacağınız",
+      "ready": "Bir sonraki hakedişe hazır",
+      "readyHint": "İade süresi geçmiş {count} teslim edilmiş siparişten",
+      "belowMinimum": "Bu tutar {amount} olduğunda hakediş yapılır",
+      "held": "İade süresinin dolması bekleniyor",
+      "heldHint": "Teslim edildi; teslimattan {days} gün sonra ödenebilir",
+      "reserve": "Ön siparişler için tutulan",
+      "reserveHint": "{date} tarihinden itibaren serbest bırakılır",
+      "reserveUndated": "Sonraki bir hakedişle serbest bırakılır",
+      "owedBack": "Mağazaya geri borcunuz",
+      "owedBackHint": "Sonradan iade edilen siparişler için size ödendi; bir sonraki hakedişinizden düşülür",
+      "tooManyOrders": "500'den fazla sipariş hazır: mağaza bunları en eskiden başlayarak parça parça öder",
+      "frozen": "Hesabınız askıdayken hakedişler duraklatılır. Satışlarınız sayılmaya devam eder.",
+      "inPayout": "Hazırlanan bir hakedişte",
+      "inPayoutHint": "{numbers} — size gönderiliyor",
+      "notDelivered": "Henüz teslim edilmedi",
+      "notDeliveredHint": "{count} ödenmiş sipariş yolda; iade süresi teslimatla başlar",
+      "awaitingBalance": "Kalan ödemesi beklenen ön siparişler",
+      "awaitingBalanceHint": "Alışverişçi kalanını ödediğinde ve ürünler teslim edildiğinde ödenebilir",
+      "commissionLeft": "Henüz kapatılmamış komisyon",
+      "commissionLeftHint": "Kendiniz tahsil ettiğiniz satışlardan; sonraki bir hakedişten düşülür veya faturayla ödenir",
+      "owedBackLater": "Mağazaya hâlâ geri borcunuz",
+      "owedBackLaterHint": "Sonradan iade edilen siparişler için size ödendi; bir sonraki hakedişin karşılayabileceğinden fazla olduğu için sonrakilerden düşülür"
+    },
+    "payout": {
+      "changedElsewhere": "Bu hakediş değişti. Yeniden yüklendi.",
+      "updated": "Hakediş güncellendi.",
+      "notFound": "Hakediş bulunamadı.",
+      "backToPayouts": "Hakedişler",
+      "ordersUpTo": "{date} tarihine kadarki siparişler",
+      "orderCount": "{count} sipariş",
+      "requote": "Bu hakedişteki siparişler, hakediş oluşturulduktan sonra değişti. İptal edip yenisini oluşturun.",
+      "frozen": "Bu satıcı askıya alındığı için bu hakediş gönderilemez. Satıcının hesabını yeniden açın veya hakedişi iptal edin.",
+      "howItWasWorkedOut": "Bu hakediş nasıl hesaplandı",
+      "grossSales": "Brüt satışlar",
+      "grossSalesHint": "aşağıdaki siparişlerde satıcının payı",
+      "commission": "Komisyon",
+      "ofGross": "brütün",
+      "shippingAmount": "Teslimat ücretleri",
+      "shippingAmountHint": "satıcının teslim ettiği paketler için alışverişçilerden alınan",
+      "reserveUntil": "{date} tarihinde serbest bırakılır",
+      "commissionOffset": "Nakit satışların komisyonu",
+      "commissionOffsetHint": "parasını satıcının tahsil ettiği satışlardan borçlu olunan; faturalanmak yerine burada düşüldü",
+      "commissionCredit": "Nakit satışlarda mağaza promosyonları",
+      "commissionCreditHint": "satıcının tahsil ettiği satışlarda mağazanın, satıcının borçlu olduğu komisyonun üzerinde karşıladığı indirimler",
+      "otherAdjustments": "Diğer düzeltmeler",
+      "otherAdjustmentsHint": "iade geri tahsilatları ve ön sipariş rezervi hareketleri",
+      "netPayout": "Net hakediş",
+      "paidOn": "{date} tarihinde ödendi",
+      "reference": "Ödeme referansı",
+      "noReference": "Ödeme referansı kaydedilmedi",
+      "returnedOn": "{date} tarihinde geri döndü — satıcı bu tutarı yeniden alacaklı",
+      "statusTitle": "Durum",
+      "returnedStep": "Para geri döndü",
+      "notRecorded": "Kaydedilmedi",
+      "notYet": "Henüz değil",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "Kaydedilmedi",
+      "note": "Not",
+      "noteReturnedHint": "— zorunlu: paranın neden geri döndüğü",
+      "noteHint": "— hakedişte saklanır ve satıcı tarafından görülür",
+      "returnedOnLabel": "Paranın geri döndüğü gün",
+      "returnedWarning": "Bunu yalnızca banka parayı geri gönderdiğinde kullanın. Defter kaydı tersine çevrilir, satıcı tutarı yeniden alacaklı olur ve bu satışlar bir sonraki hakedişe geri girer.",
+      "saveWarning": "Bir hakedişi ödendi olarak işaretlemek deftere bir kayıt işler ve arkasındaki siparişleri kapatır. Geri alınamaz — bir hata düzeltme kaydıyla düzeltilir.",
+      "noChanges": "Henüz değişiklik yok",
+      "ordersTitle": "Bu hakedişteki siparişler",
+      "ordersHint": "{date} tarihine kadar teslim edilmiş ve ödenmemiş her şey",
+      "order": "Sipariş",
+      "placed": "Verildiği tarih",
+      "orderStatus": "Sipariş durumu",
+      "payment": "Ödeme",
+      "vendorShare": "Satıcının payı",
+      "vendorEarnings": "Komisyon sonrası",
+      "noOrders": "Bu hakedişe bağlı sipariş yok.",
+      "sellerShareNote": "Satıcının her siparişteki ürünlerden aldığı payların toplamı brüt satışları verir; komisyon sonrası toplamı net hakedişi verir. Mağazanın tahsil ettiği kargo ücreti ve vergi buna dahil değildir.",
+      "adjustment": {
+        "recoveryDeducted": "İade geri tahsilatı",
+        "recoveryDeductedHint": "daha önce ödenen, sonradan iade edilen siparişler",
+        "recoveryReturned": "Geri tahsilat iadesi",
+        "recoveryReturnedHint": "daha önce geri tahsil edilen bir iade geri alındı",
+        "reserveHeld": "Ön sipariş rezervi tutuldu",
+        "reserveHeldHint": "geç gelebilecek bir ters ibraza karşı tutuldu",
+        "reserveReleased": "Ön sipariş rezervi serbest bırakıldı",
+        "reserveReleasedHint": "önceki bir hakedişte tutulmuştu, vadesi doldu",
+        "reserveCreditDeducted": "Rezerv geri tahsil edildi",
+        "reserveCreditDeductedHint": "hakedişi geri dönen, serbest bırakılmış bir rezerv",
+        "reserveCreditReturned": "Rezerv geri tahsilatı iade edildi",
+        "reserveCreditReturnedHint": "hakedişi yeniden ödendikten sonra geri verildi",
+        "commissionOffset": "Nakit satışların komisyonu",
+        "commissionOffsetHint": "parasını satıcının tahsil ettiği satışlardan borçlu olunan",
+        "commissionCredit": "Nakit satışlarda mağaza promosyonları",
+        "commissionCreditHint": "mağazanın, borçlu olunan komisyonun üzerinde karşıladığı indirimler"
+      }
     }
   }
 }

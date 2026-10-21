@@ -2,6 +2,18 @@ import path from "path";
 import { mkdirSync, writeFileSync } from "fs";
 import { MongoClient, BSON } from "mongodb";
 import { auditSnapshot } from "./seed-audit.mjs";
+import { exportRulesFor } from "./seed-export-rules.mjs";
+import {
+  applyExportRules,
+  findBrokenInternalLinks,
+  isExcludedProduct,
+  isExcludedVendor,
+  staleExclusions,
+  stripRetiredSettings,
+  stripRetiredVariantFields,
+  unwrapProductOutboundLinks,
+  urlHost,
+} from "./seed-export-transforms.mjs";
 import {
   parseTemplateArg,
   resolveSeedTemplate,
@@ -25,6 +37,14 @@ import {
  * carrying `isDefault`, sliders no section binds, abandoned landing pages,
  * price ranges left stale by a `findOneAndUpdate` write) and reports every
  * change. Faults it will not paper over stop the export.
+ *
+ * Two more layers sit on top, so a re-export never undoes a decision that
+ * was made about the snapshot rather than the store:
+ * - `scripts/seed-export-transforms.mjs`: rules for every template — retired
+ *   fields dropped, links to other shops unwrapped, and every storefront link
+ *   checked against the exported catalog (a broken one stops the export).
+ * - `scripts/seed-export-rules.mjs`: rules for one template — test vendors
+ *   left out, theme-following colours kept, a test's rename reverted.
  *
  * What is deliberately NOT exported:
  * - Customers, users, sessions, orders, carts, payments, ledgers — real
@@ -141,14 +161,25 @@ async function exportSeedData() {
   // The live store's own absolute URLs become relative links on export so
   // snapshots never point a fresh install back at the demo domain.
   const storeDomain = (settings.general?.storeDomain || "").replace(/\/+$/, "");
+  const rules = exportRulesFor(template.id);
+  // What the export changed on purpose, beyond the audit's repairs — kept in
+  // the manifest next to them.
+  const adjustments = [];
+  const warnings = [];
 
   // ---- Read ------------------------------------------------------------
   // Vendors: approved only; demo user accounts are created at seed time.
-  const vendors = await db
+  const approved = await db
     .collection("vendors")
     .find({ status: "approved" })
     .sort({ createdAt: 1 })
     .toArray();
+  const vendors = approved.filter((vendor) => !isExcludedVendor(vendor, rules));
+  for (const vendor of approved.filter((v) => !vendors.includes(v))) {
+    adjustments.push(
+      `rule: left out vendor "${vendor.storeName}" (${vendor.slug ?? String(vendor._id)})`,
+    );
+  }
   for (const vendor of vendors) {
     stripKeys(vendor, ["userId", "bankDetails", "stripeCustomerId", "planId"]);
   }
@@ -165,16 +196,36 @@ async function exportSeedData() {
     .find({})
     .sort({ position: 1 })
     .toArray();
-  const products = await db
+  const activeProducts = await db
     .collection("products")
     .find({ status: "active" })
     .sort({ createdAt: 1 })
     .toArray();
+  // Test products are left out BEFORE the audit, like test vendors, so the
+  // collections that list them and the category counts that include them are
+  // repaired with them.
+  const products = activeProducts.filter(
+    (product) => !isExcludedProduct(product, rules),
+  );
+  for (const product of activeProducts.filter((p) => !products.includes(p))) {
+    adjustments.push(
+      `rule: left out product "${product.name}" (${product.slug ?? String(product._id)})`,
+    );
+  }
+  for (const entry of staleExclusions(activeProducts, rules.excludeProducts)) {
+    warnings.push(`rule skipped: no active product "${entry}" to leave out`);
+  }
   for (const product of products) {
     // Derived again on seed through the app's own builder; a snapshot must
     // never carry a search index computed by an older rule.
     stripKeys(product, ["search"]);
   }
+  adjustments.push(...stripRetiredVariantFields(products));
+  adjustments.push(
+    ...unwrapProductOutboundLinks(products, {
+      ownHosts: [urlHost(storeDomain)].filter(Boolean),
+    }),
+  );
   const collections = await db
     .collection("collections")
     .find({})
@@ -183,6 +234,12 @@ async function exportSeedData() {
   const menus = await db.collection("menus").find({}).toArray();
   const sliders = await db.collection("sliders").find({}).toArray();
   const storePages = await db.collection("storepages").find({}).toArray();
+  // Vendor CMS landing pages (/vendors/<slug> Home tab); the audit keeps the
+  // ones whose vendor ships.
+  const vendorStorePages = await db
+    .collection("vendorstorepages")
+    .find({})
+    .toArray();
   // Only the discounts the storefront advertises survive the audit below,
   // but they must be read here: a `coupon-banner` naming a code no coupon
   // defines offers the shopper something checkout will reject.
@@ -231,6 +288,7 @@ async function exportSeedData() {
       menus,
       sliders,
       storePages,
+      vendorStorePages,
       coupons,
       blogCategories,
       blogPosts,
@@ -249,24 +307,6 @@ async function exportSeedData() {
     console.error("\n   Nothing was written. Fix the store and re-run.");
     process.exit(1);
   }
-
-  const files = new Map([
-    ["vendors.json", data.vendors],
-    ["inventory-locations.json", data.locations],
-    ["categories.json", data.categories],
-    ["brands.json", data.brands],
-    ["global-variants.json", data.globalVariants],
-    ["products.json", data.products],
-    ["collections.json", data.collections],
-    ["menus.json", data.menus],
-    ["sliders.json", data.sliders],
-    ["store-pages.json", data.storePages],
-    ["coupons.json", data.coupons],
-    ["blog-categories.json", data.blogCategories],
-    ["blog-posts.json", data.blogPosts],
-    ["vendor-plans.json", data.vendorPlans],
-    ["onboarding-template.json", onboardingTemplate ? [onboardingTemplate] : []],
-  ]);
 
   // ---- Settings: presentation/config sections only, never credentials. ----
   // Excluded on purpose: payment, email, storage, security, analytics — the
@@ -296,6 +336,9 @@ async function exportSeedData() {
     "catalog",
     "productCard",
     "notifications",
+    // Pre-order policy (deposits, lead time, release). A snapshot whose
+    // products take pre-orders must carry the switch that lets them.
+    "preorder",
   ];
   const settingsSnapshot = {};
   for (const section of SETTINGS_SECTIONS) {
@@ -321,14 +364,69 @@ async function exportSeedData() {
     shippo.testToken = "";
     shippo.enabled = false;
   }
-  files.set("settings.json", settingsSnapshot);
+  adjustments.push(...stripRetiredSettings(settingsSnapshot));
 
-  // ---- Sanitize sweep, domain rewrite, write ----
-  mkdirSync(template.dir, { recursive: true });
+  // ---- This template's own rules ----------------------------------------
+  const ruled = applyExportRules({ data, settings: settingsSnapshot }, rules);
+  adjustments.push(...ruled.notes);
+  warnings.push(...ruled.warnings);
 
+  // ---- Links: every storefront link must reach something that ships ----
+  // A category renamed in the admin leaves its old slug behind in menus,
+  // header tags and banners, and the demo then ships links to empty pages.
+  // A link inside something switched off (`visible: false`) renders nowhere,
+  // so it is a warning rather than a reason to refuse.
+  const broken = findBrokenInternalLinks(
+    { ...data, settings: settingsSnapshot },
+    { storeDomain },
+  );
+  const describeLink = (link) =>
+    `${link.where} ${link.path}: no ${link.kind} "${link.slug}" (${link.url})`;
+  for (const link of broken.filter((l) => l.hidden)) {
+    warnings.push(`hidden section links nowhere: ${describeLink(link)}`);
+  }
+  const brokenVisible = broken.filter((link) => !link.hidden);
+
+  if (adjustments.length > 0) {
+    console.log(`\n✂️  Applied ${adjustments.length} export rule(s):`);
+    for (const adjustment of adjustments) console.log(`   • ${adjustment}`);
+  }
+  if (warnings.length > 0) {
+    console.warn(`\n⚠️  ${warnings.length} warning(s):`);
+    for (const warning of warnings) console.warn(`   • ${warning}`);
+  }
+  if (brokenVisible.length > 0) {
+    console.error("\n❌ Storefront links point at things this snapshot does not have:");
+    for (const link of brokenVisible) console.error(`   - ${describeLink(link)}`);
+    console.error("\n   Nothing was written. Fix the links in the store and re-run.");
+    process.exit(1);
+  }
+
+  const files = new Map([
+    ["vendors.json", data.vendors],
+    ["inventory-locations.json", data.locations],
+    ["categories.json", data.categories],
+    ["brands.json", data.brands],
+    ["global-variants.json", data.globalVariants],
+    ["products.json", data.products],
+    ["collections.json", data.collections],
+    ["menus.json", data.menus],
+    ["sliders.json", data.sliders],
+    ["store-pages.json", data.storePages],
+    ["vendor-store-pages.json", data.vendorStorePages],
+    ["coupons.json", data.coupons],
+    ["blog-categories.json", data.blogCategories],
+    ["blog-posts.json", data.blogPosts],
+    ["vendor-plans.json", data.vendorPlans],
+    ["onboarding-template.json", onboardingTemplate ? [onboardingTemplate] : []],
+    ["settings.json", settingsSnapshot],
+  ]);
+
+  // ---- Sanitize sweep and domain rewrite, then write -------------------
+  // Every check runs before the first file is written, so a refused export
+  // leaves the committed snapshot exactly as it was.
   const sensitive = [];
-  const counts = {};
-  console.log("");
+  const rendered = [];
   for (const [filename, payload] of files) {
     findSensitiveKeys(payload, filename.replace(/\.json$/, ""), sensitive);
 
@@ -336,11 +434,7 @@ async function exportSeedData() {
     if (storeDomain) {
       text = text.split(storeDomain).join("");
     }
-    writeFileSync(path.join(template.dir, filename), text + "\n");
-    counts[filename] = Array.isArray(payload) ? payload.length : 1;
-    console.log(
-      `   ✓ ${filename} (${counts[filename]} ${Array.isArray(payload) ? "docs" : "doc"})`,
-    );
+    rendered.push([filename, text, payload]);
   }
 
   if (sensitive.length > 0) {
@@ -348,7 +442,19 @@ async function exportSeedData() {
       "\n❌ Credential-looking keys made it into the snapshot — fix the export rules for:",
     );
     for (const keyPath of sensitive) console.error(`   - ${keyPath}`);
+    console.error("\n   Nothing was written.");
     process.exit(1);
+  }
+
+  mkdirSync(template.dir, { recursive: true });
+  const counts = {};
+  console.log("");
+  for (const [filename, text, payload] of rendered) {
+    writeFileSync(path.join(template.dir, filename), text + "\n");
+    counts[filename] = Array.isArray(payload) ? payload.length : 1;
+    console.log(
+      `   ✓ ${filename} (${counts[filename]} ${Array.isArray(payload) ? "docs" : "doc"})`,
+    );
   }
 
   writeFileSync(
@@ -360,6 +466,8 @@ async function exportSeedData() {
         sourceDb: MONGODB_DB_NAME,
         counts,
         repairs,
+        adjustments,
+        warnings,
       },
       undefined,
       2,

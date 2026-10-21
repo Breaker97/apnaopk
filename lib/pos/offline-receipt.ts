@@ -24,13 +24,15 @@ function hasStorage(): boolean {
 }
 
 /**
- * A stable per-browser terminal id, created on first use.
+ * A stable per-browser terminal id, created on first use. Also the register's
+ * identity for its drawer sessions (lib/pos/register-session.ts): the drawer is
+ * the device's.
  *
  * Deliberately random rather than derived from anything about the device: it
  * only has to be distinct from the other registers in the same shop, and a
  * fingerprint would be both weaker at that and more than we need to know.
  */
-function getTerminalId(): string {
+export function getTerminalId(): string {
   if (!hasStorage()) return "T0";
 
   const existing = window.localStorage.getItem(TERMINAL_ID_KEY);

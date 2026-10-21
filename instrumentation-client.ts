@@ -1,3 +1,6 @@
+import { loadPostHog } from "@/lib/analytics/posthog-client";
+import { isSectionPreviewPath } from "@/lib/storefront/pages/section-preview-path";
+
 // Aborted fetches are intentional teardown (effect cleanup, superseded
 // searches, navigation), not failures. Some browser extensions branch
 // `window.fetch` promises without attaching a rejection handler, so those
@@ -23,3 +26,19 @@ window.addEventListener("unhandledrejection", (event) => {
     event.preventDefault();
   }
 });
+
+// PostHog is fetched once the browser is idle rather than bundled into every
+// page's first load (~240 KB of JS). Events captured before it arrives are
+// queued and replayed — see lib/analytics/posthog-client.ts.
+const startPostHog = () => {
+  void loadPostHog();
+};
+// The builder's section preview frames are admin scaffolding, reloaded after
+// every autosave; each one used to count as a storefront pageview.
+if (!isSectionPreviewPath(window.location.pathname)) {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(startPostHog, { timeout: 3000 });
+  } else {
+    window.setTimeout(startPostHog, 1500);
+  }
+}

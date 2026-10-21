@@ -3,102 +3,14 @@
     "_id": {
       "$oid": "6a910cd178f8f8611ac7f4bb"
     },
-    "name": "New Slider",
+    "name": "Home Hero Slider",
     "handle": "new-slider",
-    "version": 2,
     "isActive": true,
     "transition": "slide",
     "autoplaySeconds": 3,
     "slides": [
       {
-        "id": "slide-mtcg2r9d",
-        "visible": true,
-        "elements": {
-          "heading": true,
-          "description": false,
-          "tagline": false,
-          "price": false,
-          "cta": true,
-          "countdown": false
-        },
-        "texts": {
-          "tagline": "",
-          "heading": "Go All in on\nBig Screen Action",
-          "description": "",
-          "cta": "Shop Now"
-        },
-        "ctaVariant": "dark",
-        "styles": {
-          "landscape": {
-            "heading": {
-              "weight": "300",
-              "size": 36,
-              "width": 75
-            }
-          },
-          "square": {
-            "heading": {
-              "width": 100
-            }
-          }
-        },
-        "link": "",
-        "productId": "",
-        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917055882-toutn8/image_862.webp",
-        "countdownEndsAt": "",
-        "reveal": "fade",
-        "background": {
-          "type": "gradient",
-          "color": "#f1f1f1",
-          "gradient": {
-            "type": "linear",
-            "angle": 0,
-            "stops": [
-              {
-                "color": "#E5E4E7",
-                "at": 0
-              },
-              {
-                "color": "#DEDFE9",
-                "at": 100
-              }
-            ]
-          }
-        },
-        "layout": {
-          "landscape": {
-            "h": "center",
-            "v": "top",
-            "gap": 12,
-            "scale": 154
-          },
-          "square": {
-            "h": "center",
-            "v": "top",
-            "scale": 75
-          }
-        },
-        "image": {
-          "landscape": {
-            "h": "center",
-            "v": "middle",
-            "scale": 76,
-            "rotation": 0,
-            "x": 0.6611188900203667,
-            "y": 24.771784986907186
-          },
-          "square": {
-            "h": "center",
-            "v": "middle",
-            "scale": 100,
-            "x": 0.7985101744186046,
-            "y": 22.519985465116278
-          }
-        },
-        "alt": ""
-      },
-      {
-        "id": "slide-mtcvsbnt",
+        "id": "slide-muqs5gsp",
         "visible": true,
         "elements": {
           "heading": true,
@@ -106,93 +18,346 @@
           "tagline": false,
           "price": false,
           "cta": true,
+          "cta2": false,
           "countdown": false
         },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
         "texts": {
           "tagline": "",
-          "heading": "iPad Mini",
-          "description": "with A17 or A18 chips",
-          "cta": "Shop Now"
+          "heading": "Xiaomi",
+          "description": "Notebook Pro 15",
+          "cta": "View Product",
+          "cta2": ""
         },
         "ctaVariant": "outline",
+        "cta2Variant": "outline",
         "styles": {
-          "landscape": {},
-          "square": {
-            "heading": {
-              "size": 27,
-              "width": 97
-            },
-            "description": {
-              "width": 100
-            },
+          "landscape": {
             "cta": {
-              "size": 11
+              "color": "#ffffff"
             }
           },
-          "portrait": {
-            "heading": {
-              "width": 100
-            },
-            "description": {
-              "width": 100
+          "tile": {
+            "cta": {
+              "radius": 5,
+              "color": "#c4c5c5"
+            }
+          },
+          "square": {
+            "cta": {
+              "size": 14
             }
           }
         },
-        "link": "",
+        "link": "/products/dell-pro-15-essential-pv15255-ryzen-5-7520u-amd-radeon-graphics-156-fhd-laptop",
+        "link2": "",
         "productId": "",
-        "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917465098-tphc9y/ipads.webp",
+        "productImage": "",
+        "artInFront": false,
         "countdownEndsAt": "",
         "reveal": "fade",
         "background": {
-          "type": "solid",
-          "color": "#f1f1f1"
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1790935776293-379f433ec83633224b3ae377450c60ef/1a3cfa17c85882cf786623b95d1d8d25__1_.jpg",
+          "focal": {
+            "x": 48.6,
+            "y": 74.7
+          },
+          "imageWidth": 1200
         },
         "layout": {
           "landscape": {
-            "h": "center",
-            "v": "top",
+            "h": "left",
+            "v": "middle",
             "gap": 12,
-            "scale": 141
+            "scale": 100
+          },
+          "tile": {
+            "h": "center",
+            "v": "bottom",
+            "gap": 15,
+            "scale": 105,
+            "padding": 18
           },
           "square": {
-            "gap": 5,
-            "scale": 105
+            "h": "left",
+            "v": "bottom",
+            "gap": 11,
+            "scale": 87,
+            "padding": 7
           },
           "portrait": {
-            "gap": 0,
-            "scale": 93
+            "v": "bottom",
+            "gap": 13,
+            "scale": 107
           }
         },
         "image": {
           "landscape": {
-            "h": "center",
+            "h": "right",
             "v": "middle",
-            "scale": 67,
+            "scale": 40,
             "rotation": 0,
-            "x": -0.09427507637474553,
-            "y": 20.793024439918536
-          },
-          "square": {
-            "scale": 81,
-            "x": 0.2818150399043242,
-            "y": 21.642406707360397
-          },
-          "portrait": {
-            "scale": 100,
-            "x": 0.7111872170136841,
-            "y": 16.781620357692923
+            "x": 0,
+            "y": 0
           }
         },
-        "alt": ""
+        "alt": "",
+        "elementsByShape": {
+          "tile": {
+            "heading": false,
+            "description": false
+          },
+          "square": {
+            "heading": false,
+            "description": false,
+            "cta": false
+          },
+          "portrait": {
+            "heading": false,
+            "description": false
+          }
+        }
+      },
+      {
+        "id": "slide-muqt1991",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "Googlebook ",
+          "description": "$2,999",
+          "cta": "Pre-Order",
+          "cta2": ""
+        },
+        "ctaVariant": "dark",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "heading": {
+              "weight": "300"
+            },
+            "cta": {
+              "size": 16
+            }
+          },
+          "tile": {
+            "heading": {
+              "weight": "300"
+            },
+            "cta": {
+              "highlight": {
+                "style": "color"
+              }
+            }
+          },
+          "square": {
+            "heading": {
+              "size": 33,
+              "width": 100,
+              "color": "#ffffff"
+            }
+          },
+          "portrait": {
+            "heading": {
+              "width": 100
+            },
+            "cta": {
+              "size": 19
+            }
+          }
+        },
+        "link": "",
+        "link2": "",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1790936030556-b6b954f1a168b686ac0b177603d814fd/3dec7be94107925437d5aba34d8f68c7.jpg",
+          "imageWidth": 1198
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 12,
+            "scale": 99
+          },
+          "tile": {
+            "h": "center",
+            "v": "top",
+            "padding": 59
+          },
+          "square": {
+            "h": "center",
+            "v": "top"
+          },
+          "portrait": {
+            "h": "center",
+            "v": "top",
+            "padding": 36
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": "",
+        "elementsByShape": {
+          "square": {
+            "description": true,
+            "cta": false
+          }
+        }
+      },
+      {
+        "id": "slide-muqtbvbh",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "",
+          "description": "",
+          "cta": "",
+          "cta2": "View Product"
+        },
+        "ctaVariant": "dark",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {},
+          "tile": {
+            "cta2": {
+              "radius": 3,
+              "color": "#f7f7f8"
+            }
+          }
+        },
+        "link": "",
+        "link2": "/products/sony-bravia-9-k-85xr90-85-inch-mini-led-4k-google-tv",
+        "productId": "",
+        "productImage": "",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "image",
+          "color": "#f1f1f1",
+          "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1790938088480-71e2dcc4cff9bb7eabeee274ba50245f/766c2088156c52e7c0e1a51470dee78f.jpg",
+          "focal": {
+            "x": 52.8,
+            "y": 55.7
+          },
+          "imageWidth": 1199
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "middle",
+            "gap": 12,
+            "scale": 100
+          },
+          "tile": {
+            "h": "right",
+            "v": "bottom",
+            "padding": 72
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 40,
+            "rotation": 0,
+            "x": 0,
+            "y": 0
+          }
+        },
+        "alt": "",
+        "elementsByShape": {
+          "tile": {
+            "cta2": true
+          },
+          "square": {
+            "heading": false,
+            "cta": false
+          },
+          "portrait": {
+            "heading": false,
+            "cta": false
+          }
+        }
       }
     ],
     "createdAt": {
       "$date": "2026-08-28T04:21:37.270Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T20:07:56.108Z"
+      "$date": "2026-10-02T13:09:59.291Z"
     },
-    "__v": 0
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": false
+    },
+    "history": [],
+    "publishedAt": "2026-10-02T13:09:59.290Z"
   },
   {
     "_id": {
@@ -200,7 +365,6 @@
     },
     "name": "Hero Slider 2",
     "handle": "new-slider-1787917529240",
-    "version": 2,
     "isActive": true,
     "transition": "slide",
     "autoplaySeconds": 5,
@@ -214,39 +378,78 @@
           "tagline": false,
           "price": false,
           "cta": true,
+          "cta2": false,
           "countdown": false
         },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
         "texts": {
           "tagline": "",
           "heading": "iPhones",
           "description": "",
-          "cta": "Buy Now"
+          "cta": "Buy Now",
+          "cta2": ""
         },
         "ctaVariant": "outline",
+        "cta2Variant": "outline",
         "styles": {
           "landscape": {
+            "tagline": {
+              "size": 18
+            },
             "heading": {
-              "size": 44
+              "size": 56
+            },
+            "description": {
+              "size": 20
             },
             "cta": {
-              "size": 20
+              "size": 25
             }
           },
           "square": {
+            "tagline": {
+              "size": 13
+            },
             "heading": {
-              "size": 39,
+              "size": 35,
               "width": 83
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 14
             }
           },
           "portrait": {
+            "tagline": {
+              "size": 23
+            },
             "heading": {
+              "size": 71,
               "width": 100
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 32
             }
           }
         },
-        "link": "",
+        "link": "/products/iphone-17-pro-max",
+        "link2": "",
         "productId": "",
         "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917779394-u2nhgb/image_326.webp",
+        "artInFront": false,
         "countdownEndsAt": "",
         "reveal": "fade",
         "background": {
@@ -271,15 +474,16 @@
           "landscape": {
             "h": "left",
             "v": "top",
-            "gap": 12,
+            "gap": 15,
             "scale": 192
           },
           "square": {
-            "gap": 12,
+            "gap": 11,
             "scale": 102
           },
           "portrait": {
             "h": "center",
+            "gap": 19,
             "scale": 82
           }
         },
@@ -313,9 +517,19 @@
       "$date": "2026-08-28T11:45:29.247Z"
     },
     "updatedAt": {
-      "$date": "2026-09-05T13:16:21.003Z"
+      "$date": "2026-10-02T10:36:14.602Z"
     },
-    "__v": 0
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [],
+    "publishedAt": "2026-10-02T10:36:14.602Z"
   },
   {
     "_id": {
@@ -323,7 +537,6 @@
     },
     "name": "New Slider",
     "handle": "new-slider-1787917804233",
-    "version": 2,
     "isActive": true,
     "transition": "slide",
     "autoplaySeconds": 5,
@@ -337,29 +550,77 @@
           "tagline": false,
           "price": false,
           "cta": true,
+          "cta2": false,
           "countdown": false
         },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
         "texts": {
           "tagline": "",
           "heading": "Apple Watches",
           "description": "",
-          "cta": "Buy Now"
+          "cta": "Buy Now",
+          "cta2": ""
         },
         "ctaVariant": "outline",
+        "cta2Variant": "outline",
         "styles": {
           "landscape": {
+            "tagline": {
+              "size": 18
+            },
             "heading": {
-              "size": 39,
+              "size": 50,
               "width": 100
+            },
+            "description": {
+              "size": 20
             },
             "cta": {
               "size": 20
             }
+          },
+          "square": {
+            "tagline": {
+              "size": 13
+            },
+            "heading": {
+              "size": 35
+            },
+            "description": {
+              "size": 15
+            },
+            "cta": {
+              "size": 14
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 44
+            },
+            "description": {
+              "size": 26
+            },
+            "cta": {
+              "size": 23
+            }
           }
         },
-        "link": "",
+        "link": "/products/apple-watch-se-3",
+        "link2": "",
         "productId": "",
         "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917908470-wlzmhr/Rectangle_236.webp",
+        "artInFront": false,
         "countdownEndsAt": "",
         "reveal": "fade",
         "background": {
@@ -384,12 +645,16 @@
           "landscape": {
             "h": "left",
             "v": "top",
-            "gap": 12,
+            "gap": 15,
             "scale": 138
           },
           "square": {
             "h": "left",
+            "gap": 11,
             "scale": 104
+          },
+          "portrait": {
+            "gap": 19
           }
         },
         "image": {
@@ -401,13 +666,20 @@
             "x": 1.70848714358452,
             "y": 2.844050043642712
           },
+          "tile": {
+            "x": 6.432651831809784,
+            "y": 10.459919857264651
+          },
           "square": {
             "scale": 100,
             "x": 8.932651831809784,
             "y": 14.459919857264651
           },
           "portrait": {
-            "scale": 100
+            "v": "bottom",
+            "scale": 129,
+            "x": 6.980773950302087,
+            "y": 8.201192900785568
           }
         },
         "alt": ""
@@ -417,8 +689,213 @@
       "$date": "2026-08-28T11:50:04.235Z"
     },
     "updatedAt": {
-      "$date": "2026-09-05T13:16:51.470Z"
+      "$date": "2026-10-12T11:53:23.371Z"
     },
-    "__v": 0
+    "__v": 0,
+    "version": 2,
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [],
+    "publishedAt": "2026-10-12T11:53:23.371Z"
+  },
+  {
+    "_id": {
+      "$oid": "6abf526e39579818416b8cce"
+    },
+    "name": "Laptop Collection",
+    "handle": "hero-slider-2-copy",
+    "isActive": true,
+    "transition": "slide",
+    "autoplaySeconds": 5,
+    "slides": [
+      {
+        "id": "slide-mtcvxmnc-copy",
+        "visible": true,
+        "elements": {
+          "heading": true,
+          "description": false,
+          "tagline": false,
+          "price": false,
+          "cta": true,
+          "cta2": false,
+          "countdown": false
+        },
+        "order": [
+          "tagline",
+          "heading",
+          "description",
+          "price",
+          "countdown",
+          "cta",
+          "cta2"
+        ],
+        "texts": {
+          "tagline": "",
+          "heading": "Laptop",
+          "description": "",
+          "cta": "Buy Now",
+          "cta2": ""
+        },
+        "ctaVariant": "outline",
+        "cta2Variant": "outline",
+        "styles": {
+          "landscape": {
+            "tagline": {
+              "size": 23
+            },
+            "heading": {
+              "size": 37
+            },
+            "description": {
+              "size": 25
+            },
+            "cta": {
+              "size": 32
+            }
+          },
+          "tile": {
+            "tagline": {
+              "size": 19
+            },
+            "heading": {
+              "size": 76
+            },
+            "description": {
+              "size": 22
+            },
+            "cta": {
+              "size": 21
+            }
+          },
+          "square": {
+            "tagline": {
+              "size": 12
+            },
+            "heading": {
+              "size": 40,
+              "width": 83
+            },
+            "description": {
+              "size": 14
+            },
+            "cta": {
+              "size": 13
+            }
+          },
+          "portrait": {
+            "tagline": {
+              "size": 37
+            },
+            "heading": {
+              "size": 114,
+              "width": 100
+            },
+            "description": {
+              "size": 42
+            },
+            "cta": {
+              "size": 52
+            }
+          }
+        },
+        "link": "products/dell-pro-15-essential-pv15255-ryzen-5-7520u-amd-radeon-graphics-156-fhd-laptop",
+        "link2": "",
+        "productId": "",
+        "productImage": "https://cdn-storify.neurolight.studio/uploads/2026/10/1790923918937-4c2bcc3ccbd0615bcd8e36ebf0b35c51/image_327.png",
+        "artInFront": false,
+        "countdownEndsAt": "",
+        "reveal": "fade",
+        "background": {
+          "type": "gradient",
+          "color": "#f1f1f1",
+          "gradient": {
+            "type": "linear",
+            "angle": 225,
+            "stops": [
+              {
+                "color": "#B561FF",
+                "at": 0
+              },
+              {
+                "color": "#E3E6E8",
+                "at": 100
+              }
+            ]
+          }
+        },
+        "layout": {
+          "landscape": {
+            "h": "left",
+            "v": "top",
+            "gap": 19,
+            "scale": 192
+          },
+          "tile": {
+            "gap": 16,
+            "scale": 106
+          },
+          "square": {
+            "gap": 10,
+            "scale": 110
+          },
+          "portrait": {
+            "h": "center",
+            "gap": 31,
+            "scale": 60
+          }
+        },
+        "image": {
+          "landscape": {
+            "h": "right",
+            "v": "middle",
+            "scale": 80,
+            "rotation": -36,
+            "x": 10.995000623611489,
+            "y": -2.993501865094121
+          },
+          "tile": {
+            "scale": 100,
+            "x": 8.561142577804782,
+            "y": 4.774205344100147
+          },
+          "square": {
+            "v": "middle",
+            "scale": 139,
+            "x": 12.694347885067351,
+            "y": 6.829760899655704
+          },
+          "portrait": {
+            "h": "center",
+            "scale": 114,
+            "rotation": 0,
+            "x": 0.6623217984488932,
+            "y": 15.483450427262618
+          }
+        },
+        "alt": ""
+      }
+    ],
+    "controls": {
+      "arrows": "none",
+      "arrowsPosition": "sides",
+      "dots": "dots",
+      "dotsPosition": "end",
+      "pause": true
+    },
+    "history": [],
+    "createdAt": {
+      "$date": "2026-10-02T06:42:54.207Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-12T15:05:57.558Z"
+    },
+    "__v": 0,
+    "version": 2,
+    "publishedAt": "2026-10-12T15:05:57.557Z"
   }
 ]

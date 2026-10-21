@@ -166,7 +166,11 @@ async function readPesapalJson<T extends PesapalResponseBase>(
   try {
     data = (await response.json()) as T;
   } catch {
-    throw new Error(`Pesapal ${action} failed: HTTP ${response.status}`);
+    // The status rides along so a refund can tell the gateway's own server
+    // failing (the refund may have been made) from a refusal.
+    throw Object.assign(new Error(`Pesapal ${action} failed: HTTP ${response.status}`), {
+      httpStatus: response.status,
+    });
   }
 
   const status = data.status === undefined ? undefined : String(data.status);
@@ -176,11 +180,14 @@ async function readPesapalJson<T extends PesapalResponseBase>(
       : Boolean(data.error && data.error.message);
 
   if (!response.ok || hasError || (status && status !== "200")) {
-    throw new Error(
-      `Pesapal ${action} failed: ${getPesapalErrorMessage(
-        data,
-        `HTTP ${response.status}`,
-      )}`,
+    throw Object.assign(
+      new Error(
+        `Pesapal ${action} failed: ${getPesapalErrorMessage(
+          data,
+          `HTTP ${response.status}`,
+        )}`,
+      ),
+      { httpStatus: response.status },
     );
   }
 

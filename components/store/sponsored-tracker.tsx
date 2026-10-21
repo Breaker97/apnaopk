@@ -9,11 +9,14 @@
  * Impressions: IntersectionObserver at ≥50% visibility sustained for 1s,
  * once per (campaign, placement, UTC day) per browser session, batched into one
  * beacon every few seconds and on pagehide. Clicks: immediate sendBeacon
- * (it survives the navigation). Counts are aggregated server-side.
+ * (it survives the navigation). Counts are aggregated server-side; the
+ * PostHog events here are best-effort product analytics.
  */
 
 import { useEffect, type RefObject } from "react";
 import { usePathname } from "@/hooks/use-locale-navigation";
+import { posthogClient } from "@/lib/analytics/posthog-client";
+
 import { utcDay } from "@/lib/boosts/boost-days";
 
 type SponsoredPlacement = "home" | "listing" | "pdp";
@@ -82,6 +85,19 @@ function sessionSeenKey(campaignId: string, placement: SponsoredPlacement) {
   return `boostimp:${utcDay()}:${campaignId}:${placement}`;
 }
 
+function capturePosthog(event: string, campaignId: string, placement: string) {
+  try {
+    // Queued until PostHog has loaded, then replayed — the old `__loaded`
+    // guard silently dropped impressions fired before initialisation.
+    posthogClient.capture(event, {
+      campaign_id: campaignId,
+      placement,
+    });
+  } catch {
+    // Analytics must never break the storefront.
+  }
+}
+
 function queueSponsoredImpression(
   campaignId: string,
   placement: SponsoredPlacement,
@@ -95,6 +111,7 @@ function queueSponsoredImpression(
   }
   queue.push({ c: campaignId, p: placement, t: "imp" });
   scheduleFlush();
+  capturePosthog("sponsored_impression", campaignId, placement);
 }
 
 /**
@@ -118,6 +135,7 @@ function sendSponsoredClick(
   clickedPerPath.add(key);
   // Clicks bypass the queue — the navigation is about to tear the page down.
   send([{ c: campaignId, p: placement, t: "clk" }]);
+  capturePosthog("sponsored_click", campaignId, placement);
 }
 
 /** Placement from the current URL: home page, product detail, or a listing. */

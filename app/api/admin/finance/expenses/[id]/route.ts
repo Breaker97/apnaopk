@@ -3,6 +3,8 @@ import { financeQuery, financeVersionFilter } from "@/lib/finance/transaction";
 import { expensePostings, expenseReversalPostings, expenseSettlementReversalPostings } from "@/lib/finance/postings";
 import { Types } from "mongoose";
 import { Expense } from "@/models/expense.model";
+import { InventoryCostSource } from "@/models/inventory-cost-source.model";
+import { InventoryFundingAllocation } from "@/models/inventory-allocation.model";
 import { getSettings } from "@/models/settings.model";
 import { notFoundResponse, successResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
@@ -222,6 +224,7 @@ export const PUT = withApi<RouteParams>(
       action: `expense:update:${id}`, actorId: session.user.id,
       requestKey, fingerprint: { body, version },
       work: async () => {
+        if (movesMoney && (await financeQuery(InventoryFundingAllocation.exists({ expenseId: id })) || await financeQuery(InventoryCostSource.exists({ expenseId: id })))) throw new ValidationError("This stock purchase funds received inventory. Use a classified receipt correction instead of changing its funding.");
         const saved = await financeQuery(Expense.findOneAndUpdate(
           { _id: id, scope: { $ne: "vendor" }, ...financeVersionFilter(version) },
           { $set: { ...fields, version: version + 1 } },
@@ -266,6 +269,7 @@ export const DELETE = withApi<RouteParams>(
       fingerprint: { id, version }, work: async () => {
         const expense = await financeQuery(Expense.findOne({ _id: id, scope: { $ne: "vendor" }, ...financeVersionFilter(version) }));
         if (!expense) throw staleFinance();
+        if ((await financeQuery(InventoryFundingAllocation.exists({ expenseId: id })) || await financeQuery(InventoryCostSource.exists({ expenseId: id })))) throw new ValidationError("This expense funds received inventory and cannot be deleted. Use a classified receipt correction.");
         const row = expense.toObject();
         const postings = [...expenseReversalPostings({ ...row, revision: await currentExpenseRevision(row) }),
           ...(row.settlement ? expenseSettlementReversalPostings({ ...row, settlement: row.settlement! }) : [])];

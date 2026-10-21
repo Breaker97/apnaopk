@@ -1,6 +1,8 @@
+import { taxRegistrationLine, type StoredTaxSettings } from "@/lib/tax/tax-settings";
 import type { ISettings } from "@/models/settings.model";
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import type { Address } from "@/types";
+import type { PosInvoiceTemplate } from "@/lib/invoice-templates/pos-receipt";
 import {
   DEFAULT_VENDOR_STORE_VISIBILITY,
   formatVendorAddress,
@@ -25,6 +27,13 @@ export interface POSSettings {
    * would refuse. Absent means allowed, the behaviour before the check existed.
    */
   canApplyDiscounts?: boolean;
+  /**
+   * Which ways a receipt can be sent from this till — whether the store has
+   * email and text messages set up. Per seat for the same reason as
+   * `canApplyDiscounts`: the server knows, the browser cannot read it. See
+   * `lib/pos/pos-seat-settings.ts`.
+   */
+  receiptChannels?: { email: boolean; sms: boolean };
   currency: string;
   locale: string;
   storeName?: string;
@@ -32,7 +41,15 @@ export interface POSSettings {
   storeEmail?: string;
   storeAddress?: string;
   storeDomain?: string;
+  /** The store's tax registration (Settings → Tax), for a platform till's receipts. */
+  storeTaxId?: string;
   paymentMethods: string[];
+  /** Part payment now, the rest later, for a sale with a customer. */
+  allowDeposits?: boolean;
+  /** The till sells only with its drawer open (a register session). */
+  requireOpenRegister?: boolean;
+  /** Shelf prices include tax (lib/pos/order-totals.ts). */
+  pricesIncludeTax?: boolean;
   stripe?: {
     enabled: boolean;
     configured: boolean;
@@ -46,9 +63,37 @@ export interface POSSettings {
    * unset id leaves this unset too, which reads as "shared stock".
    */
   posLocationName?: string;
+  /**
+   * The account standing at this register. Queued with every offline sale so
+   * a replay by whoever opens the register next still names the cashier who
+   * took the money (`lib/pos/offline-cashier.ts`). Per seat, like
+   * `canApplyDiscounts`: the colleague switched in with their PIN when there
+   * is one (`lib/pos/operator.ts`), else the session's account.
+   */
+  cashierId?: string;
+  /** The cashier's name, for the till's "who is working" chip. */
+  cashierName?: string;
+  /** A colleague switched in over the signed-in account. */
+  cashierSwitched?: boolean;
+  /**
+   * Hours the register may sell offline after the server last authenticated
+   * it (Settings → POS). Resolved to milliseconds, with its bounds, by
+   * `offlineSessionWindowMs` where it is used.
+   */
+  offlineSessionHours?: number;
   printedReceiptsEnabled?: boolean;
   receiptPrinter?: string;
+  /** Kick the drawer open when cash changes hands (lib/pos/cash-drawer.ts). */
+  openCashDrawer?: boolean;
   sound?: POSSoundSettings;
+  /**
+   * The receipt template (docs/INVOICE_TEMPLATE_BUILDER.md §4.11): the POS
+   * default, null without one or over 64 KB (the legacy receipt then), and
+   * the printing business's logo for it. Set by the POS pages through
+   * `posReceiptTemplate`; carried offline inside the cached page.
+   */
+  invoiceTemplate?: PosInvoiceTemplate | null;
+  storeLogoUrl?: string;
 }
 
 /**
@@ -122,14 +167,21 @@ export function buildPOSSettings(
       ? (identity.storeAddress ?? "")
       : (settings.general?.storeAddress ?? ""),
     storeDomain: settings.general?.storeDomain ?? "",
+    // A vendor's till prints the vendor; the registration is the store's.
+    storeTaxId: identity ? "" : taxRegistrationLine(settings.tax as StoredTaxSettings),
     paymentMethods: settings.pos?.checkout?.paymentMethods ?? ["cash", "card"],
+    allowDeposits: settings.pos?.checkout?.allowDeposits === true,
+    requireOpenRegister: settings.pos?.checkout?.requireOpenRegister === true,
+    pricesIncludeTax: settings.pos?.checkout?.pricesIncludeTax === true,
     stripe: {
       enabled: stripeEnabled,
       configured: stripeEnabled && Boolean(stripeCredentials.secretKey),
       publishableKey: stripeCredentials.publishableKey,
     },
     posLocationId: settings.pos?.defaultPosLocationId,
+    offlineSessionHours: settings.pos?.offline?.sessionHours,
     printedReceiptsEnabled: customize?.printedReceiptsEnabled ?? false,
+    openCashDrawer: customize?.openCashDrawer === true,
     receiptPrinter: customize?.receiptPrinter ?? "",
     sound: {
       enabled: customize?.soundEnabled ?? true,

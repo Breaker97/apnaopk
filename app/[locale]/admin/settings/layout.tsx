@@ -1,5 +1,5 @@
 import { setRequestLocale } from "next-intl/server";
-import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
+import { requireAdminArea } from "@/lib/access/admin-page-guard";
 import { SettingsShell } from "@/components/admin/settings/settings-shell";
 import { getSanitizedSettings } from "@/lib/settings/sanitize-settings";
 
@@ -14,7 +14,8 @@ export default async function AdminSettingsLayout({
 }: LayoutProps) {
   const { locale } = await params;
   setRequestLocale(locale);
-  await requireAdminPageAccess(locale);
+  // Each settings page holds to its own rule too (its layout).
+  await requireAdminArea(locale, "/admin/settings");
 
   // Seed the client settings store server-side so every settings page renders
   // its real (dynamic) data on first paint — no client round-trip, no skeleton

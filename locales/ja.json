@@ -192,6 +192,18 @@
   "account": {
     "welcome": "おかえりなさい、{name}さん！",
     "overviewDesc": "アカウントの概要",
+    "overview": {
+      "needsAttention": "ご確認が必要です",
+      "actionNeeded": "対応が必要です",
+      "addressTitle": "お客様の住所へ配送できません",
+      "addressDeadline": "発送を一時停止しています。{date}までに住所を修正してください",
+      "addressPaused": "住所が修正されるまで発送を一時停止しています",
+      "fixAddress": "住所を修正",
+      "paymentDue": "お支払い期限",
+      "payBy": "{date}までにお支払い",
+      "moreInProgress": "他{count}件が進行中",
+      "plusMore": "他{count}件"
+    },
     "totalOrders": "総注文数",
     "pendingOrders": "保留中の注文",
     "wishlistItems": "ほしい物リスト",
@@ -309,6 +321,10 @@
     "marketingPreferences": "マーケティング設定",
     "marketingOptIn": "マーケティングメール",
     "marketingOptInDesc": "マーケティング情報や特別オファーを受け取る",
+    "groupOrders": "ご注文",
+    "groupWishlist": "ウィッシュリスト",
+    "groupNews": "お知らせとオファー",
+    "marketingOptInHint": "すべてのマーケティングメールの配信を停止するには、オフにしてください。",
     "totalSpent": "合計支出",
     "avgOrderValue": "平均注文額",
     "memberSince": "会員登録日",
@@ -374,6 +390,7 @@
     "wishlist": "ほしい物リスト",
     "blog": "ブログ",
     "getHelp": "ヘルプを受ける",
+    "inbox": "受信トレイ",
     "brands": "ブランド"
   },
   "productsPage": {
@@ -410,7 +427,10 @@
     "featuredProducts": "注目商品"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "検索 カテゴリ..."
+    "searchPlaceholder": "検索 カテゴリ...",
+    "count": "{count, plural, other {#件のカテゴリー}}",
+    "perRowGroup": "1行あたりのカテゴリー数",
+    "perRow": "1行に{count}件"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# 商品} other {# 商品}}",
@@ -497,6 +517,7 @@
     "heroSubtitle": "認証済みの出品者から魅力的な商品を見つけよう。安心して買い物でき、スムーズな配送が自宅まで届きます。",
     "shopByCategory": "カテゴリーから探す",
     "shopByCategoryDescription": "カテゴリー別に整理された豊富な商品を閲覧できます",
+    "shopAllInCategory": "{name}をすべて見る",
     "viewAllCategories": "すべてのカテゴリーを見る",
     "whyChooseUs": "なぜ {storeName}？",
     "whyChooseUsDescription": "あなたのために設計された機能で最高のショッピング体験を提供します",
@@ -605,7 +626,8 @@
     "sortBy": "並び替え",
     "colors": "色",
     "size": "サイズ",
-    "itemsSold": "{count} 件販売"
+    "itemsSold": "{count} 件販売",
+    "percentOff": "{percent}%オフ"
   },
   "reviews": {
     "basedOn": "{count}件のレビューに基づく",
@@ -922,7 +944,6 @@
     "notificationSettingsDesc": "メールとプッシュ通知を管理します",
     "accountSettings": "アカウント設定",
     "accountSettingsDesc": "個人アカウント情報を管理します",
-    "viewStore": "View Store",
     "viewOrders": "注文",
     "productSummary": "商品ステータス",
     "active": "有効",
@@ -1132,7 +1153,17 @@
       "socialUrl": "リンク",
       "socialAdd": "リンクを追加",
       "socialRemove": "リンクを削除",
-      "shareButtons": "共有ボタン"
+      "shareButtons": "共有ボタン",
+      "changeEmail": "変更",
+      "changeEmailTitle": "メールアドレスの変更",
+      "changeEmailDescription": "今後は新しいメールアドレスでサインインします。変更については現在のメールアドレスにお知らせします。",
+      "newEmail": "新しいメールアドレス",
+      "currentPasswordForEmail": "現在のパスワード",
+      "updateEmail": "メールアドレスを更新",
+      "emailChanged": "メールアドレスを更新しました。今後は新しいメールアドレスでサインインしてください。",
+      "emailChangeFailed": "メールアドレスを更新できませんでした",
+      "phoneInvalid": "有効な電話番号を入力してください",
+      "payoutScheduleHint": "振込日に、準備できた金額があなたとストアの最低額に達していれば、ストアが振込を用意します。その後、ストアが上記の口座に送金します。"
     },
     "untitledProduct": "無題の商品",
     "dashboardWidgets": {
@@ -1304,6 +1335,78 @@
     },
     "activityLog": {
       "title": "アクティビティログ"
+    },
+    "payoutDetail": {
+      "back": "振込",
+      "period": "{start} – {end} の注文分",
+      "noteFromStore": "ストアからのメモ",
+      "grossSales": "総売上",
+      "grossSalesHint": "以下の注文におけるあなたの取り分",
+      "commission": "手数料",
+      "shipping": "配送料",
+      "shippingHint": "あなたが配達した荷物について購入者に請求した料金",
+      "adjustment": {
+        "recoveryDeducted": "返金回収",
+        "recoveryDeductedHint": "以前に振り込まれた後に返金された注文の分",
+        "recoveryReturned": "回収額の返還",
+        "recoveryReturnedHint": "以前の返金回収が取り消されました",
+        "reserveHeld": "予約注文の保留金",
+        "reserveHeldHint": "遅れて届くチャージバックに備えて保留",
+        "reserveReleased": "予約注文の保留金の解除",
+        "reserveReleasedHint": "以前の振込で保留され、今回解除",
+        "reserveCreditDeducted": "保留金の回収",
+        "reserveCreditDeductedHint": "解除された保留金のうち、その振込が戻ってきたもの",
+        "reserveCreditReturned": "保留金回収額の返還",
+        "reserveCreditReturnedHint": "その振込が再度支払われたため返還",
+        "commissionOffset": "現金売上の手数料",
+        "commissionOffsetHint": "ご自身で代金を受け取った売上の手数料。請求書ではなくここで精算",
+        "commissionCredit": "現金売上のストアプロモーション",
+        "commissionCreditHint": "あなたが負担する手数料を超えてストアが負担した割引"
+      },
+      "reserveUntil": "{date} に解除",
+      "otherAdjustments": "その他の調整",
+      "otherAdjustmentsHint": "返金回収と予約注文の保留金の動き",
+      "netPayout": "純振込額",
+      "sentOn": "{date} に送金",
+      "reference": "参照番号 {reference}",
+      "returnedOn": "{date} に返送されました — 含まれていた売上は残高に戻っています",
+      "history": "経過",
+      "returnedStep": "送金が戻りました",
+      "orders": "この振込に含まれる注文",
+      "order": "注文",
+      "placed": "注文日",
+      "yourShare": "あなたの取り分",
+      "afterCommission": "手数料控除後",
+      "noOrders": "この振込に紐づく注文はありません。"
+    },
+    "suspendedMoney": {
+      "title": "あなたの資金",
+      "frozen": "アカウントの停止中は振込が一時停止されます。売上は引き続き計上され、アクセスが復旧すると支払われます。",
+      "ready": "振込可能",
+      "held": "配送中または返品受付期間中",
+      "payouts": "最近の振込",
+      "status": {
+        "pending": "保留中",
+        "processing": "処理中",
+        "paid": "支払い済み",
+        "failed": "失敗",
+        "cancelled": "キャンセル"
+      }
+    },
+    "commissionCard": {
+      "canceled": "支払いがキャンセルされました。請求書は未払いのままです。",
+      "settled": "手数料の請求書を精算しました。",
+      "pendingInfo": "支払いはまだ処理中です。確認されると請求書は自動的に精算されます。",
+      "verifyFailed": "まだ支払いを確認できませんでした。",
+      "pollTimeout": "まだ支払いを確認できませんでした。確認されると請求書は自動的に精算されます。",
+      "checkPhone": "スマートフォンを確認し、支払いリクエストを承認してください。",
+      "failed": "支払いを開始できませんでした",
+      "title": "未払いの手数料",
+      "subtitle": "ご自身で代金を受け取った売上（現金、代金引換、ご自身の端末）の手数料です。振込から差し引けなかったものです。",
+      "payNow": "今すぐ支払う",
+      "noMethods": "利用できる支払い方法がありません。マーケットプレイスの管理者に連絡して、別の方法で精算してください。",
+      "dialogTitle": "手数料を精算",
+      "continue": "支払いに進む"
     }
   },
   "adminProfile": {
@@ -1926,7 +2029,6 @@
       "themes": "テーマ",
       "pages": "ページ",
       "pos": "POS",
-      "posStaff": "スタッフ",
       "posLocations": "ロケーション",
       "dashboard": "ダッシュボード",
       "navigation": "ナビゲーション",
@@ -1944,6 +2046,7 @@
       "customize": "カスタマイズ",
       "finance": "財務",
       "financeOverview": "概要",
+      "inventoryLedger": "在庫と台帳",
       "expenses": "経費",
       "receivables": "売掛金",
       "financeReports": "レポート",
@@ -1966,6 +2069,7 @@
       "returns": "返品",
       "shipping": "配送",
       "sliders": "スライダー",
+      "campaignBanners": "キャンペーンバナー",
       "staff": "チーム",
       "toggle": "サイドバーの表示を切り替え",
       "vendorConfiguration": "出品者の設定",
@@ -2544,7 +2648,7 @@
             "ses": "Amazon SES",
             "other": "その他"
           },
-          "docs": "詳しい手順: docs/EMAIL_SETUP.md",
+          "docs": "詳しい手順: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "送信に使う Google アカウントで 2-Step Verification をオンにします。",
             "step2": "{storeName} という名前でアプリ パスワードを作成し、16 文字のパスワードをコピーします。Google がこのパスワードを表示するのは一度だけです。",
@@ -2896,7 +3000,20 @@
         "soundPayment": "支払い完了",
         "soundOrderComplete": "販売完了",
         "soundError": "エラーまたは在庫警告",
-        "soundPlay": "サウンドを再生: {sound}"
+        "soundPlay": "サウンドを再生: {sound}",
+        "offlineWindow": "オフライン販売の有効時間",
+        "offlineWindowHint": "最後にサーバーに接続してから、レジが接続なしで販売を続けられる時間です。経過後は再びサインインできるまでロックされます。{min}〜{max}時間の範囲で設定します。",
+        "offlineWindowUnit": "時間",
+        "allowDeposits": "内金を許可",
+        "allowDepositsDesc": "顧客を紐付けた販売で、レジが今は一部だけを受け取り、残りを後で受け取れるようにします。商品は取り置きされ、全額支払われた時点で売上として計上されます。",
+        "requireOpenRegister": "販売にはドロワーのオープンを必須にする",
+        "requireOpenRegisterDesc": "各レジは販売の前に釣り銭準備金でドロワーを開く必要があります。すべての販売が締めで数えられるセッションに入ります。",
+        "pricesIncludeTax": "価格は税込み",
+        "openCashDrawer": "キャッシュドロワーを開く",
+        "openCashDrawerDesc": "レジで現金をやり取りするときにキャッシュドロワーを開きます。QZ Tray とドロワーポート付きのレシートプリンターが必要です。各レジはドロワーメニューからプリンターを選びます。",
+        "pricesIncludeTaxMovedOn": "オン: 店頭価格はすでに税込みです。このスイッチは税設定に移動しました。",
+        "pricesIncludeTaxMovedOff": "オフ: 店頭価格に税が加算されます。このスイッチは税設定に移動しました。",
+        "pricesIncludeTaxLink": "税設定を開く"
       },
       "vendorPermissions": {
         "title": "マーケットプレイスのポリシー",
@@ -2922,9 +3039,8 @@
       },
       "orders": {
         "title": "注文設定",
-        "description": "注文番号、税金、返品。",
+        "description": "注文番号、配送、返品。",
         "prefix": "注文番号の接頭辞",
-        "taxRate": "税率",
         "shippingCost": "通常送料",
         "freeShippingThreshold": "送料無料の基準額",
         "shippingHandledByZones": "料金は配送ゾーンから適用されます。",
@@ -2972,7 +3088,6 @@
         "shippingRefundNever": "返金しない",
         "ordersHeading": "注文",
         "prefixExample": "注文番号は <strong>{example}</strong> のようになります。",
-        "taxRateHint": "チェックアウト時と POS で注文に加算されます。",
         "shipping": "配送",
         "shippingLink": "配送と配達",
         "shippingCostHint": "配送ゾーンがオフのときに注文ごとにかかる配送料です。",
@@ -2988,7 +3103,18 @@
         "commissionSummaryLabel": "手数料と最低支払額",
         "commissionSummary": "手数料 {rate}%、最低支払額 {amount}。",
         "vendorConfigLink": "出品者の設定",
-        "refundAdminFeeUpTo": "%、上限"
+        "refundAdminFeeUpTo": "%、上限",
+        "tax": "税",
+        "taxMoved": "税率、税クラス、登録番号は税設定に移動しました。",
+        "taxLink": "税設定を開く"
+      },
+      "invoices": {
+        "title": "請求書設定",
+        "entry": {
+          "title": "請求書、レシート、ステッカー",
+          "description": "ストアが印刷する内容をデザインし、種類ごとに既定のテンプレートを選びます。",
+          "action": "請求書設定を開く"
+        }
       },
       "storage": {
         "title": "ストレージ設定",
@@ -3050,7 +3176,7 @@
         },
         "setup": {
           "title": "{provider} セットアップガイド",
-          "docs": "詳しい手順: docs/STORAGE_SETUP.md",
+          "docs": "詳しい手順: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "コピー",
           "copyFailed": "コピーできませんでした",
           "console": {
@@ -3180,7 +3306,7 @@
           "step6": "最初の取得後、Meta が拒否した商品は Catalog → Issues に一覧表示されます。",
           "caution": "新しい URL を生成したら、既存のデータソースの URL を変更してください。データソースを追加すると、すべての商品が二重に表示されます。",
           "link": "Commerce Manager を開く",
-          "docs": "詳しい手順: docs/META_CATALOG.md"
+          "docs": "詳しい手順: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Meta の Catalog API を通じて、商品の変更が数分以内に Facebook と Instagram に反映されます。",
         "source": {
@@ -3260,7 +3386,7 @@
             "caution": "トークンはパスワードと同様に扱ってください。取り消されたり有効期限が切れたりすると、ライブ同期は一時停止し、管理者に通知されます。",
             "off": "ライブ同期をオフにしても、すでに Meta にある商品はそのまま残ります。不要な場合は Commerce Manager で削除してください。",
             "link": "Business settings を開く",
-            "docs": "詳しい手順: docs/META_CATALOG.md"
+            "docs": "詳しい手順: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -3779,11 +3905,13 @@
           "byCurrencyLabel": "他の通貨での最低額",
           "byCurrencyRemove": "{currency} の最低額を削除",
           "description": "プランのない出品者に適用されます。注文設定でも編集できます。",
-          "minWithdrawalDescription": "出品者が支払いとして申請できる最小の残高（ストアの通貨）。",
+          "minWithdrawalDescription": "支払いを行う最小の残高（ストアの通貨）。",
           "minWithdrawalLabel": "最低出金額",
           "rateDescription": "出品者の販売ごとにプラットフォームが受け取る割合。",
           "rateLabel": "手数料率",
-          "title": "デフォルトの手数料"
+          "title": "デフォルトの手数料",
+          "autoPayoutDraftsLabel": "出品者ごとのスケジュールで支払いを準備",
+          "autoPayoutDraftsDescription": "出品者の支払日（出品者が選んだ毎週・隔週・毎月）に、支払える金額があれば支払いが作成されます。送金と支払い済みへの変更は引き続き手動で行います。"
         },
         "description": "出品者の登録、承認、サブスクリプションプランのポリシー。",
         "documents": {
@@ -4086,6 +4214,10 @@
             "preorderAccess": {
               "title": "予約注文の権限",
               "hint": "承認、却下、取り消し"
+            },
+            "payouts": {
+              "title": "支払い",
+              "hint": "準備、送金、返送、キャンセル"
             }
           },
           "customer": {
@@ -4251,13 +4383,227 @@
       "saveBar": {
         "unsaved": "未保存の変更",
         "discard": "破棄"
+      },
+      "tax": {
+        "title": "税設定",
+        "description": "課税内容、登録先、税額の計算方法。",
+        "tabsLabel": "税設定のセクション",
+        "moreOptions": "その他のオプション",
+        "tabs": {
+          "rates": "税率",
+          "registration": "登録",
+          "calculation": "計算",
+          "vendors": "出品者"
+        },
+        "links": {
+          "report": "税レポート",
+          "invoices": "請求書の設定"
+        },
+        "registrationMissingLabel": "登録番号がありません",
+        "rates": {
+          "description": "各クラスに適用される税率です。クラスのない商品には標準税率が適用されます。",
+          "notCharging": "税を課していません",
+          "notChargingHint": "すべての税率が 0% のため、どの販売にも税は課されません。課税を始めるには、下で標準税率を設定してください。",
+          "removedClass": "一部の商品が、すでに存在しないクラスを使用しています",
+          "removedClassHint": "{products, plural, other {# 件の商品}}と{categories, plural, other {# 件のカテゴリー}}が削除済みのクラスに分類されているため、標準税率が適用されています。それぞれのエディターでクラスを選択してください。",
+          "default": "デフォルト",
+          "partsBadge": "{count, plural, other {# 件の内訳}}",
+          "neverCharged": "課税されません",
+          "noRate": "税率はまだありません。設定するまで標準税率が適用されます。",
+          "rateLabel": "{name} の税率",
+          "rateTotalLabel": "{name} の税率（内訳の合計）",
+          "expandLabel": "{name} のオプション",
+          "usageProducts": "{count, plural, other {# 件の商品}}",
+          "usageCategories": "{count, plural, other {# 件のカテゴリー}}",
+          "next": "{date} から {rate} に変更",
+          "name": "名前",
+          "note": "メモ",
+          "optional": "任意",
+          "notePlaceholder": "このクラスに含まれるもの",
+          "partsTitle": "税率の内訳",
+          "total": "合計 {rate}",
+          "partName": "内訳名",
+          "partRate": "内訳の税率",
+          "partPlaceholder1": "州",
+          "partPlaceholder2": "郡",
+          "partPlaceholder3": "市",
+          "compound": "上の内訳に上乗せして課税",
+          "compoundHint": "各内訳は合算されます。州・郡・市の売上税と同じです。上乗せ課税の内訳は、価格にその上の内訳を加えた額に対して計算されます。",
+          "addPart": "内訳を追加",
+          "splitIntoParts": "内訳に分ける",
+          "removePart": "この内訳を削除",
+          "scheduleTitle": "予約済みの変更",
+          "scheduleAdd": "変更を予約",
+          "startsOn": "開始日",
+          "newRate": "新しい税率",
+          "removeScheduled": "この予約済みの変更を削除",
+          "earlierTitle": "以前の税率",
+          "earlierLine": "{date} から {rate}",
+          "fromStart": "最初から",
+          "removeEarlier": "この以前の税率を削除",
+          "removeClass": "クラスを削除",
+          "removeClassInUse": "{products, plural, other {# 件の商品}}と{categories, plural, other {# 件のカテゴリー}}がこのクラスを使用しています。削除すると、これらには標準税率が適用されます。",
+          "removeClassHint": "このクラスの税率も削除されます。",
+          "addClass": "クラスを追加",
+          "newName": "クラス名",
+          "newNamePlaceholder": "書籍",
+          "classRate": "税率",
+          "add": "クラスを追加",
+          "cancel": "キャンセル",
+          "full": "クラスは最大 {count} 件まで追加できます。",
+          "untaxedNote": "{count, plural, other {# 件の商品}}は課税しない設定です。",
+          "customNote": "{products, plural, other {# 件の商品}}と{categories, plural, other {# 件のカテゴリー}}には独自のカスタム税率が設定されています。この税率はここでの税率に連動しません。クラスに分類すると連動します。"
+        },
+        "registration": {
+          "description": "ストアが税務登録されている地域です。すべての販売にこの地域の税率が適用されます。",
+          "missing": "登録番号がありません",
+          "missingHint": "税を課していますが、売上税許可証の番号などの税務登録がまだ追加されていません。",
+          "country": "国",
+          "name": "地域名",
+          "optional": "任意",
+          "nameHint": "空欄の場合は国名が表示されます。",
+          "registrationLabel": "登録番号の名称",
+          "registrationLabelPlaceholder": "売上税許可証",
+          "registrationLabelHint": "税務当局での呼び方: 売上税許可証、販売者許可証 など。",
+          "registrationNumber": "登録番号",
+          "registrationNumberHint": "税務当局から発行された番号。"
+        },
+        "calculation": {
+          "posTitle": "POS",
+          "posDescription": "レジでの店頭価格の扱い方。",
+          "posPricesIncludeTax": "店頭価格は税込み",
+          "posPricesIncludeTaxDesc": "レジは税を上乗せせず店頭価格のまま請求し、価格に含まれる税額を表示します。",
+          "rulesTitle": "税額の計算方法",
+          "rulesDescription": "これらのルールはすべての販売に適用されます。ここで設定する項目はありません。",
+          "chainTitle": "商品には、次のうち最初に設定されているものが適用されます",
+          "chain": {
+            "own": "商品独自のカスタム税率",
+            "class": "商品の税クラス",
+            "category": "カテゴリーの税率",
+            "standard": "標準税率"
+          },
+          "facts": {
+            "online": {
+              "label": "オンラインストア",
+              "text": "オンラインストアでは税抜き価格を表示し、税はチェックアウト時に加算されます。"
+            },
+            "discounts": {
+              "label": "割引",
+              "text": "税は、割引やクーポンを適用した後の、購入者が支払う金額に課されます。"
+            },
+            "shipping": {
+              "label": "送料",
+              "text": "送料と関税には課税されません。"
+            },
+            "region": {
+              "label": "地域",
+              "text": "購入者の住所にかかわらず、すべての販売に地域の税率が適用されます。"
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "標準",
+            "description": "ほとんどの商品が対象です。この税率がストアの税率になります。"
+          },
+          "reduced": {
+            "name": "軽減",
+            "description": "法律で低い税率が適用される商品。"
+          },
+          "zero": {
+            "name": "ゼロ税率",
+            "description": "0% で課税される課税対象の商品。"
+          },
+          "exempt": {
+            "name": "非課税",
+            "description": "課税の対象外となる商品。"
+          }
+        },
+        "picker": {
+          "label": "税",
+          "inheritCategory": "カテゴリーと同じ",
+          "inheritParent": "親カテゴリーと同じ",
+          "custom": "カスタム税率",
+          "customRate": "カスタム税率",
+          "customHint": "カスタム税率はすべてのクラスより優先され、税設定での税率変更には連動しません。",
+          "hint": "税率はクラスによって決まります。設定 → 税設定で設定します。",
+          "removedClass": "{key}（削除済み: 標準税率）"
+        },
+        "vendors": {
+          "policyTitle": "出品者の商品の税",
+          "policyDescription": "マーケットプレイスで徴収する税の責任はストアにあります。出品者の商品の税（税を課す、税クラス、カスタム税率）を変更できる人を選択してください。",
+          "policy": {
+            "approval": "承認制",
+            "approvalHint": "出品者がリクエストを送信し、下記で承認または却下します。それまで商品の税は変わりません。",
+            "never": "ストアのみ",
+            "neverHint": "出品者は商品の税を確認できますが、変更もリクエストもできません。",
+            "free": "出品者自身",
+            "freeHint": "出品者は承認なしで自分の商品の税を変更できます。"
+          },
+          "requestsTitle": "税の変更リクエスト",
+          "requestsDescription": "承認すると、リクエスト内のすべての商品に希望の税が設定されます。却下すると税はそのままで、出品者に理由が伝えられます。",
+          "pendingTab": "未対応",
+          "decidedTab": "対応済み",
+          "loading": "リクエストを読み込み中…",
+          "empty": "未対応のリクエストはありません。",
+          "emptyDecided": "対応済みのリクエストはまだありません。",
+          "loadFailed": "リクエストを読み込めませんでした",
+          "unknownStore": "不明なストア",
+          "requestedOn": "{date} にリクエスト",
+          "asksFor": "希望",
+          "now": "現在 {tax}",
+          "moreProducts": "{count, plural, other {ほか # 件の商品}}",
+          "reason": "理由",
+          "noteLabel": "出品者へのメモ",
+          "noteRequiredHint": "却下には必須",
+          "optional": "任意",
+          "notePlaceholder": "出品者への短いメモ",
+          "addNote": "メモを追加",
+          "noteRequired": "出品者が理由を確認できるようメモを入力してください",
+          "approve": "承認",
+          "decline": "却下",
+          "cancel": "キャンセル",
+          "sendDecline": "却下を送信",
+          "approvedToast": "税の変更を承認しました",
+          "declinedToast": "リクエストを却下しました",
+          "decisionFailed": "決定を保存できませんでした",
+          "pending": "未対応",
+          "approved": "承認済み",
+          "declined": "却下済み",
+          "withdrawn": "取り下げ済み",
+          "decisionNote": "メモ: {note}"
+        },
+        "request": {
+          "notCharged": "課税なし",
+          "inherit": "カテゴリーと同じ",
+          "customRate": "カスタム税率 {rate}%",
+          "lockedLabel": "税",
+          "lockedApproval": "この商品の税の変更にはストアの承認が必要です。",
+          "lockedNever": "この商品の税はストアが管理しています。",
+          "newProductApproval": "新しい商品にはカテゴリーの税が適用されます。保存後に別の税をリクエストできます。",
+          "requestChange": "変更をリクエスト",
+          "pending": "変更をリクエスト済み: {tax}。ストアの対応を待っています。",
+          "withdraw": "取り下げ",
+          "withdrawn": "リクエストを取り下げました",
+          "withdrawFailed": "リクエストを取り下げられませんでした",
+          "dialogTitle": "税の変更をリクエスト",
+          "dialogDescription": "{count, plural, =1 {ストアがリクエストを確認します。承認されるまで、商品には現在の税が適用されます。} other {ストアが # 件の商品のリクエストを確認します。承認されるまで、商品には現在の税が適用されます。}}",
+          "chargeTax": "税を課す",
+          "reason": "税を変更する理由は何ですか？",
+          "reasonPlaceholder": "例: これらの商品は当州では売上税が免除されています。",
+          "reasonTooShort": "税を変更する理由を一文で入力してください。",
+          "send": "リクエストを送信",
+          "cancel": "キャンセル",
+          "sent": "リクエストをストアに送信しました",
+          "sendFailed": "リクエストを送信できませんでした",
+          "bulkAction": "税の変更をリクエスト"
+        }
       }
     },
     "reports": "レポート",
     "pendingApprovals": "承認待ち",
     "approveVendor": "出品者を承認",
     "rejectVendor": "出品者を拒否",
-    "posStaff": "スタッフ",
     "posLocations": "ロケーション",
     "productsPage": {
       "stats": {
@@ -4466,7 +4812,10 @@
           "countryOfOrigin": "国名または 2 文字の国コード（例: BD）。",
           "hsCode": "関税分類番号（HS コード）。",
           "barcode": "EAN-13、UPC-A、GTIN-14、Code 128 のいずれか。空欄なら自動で生成されます。",
-          "vendorId": "商品が属する出品者（出品者のエクスポートと同じ値）。既定値: 自分のストア。"
+          "vendorId": "商品が属する出品者（出品者のエクスポートと同じ値）。既定値: 自分のストア。",
+          "chargeTax": "true または false: この商品に税を課すかどうか。既定値は true。",
+          "taxClass": "税設定の税クラス。standard、reduced、zero、exempt、または追加したクラス。カテゴリーの税に戻すには inherit と入力します。",
+          "taxRate": "カスタム税率（パーセント、例: 7.5）。税クラスの代わりに適用されるため、taxClass と taxRate はどちらか一方だけ入力してください。"
         },
         "title": "商品をインポート",
         "description": "CSV または JSON ファイルから、新しい商品の追加や既存の商品の更新をまとめて行います。",
@@ -4547,7 +4896,9 @@
       "actions": {
         "export": "エクスポート",
         "import": "インポート",
-        "addCollection": "追加 コレクション"
+        "addCollection": "追加 コレクション",
+        "importExport": "インポート / エクスポート",
+        "downloadSample": "サンプルファイルをダウンロード"
       },
       "bulkActions": {
         "setActive": "有効にする",
@@ -4586,6 +4937,67 @@
         "deleteBulkError": "失敗 へ 削除 一部 コレクション",
         "updateSuccess": "{count} コレクション 更新済み",
         "updateError": "失敗 へ 更新 {count} コレクション"
+      },
+      "importDialog": {
+        "title": "コレクションをインポート",
+        "description": "CSV ファイルから、新しいコレクションの追加や既存のコレクションの更新をまとめて行います。",
+        "sampleTitle": "サンプルファイルから始める",
+        "sampleDescription": "インポートで読み込む列と、manual と automated のコレクション例が 1 つずつ入っています。例を自分のコレクションに置き換え、1 行目はそのまま残して、ここにファイルをアップロードしてください。",
+        "sampleCsv": "サンプル CSV",
+        "sampleFailed": "サンプルファイルをダウンロードできませんでした",
+        "dropTitle": "ファイルを選択するか、ここにドラッグ",
+        "dropHint": "CSV · コレクション {rows} 件まで · {size} MB",
+        "removeFile": "ファイルを削除",
+        "fileTooLarge": "このファイルは {size} MB を超えています。小さなファイルに分割してください。",
+        "wrongType": ".csv ファイルを選択してください。",
+        "rulesTitle": "行のインポート方法",
+        "rules": {
+          "match": "既存のコレクションの id または slug を含む行は、そのコレクションを更新します。どちらもない行は title で照合され、一致するものがなければ新しいコレクションを作成します。",
+          "blank": "空欄のセルは、コレクションの現在の値を保ちます。新しいコレクションは manual の draft として作成されます。",
+          "products": "manual コレクションでは、商品を slug、SKU、または名前で | 区切りで指定します。商品は事前に作成しておく必要があります。一致しない名前はスキップされ、結果に表示されます。商品のセルが空欄なら、現在の商品が保たれます。",
+          "conditions": "automated コレクションには、conditions 列に少なくとも 1 つの条件が必要です。列ガイドの例のように JSON で記入してください。"
+        },
+        "columnsTitle": "列ガイド",
+        "required": "新しいコレクションでは必須",
+        "columns": {
+          "title": "コレクション名。",
+          "slug": "コレクションのウェブアドレス。空欄なら title から作られます。更新するコレクションの特定にも使われます。",
+          "id": "エクスポートしたファイルにのみ含まれます。更新するコレクションを正確に特定します。",
+          "description": "短いプレーンテキストの説明。",
+          "descriptionHtml": "詳しい説明。HTML を使えます。",
+          "imageUrl": "コレクションのカバー画像の公開リンク（https://…）。",
+          "imageAlt": "カバー画像の代替テキスト。空欄なら title が使われます。",
+          "collectionType": "manual または automated。ファイルで指定しない限り、新しいコレクションは manual になります。",
+          "status": "active または draft。ファイルで指定しない限り、新しいコレクションは draft になります。",
+          "products": "manual コレクション用: 商品の slug、SKU、または名前を | で区切ります（例: blue-shirt|red-shirt）。",
+          "productIds": "エクスポートしたファイルにのみ含まれます: 商品の id を | で区切ります。products と併せて使われます。",
+          "conditions": "automated コレクション用: 条件を JSON のリストで指定します。使えるフィールド: title、productType、vendor、tag、price、comparePrice、weight、stock、createdAt、category、brand。",
+          "conditionMatch": "all または any: 商品がすべての条件を満たす必要があるか、1 つ満たせばよいか。既定値は all。",
+          "sortOrder": "manual、best-selling、title-asc、title-desc、price-asc、price-desc、created-asc、created-desc のいずれか。",
+          "position": "一覧でのこのコレクションの並び順を決める数値。小さいほど先に表示されます。",
+          "onlineStore": "true または false: オンラインストアにコレクションを表示するかどうか。既定値は true。",
+          "pointOfSale": "true または false: POS に表示するかどうか。既定値は false。",
+          "seoPageTitle": "検索エンジンがコレクションページに表示するタイトル。",
+          "seoMetaDescription": "検索エンジンがコレクションページに表示する説明文。"
+        },
+        "cancel": "キャンセル",
+        "submit": "コレクションをインポート",
+        "importing": "インポート中… 大きなファイルは 1 分ほどかかることがあります。このウィンドウは開いたままにしてください。",
+        "requestFailed": "ファイルをインポートできませんでした。もう一度お試しください。",
+        "resultTitle": "インポートが完了しました",
+        "resultFailedTitle": "ファイルをインポートできませんでした",
+        "created": "作成済み",
+        "updated": "更新済み",
+        "failed": "失敗",
+        "warnings": "注意事項",
+        "errorsTitle": "インポートされなかった行",
+        "errorsHint": "ファイルでこれらの行を修正し、もう一度インポートしてください。インポート済みの行は、コレクションを重複して追加せず、同じコレクションを更新します。",
+        "rowLabel": "{row} 行目",
+        "fileLabel": "ファイル",
+        "moreErrors": "…ほか {count} 件は、ダウンロードできる一覧で確認できます。",
+        "downloadErrors": "エラー一覧をダウンロード",
+        "importAnother": "別のファイルをインポート",
+        "done": "完了"
       }
     },
     "categoriesDataTable": {
@@ -4725,7 +5137,7 @@
       "vendor_status": "ベンダー状態",
       "approved": "承認済み",
       "pending": "保留中",
-      "suspended": "一時停止",
+      "suspended": "利用停止",
       "rejected": "拒否",
       "commission": "手数料",
       "sales": "売上",
@@ -4836,7 +5248,158 @@
       "team_members_exported": "チームメンバーをエクスポートしました",
       "team_members_could_not_be_exported": "チームメンバーをエクスポートできませんでした",
       "vendors_exported": "出品者をエクスポートしました",
-      "vendors_could_not_be_exported": "出品者をエクスポートできませんでした"
+      "vendors_could_not_be_exported": "出品者をエクスポートできませんでした",
+      "area": "エリア",
+      "view": "表示",
+      "manage": "管理",
+      "failed_to_load_the_role": "ロールを読み込めませんでした",
+      "name_is_required": "名前は必須です",
+      "failed_to_save_the_role": "ロールを保存できませんでした",
+      "role_updated": "ロールを更新しました",
+      "role_created": "ロールを作成しました",
+      "failed_to_delete_the_role": "ロールを削除できませんでした",
+      "role_deleted": "ロールを削除しました",
+      "edit_role": "ロールを編集",
+      "new_role": "新しいロール",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "ロールはメンバーができることを決めます。変更するとそのロールの全メンバーに反映されます。",
+      "save_role": "ロールを保存",
+      "role_details": "ロールの詳細",
+      "name": "名前",
+      "dashboard": "ダッシュボード",
+      "admin_dashboard": "管理ダッシュボード",
+      "staff_area": "スタッフエリア",
+      "any_permission_in_the_admin_dashboard": "管理ダッシュボードの任意の権限",
+      "store_records_and_the_till_in_the_staff_area": "スタッフエリアでのストアの記録とPOS",
+      "every_permission": "すべての権限",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "管理者は、今後追加されるものも含め常にすべての権限を持ちます。管理者を制限するには別のロールを割り当ててください。",
+      "delete_this_role": "このロールを削除しますか？",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "メンバーのいるロールは削除できません。先に別のロールを割り当ててください。",
+      "roles": "ロール",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "チームメンバーの種類ごとにできること。メンバーのページでロールを割り当てます。",
+      "create_role": "ロールを作成",
+      "built_in": "組み込み",
+      "members": "メンバー",
+      "view_role": "ロールを表示",
+      "the_store_owner_always_holds_every_permission": "ストアのオーナーは常にすべての権限を持ちます。",
+      "the_home_screen_s_figures": "ホーム画面の数値",
+      "returns_refunds": "返品と返金",
+      "quotes": "見積もり",
+      "price_requests_and_offers": "価格の問い合わせとオファー",
+      "applications_stores_plans_and_commissions": "申請、ストア、プラン、手数料",
+      "payouts": "支払い（出品者）",
+      "manage_sends_vendors_their_money": "管理は出品者に代金を送ります",
+      "payments": "決済",
+      "transactions_and_chargebacks": "取引とチャージバック",
+      "finance": "財務",
+      "ledger_expenses_periods_and_reports": "元帳、経費、期間、レポート",
+      "marketing": "マーケティング",
+      "boosts": "ブースト",
+      "sponsored_products": "スポンサー商品",
+      "online_store": "オンラインストア",
+      "theme_pages_menus_sliders_checkout": "テーマ、ページ、メニュー、スライダー、チェックアウト",
+      "blog": "ブログ",
+      "posts_categories_comments": "投稿、カテゴリー、コメント",
+      "ai_sales_agent": "AIセールスエージェント",
+      "its_settings_and_conversations": "その設定と会話",
+      "ai_studio": "AIスタジオ",
+      "all_accounts": "すべてのアカウント",
+      "every_sign_in_on_the_store": "ストアのすべてのサインイン",
+      "settings": "設定",
+      "store_settings": "ストア設定",
+      "sensitive_settings": "機密設定",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "決済ゲートウェイ、ストレージ、メール/SMSプロバイダー、サインイン、セキュリティ、配送業者",
+      "activity_log": "アクティビティログ",
+      "who_did_what": "誰が何をしたか",
+      "team": "チーム",
+      "manage_adds_and_edits_members_within_your_own_permissions": "管理は自分の権限の範囲でメンバーを追加・編集します",
+      "create_and_change_roles": "ロールの作成と変更",
+      "member": "メンバー",
+      "permission": "権限",
+      "role": "ロール",
+      "abandoned_checkouts": "放棄されたチェックアウト",
+      "added_for_this_member": "このメンバーに追加",
+      "all_vendors_and_locations_including_ones_added_later": "すべてのベンダーとロケーション（後から追加されるものを含む）",
+      "also_catalogues_for_ads": "広告用カタログも含む",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "受信箱に返信し、注文と顧客を確認する",
+      "brands": "ブランド",
+      "campaign_banners": "キャンペーンバナー",
+      "can": "できること",
+      "can_sign_in_and_work": "サインインして作業できます。",
+      "can_t": "できないこと",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "サインインもパスワードのリセットもできません。円満に辞めなかった人向けです。",
+      "can_t_sign_in_turn_back_on_any_time": "サインインできません。いつでも再開できます。",
+      "cashier": "レジ担当",
+      "catalog": "カタログ",
+      "categories": "カテゴリー",
+      "changed": "変更あり",
+      "changed_from_the_role": "ロールと異なる",
+      "create": "作成",
+      "creating_and_cancelling_orders_stays_with_the_store": "注文の作成とキャンセルはストアが行います",
+      "customer_accounts_are_changed_by_the_store": "顧客アカウントはストアが変更します",
+      "discounts_gift_cards": "割引とギフトカード",
+      "every_staff_permission": "すべてのスタッフ権限",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "管理ダッシュボードのメンバーに付与できるすべての権限（エリア別）。",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "スタッフエリアのメンバーに付与できるすべての権限（エリア別）。",
+      "everything_except_deleting_records": "レコードの削除以外すべて",
+      "everything_in_the_staff_area_deleting_included": "削除を含む、スタッフエリアのすべて",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "このロールに付与できるすべての権限（エリア別）。破線のボックスはロールと異なります。",
+      "everywhere": "すべての場所",
+      "gives_access": "アクセスを与える",
+      "inbox": "受信箱",
+      "invite": "招待",
+      "manage_the_till": "レジを管理",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "レジの管理には割引、レジのレポート、カウンターが含まれます",
+      "moderate": "モデレート",
+      "money": "お金",
+      "moves_money": "お金が動く",
+      "new_team_member": "新しいチームメンバー",
+      "nothing_yet": "まだありません",
+      "online_store_reports": "オンラインストアとレポート",
+      "only_in_the_admin_dashboard": "管理ダッシュボードのみ",
+      "only_these": "指定したものだけ",
+      "open_past_the_return_window": "返品期限を過ぎても受け付ける",
+      "pause": "一時停止する",
+      "paused": "一時停止中",
+      "permissions_given": "付与された権限",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "これらを付与するには Manager か Administrator を選んでください。スタッフはスタッフエリアとレジで作業します。",
+      "pick_vendors_locations_or_regions_below": "下でベンダー、ロケーション、地域を選んでください",
+      "point_of_sale": "POS（販売時点）",
+      "popups_and_bars_on_the_home_page": "ホームページのポップアップとバー",
+      "refund": "返金",
+      "refund_sends_money_back_to_the_customer": "返金すると顧客にお金が戻ります",
+      "reply": "返信",
+      "reviews": "レビュー",
+      "rings_up_sales_at_the_register": "レジで販売を行う",
+      "role_name": "ロール名",
+      "role_name_e_g_floor_lead": "ロール名（例：フロアリーダー）",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "ロール画面で作成したロールは、ここにカードとして追加表示されます。",
+      "sales_associate": "販売スタッフ",
+      "save_as_a_role": "ロールとして保存",
+      "scope": "範囲",
+      "secrets": "機密情報",
+      "selling": "販売",
+      "send_recovery_emails": "回復メールを送信",
+      "shift_lead": "シフトリーダー",
+      "staff_area_pos": "スタッフエリアとPOS",
+      "start_from": "ここから開始",
+      "store_admin": "ストア管理",
+      "summary": "概要",
+      "support_agent": "サポート担当",
+      "taken_away_for_this_member": "このメンバーから外した",
+      "the_books": "帳簿",
+      "the_register_orders_customers_and_the_inbox": "レジ、注文、顧客、受信箱",
+      "use": "使用",
+      "use_the_register": "レジを使う",
+      "watch": "注意",
+      "what_this_staff_member_can_do_by_area": "このスタッフができること（エリア別）。",
+      "where_they_work": "勤務場所",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "勤務場所と最初の権限。このメンバーの権限は下で個別に変更できます。",
+      "works_in_the_admin_dashboard": "管理ダッシュボードで作業",
+      "works_in_the_staff_area_and_at_the_till": "スタッフエリアとレジで作業",
+      "writes_copy_and_images_with_the_store_s_ai_key": "ストアのAIキーで文章と画像を作成",
+      "anything_only_in_the_admin_dashboard": "管理ダッシュボード専用のもの",
+      "this_member": "このメンバー",
+      "by_role": "ロールによる"
     },
     "customersPage": {
       "stats": {
@@ -5305,15 +5868,28 @@
       "createSection": {
         "title": "支払いを作成",
         "selectVendor": "ベンダーを選択",
-        "periodStart": "期間開始",
+        "periodStart": "期間開始（任意）",
         "periodEnd": "期間終了",
         "creating": "作成中...",
         "create": "作成",
-        "optionalNote": "任意メモ"
+        "optionalNote": "任意メモ",
+        "description": "出品者に現在支払い可能な金額を支払います。返品受付期間を過ぎた配達済みの売上から、出品者の未払い分を差し引いた額です。",
+        "searchVendor": "出品者を検索",
+        "noVendor": "出品者が見つかりません",
+        "searching": "検索中…",
+        "vendorMissing": "この出品者は存在しません",
+        "suspended": "停止中 — 支払いは凍結されています",
+        "startHint": "空欄にすると、終了日までの支払い可能な売上をすべて含めます。",
+        "frozen": "この出品者は停止中のため、支払いは凍結されています。復帰するまで売上は引き続き計上されます。",
+        "belowMinimum": "{amount} は最低支払額 {minimum} を下回っています。",
+        "orderCount": "この支払いには {count, plural, other {# 件の注文}}が含まれます。",
+        "moreThanMax": "1 回の支払いに含められるのは、支払い可能な注文のうち古い順に {count} 件までです。残りは次回の支払いに回ります。",
+        "sellerConfirmed": "{count, plural, other {# 件の配達}}は配送業者ではなく出品者が確認しました。",
+        "commissionLeft": "出品者が負担する手数料のうち {amount} はこの支払いで相殺しきれず、未払いのまま残ります。"
       },
       "listSection": {
         "title": "支払い実行",
-        "searchPlaceholder": "支払い番号を検索",
+        "searchPlaceholder": "支払い番号または出品者を検索",
         "allStatuses": "すべてのステータス",
         "columns": {
           "payout": "支払い",
@@ -5337,9 +5913,20 @@
         "pageOf": "{totalPages}ページ中 {page}ページ"
       },
       "toast": {
-        "requiredFields": "ベンダー、開始日、終了日は必須です。",
+        "requiredFields": "出品者と終了日を選択してください。",
         "createSuccess": "支払いを作成しました。",
         "createError": "支払いの作成に失敗しました"
+      },
+      "sendTo": {
+        "title": "送金先",
+        "missing": "銀行口座が登録されていません。出品者に設定で追加するよう依頼するか、現金またはゲートウェイで支払ってください。",
+        "accountName": "口座名義",
+        "accountNumber": "口座番号",
+        "bankName": "銀行",
+        "routingNumber": "ルーティング番号",
+        "swiftCode": "SWIFT",
+        "show": "口座番号を表示",
+        "copy": "{field}をコピー"
       }
     },
     "paymentTransactionsPage": {
@@ -5499,6 +6086,19 @@
       },
       "seo": {
         "untitledProduct": "無題の商品"
+      },
+      "leave": {
+        "title": "保存せずに移動しますか？",
+        "descriptionNew": "この商品はまだ保存されていません。今移動すると、入力した内容はここでは失われます。このブラウザーにコピーが残るので、次に商品を追加するときに復元できます。",
+        "descriptionEdit": "この商品への変更は保存されていません。今移動すると失われます。",
+        "confirm": "移動する",
+        "cancel": "とどまる"
+      },
+      "draft": {
+        "title": "保存されていない商品が見つかりました",
+        "body": "このブラウザーには、{time} の保存されていない商品が残っています。",
+        "restore": "復元する",
+        "discard": "破棄"
       }
     },
     "onlineStorePage": {
@@ -6619,20 +7219,38 @@
         "settings": "テーマ設定",
         "css": "カスタム CSS"
       },
-      "customCss": {
-        "title": "カスタム CSS"
-      },
       "preview": {
         "pages": {
+          "product": "商品ページ",
           "home": "ホーム",
+          "products": "商品",
           "cart": "カート",
           "search": "検索"
-        }
+        },
+        "desktop": "デスクトップ",
+        "mobile": "モバイル",
+        "hint": "ライブプレビュー：未保存の変更も反映されます。",
+        "open": "ストアを開く",
+        "title": "ストアのプレビュー",
+        "page": "プレビューするページ"
       },
-      "launchTitle": "テーマ設定"
+      "customCss": {
+        "title": "カスタム CSS",
+        "description": "テーマ本来のスタイルの後に追加されるルールで、ストアのすべてのページに適用されます。テーマごとに保存され、テーマを切り替えるとそのテーマ専用のスタイルシートに切り替わります。色・タイポグラフィ・形状は「テーマ設定」を優先し、そこで調整できない細部にこちらを使ってください。",
+        "hint": "管理画面に影響しないよう、ルールは .store-surface の範囲内に限定してください。",
+        "save": "CSS を保存",
+        "saved": "カスタム CSS を保存しました"
+      },
+      "launchTitle": "テーマ設定",
+      "launchDescription": "有効なテーマの色・タイポグラフィ・レイアウト・形状・ボタンを、ストアのライブプレビューを見ながら編集できます。テーマごとに保存され、テーマを切り替えるとそのテーマ専用の設定に切り替わります。",
+      "launch": "テーマエディターを開く"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "返品（30日間）",
+          "description": "{count} 件が対応中"
+        },
         "needsReview": {
           "title": "要確認",
           "description": "承認または却下"
@@ -6693,7 +7311,7 @@
       "enterFullscreen": "全画面表示",
       "exitFullscreen": "全画面表示を終了",
       "reset": "デフォルトに戻す",
-      "personalNote": "このブラウザで、あなただけに適用されます。ストアのロゴ、カラー、デフォルトの外観は オンラインストア → テーマ → ブランディング で設定します。",
+      "personalNote": "このブラウザで、あなただけに適用されます。ストアのロゴとデフォルトの外観は オンラインストア → テーマ → ブランディング で、色はテーマ設定で設定します。",
       "darkMode": "ダークモード",
       "contrast": "コントラスト",
       "rtl": "右から左",
@@ -6701,7 +7319,12 @@
       "sidebar": "サイドバー",
       "sidebarColor": "カラー",
       "sidebarIntegrate": "なじませる",
-      "sidebarApparent": "際立たせる"
+      "sidebarApparent": "際立たせる",
+      "sidebarPaint": "サイドバーの色",
+      "sidebarPaintPrimary": "メイン",
+      "sidebarPaintSecondary": "サブ",
+      "sidebarPaintHint": "公開中のテーマの色を使います。",
+      "sidebarPaintChange": "色を変更"
     },
     "preorderAccess": {
       "vendorFallback": "出品者",
@@ -7125,6 +7748,7 @@
         "genericError": "エラーが発生しました"
       },
       "mega": {
+        "shopAll": "{name}をすべて見る",
         "categories": "カテゴリー",
         "links": "リンク",
         "addCategory": "追加 カテゴリ",
@@ -7361,26 +7985,255 @@
         "title": "フッター"
       }
     },
+    "customizeHub": {
+      "title": "カスタマイズ",
+      "description": "カスタマイズするストアのページを選択してください。"
+    },
     "themeEditor": {
+      "presets": {
+        "default": "ブルー",
+        "cyan": "シアン",
+        "purple": "パープル",
+        "blue": "ブラック",
+        "orange": "オレンジ",
+        "red": "レッド"
+      },
+      "colorMode": "カラーモード",
+      "darkFollows": "ダークはライトの色に自動で合わせます。ダーク専用の色にするには、色をクリックしてください。",
+      "advancedColors": "詳細設定",
+      "advancedLowContrast": "読みにくい色があります",
+      "sections": {
+        "page": "ページ",
+        "text": "テキスト",
+        "sales": "セールと評価",
+        "lines": "線",
+        "states": "状態",
+        "soft": "淡い背景"
+      },
+      "sourceDefault": "テーマの既定",
+      "sourceAuto": "自動",
+      "sourceCustom": "カスタム",
+      "colorSource": "色の設定元",
+      "autoDarkHint": "ライトの色に合わせ、暗いページでも見えるように調整されます。",
+      "defaultHint": "テーマ本来の色です。他の色と合わせて読みやすいように選ばれています。",
+      "usedFor": "使用箇所",
+      "useReadable": "{color} を使用",
+      "backToAuto": "自動に戻す",
+      "resetToDefault": "テーマの既定に戻す",
+      "textAuto": "テキスト色を自動設定",
+      "accentUse": "おすすめ・メニューのラベル",
+      "saleUse": "割引・セール価格",
+      "lowContrastOn": "{surface} 上では見えにくい色です（{ratio}:1）。{minimum}:1 以上を目安にしてください。",
+      "groups": {
+        "colors": {
+          "description": "これらの色を使うのは{theme}だけです。ほかのテーマはそれぞれの色を保ちます。",
+          "label": "色"
+        },
+        "type": {
+          "label": "タイポグラフィ",
+          "description": "見出し・本文・ボタンの書体とスタイル。"
+        },
+        "layout": {
+          "label": "レイアウト",
+          "description": "ページ幅と、ヒーロー・バナーセクションが引き継ぐ全体の既定値。"
+        },
+        "shape": {
+          "label": "形状",
+          "description": "角、枠線、影。ピクセル単位の正確な値。"
+        },
+        "buttons": {
+          "label": "ボタン",
+          "description": "アクションボタンのサイズと動作。"
+        }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "背景",
+          "hint": "すべてのページの背景。"
+        },
+        "surface": {
+          "label": "カード・メニュー",
+          "hint": "パネル、ポップオーバー、ドロップダウン、メニュー。"
+        },
+        "surfaceAlt": {
+          "label": "帯・チップ",
+          "hint": "帯状のセクション、画像の背景、ニュートラルなチップ。"
+        },
+        "text": {
+          "label": "テキスト",
+          "hint": "見出しと本文。"
+        },
+        "textMuted": {
+          "label": "サブテキスト",
+          "hint": "キャプション、カテゴリ、プレースホルダー。"
+        },
+        "border": {
+          "label": "区切り線",
+          "hint": "セクション間やカードの周りの線。"
+        },
+        "primary": {
+          "label": "メインボタン",
+          "hint": "メインボタン、カートの数、選択中のタブの下線。"
+        },
+        "onPrimary": {
+          "label": "メイン上のテキスト",
+          "hint": "メインボタンのラベル。"
+        },
+        "secondary": {
+          "label": "サブボタン",
+          "hint": "「カートに追加」とその他のサブボタン。"
+        },
+        "onSecondary": {
+          "label": "サブ上のテキスト",
+          "hint": "「カートに追加」のラベル。"
+        },
+        "accent": {
+          "label": "アクセント",
+          "hint": "商品カードの「おすすめ」ラベルとストアメニューのバッジ。"
+        },
+        "sale": {
+          "label": "セール",
+          "hint": "割引バッジとセール価格。"
+        },
+        "rating": {
+          "label": "評価の星",
+          "hint": "レビューの星。"
+        },
+        "link": {
+          "label": "リンク",
+          "hint": "リンク、「すべて見る」、選択中のメニュー項目：読みやすさを保ったメインカラーの文字。"
+        },
+        "onAccent": {
+          "label": "アクセント上のテキスト",
+          "hint": "アクセントカラー上のラベル。"
+        },
+        "accentSurface": {
+          "label": "アクセント背景",
+          "hint": "プロモーション用テキストの背後にある淡いアクセント色。"
+        },
+        "onAccentSurface": {
+          "label": "アクセント背景上のテキスト",
+          "hint": "淡いアクセント色の上のテキスト。"
+        },
+        "hoverSurface": {
+          "label": "ホバー背景",
+          "hint": "ポインターを合わせたメニューやボタン。"
+        },
+        "onHover": {
+          "label": "ホバー時のテキスト",
+          "hint": "ホバー背景上のラベル。"
+        },
+        "selectedSurface": {
+          "label": "選択中の背景",
+          "hint": "ドロップダウンのチェック済み項目と、メニューの選択中の行。"
+        },
+        "onSelected": {
+          "label": "選択中のテキスト",
+          "hint": "選択中の背景上のラベル。"
+        },
+        "focusRing": {
+          "label": "フォーカスリング",
+          "hint": "キーボード操作中の位置を示す枠線。"
+        },
+        "fieldBorder": {
+          "label": "入力欄の枠線",
+          "hint": "チェックアウトの入力欄、フォーム、ドロップダウン。ヘッダーの検索ボックスの枠線は、ヘッダースタジオで個別に設定します。"
+        },
+        "onSale": {
+          "label": "セール上のテキスト",
+          "hint": "塗りつぶしの割引バッジのラベル。"
+        },
+        "saleText": {
+          "label": "セールテキスト",
+          "hint": "ページ上のセール価格と割引額。"
+        },
+        "saleSurface": {
+          "label": "セール背景",
+          "hint": "価格の横にある割引チップの背景。"
+        },
+        "onSaleSurface": {
+          "label": "セール背景上のテキスト",
+          "hint": "淡いセール色の上のテキスト。"
+        },
+        "skeleton": {
+          "label": "読み込み中のプレースホルダー",
+          "hint": "ページの読み込み中に表示されるグレーのブロック。"
+        }
+      },
       "title": "テーマ設定",
       "back": "テーマ",
       "unsaved": "未保存の変更",
+      "allSaved": "すべての変更を保存しました",
       "discard": "破棄",
       "save": "保存",
       "saved": "テーマ設定を保存しました",
       "saveFailed": "保存に失敗しました",
+      "resetGroup": "グループをリセット",
+      "resetAll": "すべてテーマの既定に戻す",
+      "resetAllTitle": "すべての設定をリセットしますか？",
       "preview": "プレビュー",
-      "brandRef": "ブランド",
+      "controls": "設定",
+      "setCustom": "カスタム色を設定",
+      "contrastHint": "表示面とのコントラスト",
       "modeLight": "ライト",
       "modeDark": "ダーク",
-      "groups": {
-        "colors": {
-          "label": "色"
+      "leaveGuard": "未保存のテーマ変更があります。",
+      "fonts": {
+        "inter": "ニュートラル、テクニカル、既定",
+        "manrope": "幾何学的、モダンな小売",
+        "dm-sans": "丸みがあり親しみやすい",
+        "plus-jakarta-sans": "柔らかな幾何学、ライフスタイル",
+        "nunito": "丸い端、遊び心",
+        "source-sans-3": "ヒューマニスト、長文向け",
+        "space-grotesk": "個性的なグロテスク、テック",
+        "playfair-display": "高コントラスト、エディトリアル",
+        "lora": "落ち着いた読みやすいセリフ",
+        "fraunces": "柔らかく温かい、ウェルネス",
+        "cormorant-garamond": "ラグジュアリー、ファッション",
+        "dm-serif-display": "見出し専用（1ウェイト）",
+        "noto-sans-bengali": "ベンガル文字 + ラテン文字、サンセリフ",
+        "noto-serif-bengali": "ベンガル文字 + ラテン文字、セリフ"
+      },
+      "resetColors": "テーマカラーをリセット",
+      "invalidColor": "有効な hex または RGB の色を入力してください。プレビューは最後の有効な色を保持します。",
+      "contrastPass": "合格",
+      "contrastLow": "低い",
+      "previewLoading": "ライブプレビューに接続中…",
+      "previewOutdated": "最新のカラーエンジンを読み込むには、プレビューを更新してください。",
+      "refreshPreview": "プレビューを更新",
+      "cannotVerifyColor": "このカスタム色の式は検証できません。両方のモードでプレビューを確認してください。",
+      "themeChanged": "編集中に別のテーマが有効化されました。そのテーマのエディターを開き直してください。",
+      "conflictKeepDraft": "編集中に別のユーザーがこの設定を保存しました。相手の変更を自分の変更で上書きするにはもう一度「保存」を、相手の変更を読み込むには「破棄」を押してください。",
+      "darkOwnHint": "ダークモードではここに独自の色（{color}）が設定されているため、この色には連動しません。「ダーク」タブで変更してください。",
+      "keyColorsTitle": "キーカラー",
+      "keyColorsHint": "ポインターを合わせるとプレビューで確認できます",
+      "keyColors": {
+        "primary": {
+          "label": "メイン",
+          "sample": "今すぐ購入"
         },
-        "layout": {
-          "label": "レイアウト"
+        "secondary": {
+          "label": "サブ",
+          "sample": "カートに追加"
+        },
+        "accent": {
+          "label": "アクセント",
+          "sample": "おすすめ"
+        },
+        "skeleton": {
+          "label": "読み込み"
         }
-      }
+      },
+      "themeDefaultNamed": "{theme}の既定",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "パレット",
+      "saveAsPalette": "パレットとして保存",
+      "resetToNamed": "{name}に戻す",
+      "themeOnly": "{theme}のみ",
+      "moreColors": "その他の色",
+      "advancedHintStates": "ホバー、選択、フォーカス、セール背景",
+      "resetAllDescriptionTheme": "色を含むすべてのグループが{theme}の既定値に戻ります。ほかのテーマは変わりません。「保存」を押すまで保存されません。",
+      "previewShowing": "{color}が使われている箇所を表示中"
     },
     "searchInsights": {
       "title": "検索インサイト",
@@ -7433,7 +8286,8 @@
         "payout": "支払い",
         "brand": "ブランド",
         "slider": "スライドショー",
-        "menu": "メニュー"
+        "menu": "メニュー",
+        "teamRole": "チームロール"
       },
       "empty": {
         "clearFilters": "フィルターをクリア"
@@ -7456,6 +8310,124 @@
           }
         }
       }
+    },
+    "categoryForm": {
+      "taxRate": "税"
+    },
+    "themeColors": {
+      "title": "テーマカラー",
+      "refs": {
+        "primary": "メイン",
+        "secondary": "サブ",
+        "accent": "アクセント",
+        "background": "背景",
+        "surface": "カード",
+        "surfaceAlt": "帯・チップ",
+        "text": "テキスト",
+        "textMuted": "サブテキスト",
+        "border": "区切り線"
+      },
+      "following": "テーマの{name}に連動しています。テーマ設定 → 色で変更できます。",
+      "followingShort": "テーマ · {name}",
+      "hint": "テーマの色を選ぶとテーマ設定 → 色に連動します。",
+      "pick": "テーマの色を使用"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "支払いの概要を読み込めませんでした",
+      "loadPayoutsError": "支払いを読み込めませんでした",
+      "columns": {
+        "payout": "支払い",
+        "period": "期間",
+        "status": "ステータス",
+        "netAmount": "純額"
+      },
+      "bankMissingTitle": "支払い先の口座が登録されていません",
+      "bankMissing": "未入力: {fields}。「ビジネス」タブで情報が追加されるまで、支払いは現金またはゲートウェイでのみ行えます。",
+      "frozenTitle": "支払いは凍結されています",
+      "frozen": "この出品者は停止中です。売上は引き続き計上されますが、復帰するまで支払いは行われません。",
+      "owedNow": "現在の支払い可能額",
+      "owedNowHint": "今支払いを作成した場合の金額です。返品受付期間を過ぎた配達済み・支払い済みの売上から、出品者の未払い分を差し引いた額です。",
+      "createPayout": "支払いを作成",
+      "noneAwaiting": "支払い待ちの配達済み・支払い済みの注文はありません。",
+      "nothingPayable": "対象の注文は {count, plural, other {# 件}}ありますが、返金と割引により支払い可能な金額はありません。",
+      "across": "{count, plural, other {# 件の注文}}分 · 総額 {gross} から手数料 {commission} を差し引いた額。返金と割引は差し引き済みです。",
+      "belowMinimumTitle": "最低出金額を下回っています",
+      "belowMinimum": "支払いは {minimum} 以上である必要があります。今作成すると拒否されます。",
+      "commissionLeft": "現金売上で出品者が負担する手数料のうち {amount} は次回の支払いで相殺しきれず、未払いのまま残ります。",
+      "overpaidTitle": "後から返金された売上に {amount} を支払い済み",
+      "overpaidRecovered": "そのうち {amount} は上の金額からすでに差し引かれています。残りは今後の支払いから差し引かれます。",
+      "overpaidLater": "出品者の次回の支払いから差し引かれます。出品者が返済した場合は返済を記録してください。",
+      "otherCurrenciesTitle": "{currencies} の残高",
+      "otherCurrencies": "この出品者は {currencies} でも取引しています。これらの残高は上の金額に含まれず、別の支払いが必要です。通貨が合算されることはありません。",
+      "trade": "取引",
+      "tradeHint": "キャンセルされていない全注文でのこの出品者の売上（{currency}）",
+      "grossSales": "総売上",
+      "vendorEarnings": "出品者の収益",
+      "vendorEarningsHint": "総額から手数料を差し引いた額",
+      "paidOut": "支払い済み",
+      "pendingAmount": "{amount} 保留中",
+      "platformRevenue": "この出品者からのプラットフォーム収益",
+      "platformRevenueHint": "売上にかかる手数料と保持した送料、および出品者が支払ったサブスクリプション料金。プラットフォームの費用を差し引く前の収益です。",
+      "commission": "手数料",
+      "commissionHint": "配達済み・支払い済みの売上が対象（返金控除後）",
+      "subscriptions": "サブスクリプション",
+      "invoicesPaid": "請求書 {total} 件中 {paid} 件が支払い済み",
+      "noInvoices": "請求書なし",
+      "shipping": "送料",
+      "shippingHint": "保持分、支払い対象外",
+      "total": "合計",
+      "history": "支払い履歴",
+      "historyHint": "この出品者に記録された支払い（新しい順）",
+      "historyEmpty": "この出品者の支払いはまだ作成されていません",
+      "repayment": {
+        "open": "返済を記録",
+        "listTitle": "手動での返済",
+        "undo": "取り消す",
+        "voidReason": "この返済を取り消す理由は何ですか？",
+        "voided": "返済を取り消しました",
+        "failed": "返済を保存できませんでした",
+        "title": "返済を記録",
+        "description": "支払い後に返金された売上について、出品者が返済した金額です。出品者の未払い分から差し引かれるため、今後の支払いで回収されなくなります。",
+        "amount": "金額（{currency}）",
+        "receivedInto": "入金先",
+        "receivedAt": "入金日",
+        "reference": "参照番号",
+        "note": "メモ",
+        "cancel": "キャンセル",
+        "save": "返済を記録",
+        "saving": "保存中…",
+        "recorded": "返済を記録しました"
+      }
+    },
+    "colorPicker": {
+      "format": "カラー形式",
+      "opacity": "不透明度",
+      "value": "カラー値",
+      "saved": "保存した色",
+      "save": "この色を保存",
+      "use": "{color} を使用",
+      "remove": "{color} を削除"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, other {ロールとの違い #件}}",
+      "changesFromRole": "{count, plural, other {{role}との違い #件}}（このメンバーのみ）",
+      "resetTo": "{role}に戻す",
+      "matchesRole": "{role}と同じです。{name}だけ変えるには、チェックを付けたり外したりしてください。",
+      "roleSaved": "「{name}」をロールにして、このメンバーに設定しました。"
+    },
+    "tagInput": {
+      "placeholder": "タグを追加",
+      "selected": "{tag} を選択しました。Backspace で削除できます。",
+      "duplicate": "{tag} はすでに追加されています",
+      "tooLong": "タグは {max} 文字までです",
+      "tooMany": "タグは最大 {max} 個まで追加できます",
+      "added": "{tag} を追加しました",
+      "removed": "{tag} を削除しました",
+      "remove": "{tag} を削除"
+    },
+    "accountMenu": {
+      "myAccount": "マイアカウント",
+      "version": "バージョン {version}"
     }
   },
   "footer": {
@@ -7504,7 +8476,19 @@
     "searchCustomers": "名前、メール、または電話番号で検索...",
     "addNote": "この注文にメモを追加...",
     "subtotal": "小計",
-    "tax": "税金",
+    "tax": {
+      "label": "税",
+      "included": "税（内税）",
+      "exempt": "免税",
+      "exemptWith": "免税 · {reason}",
+      "exemptTitle": "免税販売",
+      "exemptIntro": "この販売を税なしで行います。理由は注文に保存され、レシートに印字されます。",
+      "exemptReason": "理由（必須）",
+      "exemptReference": "免税証明書番号（任意）",
+      "exemptApply": "免税で販売",
+      "exemptRemove": "税を課す",
+      "close": "閉じる"
+    },
     "total": "合計",
     "charge": "会計",
     "billAndPayment": "Bill & Payment",
@@ -7541,10 +8525,463 @@
       "emailPlaceholder": "customer@example.com",
       "phone": "電話",
       "phonePlaceholder": "電話番号を入力",
-      "nameEmailRequired": "名前とメールは必須です",
       "created": "顧客が作成されました",
       "createError": "顧客の作成に失敗しました",
-      "save": "顧客を保存"
+      "save": "顧客を保存",
+      "nameContactRequired": "お客様の名前と、メールアドレスまたは電話番号を入力してください",
+      "contactHint": "メールアドレスか電話番号のどちらかで十分です。電話番号だけのお客様はアカウントなしで保存されます。",
+      "marketingOptIn": "お客様がメールでのお知らせとお得情報の受け取りに同意しました"
+    },
+    "offline": {
+      "bannerOffline": "オフライン — 販売はキューに保存されています",
+      "bannerStockAge": "表示中の在庫は{age}のものです",
+      "bannerSignedOut": "サインアウトしました — 同期するには再度サインインしてください",
+      "bannerSignedOutNote": "キュー内の販売はこの端末に保存されたままです。",
+      "bannerBackOnline": "オンラインに復帰しました",
+      "waitingToSync": "{count, plural, other {#件の販売が同期待ち}}",
+      "needsReview": "{count, plural, other {#件の確認が必要}}",
+      "review": "確認",
+      "signIn": "サインイン",
+      "syncNow": "今すぐ同期",
+      "lockedTitle": "販売を続けるには再接続してください",
+      "lockedLastSeen": "このレジが最後にサーバーに接続したのは{time}です。セキュリティのため、再びサインインできるまでロックされます。",
+      "lockedNever": "このレジはこの端末でまだサーバーに接続していないため、オフラインでは使用できません。",
+      "lockedQueued": "{count, plural, other {<strong>#</strong>件のオフライン販売がこの端末に保存されており、オンラインに戻ると自動的に同期されます。}}ブラウザのデータは消去しないでください。",
+      "waitingForConnection": "接続を待っています…",
+      "reviewTitle": "サーバーが拒否した販売",
+      "reviewDescription": "いずれもカウンターで支払い済みです。原因を解消して再送信するか、手作業で記録した後に破棄してください。",
+      "reviewLabel": "確認が必要なオフライン販売",
+      "reviewEmpty": "確認するものはありません。",
+      "reviewReceipt": "レシート {number}",
+      "reviewTaken": "{time}に受付",
+      "reviewAttempts": "{count, plural, other {#回試行}}",
+      "reviewServerSaid": "サーバーの応答: {message}",
+      "reviewDiscard": "破棄",
+      "reviewSendAgain": "再送信",
+      "close": "閉じる",
+      "anotherCounter": "別のカウンター",
+      "discardTitle": "この販売をキューから破棄しますか?",
+      "discardDescription": "レシート {number} はサーバーに送信されなくなります。販売を別の方法で記録した後にのみ実行してください — お客様はそのレシートを持っています。",
+      "savedOffline": "オフラインで保存しました — レシート {number}",
+      "savedOfflineNote": "接続が戻ると自動的に同期されます。",
+      "outboxFull": "このレジには未同期の販売が多すぎます。さらに販売を受け付ける前に再接続して同期してください。",
+      "noStorage": "このブラウザはオフライン販売を保存できないため、販売は受け付けられませんでした。",
+      "readerOnly": "カードリーダーのみ",
+      "touchOrStripe": "タッチまたはStripe"
+    },
+    "counter": {
+      "unavailable": "カウンターを利用できません",
+      "sharedStock": "共有在庫",
+      "finishSaleFirst": "先に現在の販売を完了するかキャンセルしてください",
+      "changeCounter": "{name}から販売中。カウンターを変更",
+      "sellingFrom": "販売元",
+      "sellingAt": "{name}で販売中",
+      "findCounter": "カウンターを検索...",
+      "noMatch": "一致するカウンターはありません。",
+      "heldCount": "保留 {count}",
+      "activeCount": "有効 {count}",
+      "deactivated": "現在のカウンターは無効化されました",
+      "pickerTitle": "どのカウンターにいますか?",
+      "pickerNote": "在庫、保留中の販売、このレジで印刷されるすべてのレシートがこの選択に従います。",
+      "findYourCounter": "カウンターを検索...",
+      "recentOnDevice": "この端末で最近使用",
+      "otherCounters": "その他のカウンター",
+      "defaultLocation": "デフォルトの拠点",
+      "startSellingAt": "{name}で販売を開始",
+      "pickCounter": "カウンターを選択",
+      "signedInAs": "{name}としてサインイン中",
+      "signedIn": "サインイン中",
+      "shortcutsMany": "最初の9件は<key>1</key>–<key>9</key>、それ以外は入力して検索、",
+      "shortcutsFew": "<key>1</key>–<key>{last}</key>で選択、",
+      "shortcutEnter": "<key>Enter</key>で開始",
+      "sellFromShared": "代わりに共有在庫から販売",
+      "switchLabel": "カウンターを切り替え",
+      "switchTitle": "販売中にカウンターを切り替えますか?",
+      "switchUnits": "{count, plural, other {#点}}がカウンターにあり、{from}の価格と在庫で計上されています。",
+      "switchChecking": "{to}で対応できるか確認しています…",
+      "switchRemovedOne": "<b>{name}</b>は<b>{to}に在庫がありません</b> — 販売から外れます。",
+      "switchRemovedMany": "<b>{name}</b>ほか{others}点は<b>{to}に在庫がありません</b> — 販売から外れます。",
+      "switchReduced": "{count, plural, other {#行が{to}の実際の在庫数まで減らされます。}}",
+      "switchAllAvailable": "この販売のすべての行が{to}で利用可能です。",
+      "switchHeldStay": "{count, plural, other {ここで保留中の#件の販売は{from}に残ります。{to}からは表示されません。}}",
+      "switchHeldStayNone": "ここで保留中の販売は{from}に残ります。{to}からは表示されません。",
+      "switchReceiptChanges": "次の行から、在庫数とレシートのフッターが{to}に切り替わります。",
+      "switchHold": "この販売を保留してから切り替え",
+      "switchRecheck": "切り替えて在庫を再確認",
+      "switchRemovesAll": "{total}行すべてを削除",
+      "switchKeeps": "{total}行中{kept}行を残す",
+      "switchStay": "{from}にとどまる",
+      "nowSellingFrom": "{name}から販売しています",
+      "nowSellingShared": "共有在庫から販売しています",
+      "probeFailed": "そのカウンターの在庫を確認できませんでした。レジは切り替わっていません。",
+      "holdFailed": "販売を保留できませんでした。レジは切り替わっていません。",
+      "rechecked": "販売を再確認しました · {changes}",
+      "holdLabel": "カウンター変更 → {name}",
+      "heldBehind": "{count, plural, other {<b>#件の販売</b>が{name}で保留中}}",
+      "goBackTo": "{name}に戻る",
+      "dismiss": "閉じる",
+      "saleBlocked": "このカウンターは利用できなくなりました。支払いを受ける前に別のカウンターを選んでください。"
+    },
+    "scan": {
+      "closeDialogFirst": "開いているダイアログを閉じてから、もう一度スキャンしてください。",
+      "multipleMatches": "このコードに一致する商品が複数あります。重複しているSKUまたはバーコードを修正してください。",
+      "noMatch": "スキャンしたコードに一致する商品が見つかりません。",
+      "lookupFailed": "スキャンしたコードを検索できませんでした。"
+    },
+    "held": {
+      "removed": "{count, plural, other {#行を削除}}",
+      "repriced": "{count}行の価格を更新",
+      "reduced": "{count}行を在庫数まで削減",
+      "resumed": "保留中の注文を再開しました",
+      "resumedWithChanges": "保留中の注文を再開しました · {changes}",
+      "nothingAvailable": "この保留中の注文の商品はどれも利用できなくなりました。レジに残しています。",
+      "recheckFailed": "現在の価格と在庫を確認できませんでした。保留中の注文はレジに残っています。",
+      "finishFirst": "別の販売を再開する前に、現在の販売を完了するか保留してください。",
+      "holdFailed": "この注文を保留できませんでした。販売はカートに残っています。",
+      "holdFull": "このレジにはすでに{max}件の保留中の注文があります。先にいずれかを再開するか削除してください。",
+      "orderHeld": "注文を保留しました",
+      "orderHeldLabel": "注文を保留しました · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "割引を適用できるのはPOSを管理する担当者のみです",
+      "cashMustCover": "受け取った現金が注文の合計額に足りません",
+      "noReceipt": "レシートのデータがありません",
+      "printPreviewFailed": "印刷プレビューを開けませんでした",
+      "noInvoice": "この注文の請求書はありません",
+      "invoicePopupBlocked": "請求書を開けませんでした。ポップアップを許可してください。"
+    },
+    "complete": {
+      "title": "販売完了",
+      "items": "{count, plural, other {# 点}}",
+      "soldAt": "{name} で販売",
+      "viewReceipt": "レシートを表示",
+      "printReceipt": "レシートを印刷",
+      "newSale": "新しい販売",
+      "emailReceipt": "レシートをメール送信",
+      "textReceipt": "レシートを SMS 送信",
+      "send": "送信",
+      "cancel": "キャンセル",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "お客様の電話番号",
+      "sentEmail": "{to} にレシートをメールしました",
+      "sentSms": "{to} にレシートを SMS で送りました",
+      "alreadySent": "少し前に {to} に送信済みです",
+      "sendFailed": "レシートを送信できませんでした",
+      "offlineHint": "この販売が同期されると、レシートの送信と表示ができます。"
+    },
+    "pay": {
+      "title": "支払いを受ける",
+      "balanceTitle": "残高を受け取る",
+      "draftItems": "{count, plural, other {下書き · # 点}}",
+      "close": "閉じる",
+      "totalDue": "お支払い合計",
+      "remaining": "残りの支払い",
+      "ofTotal": "{total} のうち {paid} 支払い済み",
+      "payments": "支払い",
+      "remove": "削除",
+      "discountPercent": "{value}% 割引を適用",
+      "discountAmount": "{amount} 割引を適用",
+      "cashDesc": "お釣りあり",
+      "bank": "銀行振込",
+      "bankDesc": "参照番号つき",
+      "manualDesc": "独自の方法",
+      "storeCredit": "ストアクレジット",
+      "storeCreditDesc": "{amount} 利用可能",
+      "split": "分割",
+      "cashGiven": "お預かり金額",
+      "amount": "金額",
+      "changeDue": "お釣り",
+      "stillOwed": "残りは別の方法で支払い",
+      "tooMuch": "残りの支払いは {amount} を超えていません",
+      "tooMuchCredit": "利用できるストアクレジットは {amount} のみです",
+      "touch": "タッチ",
+      "touchDesc": "リーダーにカードをタッチまたは挿入",
+      "stripe": "Stripe",
+      "stripeDesc": "カード情報フォーム",
+      "readyForTap": "タッチまたは挿入の準備完了",
+      "readyForTapNote": "お客様がリーダーにカードをタッチまたは挿入します。",
+      "referenceOptional": "参照番号（任意）",
+      "referencePlaceholder": "取引 ID、承認コードなど",
+      "stripePaysRest": "残りをカードで支払い: {amount}",
+      "cardNumber": "カード番号",
+      "expiry": "有効期限",
+      "cvc": "CVC",
+      "stripeNotConfigured": "支払い設定で Stripe が設定されていません。",
+      "stripeLoading": "安全なカード入力欄を読み込み中…",
+      "stripeSecured": "Stripe で保護 — カード情報は送信時にトークン化されます。",
+      "stripeFailed": "カード決済が完了しませんでした",
+      "processing": "処理中…",
+      "acceptCash": "現金を受け取る",
+      "charge": "{amount} を請求",
+      "chargeOnReader": "リーダーで {amount} を請求",
+      "useCredit": "ストアクレジットで {amount} を支払う",
+      "addPayment": "{amount} の {method} 支払いを追加",
+      "takeDeposit": "{amount} を手付金として受け取り、{due} は後払い",
+      "takePart": "今 {amount} を受け取り、{due} は未払い",
+      "depositNeedsCustomer": "手付金を受け取るにはお客様を追加してください",
+      "depositTaken": "{number} の手付金を受け取りました。残り {due} の支払いがあります。",
+      "completeSale": "販売を完了"
+    },
+    "sales": {
+      "title": "販売",
+      "close": "閉じる",
+      "back": "戻る",
+      "searchPlaceholder": "レシート番号または電話番号",
+      "dueOnly": "残高ありのみ",
+      "empty": "販売が見つかりません。",
+      "recentHint": "このレジの最近の販売",
+      "selectHint": "表示する販売を選んでください。",
+      "offline": "販売の検索には接続が必要です。",
+      "loadFailed": "販売を読み込めませんでした",
+      "balanceDue": "{amount} 未払い",
+      "balanceDueLabel": "残高",
+      "items": "商品",
+      "payments": "支払い",
+      "total": "合計",
+      "refunded": "返金済み",
+      "split": "分割",
+      "collectBalance": "残高を受け取る · {amount}",
+      "collectFailed": "支払いを受け取れませんでした",
+      "balancePaid": "残高が支払われました。販売は完了です。",
+      "balancePart": "支払いを受け取りました。残り {due} の支払いがあります。",
+      "print": "レシートを印刷",
+      "viewInvoice": "請求書を表示"
+    },
+    "register": {
+      "title": "キャッシュドロワー",
+      "openChip": "ドロワー開",
+      "closedChip": "ドロワー閉",
+      "openToSell": "販売の前にキャッシュドロワーを開いてください。",
+      "close": "閉じる",
+      "failed": "ドロワーを更新できませんでした",
+      "offline": "開く・締める・現金の出し入れには接続が必要です。販売は開いているドロワーに入り続けます。",
+      "openIntro": "最初の販売の前にドロワーの現金を数え、釣り銭準備金として入力してください。",
+      "openingFloat": "釣り銭準備金",
+      "openRegister": "ドロワーを開く",
+      "opened": "ドロワーを開きました",
+      "openedAt": "{time} に開始",
+      "salesCount": "販売数",
+      "grossSales": "売上合計",
+      "cashSales": "現金売上",
+      "cashIn": "入金",
+      "cashOut": "出金",
+      "cashRefunds": "現金返金",
+      "expectedCash": "ドロワーにあるべき額",
+      "countedCash": "実際の現金",
+      "variance": "差額",
+      "balanced": "一致",
+      "over": "過剰",
+      "short": "不足",
+      "cashInIntro": "販売以外でドロワーに入れた現金。例: 金庫から持ってきた釣り銭。",
+      "cashOutIntro": "返金以外で取り出した現金。例: 金庫への預け入れや経費の支払い。",
+      "amount": "金額",
+      "reason": "理由",
+      "reasonPlaceholder": "理由（必須）",
+      "cashAdded": "ドロワーに現金を入れました",
+      "cashRemoved": "ドロワーから現金を出しました",
+      "back": "戻る",
+      "note": "締めのメモ",
+      "notePlaceholder": "締めレポート用のメモ（任意）",
+      "queuedFirst": "{count, plural, other {# 件の販売}}がまだ同期待ちです。同期が終わってからドロワーを締めてください。",
+      "closeRegister": "ドロワーを締める",
+      "closed": "ドロワーを締めました",
+      "xReport": "X レポート",
+      "zReport": "Z レポート",
+      "printX": "X レポートを印刷",
+      "printZ": "Z レポートを印刷",
+      "printBlocked": "レポートのウィンドウがブロックされました。印刷するにはこのサイトのポップアップを許可してください。",
+      "reportOpened": "開始",
+      "reportClosed": "締め",
+      "tender": {
+        "cash": "現金",
+        "card": "カード",
+        "bank": "銀行振込",
+        "manual": "その他",
+        "store_credit": "ストアクレジット"
+      },
+      "noSale": "ノーセール",
+      "noSaleIntro": "両替や確認のために販売なしでドロワーを開きます。理由はドロワーのレポートに残ります。",
+      "noSaleDone": "ドロワーを開きました",
+      "printer": "ドロワー用プリンター",
+      "printerIntro": "キャッシュドロワーは、接続されているレシートプリンター経由でこのコンピューターの QZ Tray を使って開きます。そのプリンターを選んでください。",
+      "printerFind": "プリンターを探す",
+      "printerQzMissing": "このコンピューターで QZ Tray が起動していません",
+      "printerNone": "このレジにドロワーはありません",
+      "printerPin": "ドロワーピン",
+      "printerTest": "テスト",
+      "printerTestFailed": "ドロワーが開きませんでした。プリンターと QZ Tray を確認してください。",
+      "printerSave": "保存",
+      "printerSaved": "このレジのドロワー用プリンターを保存しました",
+      "printerNotSet": "先にドロワー用プリンターを設定してください",
+      "printerCurrent": "ドロワー: {name}",
+      "printerSetUp": "ドロワー用プリンターを設定"
+    },
+    "returns": {
+      "action": "商品を返品する",
+      "title": "商品を返品する",
+      "close": "閉じる",
+      "offline": "返品には接続が必要です。レジがオンラインに戻ったら返品を受け付けてください。",
+      "loadFailed": "この販売の商品を読み込めませんでした",
+      "previewFailed": "返金額を計算できませんでした",
+      "failed": "返品を受け付けられませんでした",
+      "nothingReturnable": "この販売に返品できる商品はありません。",
+      "returnable": "{count} 点返品可能",
+      "blockedFinalSale": "返品不可商品",
+      "blockedWindow": "返品期限切れ",
+      "blockedOther": "返品不可",
+      "less": "1 つ減らす",
+      "more": "1 つ増やす",
+      "condition": "状態",
+      "conditions": {
+        "new": "未開封",
+        "opened": "開封済み・販売可能",
+        "damaged": "破損",
+        "missing_parts": "部品不足",
+        "unusable": "使用不可"
+      },
+      "restockHint": "未開封と開封済みの商品はこのレジの在庫に戻ります。",
+      "reason": "理由",
+      "reasons": {
+        "wrong_size_or_variant": "サイズやバリエーションの違い",
+        "damaged_or_defective": "破損または不良",
+        "not_as_described": "説明と異なる",
+        "wrong_item_received": "商品違い",
+        "arrived_late": "到着が遅れた",
+        "changed_mind": "気が変わった",
+        "other": "その他"
+      },
+      "note": "メモ",
+      "notePlaceholder": "メモ（任意）",
+      "noteRequired": "問題を記入してください（必須）",
+      "refundTo": "返金方法",
+      "methods": {
+        "cash": "ドロワーから現金",
+        "card": "カード（手動）",
+        "bank": "銀行振込",
+        "original": "カードに返金",
+        "store_credit": "ストアクレジット",
+        "exchange": "交換",
+        "later": "後で返金"
+      },
+      "adminOnly": "返金は管理者が行います。返品は今記録され、返金は「返品」で管理者を待ちます。",
+      "exchangeHint": "返金額は続けて行う新しい販売に充てられます。",
+      "laterHint": "返品は今記録されます。返金は後で「返品」から行ってください。",
+      "refundTotal": "返金",
+      "restockingFee": "再入荷手数料 {amount} を含む",
+      "submit": "返品を受け付ける",
+      "done": "返品 {numbers} を受け付けました",
+      "doneRefunded": "{amount} を返金しました。",
+      "doneCash": "ドロワーからお客様に {amount} をお渡しください。",
+      "doneCredit": "お客様のストアクレジットに {amount} を追加しました。",
+      "creditBack": "{amount} は、販売の一部の支払いに使われたお客様のストアクレジットに戻りました。",
+      "doneLater": "返金は管理者を待っています。",
+      "doneExchange": "{amount} は新しい販売に充てられます。",
+      "print": "返品伝票を印刷",
+      "printBlocked": "伝票のウィンドウがブロックされました。印刷するにはこのサイトのポップアップを許可してください。",
+      "slipTitle": "返品",
+      "slipSale": "販売",
+      "exchangeReference": "交換 {numbers}",
+      "exchangeBanner": "交換クレジット {amount}",
+      "exchangeDismiss": "交換クレジットを取り消す",
+      "exchangeDismissHint": "未使用: ドロワーからお客様に現金 {amount} をお渡しください。"
+    },
+    "operator": {
+      "title": "担当者",
+      "close": "閉じる",
+      "offline": "担当者の切り替えには接続が必要です。レジは現在の担当者のままです。",
+      "loadFailed": "担当者を読み込めませんでした",
+      "failed": "うまくいきませんでした。もう一度お試しください。",
+      "workingNow": "レジ担当中",
+      "switchBack": "{name} に戻す",
+      "takeOver": "レジを引き継ぐ",
+      "nobody": "まだ誰もレジ PIN を設定していません。各自がサインイン中に自分の PIN を設定します。",
+      "pin": "PIN",
+      "switch": "担当者を切り替え",
+      "switched": "{name} がレジを担当しています",
+      "setPin": "自分のレジ PIN を設定",
+      "changePin": "自分のレジ PIN を変更",
+      "pinIntro": "{name} さん、4〜8 桁の PIN を選んでください。同僚は自分の PIN でこのレジを引き継ぎます。",
+      "newPin": "新しい PIN",
+      "confirmPin": "PIN をもう一度",
+      "pinMismatch": "2 つの PIN が一致しません",
+      "savePin": "PIN を保存",
+      "pinSaved": "レジ PIN を設定しました",
+      "back": "戻る"
+    },
+    "reports": {
+      "navLabel": "POS レポート",
+      "title": "レジレポート",
+      "subtitle": "担当者別・レジ別の売上、支払い方法別の受領額、各ドロワーの精算結果。",
+      "loadFailed": "レポートを読み込めませんでした",
+      "period": "期間",
+      "presets": {
+        "today": "今日",
+        "yesterday": "昨日",
+        "week": "過去 7 日間",
+        "month": "過去 30 日間",
+        "thisMonth": "今月"
+      },
+      "counter": "レジ",
+      "allCounters": "すべてのレジ",
+      "refresh": "更新",
+      "export": "CSV をエクスポート",
+      "empty": "この期間の販売はありません。",
+      "noSessions": "この期間に開かれたドロワーはありません。",
+      "stats": {
+        "sales": "販売数",
+        "items": "{count, plural, other {# 点}}販売",
+        "gross": "売上合計",
+        "discounts": "割引 {amount}",
+        "net": "返金差引後",
+        "refunds": "{amount} 返金",
+        "average": "平均販売額",
+        "balanceDue": "手付金の未払い {amount}"
+      },
+      "byCashier": "担当者別",
+      "byCounter": "レジ別",
+      "byTender": "支払い方法別の受領額",
+      "sessions": "ドロワーセッション",
+      "unknownCashier": "不明な担当者",
+      "noCounter": "レジなし",
+      "open": "開",
+      "payments": "{count, plural, other {# 件の支払い}}",
+      "tenders": {
+        "cash": "現金",
+        "card": "カード",
+        "bank": "銀行振込",
+        "manual": "その他",
+        "store_credit": "ストアクレジット"
+      },
+      "columns": {
+        "name": "名前",
+        "sales": "販売数",
+        "items": "点数",
+        "gross": "売上合計",
+        "discounts": "割引",
+        "refunds": "返金",
+        "net": "純額",
+        "average": "平均",
+        "tender": "支払い方法",
+        "payments": "支払い",
+        "amount": "金額",
+        "session": "セッション",
+        "counter": "レジ",
+        "openedBy": "開始者",
+        "opened": "開始",
+        "closed": "締め",
+        "expected": "あるべき現金",
+        "counted": "実数",
+        "variance": "差額"
+      }
+    },
+    "quickKeys": {
+      "tab": "お気に入り",
+      "empty": "クイックキーはまだありません",
+      "emptyManager": "グリッドの商品に星を付けると、すべてのレジのここに表示されます。",
+      "emptyCashier": "POS を管理する人が商品に星を付けると、ここに表示されます。",
+      "add": "お気に入りに追加",
+      "remove": "お気に入りから削除",
+      "failed": "お気に入りを保存できませんでした"
     }
   },
   "locations": {
@@ -7585,7 +9022,17 @@
     "deleteError": "ロケーションの削除に失敗しました",
     "updateError": "ロケーションの更新に失敗しました",
     "saveError": "ロケーションの保存に失敗しました",
-    "actions": "アクション"
+    "actions": "アクション",
+    "deliveryOrder": "配送順",
+    "deliveryOrderHint": "オンライン注文は、在庫のある1番目のロケーションから出荷され、次に2番目という順で出荷されます。",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "配送なし",
+    "services": "サービス",
+    "pickup": "店舗受け取り",
+    "returns": "返品",
+    "noTill": "レジなし",
+    "shipSooner": "ここからの出荷を優先",
+    "shipLater": "ここからの出荷を後回し"
   },
   "toast": {
     "createdSuccess": "{resource}を作成しました",
@@ -7872,7 +9319,10 @@
     "loadOlderConversations": "以前の会話を読み込む",
     "attachments": {
       "alt": "チャットの添付ファイル",
-      "open": "添付ファイルを開く"
+      "open": "添付ファイルを開く",
+      "view": "画像を全体表示",
+      "openNewTab": "新しいタブで開く",
+      "download": "ダウンロード"
     },
     "assignment": {
       "label": "担当者",
@@ -7920,7 +9370,7 @@
       "webhookUrlNotPublic": "Metaは公開されたHTTPSのコールバックのみを受け付けます。登録する前に、本番ドメイン（またはトンネル）でこのページを開いてください。",
       "setup": {
         "title": "{provider} セットアップガイド",
-        "docs": "詳細な手順: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "詳細な手順: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "Metaアプリを作成し、WhatsApp製品を追加します。",
           "config": "これらの権限を付与するFacebook Login for Businessの設定を作成し、そのIDをMETA_WHATSAPP_CONFIGURATION_IDに設定します。",
@@ -8058,6 +9508,7 @@
     "noLinks": "共有されたリンクはまだありません",
     "subject": "件名",
     "viewProduct": "商品を見る",
+    "removeAttachment": "添付ファイルを削除",
     "messageProduct": {
       "open": "{name}を開く",
       "priceOnRequest": "価格はお問い合わせください"
@@ -8492,7 +9943,10 @@
     },
     "paidFrom": {
       "cash": "現金",
-      "other": "その他"
+      "other": "その他",
+      "bank": "銀行",
+      "gateway": "ゲートウェイ残高",
+      "unpaid": "未払い"
     },
     "expenses": {
       "title": "経費",
@@ -8524,10 +9978,44 @@
         "sale": "セール",
         "refund": "返金",
         "commission": "手数料",
-        "other": "調整"
+        "other": "調整",
+        "payout": "振込済み",
+        "boost": "ブースト",
+        "subscription": "サブスクリプション",
+        "payout_returned": "振込の返送",
+        "refund_reversed": "返金の取り消し",
+        "commission_settled": "振込から手数料を精算",
+        "promotion_credit": "プロモーションクレジット",
+        "delivery_label": "配送ラベル",
+        "repayment": "あなたの返済"
       },
       "statements": "明細書",
-      "owedOrders": "注文"
+      "owedOrders": "注文",
+      "title": "あなたの財務",
+      "subtitle": "あなたの収益、振込済みの金額、マーケットプレイスが預かっている金額。",
+      "opening": "期首残高",
+      "openingHint": "この期間より前からの繰越",
+      "earned": "収益",
+      "earnedHint": "手数料控除後の売上の取り分",
+      "paidOut": "振込済み",
+      "closing": "預かり残高",
+      "closingHint": "帳簿上の残高です。振込できる金額は上のカードに表示されます",
+      "owed": "未払い額",
+      "owedHint": "ご自身で代金を受け取った注文の手数料",
+      "activity": "取引履歴",
+      "type": "種類",
+      "empty": "この期間の動きはありません。売上、返金、振込は発生するとここに表示されます。",
+      "emptyTitle": "まだ表示する内容がありません",
+      "emptyBody": "注文が支払われると明細が記録されます。売上ごとに収益が加算され、振込ごとに差し引かれます。",
+      "heldChange": "預かり残高",
+      "owedChange": "未払い額",
+      "statementsSubtitle": "残高を動かしたすべての売上、返金、振込。",
+      "seeAll": "明細書をすべて表示",
+      "export": "エクスポート",
+      "truncated": "{total} 件中最初の {shown} 件を表示しています。残りを見るには期間を短くしてください。上の残高はいずれの場合も期間全体が対象です。",
+      "owedTitle": "マーケットプレイスへの未払い額",
+      "owedSubtitle": "ご自身で代金を受け取った注文の手数料です。代金はすでにあなたの手元にあり、これはその分の未払い額です。",
+      "owedEmpty": "この期間の未払い額はありません。"
     },
     "reports": {
       "title": "レポート",
@@ -8537,6 +10025,118 @@
       "month": "月",
       "closedAt": "終了",
       "reopen": "再開する"
+    },
+    "balance": {
+      "title": "受け取り予定額",
+      "ready": "次回の振込対象",
+      "readyHint": "返品受付期間を過ぎた配達済みの注文 {count} 件分",
+      "belowMinimum": "{amount} に達すると振込が行われます",
+      "held": "返品受付期間の終了待ち",
+      "heldHint": "配達済み。配達から {days} 日後に支払い可能",
+      "reserve": "予約注文のための保留金",
+      "reserveHint": "{date} から解除",
+      "reserveUndated": "今後の振込で解除",
+      "owedBack": "ストアへの返済額",
+      "owedBackHint": "振込後に返金された注文の分。次回の振込から差し引かれます",
+      "tooManyOrders": "振込対象の注文が 500 件を超えています。ストアは古い順に分割して支払います",
+      "frozen": "アカウントの停止中は振込が一時停止されます。売上は引き続き計上されます。",
+      "inPayout": "準備中の振込に含まれる分",
+      "inPayoutHint": "{numbers} — 送金手続き中",
+      "notDelivered": "未配達",
+      "notDeliveredHint": "支払い済みの注文 {count} 件が配送中です。返品受付期間は配達時から始まります",
+      "awaitingBalance": "残金待ちの予約注文",
+      "awaitingBalanceHint": "購入者が残金を支払い、商品が配達されると支払い可能になります",
+      "commissionLeft": "未精算の手数料",
+      "commissionLeftHint": "ご自身で代金を受け取った売上の分。今後の振込または請求書で精算されます",
+      "owedBackLater": "ストアへの未返済額",
+      "owedBackLaterHint": "振込後に返金された注文の分。次回の振込では差し引ききれないため、以降の振込から差し引かれます"
+    },
+    "payout": {
+      "changedElsewhere": "この支払いは変更されたため、再読み込みしました。",
+      "updated": "支払いを更新しました。",
+      "notFound": "支払いが見つかりません。",
+      "backToPayouts": "支払い",
+      "ordersUpTo": "{date} までの注文",
+      "orderCount": "{count} 件の注文",
+      "requote": "作成後にこの支払いの注文が変更されました。キャンセルして新しく作成してください。",
+      "frozen": "この出品者は停止中のため、この支払いは送金できません。出品者を復帰させるか、支払いをキャンセルしてください。",
+      "howItWasWorkedOut": "この支払いの計算方法",
+      "grossSales": "総売上",
+      "grossSalesHint": "以下の注文における出品者の取り分",
+      "commission": "手数料",
+      "ofGross": "（総額比）",
+      "shippingAmount": "配送料",
+      "shippingAmountHint": "出品者が配達した荷物について購入者に請求した料金",
+      "reserveUntil": "{date} に解除",
+      "commissionOffset": "現金売上の手数料",
+      "commissionOffsetHint": "出品者が代金を受け取った売上の手数料。請求書ではなくここで差し引き",
+      "commissionCredit": "現金売上のストアプロモーション",
+      "commissionCreditHint": "出品者が代金を受け取った売上で、出品者が負担する手数料を超えてストアが負担した割引",
+      "otherAdjustments": "その他の調整",
+      "otherAdjustmentsHint": "返金回収と予約注文の保留金の動き",
+      "netPayout": "純支払額",
+      "paidOn": "{date} に支払い",
+      "reference": "支払い参照番号",
+      "noReference": "支払い参照番号は記録されていません",
+      "returnedOn": "{date} に返送 — 出品者への支払いが再び必要です",
+      "statusTitle": "ステータス",
+      "returnedStep": "送金が戻りました",
+      "notRecorded": "未記録",
+      "notYet": "未実施",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "未記録",
+      "note": "メモ",
+      "noteReturnedHint": "— 必須: 送金が戻った理由",
+      "noteHint": "— 支払いに保存され、出品者にも表示されます",
+      "returnedOnLabel": "送金が戻った日",
+      "returnedWarning": "銀行から送金が戻された場合にのみ使用してください。台帳の記帳が取り消され、出品者への支払いが再び必要になり、これらの売上は次回の支払いに戻ります。",
+      "saveWarning": "支払い済みにすると台帳に記帳され、対象の注文が精算されます。記帳は取り消せません。誤りは調整で修正します。",
+      "noChanges": "まだ変更はありません",
+      "ordersTitle": "この支払いに含まれる注文",
+      "ordersHint": "{date} までに配達済みで未払いのすべての注文",
+      "order": "注文",
+      "placed": "注文日",
+      "orderStatus": "注文ステータス",
+      "payment": "決済",
+      "vendorShare": "出品者の取り分",
+      "vendorEarnings": "手数料控除後",
+      "noOrders": "この支払いに紐づく注文はありません。",
+      "sellerShareNote": "各注文の商品に対する出品者の取り分を合計すると総売上になり、手数料控除後の合計が純支払額になります。ストアが徴収した送料と税金は含まれません。",
+      "adjustment": {
+        "recoveryDeducted": "返金回収",
+        "recoveryDeductedHint": "以前に支払った後に返金された注文の分",
+        "recoveryReturned": "回収額の返還",
+        "recoveryReturnedHint": "以前の返金回収が取り消されました",
+        "reserveHeld": "予約注文の保留金",
+        "reserveHeldHint": "遅れて届くチャージバックに備えて保留",
+        "reserveReleased": "予約注文の保留金の解除",
+        "reserveReleasedHint": "以前の支払いで保留され、期間が満了",
+        "reserveCreditDeducted": "保留金の回収",
+        "reserveCreditDeductedHint": "解除された保留金のうち、その支払いが戻ってきたもの",
+        "reserveCreditReturned": "保留金回収額の返還",
+        "reserveCreditReturnedHint": "その支払いが再度行われたため返還",
+        "commissionOffset": "現金売上の手数料",
+        "commissionOffsetHint": "出品者が代金を受け取った売上の手数料",
+        "commissionCredit": "現金売上のストアプロモーション",
+        "commissionCreditHint": "負担すべき手数料を超えてストアが負担した割引"
+      }
+    },
+    "receivables": {
+      "title": "出品者との債権・債務",
+      "subtitle": "出品者に代わって預かっている金額と、出品者が自分で代金を受け取った売上で負担する手数料。",
+      "vendor": "出品者",
+      "net": "精算する純額",
+      "emptyTitle": "未精算の残高はありません",
+      "emptyBody": "注文が支払われると残高が表示されます。プラットフォームは支払いが完了するまで出品者の取り分を預かり、自分で現金を受け取った出品者はその手数料を負担します。",
+      "collectNote": "台帳から読み取るため、売上は入金された時点で計上されます。現在支払い可能な金額は「支払い」に表示されます。",
+      "overpaidTitle": "預かり額を超えて支払い済み",
+      "overpaidHint": "出品者が自分で代金を受け取った売上を、支払いで精算してしまったケースです。新しい支払いではこれは起こりません。すでに記録された残高は、財務概要の調整で消し込みます。",
+      "owedBackTitle": "返済が必要な出品者",
+      "owedBackHint": "通常は、出品者への支払い後に返金が発生した場合です。次回の支払いから自動的に差し引かれます。出品者が返済した場合は、その出品者の「支払い」タブで返済を記録してください。調整も記帳すると二重に回収されるため、行わないでください。",
+      "heldForVendors": "出品者のための預かり額",
+      "commissionTheyOwe": "出品者が負担する手数料",
+      "netToSettle": "未精算の純額",
+      "netHint": "帳簿上の差引額です。支払いで送金されるのは配達済みの分のみです"
     }
   },
   "ui": {

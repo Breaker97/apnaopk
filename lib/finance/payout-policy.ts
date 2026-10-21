@@ -6,3 +6,8 @@ export const PAYOUT_TRANSITIONS: Record<string, readonly string[]> = {
   processing: ["processing", "paid", "failed", "cancelled"],
   paid: ["paid", "failed"], failed: ["failed"], cancelled: ["cancelled"],
 };
+
+/** What identifies one change to a payout, so a retry of it can be recognised. */
+export const payoutUpdateAction = (id: string) => `payout:update:${id}`;
+export const payoutUpdateFingerprint = (input: { status?: string; note?: string; paidFrom?: string; paymentReference?: string; reversedAt?: string; expectedVersion: number }) =>
+  ({ status: input.status, note: input.note, paidFrom: input.paidFrom, paymentReference: input.paymentReference, reversedAt: input.reversedAt, version: input.expectedVersion });

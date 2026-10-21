@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import { OrderCheckoutAnswers } from "@/components/common/order-checkout-answers";
-import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
+import { isPosWalkIn, posWalkInName } from "@/lib/orders/pos-walk-in";
 
 interface OrderCustomerProps {
   order: IOrder & {
@@ -80,7 +80,7 @@ export function OrderCustomer({ order }: OrderCustomerProps) {
             <div>
               <p className="font-medium">
                 {walkIn
-                  ? t("orderDetails.walkInCustomer")
+                  ? (posWalkInName(order) ?? t("orderDetails.walkInCustomer"))
                   : customer?.name || t("orderDetails.guestCheckout")}
               </p>
               {customerSinceYear ? (

@@ -1,4 +1,5 @@
 import { mongoose } from "@/lib/db";
+import type { CronRunOutcome } from "@/lib/cron/reconciliation-outcome";
 
 const { Schema, models, model } = mongoose;
 
@@ -20,7 +21,10 @@ interface ICronRun extends mongoose.Document {
   /** Route slug, e.g. "messaging-outbox". */
   job: string;
   lastRunAt: Date;
-  lastStatus: "ok" | "failed";
+  lastStatus: CronRunOutcome["status"];
+  /** Last explicitly completed reconciliation, separate from invocation. */
+  lastCompletedAt?: Date;
+  lastOutcome?: CronRunOutcome;
   /** Truncated failure text, for the operator rather than for logic. */
   lastError?: string;
   /** Consecutive failures, so a job that runs but never succeeds is visible. */
@@ -31,7 +35,13 @@ const CronRunSchema = new Schema<ICronRun>(
   {
     job: { type: String, required: true, unique: true, trim: true },
     lastRunAt: { type: Date, required: true },
-    lastStatus: { type: String, enum: ["ok", "failed"], default: "ok" },
+    lastStatus: {
+      type: String,
+      enum: ["ok", "failed", "deferred", "not_configured"],
+      default: "ok",
+    },
+    lastCompletedAt: Date,
+    lastOutcome: Schema.Types.Mixed,
     lastError: { type: String, trim: true, maxlength: 500 },
     consecutiveFailures: { type: Number, default: 0, min: 0 },
   },

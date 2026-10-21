@@ -1,4 +1,5 @@
-import { DEFAULT_PRIMARY_COLOR, DEFAULT_STORE_NAME } from "@/config/branding.config";
+import { DEFAULT_STORE_NAME } from "@/config/branding.config";
+import { emailBrand } from "@/lib/email/brand-colors";
 import type { ContactMessageRequest } from "@/contracts/mobile/shop/v1/content";
 import { isEmailDeliveryConfigured, sendEmail } from "@/lib/email/email";
 import { getSettings } from "@/models/settings.model";
@@ -28,6 +29,7 @@ export async function sendContactMessage(params: {
   const data = params.message;
   const settings = await getSettings();
   const storeName = settings.general?.storeName?.trim() || DEFAULT_STORE_NAME;
+  const brand = emailBrand(settings);
   const recipient =
     settings.general?.storeEmail?.trim() ||
     settings.email?.replyTo?.trim() ||
@@ -66,7 +68,7 @@ export async function sendContactMessage(params: {
         <div style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,sans-serif;color:#111827;">
           <div style="max-width:640px;margin:0 auto;padding:28px;">
             <div style="border-radius:10px;background:#ffffff;overflow:hidden;border:1px solid #e5e7eb;">
-              <div style="background:${DEFAULT_PRIMARY_COLOR};padding:22px 26px;color:#ffffff;">
+              <div style="background:${brand.fill};padding:22px 26px;color:${brand.ink};">
                 <p style="margin:0 0 6px;font-size:13px;opacity:.9;">New contact message</p>
                 <h1 style="margin:0;font-size:22px;line-height:1.3;">${safe.subject}</h1>
               </div>

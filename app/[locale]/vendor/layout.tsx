@@ -18,8 +18,10 @@ import { EmailVerificationNotice } from "@/components/auth/email-verification-no
 import { VendorSubscription } from "@/models";
 import {
   VENDOR_BILLING_INTERVAL,
+  VENDOR_STATUS,
   VENDOR_SUBSCRIPTION_STATUS,
 } from "@/config/app.config";
+import { loadSuspendedSellerMoney } from "@/lib/vendors/vendor-balance";
 import { VendorBillingAlert } from "@/components/vendor/vendor-billing-alert";
 import { VendorRenewalDueAlert } from "@/components/vendor/vendor-renewal-due-alert";
 import { RENEWAL_REMINDER_WINDOW_MS } from "@/lib/vendors/vendor-subscription-payments";
@@ -58,6 +60,7 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
     session,
     vendor,
     vendorPermissions,
+    access,
     isApproved,
     hasDashboardAccess,
     accessMode,
@@ -88,6 +91,12 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
     : null;
 
   if (showPaymentGate) {
+    // A suspended seller still sees what they are owed: their payouts are
+    // frozen, not forfeited.
+    const money =
+      vendor.status === VENDOR_STATUS.SUSPENDED
+        ? await loadSuspendedSellerMoney(vendorId, String(settings.general?.defaultCurrency || "USD"))
+        : null;
     return (
       <NextIntlClientProvider messages={messages}>
         <>
@@ -103,6 +112,7 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
               Boolean(paymentApplication?.paymentDueAt)
             }
             trialEnded={Boolean(paymentApplication?.trialEndedAt)}
+            money={money}
           />
         </>
       </NextIntlClientProvider>
@@ -218,6 +228,10 @@ export default async function VendorLayout({ children, params }: LayoutProps) {
               storeName={storeName}
               storeLogo={storeLogo}
               posEnabled={canAccessPos}
+              // The settings page's own check (`required: [VIEW_STORE_SETTINGS]`).
+              canOpenSettings={Boolean(
+                access?.has(VENDOR_PERMISSIONS.VIEW_STORE_SETTINGS),
+              )}
             />
             <main className="isolate flex-1 space-y-8 p-6 md:p-6">
               <EmailVerificationNotice

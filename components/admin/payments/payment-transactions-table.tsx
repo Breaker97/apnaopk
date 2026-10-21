@@ -26,6 +26,7 @@ import {
 import { buildAdminCommerceTableHeader } from "@/components/admin/admin-commerce-table-header";
 import { periodPickerConfig } from "@/components/admin/period-picker-config";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import type { PayPalMatchReview } from "@/lib/orders/order-refund-sync";
 
 type TransactionRow = {
   _id: string;
@@ -40,6 +41,7 @@ type TransactionRow = {
   currency: string;
   externalId?: string;
   createdAt: string;
+  updatedAt?: string;
   /** Why the gateway said no — normalized, and in the gateway's own words. */
   failureCode?: string;
   gatewayCode?: string;
@@ -48,6 +50,7 @@ type TransactionRow = {
   customerEmail?: string;
   clientIp?: string;
   metadata?: {
+    paypalMatchReview?: PayPalMatchReview;
     settlement?: {
       required?: boolean;
       settledAt?: string | null;
@@ -208,6 +211,26 @@ export function PaymentTransactionsTable({
   const [voidingRow, setVoidingRow] = useState<TransactionRow | null>(null);
   const [voidValues, setVoidValues] = useState<InputDialogValues>({});
   const [isVoiding, setIsVoiding] = useState(false);
+  const [reviewingRow, setReviewingRow] = useState<TransactionRow | null>(null);
+  const [reviewValues, setReviewValues] = useState<InputDialogValues>({});
+  const [isReviewing, setIsReviewing] = useState(false);
+
+  const resolvePayPalReview = useCallback(async (values: InputDialogValues) => {
+    if (!reviewingRow) return;
+    setIsReviewing(true);
+    try {
+      await apiClient.patch(`/api/admin/payments/transactions/${reviewingRow._id}`, {
+        action: "resolve_paypal_match", resolution: values.resolution,
+        matchingTransactionId: values.resolution === "same" ? values.matchingTransactionId : undefined,
+        reference: values.reference?.trim(), expectedUpdatedAt: reviewingRow.updatedAt,
+      });
+      toast.success(tr("admin.paymentTransactionsPage.paypalReview.resolved", "PayPal movement reconciled"));
+      setReviewingRow(null);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tr("admin.paymentTransactionsPage.paypalReview.failed", "The PayPal review could not be saved"));
+    } finally { setIsReviewing(false); }
+  }, [reviewingRow, router, tr]);
 
   // A hand refund recorded by mistake and never sent: undone in full — the
   // order's refunded total, the books, the seller's payable, the points —
@@ -423,7 +446,7 @@ export function PaymentTransactionsTable({
       {
         id: "type",
         header: t("admin.paymentTransactionsPage.table.columns.type"),
-        cell: (row) => <TextCell value={translateType(row.type)} />,
+        cell: (row) => <TextCell value={row.metadata?.paypalMatchReview ? tr("admin.paymentTransactionsPage.paypalReview.report", "PayPal report") : translateType(row.type)} />,
         className: "w-[100px] hidden md:table-cell",
         headerClassName: "hidden md:table-cell",
       },
@@ -445,7 +468,11 @@ export function PaymentTransactionsTable({
               ) : (
                 <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
               )}
-              {awaiting
+              {row.metadata?.paypalMatchReview
+                ? !row.metadata.paypalMatchReview.accountingCompletedAt
+                  ? tr("admin.paymentTransactionsPage.paypalReview.pending", "Needs review")
+                  : tr("admin.paymentTransactionsPage.paypalReview.done", "Reconciled")
+                : awaiting
                 ? isOwedBySellers(row)
                   ? sellerSendsLabel
                   : awaitingSettlementLabel
@@ -706,6 +733,11 @@ export function PaymentTransactionsTable({
         icon: <Eye className="h-4 w-4" />,
         href: getOrderHref(row, locale),
       },
+      ...(row.metadata?.paypalMatchReview && !row.metadata.paypalMatchReview.accountingCompletedAt ? [{
+        id: "review-paypal", label: tr("admin.paymentTransactionsPage.paypalReview.review", "Review PayPal movement"),
+        icon: <Eye className="h-4 w-4" />,
+        onClick: () => { const saved = row.metadata?.paypalMatchReview; setReviewValues({ resolution: saved?.resolution || "", matchingTransactionId: saved?.matchingTransactionId || "", reference: saved?.reference || "" }); setReviewingRow(row); },
+      }] : []),
       ...(isAwaitingSettlement(row)
         ? [
             {
@@ -797,6 +829,30 @@ export function PaymentTransactionsTable({
         className="overflow-hidden [&_thead_th]:text-xs [&_tbody_td]:text-xs"
         onRowClick={(row) => router.push(getOrderHref(row, locale))}
         emptyMessage={t("admin.paymentTransactionsPage.table.empty")}
+      />
+
+      <InputDialog
+        open={Boolean(reviewingRow)}
+        onOpenChange={(open) => { if (!open) setReviewingRow(null); }}
+        title={tr("admin.paymentTransactionsPage.paypalReview.review", "Review PayPal movement")}
+        description={`${reviewingRow?.externalId || ""} · ${reviewingRow?.metadata?.paypalMatchReview?.captureId || ""} — ${tr("admin.paymentTransactionsPage.paypalReview.description", "No additional money has been counted. Check the PayPal statement before deciding whether this report describes an existing transaction or a separate movement.")}`}
+        fields={[
+          { name: "resolution", label: tr("admin.paymentTransactionsPage.paypalReview.result", "What does the statement show?"), required: true,
+            options: [
+              { value: "same", label: tr("admin.paymentTransactionsPage.paypalReview.same", "The same money already recorded") },
+              { value: "independent", label: tr("admin.paymentTransactionsPage.paypalReview.independent", "A separate money movement") },
+            ],
+          },
+          ...(reviewValues.resolution === "same" ? [{ name: "matchingTransactionId", label: tr("admin.paymentTransactionsPage.paypalReview.matching", "Existing transaction"), required: true,
+            options: (reviewingRow?.metadata?.paypalMatchReview?.candidates || []).map((candidate) => ({ value: candidate.transactionId, label: `${candidate.externalId || candidate.transactionId} · ${candidate.amount} ${candidate.currency}` })),
+          }] : []),
+          { name: "reference", label: tr("admin.paymentTransactionsPage.paypalReview.reference", "PayPal statement reference and evidence"), required: true, multiline: true, rows: 3 },
+        ]}
+        values={reviewValues}
+        onValuesChange={setReviewValues}
+        onSubmit={(values) => void resolvePayPalReview(values)}
+        submitText={tr("admin.paymentTransactionsPage.paypalReview.confirm", "Confirm reconciliation")}
+        loading={isReviewing}
       />
 
       <InputDialog

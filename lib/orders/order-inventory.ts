@@ -1,4 +1,7 @@
 import { Types } from "mongoose";
+import { inventoryWriteContext, withInventoryWrite } from "@/lib/inventory/finance-context";
+import { financialSourceTransitionActive, withFinancialOrderTransaction } from "@/lib/inventory/finance-source-transaction";
+import { financeSession } from "@/lib/finance/transaction";
 import { Order, ReturnRequest } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
 import {
@@ -584,6 +587,10 @@ export async function restoreOrderInventory(
   orderId: string,
   options?: RestoreClaimOptions,
 ): Promise<boolean> {
+  if (inventoryWriteContext()?.reason !== "return_restock") return withInventoryWrite({
+    reason: "return_restock", sourceKind: "order_restock", sourceId: orderId,
+    requestKey: `order-restock:${orderId}`, restock: { orderId },
+  }, () => withFinancialOrderTransaction(orderId, () => restoreOrderInventory(orderId, options)));
   if (!Types.ObjectId.isValid(orderId)) return false;
   const claimed = await claimAllRemainingRestores(orderId, options);
   // Consignments whose pre-order units were allocated carry evidence of
@@ -861,6 +868,7 @@ export function takeUnits(
 export async function reserveCancelledOrderInventory(
   orderId: string,
 ): Promise<number> {
+  if (!financialSourceTransitionActive()) return withFinancialOrderTransaction(orderId, () => reserveCancelledOrderInventory(orderId));
   if (!Types.ObjectId.isValid(orderId)) return 0;
 
   const claimed = await Order.findOneAndUpdate(
@@ -881,15 +889,18 @@ export async function reserveCancelledOrderInventory(
   }
   if (lines.length === 0) return targets.length;
 
+  if (financeSession()) await Order.updateOne({ _id: orderId }, { $inc: { "subOrders.$[so].inventoryFinanceCycle": 1 } }, { arrayFilters: [{ "so._id": { $in: targets.map((sub) => sub._id) } }] });
+
   try {
     await decrementInventory(
       lines,
-      getInventoryOpts(
+      { ...getInventoryOpts(
         claimed as { channel?: string; posLocationId?: unknown },
         sharedFulfillmentSubOrder(targets),
-      ),
+      ), financeSource: { kind: "order", id: orderId } },
     );
   } catch (error) {
+    if (financeSession()) throw error;
     // Give back exactly the consignments THIS call claimed — addressed by id,
     // not by "everything currently reserved", which would strip the
     // reservation from a sibling that was legitimately holding stock all
@@ -919,6 +930,10 @@ export async function restoreSubOrderInventory(params: {
   orderId: string;
   vendorId: string;
 }): Promise<boolean> {
+  if (inventoryWriteContext()?.reason !== "return_restock") return withInventoryWrite({
+    reason: "return_restock", sourceKind: "order_restock", sourceId: params.orderId,
+    requestKey: `suborder-restock:${params.orderId}:${params.vendorId}`, restock: { orderId: params.orderId },
+  }, () => withFinancialOrderTransaction(params.orderId, () => restoreSubOrderInventory(params)));
   if (!Types.ObjectId.isValid(params.orderId)) return false;
   // This vendor's allocated pre-order units, from their evidence.
   const evidenceIds = (await readCommittedEvidence(params.orderId))

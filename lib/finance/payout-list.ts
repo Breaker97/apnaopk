@@ -1,6 +1,6 @@
 import { vendorPayoutDto } from "@/lib/finance/payout-dto";
 import type { Types } from "mongoose";
-import { Payout } from "@/models";
+import { Payout, Vendor } from "@/models";
 import { connectDB } from "@/lib/db";
 import {
   countForQuery,
@@ -44,10 +44,10 @@ interface PayoutListContext {
   vendorId?: Types.ObjectId | string;
 }
 
-function buildPayoutListFilter(
+async function buildPayoutListFilter(
   { search, status, vendorId: vendorFilter }: PayoutListParams,
   { vendorId }: PayoutListContext = {},
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const query: Record<string, unknown> = {};
 
   // The vendor dashboard is hard-scoped; the admin list may filter by vendor.
@@ -59,7 +59,22 @@ function buildPayoutListFilter(
 
   if (search) {
     const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (escaped) query.payoutNumber = { $regex: escaped, $options: "i" };
+    if (escaped) {
+      const byNumber = { payoutNumber: { $regex: escaped, $options: "i" } };
+      // The admin list also finds a seller by name: its vendor filter lists
+      // only the newest sellers, so an older one was reachable no other way.
+      const sellers = vendorId
+        ? []
+        : await Vendor.find({ storeName: { $regex: escaped, $options: "i" } })
+            .select("_id")
+            .limit(50)
+            .lean<Array<{ _id: Types.ObjectId }>>();
+      if (sellers.length > 0) {
+        query.$or = [byNumber, { vendorId: { $in: sellers.map((seller) => seller._id) } }];
+      } else {
+        Object.assign(query, byNumber);
+      }
+    }
   }
 
   return query;
@@ -72,7 +87,7 @@ export async function fetchPayoutList(
   await connectDB();
 
   const { page, limit, sortBy, sortOrder } = params;
-  const query = buildPayoutListFilter(params, context);
+  const query = await buildPayoutListFilter(params, context);
   const sort = resolveListSort({
     sortBy,
     sortOrder,

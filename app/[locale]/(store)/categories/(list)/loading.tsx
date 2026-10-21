@@ -24,8 +24,8 @@ export default function CategoriesLoading() {
 
       <Separator className="mb-8" />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-        {Array.from({ length: 10 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+        {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="overflow-hidden rounded-md border bg-background">
             <Skeleton className="aspect-4/3 w-full rounded-none" />
             <div className="p-3">

@@ -10,6 +10,7 @@ import {
   type AISalesAgentTone,
 } from "./models";
 import type { PublicAISalesAgentConfig } from "./types";
+import { widgetColor } from "@/lib/theme-colors/theme-refs";
 
 export const DEFAULT_AI_SALES_AGENT_SETTINGS: IAISalesAgentSettings = {
   enabled: false,
@@ -27,8 +28,10 @@ export const DEFAULT_AI_SALES_AGENT_SETTINGS: IAISalesAgentSettings = {
     "I can connect you with the store team for anything that needs a human review.",
   widget: {
     position: "bottom-right",
-    primaryColor: "#7c3aed",
-    accentColor: "#a855f7",
+    // The theme's own primary, so a new store's chat matches its brand;
+    // a solid fill (both stops) keeps the accent for promo labels only.
+    primaryColor: "var(--theme-primary)",
+    accentColor: "var(--theme-primary)",
     avatarUrl: "",
     footerText: "Powered by AI",
     headerTitle: "",
@@ -121,6 +124,15 @@ export function normalizeAISalesAgentSettings(
     widget: {
       ...DEFAULT_AI_SALES_AGENT_SETTINGS.widget,
       ...widgetIncoming,
+      // Painted into inline styles: only a colour or a theme reference.
+      primaryColor: widgetColor(
+        (widgetIncoming as Record<string, unknown>).primaryColor,
+        DEFAULT_AI_SALES_AGENT_SETTINGS.widget.primaryColor,
+      ),
+      accentColor: widgetColor(
+        (widgetIncoming as Record<string, unknown>).accentColor,
+        DEFAULT_AI_SALES_AGENT_SETTINGS.widget.accentColor,
+      ),
     },
     capabilities: {
       ...DEFAULT_AI_SALES_AGENT_SETTINGS.capabilities,

@@ -69,7 +69,7 @@ const CAROUSEL_DOT_LIMIT = 10;
  * price is still in reach below it.
  */
 const CAROUSEL_TRACK_HEIGHT_CLASS =
-  "h-[52vh] max-h-[440px] sm:h-[56vh] sm:max-h-[520px] lg:h-[min(640px,calc(100svh-var(--storefront-header-height,7rem)-10rem))] lg:max-h-none";
+  "h-[52vh] max-h-[440px] sm:h-[56vh] sm:max-h-[520px] lg:h-[min(640px,calc(100svh-var(--storefront-header-rest-height,7rem)-10rem))] lg:max-h-none";
 
 /**
  * A media item's own proportions (width ÷ height), or null when nothing says.
@@ -373,7 +373,7 @@ export function ProductImageGallery({
                   hoverZoom={zoomAllowed}
                 />
                 {index === 0 && discountPercentage > 0 && (
-                  <Badge className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
+                  <Badge className="absolute left-3 top-3 rounded-full bg-store-sale px-2.5 py-1 text-xs font-semibold text-store-on-sale hover:bg-store-sale">
                     -{discountPercentage}%
                   </Badge>
                 )}
@@ -452,7 +452,7 @@ export function ProductImageGallery({
             </div>
 
             {discountPercentage > 0 && (
-              <Badge className="pointer-events-none absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500 sm:left-4 sm:top-4">
+              <Badge className="pointer-events-none absolute left-3 top-3 rounded-full bg-store-sale px-2.5 py-1 text-xs font-semibold text-store-on-sale hover:bg-store-sale sm:left-4 sm:top-4">
                 -{discountPercentage}%
               </Badge>
             )}
@@ -553,7 +553,7 @@ export function ProductImageGallery({
                   intrinsic={!ratio && kind === "image" ? "width" : undefined}
                 />
                 {index === 0 && discountPercentage > 0 && (
-                  <Badge className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
+                  <Badge className="absolute left-3 top-3 rounded-full bg-store-sale px-2.5 py-1 text-xs font-semibold text-store-on-sale hover:bg-store-sale">
                     -{discountPercentage}%
                   </Badge>
                 )}
@@ -618,7 +618,7 @@ export function ProductImageGallery({
         {/* Top bar: discount badge + zoom/expand buttons */}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 sm:p-4">
           {discountPercentage > 0 ? (
-            <Badge className="pointer-events-auto rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500">
+            <Badge className="pointer-events-auto rounded-full bg-store-sale px-2.5 py-1 text-xs font-semibold text-store-on-sale hover:bg-store-sale">
               -{discountPercentage}%
             </Badge>
           ) : (

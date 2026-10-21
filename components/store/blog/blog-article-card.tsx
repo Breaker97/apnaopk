@@ -61,7 +61,7 @@ export function BlogArticleCard({
       </Link>
       <div className="flex flex-1 flex-col p-3.5 sm:p-5 lg:p-6">
         <Link href={href}>
-          <h3 className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors hover:text-primary sm:mb-4 sm:text-[19px]">
+          <h3 className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors hover:text-store-link sm:mb-4 sm:text-[19px]">
             {article.title}
           </h3>
         </Link>
@@ -102,7 +102,7 @@ export function BlogArticleCard({
             // (globals.css) — raw CTAs opt in so "Square"/"Rounded" reshape
             // them like every real Button.
             data-slot="button"
-            className="group inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-foreground/80 bg-background px-3 text-[11px] font-semibold text-foreground transition-colors hover:border-primary hover:text-primary sm:h-9 sm:gap-2 sm:px-5 sm:text-xs"
+            className="group inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-foreground/80 bg-background px-3 text-[11px] font-semibold text-foreground transition-colors hover:border-primary hover:text-store-link sm:h-9 sm:gap-2 sm:px-5 sm:text-xs"
           >
             Read More
             <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 sm:h-3.5 sm:w-3.5" />

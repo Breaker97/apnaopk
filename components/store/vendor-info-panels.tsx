@@ -56,7 +56,7 @@ function Fact({
 }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border bg-card p-4">
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-store-link" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -148,7 +148,7 @@ export function VendorShippingPanel({
     <div className="grid gap-4 sm:grid-cols-2">
       <section className="rounded-xl border bg-card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-bold">
-          <Clock className="h-4 w-4 text-primary" aria-hidden="true" />
+          <Clock className="h-4 w-4 text-store-link" aria-hidden="true" />
           {labels.processingHeading}
         </h2>
         <p className="text-sm text-muted-foreground">
@@ -158,7 +158,7 @@ export function VendorShippingPanel({
 
       <section className="rounded-xl border bg-card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-bold">
-          <Store className="h-4 w-4 text-primary" aria-hidden="true" />
+          <Store className="h-4 w-4 text-store-link" aria-hidden="true" />
           {labels.pickupHeading}
         </h2>
         {vendor.pickup ? (
@@ -188,7 +188,7 @@ export function VendorShippingPanel({
 
       <section className="rounded-xl border bg-card p-5 sm:col-span-2">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-bold">
-          <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+          <MapPin className="h-4 w-4 text-store-link" aria-hidden="true" />
           {labels.locationHeading}
         </h2>
         <p className="text-sm text-muted-foreground">

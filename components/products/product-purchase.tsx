@@ -1,5 +1,6 @@
 "use client";
 
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import {
   createContext,
   useContext,
@@ -38,7 +39,10 @@ import {
   getProductCompareAtPrice,
   getProductPriceRange,
 } from "@/lib/products/price-display";
-import { productRequiresVariantSelection } from "@/lib/products/variant-selection";
+import {
+  defaultOptionValues,
+  productRequiresVariantSelection,
+} from "@/lib/products/variant-selection";
 import { isColorOptionName } from "@/lib/products/color-swatch";
 import type {
   ProductPreorderSettings,
@@ -157,7 +161,16 @@ function useProductPurchaseState({
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  // Every option starts on its first value (defaultOptionValues), so the page
+  // shows a variant's price, stock and picture from the start, and changing
+  // one option shows its variant at once.
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(() =>
+    defaultOptionValues(product),
+  );
+  /** Whether the shopper has picked anything themselves, beyond the defaults. */
+  const [shopperChose, setShopperChose] = useState(false);
+  /** The option the shopper changed last, for the gallery to follow. */
+  const [lastPicked, setLastPicked] = useState<{ index: number; value: string } | null>(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [isQuoteOpen, setIsQuoteOpen] = useState(false);
   const hasMounted = useHydrated();
@@ -203,10 +216,8 @@ function useProductPurchaseState({
     // It asks, but has no options to ask with — several variants and no way to
     // tell them apart. Nothing is picked; the buy box stays shut.
     if (options.length === 0) return undefined;
-    // Nothing is picked on the shopper's behalf, so until every option has an
-    // answer there is no variant. Falling back to the first one is what let a
-    // shopper add a colour and a size they never chose — the buy box read as
-    // "Blue Black, 12/128GB, Dual" on a page they had not touched.
+    // Every option starts answered (defaultOptionValues); one left without an
+    // answer means there is no variant to sell yet.
     if (options.some((_, index) => !selectedOptions[index])) {
       return undefined;
     }
@@ -255,15 +266,16 @@ function useProductPurchaseState({
   const quoteOffer = quoteOffers.find(
     (offer) => (offer.variantId ?? "") === (selectedVariant?._id ?? ""),
   );
-  // A price is for one variant, and the page opens with every option
-  // unanswered — so a shopper sent back here to buy what they were quoted saw
-  // "Price on request" until they rebuilt the exact combination by hand. When
-  // their price arrives and nothing is picked yet, the quoted variant is.
+  // A price is for one variant, and the page opens on the first values — so a
+  // shopper sent back here to buy what they were quoted would see "Price on
+  // request" until they rebuilt the exact combination by hand. When their
+  // price arrives and they have picked nothing themselves, the quoted variant
+  // is.
   // Offers come newest first, so with prices for several variants the latest
   // one wins.
   useApplyOnChange([quoteOffers], () => {
     if (!requiresVariantChoice) return;
-    if (selectedOptions.some(Boolean)) return;
+    if (shopperChose) return;
     for (const offer of quoteOffers) {
       if (!offer.variantId) continue;
       const variant = product.variants?.find(
@@ -291,9 +303,8 @@ function useProductPurchaseState({
    */
   const quotedNow = Boolean(quoteOffer && quantity === quoteOffer.quantity);
 
-  // The page opens with every option unanswered. A pre-selected first variant
-  // reads as a decision the shopper made, and they carry it to checkout
-  // without noticing; asking them to pick is one click against a wrong order.
+  // Landing on a product starts it on its first values again (see
+  // selectedOptions above).
   //
   // Keyed on the product ID alone. `product.options` and `product.variants`
   // are arrays off a server-rendered prop, so they arrive with a new identity
@@ -303,7 +314,9 @@ function useProductPurchaseState({
   // browser, a picked colour/size/storage silently cleared mid-visit. Only
   // landing on a DIFFERENT product is a reason to start over.
   useApplyOnChange([product._id], () => {
-    setSelectedOptions([]);
+    setSelectedOptions(defaultOptionValues(product));
+    setShopperChose(false);
+    setLastPicked(null);
     setSelectedImage(0);
     setQuantity(1);
   });
@@ -323,14 +336,30 @@ function useProductPurchaseState({
     const values = (variant?.optionValues ?? []).map((value) =>
       typeof value === "string" ? value : value.value,
     );
-    if (values.length > 0 && values.every(Boolean)) setSelectedOptions(values);
+    if (values.length > 0 && values.every(Boolean)) {
+      setSelectedOptions(values);
+      // The link chose it, as the shopper would have: a price arriving later
+      // does not move them off it.
+      setShopperChose(true);
+    }
   });
 
-  // A variant with its own picture brings the gallery to it.
-  useApplyOnChange([product.media, selectedVariant], () => {
+  // A variant with its own picture brings the gallery to it. When the
+  // combination picked is not sold, or its variant has no picture, the value
+  // the shopper just picked still shows: the first variant wearing it that
+  // has one (a colour's picture, whatever the storage).
+  useApplyOnChange([product.media, selectedVariant, lastPicked], () => {
     if (selectedVariant?.mediaIndex !== undefined) {
       setSelectedImage(selectedVariant.mediaIndex);
+      return;
     }
+    if (!lastPicked) return;
+    const wearing = product.variants?.find((variant) => {
+      const answer = variant.optionValues?.[lastPicked.index];
+      const value = typeof answer === "string" ? answer : answer?.value;
+      return variant.mediaIndex !== undefined && value === lastPicked.value;
+    });
+    if (wearing?.mediaIndex !== undefined) setSelectedImage(wearing.mediaIndex);
   });
 
   // Before a variant is picked the buy box prints what the product card that
@@ -515,6 +544,17 @@ function useProductPurchaseState({
     setIsAddingToCart(true);
     try {
       await addItem(cartLine());
+      posthogClient.capture("product_added_to_cart", {
+        product_id: product._id,
+        product_name: product.name,
+        product_slug: product.slug,
+        price: selectedVariant?.price ?? product.price,
+        quantity,
+        variant_id: selectedVariant?._id,
+        variant_name: selectedVariant?.name,
+        category: product.category?.name,
+        brand: product.brand?.name,
+      });
       trackAddToCart({
         currency: currency.code,
         value: (selectedVariant?.price ?? product.price) * quantity,
@@ -589,6 +629,8 @@ function useProductPurchaseState({
       next[index] = value;
       return next;
     });
+    setShopperChose(true);
+    setLastPicked({ index, value });
     setQuantity(1);
   };
 

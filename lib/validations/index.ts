@@ -22,6 +22,10 @@ import {
 import { isExpenseReceiptReference } from "@/lib/finance/expense-receipts";
 import { LEDGER_ACCOUNTS, type LedgerAccount } from "@/lib/finance/accounts";
 import { ALL_VENDOR_PACKS } from "@/config/permissions.config";
+import {
+  CAMPAIGN_BANNER_STATUSES,
+  CAMPAIGN_BANNER_TYPES,
+} from "@/lib/campaign-banners/types";
 import { hasUnsafeAddressText } from "@/lib/customers/address-text";
 import { parseExternalVideoUrl } from "@/lib/products/external-video";
 import { MAX_PRODUCT_MEDIA } from "@/lib/products/media-limits";
@@ -215,6 +219,7 @@ const ProductVariantSchema = z.object({
 });
 
 export const CreateProductSchema = z.object({
+  initialStockReceipt: z.object({ payment: z.enum(["paid", "unpaid", "already_recorded"]), paidFrom: z.enum(["bank", "cash", "gateway"]).optional(), paymentDate: z.iso.datetime().optional(), expenseId: z.string().regex(/^[a-f\d]{24}$/i).optional(), expenseRevision: z.number().int().nonnegative().optional(), note: z.string().max(500).optional() }).optional(),
   vendorId: z.string().optional(),
   name: z.string().min(3, "Name must be at least 3 characters").max(200),
   title: z.string().min(3).max(200).optional(),
@@ -243,6 +248,11 @@ export const CreateProductSchema = z.object({
     .nullable()
     .optional(),
   chargeTax: z.boolean().optional(),
+  // Its own sales-tax rate in percent; null clears it back to the category's
+  // or the store's (lib/tax/tax-rates.ts).
+  taxRate: z.number().min(0).max(100).nullable().optional(),
+  // A Settings → Tax class key; null takes the category's (or the parent's).
+  taxClass: z.string().trim().regex(/^[a-z0-9][a-z0-9-]{0,39}$/).nullable().optional(),
   // "Price on request": the product is quoted, not priced. See
   // lib/products/quote-pricing.ts for what the flag actually switches off.
   priceOnRequest: z.boolean().optional(),
@@ -540,9 +550,19 @@ export const AdminCreateOrderSchema = z.object({
     .default(PAYMENT_STATUS.PENDING),
   shippingCost: z.coerce.number().min(0).max(100000).default(0),
   discount: z.coerce.number().min(0).max(100000).default(0),
-  taxRate: z.coerce.number().min(0).max(100).default(0),
+  // A percentage for the whole order; left out (or null), each line is taxed
+  // at its product's rate (lib/orders/manual-order-tax.ts).
+  taxRate: z.coerce.number().min(0).max(100).nullish(),
   notes: z.string().max(1000).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
+});
+
+/** What the manual order form sends to preview its totals before saving. */
+export const ManualOrderPreviewSchema = AdminCreateOrderSchema.pick({
+  items: true,
+  shippingCost: true,
+  discount: true,
+  taxRate: true,
 });
 
 export const UpdateOrderStatusSchema = z.object({
@@ -1754,3 +1774,30 @@ export const CreateSliderSchema = z.object({
 });
 export const UpdateSliderSchema = CreateSliderSchema.partial();
 
+// Campaign Banners. Loose here, like the sliders: the contract is
+// `normalizeCampaignBannerFields` (lib/campaign-banners/types.ts), which every
+// write passes through before persisting. The nested groups arrive as objects.
+export const CreateCampaignBannerSchema = z.object({
+  name: z.string().min(1).max(100),
+  type: z.enum(CAMPAIGN_BANNER_TYPES).default("popup"),
+  status: z.enum(CAMPAIGN_BANNER_STATUSES).default("draft"),
+  priority: z.number().min(0).max(100).default(50),
+  schedule: z.record(z.string(), z.unknown()).optional(),
+  content: z.record(z.string(), z.unknown()).optional(),
+  couponCode: z.string().max(30).optional(),
+  countdown: z.record(z.string(), z.unknown()).optional(),
+  signup: z.record(z.string(), z.unknown()).optional(),
+  rules: z.record(z.string(), z.unknown()).optional(),
+});
+export const UpdateCampaignBannerSchema = CreateCampaignBannerSchema.partial();
+
+/**
+ * A visitor's signup through a Campaign Banner. `website` is the honeypot: a
+ * person never sees the field, so a value in it means a script filled the form.
+ */
+export const CampaignBannerSignupSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+  /** The language the visitor browsed in, for the confirmation email. */
+  locale: z.string().max(12).optional(),
+  website: z.string().optional(),
+});

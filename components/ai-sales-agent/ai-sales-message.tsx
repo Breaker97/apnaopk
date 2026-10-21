@@ -1,5 +1,6 @@
 "use client";
 
+import { inkOn } from "@/lib/theme-colors/theme-refs";
 import Link from "@/components/language/link";
 import { ImagePlus, Loader2, ShoppingBag, Sparkles } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
@@ -28,8 +29,8 @@ export function AISalesHeaderIcon({
   const gradient = `linear-gradient(135deg, ${primaryColor}, ${accentColor})`;
   return (
     <div
-      className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-white shadow-lg ring-4 ring-background"
-      style={{ background: gradient }}
+      className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full shadow-lg ring-4 ring-background"
+      style={{ background: gradient, color: inkOn(primaryColor) }}
     >
       {src ? (
         <AppImage
@@ -174,10 +175,10 @@ function ActionPill({
       <Link
         href={action.href}
         className={cn(
-          "flex h-10 w-full items-center justify-center rounded-full px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90",
+          "flex h-10 w-full items-center justify-center rounded-full px-4 text-sm font-semibold shadow-sm transition-opacity hover:opacity-90",
           spacing,
         )}
-        style={{ backgroundColor: primaryColor }}
+        style={{ backgroundColor: primaryColor, color: inkOn(primaryColor) }}
       >
         {action.label || fallbackLabel || "Continue"}
       </Link>
@@ -216,8 +217,8 @@ export function AISalesAssistantAvatar({
 }) {
   return (
     <div
-      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
-      style={{ backgroundColor: primaryColor }}
+      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm"
+      style={{ backgroundColor: primaryColor, color: inkOn(primaryColor) }}
     >
       <Sparkles className="h-3.5 w-3.5" />
     </div>
@@ -252,8 +253,8 @@ export function AISalesMessageBubble({
     return (
       <div className="flex justify-end">
         <div
-          className="max-w-[80%] rounded-sm px-4 py-2.5 text-sm font-medium text-white shadow-sm"
-          style={{ backgroundColor: primaryColor }}
+          className="max-w-[80%] rounded-sm px-4 py-2.5 text-sm font-medium shadow-sm"
+          style={{ backgroundColor: primaryColor, color: inkOn(primaryColor) }}
         >
           {message.content}
         </div>

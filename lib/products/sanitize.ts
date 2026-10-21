@@ -262,6 +262,9 @@ export const CLEARABLE_PRODUCT_FIELDS = [
   "barcodeFormat",
   "barcodeSource",
   "quoteButtonLabel",
+  // Emptied, the product takes its category's (or the store's) rate again.
+  "taxRate",
+  "taxClass",
 ] as const;
 
 /**

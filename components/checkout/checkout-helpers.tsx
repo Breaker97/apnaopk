@@ -310,8 +310,9 @@ export function hasDeliveryDestination(
 export function shouldShowFulfillmentSelector(input: {
   pickupAvailable: boolean;
   multiVendor: boolean;
+  deliveryAvailable?: boolean;
 }): boolean {
-  return input.pickupAvailable || input.multiVendor;
+  return input.pickupAvailable || input.multiVendor || input.deliveryAvailable === false;
 }
 
 /**

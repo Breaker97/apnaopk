@@ -36,6 +36,9 @@ const SAMPLE_COLUMNS = [
   "weightUnit",
   "countryOfOrigin",
   "hsCode",
+  "chargeTax",
+  "taxClass",
+  "taxRate",
 ] as const;
 
 type SampleColumn = (typeof SAMPLE_COLUMNS)[number];
@@ -128,6 +131,8 @@ function sampleCsvRows(categories: string[]): Array<Partial<Record<SampleColumn,
       weight: "0.2",
       weightUnit: "kg",
       hsCode: "610910",
+      chargeTax: "true",
+      taxClass: "standard",
     },
     {
       title: "Stainless Steel Water Bottle",
@@ -144,6 +149,8 @@ function sampleCsvRows(categories: string[]): Array<Partial<Record<SampleColumn,
       isPhysicalProduct: "true",
       weight: "350",
       weightUnit: "g",
+      chargeTax: "true",
+      taxRate: "7.5",
     },
     {
       title: "Monthly Budget Planner (PDF)",
@@ -158,6 +165,8 @@ function sampleCsvRows(categories: string[]): Array<Partial<Record<SampleColumn,
       onlineStore: "true",
       isPhysicalProduct: "false",
       digitalDownloadLimit: "3",
+      chargeTax: "true",
+      taxClass: "inherit",
     },
   ];
 }
@@ -180,6 +189,8 @@ function sampleCatalog(categories: string[]) {
         isPhysicalProduct: true,
         weight: 0.6,
         weightUnit: "kg",
+        chargeTax: true,
+        taxClass: "standard",
         options: [
           {
             name: "Color",

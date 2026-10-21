@@ -31,7 +31,7 @@ async function isCustomerInStaffScope(
  * customerId, guest rows by the checkout email their orders carry.
  */
 export async function isProfileInStaffScope(
-  profile: { userId?: unknown; email?: string },
+  profile: { _id?: unknown; userId?: unknown; email?: string; isGuest?: boolean },
   staffScope?: StaffAccessScope,
 ) {
   if (!hasStaffScope(staffScope)) return true;
@@ -39,9 +39,16 @@ export async function isProfileInStaffScope(
   if (Types.ObjectId.isValid(userId)) {
     return isCustomerInStaffScope(userId, staffScope);
   }
-  if (!profile.email) return false;
+  // A guest the till knew only by phone owns their counter sales by the row
+  // itself; an email guest by the checkout email.
+  const owner = profile.email
+    ? { guestEmail: profile.email }
+    : profile.isGuest && profile._id && Types.ObjectId.isValid(String(profile._id))
+      ? { posCustomerProfileId: new Types.ObjectId(String(profile._id)) }
+      : null;
+  if (!owner) return false;
   const count = await Order.countDocuments({
-    guestEmail: profile.email,
+    ...owner,
     ...buildStaffOrderScopeFilter(staffScope),
   });
   return count > 0;

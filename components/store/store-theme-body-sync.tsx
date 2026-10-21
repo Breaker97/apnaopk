@@ -1,5 +1,6 @@
 "use client";
 
+import { ownTheme } from "@/lib/storefront/themes/dom-theme";
 import { useEffect } from "react";
 
 /** Latest the sync may wait for an idle moment. */
@@ -50,18 +51,12 @@ export function StoreThemeBodySync({
     };
     const body = document.body;
     let applied = false;
+    let restore: (() => void) | undefined;
 
     const apply = () => {
-      if (applied) return;
+      if (applied || body.hasAttribute("data-theme-preview")) return;
       applied = true;
-      for (const [name, value] of Object.entries(attributes)) {
-        if (body.getAttribute(name) !== value) body.setAttribute(name, value);
-      }
-      for (const [name, value] of Object.entries(cssVars)) {
-        if (body.style.getPropertyValue(name) !== value) {
-          body.style.setProperty(name, value);
-        }
-      }
+      restore = ownTheme(body,cssVars,attributes);
     };
 
     const idle =
@@ -80,13 +75,7 @@ export function StoreThemeBodySync({
       if (timer !== null) window.clearTimeout(timer);
       window.removeEventListener("pointerdown", apply, listen);
       window.removeEventListener("keydown", apply, listen);
-      if (!applied) return;
-      for (const name of Object.keys(attributes)) {
-        body.removeAttribute(name);
-      }
-      for (const name of Object.keys(cssVars)) {
-        body.style.removeProperty(name);
-      }
+      restore?.();
     };
   }, [payload]);
 

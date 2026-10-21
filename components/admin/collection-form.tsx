@@ -333,7 +333,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="mx-auto w-full max-w-6xl space-y-6"
+        className="mx-auto w-full max-w-6xl space-y-4"
       >
         <AdminFormStickyHeader
           className="!mx-0 -mt-2 border-b-0 px-0 shadow-none md:px-0"
@@ -361,11 +361,11 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
           }
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4">
             {/* Basic Info */}
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Collection Details</CardTitle>
                 <CardDescription>
@@ -498,7 +498,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
             </Card>
 
             {/* Collection Type */}
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Kind</CardTitle>
                 <CardDescription>
@@ -531,7 +531,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
                           ).map((option) => (
                             <div
                               key={option.value}
-                              className={`rounded-md border-2 p-4 hover:bg-accent ${
+                              className={`rounded-lg border-2 p-3 hover:bg-accent ${
                                 field.value === option.value
                                   ? "border-primary"
                                   : "border-muted"
@@ -550,10 +550,10 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
                                 htmlFor={`kind-${option.value}`}
                                 className="flex flex-col items-center justify-center cursor-pointer gap-1 w-full"
                               >
-                                <span className="text-lg font-semibold">
+                                <span className="text-sm font-medium">
                                   {option.title}
                                 </span>
-                                <span className="text-sm text-muted-foreground text-center">
+                                <span className="text-xs text-muted-foreground text-center">
                                   {option.hint}
                                 </span>
                               </Label>
@@ -568,7 +568,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Collection Type</CardTitle>
                 <CardDescription>
@@ -584,7 +584,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
                       <FormControl>
                         <div className="grid grid-cols-2 gap-4">
                           <div
-                            className={`rounded-md border-2 p-4 hover:bg-accent ${
+                            className={`rounded-lg border-2 p-3 hover:bg-accent ${
                               field.value === "manual"
                                 ? "border-primary"
                                 : "border-muted"
@@ -603,16 +603,16 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
                               htmlFor="manual"
                               className="flex flex-col items-center justify-center cursor-pointer gap-1 w-full"
                             >
-                              <span className="text-lg font-semibold">
+                              <span className="text-sm font-medium">
                                 Manual
                               </span>
-                              <span className="text-sm text-muted-foreground text-center">
+                              <span className="text-xs text-muted-foreground text-center">
                                 Add products one by one
                               </span>
                             </Label>
                           </div>
                           <div
-                            className={`rounded-md border-2 p-4 hover:bg-accent ${
+                            className={`rounded-lg border-2 p-3 hover:bg-accent ${
                               field.value === "automated"
                                 ? "border-primary"
                                 : "border-muted"
@@ -631,10 +631,10 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
                               htmlFor="automated"
                               className="flex flex-col items-center justify-center cursor-pointer gap-1 w-full"
                             >
-                              <span className="text-lg font-semibold">
+                              <span className="text-sm font-medium">
                                 Automated
                               </span>
-                              <span className="text-sm text-muted-foreground text-center">
+                              <span className="text-xs text-muted-foreground text-center">
                                 Products added by conditions
                               </span>
                             </Label>
@@ -737,9 +737,9 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
           </div>
 
           {/* Right Column - Settings */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Status */}
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Status</CardTitle>
               </CardHeader>
@@ -766,7 +766,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
             </Card>
 
             {/* Publishing */}
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Publishing</CardTitle>
               </CardHeader>
@@ -806,7 +806,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
             </Card>
 
             {/* Sort Order */}
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Sort Order</CardTitle>
               </CardHeader>
@@ -841,7 +841,7 @@ export function CollectionForm({ collectionId }: CollectionFormProps) {
             </Card>
 
             {/* Position */}
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>Display Position</CardTitle>
               </CardHeader>

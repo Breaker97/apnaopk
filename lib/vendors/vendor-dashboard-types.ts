@@ -47,7 +47,11 @@ export interface VendorRecentOrder {
 }
 
 export interface VendorDashboardData {
-  stats: VendorOrderTotals & { activeProducts: number };
+  stats: VendorOrderTotals & {
+    activeProducts: number;
+    /** Shoppers following the store, all time. Added by the analytics route. */
+    followers?: number;
+  };
   /** The orders chart for the dashboard's selected period, as the admin's. */
   chart: OrderChartSeries;
   recentOrders: VendorRecentOrder[];

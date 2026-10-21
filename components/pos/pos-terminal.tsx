@@ -22,6 +22,10 @@ import {
   Tag,
   Bookmark,
   MessageSquare,
+  Star,
+  Undo2,
+  UserRound,
+  Vault,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WarningBanner } from "@/components/ui/warning-banner";
@@ -37,7 +41,8 @@ import { roundMoney } from "@/lib/intl/money";
 import { configurePOSSounds, playPOSSound } from "@/lib/pos/pos-sounds";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCurrency } from "@/providers/currency-provider";
-import { buildCode39SVG } from "@/lib/pos/code39";
+import { buildReceiptHtml, receiptOrderUrl } from "@/lib/pos/receipt-html";
+import { saleReceiptPayload } from "@/lib/pos/receipt-payload";
 import {
   POSDiscountDialog,
   type POSDiscount,
@@ -52,6 +57,7 @@ import {
   loadHeldOrders,
   removeHeldOrder,
   saveHeldOrder,
+  HeldOrdersFullError,
   type HeldOrder,
 } from "@/lib/pos/held-orders";
 import {
@@ -60,12 +66,45 @@ import {
 } from "@/lib/pos/revalidate-held-order";
 import { getPOSPurchasableQuantity } from "@/lib/pos/product-stock";
 import { filterOfflineProducts } from "@/lib/pos/offline-catalog";
-import { nextLocalReceiptNumber } from "@/lib/pos/offline-receipt";
-import { offlineScope } from "@/lib/pos/offline-db";
+import { getTerminalId, nextLocalReceiptNumber } from "@/lib/pos/offline-receipt";
+import {
+  offlineScope,
+  OfflineStorageUnavailableError,
+  OutboxFullError,
+} from "@/lib/pos/offline-db";
 import type { POSOfflineState } from "@/hooks/use-pos-offline";
+
+/**
+ * How long a sale may wait on the server before it is queued instead.
+ *
+ * A hung server used to freeze the till: `fetch` has no timeout of its own, so
+ * a database stall left the cashier at "Processing…" with a customer waiting
+ * and no way out but a reload. Giving up is safe here precisely because the
+ * sale carries an idempotency key — if the server did commit it after all, the
+ * queued replay returns that order rather than a second one.
+ */
+const SALE_REQUEST_TIMEOUT_MS = 30_000;
+
+function saleRequestSignal(): AbortSignal | undefined {
+  // Older tablets lack `AbortSignal.timeout`; they keep the old behaviour.
+  return typeof AbortSignal !== "undefined" &&
+    typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(SALE_REQUEST_TIMEOUT_MS)
+    : undefined;
+}
 import { productAllowsOversell } from "@/lib/products/stock-policy";
 import { isLoyaltyEnabled } from "@/lib/customers/loyalty";
 import { POSSaleCompleteModal } from "@/components/pos/sale-complete-modal";
+import { POSSalesDialog } from "@/components/pos/pos-sales-dialog";
+import { POSRegisterDialog } from "@/components/pos/pos-register-dialog";
+import { POSTaxExemptDialog } from "@/components/pos/tax-exempt-dialog";
+import { POSReturnDialog, type POSExchangeCredit } from "@/components/pos/pos-return-dialog";
+import type { POSSaleSummary } from "@/lib/pos/pos-order-search";
+import { usePOSRegister } from "@/hooks/use-pos-register";
+import { kickCashDrawer } from "@/lib/pos/cash-drawer";
+import { POS_TILE_IMAGE_SIZE, warmPOSImages } from "@/lib/pos/offline-images";
+import { usePOSQuickKeys } from "@/hooks/use-pos-quick-keys";
+import { POSOperatorDialog, type POSOperator } from "@/components/pos/pos-operator-dialog";
 import { POSTakePaymentDialog } from "@/components/pos/take-payment-dialog";
 import type {
   CustomerMode,
@@ -78,10 +117,14 @@ import type {
   POSVariant,
   ReceiptPrintPayload,
 } from "@/components/pos/pos-types";
+import { posCustomerPayload } from "@/components/pos/pos-types";
+import { calculatePOSOrderTotals } from "@/lib/pos/order-totals";
+import { checkPOSTenders, type POSTenderInput } from "@/lib/pos/tenders";
 import type { POSSettings } from "@/lib/pos/build-pos-settings";
 import QRCode from "qrcode";
+import { usePosTemplateReceipt } from "@/components/invoice-templates/print";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
-import { useHydrated } from "@/hooks/use-client-value";
+import { useClientValue, useHydrated } from "@/hooks/use-client-value";
 
 type POSStockStatusFilter = "all" | "in_stock" | "out_of_stock";
 export type POSMobileTab = "products" | "cart";
@@ -132,12 +175,41 @@ type POSTerminalProps = {
   offline: POSOfflineState;
 };
 
+/** The category strip's Favourites pill: the quick keys, not a category. */
+const FAVOURITES = "__favourites";
+
 export function POSTerminal({
-  settings,
+  settings: pageSettings,
   controlledState,
   offline,
 }: POSTerminalProps) {
   const t = useTranslations();
+  // Stable callbacks from the offline hook, called directly so the callbacks
+  // below depend on them and not on the whole (re-created) offline object.
+  const { reportReachable, reportUnreachable } = offline;
+
+  // Who is working the till. A colleague switched in with their PIN sells as
+  // themselves: the server reads the switch from its cookie, and the till
+  // queues their id with an offline sale and offers their discount rights.
+  const [operator, setOperator] = React.useState<POSOperator>(() => ({
+    id: pageSettings.cashierId ?? "",
+    name: pageSettings.cashierName ?? "",
+    switched: Boolean(pageSettings.cashierSwitched),
+    canApplyDiscounts: pageSettings.canApplyDiscounts !== false,
+  }));
+  const [showOperatorDialog, setShowOperatorDialog] = React.useState(false);
+  const settings = React.useMemo<POSSettings>(
+    () => ({
+      ...pageSettings,
+      cashierId: operator.id || pageSettings.cashierId,
+      cashierName: operator.name || pageSettings.cashierName,
+      canApplyDiscounts: operator.canApplyDiscounts,
+    }),
+    [pageSettings, operator],
+  );
+  // Invoice templates (Phase 6): the receipt on the POS default when one is
+  // set; `printReceipt` asks it first and prints the legacy receipt otherwise.
+  const templateReceipt = usePosTemplateReceipt(settings);
 
   // Search, filter and cart state live in POSWorkspace so the search/scan bar
   // can render outside this card. Scanning is handled entirely by the parent.
@@ -155,14 +227,58 @@ export function POSTerminal({
     addToCart,
     registerHoldSale,
     onSaleBusyChange,
-    saleBlockedReason,
+    saleBlockedReason: counterBlockedReason,
   } = controlledState;
+
+  // This device's drawer. Sales are tagged with it so the closing count can be
+  // checked against them; a store can require one to be open before selling.
+  const terminalId = useClientValue(() => getTerminalId(), null);
+  const register = usePOSRegister({
+    terminalId,
+    locationId: settings.posLocationId,
+    isOffline: offline.isOffline,
+  });
+  const [showRegisterDialog, setShowRegisterDialog] = React.useState(false);
+  // After each snapshot pull, the tile pictures are fetched once more so the
+  // service worker keeps them for an offline grid (lib/pos/offline-images.ts).
+  React.useEffect(() => {
+    if (offline.isOffline || !offline.snapshotAt || offline.offlineProducts.length === 0) return;
+    void warmPOSImages(offline.offlineProducts);
+    // Once per snapshot: the products arrive with it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offline.snapshotAt]);
+
+  // Quick keys: the merchant's favourites, one tap from the grid.
+  const quickKeys = usePOSQuickKeys({
+    locationId: pageSettings.posLocationId,
+    isOffline: offline.isOffline,
+    offlineProducts: offline.offlineProducts,
+  });
+  // A return being taken against a sale found in the sales dialog, and the
+  // refund of an exchange waiting to pay toward the next sale.
+  const [returnSale, setReturnSale] = React.useState<POSSaleSummary | null>(null);
+  const refreshSalesRef = React.useRef<(() => void) | null>(null);
+  const [exchangeCredit, setExchangeCredit] = React.useState<POSExchangeCredit | null>(null);
+  const registerSessionId = register.session?._id;
+  const refreshRegister = register.refresh;
+  const saleBlockedReason =
+    counterBlockedReason ??
+    (settings.requireOpenRegister && !register.session && terminalId
+      ? t("pos.register.openToSell")
+      : null);
 
   // Idempotency key for the in-progress sale; cleared on success/cart reset.
   const saleRequestIdRef = React.useRef<string | null>(null);
 
   // State that stays in POSTerminal
   const [customer, setCustomer] = React.useState<POSCustomer | null>(null);
+  /**
+   * What the attached account customer can spend in store credit. Read when
+   * they are attached — only an account holds credit, and only online can it
+   * be spent — and held on the server at the moment of sale, so this only
+   * decides whether the tender is offered and how much it suggests.
+   */
+  const [storeCreditAvailable, setStoreCreditAvailable] = React.useState(0);
   /**
    * "They agreed to marketing emails", asked at the counter. Off for every
    * sale, and cleared with the customer: consent is given once, by the
@@ -190,14 +306,15 @@ export function POSTerminal({
   const [isCreatingCustomer, setIsCreatingCustomer] = React.useState(false);
   const [selectedProduct, setSelectedProduct] =
     React.useState<POSProduct | null>(null);
-  const [cashTendered, setCashTendered] = React.useState("");
-  const [paymentReference, setPaymentReference] = React.useState("");
-  const [paymentNote, setPaymentNote] = React.useState("");
   const [showTakePaymentDialog, setShowTakePaymentDialog] =
     React.useState(false);
   const [showDiscountDialog, setShowDiscountDialog] = React.useState(false);
+  /** A tax-exempt sale and why — set by a seat that may give discounts. */
+  const [taxExempt, setTaxExempt] = React.useState<{ reason: string; reference?: string } | null>(null);
+  const [showTaxExemptDialog, setShowTaxExemptDialog] = React.useState(false);
   const [showHoldDialog, setShowHoldDialog] = React.useState(false);
   const [showHeldOrdersDialog, setShowHeldOrdersDialog] = React.useState(false);
+  const [showSalesDialog, setShowSalesDialog] = React.useState(false);
   const [heldOrders, setHeldOrders] = React.useState<HeldOrder[]>([]);
   const [resumingHeldId, setResumingHeldId] = React.useState<string | null>(
     null,
@@ -283,14 +400,54 @@ export function POSTerminal({
         : value;
     return Math.min(roundMoney(amount), discountedSubtotal);
   }, [discount, discountedSubtotal]);
-  // Taxed after every discount and rounded, exactly as the server prices the
-  // sale (`calculatePOSOrderTotals`) — a till showing one total and charging
+  // Priced by the server's own function (`calculatePOSOrderTotals`): each
+  // line at its product's rate, after every discount, inside the price when
+  // the shelf prices include tax — a till showing one total and charging
   // another hands out the wrong change.
-  const taxable = Math.max(0, roundMoney(discountedSubtotal - discountAmount));
-  const tax = roundMoney(taxable * settings.taxRate);
-  const total = Math.max(0, roundMoney(taxable + tax));
+  const saleTotals = React.useMemo(
+    () =>
+      calculatePOSOrderTotals({
+        items: cart.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          name: item.name,
+          sku: item.sku,
+          price: item.price,
+          quantity: item.quantity,
+          vendorId: item.vendorId,
+          lineDiscount: item.lineDiscount
+            ? { type: item.lineDiscount.type, value: item.lineDiscount.value }
+            : undefined,
+          taxRate: item.taxRate ?? null,
+        })),
+        discount: discount
+          ? { type: discount.type, value: discount.value, amount: discountAmount }
+          : undefined,
+        taxRate: settings.taxRate,
+        pricesIncludeTax: settings.pricesIncludeTax,
+        taxExempt: Boolean(taxExempt),
+        currency: settings.currency,
+      }),
+    [cart, discount, discountAmount, settings.taxRate, settings.pricesIncludeTax, settings.currency, taxExempt],
+  );
+  const tax = saleTotals.tax;
+  const total = saleTotals.total;
+  // One rate standing for the cart's mix, for the discount dialog's preview.
+  const taxBase = Math.max(0, discountedSubtotal - discountAmount - (settings.pricesIncludeTax ? saleTotals.includedTax : 0));
+  const chargedTax = settings.pricesIncludeTax ? saleTotals.includedTax : tax;
+  const effectiveTaxRate = taxExempt ? 0 : taxBase > 0 ? chargedTax / taxBase : settings.taxRate;
+  const taxMode: "added" | "included" | "exempt" = taxExempt
+    ? "exempt"
+    : settings.pricesIncludeTax
+      ? "included"
+      : "added";
   const canApplyDiscounts = settings.canApplyDiscounts !== false;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // Favourites show the quick keys — until the cashier searches, which looks
+  // through everything.
+  const showingFavourites = selectedCategory === FAVOURITES && !searchQuery;
+  const gridProducts = showingFavourites ? quickKeys.products : products;
+  const showFavouritesPill = quickKeys.products.length > 0 || quickKeys.canEdit;
 
   // ============================================
   // Data Fetching
@@ -310,7 +467,8 @@ export function POSTerminal({
   const productQuery = React.useMemo(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set("search", searchQuery);
-    if (selectedCategory) params.set("category", selectedCategory);
+    // Favourites are the quick keys, read on their own (usePOSQuickKeys).
+    if (selectedCategory && selectedCategory !== FAVOURITES) params.set("category", selectedCategory);
     if (stockStatus !== "all") params.set("stockStatus", stockStatus);
     if (settings.posLocationId) {
       params.set("locationId", settings.posLocationId);
@@ -329,6 +487,10 @@ export function POSTerminal({
         const res = await fetch(`/api/pos/products?${query}`, { signal });
         const json = await res.json();
         if (signal.aborted) return false;
+        // The server answered this session; a refused one must not count.
+        if (res.status !== 401 && res.status !== 403) {
+          reportReachable();
+        }
         if (!json.success) return false;
 
         setProducts(json.data.products);
@@ -344,6 +506,7 @@ export function POSTerminal({
         // snapshot instead of emptying the grid under the cashier's hands.
         // `filterOfflineProducts` mirrors the server's query, so the results
         // do not change shape when the connection does.
+        reportUnreachable();
         const params = new URLSearchParams(query);
         setProducts(
           filterOfflineProducts(offline.offlineProducts, {
@@ -358,7 +521,13 @@ export function POSTerminal({
         if (!signal.aborted) setIsLoading(false);
       }
     },
-    [setProducts, setCategories, offline.offlineProducts],
+    [
+      setProducts,
+      setCategories,
+      offline.offlineProducts,
+      reportReachable,
+      reportUnreachable,
+    ],
   );
 
   // What the grid currently reflects. Seeded with the query the server render
@@ -476,8 +645,8 @@ export function POSTerminal({
   );
 
   const refuseDiscount = React.useCallback(() => {
-    toast.error("Only a seat that manages the POS can give a discount");
-  }, []);
+    toast.error(t("pos.toast.discountNotAllowed"));
+  }, [t]);
 
   const openLineDiscountDialog = React.useCallback(
     (itemId: string) => {
@@ -531,10 +700,8 @@ export function POSTerminal({
     setIsWalkIn(false);
     setOrderNote("");
     setCompletedOrder(null);
-    setCashTendered("");
-    setPaymentReference("");
-    setPaymentNote("");
     setDiscount(null);
+    setTaxExempt(null);
     setLineDiscountItemId(null);
     setLineNoteItemId(null);
   }, [setCart]);
@@ -563,6 +730,25 @@ export function POSTerminal({
     setIsCreatingCustomer(false);
   }, []);
 
+  // The attached account's store credit: cleared the moment the customer
+  // changes, then read for an account while the register is online.
+  const creditAccountId =
+    customer && customer.kind !== "guest" ? customer._id : null;
+  useApplyOnChange([creditAccountId], () => setStoreCreditAvailable(0));
+  React.useEffect(() => {
+    if (!creditAccountId || offline.isOffline) return;
+    const controller = new AbortController();
+    fetch(`/api/pos/customers/${encodeURIComponent(creditAccountId)}/store-credit`, {
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.success) setStoreCreditAvailable(Number(json.data?.available) || 0);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [creditAccountId, offline.isOffline]);
+
   const selectCustomer = React.useCallback(
     (c: POSCustomer) => {
       setCustomer(c);
@@ -579,8 +765,11 @@ export function POSTerminal({
   }, [closeCustomerDialog]);
 
   const createNewCustomer = React.useCallback(async () => {
-    if (!newCustomerName.trim() || !newCustomerEmail.trim()) {
-      toast.error(t("pos.customer.nameEmailRequired"));
+    if (
+      !newCustomerName.trim() ||
+      (!newCustomerEmail.trim() && !newCustomerPhone.trim())
+    ) {
+      toast.error(t("pos.customer.nameContactRequired"));
       return;
     }
     setIsCreatingCustomer(true);
@@ -590,7 +779,7 @@ export function POSTerminal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newCustomerName.trim(),
-          email: newCustomerEmail.trim(),
+          email: newCustomerEmail.trim() || undefined,
           phone: newCustomerPhone.trim() || undefined,
         }),
       });
@@ -627,30 +816,55 @@ export function POSTerminal({
   // Checkout
   // ============================================
 
+  /** A tender's name at the till, in the cashier's language. */
+  const tenderLabel = React.useCallback(
+    (method: string) => {
+      switch (method) {
+        case "cash":
+          return t("pos.cash");
+        case "card":
+          return t("pos.card");
+        case "bank":
+          return t("pos.pay.bank");
+        case "manual":
+          return t("pos.manual");
+        case "store_credit":
+          return t("pos.pay.storeCredit");
+        default:
+          return method;
+      }
+    },
+    [t],
+  );
+
+  /**
+   * Take the sale: the tenders the payment dialog collected, all of the total,
+   * or — a deposit — part of it with the rest owed.
+   *
+   * The server decides the money (lib/pos/sale-payment.ts); the check here only
+   * stops a sale the server would refuse from being sent, or queued, at all.
+   */
   const processPayment = React.useCallback(
     async (
-      paymentMethod: string,
-      cashTenderedOverride?: number,
-      referenceOverride?: string,
-      stripePaymentIntentIdOverride?: string,
-    ) => {
-      if (cart.length === 0) return false;
-      const cashReceived =
-        paymentMethod === "cash"
-          ? (cashTenderedOverride ?? Number.parseFloat(cashTendered))
-          : Number.NaN;
-      if (
-        paymentMethod === "cash" &&
-        (!Number.isFinite(cashReceived) || cashReceived < total)
-      ) {
+      tenders: POSTenderInput[],
+      options: { deposit?: boolean } = {},
+    ): Promise<boolean> => {
+      if (cart.length === 0 || tenders.length === 0) return false;
+      const deposit = options.deposit === true;
+      const check = checkPOSTenders({
+        tenders,
+        total,
+        currency: settings.currency,
+        enabledMethods: settings.paymentMethods,
+        allowPartial: deposit,
+      });
+      if (!check.ok) {
         playPOSSound("error");
-        toast.error("Cash tendered must cover the order total");
+        toast.error(check.message);
         return false;
       }
 
       setIsProcessing(true);
-
-      const finalReference = referenceOverride ?? paymentReference;
 
       // Stable idempotency key for THIS sale: generated once per sale and kept
       // across retries, so a re-click after a network blip returns the order
@@ -666,182 +880,217 @@ export function POSTerminal({
       // an offline sale is replayed verbatim, and a difference between the two
       // would be a difference between the receipt and the books.
       const salePayload = {
-            clientRequestId: saleRequestIdRef.current,
-            items: cart.map((item) => {
-              const lineDiscountAmount = getLineDiscountAmount(item);
-              const lineTotal = item.price * item.quantity - lineDiscountAmount;
-              return {
-                productId: item.productId,
-                variantId: item.variantId,
-                name:
-                  item.name +
-                  (item.variantName ? ` - ${item.variantName}` : ""),
-                sku: item.sku,
-                price: item.price,
-                quantity: item.quantity,
-                image: item.image,
-                vendorId: item.vendorId,
-                lineTotal: Math.max(0, lineTotal),
-                lineDiscount: item.lineDiscount
-                  ? {
-                      type: item.lineDiscount.type,
-                      value: item.lineDiscount.value,
-                      amount: lineDiscountAmount,
-                    }
-                  : undefined,
-                lineNote: item.lineNote || undefined,
-              };
-            }),
-            paymentMethod,
-            cashTendered:
-              paymentMethod === "cash" && Number.isFinite(cashReceived)
-                ? cashReceived
-                : undefined,
-            paymentReference: finalReference || undefined,
-            stripePaymentIntentId: stripePaymentIntentIdOverride || undefined,
-            paymentNote: paymentNote || undefined,
-            notes: orderNote,
-            posLocationId: settings.posLocationId,
-            customerId: customer?._id,
-            marketingOptIn: customer ? customerMarketingOptIn : undefined,
-            discount: discount
+        clientRequestId: saleRequestIdRef.current,
+        items: cart.map((item) => {
+          const lineDiscountAmount = getLineDiscountAmount(item);
+          const lineTotal = item.price * item.quantity - lineDiscountAmount;
+          return {
+            productId: item.productId,
+            variantId: item.variantId,
+            name: item.name + (item.variantName ? ` - ${item.variantName}` : ""),
+            sku: item.sku,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+            vendorId: item.vendorId,
+            lineTotal: Math.max(0, lineTotal),
+            lineDiscount: item.lineDiscount
               ? {
-                  type: discount.type,
-                  value: discount.value,
-                  amount: discountAmount,
-                  reason: discount.reason,
-                  note: discount.note,
+                  type: item.lineDiscount.type,
+                  value: item.lineDiscount.value,
+                  amount: lineDiscountAmount,
                 }
               : undefined,
+            lineNote: item.lineNote || undefined,
+          };
+        }),
+        tenders,
+        deposit: deposit || undefined,
+        registerSessionId,
+        taxExempt: taxExempt ?? undefined,
+        notes: orderNote,
+        posLocationId: settings.posLocationId,
+        ...posCustomerPayload(customer),
+        // Consent by email belongs to an account; a guest has none to keep it on.
+        marketingOptIn:
+          customer && customer.kind !== "guest" ? customerMarketingOptIn : undefined,
+        discount: discount
+          ? {
+              type: discount.type,
+              value: discount.value,
+              amount: discountAmount,
+              reason: discount.reason,
+              note: discount.note,
+            }
+          : undefined,
+      };
+
+      const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const cashTenderedTotal = check.tenders
+        .filter((tender) => tender.method === "cash")
+        .reduce((sum, tender) => sum + (tender.tendered ?? tender.amount), 0);
+
+      // What every finished sale does next, online or queued.
+      const finishSale = (params: {
+        id: string;
+        orderNumber: string;
+        createdAt: string | Date;
+        total: number;
+        synced: boolean;
+      }) => {
+        saleRequestIdRef.current = null;
+        playPOSSound("payment");
+        // Cash changed hands: the drawer opens for it (Settings → POS).
+        if (settings.openCashDrawer && tenders.some((tender) => tender.method === "cash")) {
+          void kickCashDrawer();
+        }
+        // Sub Total − Discount + Tax = TOTAL on paper: the goods at their
+        // marked prices, every markdown in the one discount (lib/pos/receipt-payload.ts).
+        const receiptPayload = saleReceiptPayload({
+          orderNumber: params.orderNumber,
+          createdAt: params.createdAt,
+          locationName: settings.posLocationName,
+          lines: cart,
+          totals: saleTotals,
+          taxExemptReason: taxExempt?.reason,
+          tenders: check.tenders,
+          change: check.change,
+          balanceDue: check.balanceDue,
+          tenderLabel,
+          splitLabel: t("pos.pay.split"),
+        });
+        templateReceipt.remember(receiptPayload.orderNumber, {
+          lines: cart,
+          customer: customer ? { name: customer.name, phone: customer.phone, email: customer.email } : null,
+          cashierName: settings.cashierName,
+          synced: params.synced,
+        });
+        setLastReceipt(receiptPayload);
+        if (settings.printedReceiptsEnabled) {
+          window.setTimeout(() => {
+            void printReceiptRef.current?.(receiptPayload);
+          }, 0);
+        }
+        setCompletedOrder({
+          _id: params.id,
+          orderNumber: params.orderNumber,
+          total: params.total,
+          itemCount,
+          cashTendered: cashTenderedTotal > 0 ? cashTenderedTotal : undefined,
+          changeDue: check.change,
+          synced: params.synced,
+          customerEmail: customer?.email,
+          customerPhone: customer?.phone,
+          balanceDue: check.balanceDue > 0 ? check.balanceDue : undefined,
+        });
+        setCart([]);
+        setCustomer(null);
+        setIsWalkIn(false);
+        setOrderNote("");
+        setDiscount(null);
+        setTaxExempt(null);
+        setLineDiscountItemId(null);
+        setLineNoteItemId(null);
+        // The exchange it paid toward is done with.
+        if (exchangeCredit && tenders.some((tender) => tender.reference === exchangeCredit.reference)) {
+          setExchangeCredit(null);
+        }
+        setLastPaymentMethod(receiptPayload.paymentMethod);
+        setShowSaleCompleteModal(true);
+        setTimeout(() => playPOSSound("orderComplete"), 400);
       };
 
       try {
-        const res = await fetch("/api/pos/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(salePayload),
-        });
-
-        // Parsed defensively: only a fetch that never reached the server means
-        // "offline". A proxy answering 502 with an HTML error page would throw
-        // here, land in the offline branch, and print a receipt for a sale the
-        // server may well have committed — the one outcome this whole feature
-        // must not produce. A reached-but-unreadable response is a failure at
-        // the till, not a queued sale.
-        const json = await res.json().catch(() => null);
-        if (!json) {
-          playPOSSound("error");
-          toast.error(t("pos.orderFailed"));
-          return false;
+        // Only the fetch decides "offline". Everything after it — reading the
+        // reply, printing, clearing the cart — used to sit inside the same
+        // catch, so a throw there would have re-queued a sale the server had
+        // already committed, and then refused it on a null key.
+        let res: Response | null = null;
+        try {
+          res = await fetch("/api/pos/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(salePayload),
+            signal: saleRequestSignal(),
+          });
+        } catch {
+          res = null;
         }
-        if (json.success) {
-          saleRequestIdRef.current = null;
-          playPOSSound("payment");
-          const balanceReturned =
-            paymentMethod === "cash" &&
-            Number.isFinite(cashReceived) &&
-            cashReceived > total
-              ? cashReceived - total
-              : 0;
-          const receiptPayload: ReceiptPrintPayload = {
+
+        if (res) {
+          // Parsed defensively: only a fetch that never reached the server
+          // means "offline". A proxy answering 502 with an HTML error page
+          // would throw here, land in the offline branch, and print a receipt
+          // for a sale the server may well have committed — the one outcome
+          // this whole feature must not produce. A reached-but-unreadable
+          // response is a failure at the till, not a queued sale.
+          const json = await res.json().catch(() => null);
+          // The server answered this session; a refused one must not renew
+          // the offline window.
+          if (res.status !== 401 && res.status !== 403) {
+            reportReachable();
+          }
+          if (!json) {
+            playPOSSound("error");
+            toast.error(t("pos.orderFailed"));
+            return false;
+          }
+          if (!json.success) {
+            playPOSSound("error");
+            toast.error(json.message || t("pos.orderFailed"));
+            // A drawer closed from another screen: show the till the truth.
+            if (registerSessionId) void refreshRegister();
+            return false;
+          }
+          finishSale({
+            id: json.data._id,
             orderNumber: json.data.orderNumber,
             createdAt: json.data.createdAt || new Date(),
-            locationName: settings.posLocationName,
-            paymentMethod,
-            cashTendered:
-              paymentMethod === "cash" && Number.isFinite(cashReceived)
-                ? cashReceived
-                : undefined,
-            paymentReference: finalReference || undefined,
-            paymentNote: paymentNote || undefined,
-            items: cart.map((item) => {
-              const lineDiscountAmount = getLineDiscountAmount(item);
-              return {
-                name: item.variantName
-                  ? `${item.name} ${item.variantName}`
-                  : item.name,
-                quantity: item.quantity,
-                price: item.price,
-                amount: Math.max(
-                  0,
-                  item.price * item.quantity - lineDiscountAmount,
-                ),
-              };
-            }),
-            subtotal: discountedSubtotal,
-            tax,
-            discount: discountAmount + lineDiscountTotal,
-            total,
-            balanceReturned,
-          };
-          setLastReceipt(receiptPayload);
-          if (settings.printedReceiptsEnabled) {
-            window.setTimeout(() => {
-              void printReceiptRef.current?.(receiptPayload);
-            }, 0);
-          }
-          const orderSummary = {
-            _id: json.data._id,
-            orderNumber: json.data.orderNumber,
             total: json.data.total,
-            itemCount: cart.reduce((sum, item) => sum + item.quantity, 0),
-            cashTendered:
-              paymentMethod === "cash" && Number.isFinite(cashReceived)
-                ? cashReceived
-                : undefined,
-            changeDue: balanceReturned,
-            paymentReference: finalReference || undefined,
-            paymentNote: paymentNote || undefined,
-          };
-          setCompletedOrder(orderSummary);
-          setCart([]);
-          setCustomer(null);
-          setIsWalkIn(false);
-          setOrderNote("");
-          setCashTendered("");
-          setPaymentReference("");
-          setPaymentNote("");
-          setDiscount(null);
-          setLineDiscountItemId(null);
-          setLineNoteItemId(null);
-          setLastPaymentMethod(paymentMethod);
-          setShowSaleCompleteModal(true);
+            synced: true,
+          });
           toast.success(
-            `${t("pos.orderComplete")} #${orderSummary.orderNumber}`,
+            check.balanceDue > 0
+              ? t("pos.pay.depositTaken", {
+                  number: json.data.orderNumber,
+                  due: fp(check.balanceDue),
+                })
+              : `${t("pos.orderComplete")} #${json.data.orderNumber}`,
           );
-          // Play order complete chime after a short delay
-          setTimeout(() => playPOSSound("orderComplete"), 400);
           return true;
-        } else {
-          playPOSSound("error");
-          toast.error(json.message || t("pos.orderFailed"));
-          return false;
         }
-      } catch {
-        // The request never reached the server. The customer is at the counter
-        // and the money is being handed over now, so the sale is taken and
-        // queued rather than refused — `clientRequestId` makes the later replay
-        // idempotent, and the provisional number is what goes on their receipt.
+
+        // The request never reached the server, or gave up waiting for it. The
+        // customer is at the counter and the money is being handed over now,
+        // so the sale is taken and queued rather than refused —
+        // `clientRequestId` makes the later replay idempotent, and the
+        // provisional number is what goes on their receipt.
         const localReceiptNumber = nextLocalReceiptNumber(
           offlineScope(settings.posLocationId),
         );
+        // When the money changed hands. Sent with the replay, so the order is
+        // dated at the sale, not at whenever the line comes back.
+        const queuedAt = new Date().toISOString();
 
         try {
           await offline.queueSale({
             clientRequestId: saleRequestIdRef.current as string,
             scope: offlineScope(settings.posLocationId),
-            payload: { ...salePayload, localReceiptNumber },
+            payload: {
+              ...salePayload,
+              localReceiptNumber,
+              soldAt: queuedAt,
+              cashierId: settings.cashierId,
+            },
             localReceiptNumber,
             items: cart.map((item) => ({
-              name: item.variantName
-                ? `${item.name} ${item.variantName}`
-                : item.name,
+              name: item.variantName ? `${item.name} ${item.variantName}` : item.name,
               quantity: item.quantity,
               price: item.price,
             })),
             total,
             status: "pending",
-            queuedAt: new Date().toISOString(),
+            queuedAt,
             attempts: 0,
           });
         } catch (queueError) {
@@ -852,89 +1101,27 @@ export function POSTerminal({
           // "you have 500 sales waiting to sync" call for different actions.
           playPOSSound("error");
           toast.error(
-            queueError instanceof Error && queueError.message
-              ? queueError.message
-              : t("pos.orderFailed"),
+            queueError instanceof OutboxFullError
+              ? t("pos.offline.outboxFull")
+              : queueError instanceof OfflineStorageUnavailableError
+                ? t("pos.offline.noStorage")
+                : t("pos.orderFailed"),
           );
           return false;
         }
 
-        saleRequestIdRef.current = null;
-        playPOSSound("payment");
-
-        const balanceReturned =
-          paymentMethod === "cash" &&
-          Number.isFinite(cashReceived) &&
-          cashReceived > total
-            ? cashReceived - total
-            : 0;
-        const receiptPayload: ReceiptPrintPayload = {
+        // No server id yet; the receipt number is the only handle that exists.
+        finishSale({
+          id: localReceiptNumber,
           orderNumber: localReceiptNumber,
-          createdAt: new Date(),
-          paymentMethod,
-          cashTendered:
-            paymentMethod === "cash" && Number.isFinite(cashReceived)
-              ? cashReceived
-              : undefined,
-          paymentReference: finalReference || undefined,
-          paymentNote: paymentNote || undefined,
-          items: cart.map((item) => {
-            const lineDiscountAmount = getLineDiscountAmount(item);
-            return {
-              name: item.variantName
-                ? `${item.name} ${item.variantName}`
-                : item.name,
-              quantity: item.quantity,
-              price: item.price,
-              amount: Math.max(
-                0,
-                item.price * item.quantity - lineDiscountAmount,
-              ),
-            };
-          }),
-          subtotal: discountedSubtotal,
-          tax,
-          discount: discountAmount + lineDiscountTotal,
+          createdAt: queuedAt,
           total,
-          balanceReturned,
-        };
-        setLastReceipt(receiptPayload);
-        if (settings.printedReceiptsEnabled) {
-          window.setTimeout(() => {
-            void printReceiptRef.current?.(receiptPayload);
-          }, 0);
-        }
-
-        setCompletedOrder({
-          // No server id yet; the receipt number is the only handle that exists.
-          _id: localReceiptNumber,
-          orderNumber: localReceiptNumber,
-          total,
-          itemCount: cart.reduce((sum, item) => sum + item.quantity, 0),
-          cashTendered:
-            paymentMethod === "cash" && Number.isFinite(cashReceived)
-              ? cashReceived
-              : undefined,
-          changeDue: balanceReturned,
-          paymentReference: finalReference || undefined,
-          paymentNote: paymentNote || undefined,
+          synced: false,
         });
-        setCart([]);
-        setCustomer(null);
-        setIsWalkIn(false);
-        setOrderNote("");
-        setCashTendered("");
-        setPaymentReference("");
-        setPaymentNote("");
-        setDiscount(null);
-        setLineDiscountItemId(null);
-        setLineNoteItemId(null);
-        setLastPaymentMethod(paymentMethod);
-        setShowSaleCompleteModal(true);
-        toast.success(`Saved offline — receipt ${localReceiptNumber}`, {
-          description: "It will sync automatically when the connection returns.",
-        });
-        setTimeout(() => playPOSSound("orderComplete"), 400);
+        toast.success(
+          t("pos.offline.savedOffline", { number: localReceiptNumber }),
+          { description: t("pos.offline.savedOfflineNote") },
+        );
         return true;
       } finally {
         setIsProcessing(false);
@@ -942,33 +1129,43 @@ export function POSTerminal({
     },
     [
       cart,
-      cashTendered,
       customerMarketingOptIn,
-      paymentNote,
-      paymentReference,
       orderNote,
       customer,
       discount,
       discountAmount,
+      fp,
       getLineDiscountAmount,
-      lineDiscountTotal,
-      discountedSubtotal,
+      exchangeCredit,
+      saleTotals,
+      taxExempt,
+      settings.cashierId,
+      settings.cashierName,
+      settings.currency,
+      settings.openCashDrawer,
+      settings.paymentMethods,
       settings.posLocationId,
       settings.posLocationName,
       settings.printedReceiptsEnabled,
       offline,
+      refreshRegister,
+      registerSessionId,
+      reportReachable,
       setCart,
-      tax,
+      tenderLabel,
+      templateReceipt,
       total,
       t,
     ],
   );
 
-  const createStripeIntent = React.useCallback(async () => {
+  const createStripeIntent = React.useCallback(async (amount: number) => {
     const res = await fetch("/api/pos/payments/stripe/intent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        // The card pays what is left once the other tenders are taken.
+        amount,
         items: cart.map((item) => {
           const lineDiscountAmount = getLineDiscountAmount(item);
           const lineTotal = item.price * item.quantity - lineDiscountAmount;
@@ -994,8 +1191,11 @@ export function POSTerminal({
           };
         }),
         posLocationId: settings.posLocationId,
-        customerId: customer?._id,
-        marketingOptIn: customer ? customerMarketingOptIn : undefined,
+        ...posCustomerPayload(customer),
+        marketingOptIn:
+          customer && customer.kind !== "guest"
+            ? customerMarketingOptIn
+            : undefined,
         discount: discount
           ? {
               type: discount.type,
@@ -1005,6 +1205,9 @@ export function POSTerminal({
               note: discount.note,
             }
           : undefined,
+        // Priced as the sale will be: a tax-exempt card charge is the
+        // exempt total.
+        taxExempt: taxExempt ?? undefined,
       }),
     });
     const json = await res.json().catch(() => null);
@@ -1025,49 +1228,23 @@ export function POSTerminal({
     discountAmount,
     getLineDiscountAmount,
     settings.posLocationId,
+    taxExempt,
   ]);
 
   const printReceipt = React.useCallback(
     async (receipt: ReceiptPrintPayload | null) => {
       if (!receipt) {
-        toast.error("No receipt data available");
+        toast.error(t("pos.toast.noReceipt"));
         return;
       }
-
-      const escapeHtml = (value: string) =>
-        value
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/\"/g, "&quot;")
-          .replace(/'/g, "&#39;");
-
-      const dateText = new Intl.DateTimeFormat(settings.locale || "en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }).format(new Date(receipt.createdAt));
+      // The POS default's receipt; false (no template, or it couldn't print) prints the one below.
+      if (await templateReceipt.print(receipt)) return;
 
       // Build the URL the QR code should resolve to. Use a stable order
       // lookup URL so a customer can scan and view their receipt.
       const origin =
         typeof window !== "undefined" ? window.location.origin : "";
-      const orderUrl = `${origin}/${encodeURIComponent(
-        settings.locale || "en",
-      )}/track-order?orderNumber=${encodeURIComponent(receipt.orderNumber)}`;
-
-      // Use a compact Code 128 symbol for the order lookup value. The
-      // backwards-compatible helper name is retained for older callers.
-      const barcodeValue = receipt.orderNumber.replace(/[^A-Za-z0-9]/g, "");
-      const barcodeSVG = buildCode39SVG(barcodeValue, {
-        height: 40,
-        narrow: 1,
-        wideRatio: 2.5,
-        showText: true,
-      });
+      const orderUrl = receiptOrderUrl(origin, settings.locale, receipt.orderNumber);
 
       // Build a proper URL for the QR code. A small margin keeps the code
       // scannable on most thermal printers.
@@ -1078,31 +1255,20 @@ export function POSTerminal({
         color: { dark: "#000000", light: "#ffffff" },
       });
 
-      const paymentLabelMap: Record<string, string> = {
-        cash: "Cash",
-        card: "Card",
-        bank: "Bank",
-        manual: "Manual",
-      };
-      const paymentLabel =
-        paymentLabelMap[receipt.paymentMethod.toLowerCase()] ||
-        receipt.paymentMethod.charAt(0).toUpperCase() +
-          receipt.paymentMethod.slice(1);
-
-      const sgst = receipt.tax / 2;
-      const cgst = receipt.tax / 2;
-      const itemRows = receipt.items
-        .map(
-          (item) => `
-          <tr>
-            <td class="qty">${item.quantity}</td>
-            <td class="name">${escapeHtml(item.name)}</td>
-            <td class="money">${fp(item.price)}</td>
-            <td class="money">${fp(item.amount)}</td>
-          </tr>
-        `,
-        )
-        .join("");
+      const html = buildReceiptHtml(receipt, {
+        storeName: settings.storeName,
+        storeAddress: settings.storeAddress,
+        storePhone: settings.storePhone,
+        storeEmail: settings.storeEmail,
+        locale: settings.locale,
+        formatMoney: fp,
+        labels: {
+          tax: t("pos.tax.label"),
+          taxIncluded: t("pos.tax.included"),
+          taxExempt: t("pos.tax.exempt"),
+        },
+        qrSrc,
+      });
 
       // Render the receipt in a hidden iframe so the user only sees the
       // system print dialog (not a second visible window behind it). The
@@ -1129,174 +1295,12 @@ export function POSTerminal({
       const handle = iframe.contentWindow;
       if (!handle) {
         cleanup();
-        toast.error("Unable to open print preview");
+        toast.error(t("pos.toast.printPreviewFailed"));
         return;
       }
 
       handle.document.open();
-      handle.document.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Receipt #${escapeHtml(receipt.orderNumber)}</title>
-  <style>
-    html, body { background: #fff; color: #000; width: 80mm; min-width: 80mm; max-width: 80mm; }
-    body { font-family: 'Courier New', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; margin: 0 auto; padding: 0; }
-    .receipt { width: 80mm; max-width: 80mm; margin: 0; padding: 4mm 2.5mm; box-sizing: border-box; font-size: 10px; line-height: 1.25; color: #000; }
-    .center { text-align: center; }
-    .row { display: flex; justify-content: space-between; gap: 6px; }
-    .store { font-size: 13px; font-weight: 800; line-height: 1.1; margin: 0; letter-spacing: 0.3px; text-transform: uppercase; }
-    .meta { font-size: 9px; line-height: 1.25; margin: 2px 0 0; }
-    .meta div { word-break: break-word; }
-    .dash { border-top: 1px dashed #000; margin: 5px 0; }
-    .info { font-size: 9px; }
-    .info .line { display: flex; justify-content: space-between; margin: 0; gap: 6px; }
-    .info .line .lbl { color: #000; }
-    .info .line .val { font-weight: 700; }
-    .items { width: 100%; border-collapse: collapse; font-size: 9px; }
-    .items th { border-bottom: 1px solid #000; padding: 3px 1px; text-align: left; font-weight: 800; text-transform: uppercase; font-size: 8px; letter-spacing: 0.2px; }
-    .items td { padding: 3px 1px; vertical-align: top; }
-    .items .qty { width: 24px; text-align: center; }
-    .items .name { word-break: break-word; line-height: 1.2; }
-    .items .money { text-align: right; white-space: nowrap; padding-left: 4px; }
-    .totals { margin-top: 4px; font-size: 9px; }
-    .totals .r { display: flex; justify-content: space-between; margin: 2px 0; gap: 8px; }
-    .totals .r span:last-child { white-space: nowrap; }
-    .totals .grand { font-size: 12px; font-weight: 800; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0; margin-top: 4px; letter-spacing: 0.3px; }
-    .totals .grand span:last-child { font-size: 13px; }
-    .thanks { font-size: 10px; text-align: center; margin: 6px 0 2px; font-weight: 700; }
-    .footer-note { font-size: 8px; text-align: center; margin: 0; color: #000; }
-    .barcode-wrap { width: 100%; max-width: 58mm; margin: 6px auto 2px; }
-    .barcode-wrap svg { display: block; width: 100%; height: auto; }
-    .qr-wrap { display: flex; flex-direction: column; align-items: center; margin: 5px 0 0; }
-    .qr-wrap img { width: 64px; height: 64px; display: block; }
-    .scan-text { font-size: 8px; text-align: center; margin-top: 3px; color: #000; }
-    @media screen {
-      html, body { margin: 0 auto; }
-    }
-    @media print {
-      @page { size: 80mm auto; margin: 0 !important; }
-      html, body {
-        width: 80mm !important;
-        min-width: 80mm !important;
-        max-width: 80mm !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        background: #fff !important;
-      }
-      body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .receipt {
-        width: 80mm !important;
-        max-width: 80mm !important;
-        margin: 0 !important;
-        padding: 3mm 2.5mm !important;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="receipt">
-    <!-- Store header -->
-    <div class="center">
-      <p class="store">${escapeHtml(settings.storeName || "Store")}</p>
-      <div class="meta">
-        ${
-          settings.storeAddress
-            ? `<div>${escapeHtml(settings.storeAddress)}</div>`
-            : ""
-        }
-        ${
-          settings.storePhone
-            ? `<div>Phone: ${escapeHtml(settings.storePhone)}</div>`
-            : ""
-        }
-        ${
-          settings.storeEmail
-            ? `<div>${escapeHtml(settings.storeEmail)}</div>`
-            : ""
-        }
-        ${
-          // Which counter sold this. The receipt is the only record the customer
-          // leaves with, and a return has to be traced back to the branch whose
-          // stock the units actually came off. Omitted on a register selling
-          // from shared stock, where naming one would be a guess.
-          receipt.locationName
-            ? `<div>Counter: ${escapeHtml(receipt.locationName)}</div>`
-            : ""
-        }
-      </div>
-    </div>
-    <div class="dash"></div>
-
-    <!-- Order info -->
-    <div class="info">
-      <div class="line"><span class="lbl">Order #</span><span class="val">${escapeHtml(receipt.orderNumber)}</span></div>
-      <div class="line"><span class="lbl">Date</span><span class="val">${escapeHtml(dateText)}</span></div>
-      <div class="line"><span class="lbl">Payment</span><span class="val">${escapeHtml(paymentLabel)}</span></div>
-    </div>
-    <div class="dash"></div>
-
-    <!-- Items -->
-    <table class="items">
-      <thead>
-        <tr>
-          <th class="qty">Qty</th>
-          <th>Item</th>
-          <th class="money">Price</th>
-          <th class="money">Amount</th>
-        </tr>
-      </thead>
-      <tbody>${itemRows}</tbody>
-    </table>
-
-    <!-- Totals -->
-    <div class="totals">
-      <div class="r"><span>Sub Total</span><span>${fp(receipt.subtotal)}</span></div>
-      ${
-        receipt.discount > 0
-          ? `<div class="r"><span>Discount</span><span>-${fp(receipt.discount)}</span></div>`
-          : ""
-      }
-      ${
-        receipt.tax > 0
-          ? `<div class="r"><span>SGST (${(settings.taxRate * 50).toFixed(1)}%)</span><span>${fp(sgst)}</span></div>
-      <div class="r"><span>CGST (${(settings.taxRate * 50).toFixed(1)}%)</span><span>${fp(cgst)}</span></div>`
-          : ""
-      }
-      ${
-        receipt.cashTendered !== undefined
-          ? `<div class="r"><span>Cash Tendered</span><span>${fp(receipt.cashTendered)}</span></div>`
-          : ""
-      }
-      ${
-        receipt.balanceReturned > 0
-          ? `<div class="r"><span>Balance Returned</span><span>${fp(receipt.balanceReturned)}</span></div>`
-          : ""
-      }
-      <div class="r grand"><span>TOTAL</span><span>${fp(receipt.total)}</span></div>
-    </div>
-
-    <div class="dash"></div>
-
-    <!-- Barcode -->
-    <div class="barcode-wrap center">${barcodeSVG}</div>
-
-    <!-- Thank you message -->
-    <p class="thanks">Thank you for your visit!</p>
-    <p class="footer-note">Please come again</p>
-
-    <!-- QR code -->
-    <div class="qr-wrap">
-      <img src="${qrSrc}" alt="QR code for order ${escapeHtml(receipt.orderNumber)}" />
-      <p class="scan-text">Scan to view digital receipt</p>
-    </div>
-  </div>
-</body>
-</html>`);
+      handle.document.write(html);
       handle.document.close();
 
       // Wait for the iframe to finish loading styles, then trigger the
@@ -1340,7 +1344,8 @@ export function POSTerminal({
       settings.storePhone,
       settings.storeEmail,
       settings.storeAddress,
-      settings.taxRate,
+      t,
+      templateReceipt,
     ],
   );
 
@@ -1354,7 +1359,7 @@ export function POSTerminal({
   const openInvoice = React.useCallback(
     (disposition: "attachment" | "inline") => {
       if (!completedOrder?._id) {
-        toast.error("No invoice is available for this order");
+        toast.error(t("pos.toast.noInvoice"));
         return;
       }
 
@@ -1365,10 +1370,10 @@ export function POSTerminal({
         "noopener,noreferrer",
       );
       if (!popup) {
-        toast.error("Unable to open invoice. Please allow popups.");
+        toast.error(t("pos.toast.invoicePopupBlocked"));
       }
     },
-    [completedOrder],
+    [completedOrder, t],
   );
 
   /**
@@ -1382,7 +1387,7 @@ export function POSTerminal({
       // Resuming replaces the current cart. Guard against silently
       // discarding a non-empty active cart.
       if (cart.length > 0) {
-        toast.error("Finish or hold the current sale before resuming another.");
+        toast.error(t("pos.held.finishFirst"));
         return;
       }
       if (resumingHeldId) return;
@@ -1411,9 +1416,7 @@ export function POSTerminal({
         if (isEmpty) {
           // Nothing left to sell. The hold is kept rather than consumed, so the
           // cashier decides whether to delete it instead of watching it vanish.
-          toast.error(
-            "None of the items on this held order are still available. It has been left on the register.",
-          );
+          toast.error(t("pos.held.nothingAvailable"));
           return;
         }
 
@@ -1429,16 +1432,18 @@ export function POSTerminal({
 
         if (adjustments.length > 0) {
           toast.warning(
-            `Held order resumed · ${describeHeldOrderAdjustments(adjustments)}`,
+            t("pos.held.resumedWithChanges", {
+              changes: describeHeldOrderAdjustments(adjustments, (kind, count) =>
+                t(`pos.held.${kind}`, { count }),
+              ),
+            }),
           );
         } else {
-          toast.success("Held order resumed");
+          toast.success(t("pos.held.resumed"));
         }
       } catch {
         // The hold is untouched, so the cashier can simply try again.
-        toast.error(
-          "Could not check current prices and stock. The held order is still on the register.",
-        );
+        toast.error(t("pos.held.recheckFailed"));
       } finally {
         setResumingHeldId(null);
       }
@@ -1450,6 +1455,7 @@ export function POSTerminal({
       setCart,
       setMobileTab,
       settings.posLocationId,
+      t,
     ],
   );
 
@@ -1477,15 +1483,19 @@ export function POSTerminal({
         );
       } catch (err) {
         toast.error(
-          err instanceof Error && err.message
-            ? err.message
-            : "Could not hold this order. The sale is still in the cart.",
+          err instanceof HeldOrdersFullError
+            ? t("pos.held.holdFull", { max: err.max })
+            : t("pos.held.holdFailed"),
         );
         return false;
       }
 
       setHeldOrders(getHeldOrders(holdScope));
-      toast.success(`Order held${label ? ` · ${label}` : ""}`);
+      toast.success(
+        label
+          ? t("pos.held.orderHeldLabel", { label })
+          : t("pos.held.orderHeld"),
+      );
       // The next sale must not reuse this sale's idempotency key — the server
       // would return this sale's order as the new sale's "success" and the new
       // sale would never be recorded.
@@ -1500,7 +1510,7 @@ export function POSTerminal({
       setSelectedCategory("");
       return true;
     },
-    [cart, customer, discount, holdScope, isWalkIn, orderNote, setCart],
+    [cart, customer, discount, holdScope, isWalkIn, orderNote, setCart, t],
   );
 
   // Hand the hold up to the workspace, which needs it to park a sale at the old
@@ -1537,6 +1547,11 @@ export function POSTerminal({
         showDiscountDialog ||
         showHoldDialog ||
         showSaleCompleteModal ||
+        showSalesDialog ||
+        showRegisterDialog ||
+        showOperatorDialog ||
+        showTaxExemptDialog ||
+        Boolean(returnSale) ||
         document.querySelector('[data-slot="dialog-content"]') !== null;
 
       // Function-key hotkeys (F2 customer, F3 discount, F4 hold, F9 checkout)
@@ -1565,9 +1580,6 @@ export function POSTerminal({
         if (saleBlockedReason) {
           toast.error(saleBlockedReason);
         } else if (cart.length > 0 && !isProcessing) {
-          setCashTendered("");
-          setPaymentReference("");
-          setPaymentNote("");
           setCompletedOrder(null);
           setShowTakePaymentDialog(true);
         }
@@ -1585,7 +1597,12 @@ export function POSTerminal({
     showCustomerDialog,
     showDiscountDialog,
     showHoldDialog,
+    returnSale,
+    showOperatorDialog,
+    showTaxExemptDialog,
+    showRegisterDialog,
     showSaleCompleteModal,
+    showSalesDialog,
     showTakePaymentDialog,
     openCustomerDialog,
   ]);
@@ -1741,10 +1758,12 @@ export function POSTerminal({
                             {c.name}
                           </p>
                           <div className="flex items-center gap-3 mt-0.5">
-                            <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {c.email}
-                            </span>
+                            {c.email && (
+                              <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {c.email}
+                              </span>
+                            )}
                             {c.phone && (
                               <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
@@ -1805,7 +1824,6 @@ export function POSTerminal({
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-1.5">
                   {t("pos.customer.emailAddress")}
-                  <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1834,6 +1852,9 @@ export function POSTerminal({
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t("pos.customer.contactHint")}
+              </p>
             </div>
           )}
         </div>
@@ -1853,7 +1874,7 @@ export function POSTerminal({
               disabled={
                 isCreatingCustomer ||
                 !newCustomerName.trim() ||
-                !newCustomerEmail.trim()
+                (!newCustomerEmail.trim() && !newCustomerPhone.trim())
               }
               className="rounded-xl"
             >
@@ -1999,12 +2020,18 @@ export function POSTerminal({
       <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-card lg:flex-row">
         {variantModal}
         {customerDialog}
+        <POSTaxExemptDialog
+          open={showTaxExemptDialog}
+          onOpenChange={setShowTaxExemptDialog}
+          current={taxExempt}
+          onApply={setTaxExempt}
+        />
         <POSDiscountDialog
           open={showDiscountDialog}
           onOpenChange={setShowDiscountDialog}
           subtotal={discountedSubtotal}
-          taxRate={settings.taxRate}
-          taxIncluded={false}
+          taxRate={effectiveTaxRate}
+          taxIncluded={Boolean(settings.pricesIncludeTax)}
           current={discount}
           onApply={setDiscount}
           fp={fp}
@@ -2067,6 +2094,10 @@ export function POSTerminal({
           // rather than from live settings: switching the register while this
           // modal is open must not relabel a sale that has already happened.
           locationName={lastReceipt?.locationName}
+          orderId={completedOrder?.synced ? completedOrder._id : null}
+          defaultEmail={completedOrder?.customerEmail}
+          defaultPhone={completedOrder?.customerPhone}
+          receiptChannels={settings.receiptChannels}
           fp={fp}
           onViewReceipt={() => {
             openInvoice("inline");
@@ -2092,6 +2123,76 @@ export function POSTerminal({
           onHold={holdCurrentSale}
           itemCount={totalItems}
         />
+        <POSOperatorDialog
+          open={showOperatorDialog}
+          onOpenChange={setShowOperatorDialog}
+          isOffline={offline.isOffline}
+          onSwitched={setOperator}
+        />
+        <POSRegisterDialog
+          open={showRegisterDialog}
+          onOpenChange={setShowRegisterDialog}
+          register={register}
+          fp={fp}
+          isOffline={offline.isOffline}
+          queuedCount={offline.queued.length}
+          locationName={settings.posLocationName}
+          storeName={settings.storeName}
+          openCashDrawer={settings.openCashDrawer}
+        />
+        <POSSalesDialog
+          open={showSalesDialog}
+          onOpenChange={setShowSalesDialog}
+          settings={settings}
+          registerSessionId={registerSessionId}
+          locationId={settings.posLocationId}
+          isOffline={offline.isOffline}
+          fp={fp}
+          tenderLabel={tenderLabel}
+          onPrint={(receipt) => void printReceipt(receipt)}
+          onCashTaken={() => {
+            if (settings.openCashDrawer) void kickCashDrawer();
+          }}
+          renderSaleActions={(sale, refresh) =>
+            sale.status === "delivered" &&
+            ["paid", "partially_refunded"].includes(sale.paymentStatus) ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full rounded-xl"
+                disabled={offline.isOffline}
+                onClick={() => {
+                  refreshSalesRef.current = refresh;
+                  setReturnSale(sale);
+                }}
+              >
+                <Undo2 className="mr-1.5 h-4 w-4" />
+                {t("pos.returns.action")}
+              </Button>
+            ) : null
+          }
+        />
+        <POSReturnDialog
+          sale={returnSale}
+          onClose={() => setReturnSale(null)}
+          fp={fp}
+          isOffline={offline.isOffline}
+          registerSessionId={registerSessionId}
+          storeName={settings.storeName}
+          onReturned={(cashOut) => {
+            refreshSalesRef.current?.();
+            if (registerSessionId) void refreshRegister();
+            if (cashOut > 0 && settings.openCashDrawer) void kickCashDrawer();
+          }}
+          onExchange={(credit) => {
+            setExchangeCredit({
+              amount: credit.amount,
+              reference: t("pos.returns.exchangeReference", { numbers: credit.reference }),
+            });
+            setReturnSale(null);
+            setShowSalesDialog(false);
+          }}
+        />
         <POSHeldOrdersDialog
           open={showHeldOrdersDialog}
           onOpenChange={setShowHeldOrdersDialog}
@@ -2109,22 +2210,15 @@ export function POSTerminal({
           total={total}
           itemCount={totalItems}
           discount={discount}
-          onProcess={async (
-            method,
-            cashAmount,
-            reference,
-            _note,
-            stripePaymentIntentId,
-          ) => {
-            const completed = await processPayment(
-              method,
-              cashAmount,
-              reference,
-              stripePaymentIntentId,
-            );
+          onComplete={async (tenders, options) => {
+            const completed = await processPayment(tenders, options);
             if (completed) setShowTakePaymentDialog(false);
+            return completed;
           }}
           onCreateStripeIntent={createStripeIntent}
+          storeCreditAvailable={storeCreditAvailable}
+          exchangeCredit={exchangeCredit}
+          hasCustomer={Boolean(customer)}
           isProcessing={isProcessing}
           settings={settings}
           fp={fp}
@@ -2138,19 +2232,28 @@ export function POSTerminal({
           )}
         >
           {/* Category Tabs */}
-          {categories.length > 0 && (
+          {(categories.length > 0 || showFavouritesPill) && (
             <POSCategoryStrip
               categories={categories}
               selectedCategory={selectedCategory}
               onSelect={setSelectedCategory}
+              favourites={showFavouritesPill ? { value: FAVOURITES, label: t("pos.quickKeys.tab") } : undefined}
             />
           )}
 
           {/* Product Grid */}
           <ScrollArea className="min-h-0 flex-1">
-            {isLoading && products.length === 0 ? (
+            {showingFavourites && gridProducts.length === 0 ? (
+              <div className="flex min-h-64 flex-col items-center justify-center gap-2 px-8 py-12 text-center text-muted-foreground">
+                <Star className="h-8 w-8 opacity-40" />
+                <p className="font-medium text-foreground/70">{t("pos.quickKeys.empty")}</p>
+                <p className="max-w-sm text-sm">
+                  {quickKeys.canEdit ? t("pos.quickKeys.emptyManager") : t("pos.quickKeys.emptyCashier")}
+                </p>
+              </div>
+            ) : isLoading && gridProducts.length === 0 ? (
               <POSProductGridSkeleton />
-            ) : products.length === 0 ? (
+            ) : gridProducts.length === 0 ? (
               <div className="flex min-h-64 flex-col items-center justify-center gap-3 px-8 py-12 text-center text-muted-foreground">
                 <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center">
                   <Package className="w-8 h-8 opacity-40" />
@@ -2192,7 +2295,7 @@ export function POSTerminal({
                   isLoading && "pointer-events-none opacity-50",
                 )}
               >
-                {products.map((product) => {
+                {gridProducts.map((product) => {
                   const inCart = cart.find(
                     (item) => item.productId === product._id && !item.variantId,
                   );
@@ -2220,9 +2323,11 @@ export function POSTerminal({
                     !!product.comparePrice &&
                     product.comparePrice > product.price;
 
+                  const favourite = quickKeys.isFavourite(String(product._id));
                   return (
+                    <div key={product._id} className="relative">
                     <button
-                      key={product._id}
+                      type="button"
                       onClick={() => handleProductClick(product)}
                       disabled={isOutOfStock}
                       className={cn(
@@ -2244,8 +2349,8 @@ export function POSTerminal({
                           <AppImage
                             src={product.images[0]}
                             alt={product.name}
-                            width={240}
-                            height={240}
+                            width={POS_TILE_IMAGE_SIZE}
+                            height={POS_TILE_IMAGE_SIZE}
                             className={cn(
                               "w-full h-full object-cover transition-transform duration-300",
                               isOutOfStock
@@ -2314,6 +2419,29 @@ export function POSTerminal({
                         </div>
                       </div>
                     </button>
+                    {/* A manager stars a product onto the quick keys; a
+                        sibling, not inside the tile, so it is its own button. */}
+                    {quickKeys.canEdit ? (
+                      <button
+                        type="button"
+                        aria-pressed={favourite}
+                        aria-label={favourite ? t("pos.quickKeys.remove") : t("pos.quickKeys.add")}
+                        title={favourite ? t("pos.quickKeys.remove") : t("pos.quickKeys.add")}
+                        disabled={quickKeys.saving}
+                        onClick={() => {
+                          quickKeys.toggle(product).catch((error: unknown) =>
+                            toast.error(error instanceof Error ? error.message : t("pos.quickKeys.failed")),
+                          );
+                        }}
+                        className={cn(
+                          "absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 shadow-sm transition-opacity",
+                          favourite ? "text-amber-500 opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
+                        )}
+                      >
+                        <Star className={cn("h-3.5 w-3.5", favourite && "fill-current")} />
+                      </button>
+                    ) : null}
+                    </div>
                   );
                 })}
               </div>
@@ -2333,7 +2461,11 @@ export function POSTerminal({
         >
           {/* Cart Header */}
           <div className="shrink-0 space-y-2.5 p-3 pb-2.5 sm:space-y-4 sm:p-5 sm:pb-4">
-            <div className="flex items-center justify-between gap-2">
+            {/* The cart panel is a fixed 420px from lg up, too narrow for the
+                title beside three labelled chips: a row that cannot wrap
+                crushes the title to a sliver and the chips paint over it. So
+                the chips drop to their own line when they do not fit. */}
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
               <div className="min-w-0">
                 <p className="hidden text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:block">
                   Order
@@ -2352,6 +2484,55 @@ export function POSTerminal({
                       : "items"}
                 </p>
               </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              {/* Who is working the till, and the way to hand it over. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowOperatorDialog(true)}
+                className={cn(
+                  "h-8 max-w-[9rem] rounded-full px-2.5 text-xs sm:px-3",
+                  operator.switched
+                    ? "border-primary/40 text-primary"
+                    : "border-border/60 text-muted-foreground",
+                )}
+                title={t("pos.operator.title")}
+              >
+                <UserRound className="h-3.5 w-3.5 shrink-0 sm:mr-1" />
+                <span className="hidden truncate sm:inline">{operator.name || t("pos.operator.title")}</span>
+              </Button>
+              {/* The drawer: open or closed, and the way into its counts. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRegisterDialog(true)}
+                disabled={!terminalId}
+                aria-label={register.session ? t("pos.register.openChip") : t("pos.register.closedChip")}
+                className={cn(
+                  "h-8 rounded-full px-2.5 text-xs sm:px-3",
+                  register.session
+                    ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                    : "border-border/60 text-muted-foreground",
+                )}
+                title={register.session ? register.session.number : t("pos.register.closedChip")}
+              >
+                <Vault className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">
+                  {register.session ? t("pos.register.openChip") : t("pos.register.closedChip")}
+                </span>
+              </Button>
+              {/* Find a sale again: collect a balance, resend a receipt, take
+                  a return. */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSalesDialog(true)}
+                className="h-8 rounded-full border-border/60 px-3 text-xs text-muted-foreground"
+                title={t("pos.sales.title")}
+              >
+                <Receipt className="mr-1 h-3.5 w-3.5" />
+                {t("pos.sales.title")}
+              </Button>
               {cart.length > 0 && (
                 <Button
                   variant="outline"
@@ -2363,6 +2544,7 @@ export function POSTerminal({
                   {t("pos.clearCart")}
                 </Button>
               )}
+              </div>
             </div>
 
             {/* Customer */}
@@ -2377,7 +2559,7 @@ export function POSTerminal({
                     {customer.name}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {customer.email}
+                    {customer.email || customer.phone}
                   </p>
                 </div>
                 <Button
@@ -2394,18 +2576,21 @@ export function POSTerminal({
               </div>
               {/* Asked at the counter, ticked by the cashier on the shopper's
                   say-so. It only ever subscribes — taking someone off the list
-                  is theirs to do, from the link in the email. */}
-              <label className="flex items-start gap-2 px-1 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-3.5 w-3.5 accent-primary"
-                  checked={customerMarketingOptIn}
-                  onChange={(event) =>
-                    setCustomerMarketingOptIn(event.target.checked)
-                  }
-                />
-                <span>Customer agreed to receive news and offers by email</span>
-              </label>
+                  is theirs to do, from the link in the email. An account only:
+                  a guest has no email consent record to keep it on. */}
+              {customer.kind !== "guest" && customer.email ? (
+                <label className="flex items-start gap-2 px-1 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-3.5 w-3.5 accent-primary"
+                    checked={customerMarketingOptIn}
+                    onChange={(event) =>
+                      setCustomerMarketingOptIn(event.target.checked)
+                    }
+                  />
+                  <span>{t("pos.customer.marketingOptIn")}</span>
+                </label>
+              ) : null}
               </div>
             ) : isWalkIn ? (
               <div className="flex items-center gap-3 bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 rounded-xl px-3.5 py-2 sm:py-3">
@@ -2714,6 +2899,42 @@ export function POSTerminal({
               </div>
             ) : null}
 
+            {/* Tax: added, inside the prices, or not charged. A seat that may
+                give discounts may also sell tax-free, with a reason. */}
+            {cart.length > 0 && (tax > 0 || saleTotals.includedTax > 0 || taxExempt || canApplyDiscounts) ? (
+              <div className="flex items-center justify-between gap-2 text-sm">
+                {canApplyDiscounts ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowTaxExemptDialog(true)}
+                    className={cn(
+                      "inline-flex min-w-0 items-center gap-1.5 text-sm transition-colors",
+                      taxExempt ? "font-medium text-primary" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span className="truncate">
+                      {taxExempt
+                        ? t("pos.tax.exemptWith", { reason: taxExempt.reason })
+                        : taxMode === "included"
+                          ? t("pos.tax.included")
+                          : t("pos.tax.label")}
+                    </span>
+                  </button>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {taxExempt ? t("pos.tax.exempt") : taxMode === "included" ? t("pos.tax.included") : t("pos.tax.label")}
+                  </span>
+                )}
+                <span className="shrink-0 tabular-nums">
+                  {taxExempt
+                    ? saleTotals.includedTax > 0
+                      ? `−${fp(saleTotals.includedTax)}`
+                      : fp(0)
+                    : fp(taxMode === "included" ? saleTotals.includedTax : tax)}
+                </span>
+              </div>
+            ) : null}
+
             {/* TOTAL DUE */}
             <div className="flex items-baseline justify-between border-t border-border/60 pt-3">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -2730,6 +2951,30 @@ export function POSTerminal({
                 of this state is to park it and move to a live counter. */}
             {saleBlockedReason ? (
               <WarningBanner>{saleBlockedReason}</WarningBanner>
+            ) : null}
+            {/* An exchange's refund waiting to pay toward this sale. Dismissed
+                unused, it is cash the customer is owed from the drawer. */}
+            {exchangeCredit ? (
+              <div className="flex items-start justify-between gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+                <div>
+                  <p className="font-semibold">
+                    {t("pos.returns.exchangeBanner", { amount: fp(exchangeCredit.amount) })}
+                  </p>
+                  <p className="text-muted-foreground">{exchangeCredit.reference}</p>
+                </div>
+                <button
+                  type="button"
+                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted"
+                  aria-label={t("pos.returns.exchangeDismiss")}
+                  title={t("pos.returns.exchangeDismissHint", { amount: fp(exchangeCredit.amount) })}
+                  onClick={() => {
+                    toast.info(t("pos.returns.exchangeDismissHint", { amount: fp(exchangeCredit.amount) }));
+                    setExchangeCredit(null);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ) : null}
 
             {/* Action buttons: Hold / Discount / Checkout.
@@ -2810,9 +3055,6 @@ export function POSTerminal({
                 }
                 title={saleBlockedReason ?? undefined}
                 onClick={() => {
-                  setCashTendered("");
-                  setPaymentReference("");
-                  setPaymentNote("");
                   setCompletedOrder(null);
                   setShowTakePaymentDialog(true);
                 }}

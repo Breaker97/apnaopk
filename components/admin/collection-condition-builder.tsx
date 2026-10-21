@@ -325,9 +325,9 @@ export function CollectionConditionBuilder({
   };
 
   return (
-    <Card>
+    <Card className="gap-2">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">
+        <CardTitle>
           {tSafe("admin.collectionConditions.title", "Collection Conditions")}
         </CardTitle>
       </CardHeader>

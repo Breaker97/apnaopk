@@ -15,12 +15,16 @@ import {
 import { getVendorStatement, resolveRequestedPeriod } from "@/lib/finance/reports";
 import { resolveFinanceDashboardPeriod } from "@/lib/finance/dashboard-finance-period";
 import { DASHBOARD_PERIODS } from "@/lib/admin/dashboard-period";
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from "@/lib/finance/expense-categories";
+import { vendorExpenseFilter } from "@/lib/finance/vendor-expense-filter";
 
 const ExportQuerySchema = z.object({
   type: z.enum(["statement", "expenses"]).default("statement"),
   period: z.string().default("30d"),
   from: z.string().optional(),
   to: z.string().optional(),
+  category: z.enum(EXPENSE_CATEGORIES as [ExpenseCategory, ...ExpenseCategory[]]).optional(),
+  currency: z.string().regex(/^[A-Za-z]{3}$/).transform(value => value.toUpperCase()).optional(),
 });
 
 /** The same ceiling the admin export uses: a file nobody can open is not one. */
@@ -71,33 +75,31 @@ export const GET = withApi(
     const stamp = new Date().toISOString().slice(0, 10);
 
     if (query.type === "expenses") {
-      const rows = await Expense.find({
-        vendorId: vendor._id,
-        scope: "vendor",
-        date: { $gte: period.from, $lte: period.to },
-      })
-        .sort({ date: 1 })
-        .limit(MAX_ROWS)
+      const allTime = query.period === "all" && !query.from && !query.to;
+      const rows = await Expense.find(vendorExpenseFilter(vendor._id, {
+        category: query.category,
+        ...(allTime ? {} : { from: period.from, to: period.to }),
+      }))
+        .sort({ date: 1, _id: 1 })
+        .limit(MAX_ROWS + 1)
         .lean();
+
+      const csvRows: unknown[][] = rows.slice(0, MAX_ROWS).map((row) => [
+        new Date(row.date).toISOString().slice(0, 10), row.category, row.description,
+        row.payee ?? "", row.paidFrom, row.amount, row.currency,
+      ]);
+      if (rows.length > MAX_ROWS) csvRows.push(["", "", `INCOMPLETE EXPORT: Only the first ${MAX_ROWS} expenses are included. Choose a shorter period or a category to export the rest.`, "", "", "", ""]);
 
       return csvResponse(
         `my-expenses-${period.key}-${stamp}.csv`,
         buildCsv(
           ["Date", "Category", "Description", "Payee", "Paid from", "Amount", "Currency"],
-          rows.map((row) => [
-            new Date(row.date).toISOString().slice(0, 10),
-            row.category,
-            row.description,
-            row.payee ?? "",
-            row.paidFrom,
-            row.amount,
-            row.currency,
-          ]),
+          csvRows,
         ),
       );
     }
 
-    const statements = await getVendorStatement(String(vendor._id), period, MAX_ROWS);
+    const statements = await getVendorStatement(String(vendor._id), period, MAX_ROWS, { currency: query.currency });
 
     return csvResponse(
       `statement-${period.key}-${stamp}.csv`,

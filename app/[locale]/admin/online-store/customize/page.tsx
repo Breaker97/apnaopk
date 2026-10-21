@@ -37,7 +37,10 @@ import {
   buildPageSwitcher,
   loadPageSwitcherLandingPages,
 } from "@/lib/storefront/pages/page-switcher";
+import { CustomizeHub } from "@/components/admin/online-store/customize-hub";
 import { StorePageBuilder } from "@/components/admin/store-pages/store-page-builder";
+import { resolveBrand } from "@/lib/branding/brand";
+import { compileTheme } from "@/lib/storefront/themes/compile";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -49,7 +52,8 @@ interface PageProps {
  * for every section-built surface; the `?page=` ref (resolved by
  * `resolveAdminPageRef`) selects the home template, the product template,
  * or a landing page, and the in-builder switcher moves between them. New
- * templates join the switcher, never the sidebar.
+ * templates join the switcher, never the sidebar. Without `?page=` the route
+ * is the Customize landing, one card per page.
  */
 export default async function CustomizePage({ params, searchParams }: PageProps) {
   const { locale } = await params;
@@ -58,7 +62,16 @@ export default async function CustomizePage({ params, searchParams }: PageProps)
   await requireAdminPageAccess(locale);
 
   const { page: pageParam } = await searchParams;
-  const ref = resolveAdminPageRef(pageParam ?? "home");
+  // No page named: the landing of page cards, as Navigation has. Every link
+  // that means a page's builder — the home page's included — names it.
+  if (!pageParam) {
+    return (
+      <div className="mx-auto w-full max-w-6xl space-y-4">
+        <CustomizeHub />
+      </div>
+    );
+  }
+  const ref = resolveAdminPageRef(pageParam);
   if (!ref) notFound();
 
   await connectDB();
@@ -127,10 +140,20 @@ export default async function CustomizePage({ params, searchParams }: PageProps)
 
   const switcher = await buildPageSwitcher(
     locale,
-    pageParam ?? "home",
+    pageParam,
     defaultLanguage,
     landingPages,
   );
+
+  // The section editors draw real storefront components inline (brand and
+  // category lists); they need the active theme's colours on their
+  // `.store-surface`, which carries no fallbacks of its own.
+  const activeTheme = resolveActiveTheme(settings.onlineStore);
+  const compiledSurface = compileTheme(activeTheme.tokens, resolveBrand(settings).colors);
+  const storeSurface = {
+    vars: compiledSurface.vars,
+    attributes: { ...compiledSurface.attributes, "data-store-theme": activeTheme.id },
+  };
 
   return (
     <div className="w-full space-y-6">
@@ -140,9 +163,10 @@ export default async function CustomizePage({ params, searchParams }: PageProps)
       <StorePageBuilder
         key={ref.key}
         locale={locale}
-        handle={pageParam ?? "home"}
+        handle={pageParam}
         heading={heading}
         switcher={switcher}
+        backHref="/admin/online-store/customize"
         initialSections={draftSections}
         initialIsPublished={isPublished}
         initialHasUnpublishedChanges={hasUnpublishedChanges}
@@ -153,6 +177,7 @@ export default async function CustomizePage({ params, searchParams }: PageProps)
           enabled: isDemoModeEnabled(),
           message: STORE_BUILDER_DEMO_MODE_MESSAGE,
         }}
+        storeSurface={storeSurface}
       />
     </div>
   );

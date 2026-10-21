@@ -1,5 +1,6 @@
 "use client";
 
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWishlist } from "@/hooks/use-wishlist";
@@ -41,6 +42,7 @@ export function WishlistButton({
       } else {
         const success = await addToWishlist(productId);
         if (success) {
+          posthogClient.capture("wishlist_item_added", { product_id: productId });
           toast.success("Added to wishlist");
         } else {
           toast.error("Please login to add to wishlist");

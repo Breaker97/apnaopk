@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { buildLoginUrl, returnPathFromHeaders } from "@/lib/auth/return-path";
-import { Conversation, Order } from "@/models";
+import { Conversation } from "@/models";
 import { CONVERSATION_STATUSES } from "@/models/conversation.model";
 import { setRequestLocale } from "next-intl/server";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,8 @@ import {
   getAccountSession,
 } from "@/lib/customers/account-data";
 import { listPendingReviews } from "@/lib/catalog/review-eligibility";
+import { getAccountOverview } from "@/lib/customers/account-overview";
+import { storeCreditSummary } from "@/lib/store-credit/store-credit";
 import { localeHref } from "@/lib/i18n/locale-routing";
 
 interface PageProps {
@@ -23,15 +25,10 @@ interface PageProps {
 async function getCustomerStats(userId: string) {
   await connectDB();
 
-  const [profile, pendingOrders, notificationsCount, inboxUnreadCount] =
+  const [profile, notificationsCount, inboxUnreadCount] =
     await Promise.all([
       // Shared with the account layout's sidebar stats within one request.
       getAccountProfile(userId),
-      // Pending orders is a real-time transient status — keep as live query
-      Order.countDocuments({
-        customerId: userId,
-        status: { $in: ["pending", "processing"] },
-      }),
       // Unread badges for the mobile Activity menu — the same count the
       // layout shows in the sidebar, read once for both.
       countUnreadNotifications(userId),
@@ -46,7 +43,6 @@ async function getCustomerStats(userId: string) {
 
   return {
     totalOrders: profile?.stats?.totalOrders ?? 0,
-    pendingOrders,
     wishlistCount: profile?.stats?.totalWishlistItems ?? 0,
     totalSpent: profile?.stats?.totalSpent ?? 0,
     loyaltyPoints: profile?.loyaltyPoints ?? 0,
@@ -57,22 +53,16 @@ async function getCustomerStats(userId: string) {
   };
 }
 
-async function getRecentOrders(userId: string) {
+async function getStoreCredit(userId: string) {
   await connectDB();
 
-  const orders = await Order.find({ customerId: userId })
-    .sort({ createdAt: -1 })
-    .limit(3)
-    .select("orderNumber status total createdAt")
-    .lean();
-
-  return orders.map((order) => ({
-    _id: order._id.toString(),
-    orderNumber: order.orderNumber,
-    status: order.status,
-    totalAmount: order.total,
-    createdAt: order.createdAt.toISOString(),
-  }));
+  // A figure on a card, not the page: if the read fails the card says none.
+  return storeCreditSummary(userId)
+    .then((rows) => rows.map(({ currency, balance }) => ({ currency, balance })))
+    .catch((error) => {
+      console.error("Failed to load store credit:", error);
+      return [];
+    });
 }
 
 async function getPendingReviews(userId: string) {
@@ -134,10 +124,11 @@ async function AccountOverview({
   locale: string;
   user: { id: string; name: string; email: string; image?: string };
 }) {
-  const [stats, recentOrders, pendingReviews] = await Promise.all([
+  const [stats, overview, pendingReviews, storeCredit] = await Promise.all([
     getCustomerStats(user.id),
-    getRecentOrders(user.id),
+    getAccountOverview(user.id),
     getPendingReviews(user.id),
+    getStoreCredit(user.id),
   ]);
 
   return (
@@ -145,7 +136,9 @@ async function AccountOverview({
       locale={locale}
       user={{ name: user.name, email: user.email, image: user.image }}
       stats={stats}
-      recentOrders={recentOrders}
+      storeCredit={storeCredit}
+      attention={overview.attention}
+      recentOrders={overview.recentOrders}
       pendingReviews={pendingReviews}
     />
   );
@@ -153,17 +146,17 @@ async function AccountOverview({
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8">
-      {/* Stats skeleton. Mirrors the dashboard: a 2×2 tile grid on phones,
-          one row of four from `lg` up. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
+      {/* Stats skeleton. Mirrors the dashboard: a 2×2 card grid on phones and
+          up to `xl`, one row of four from there. */}
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4 xl:gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
+          <Skeleton key={i} className="h-16 rounded-xl xl:h-[92px]" />
         ))}
       </div>
 
       {/* Recent orders skeleton */}
-      <Skeleton className="h-64 w-full rounded-lg" />
+      <Skeleton className="h-64 w-full rounded-xl" />
     </div>
   );
 }

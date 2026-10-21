@@ -6,12 +6,13 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { getSettings } from "@/models/settings.model";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
+import { getAdminTeamAccess, requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/layout/dashboard-sidebar";
 import { SidebarStateSync } from "@/components/layout/sidebar-state-sync";
 import { AiAvailabilityProvider } from "@/components/ai-authoring/ai-availability-provider";
 import { getAIAuthoringAvailability } from "@/lib/ai-authoring/runtime";
+import packageJson from "@/package.json";
 
 // Canonical, hreflang and robots from the URL being served.
 export { generateMetadata } from "@/lib/storefront/request-path-metadata";
@@ -29,6 +30,8 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   const messages = await getMessages();
 
   const session = await requireAdminPageAccess(locale);
+  // The member's team role: the sidebar shows only the areas it reaches.
+  const team = await getAdminTeamAccess(session.user.id);
 
   await connectDB();
   const settings = await getSettings();
@@ -54,6 +57,13 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
               image: session.user.image || undefined,
               role: session.user.role as string,
             }}
+            teamAccess={{
+              fullAccess: team.fullAccess,
+              permissions: team.fullAccess ? [] : Array.from(team.permissions),
+            }}
+            // Read here, on the server, so the browser gets the one string
+            // rather than the whole package.json.
+            appVersion={packageJson.version}
           />
           <SidebarInset className="[--dashboard-header-height:4rem]">
             <AdminHeader

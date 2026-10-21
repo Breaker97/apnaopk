@@ -6,7 +6,7 @@ import { consignmentCharge } from "@/lib/finance/postings";
 import { getFulfillmentPaymentBlock } from "@/lib/orders/fulfillment-payment-gate";
 import { resolveVendorPaymentDisplayStatus } from "@/lib/orders/order-payment-status";
 import { resolvePosSoldByName } from "@/lib/orders/pos-sold-by";
-import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
+import { isPosWalkIn, posWalkInName } from "@/lib/orders/pos-walk-in";
 import { isPlatformSettled } from "@/lib/payments/payment-custody";
 import { resolveReturnPolicy, type ReturnPolicySettingsLike } from "@/lib/returns/return-policy";
 import {
@@ -146,6 +146,8 @@ export async function vendorOrderDetail(
       : undefined,
     customerId: posWalkIn ? undefined : order.customerId,
     posWalkIn,
+    // The phone-only customer a walk-in was rung up for, by name only.
+    posWalkInName: posWalkIn ? posWalkInName(order) : undefined,
     // Who rang a POS sale up; nothing for an online order.
     soldByName,
     // What the shopper wrote at checkout is often for whoever packs the

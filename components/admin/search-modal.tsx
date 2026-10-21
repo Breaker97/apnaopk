@@ -67,7 +67,7 @@ function useAdminNavItems(t: (key: string) => string): NavItem[] {
   return items;
 }
 
-export function SearchModal() {
+export function SearchModal({ triggerClassName }: { triggerClassName?: string }) {
   const t = useTranslations();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -146,7 +146,10 @@ export function SearchModal() {
       </DialogPrimitive.Portal>
       <DialogPrimitive.Trigger asChild>
         <button
-          className="hidden md:flex items-center gap-2 h-9 px-3 rounded-2xl border bg-background hover:bg-muted/50 transition-colors"
+          className={cn(
+            "hidden md:flex items-center gap-2 h-9 px-3 rounded-2xl border bg-background hover:bg-muted/50 transition-colors",
+            triggerClassName,
+          )}
           onClick={() => setOpen(true)}
         >
           <Search className="h-4 w-4 text-muted-foreground" />

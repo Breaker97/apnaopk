@@ -1,4 +1,5 @@
 import { USER_ROLES, VENDOR_STATUS } from "@/config/app.config";
+import { resolveTeamAccess } from "@/lib/access/team-permissions";
 import type { StaffPermission } from "@/config/permissions.config";
 import { getActiveStaffAccess } from "@/lib/access/staff-authz";
 import { isStaffRole } from "@/lib/access/staff-role";
@@ -100,10 +101,14 @@ export interface BizVendor {
   mode: BizVendorMode;
 }
 
-/** The store itself, as an administrator: everything, no scope. */
+/**
+ * The store itself, as an administrator: no scope; everything, unless their
+ * team role holds them to `team` (lib/access/team-permissions.ts).
+ */
 export interface AdminGrant {
   workspace: "platform";
   kind: "admin";
+  team?: { permissions: string[] };
 }
 
 /** The store's own staff: their permissions, within their scope. */
@@ -230,7 +235,20 @@ export async function loadBizActor(
   const userId = session.user.id;
   const role = session.user.role;
   if (role === USER_ROLES.ADMIN) {
-    return { userId, role: "admin", workspaces: [{ workspace: "platform", kind: "admin" }] };
+    await connectDB();
+    // The app is held to the same team role as the admin dashboard.
+    const team = await resolveTeamAccess(userId);
+    return {
+      userId,
+      role: "admin",
+      workspaces: [
+        {
+          workspace: "platform",
+          kind: "admin",
+          ...(team.fullAccess ? {} : { team: { permissions: Array.from(team.permissions) } }),
+        },
+      ],
+    };
   }
   await connectDB();
   if (isStaffRole(role)) {

@@ -1614,12 +1614,18 @@ export async function refreshShipmentTracking(params: {
     await applyShipmentTrackingToOrder({
       orderId: String(shipment.orderId),
       subOrderId: shipment.subOrderId ? String(shipment.subOrderId) : undefined,
+      vendorId: shipment.vendorId ? String(shipment.vendorId) : undefined,
       trackingNumber: shipment.trackingNumber,
       carrier: shipment.rate?.carrierName || shipment.carrier,
       targetStatus:
         statusChanged === "delivered"
           ? ORDER_STATUS.DELIVERED
           : ORDER_STATUS.SHIPPED,
+      // The scan that said so, so the delivery is dated when it happened.
+      occurredAt:
+        statusChanged === "delivered"
+          ? [...tracking.events].reverse().find((event) => event.status === "delivered")?.at
+          : undefined,
     }).catch(console.error);
   }
 

@@ -1,4 +1,17 @@
 import { connectDB } from "@/lib/db";
+import { resolveTeamAccess } from "@/lib/access/team-permissions";
+import {
+  MemberRoleInputShape,
+  adminMemberRoleFields,
+  assertMayManageMember,
+  assertNotOwnAccess,
+  assertTeamDuties,
+  memberAccessRecord,
+  memberViewerAccess,
+  readAdminMemberRole,
+  staffMemberRoleFields,
+  type TEAM_DUTIES,
+} from "@/lib/access/team-member-roles";
 import { User, StaffProfile, AdminProfile } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
@@ -12,10 +25,8 @@ import {
 import { Types } from "mongoose";
 import {
   ADMIN_PERMISSIONS,
-  ALL_STAFF_PERMISSIONS,
   DEFAULT_STAFF_PERMISSIONS,
 } from "@/config/permissions.config";
-import type { StaffPermission } from "@/config/permissions.config";
 import { TEAM_USER_ROLES, isStaffRole } from "@/lib/access/staff-role";
 import {
   decideTeamRemoval,
@@ -50,6 +61,7 @@ const StaffUpdateSchema = z
     startDate: z.string().max(40).nullable().optional(),
     notes: z.string().max(5000).nullable().optional(),
     isActive: z.boolean().optional(),
+    ...MemberRoleInputShape,
   })
   .loose();
 
@@ -59,7 +71,7 @@ const StaffUpdateSchema = z
  */
 export const GET = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ params }) => {
+  async ({ params, session, team }) => {
     const { id } = params;
     if (!Types.ObjectId.isValid(id)) {
       return notFoundResponse("Team member");
@@ -88,17 +100,22 @@ export const GET = withApi<{ id: string }>(
       return notFoundResponse("Team member");
     }
 
-    const [staffProfile, isOwner] = await Promise.all([
+    const [staffProfile, isOwner, teamRole, viewer] = await Promise.all([
       StaffProfile.findOne({ userId: id })
         .populate("assignedBy", "name email")
         .lean(),
       isOwnerAdmin(id),
+      adminTeamRoleOf(id, user.role),
+      // What the person looking may change here: the page offers only that.
+      (async () => memberViewerAccess(team ?? (await resolveTeamAccess(session.user.id)), { userId: id, role: user.role }))(),
     ]);
 
     return successResponse({
       ...stripPassword(user),
       isOwner,
       staffProfile: staffProfile || null,
+      teamRole,
+      viewer,
     });
   },
 );
@@ -113,7 +130,7 @@ export const PUT = withApi<{ id: string }>(
     auth: "admin",
     rateLimit: { action: "admin:staff:update", preset: "moderate" },
   },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const { id } = params;
     if (!Types.ObjectId.isValid(id)) {
       return notFoundResponse("Team member");
@@ -134,6 +151,11 @@ export const PUT = withApi<{ id: string }>(
     if (await isVendorOwnedStaff(id)) {
       return notFoundResponse("Team member");
     }
+
+    // Nobody changes a member at or above their own level.
+    const actor = team ?? (await resolveTeamAccess(session.user.id));
+    const held = await assertMayManageMember(actor, { userId: id, role: user.role });
+    const isSelf = id === session.user.id;
 
     const body = await validateBody(request, StaffUpdateSchema);
     const {
@@ -193,17 +215,85 @@ export const PUT = withApi<{ id: string }>(
     // The member as stored now, read before any write below changes it: the
     // audit rows are the difference between this and what is stored afterwards.
     const wasAdmin = user.role === USER_ROLES.ADMIN;
-    const [staffProfileBefore, adminProfileBefore] = await Promise.all([
+    const [staffProfileBefore, adminProfileBefore, accessBefore] = await Promise.all([
       StaffProfile.findOne({ userId: id }).lean(),
       wasAdmin
         ? AdminProfile.findOne({ userId: id }).select("department").lean()
         : null,
+      memberAccessRecord(id, user.role),
     ]);
     const snapshotBefore = teamAuditSnapshot(
       user,
-      staffProfileBefore,
+      { ...staffProfileBefore, ...accessBefore },
       wasAdmin ? adminProfileBefore?.department : staffProfileBefore?.department,
     );
+
+    // The role and permissions they will hold, refused before anything is
+    // written when the person saving may not give that role or those
+    // permissions. On your own account the form's echo is read only to see
+    // whether it changes anything (as the Owner would, so no grant rule
+    // speaks first); any change is refused below, and no change writes
+    // nothing new.
+    const roleInput = {
+      teamRoleId: body.teamRoleId,
+      teamExtraPermissions: body.teamExtraPermissions,
+      teamRevokedPermissions: body.teamRevokedPermissions,
+    };
+    const fieldsActor = isSelf ? { ...actor, isOwner: true } : actor;
+    const finalRoleAhead = requestedRole ?? user.role;
+    const adminRole =
+      finalRoleAhead === USER_ROLES.ADMIN
+        ? await adminMemberRoleFields(
+            roleInput,
+            fieldsActor,
+            wasAdmin && !wantsRoleChange ? await readAdminMemberRole(id) : null,
+            held,
+          )
+        : null;
+    const staffRole =
+      finalRoleAhead === USER_ROLES.ADMIN
+        ? null
+        : await staffMemberRoleFields(
+            { ...roleInput, permissions: Array.isArray(permissions) ? permissions : undefined },
+            fieldsActor,
+            staffProfileBefore as Parameters<typeof staffMemberRoleFields>[2],
+            held,
+          );
+
+    // Each kind of change is its own grant: a member's role, their own
+    // permissions, and their details and status.
+    const roleChanged = wantsRoleChange || Boolean(adminRole?.changes.role || staffRole?.changes.role);
+    const permissionsChanged = Boolean(adminRole?.changes.permissions || staffRole?.changes.permissions);
+    if (isSelf && (roleChanged || permissionsChanged)) assertNotOwnAccess(session.user.id, id);
+    const duties: (keyof typeof TEAM_DUTIES)[] = [];
+    if (roleChanged) duties.push("assignRole");
+    if (permissionsChanged) duties.push("editPermissions");
+    if (
+      wantsStatusChange ||
+      detailsChange(snapshotBefore, teamAuditSnapshot(
+        {
+          name: name?.trim() || user.name,
+          phone: phone !== undefined ? phone : user.phone,
+          status: user.status,
+        },
+        {
+          ...staffProfileBefore,
+          ...(Array.isArray(vendorIds) ? { vendorIds: sanitizeObjectIdList(vendorIds) } : {}),
+          ...(Array.isArray(locationIds) ? { locationIds: sanitizeStringList(locationIds) } : {}),
+          ...(Array.isArray(fulfillmentRegions) ? { fulfillmentRegions: sanitizeStringList(fulfillmentRegions) } : {}),
+          ...(jobTitle !== undefined ? { jobTitle } : {}),
+          ...(startDate !== undefined ? { startDate } : {}),
+          ...(notes !== undefined ? { notes } : {}),
+          ...(typeof isActive === "boolean" ? { isActive } : {}),
+        },
+        department !== undefined
+          ? department
+          : wasAdmin ? adminProfileBefore?.department : staffProfileBefore?.department,
+      ))
+    ) {
+      duties.push("manage");
+    }
+    assertTeamDuties(actor, duties);
 
     // Update user fields
     const userUpdate: Record<string, unknown> = {};
@@ -239,6 +329,10 @@ export const PUT = withApi<{ id: string }>(
       // Administrators sit outside the staff permission system; make sure the
       // profile the admin dashboard reads exists, and ignore any staff
       // permission fields the client sent.
+      const adminSet: Record<string, unknown> = {
+        ...(department !== undefined ? { department: department?.trim() || undefined } : {}),
+        ...(adminRole?.fields ?? {}),
+      };
       await AdminProfile.updateOne(
         { userId: id },
         {
@@ -247,9 +341,7 @@ export const PUT = withApi<{ id: string }>(
             permissions: Object.values(ADMIN_PERMISSIONS),
             isSuperAdmin: false,
           },
-          ...(department !== undefined
-            ? { $set: { department: department?.trim() || undefined } }
-            : {}),
+          ...(Object.keys(adminSet).length > 0 ? { $set: adminSet } : {}),
         },
         { upsert: true },
       );
@@ -262,13 +354,8 @@ export const PUT = withApi<{ id: string }>(
       }
 
       // Update staff profile
-      const profileUpdate: Record<string, unknown> = {};
-      if (Array.isArray(permissions)) {
-        const validPerms = permissions.filter((p: string) =>
-          ALL_STAFF_PERMISSIONS.includes(p as StaffPermission),
-        );
-        profileUpdate.permissions = validPerms;
-      }
+      // Their role and the permissions it gives them (staffRole above).
+      const profileUpdate: Record<string, unknown> = { ...(staffRole?.set ?? {}) };
       if (Array.isArray(vendorIds)) {
         profileUpdate.vendorIds = sanitizeObjectIdList(vendorIds);
       }
@@ -306,7 +393,10 @@ export const PUT = withApi<{ id: string }>(
         }
         await StaffProfile.updateOne(
           { userId: id },
-          { $set: profileUpdate, $setOnInsert: setOnInsert },
+          {
+            $set: profileUpdate,
+            $setOnInsert: setOnInsert,
+          },
           { upsert: true },
         );
       }
@@ -329,16 +419,17 @@ export const PUT = withApi<{ id: string }>(
     // for each kind that differs.
     if (updatedUser) {
       const isAdmin = finalRole === USER_ROLES.ADMIN;
-      const adminProfileAfter = isAdmin
-        ? await AdminProfile.findOne({ userId: id }).select("department").lean()
-        : null;
+      const [adminProfileAfter, accessAfter] = await Promise.all([
+        isAdmin ? AdminProfile.findOne({ userId: id }).select("department").lean() : null,
+        memberAccessRecord(id, finalRole),
+      ]);
       await auditStaffUpdated(
         auditContext,
         { userId: id, email: user.email },
         snapshotBefore,
         teamAuditSnapshot(
           updatedUser,
-          updatedProfile,
+          { ...updatedProfile, ...accessAfter },
           isAdmin ? adminProfileAfter?.department : updatedProfile?.department,
         ),
       );
@@ -347,6 +438,7 @@ export const PUT = withApi<{ id: string }>(
     return successResponse({
       ...stripPassword(updatedUser),
       staffProfile: updatedProfile,
+      teamRole: await adminTeamRoleOf(id, updatedUser?.role),
     });
   },
 );
@@ -360,7 +452,7 @@ export const DELETE = withApi<{ id: string }>(
     auth: "admin",
     rateLimit: { action: "admin:staff:delete", preset: "strict" },
   },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const { id } = params;
     if (!Types.ObjectId.isValid(id)) {
       return notFoundResponse("Team member");
@@ -381,6 +473,10 @@ export const DELETE = withApi<{ id: string }>(
     if (await isVendorOwnedStaff(id)) {
       return notFoundResponse("Team member");
     }
+
+    const actor = team ?? (await resolveTeamAccess(session.user.id));
+    assertTeamDuties(actor, ["manage"]);
+    await assertMayManageMember(actor, { userId: id, role: user.role });
 
     const ctx = await loadTeamChangeContext({
       actorUserId: session.user.id,
@@ -434,6 +530,25 @@ export const DELETE = withApi<{ id: string }>(
  * profile, which an administrator keeps untouched while they are one, so
  * promoting someone moves nothing in it.
  */
+/**
+ * Whether a save changes a member's details or scope (anything but their
+ * permissions), compared as the audit compares: the form posts every field
+ * back, so an echo is no change.
+ */
+function detailsChange(
+  before: ReturnType<typeof staffAuditSnapshot>,
+  after: ReturnType<typeof staffAuditSnapshot>,
+): boolean {
+  const details = (snapshot: ReturnType<typeof staffAuditSnapshot>) => {
+    const { permissions, teamRole, fullAccess, ...rest } = snapshot;
+    void permissions;
+    void teamRole;
+    void fullAccess;
+    return JSON.stringify(rest);
+  };
+  return details(before) !== details(after);
+}
+
 function teamAuditSnapshot(
   account: Parameters<typeof staffAuditSnapshot>[0],
   staffProfile: object | null | undefined,
@@ -477,4 +592,17 @@ function stripPassword<T extends { password?: string | null } | null>(
     NonNullable<T>,
     "password"
   > & { hasPassword: boolean };
+}
+
+/** An administrator's team role, as the Team form edits it; null for staff. None stored = the Administrator. */
+async function adminTeamRoleOf(userId: string, role: string | null | undefined) {
+  if (role !== USER_ROLES.ADMIN) return null;
+  const adminRole = await readAdminMemberRole(userId);
+  return {
+    teamRoleId: adminRole?.teamRoleId ? String(adminRole.teamRoleId) : null,
+    teamExtraPermissions: adminRole?.teamExtraPermissions ?? [],
+    teamRevokedPermissions: adminRole?.teamRevokedPermissions ?? [],
+    fullAccess: !adminRole?.teamRoleId || adminRole.teamFullAccess !== false,
+    permissions: adminRole?.teamPermissions ?? [],
+  };
 }

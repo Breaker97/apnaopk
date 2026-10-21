@@ -82,6 +82,11 @@ type AdvancedProduct = {
   isPhysicalProduct?: boolean;
   inventoryTracked?: boolean;
   digitalDownloadLimit?: number;
+  chargeTax?: boolean;
+  /** A Settings → Tax class key, or "inherit". */
+  taxClass: string;
+  /** A custom rate in percent; takes the place of a class. */
+  taxRate?: number;
   options?: ImportedOption[];
   variants?: ImportedVariant[];
 };
@@ -383,6 +388,9 @@ export function normalizeAdvancedProduct(raw: unknown): AdvancedProduct {
       "digitalDelivery.downloadLimit",
       MAX_DOWNLOAD_LIMIT,
     ),
+    chargeTax: optionalBoolean(raw.chargeTax, "chargeTax"),
+    taxClass: text(raw.taxClass),
+    taxRate: optionalNumber(raw.taxRate, "taxRate"),
     options,
     variants,
   };
@@ -456,6 +464,9 @@ export function toImportValues(product: AdvancedProduct): Record<string, string>
     isPhysicalProduct: cell(product.isPhysicalProduct),
     inventoryTracked: cell(product.inventoryTracked),
     digitalDownloadLimit: cell(product.digitalDownloadLimit),
+    chargeTax: cell(product.chargeTax),
+    taxClass: product.taxClass,
+    taxRate: cell(product.taxRate),
     options: product.options === undefined ? "" : JSON.stringify(product.options),
     variants: product.variants === undefined ? "" : JSON.stringify(product.variants),
   };

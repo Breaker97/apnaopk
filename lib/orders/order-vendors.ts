@@ -15,6 +15,9 @@ import { resolveDefaultVendorId } from "@/lib/vendors/multi-vendor";
 import { Vendor } from "@/models";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
 import { quantizeToCurrency } from "@/lib/intl/money";
+import { computeLineDiscountAmount } from "@/lib/orders/line-discount";
+import { sumTaxParts, type TaxPart } from "@/lib/tax/tax-parts";
+import type { OrderLineVariantSnapshot } from "@/lib/orders/order-line-variant";
 
 /**
  * An order that needs the store's own profile (every line of a single-vendor
@@ -75,11 +78,20 @@ type OrderSubOrderItem = {
   lineNote?: string;
   /** This line's share of the coupon's goods discount. */
   couponDiscount?: number;
-};
+  /** Percent and tax of a line taxed at its own rate. */
+  taxRate?: number;
+  tax?: number;
+  /** The line's tax split into its rate's parts (state, county). */
+  taxParts?: TaxPart[];
+} & OrderLineVariantSnapshot;
 
 type OrderSubOrderInput = {
   /** This consignment's slice of a scoped coupon — see `couponDiscountByVendor`. */
   couponDiscount?: number;
+  /** The tax this consignment's lines carried, when they have own rates. */
+  tax?: number;
+  /** That tax by part (state, county), summed over its lines. */
+  taxParts?: TaxPart[];
   /** What a free-shipping coupon took off this consignment's delivery. */
   shippingDiscount?: number;
   vendorId: string;
@@ -203,38 +215,6 @@ export function getOrderItemVendorId(
   return vendorId;
 }
 
-/**
- * Compute the monetary amount of a per-line discount for a given item.
- * Returns 0 if the item has no line discount.
- *
- * Rounded to what `currency` can hold when it is given — to the cent, 10% off
- * a 1255 XOF line was 125.5 francs that do not exist. Omitted, cents as before.
- */
-export function computeLineDiscountAmount(
-  price: number,
-  quantity: number,
-  lineDiscount:
-    | { type: "percent" | "amount"; value: number; amount?: number }
-    | undefined
-    | null,
-  currency?: string | null,
-): number {
-  if (!lineDiscount) return 0;
-  const lineSubtotal = price * quantity;
-  const value = Math.max(0, Number(lineDiscount.value) || 0);
-  const amount =
-    lineDiscount.type === "percent"
-      ? (lineSubtotal * Math.min(value, 100)) / 100
-      : Math.min(value, lineSubtotal);
-  if (currency) {
-    return Math.min(quantizeToCurrency(amount, currency), lineSubtotal);
-  }
-  if (lineDiscount.type === "percent") {
-    return Math.round(amount * 100) / 100;
-  }
-  return amount;
-}
-
 export function groupItemsByOrderVendor<T>(
   items: T[],
   context: OrderVendorContext,
@@ -310,6 +290,19 @@ export async function buildVendorSubOrders<T>(
     getLineNote?: (item: T) => string | undefined;
     /** This line's share of the coupon's goods discount, when one was recorded. */
     getCouponDiscount?: (item: T) => number | undefined;
+    /**
+     * The rate (percent) and tax of a line taxed at its own rate (lib/tax).
+     * Given, each consignment also records the tax its lines carried.
+     */
+    getTaxRate?: (item: T) => number | undefined;
+    getTax?: (item: T) => number | undefined;
+    /**
+     * A line's tax by part (lib/tax/tax-parts.ts), whenever tax was charged.
+     * Each consignment then also records its parts' totals.
+     */
+    getTaxParts?: (item: T) => TaxPart[] | undefined;
+    /** The variant as sold (`orderLineVariantSnapshot`), copied like the order line's. */
+    getVariantSnapshot?: (item: T) => OrderLineVariantSnapshot;
     fallbackCommissionPercent?: number;
     status?: string;
     /**
@@ -403,6 +396,12 @@ export async function buildVendorSubOrders<T>(
       : fallbackCommissionPercent;
     const commission = roundAmount(subtotal * (commissionPercent / 100));
     const vendorEarnings = roundAmount(subtotal - commission);
+    const groupTax = options.getTax
+      ? vendorItems.reduce((sum, item) => sum + Math.max(0, Number(options.getTax?.(item) || 0)), 0)
+      : undefined;
+    const groupTaxParts = options.getTaxParts
+      ? sumTaxParts(vendorItems.map((item) => options.getTaxParts?.(item)), options.currency || "USD")
+      : [];
 
     const codCollectedBy =
       codCollectorByVendorId.get(vendorId) ?? COD_COLLECTED_BY.VENDOR;
@@ -455,11 +454,17 @@ export async function buildVendorSubOrders<T>(
             : undefined,
           lineNote: options.getLineNote?.(item),
           couponDiscount: options.getCouponDiscount?.(item),
+          taxRate: options.getTaxRate?.(item),
+          tax: options.getTax?.(item),
+          taxParts: options.getTaxParts?.(item),
+          ...options.getVariantSnapshot?.(item),
         };
       }),
       subtotal,
       commission,
       vendorEarnings,
+      ...(groupTax !== undefined ? { tax: roundAmount(groupTax) } : {}),
+      ...(groupTaxParts.length ? { taxParts: groupTaxParts } : {}),
       ...(options.couponDiscountByVendor
         ? {
             couponDiscount: Math.min(

@@ -225,7 +225,7 @@ export async function refundPaystackTransaction(params: {
 
   if (!res.ok) {
     const message = await readPaystackErrorMessage(res);
-    throw new Error(`Paystack refund failed: ${message}`);
+    throw new GatewayApiError(`Paystack refund failed: ${message}`, res.status);
   }
 
   return readPaystackJson<{
@@ -288,10 +288,12 @@ export async function listPaystackDisputes(params: {
     `/dispute?${query.toString()}`,
     "list disputes",
   );
-  return {
-    disputes: Array.isArray(data) ? data : [],
-    pageCount: Math.max(1, Number(meta?.pageCount || 1)),
-  };
+  if (!Array.isArray(data)) throw new GatewayApiError("Paystack returned invalid dispute data", 502);
+  const pageCount = meta?.pageCount == null
+    ? (data.length >= Math.min(100, params.perPage ?? 100) ? (params.page ?? 1) + 1 : params.page ?? 1)
+    : Number(meta.pageCount);
+  if (!Number.isSafeInteger(pageCount) || pageCount < 1) throw new GatewayApiError("Paystack returned invalid dispute pagination", 502);
+  return { disputes: data, pageCount };
 }
 
 /** One dispute as it stands now — a webhook's copy may be older than the decision. */

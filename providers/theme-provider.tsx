@@ -54,6 +54,29 @@ const ThemeContext = createContext<ThemeProviderState>({
   themes: THEME_MODES,
 });
 
+/**
+ * The Themes editor's preview frame shows a mode without CHANGING the
+ * visitor's choice: an in-memory override that wins while it is set and is
+ * never written to storage. Kept on `window` so every copy of this module in
+ * the page sees the same value.
+ */
+const PREVIEW_OVERRIDE_KEY = "__storifyThemePreviewMode";
+
+function readPreviewOverride(): Theme | null {
+  if (typeof window === "undefined") return null;
+  const value = (window as unknown as Record<string, unknown>)[PREVIEW_OVERRIDE_KEY];
+  return isThemeMode(value) ? value : null;
+}
+
+/** Show `mode` in this page until cleared with null; storage is untouched. */
+export function setThemePreviewOverride(mode: Theme | null) {
+  if (typeof window === "undefined") return;
+  const store = window as unknown as Record<string, unknown>;
+  if (mode) store[PREVIEW_OVERRIDE_KEY] = mode;
+  else delete store[PREVIEW_OVERRIDE_KEY];
+  window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+}
+
 function readStoredTheme(storageKey: string, fallbackTheme: Theme): Theme {
   try {
     const storedTheme = localStorage.getItem(storageKey);
@@ -141,7 +164,7 @@ export function ThemeProvider({
   );
 
   const getThemeSnapshot = useCallback(
-    () => readStoredTheme(storageKey, defaultTheme),
+    () => readPreviewOverride() ?? readStoredTheme(storageKey, defaultTheme),
     [defaultTheme, storageKey],
   );
 

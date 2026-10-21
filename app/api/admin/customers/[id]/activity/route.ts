@@ -44,7 +44,7 @@ export const GET = withApi<{ id: string }>(
     await connectDB();
 
     const profile = await CustomerProfile.findById(id)
-      .select("userId email")
+      .select("userId email isGuest")
       .lean();
     // A scoped staff member reaches only customers who bought from their scope,
     // exactly as on the customer's own page; anyone else reads as not found.

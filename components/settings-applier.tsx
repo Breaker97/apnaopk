@@ -11,6 +11,7 @@ import {
 } from "@/stores/app-settings";
 import { getLocaleDirection, isValidLocale } from "@/config/i18n.config";
 import { isDashboardPath } from "@/lib/access/role-dashboard";
+import { DashboardPreviewBridge } from "@/components/layout/dashboard-preview-bridge";
 
 /**
  * SettingsApplier
@@ -32,6 +33,7 @@ export function SettingsApplier({
     primaryColor,
     secondaryColor,
     accentColor,
+    dbHydrated,
     rtl,
     hydrateFromDb,
     loadFromDb,
@@ -91,13 +93,19 @@ export function SettingsApplier({
   }, [contrast, onDashboard]);
 
   // Apply custom brand colors (primary / secondary / accent) to CSS variables.
+  // Only once the store holds the SAVED brand: before that it holds the
+  // shipped defaults, and painting those over the colours the server already
+  // inlined on <html> flashed the default blue across every page load.
   useEffect(() => {
+    if (!dbHydrated) return;
     applyCustomColors({
       primary: primaryColor,
       secondary: secondaryColor,
       accent: accentColor,
     });
-  }, [primaryColor, secondaryColor, accentColor]);
+  }, [dbHydrated, primaryColor, secondaryColor, accentColor]);
 
-  return null;
+  // Framed by the admin's Themes editor only: a dashboard page opened in its
+  // preview follows the palette being picked (renders nothing otherwise).
+  return <DashboardPreviewBridge />;
 }

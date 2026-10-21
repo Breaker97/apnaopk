@@ -155,7 +155,7 @@ export default async function BrandDetailPage({
 
           <div className="min-w-0 flex-1 space-y-3">
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+              <p className="text-xs font-semibold uppercase tracking-wide text-store-link">
                 {t("nav.brands")}
               </p>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">

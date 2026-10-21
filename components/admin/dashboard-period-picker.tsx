@@ -33,6 +33,7 @@ export function DashboardPeriodPicker({
   from,
   to,
   defaultPeriod = DEFAULT_DASHBOARD_PERIOD,
+  resetPage = false,
 }: {
   /** The resolved key: one of DASHBOARD_PERIODS, or "custom" when dates were picked. */
   period: string;
@@ -41,6 +42,8 @@ export function DashboardPeriodPicker({
   to: string;
   /** What the page opens on with no `period`, so choosing it needs no parameter. */
   defaultPeriod?: DashboardPeriodKey;
+  /** Paged finance lists start at their first page when the period changes. */
+  resetPage?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -51,6 +54,7 @@ export function DashboardPeriodPicker({
 
   const setParams = (next: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
+    if (resetPage) params.delete("page");
     for (const [key, value] of Object.entries(next)) {
       if (!value) params.delete(key);
       else params.set(key, value);

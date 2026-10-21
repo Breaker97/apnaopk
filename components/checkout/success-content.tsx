@@ -1,5 +1,6 @@
 "use client";
 
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import { useEffect, useState } from "react";
 import Link from "@/components/language/link";
 import { useSearchParams } from "next/navigation";
@@ -190,6 +191,14 @@ export function CheckoutSuccessContent() {
   const [refundDetails, setRefundDetails] =
     useState<PaymentRefundDetails | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    if (verificationState === "confirmed") {
+      posthogClient.capture("order_completed", {
+        order_number: verifiedOrder,
+      });
+    }
+  }, [verificationState, verifiedOrder]);
 
   // Settling an order empties the shopper's cart on the server, so the copy
   // held in the browser only needs re-reading, in the background: the
@@ -911,7 +920,7 @@ export function CheckoutSuccessContent() {
       <div className="container mx-auto px-4 py-16">
         <Card className="max-w-lg mx-auto text-center">
           <CardContent className="pt-8 pb-8">
-            <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin mb-4" />
+            <Loader2 className="h-12 w-12 mx-auto text-store-link animate-spin mb-4" />
             <h1 className="text-xl font-bold mb-2">
               {t("checkout.verifyingPayment")}
             </h1>
@@ -929,7 +938,7 @@ export function CheckoutSuccessContent() {
       <div className="container mx-auto px-4 py-16">
         <Card className="max-w-lg mx-auto text-center">
           <CardContent className="pt-8 pb-8">
-            <Clock3 className="h-16 w-16 mx-auto text-primary mb-4" />
+            <Clock3 className="h-16 w-16 mx-auto text-store-link mb-4" />
             <h1 className="text-xl font-bold mb-2">
               Payment confirmation pending
             </h1>

@@ -354,7 +354,126 @@
           "visible": true,
           "settings": {
             "title": "Top Vendors",
+            "subtitle": "",
+            "source": "topRated",
+            "vendorIds": [],
             "limit": 8,
+            "ctaLabel": "c f",
+            "viewAllLabel": "",
+            "viewAllLink": "/vendors",
+            "layout": "carousel",
+            "desktopColumns": 4,
+            "cardStyle": "bordered",
+            "cardRadius": 16,
+            "buttonStyle": "solid",
+            "backgroundColor": "",
+            "buttonColor": "",
+            "showTagline": true,
+            "showRating": true,
+            "showSold": true,
+            "showPrice": true,
+            "showFollow": true,
+            "showButton": true,
+            "hideEmptyStores": false,
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "0451677f-7bb2-42b8-b3e5-401e95916440",
+          "type": "promotion-banner",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "slides": [
+              {
+                "id": "slide-mup4gh00",
+                "visible": true,
+                "elements": {
+                  "heading": true,
+                  "description": true,
+                  "tagline": false,
+                  "price": false,
+                  "cta": true,
+                  "cta2": false,
+                  "countdown": false
+                },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
+                "texts": {
+                  "tagline": "",
+                  "heading": "Start Selling With Us Today",
+                  "description": "Join our marketplace, manage products easily, accept secure  payments, and grow your business faster.",
+                  "cta": "Become a Vendor",
+                  "cta2": ""
+                },
+                "ctaVariant": "dark",
+                "cta2Variant": "outline",
+                "styles": {
+                  "landscape": {
+                    "heading": {
+                      "size": 40,
+                      "width": 47,
+                      "lineHeight": 125
+                    },
+                    "description": {
+                      "weight": "300"
+                    },
+                    "cta": {
+                      "size": 16,
+                      "paddingX": 26,
+                      "paddingY": 12,
+                      "lineHeight": 125
+                    }
+                  }
+                },
+                "link": "/become-vendor",
+                "link2": "",
+                "productId": "",
+                "productImage": "https://storify-furniture.neurolight.studio/uploads/2026/10/1790836618865-f5bea6463281ab2de63cfc3fc2d6e07a/0b1ea980-1b66-4f60-a2ab-22a0d58d569c.png",
+                "artInFront": false,
+                "countdownEndsAt": "",
+                "reveal": "fade",
+                "background": {
+                  "type": "solid",
+                  "color": "#EFE7D9"
+                },
+                "layout": {
+                  "landscape": {
+                    "h": "left",
+                    "v": "middle",
+                    "gap": 18,
+                    "scale": 100
+                  }
+                },
+                "image": {
+                  "landscape": {
+                    "h": "right",
+                    "v": "middle",
+                    "scale": 42,
+                    "rotation": 0,
+                    "x": -4.207119741100326,
+                    "y": -3.5900760940166863
+                  }
+                },
+                "alt": ""
+              }
+            ],
+            "transition": "slide",
+            "autoplaySeconds": 5,
+            "fullWidth": false,
+            "image": "",
+            "heading": "",
+            "subheading": "",
+            "ctaLabel": "",
+            "link": "",
             "titleSize": "default"
           },
           "blocks": []
@@ -365,7 +484,7 @@
           "version": 1,
           "visible": true,
           "settings": {
-            "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790607805869-7otab9/vendor_cover.png",
+            "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790744060939-e67e6426f31215bcf1ed9a3d40be245a/2641cdb8-204d-4398-b90c-16a94c6a0201.png",
             "title": "Start Selling With Us Today",
             "subtitle": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
             "buttonLabel": "Become a Vendor",
@@ -391,7 +510,9 @@
           "type": "service-benefits",
           "version": 1,
           "visible": false,
-          "settings": {},
+          "settings": {
+            "variant": "theme"
+          },
           "blocks": []
         },
         {
@@ -409,7 +530,7 @@
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-28T15:03:57.371Z"
+        "$date": "2026-10-05T07:18:31.639Z"
       },
       "updatedBy": null
     },
@@ -767,12 +888,111 @@
           "blocks": []
         },
         {
-          "id": "081d58bf-19cd-4a48-beb7-622ea4b73f5b",
-          "type": "become-vendor",
+          "id": "0451677f-7bb2-42b8-b3e5-401e95916440",
+          "type": "promotion-banner",
           "version": 1,
           "visible": true,
           "settings": {
-            "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790607805869-7otab9/vendor_cover.png",
+            "slides": [
+              {
+                "id": "slide-mup4gh00",
+                "visible": true,
+                "elements": {
+                  "heading": true,
+                  "description": true,
+                  "tagline": false,
+                  "price": false,
+                  "cta": true,
+                  "cta2": false,
+                  "countdown": false
+                },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
+                "texts": {
+                  "tagline": "",
+                  "heading": "Start Selling With Us Today",
+                  "description": "Join our marketplace, manage products easily, accept secure  payments, and grow your business faster.",
+                  "cta": "Become a Vendor",
+                  "cta2": ""
+                },
+                "ctaVariant": "dark",
+                "cta2Variant": "outline",
+                "styles": {
+                  "landscape": {
+                    "heading": {
+                      "size": 40,
+                      "width": 47,
+                      "lineHeight": 125
+                    },
+                    "description": {
+                      "weight": "300"
+                    },
+                    "cta": {
+                      "size": 16,
+                      "paddingX": 26,
+                      "paddingY": 12,
+                      "lineHeight": 125
+                    }
+                  }
+                },
+                "link": "/become-vendor",
+                "link2": "",
+                "productId": "",
+                "productImage": "https://storify-furniture.neurolight.studio/uploads/2026/10/1790836618865-f5bea6463281ab2de63cfc3fc2d6e07a/0b1ea980-1b66-4f60-a2ab-22a0d58d569c.png",
+                "artInFront": false,
+                "countdownEndsAt": "",
+                "reveal": "fade",
+                "background": {
+                  "type": "solid",
+                  "color": "#EFE7D9"
+                },
+                "layout": {
+                  "landscape": {
+                    "h": "left",
+                    "v": "middle",
+                    "gap": 18,
+                    "scale": 100
+                  }
+                },
+                "image": {
+                  "landscape": {
+                    "h": "right",
+                    "v": "middle",
+                    "scale": 42,
+                    "rotation": 0,
+                    "x": -4.207119741100326,
+                    "y": -3.5900760940166863
+                  }
+                },
+                "alt": ""
+              }
+            ],
+            "transition": "slide",
+            "autoplaySeconds": 5,
+            "fullWidth": false,
+            "image": "",
+            "heading": "",
+            "subheading": "",
+            "ctaLabel": "",
+            "link": "",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "081d58bf-19cd-4a48-beb7-622ea4b73f5b",
+          "type": "become-vendor",
+          "version": 1,
+          "visible": false,
+          "settings": {
+            "image": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790744060939-e67e6426f31215bcf1ed9a3d40be245a/2641cdb8-204d-4398-b90c-16a94c6a0201.png",
             "title": "Start Selling With Us Today",
             "subtitle": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
             "buttonLabel": "Become a Vendor",
@@ -798,6 +1018,9 @@
           "type": "service-benefits",
           "version": 1,
           "visible": false,
+          "settings": {
+            "variant": "theme"
+          },
           "blocks": []
         },
         {
@@ -815,14 +1038,14 @@
         }
       ],
       "publishedAt": {
-        "$date": "2026-09-28T15:04:01.064Z"
+        "$date": "2026-10-01T06:38:03.964Z"
       },
       "publishedBy": null
     },
     "templateType": "home",
     "title": "Home",
     "updatedAt": {
-      "$date": "2026-09-28T15:04:01.064Z"
+      "$date": "2026-10-05T07:18:31.640Z"
     }
   },
   {

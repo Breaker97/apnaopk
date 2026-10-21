@@ -30,9 +30,13 @@
    tests/stylesheet-split.test.ts fails when one is missing here. A folder
    is taken back with a glob: a bare folder path does not undo `not`. */
 @source "../components/admin/admin-form-sticky-header.tsx";
+@source "../components/admin/appearance-settings-ui.tsx";
+@source "../components/admin/notification-drawer.tsx";
+@source "../components/admin/settings/sections/sticky-save-footer.tsx";
 @source "../components/admin/online-store/t-safe.ts";
 @source "../components/admin/storage-provider-toggle.tsx";
 @source "../components/admin/sliders/**/*.{ts,tsx}";
+@source "../components/admin/theme-colors-context.tsx";
 @source "../components/admin/store-pages/builder-scope.tsx";
 @source "../components/admin/store-pages/product-select.tsx";
 @source "../components/admin/unit-field.tsx";

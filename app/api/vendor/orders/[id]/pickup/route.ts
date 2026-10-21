@@ -1,3 +1,4 @@
+import { DELIVERY_ATTESTED_BY } from "@/lib/orders/delivery-attestation";
 import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models";
@@ -105,7 +106,10 @@ export const POST = withApi<{ id: string }>(
     if (update.readyAt) pickup.readyAt = update.readyAt;
     if (update.collectedAt) pickup.collectedAt = update.collectedAt;
     subOrder.status = update.subOrderStatus;
-    if (update.deliveredAt) subOrder.deliveredAt = update.deliveredAt;
+    if (update.deliveredAt) {
+      subOrder.deliveredAt = update.deliveredAt;
+      subOrder.deliveryAttestedBy = DELIVERY_ATTESTED_BY.VENDOR;
+    }
 
     // Same roll-up the delivery route applies, from the same helper: a counter
     // collection is one consignment completing, and an order with a sibling

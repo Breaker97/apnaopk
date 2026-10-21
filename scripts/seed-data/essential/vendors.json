@@ -459,7 +459,7 @@
       "$date": "2026-05-17T05:46:10.947Z"
     },
     "updatedAt": {
-      "$date": "2026-08-21T01:09:21.203Z"
+      "$date": "2026-08-30T01:04:13.825Z"
     },
     "__v": 0,
     "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997085009-entauw-rectangle_52__12_.png",
@@ -648,9 +648,9 @@
       "$oid": "6a095a2edc2b7bb4ca29c367"
     },
     "isDefault": false,
-    "storeName": "Haier Angie",
-    "slug": "haier-angie",
-    "description": "Electronics and Apliances",
+    "storeName": "Voltix",
+    "slug": "voltix",
+    "description": "Electronics and Appliances",
     "status": "approved",
     "commission": 10,
     "rating": 0,
@@ -729,11 +729,11 @@
       "$date": "2026-05-17T06:03:26.621Z"
     },
     "updatedAt": {
-      "$date": "2026-08-13T13:51:17.422Z"
+      "$date": "2026-10-12T04:40:25.376Z"
     },
     "__v": 0,
     "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997997713-l0djol-rectangle_52__11_.png",
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778997993289-g31ccu-ellipse_72__6_.png",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a095a2edc2b7bb4ca29c367/2026/10/1791779424017-81003d8e07936e887f3c70e5c2a1463d/a790b7ff-7811-460a-944d-2e94b299d2c6.png",
     "socialLinks": {},
     "shareSettings": {
       "enabled": true,
@@ -816,8 +816,8 @@
       "$oid": "6a0a98ed5d747a63e3255c0b"
     },
     "isDefault": false,
-    "storeName": "StyleCraft",
-    "slug": "stylecraft",
+    "storeName": "Veloura",
+    "slug": "veloura",
     "description": "Modern fashion, crafted beautifully.",
     "status": "approved",
     "commission": 10,
@@ -895,11 +895,11 @@
       "$date": "2026-05-18T04:43:25.507Z"
     },
     "updatedAt": {
-      "$date": "2026-08-23T03:54:34.048Z"
+      "$date": "2026-10-11T10:19:43.590Z"
     },
     "__v": 0,
-    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779080515914-q4dqjw-chatgpt_image_may_18__2026__11_01_33_am.png",
-    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779080928307-gwdokj-chatgpt_image_may_18__2026__11_08_38_am.png",
+    "logo": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791711406123-7332608610455b0bd1da13edc4b604a0/2b4f0c32-a07d-41a6-9fa6-a770e6811b7e.png",
+    "banner": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/10/1791713975196-fda53531d24dcfa2c6f61abad640d03e/4df1c66d-f0ac-406c-97e9-980bd7cc1d37.png",
     "shipping": {
       "enabled": true,
       "weightUnit": "kg",
@@ -1030,7 +1030,11 @@
         },
         "expiresAt": null
       }
-    ]
+    ],
+    "storeVisibility": {
+      "addressDisplay": "city_country",
+      "showPhone": false
+    }
   },
   {
     "_id": {
@@ -1140,7 +1144,7 @@
       "$date": "2026-07-27T12:57:57.518Z"
     },
     "updatedAt": {
-      "$date": "2026-08-24T06:53:21.944Z"
+      "$date": "2026-08-28T16:11:48.266Z"
     },
     "__v": 0,
     "shipping": {

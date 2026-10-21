@@ -186,7 +186,7 @@ function VendorCard({
               {vendor.reviewCount > 0 && (
                 <span className="flex items-center gap-1">
                   <Star
-                    className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                    className="h-3.5 w-3.5 fill-current text-(--store-rating,#a86500)"
                     aria-hidden
                   />
                   {vendor.rating.toFixed(1)} (

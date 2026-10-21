@@ -1,3 +1,5 @@
+import { isThemeColorRef, themeColorCss } from "@/lib/theme-colors/theme-refs";
+import { normalizeViewportSettings, type ViewportSettings } from "./responsive-dimensions";
 import { normalizeLocalizedSetting, type LocalizedSetting } from "@/lib/i18n/localized-setting";
 /**
  * The Header Studio layout tree — the Figma "row / column / item" model.
@@ -684,6 +686,7 @@ export const HEADER_ROW_RETURNS = ["auto", "top", "scrollUp"] as const;
 export type HeaderRowReturn = (typeof HEADER_ROW_RETURNS)[number];
 
 export interface HeaderLayout {
+  viewport?: ViewportSettings;
   rows: HeaderLayoutRow[];
 }
 
@@ -741,6 +744,8 @@ function color(value: unknown, fallback: string): string {
     return trimmed.toLowerCase();
   }
   if (/^(transparent|currentcolor|inherit)$/i.test(trimmed)) return trimmed;
+  // A theme colour reference: the border follows Theme settings → Colors.
+  if (isThemeColorRef(trimmed)) return trimmed;
   if (/^rgba?\(\s*[\d.,\s%/]+\)$/i.test(trimmed)) return trimmed;
   return fallback;
 }
@@ -947,12 +952,13 @@ export function createHeaderItem(type: HeaderItemType): HeaderLayoutItem {
         roundness: 6,
         borderThickness: 0,
         border: "",
+        // The theme's primary, with its own readable ink (the label and the
+        // icon inherit it): a new store's button changes with its brand.
         textStyle: defaultTextStyle({
           fontSize: 15,
           fontWeight: 600,
-          fill: solidBackground("#ffffff"),
         }),
-        background: solidBackground("#3b6ff5"),
+        background: solidBackground(themeColorCss("primary")),
         foreground: inheritFill(),
         panel: {
           background: solidBackground("#ffffff"),
@@ -1468,7 +1474,7 @@ export function normalizeHeaderLayout(value: unknown): HeaderLayout {
   // is a preset, and presets live in header-layout-default.ts so the
   // storefront bundle carries one design, not the studio's whole gallery.
   // `resolveHeaderLayout` there is the normalize-with-fallback callers want.
-  return { rows };
+  return { rows, viewport: normalizeViewportSettings(source.viewport) };
 }
 
 /** The columns a row actually renders, honouring `columnCount`. */

@@ -13,7 +13,8 @@ import { fromPaystackAmountSubunits } from "@/lib/payments/paystack";
 import { fromRazorpayAmountSubunits } from "@/lib/payments/razorpay";
 import { createRefundTransaction } from "@/lib/payments/payment-transactions";
 import { PAYPAL_BALANCE_REFERENCE_PREFIX } from "@/lib/payments/preorder-balance-reference";
-import { postRefundReversalSafely } from "@/lib/finance/post-events";
+import { buildRefundReversalPostings } from "@/lib/finance/post-events";
+import { financeQuery, financeSession } from "@/lib/finance/transaction";
 import { settleRefundedPaymentStatus } from "@/lib/orders/refund-payment-status";
 import { currencyMinorUnitExponent } from "@/lib/intl/money";
 import {
@@ -34,7 +35,6 @@ import {
   disputeNotices,
   paystackRefundDisputeId,
   planDisputeSettlement,
-  type DisputeMoneyRow,
   type GatewayDisputeReading,
   type PaystackRefundLike,
 } from "@/lib/orders/dispute-readings";
@@ -50,6 +50,7 @@ import {
   auditOrderRefunded,
 } from "@/lib/orders/audit-order";
 import { ReturnRequest } from "@/models/return-request.model";
+import { settleReturnsOnGatewayReports } from "@/lib/returns/settle-processing-returns";
 import { RETURN_REFUND_STATUS, RETURN_STATUS } from "@/lib/returns/returns";
 
 /**
@@ -111,7 +112,13 @@ interface GatewayRefundRecord {
    * admin is waiting to send; it is matched to what already stands for its
    * dispute instead.
    */
-  chargeback?: { gateway: DisputeGateway; disputeId?: string };
+  chargeback?: {
+    gateway: DisputeGateway;
+    disputeId?: string;
+    captureId?: string;
+    /** Internal evidence: resource id equals the native capture's self link. */
+    captureResource?: boolean;
+  };
   /** What its row should say, where that differs from the reading's reason. */
   reason?: string;
   /** Strong identity supplied on a durable mobile refund, never inferred from its amount. */
@@ -427,7 +434,7 @@ async function writePaymentStatus(
   order: OrderForRefund,
   paymentStatus: string,
 ) {
-  await Order.updateOne(
+  await financeQuery(Order.updateOne(
     paymentStatus === PAYMENT_STATUS.PARTIALLY_PAID
       ? {
           _id: order._id,
@@ -438,7 +445,7 @@ async function writePaymentStatus(
         }
       : { _id: order._id },
     { $set: { paymentStatus } },
-  );
+  ));
 }
 
 async function findOrder(
@@ -472,9 +479,9 @@ async function findOrder(
 }
 
 /** Which dispute a row's money belongs to. */
-function disputeMeta(gateway: DisputeGateway, disputeId: string) {
+function disputeMeta(gateway: DisputeGateway, disputeId: string, capture?: GatewayDisputeReading["paypalCapture"]) {
   const id = String(disputeId);
-  return { gateway, id, key: disputeKey(gateway, id) };
+  return { gateway, id, key: disputeKey(gateway, id), ...(capture ? { captureId: capture.id, captureReversed: capture.reversed } : {}) };
 }
 
 /**
@@ -522,6 +529,7 @@ async function loadKnownRefundIds(orderId: unknown, ids: string[]): Promise<Set<
   for (const row of await PaymentTransaction.find({
     orderId,
     type: "refund",
+    "metadata.source": { $ne: "paypal-match-review" },
     $or: [
       { externalId: { $in: ids } },
       { "metadata.gatewayRefundIds": { $in: ids } },
@@ -532,10 +540,14 @@ async function loadKnownRefundIds(orderId: unknown, ids: string[]): Promise<Set<
     .lean<
       Array<{
         externalId?: string;
-        metadata?: { gatewayRefundIds?: unknown; gatewayAliasIds?: unknown };
+        metadata?: { gatewayRefundIds?: unknown; gatewayAliasIds?: unknown; chargeExternalId?: unknown; chargebackReport?: { captureResource?: boolean } };
       }>
     >()) {
-    if (row.externalId) known.add(String(row.externalId));
+    // Hand refunds can carry the original charge id as a placeholder. A
+    // native PayPal reversal also uses the capture id, but is a new movement.
+    if (row.externalId && (row.externalId !== row.metadata?.chargeExternalId || row.metadata?.chargebackReport?.captureResource === true)) {
+      known.add(String(row.externalId));
+    }
     for (const extra of [row.metadata?.gatewayRefundIds, row.metadata?.gatewayAliasIds]) {
       if (Array.isArray(extra)) {
         for (const id of extra) known.add(String(id));
@@ -558,9 +570,42 @@ async function loadKnownRefundIds(orderId: unknown, ids: string[]): Promise<Set<
 async function attachToRecordedChargeback(
   orderId: unknown,
   refund: GatewayRefundRecord,
-): Promise<boolean> {
+): Promise<boolean | "review"> {
   const link = refund.chargeback;
   if (!link) return false;
+  if (link.gateway === "paypal") {
+    const review = await findPayPalMatchReview(orderId, refund.id);
+    if (review?.resolution === "independent") return false;
+    const possible = (await PaymentTransaction.find({
+      orderId, type: "refund", status: { $in: ["succeeded", "failed"] },
+      "metadata.source": { $ne: "paypal-match-review" },
+      "metadata.storeCredit": { $ne: true }, "metadata.apartFromCharge": { $ne: true },
+      $or: [{ "metadata.dispute.gateway": "paypal" }, { "metadata.chargebackByHand.gateway": "paypal" }],
+    }).select(DISPUTE_ROW_FIELDS).lean<DisputeRow[]>()).filter((row) => {
+      const capture = row.metadata?.dispute?.captureId;
+      return !capture || capture === link.captureId;
+    });
+    if (!possible.length) return false;
+    const proven = possible.filter((row) => {
+      const dispute = row.metadata?.dispute;
+      return link.captureResource === true && dispute?.captureId === link.captureId && dispute?.captureReversed === true &&
+        !!refund.gatewayCurrency && row.currency?.toUpperCase() === refund.gatewayCurrency.toUpperCase() &&
+        Math.abs(Number(row.grossAmount || 0) - refund.amount) <= DISPUTE_MONEY_EPSILON;
+    });
+    const disputes = new Set(possible.map((row) => row.metadata?.dispute?.key || "unnamed"));
+    if (proven.length === 1 && disputes.size === 1) {
+      await PaymentTransaction.updateOne({ _id: proven[0]!._id }, { $addToSet: { "metadata.gatewayAliasIds": refund.id } });
+      await completeProviderPayPalReview(orderId, refund.id, proven[0]!._id);
+      return true;
+    }
+    const order = await Order.findById(orderId).select(ORDER_FIELDS).lean<OrderForRefund | null>();
+    if (!order) throw new Error("Order not found");
+    await queuePayPalMatchReview(order, refund.id, "reversal", link.captureId || "", {
+      locator: { paypalCaptureId: link.captureId || "", preorderBalancePaymentIntentId: `${PAYPAL_BALANCE_REFERENCE_PREFIX}${link.captureId || ""}` },
+      refunds: [refund], createdBy: "paypal-reversal", reason: refund.reason || "PayPal capture reversal",
+    }, possible);
+    return "review";
+  }
   const amount = Number(refund.amount);
   const sameAmount = {
     $gte: amount - DISPUTE_MONEY_EPSILON,
@@ -853,6 +898,12 @@ async function reconcileGatewayOrderRefunds(params: {
   for (const refund of reports) {
     if (!refund.chargeback && (refund.bizOperation || pendingBiz)) await pairWithPendingBizRefund(order._id, refund);
   }
+  // A refund the gateway had only accepted, now reported sent, releases the
+  // return that was held `processing` for it. Best effort and idempotent: a
+  // failure here must not fail the delivery that goes on to record the refund.
+  await settleReturnsOnGatewayReports(order._id, reports).catch((error) =>
+    console.error("Failed to settle a return held for a pending refund:", error),
+  );
   const live = reports.filter(refund => refund.live);
   if (live.length === 0) return 0;
 
@@ -906,6 +957,7 @@ async function reconcileGatewayOrderRefunds(params: {
         continue;
       }
 
+      const paypalReview = refund.chargeback?.gateway === "paypal" ? await findPayPalMatchReview(order._id, refund.id) : undefined;
       const written = await recordGatewayRefundRow({
         order,
         id: refund.id,
@@ -915,7 +967,8 @@ async function reconcileGatewayOrderRefunds(params: {
         ...(refund.chargeback
           ? {
               metadata: {
-                chargebackReport: { gateway: refund.chargeback.gateway },
+                ...(paypalReview?.independentDisputeIds?.length ? { paypalIndependentOf: paypalReview.independentDisputeIds } : {}),
+                chargebackReport: { gateway: refund.chargeback.gateway, ...(refund.chargeback.captureId ? { captureId: refund.chargeback.captureId } : {}), ...(refund.chargeback.captureResource ? { captureResource: true } : {}), ...(refund.gatewayCurrency ? { currency: refund.gatewayCurrency.toUpperCase() } : {}) },
                 ...(refund.chargeback.disputeId
                   ? {
                       dispute: disputeMeta(
@@ -1007,12 +1060,17 @@ export async function reconcileStripeOrderRefunds(
 }
 
 type RefundRow = {
+  status?: string;
   _id: unknown;
   orderId: unknown;
   grossAmount?: number;
+  currency?: string;
   externalId?: string;
   metadata?: {
+    dispute?: { gateway: DisputeGateway; id: string; key: string; captureId?: string; captureReversed?: boolean };
+    chargebackReport?: { gateway: DisputeGateway; captureId?: string; captureResource?: boolean; currency?: string };
     gatewayRefundIds?: unknown;
+    refundReversal?: { operationKey: string };
     failedGatewayRefundIds?: unknown;
     /** The charge the refund reverses — see `refundLegIds`. */
     chargeExternalId?: unknown;
@@ -1086,20 +1144,29 @@ export async function reverseFailedOrderRefund(
   if (!DEAD_REFUND_STATUSES.has(String(refund.status || ""))) return false;
   await connectDB();
 
-  const txn = await PaymentTransaction.findOne({
+  const refundNames = [
+    { externalId: refund.id },
+    { "metadata.gatewayRefundIds": refund.id },
+    // A chargeback's refund report is another name for that same row.
+    { "metadata.gatewayAliasIds": refund.id },
+  ];
+  let txn = await PaymentTransaction.findOne({
     type: "refund",
     status: "succeeded",
-    $or: [
-      { externalId: refund.id },
-      { "metadata.gatewayRefundIds": refund.id },
-      // Another name for a chargeback's money — the refund Paystack raised to
-      // pay an accepted dispute. The row stands for that one payment, so its
-      // failure undoes the row, not a leg of it.
-      { "metadata.gatewayAliasIds": refund.id },
-    ],
+    $or: refundNames,
   })
-    .select("orderId grossAmount externalId metadata")
+    .select("orderId grossAmount status externalId metadata")
     .lean<RefundRow | null>();
+  // Prefer a standing replacement over its reversed predecessor when both
+  // carry the gateway's alias. Only then resume an already-committed receipt.
+  if (!txn) {
+    txn = await PaymentTransaction.findOne({
+      type: "refund",
+      status: "failed",
+      "metadata.refundReversal.operationKey": { $exists: true },
+      $or: refundNames,
+    }).select("orderId grossAmount status externalId metadata").lean<RefundRow | null>();
+  }
   // Nothing recorded under this id, or it was reversed already. Either way the
   // books already say what the gateway says — unless the refund is being
   // recorded right now: a refund that failed within seconds reported it before
@@ -1130,7 +1197,9 @@ export async function reverseFailedOrderRefund(
   if (!order) return false;
 
   const legIds = refundLegIds(txn);
-  if (legIds.length > 1) {
+  if (txn.status === "failed" && !txn.metadata?.refundReversal) return false;
+
+  if (txn.status !== "failed" && legIds.length > 1) {
     // Recorded before anything is decided, and guarded, so a webhook delivered
     // twice for the same failed leg is a no-op the second time.
     //
@@ -1170,14 +1239,14 @@ export async function reverseFailedOrderRefund(
     )
       .select("metadata")
       .lean<RefundRow | null>();
-    if (!marked) return false;
-
+    const markedOrCurrent = marked ?? txn;
     const failed = new Set(
-      Array.isArray(marked.metadata?.failedGatewayRefundIds)
-        ? (marked.metadata?.failedGatewayRefundIds as unknown[]).map(String)
+      Array.isArray(markedOrCurrent.metadata?.failedGatewayRefundIds)
+        ? (markedOrCurrent.metadata?.failedGatewayRefundIds as unknown[]).map(String)
         : [],
     );
     if (!legIds.every((id) => failed.has(id))) {
+      if (!marked) return false;
       await notifyPartialRefundFailure({ order, refund, rowAmount: amount, failedAmount });
       return true;
     }
@@ -1252,112 +1321,99 @@ async function reverseWholeRefundRow(params: {
   returnRefundStatus?: string;
 }): Promise<boolean> {
   const { txn, order, amount } = params;
+  const { runFinanceOperation } = await import("@/lib/finance/operations");
+  const requestKey = String(txn._id);
+  const operationKey = `system:refund:reverse:${requestKey}`;
 
-  // Guarded so a webhook delivered twice cannot mark the same row failed twice
-  // and take the money off the order's running total more than once.
-  const claimed = await PaymentTransaction.findOneAndUpdate(
-    { _id: txn._id, status: "succeeded" },
-    { $set: { status: "failed" } },
-  )
-    .select("_id")
-    .lean();
-  if (!claimed) return false;
+  // The status, money totals, return cap and points change together. The
+  // immutable ledger postings and admin notice are saved in that same commit
+  // and finished by FinanceOperation's retry worker after the commit.
+  const operation = await runFinanceOperation<{
+    reversed: boolean;
+    reversalNotice?: { title: string; message: string; dedupeKey: string; link: string };
+  }>({
+    action: "refund:reverse",
+    actorId: "system",
+    requestKey,
+    fingerprint: { refundTransactionId: requestKey },
+    work: async () => {
+      const claimed = await financeQuery(PaymentTransaction.findOneAndUpdate(
+        { _id: txn._id, status: "succeeded" },
+        { $set: { status: "failed", "metadata.refundReversal": { operationKey } } },
+      )).select("_id").lean();
+      if (!claimed) return { result: { reversed: false }, postings: [] };
 
-  const updated = await Order.findOneAndUpdate(
-    { _id: order._id },
-    {
-      $inc: { refundedTotal: -amount },
-      // Whatever this refund completed is no longer complete.
-      $unset: { goodsRefundedAt: "" },
+      const updated = await financeQuery(Order.findOneAndUpdate(
+        { _id: order._id },
+        {
+          $inc: { refundedTotal: -amount },
+          $unset: { goodsRefundedAt: "" },
+        },
+        { returnDocument: "after" },
+      )).select(ORDER_FIELDS).lean<OrderForRefund | null>();
+      if (!updated) throw new Error("The order for this refund reversal was not found");
+      const freshOrder = { ...order, ...updated };
+      await writePaymentStatus(
+        freshOrder,
+        paymentStatusFor(freshOrder, Math.max(0, Number(updated.refundedTotal || 0))),
+      );
+
+      await financeQuery(PaymentTransaction.updateMany(
+        { orderId: order._id, type: "charge", status: "succeeded" },
+        { $inc: { refundedAmount: -amount, netAmount: amount } },
+      ));
+
+      await financeQuery(ReturnRequest.updateMany(
+        {
+          $or: [
+            { "actualRefund.paymentTransactionId": txn._id },
+            { "actualRefund.paymentTransactionIds": txn._id },
+          ],
+        },
+        {
+          $set: {
+            status: RETURN_STATUS.REFUND_PENDING,
+            refundStatus: params.returnRefundStatus || RETURN_REFUND_STATUS.FAILED,
+          },
+          $inc: { "actualRefund.amount": -amount },
+          $unset: { refundedAt: "", closedAt: "" },
+        },
+      ));
+
+      const { reverseOrderLoyaltyPoints } = await import("@/lib/customers/customer");
+      await reverseOrderLoyaltyPoints(String(order._id), financeSession());
+      const postings = await buildRefundReversalPostings({
+        orderId: order._id,
+        amount,
+        refundId: txn._id,
+        completeOriginal: true,
+      });
+      const reversalNotice = params.failedAtGateway
+        ? {
+            ...(params.supersedesPartialNotice
+              ? {
+                  title: "A refund failed at the gateway in full",
+                  message: `Every part of the ${amount} refund on order #${order.orderNumber} has now failed, so the whole refund was reversed and the order no longer shows it as refunded. Ignore the earlier message about part of it, and refund the shopper again when you are ready.`,
+                }
+              : {
+                  title: "A refund failed at the gateway",
+                  message: `The ${amount} ${String(order.currency || "").toUpperCase()} refund ${params.refundId} on order #${order.orderNumber} failed at the payment gateway, so it was reversed and the order no longer shows it as refunded. The shopper has not been paid back: refund them again from the order, or return the money by hand.`,
+                }),
+            dedupeKey: `refund-failed:${requestKey}`,
+            link: `/admin/orders/${String(order._id)}`,
+          }
+        : undefined;
+      return {
+        result: { reversed: true, reversalNotice },
+        postings,
+        sourceId: txn._id,
+      };
     },
-    { returnDocument: "after" },
-  )
-    .select("refundedTotal")
-    .lean<{ refundedTotal?: number } | null>();
-
-  const nextRefunded = Math.max(0, Number(updated?.refundedTotal || 0));
-  await writePaymentStatus(order, paymentStatusFor(order, nextRefunded));
-
-  // The charge row carries the running refunded figure the transactions screen
-  // reads, and it was incremented when the refund was recorded — on the charge
-  // that went through, not on refused attempts beside it.
-  await PaymentTransaction.updateMany(
-    { orderId: order._id, type: "charge", status: "succeeded" },
-    { $inc: { refundedAmount: -amount, netAmount: amount } },
-  );
-
-  postRefundReversalSafely({
-    orderId: order._id,
-    amount,
-    refundId: txn._id,
   });
 
-  // The points the refund took off the shopper follow the money back. The
-  // reversal helper reads the order's refunded total, which has just gone
-  // down, so the same call that removed them restores them.
-  const { reverseOrderLoyaltyPoints } = await import("@/lib/customers/customer");
-  await reverseOrderLoyaltyPoints(String(order._id)).catch((error) =>
-    console.error("Failed to restore loyalty points:", error),
-  );
-
-  // A return that was marked refunded on the strength of this is not refunded
-  // any more. Left alone, its cumulative cap still counted the money — so the
-  // admin could not even retry the refund the shopper never received.
-  await ReturnRequest.updateMany(
-    // By every refund the return issued, not just its latest: an earlier
-    // partial refund failing used to leave the return showing money that
-    // never reached the shopper, and its cap blocked sending it again.
-    {
-      $or: [
-        { "actualRefund.paymentTransactionId": txn._id },
-        { "actualRefund.paymentTransactionIds": txn._id },
-      ],
-    },
-    {
-      $set: {
-        status: RETURN_STATUS.REFUND_PENDING,
-        refundStatus: params.returnRefundStatus || RETURN_REFUND_STATUS.FAILED,
-      },
-      $inc: { "actualRefund.amount": -amount },
-      $unset: { refundedAt: "", closedAt: "" },
-    },
-  ).catch((error) =>
-    console.error("Failed to reopen the return behind a failed refund:", error),
-  );
-
-  // Somebody has to send this money again, and the books alone never said so:
-  // a cancelled order simply went back to `paid`, a refunded one to its old
-  // state, with a console line the only trace — the shopper was told they were
-  // being paid, and the store kept the money without anyone knowing.
-  //
-  // An admin who was told part of this row had failed was told the books still
-  // showed the whole refund. They no longer do, and the earlier message would
-  // otherwise send them to re-issue a part that is now accounted for.
-  if (params.failedAtGateway) {
-    const { notifyAdminsPaymentAnomaly } = await import(
-      "@/lib/notifications/notifications"
-    );
-    await notifyAdminsPaymentAnomaly({
-      ...(params.supersedesPartialNotice
-        ? {
-            title: "A refund failed at the gateway in full",
-            message: `Every part of the ${amount} refund on order #${order.orderNumber} has now failed, so the whole refund was reversed and the order no longer shows it as refunded. Ignore the earlier message about part of it, and refund the shopper again when you are ready.`,
-          }
-        : {
-            title: "A refund failed at the gateway",
-            message: `The ${amount} ${String(order.currency || "").toUpperCase()} refund ${params.refundId} on order #${order.orderNumber} failed at the payment gateway, so it was reversed and the order no longer shows it as refunded. The shopper has not been paid back: refund them again from the order, or return the money by hand.`,
-          }),
-      dedupeKey: `refund-failed:${String(txn._id)}`,
-      link: `/admin/orders/${String(order._id)}`,
-    }).catch((error) =>
-      console.error("Failed to report a failed refund:", error),
-    );
-  }
-
-  console.error(
-    `Gateway refund ${params.refundId} failed; reversed ${amount} on ${order.orderNumber}`,
-  );
-  return true;
+  // A retry of an already-committed reversal still finishes its durable
+  // bookkeeping, but does not tell callers that money was reversed again.
+  return operation.data.reversed && txn.status !== "failed";
 }
 
 /**
@@ -1439,19 +1495,207 @@ type DisputeRow = RefundRow & {
   createdAt?: Date;
 };
 
+export interface PayPalMatchReview {
+  status: "pending" | "resolved";
+  kind: "dispute" | "reversal";
+  captureId: string;
+  reading: GatewayDisputeReading | GatewayRefundReading;
+  candidates: Array<{ transactionId: string; externalId?: string; amount: number; currency: string }>;
+  resolution?: "same" | "independent";
+  matchingTransactionId?: string;
+  reference?: string;
+  independentDisputeIds?: string[];
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  accountingCompletedAt?: Date;
+  priorDecisions?: Array<Pick<PayPalMatchReview, "resolution" | "matchingTransactionId" | "reference" | "reviewedBy" | "reviewedAt">>;
+}
+
+const PAYPAL_REVIEW_SOURCE = "paypal-match-review";
+
+async function findPayPalMatchReview(orderId: unknown, externalId: string): Promise<PayPalMatchReview | undefined> {
+  const row = await PaymentTransaction.findOne({ orderId, type: "refund", externalId, "metadata.source": PAYPAL_REVIEW_SOURCE })
+    .select("metadata.paypalMatchReview").lean<{ metadata?: { paypalMatchReview?: PayPalMatchReview } } | null>();
+  return row?.metadata?.paypalMatchReview;
+}
+
+/** Confirmed provider identity closes a receipt without hiding its evidence. */
+async function completeProviderPayPalReview(orderId: unknown, externalId: string, matchingTransactionId: unknown) {
+  await PaymentTransaction.updateOne({ orderId, externalId, "metadata.source": PAYPAL_REVIEW_SOURCE, status: "pending" }, {
+    $set: { status: "cancelled", "metadata.paypalMatchReview.status": "resolved", "metadata.paypalMatchReview.resolution": "same",
+      "metadata.paypalMatchReview.matchingTransactionId": String(matchingTransactionId),
+      "metadata.paypalMatchReview.reference": "PayPal capture resource and trusted reversed transaction",
+      "metadata.paypalMatchReview.reviewedBy": "paypal-reconciliation", "metadata.paypalMatchReview.reviewedAt": new Date(),
+      "metadata.paypalMatchReview.accountingCompletedAt": new Date() },
+  });
+}
+
+/** A pending evidence receipt is visible in Payments but changes no money. */
+async function queuePayPalMatchReview(
+  order: OrderForRefund,
+  externalId: string,
+  kind: PayPalMatchReview["kind"],
+  captureId: string,
+  reading: PayPalMatchReview["reading"],
+  candidates: DisputeRow[],
+) {
+  const previous = await PaymentTransaction.findOne({ orderId: order._id, type: "refund", externalId, "metadata.source": PAYPAL_REVIEW_SOURCE })
+    .select("status metadata").lean<{ _id: unknown; metadata?: { paypalMatchReview?: PayPalMatchReview } } | null>();
+  const last = previous?.metadata?.paypalMatchReview;
+  const amount = "withdrawn" in reading ? Math.max(reading.taken || 0, reading.withdrawn || 0) : reading.refunds[0]!.amount;
+  const review: PayPalMatchReview = {
+    status: "pending", kind, captureId, reading,
+    ...(last?.resolution ? { priorDecisions: [...(last.priorDecisions || []), {
+      resolution: last.resolution, matchingTransactionId: last.matchingTransactionId, reference: last.reference, reviewedBy: last.reviewedBy, reviewedAt: last.reviewedAt,
+    }] } : last?.priorDecisions ? { priorDecisions: last.priorDecisions } : {}),
+    candidates: candidates.map((row) => ({ transactionId: String(row._id), externalId: row.externalId, amount: Number(row.grossAmount || 0), currency: String(row.currency || order.currency || "USD") })),
+  };
+  if (previous) {
+    await PaymentTransaction.updateOne({ _id: previous._id }, { $set: { status: "pending", grossAmount: amount, "metadata.paypalMatchReview": review } });
+  } else {
+    await PaymentTransaction.create({
+      orderId: order._id, orderNumber: order.orderNumber, type: "refund", status: "pending",
+      provider: "paypal", paymentMethod: "paypal", currency: String(order.currency || "USD"),
+      grossAmount: amount, netAmount: 0, refundedAmount: 0, externalId,
+      note: "PayPal movement needs identity review; no additional money has been counted",
+      metadata: { source: PAYPAL_REVIEW_SOURCE, paypalMatchReview: review }, createdBy: "paypal-reconciliation",
+    });
+  }
+  const { notifyAdminsPaymentAnomaly } = await import("@/lib/notifications/notifications");
+  await notifyAdminsPaymentAnomaly({
+    title: "A PayPal movement needs reconciliation",
+    message: `Order #${order.orderNumber}: PayPal report ${externalId} on capture ${captureId} may describe money already recorded. No refund was adopted or reversed, and no additional money or chargeback loss was counted. Check the PayPal statement, then review the pending entry in Payments → Transactions and confirm whether it is the same movement or a separate one.`,
+    dedupeKey: `paypal-match-review:${String(order._id)}:${externalId}`,
+    link: `/admin/payments/transactions?status=pending&provider=paypal&search=${encodeURIComponent(externalId)}`,
+  });
+}
+
+/** An operator's statement reference becomes durable identity evidence. */
+export async function resolvePayPalMatchReview(params: {
+  transactionId: string;
+  resolution: "same" | "independent";
+  matchingTransactionId?: string;
+  reference: string;
+  actorId: string;
+  expectedUpdatedAt?: string;
+}) {
+  if (params.reference.trim().length < 3) throw new ValidationError("A PayPal statement reference is required");
+  if (params.resolution === "same" && !params.matchingTransactionId) throw new ValidationError("Choose the matching transaction");
+  await connectDB();
+  const receipt = await PaymentTransaction.findOne({ _id: params.transactionId, "metadata.source": PAYPAL_REVIEW_SOURCE })
+    .lean<{ _id: unknown; orderId: unknown; externalId: string; updatedAt: Date; metadata: { paypalMatchReview: PayPalMatchReview } } | null>();
+  if (!receipt) throw new ValidationError("This PayPal review was not found");
+  const order = await Order.findById(receipt.orderId).select(ORDER_FIELDS).lean<OrderForRefund | null>();
+  if (!order) throw new ValidationError("Order not found");
+  const hold = await holdOrderRefunds(order._id);
+  if (!hold) throw new RefundInFlightError(order.orderNumber);
+  let review = receipt.metadata.paypalMatchReview;
+  try {
+    const { financeTransaction } = await import("@/lib/finance/transaction");
+    review = await financeTransaction("Resolve PayPal movement identity", async () => {
+      const current = await financeQuery(PaymentTransaction.findOne({ _id: receipt._id })).lean<typeof receipt>();
+      if (!current) throw new ValidationError("This PayPal review was not found");
+      const saved = current.metadata.paypalMatchReview;
+      if (saved.resolution) {
+        if (saved.resolution !== params.resolution || (saved.matchingTransactionId || undefined) !== params.matchingTransactionId || saved.reference !== params.reference.trim()) {
+          throw new ValidationError("This PayPal review has already been resolved differently");
+        }
+        return saved;
+      }
+      if (params.expectedUpdatedAt && new Date(params.expectedUpdatedAt).getTime() !== current.updatedAt.getTime()) {
+        throw new ValidationError("This PayPal report changed; refresh and review it again");
+      }
+      if (params.resolution === "same") {
+        if (!saved.candidates.some((candidate) => candidate.transactionId === params.matchingTransactionId)) {
+          throw new ValidationError("Choose a transaction listed in this PayPal review");
+        }
+        const target = await financeQuery(PaymentTransaction.findOne({
+          _id: params.matchingTransactionId, orderId: order._id, type: "refund", status: { $in: ["succeeded", "failed"] },
+          "metadata.source": { $ne: PAYPAL_REVIEW_SOURCE },
+          "metadata.storeCredit": { $ne: true }, "metadata.apartFromCharge": { $ne: true },
+        })).select(DISPUTE_ROW_FIELDS).lean<DisputeRow | null>();
+        if (!target) throw new ValidationError("Choose an existing refund on this order");
+        const expected = "withdrawn" in saved.reading ? Math.max(saved.reading.taken || 0, saved.reading.withdrawn || 0) : saved.reading.refunds[0]!.amount;
+        if (Math.abs(Number(target.grossAmount || 0) - expected) > DISPUTE_MONEY_EPSILON) throw new ValidationError("The selected row does not represent this whole movement");
+        const currency = "currency" in saved.reading ? saved.reading.currency : saved.reading.refunds[0]?.gatewayCurrency;
+        if (!currency || target.currency?.toUpperCase() !== currency.toUpperCase()) throw new ValidationError("The movement currencies cannot be confirmed");
+        const existing = target.metadata?.dispute;
+        if (saved.kind === "dispute" && "disputeId" in saved.reading && existing?.key && existing.key !== disputeKey("paypal", saved.reading.disputeId)) {
+          throw new ValidationError("That row is already linked to another dispute");
+        }
+        await financeQuery(PaymentTransaction.updateOne({ _id: target._id }, {
+          $addToSet: { "metadata.gatewayAliasIds": receipt.externalId },
+          $set: {
+            "metadata.paypalMatchEvidence": { reviewedBy: params.actorId, reference: params.reference.trim(), reviewedAt: new Date(), reportId: receipt.externalId },
+            ...(saved.kind === "dispute" && "disputeId" in saved.reading ? { "metadata.dispute": disputeMeta("paypal", saved.reading.disputeId, saved.reading.paypalCapture) } : {}),
+          },
+        }));
+      } else if (saved.kind === "dispute" && "disputeId" in saved.reading) {
+        await financeQuery(PaymentTransaction.updateMany({ orderId: order._id, _id: { $in: saved.candidates.map((candidate) => candidate.transactionId) } }, {
+          $addToSet: { "metadata.paypalIndependentOf": saved.reading.disputeId },
+        }));
+      }
+      const independent = params.resolution === "independent" && saved.kind === "reversal"
+        ? await financeQuery(PaymentTransaction.find({ orderId: order._id, _id: { $in: saved.candidates.map((candidate) => candidate.transactionId) } })).select("metadata.dispute").lean<DisputeRow[]>() : [];
+      const independentDisputeIds = independent.map((row) => row.metadata?.dispute?.id).filter((id): id is string => typeof id === "string");
+      const resolved: PayPalMatchReview = { ...saved, status: "resolved", resolution: params.resolution, independentDisputeIds,
+        ...(params.matchingTransactionId ? { matchingTransactionId: params.matchingTransactionId } : {}), reference: params.reference.trim(), reviewedBy: params.actorId, reviewedAt: new Date() };
+      await financeQuery(PaymentTransaction.updateOne({ _id: receipt._id }, {
+        $set: { "metadata.paypalMatchReview": resolved },
+      }));
+      return resolved;
+    });
+  } finally {
+    await releaseOrderRefunds(order._id, hold);
+  }
+  // The receipt survives a crash between the identity commit and accounting.
+  // A retry, webhook or dispute sync can complete the ordinary idempotent flow.
+  if (review.accountingCompletedAt) return { resolution: review.resolution, orderId: String(order._id) };
+  if (review.kind === "dispute" && "disputeId" in review.reading) {
+    const outcome = await applyGatewayDispute(review.reading);
+    if (outcome.deferred) throw new ValidationError("New PayPal reports require another identity review");
+  } else if (review.resolution === "independent" && "refunds" in review.reading) await reconcileGatewayRefundReading(review.reading);
+  await PaymentTransaction.updateOne({ _id: receipt._id }, { $set: { status: "cancelled", "metadata.paypalMatchReview.accountingCompletedAt": new Date() } });
+  return { resolution: review.resolution, orderId: String(order._id) };
+}
+
+/** Resume reviewed receipts even if a process died after the identity commit. */
+export async function recoverPayPalMatchReviews(limit = 100) {
+  await connectDB();
+  const rows = await PaymentTransaction.find({ "metadata.source": PAYPAL_REVIEW_SOURCE,
+    "metadata.paypalMatchReview.status": "resolved", "metadata.paypalMatchReview.accountingCompletedAt": { $exists: false },
+  }).sort({ updatedAt: 1, _id: 1 }).limit(limit + 1).select("metadata").lean<Array<{ _id: unknown; metadata: { paypalMatchReview: PayPalMatchReview } }>>();
+  const result: { checked: number; completed: number; busy: number; failed: number; pending?: number; failureDetails?: Array<{ recordId: string; error: string }> } = { checked: Math.min(rows.length, limit), completed: 0, busy: 0, failed: 0 };
+  if (rows.length > limit) result.pending = 1; // At least one receipt remains due.
+  for (const row of rows.slice(0, limit)) {
+    const saved = row.metadata.paypalMatchReview;
+    try {
+      await resolvePayPalMatchReview({ transactionId: String(row._id), resolution: saved.resolution!,
+        matchingTransactionId: saved.matchingTransactionId || undefined, reference: saved.reference!, actorId: saved.reviewedBy || "paypal-reconciliation" });
+      result.completed += 1;
+    } catch (error) {
+      if (error instanceof RefundInFlightError) result.busy += 1;
+      else {
+        result.failed += 1;
+        const details = (result.failureDetails ??= []);
+        if (details.length < 5) details.push({ recordId: String(row._id), error: (error instanceof Error ? error.message : String(error)).slice(0, 300) });
+        console.error("PayPal reviewed movement reconciliation failed:", String(row._id), error);
+      }
+    }
+  }
+  return result;
+}
+
 const DISPUTE_ROW_FIELDS =
-  "orderId grossAmount status createdAt externalId metadata refundAllocation";
+  "orderId grossAmount currency status createdAt externalId metadata refundAllocation";
 
-/** How far before a dispute opened a refund can still be its settlement. */
-const DISPUTE_REFUND_LEEWAY_MS = 10 * 60 * 1000;
-
-function disputeMoneyRow(row: DisputeRow, exact = false): DisputeMoneyRow {
+function disputeMoneyRow(row: DisputeRow, match?: import("@/lib/orders/dispute-readings").DisputeMoneyRow["match"]) {
   return {
     id: String(row._id),
     amount: Math.max(0, Number(row.grossAmount || 0)),
     standing: row.status === undefined || row.status === "succeeded",
     at: new Date(row.createdAt || 0).getTime(),
-    ...(exact ? { exact: true } : {}),
+    ...(match ? { match } : {}),
   };
 }
 
@@ -1461,89 +1705,59 @@ function oldestFirst<T extends { createdAt?: Date }>(rows: T[]): T[] {
   );
 }
 
-/**
- * Rows recorded under other ids that may be this dispute's money, best first.
- *
- * The gateway's own refunds for it (Paystack names them); a chargeback an
- * admin recorded by hand for this gateway; a PayPal capture reversal nobody
- * has matched to a dispute; and — where the gateway settles a claim by
- * refunding — a refund recorded after the dispute opened, taken only when it is
- * the whole of what the dispute moved.
- */
+/** Only explicit provider ids or confirmed capture reversals can be adopted. */
 async function disputeCandidates(
   order: OrderForRefund,
   reading: GatewayDisputeReading,
-): Promise<Array<{ row: DisputeRow; exact: boolean }>> {
+): Promise<{ rows: Array<{ row: DisputeRow; match: "gateway_id" | "capture_reversal" | "reviewed" }>; ambiguous: DisputeRow[] }> {
   const unlinked = {
-    orderId: order._id,
-    type: "refund",
-    status: "succeeded",
+    orderId: order._id, type: "refund", status: "succeeded",
     "metadata.dispute": { $exists: false },
-    // Store credit (R8) never left through a gateway, so no dispute took it;
-    // nor did an exchange's return money sent back by hand (R7).
-    "metadata.storeCredit": { $ne: true },
-    "metadata.apartFromCharge": { $ne: true },
+    "metadata.storeCredit": { $ne: true }, "metadata.apartFromCharge": { $ne: true },
   };
-  const found: Array<{ row: DisputeRow; exact: boolean }> = [];
-  const add = (rows: DisputeRow[], exact = false) => {
-    for (const row of rows) {
-      if (!found.some((entry) => String(entry.row._id) === String(row._id))) {
-        found.push({ row, exact });
-      }
-    }
+  const rows: Array<{ row: DisputeRow; match: "gateway_id" | "capture_reversal" | "reviewed" }> = [];
+  const add = (found: DisputeRow[], match: "gateway_id" | "capture_reversal" | "reviewed") => {
+    for (const row of found) if (!rows.some((entry) => String(entry.row._id) === String(row._id))) rows.push({ row, match });
   };
-
-  if (reading.moneyIds.length > 0) {
-    add(
-      await PaymentTransaction.find({
-        ...unlinked,
-        $or: [
-          { externalId: { $in: reading.moneyIds } },
-          { "metadata.gatewayRefundIds": { $in: reading.moneyIds } },
-          { "metadata.gatewayAliasIds": { $in: reading.moneyIds } },
-        ],
-      })
-        .select(DISPUTE_ROW_FIELDS)
-        .lean<DisputeRow[]>(),
-    );
+  if (reading.moneyIds.length) {
+    add(await PaymentTransaction.find({ ...unlinked, $or: [
+      { externalId: { $in: reading.moneyIds } },
+      { "metadata.gatewayRefundIds": { $in: reading.moneyIds } },
+      { "metadata.gatewayAliasIds": { $in: reading.moneyIds } },
+    ] }).select(DISPUTE_ROW_FIELDS).lean<DisputeRow[]>(), "gateway_id");
   }
-  add(
-    oldestFirst(
-      await PaymentTransaction.find({
-        ...unlinked,
-        "metadata.chargebackByHand.gateway": reading.gateway,
-        "metadata.awaitingGatewayDisputes.0": { $exists: true },
-      })
-        .select(DISPUTE_ROW_FIELDS)
-        .lean<DisputeRow[]>(),
-    ),
-  );
-  add(
-    oldestFirst(
-      await PaymentTransaction.find({
-        ...unlinked,
-        "metadata.chargebackReport.gateway": reading.gateway,
-      })
-        .select(DISPUTE_ROW_FIELDS)
-        .lean<DisputeRow[]>(),
-    ),
-  );
-  if (reading.settlesThroughRefunds && reading.openedAt) {
-    add(
-      oldestFirst(
-        await PaymentTransaction.find({
-          ...unlinked,
-          createdAt: {
-            $gte: new Date(reading.openedAt.getTime() - DISPUTE_REFUND_LEEWAY_MS),
-          },
-        })
-          .select(DISPUTE_ROW_FIELDS)
-          .lean<DisputeRow[]>(),
-      ),
-      true,
-    );
+  if (reading.gateway !== "paypal") {
+    add(oldestFirst(await PaymentTransaction.find({
+      ...unlinked, "metadata.chargebackByHand.gateway": reading.gateway,
+      "metadata.awaitingGatewayDisputes.0": { $exists: true },
+    }).select(DISPUTE_ROW_FIELDS).lean<DisputeRow[]>()), "reviewed");
+    add(oldestFirst(await PaymentTransaction.find({
+      ...unlinked, "metadata.chargebackReport.gateway": reading.gateway,
+    }).select(DISPUTE_ROW_FIELDS).lean<DisputeRow[]>()), "gateway_id");
+    return { rows, ambiguous: [] };
   }
-  return found;
+  const reported = await PaymentTransaction.find({
+    ...unlinked, "metadata.paypalIndependentOf": { $ne: reading.disputeId },
+    $or: [{ "metadata.chargebackReport.gateway": "paypal" }, { "metadata.chargebackByHand.gateway": "paypal" }],
+  }).select(DISPUTE_ROW_FIELDS).lean<DisputeRow[]>();
+  // A different known capture is definite evidence of different money.
+  const possible = reported.filter((row) => {
+    const id = row.metadata?.chargebackReport?.captureId;
+    return !id || id === reading.paypalCapture?.id;
+  });
+  const otherDisputes = reading.paypalCapture ? await PaymentTransaction.find({
+    orderId: order._id, type: "refund", status: { $in: ["succeeded", "failed"] },
+    "metadata.dispute.gateway": "paypal", "metadata.dispute.captureId": reading.paypalCapture.id,
+    "metadata.dispute.key": { $ne: disputeKey("paypal", reading.disputeId) },
+  }).select("_id").lean<DisputeRow[]>() : [];
+  const confirmed = possible.length === 1 && otherDisputes.length === 0 && reading.paypalCapture?.reversed &&
+    possible[0]!.metadata?.chargebackReport?.captureId === reading.paypalCapture.id &&
+    possible[0]!.metadata?.chargebackReport?.captureResource === true &&
+    possible[0]!.metadata?.chargebackReport?.currency === reading.currency?.toUpperCase() &&
+    !!reading.currency && possible[0]!.currency?.toUpperCase() === reading.currency.toUpperCase() &&
+    Math.abs(Number(possible[0]!.grossAmount || 0) - Math.max(reading.taken || 0, reading.withdrawn || 0)) <= DISPUTE_MONEY_EPSILON;
+  if (confirmed) add(possible, "capture_reversal");
+  return { rows, ambiguous: confirmed ? [] : possible };
 }
 
 function chargebackReason(reading: GatewayDisputeReading): string {
@@ -1560,6 +1774,7 @@ interface DisputeMoneyOutcome {
   partReturned: number;
   beyondSale: number;
   standing: number;
+  deferred?: boolean;
 }
 
 async function settleDisputeMoney(
@@ -1570,17 +1785,28 @@ async function settleDisputeMoney(
   const linked = await PaymentTransaction.find({
     orderId: order._id,
     type: "refund",
+    status: { $in: ["succeeded", "failed"] },
     $or: [{ "metadata.dispute.key": key }, { externalId: key }],
   })
     .select(DISPUTE_ROW_FIELDS)
     .lean<DisputeRow[]>();
-  const candidates = await disputeCandidates(order, reading);
+  if (reading.paypalCapture?.reversed && linked.length) {
+    await PaymentTransaction.updateMany({ orderId: order._id, type: "refund", "metadata.dispute.key": key }, {
+      $set: { "metadata.dispute.captureId": reading.paypalCapture.id, "metadata.dispute.captureReversed": true },
+    });
+  }
+  const matches = await disputeCandidates(order, reading);
+  const candidates = matches.rows;
+  if (matches.ambiguous.length) {
+    await queuePayPalMatchReview(order, reading.disputeId, "dispute", reading.paypalCapture?.id || "", reading, matches.ambiguous);
+    return { recorded: 0, reversed: 0, unreturned: 0, partReturned: 0, beyondSale: 0, standing: linked.filter((row) => row.status === "succeeded").reduce((sum, row) => sum + Number(row.grossAmount || 0), 0), deferred: true };
+  }
 
   const plan = planDisputeSettlement({
     withdrawn: reading.withdrawn,
     taken: reading.taken,
     linked: linked.map((row) => disputeMoneyRow(row)),
-    candidates: candidates.map((entry) => disputeMoneyRow(entry.row, entry.exact)),
+    candidates: candidates.map((entry) => disputeMoneyRow(entry.row, entry.match)),
   });
 
   let standing = linked
@@ -1593,11 +1819,12 @@ async function settleDisputeMoney(
     const adopted = await PaymentTransaction.updateOne(
       { _id: row._id, status: "succeeded", "metadata.dispute": { $exists: false } },
       {
-        $set: { "metadata.dispute": disputeMeta(reading.gateway, reading.disputeId) },
+        $set: { "metadata.dispute": disputeMeta(reading.gateway, reading.disputeId, reading.paypalCapture) },
         $pull: { "metadata.awaitingGatewayDisputes": { key: "manual" } },
       },
     );
     if (adopted.modifiedCount) standing += Number(row.grossAmount || 0);
+    if (reading.gateway === "paypal") await completeProviderPayPalReview(order._id, reading.disputeId, row._id);
   }
 
   let recorded = 0;
@@ -1626,7 +1853,7 @@ async function settleDisputeMoney(
         reason: chargebackReason(reading),
         createdBy: `${reading.gateway}-dispute`,
         metadata: {
-          dispute: disputeMeta(reading.gateway, reading.disputeId),
+          dispute: disputeMeta(reading.gateway, reading.disputeId, reading.paypalCapture),
           ...(reading.moneyIds.length > 0 ? { gatewayAliasIds: reading.moneyIds } : {}),
         },
       });
@@ -1696,7 +1923,7 @@ async function settleDisputeMoney(
           reason: chargebackReason(reading),
           createdBy: `${reading.gateway}-dispute`,
           metadata: {
-            dispute: disputeMeta(reading.gateway, reading.disputeId),
+            dispute: disputeMeta(reading.gateway, reading.disputeId, reading.paypalCapture),
             ...(reading.moneyIds.length > 0 ? { gatewayAliasIds: reading.moneyIds } : {}),
             replaces: String(row._id),
           },
@@ -1865,12 +2092,14 @@ export async function reattributeChargeback(params: {
 }
 
 export interface DisputeApplication {
-  /** The dispute is on one of this store's orders. */
+  /** The dispute is on one of this store's orders, or a vendor's payment to it. */
   matched: boolean;
   /** Newly recorded as a chargeback. */
   recorded: number;
   /** Newly given back. */
   reversed: number;
+  /** Identity is ambiguous; money is unchanged until reconciliation. */
+  deferred?: boolean;
 }
 
 /**
@@ -1906,6 +2135,8 @@ export async function applyGatewayDispute(
   options: {
     /** Read by the sync, not delivered as it happened — see `disputeNotices`. */
     quietHistory?: boolean;
+    /** Durable reconciliation must observe ledger failures and retry them. */
+    strictReconciliation?: boolean;
   } = {},
 ): Promise<DisputeApplication> {
   const application: DisputeApplication = { matched: false, recorded: 0, reversed: 0 };
@@ -1913,7 +2144,12 @@ export async function applyGatewayDispute(
   await connectDB();
 
   const order = await findOrder(reading.locator);
-  if (!order) return application;
+  if (!order) {
+    // The same gateway account takes a vendor's payment for a boost, a plan or
+    // a commission, and a chargeback on one arrives on the same webhook.
+    const { applyPlatformDispute } = await import("@/lib/payments/platform-disputes");
+    return applyPlatformDispute(reading, options);
+  }
   application.matched = true;
 
   const key = disputeKey(reading.gateway, reading.disputeId);
@@ -1930,6 +2166,10 @@ export async function applyGatewayDispute(
     const hold = await holdOrderRefunds(order._id);
     if (!hold) throw new RefundInFlightError(order.orderNumber);
     try {
+      if (reading.gateway === "paypal") await PaymentTransaction.updateOne({ orderId: order._id, externalId: reading.disputeId,
+        "metadata.source": PAYPAL_REVIEW_SOURCE, "metadata.paypalMatchReview.status": "resolved" }, {
+        $set: { "metadata.paypalMatchReview.reading": reading },
+      });
       money = await settleDisputeMoney(order, reading);
     } finally {
       await releaseOrderRefunds(order._id, hold);
@@ -1948,19 +2188,35 @@ export async function applyGatewayDispute(
   }
   application.recorded = money.recorded;
   application.reversed = money.reversed;
+  if (options.strictReconciliation && reading.withdrawn !== null && !money.deferred) {
+    const { postRefund, postRefundReversal } = await import("@/lib/finance/post-events");
+    const rows = await PaymentTransaction.find({ orderId: order._id, type: "refund", "metadata.dispute.key": key,
+      status: { $in: ["succeeded", "failed"] } }).select("grossAmount status createdAt metadata.refundReversal").lean<DisputeRow[]>();
+    for (const row of rows) {
+      const params = { orderId: order._id, refundId: row._id, amount: Number(row.grossAmount || 0), date: row.createdAt };
+      if (row.status === "succeeded") await postRefund(params);
+      else if (row.metadata?.refundReversal) await postRefundReversal(params);
+    }
+    const { reverseOrderLoyaltyPoints } = await import("@/lib/customers/customer");
+    await reverseOrderLoyaltyPoints(String(order._id));
+  }
+  if (money.deferred) application.deferred = true;
 
   // Whatever the gateway holds for this dispute beyond what the refund rows
   // could take — earlier refunds had already given it back — is a loss of its
   // own. Brought in line with the gateway every read: booked when taken, and
   // given back when the store wins it.
-  if (reading.withdrawn !== null) {
+  if (reading.withdrawn !== null && !money.deferred) {
     const { postChargebackLoss } = await import("@/lib/finance/post-events");
     await postChargebackLoss({
       disputeId: key,
       orderId: order._id,
       target: Math.max(0, reading.withdrawn - money.standing),
       currency: String(order.currency || reading.currency || "USD"),
-    }).catch((error) => console.error("Failed to book a chargeback loss:", error));
+    }).catch((error) => {
+      if (options.strictReconciliation) throw error;
+      console.error("Failed to book a chargeback loss:", error);
+    });
   }
 
   if (reading.fees.length > 0) {
@@ -1975,7 +2231,10 @@ export async function applyGatewayDispute(
         part: fee.part,
         date: fee.date,
         note: fee.note,
-      }).catch((error) => console.error("Failed to post a dispute fee:", error));
+      }).catch((error) => {
+        if (options.strictReconciliation) throw error;
+        console.error("Failed to post a dispute fee:", error);
+      });
     }
   }
 
@@ -1985,7 +2244,7 @@ export async function applyGatewayDispute(
           .select("status paymentStatus")
           .lean<{ status?: string; paymentStatus?: string } | null>()
       : null;
-  const notices = disputeNotices({
+  const notices = money.deferred ? [] : disputeNotices({
     reading,
     orderNumber: order.orderNumber,
     ...money,
@@ -2189,6 +2448,7 @@ export function readPayPalRefund(refund: {
   amount?: { value?: string; currency_code?: string } | null;
   links?: Array<{ rel?: string; href?: string }> | null;
   capture_id?: string;
+  supplementary_data?: { related_ids?: { capture_id?: string } } | null;
 }): GatewayRefundReading | null {
   const id = String(refund?.id || "");
   if (!id) return null;
@@ -2199,7 +2459,7 @@ export function readPayPalRefund(refund: {
     (link) => String(link?.rel || "").toLowerCase() === "up",
   )?.href;
   const captureId =
-    refund.capture_id ||
+    refund.capture_id || refund.supplementary_data?.related_ids?.capture_id ||
     (linked ? linked.split("/").filter(Boolean).pop() : "") ||
     "";
   if (!captureId) return null;
@@ -2247,7 +2507,12 @@ export function readPayPalRefund(refund: {
 export function readPayPalReversal(
   resource: Parameters<typeof readPayPalRefund>[0],
 ): GatewayRefundReading | null {
-  const reading = readPayPalRefund(resource);
+  const self = resource?.links?.find((link) => String(link.rel || "").toLowerCase() === "self" && /\/v2\/payments\/captures\/[^/]+$/.test(link.href || ""))?.href;
+  const selfId = self ? self.split("/").filter(Boolean).pop() : undefined;
+  const captureId = resource?.capture_id || resource?.supplementary_data?.related_ids?.capture_id || selfId;
+  // A refund/reversal id merely naming a capture is not that capture itself.
+  const captureResource = !!selfId && selfId === resource.id && selfId === captureId;
+  const reading = readPayPalRefund({ ...resource, ...(captureId ? { capture_id: captureId } : {}) });
   if (!reading) return null;
   return {
     ...reading,
@@ -2255,7 +2520,10 @@ export function readPayPalReversal(
     createdBy: "paypal-reversal",
     refunds: reading.refunds.map((refund) => ({
       ...refund,
-      chargeback: { gateway: "paypal" as const },
+      // This adapter is called only for a verified PAYMENT.CAPTURE.REVERSED
+      // event. The capture's own status is not a refund settlement status.
+      live: true,
+      chargeback: { gateway: "paypal" as const, captureId: String(reading.locator.paypalCaptureId), ...(captureResource ? { captureResource: true } : {}) },
     })),
   };
 }

@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "_id": {
+      "$oid": "6ac5cd976d5607ec2d28de3b"
+    },
+    "code": "NEW",
+    "type": "percentage",
+    "value": 10,
+    "minOrderAmount": 500,
+    "maxDiscount": null,
+    "usageLimit": null,
+    "usedCount": 0,
+    "perUserLimit": 150,
+    "startDate": {
+      "$date": "2026-10-07T00:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-11-11T00:00:00Z"
+    },
+    "status": "active",
+    "vendorId": {
+      "$oid": "6ac352181af76d6eae5e0031"
+    },
+    "applicableProducts": [],
+    "applicableCategories": [],
+    "excludedProducts": [],
+    "createdAt": {
+      "$date": "2026-10-07T04:41:59.704Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-07T06:25:01.390Z"
+    },
+    "__v": 0
+  }
+]

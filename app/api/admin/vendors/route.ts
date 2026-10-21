@@ -5,7 +5,10 @@ import { NotFoundError } from "@/lib/api/errors";
 import { USER_ACCOUNT_STATUS, VENDOR_STATUS } from "@/config/app.config";
 import { getSettings } from "@/models/settings.model";
 import { validateQuery, validateBody } from "@/lib/api/validate";
-import { AdminListQuerySchema } from "@/lib/validations";
+import {
+  AdminVendorListQuerySchema,
+  pickVendorListFilters,
+} from "@/lib/validations";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { withApi } from "@/lib/api/handler";
 import { createAuditContext } from "@/lib/audit";
@@ -25,10 +28,8 @@ export const GET = withApi(
     rateLimit: { action: "admin:vendors:list", preset: "lenient" },
   },
   async ({ request }) => {
-    const { page, limit, search, status, sortOrder } = validateQuery(
-      request,
-      AdminListQuerySchema,
-    );
+    const query = validateQuery(request, AdminVendorListQuerySchema);
+    const { page, limit, search, status, sortOrder } = query;
 
     await connectDB();
     const settings = await getSettings();
@@ -40,6 +41,7 @@ export const GET = withApi(
       search,
       status,
       sortOrder,
+      ...pickVendorListFilters(query),
     });
 
     return paginatedResponse(list.items, list.page, list.limit, list.total);

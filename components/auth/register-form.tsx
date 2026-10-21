@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocaleHref } from "@/hooks/use-locale-navigation";
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import Link from "@/components/language/link";
 import { useState } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
@@ -104,12 +105,23 @@ export function useRegisterForm({
 
       const signUpData = result.data as unknown as {
         token?: string | null;
+        user?: { id?: string };
       };
       // Server-rendered flag, with the sign-up response as a cross-check —
       // better-auth returns a null token when it deferred the session until
       // the email is verified.
       const verificationRequired =
         emailVerificationRequired || signUpData?.token === null;
+
+      if (signUpData?.user?.id) {
+        posthogClient.identify(signUpData.user.id, {
+          name: data.name,
+          email: data.email,
+        });
+      }
+      posthogClient.capture("user_registered", {
+        verification_required: verificationRequired,
+      });
 
       onSuccess?.();
       router.push(
@@ -359,11 +371,11 @@ export function RegisterTermsNotice() {
   return (
     <p className="text-center text-sm text-muted-foreground">
       {t("auth.termsAgreement")}{" "}
-      <Link href="/terms" className="text-primary hover:underline">
+      <Link href="/terms" className="text-store-link hover:underline">
         {t("auth.termsOfService")}
       </Link>{" "}
       {t("auth.and")}{" "}
-      <Link href="/privacy" className="text-primary hover:underline">
+      <Link href="/privacy" className="text-store-link hover:underline">
         {t("auth.privacyPolicy")}
       </Link>
     </p>

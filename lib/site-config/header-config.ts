@@ -991,6 +991,7 @@ export interface LogoWidths {
   desktop: number;
   /** Below `lg`. */
   mobile: number;
+  tablet?: number;
 }
 
 /**
@@ -1002,7 +1003,8 @@ export interface LogoWidths {
 export function headerLogoWidths(header: HeaderSettings): LogoWidths {
   return {
     desktop: headerBrandItem(header.builder)?.size ?? DEFAULT_HEADER_LOGO_SIZE,
-    mobile: header.brand.mobileLogoWidth,
+    mobile: header.builder.viewport?.mobile?.logoWidth ?? header.brand.mobileLogoWidth,
+    ...(header.builder.viewport?.tablet ? { tablet: header.builder.viewport.tablet.logoWidth } : {}),
   };
 }
 

@@ -20,7 +20,7 @@ import { Order } from "@/models";
 import {
   admitAppCart,
   appCheckoutIdentity,
-  assertDelivery,
+  assertFulfillmentSelection,
   inShopperWords,
   toCheckoutError,
   toPlaceInput,
@@ -124,7 +124,7 @@ export const placeOrderRoute = defineRoute({
       const placed = await orderPlacedWith(orderKey);
       if (placed) return placed;
 
-      assertDelivery(input);
+      assertFulfillmentSelection(input);
       const body = toPlaceInput(input, "cod", locale);
       const identity = appCheckoutIdentity(session, client, appBaseUrl());
       try {
@@ -159,7 +159,7 @@ export const placeOrderRoute = defineRoute({
           const first = await orderPlacedWith(orderKey);
           if (first) return first;
         }
-        throw await inShopperWords(toCheckoutError(error), locale);
+        throw await inShopperWords(toCheckoutError(error, input.fulfillmentMethod), locale);
       }
     }),
 });

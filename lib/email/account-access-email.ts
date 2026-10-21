@@ -1,4 +1,4 @@
-import { DEFAULT_PRIMARY_COLOR } from "@/config/branding.config";
+import { emailBrand, type EmailBrand } from "@/lib/email/brand-colors";
 import { escapeHtml } from "@/lib/email/escape-html";
 import type { PasswordTokenPurpose } from "@/models/password-reset.model";
 
@@ -43,7 +43,10 @@ export function accountAccessEmail(params: {
   copy?: AccountAccessCopy;
   /** The owner's own store, named by the vendor wordings. */
   vendorStoreName?: string;
+  /** The store's brand colours (emailBrand); the shipped default without them. */
+  brand?: EmailBrand;
 }): { subject: string; html: string } {
+  const brand = params.brand ?? emailBrand(null);
   const name = escapeHtml(params.name || "there");
   const storeName = escapeHtml(params.storeName);
   const url = escapeHtml(params.url);
@@ -114,7 +117,7 @@ export function accountAccessEmail(params: {
       </p>
 
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${url}" style="display: inline-block; padding: 14px 32px; background-color: ${DEFAULT_PRIMARY_COLOR}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+        <a href="${url}" style="display: inline-block; padding: 14px 32px; background-color: ${brand.fill}; color: ${brand.ink}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
           ${button}
         </a>
       </div>
@@ -122,7 +125,7 @@ export function accountAccessEmail(params: {
       <p style="color: #71717a; font-size: 13px; line-height: 1.6;">
         Or copy and paste this link into your browser:
       </p>
-      <p style="color: ${DEFAULT_PRIMARY_COLOR}; font-size: 13px; word-break: break-all;">
+      <p style="color: ${brand.link}; font-size: 13px; word-break: break-all;">
         ${url}
       </p>
 

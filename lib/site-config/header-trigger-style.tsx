@@ -36,8 +36,8 @@ export function getCategoryRailRadius(trigger: CategoryTriggerSettings) {
 /**
  * Room the flyout may take beside the rail: whatever the viewport has left once
  * the rail and a 48px margin are gone, capped at the four-column width the
- * grid is built for.
+ * grid is built for: four 200px columns, three 24px gutters, 24px each side.
  */
 export function getMegaFlyoutMaxWidth(railWidth: number) {
-  return `min(940px, calc(100vw - ${railWidth + 48}px))`;
+  return `min(920px, calc(100vw - ${railWidth + 48}px))`;
 }

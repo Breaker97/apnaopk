@@ -17,7 +17,7 @@ import type { MobileShopAppSettings } from "@/lib/settings/mobile-app";
 import {
   admitAppCart,
   appCheckoutIdentity,
-  assertDelivery,
+  assertFulfillmentSelection,
   toCheckoutError,
   toQuoteInput,
 } from "./app-checkout";
@@ -36,7 +36,7 @@ type QuoteRequestContext = {
  * without writing anything (`prepareCheckout`, mode "quote").
  */
 async function quoteCheckout(ctx: QuoteRequestContext): Promise<CheckoutQuote> {
-  assertDelivery(ctx.input);
+  assertFulfillmentSelection(ctx.input);
   const origin = appBaseUrl();
   const { input, schemaErrors } = toQuoteInput(ctx.input, ctx.locale);
   try {
@@ -60,7 +60,7 @@ async function quoteCheckout(ctx: QuoteRequestContext): Promise<CheckoutQuote> {
       appScheme: ctx.mobileApp.scheme,
     });
   } catch (error) {
-    throw toCheckoutError(error);
+    throw toCheckoutError(error, ctx.input.fulfillmentMethod);
   }
 }
 

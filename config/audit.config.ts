@@ -41,6 +41,12 @@ export const AUDIT_ACTIONS = [
   "BULK_ACTION",
   /** A team invitation emailed — by an admin or by a vendor. */
   "INVITE_SENT",
+  /**
+   * A request a member of the team was refused: a page their role does not
+   * reach, a permission they may not give, a member above them
+   * (lib/access/access-denied-audit.ts). Written with `success: false`.
+   */
+  "ACCESS_DENIED",
 ] as const;
 
 /** Types of actions that can be audited. */
@@ -94,11 +100,17 @@ export const AUDIT_RESOURCES = [
   "globalVariant",
   /** A storefront hero slider. */
   "slider",
+  /** A storefront popup or bar (Online Store → Campaign Banner). */
+  "campaignBanner",
+  /** A printable design: an online invoice, a POS receipt or a courier sticker (Settings → Invoice Settings). */
+  "invoiceTemplate",
   /** A storefront navigation menu. */
   "menu",
   "blogPost",
   /** A blog category: a name and a slug that every post in it is filed under. */
   "blogCategory",
+  /** A team role (models/team-role.model.ts) — created, its permissions changed, deleted. */
+  "teamRole",
 ] as const;
 
 /** Types of resources that can be audited. */

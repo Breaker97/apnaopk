@@ -91,7 +91,7 @@ export function TopArticlesCarousel({
         <div className="flex items-center gap-3 sm:gap-4">
           <Link
             href="/blog"
-            className="group inline-flex items-center gap-1.5 text-xs font-semibold text-foreground transition-colors hover:text-primary sm:gap-3 sm:text-sm"
+            className="group inline-flex items-center gap-1.5 text-xs font-semibold text-foreground transition-colors hover:text-store-link sm:gap-3 sm:text-sm"
           >
             All Articles
             <MoveRight className="h-4 w-5 transition-transform group-hover:translate-x-1 sm:h-5 sm:w-8" strokeWidth={1.5} />

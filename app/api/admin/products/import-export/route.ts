@@ -1,3 +1,5 @@
+import { inventoryRequestKey } from "@/lib/inventory/finance-recovery";
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { connectDB } from "@/lib/db";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { errorResponse, successResponse } from "@/lib/api/response";
@@ -6,6 +8,7 @@ import { ProductListQuerySchema } from "@/lib/validations";
 import { Product } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { resolveProductFeatures } from "@/lib/products/product-features";
+import { taxClassOptions, vendorTaxChangePolicy } from "@/lib/tax/tax-settings";
 import { ensureDefaultVendorId } from "@/lib/vendors/multi-vendor";
 import { storeProfileUnavailable } from "@/lib/inventory/inventory-location-scope";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
@@ -77,7 +80,7 @@ export const GET = withApi(
   async ({ request, session }) => {
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
-      [STAFF_PERMISSIONS.VIEW_PRODUCTS],
+      staffResourcePermissions("products"),
     );
 
     await rateLimitByUser(
@@ -195,6 +198,7 @@ export const POST = withApi(
 
     const result = await importProductsFile(file.name, await file.text(), {
       defaultVendorId,
+      ...(request.headers.get("idempotency-key") ? { financialRequestKey: inventoryRequestKey(request), financialActorId: session.user.id } : {}),
       productSource: "admin",
       allowedVendorIds: scopeVendorIds.length > 0 ? scopeVendorIds : undefined,
       productScopeFilter: buildStaffProductScopeFilter(access.staffScope),
@@ -212,6 +216,9 @@ export const POST = withApi(
       // an admin's catalog may add them.
       createMissingCategories: isAdmin,
       productFeatures: resolveProductFeatures(settings),
+      taxClasses: new Set(taxClassOptions(settings.tax).map((entry) => entry.key)),
+      // Staff a vendor created import under the vendors' tax rule.
+      ...(access.vendorOwned ? { vendorTaxPolicy: vendorTaxChangePolicy(settings.tax) } : {}),
     });
 
     await auditProductImport(request, session, file.name, result);

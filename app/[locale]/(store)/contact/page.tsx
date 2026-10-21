@@ -192,7 +192,7 @@ export default async function ContactPage({ params }: PageProps) {
                   href={mapExternalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium text-primary hover:underline"
+                  className="text-sm font-medium text-store-link hover:underline"
                 >
                   {page.mapButtonLabel}
                 </a>

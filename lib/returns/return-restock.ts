@@ -1,4 +1,7 @@
 import "server-only";
+import { withInventoryWrite } from "@/lib/inventory/finance-context";
+import { financialSourceTransitionActive, withFinancialOrderTransaction } from "@/lib/inventory/finance-source-transaction";
+import { financeSession } from "@/lib/finance/transaction";
 
 import { Types } from "mongoose";
 import { Order, ReturnRequest } from "@/models";
@@ -124,6 +127,7 @@ export async function restockReturnStep(params: {
   locationId?: string | null;
   actor: string;
 }): Promise<ReturnRestockOutcome> {
+  if (!financialSourceTransitionActive() && params.returnRequest.orderId) return withFinancialOrderTransaction(String(params.returnRequest.orderId), () => restockReturnStep(params));
   const { returnRequest } = params;
   // Nothing came back — kept by the shopper, or refunded before it arrived.
   if (!returnGoodsBack(returnRequest)) return { kind: "nothing" };
@@ -184,14 +188,18 @@ export async function restockReturnStep(params: {
 
   try {
     const order = await Order.findById(returnRequest.orderId)
-      .select("channel posLocationId subOrders.vendorId subOrders.fulfillment")
+      .select("channel posLocationId items.inventoryLineId subOrders.vendorId subOrders.fulfillment")
       .lean();
-    await restoreReturnUnits({
+    for (const line of plan) await withInventoryWrite({
+      reason: "return_restock", sourceKind: "return", sourceId: String(returnRequest._id), actorId: params.actor,
+      requestKey: `${returnRestockEventKey(returnRequest._id, step)}:${line.orderItemIndex}`, restock: { orderId: String(returnRequest.orderId), lineId: order?.items?.[line.orderItemIndex]?.inventoryLineId },
+    }, () => restoreReturnUnits({
       order: order as Parameters<typeof restoreReturnUnits>[0]["order"],
-      lines: plan,
+      lines: [line],
       locationId,
-    });
+    }));
   } catch (error) {
+    if (financeSession()) throw error;
     // Handed back, so it can be tried again. Kept, the units never reached
     // the shelf and a later restock of the whole order left them out.
     console.error("Failed to put a return's items back in stock:", error);

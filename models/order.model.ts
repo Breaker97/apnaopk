@@ -18,6 +18,7 @@ import {
   RETURN_WINDOW_STARTS,
   returnTermsForNewOrder,
 } from "@/lib/returns/return-policy";
+import { DELIVERY_ATTESTED_BY_VALUES } from "@/lib/orders/delivery-attestation";
 
 const { Schema, models, model } = mongoose;
 
@@ -42,11 +43,38 @@ const AddressSchema = new Schema<Address>(
   { _id: false }
 );
 
+/** One option of the variant a line sold: "Color" / "White". */
+const OrderItemVariantOptionSchema = new Schema(
+  {
+    name: { type: String, trim: true },
+    value: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 /**
  * Order Item Sub-Schema
  */
+/**
+ * One part of a line's (or a consignment's) tax — a state or a county
+ * sales tax, say — as charged: the rate in percent and the amount
+ * (lib/tax/tax-parts.ts). What invoices and the tax report break the tax into.
+ */
+const OrderTaxPartSchema = new Schema(
+  {
+    name: { type: String, trim: true, maxlength: 30, default: "" },
+    rate: { type: Number, min: 0, max: 100, required: true },
+    amount: { type: Number, min: 0, required: true },
+    // Charged on the price plus the parts before it (see lib/tax/tax-parts.ts).
+    compound: { type: Boolean },
+  },
+  { _id: false },
+);
+
 const OrderItemSchema = new Schema<OrderItem>(
   {
+    inventoryFinanceGeneration: { type: Number },
+    inventoryLineId: { type: String, immutable: true },
     productId: {
       type: Schema.Types.ObjectId,
       ref: "Product",
@@ -192,6 +220,21 @@ const OrderItemSchema = new Schema<OrderItem>(
       type: Number,
       min: 0,
     },
+    /**
+     * The sales-tax rate this line was charged at, in percent, and the tax it
+     * carried — recorded where lines are taxed at their own rates (a product
+     * or category rate; lib/tax). A return of the line hands back exactly
+     * that tax. Absent on lines taxed at the store's one rate, which keep the
+     * order-wide share.
+     */
+    taxRate: { type: Number, min: 0, max: 100 },
+    tax: { type: Number, min: 0 },
+    /**
+     * That tax by the parts of its rate (state, county), recorded whenever tax was
+     * charged — store-rate lines included. Absent on older orders and when
+     * a typed rate taxed the whole order.
+     */
+    taxParts: { type: [OrderTaxPartSchema], default: undefined },
     // Per-line discount (applied before any order-level discount)
     lineDiscount: {
       type: {
@@ -207,6 +250,23 @@ const OrderItemSchema = new Schema<OrderItem>(
       trim: true,
       maxlength: 500,
     },
+    /**
+     * The variant as it was sold — label, options, its own SKU and the
+     * compare-at price — copied when the order is placed
+     * (lib/orders/order-line-variant.ts). Each is written only when there is
+     * one, and lines from before this existed have none: no default, and the
+     * options array stays absent rather than empty.
+     */
+    variantLabel: { type: String, trim: true },
+    variantOptions: { type: [OrderItemVariantOptionSchema], default: undefined },
+    variantSku: { type: String, trim: true },
+    compareAtPrice: { type: Number, min: 0 },
+    /**
+     * True when `compareAtPrice` is net of tax like `price` (a tax-inclusive
+     * POS sale, from review G on). Absent: the catalogue's figure as marked —
+     * which on older tax-inclusive POS lines is gross beside a net price.
+     */
+    compareAtPriceNet: { type: Boolean },
   },
   { _id: false }
 );
@@ -419,6 +479,17 @@ const SubOrderSchema = new Schema<SubOrder>({
     min: 0,
   },
   /**
+   * The tax this consignment's goods carried, where lines were taxed at
+   * their own rates. The ledger books each consignment's tax from it; absent,
+   * the order's tax is shared by sales as before.
+   */
+  tax: {
+    type: Number,
+    min: 0,
+  },
+  /** The tax by part (state, county), summed over this consignment's lines. */
+  taxParts: { type: [OrderTaxPartSchema], default: undefined },
+  /**
    * What a free-shipping coupon took off THIS consignment's delivery.
    *
    * Absent on an order placed before this field (or rated as one shipment
@@ -504,11 +575,21 @@ const SubOrderSchema = new Schema<SubOrder>({
   deliveredAt: {
     type: Date,
   },
+  /**
+   * Who said it was delivered — see `lib/orders/delivery-attestation.ts`.
+   * The payout hold counts from `deliveredAt`, so the admin is shown when that
+   * date rests on the seller's word alone. Absent on older consignments.
+   */
+  deliveryAttestedBy: {
+    type: String,
+    enum: DELIVERY_ATTESTED_BY_VALUES,
+  },
   // True while this sub-order's items currently hold a reservation against
   // product stock. Set to true after a successful decrement, flipped back to
   // false (atomically) when its inventory has been restored. Cancel/refund
   // paths use this to avoid double-restoring or restoring a sub-order that
   // never decremented in the first place (e.g., abandoned PayPal orders).
+  inventoryFinanceCycle: { type: Number, default: 0, min: 0 },
   inventoryReserved: {
     type: Boolean,
     default: false,
@@ -889,6 +970,13 @@ const OrderSchema = new Schema<IOrder>(
     refundInFlightAt: {
       type: Date,
     },
+    // Set when a gateway never answered a refund, so nobody knows whether it
+    // went through: new gateway refunds wait while it stands, for the
+    // gateway's own report to record the one that was made. Expires on its own.
+    // See lib/orders/refund-unconfirmed.ts.
+    refundUnconfirmedAt: {
+      type: Date,
+    },
     // Client-generated idempotency key for POS sales. A network blip after the
     // server commits but before the client sees the response makes the cashier
     // retry — the unique partial index below turns that retry into "return the
@@ -909,6 +997,118 @@ const OrderSchema = new Schema<IOrder>(
     posLocalReceiptNumber: {
       type: String,
       trim: true,
+    },
+    /**
+     * When this offline sale reached the server.
+     *
+     * `createdAt` and `paidAt` are set back to the moment the counter took
+     * the money (`soldAt` on the replay, bounded by
+     * `lib/pos/offline-sold-at.ts`), so the day's reports and the ledger put
+     * the sale where it happened. That leaves no other record of the delay —
+     * `updatedAt` moves on every later edit — hence this. Absent on every
+     * online sale, and on a replay whose sale time was not believed.
+     */
+    posSyncedAt: {
+      type: Date,
+    },
+    /**
+     * The customer a counter sale was rung up for when they gave a phone
+     * number and no email: a guest `CustomerProfile` keyed by that number.
+     *
+     * The sale stays filed under its cashier (`customerId === staffId`, the
+     * walk-in shape), because every reader of `customerId` expects a User and a
+     * phone-only shopper has none. This and `posCustomerName` are what the
+     * order screens show instead of "Walk-in", and what the guest's own
+     * customer page lists their purchases by. The number is `contactPhone`.
+     */
+    posCustomerProfileId: {
+      type: Schema.Types.ObjectId,
+      ref: "CustomerProfile",
+    },
+    /** The phone-only customer's name, as the till took it. */
+    posCustomerName: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    /**
+     * How a counter sale was paid, tender by tender (lib/pos/tenders.ts).
+     *
+     * `paymentMethod` stays the single answer every older reader expects — the
+     * largest money tender — and this is the whole story: cash and card on one
+     * sale, store credit for part of it, and on a deposit sale the balance
+     * payments that followed (`kind: "balance"`). The ledger moves each tender
+     * into its own cash account from this (`posTenderReclassPostings`). Absent
+     * on sales from before split payments: one tender, `paymentMethod`.
+     */
+    posTenders: {
+      type: [
+        new Schema(
+          {
+            method: {
+              type: String,
+              enum: ["cash", "card", "bank", "manual", "store_credit"],
+              required: true,
+            },
+            amount: { type: Number, required: true, min: 0 },
+            tendered: { type: Number, min: 0 },
+            change: { type: Number, min: 0 },
+            reference: { type: String, trim: true, maxlength: 120 },
+            cardSubMethod: { type: String, enum: ["card_touch", "card_stripe"] },
+            stripePaymentIntentId: { type: String, trim: true },
+            kind: { type: String, enum: ["sale", "balance"], default: "sale" },
+            collectedAt: { type: Date },
+            collectedBy: { type: String },
+            /** A balance payment's idempotency key: one payment, one tender. */
+            requestId: { type: String, trim: true },
+            /**
+             * The register session (drawer) this tender went into — the sale's
+             * own, or for a balance the one open when it was collected. What a
+             * drawer should hold is summed from these
+             * (lib/pos/register-session.ts).
+             */
+            sessionId: { type: Schema.Types.ObjectId, ref: "PosRegisterSession" },
+          },
+          { _id: false },
+        ),
+      ],
+      default: undefined,
+    },
+    /**
+     * What a deposit sale still owes — the goods are reserved, the order is
+     * `partially_paid`, and nothing reaches the ledger or the payment rows
+     * until it is paid off at the till (`/api/pos/orders/[id]/balance`). Zero
+     * or absent on every sale paid in full.
+     */
+    posBalanceDue: {
+      type: Number,
+      min: 0,
+    },
+    /**
+     * A counter sale rung up at shelf prices that include tax (Settings → POS).
+     * The order is stored net of tax — line prices without it, the tax on its
+     * own line — so every reader of `subtotal + tax` (refunds, the ledger,
+     * payouts) works unchanged; this flag lets receipts print it as the
+     * shopper saw it. See lib/tax/tax-engine.ts.
+     */
+    pricesIncludeTax: { type: Boolean },
+    /** A counter sale sold without tax, and why (lib/pos/order-totals.ts). */
+    taxExemption: {
+      type: new Schema(
+        {
+          reason: { type: String, trim: true, maxlength: 200, required: true },
+          reference: { type: String, trim: true, maxlength: 120 },
+          by: { type: String },
+          at: { type: Date },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    /** The register session (drawer) the sale was rung up in, when one was open. */
+    posRegisterSessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "PosRegisterSession",
     },
     /**
      * Lines this replayed offline sale could not cover, as the shelf stood
@@ -1744,6 +1944,21 @@ OrderSchema.index(
 // is the only number they were ever given. Partial, and NOT unique: two
 // terminals that were both reset could in principle reissue a prefix, and a
 // lookup aid must never be the thing that refuses to record a completed sale.
+// A drawer's tenders, summed for its X and Z reports.
+OrderSchema.index(
+  { "posTenders.sessionId": 1 },
+  { partialFilterExpression: { "posTenders.sessionId": { $exists: true } } },
+);
+// Deposit sales still owed, for the till's "collect balance" lookup.
+OrderSchema.index(
+  { channel: 1, posBalanceDue: 1 },
+  { partialFilterExpression: { posBalanceDue: { $gt: 0 } } },
+);
+// A phone-only customer's purchases, for their customer page and stats.
+OrderSchema.index(
+  { posCustomerProfileId: 1, createdAt: -1 },
+  { partialFilterExpression: { posCustomerProfileId: { $exists: true } } },
+);
 OrderSchema.index(
   { posLocalReceiptNumber: 1 },
   { partialFilterExpression: { posLocalReceiptNumber: { $gt: "" } } },
@@ -1970,4 +2185,29 @@ OrderSchema.virtual("customer", {
   justOne: true,
 });
 
+OrderSchema.add({ inventoryReservationSourceId: { type: String }, inventoryFinanceVersion: { type: Number, default: 0 } });
+OrderSchema.pre("validate", async function stampInventoryGeneration() {
+  if (!this.isNew) return;
+  const { Product } = await import("@/models/product.model");
+  const ids = [...new Set([...(this.items || []), ...(this.subOrders || []).flatMap((s) => s.items || [])].map((item) => String(item.productId)))];
+  if (!ids.length) return;
+  const products = await Product.find({ _id: { $in: ids } }).select("inventoryFinanceGeneration").session(this.$session()).lean();
+  const generations = new Map(products.map((p) => [String(p._id), p.inventoryFinanceGeneration]));
+  for (const item of [...(this.items || []), ...(this.subOrders || []).flatMap((s) => s.items || [])]) {
+    const generation = generations.get(String(item.productId));
+    if (generation === 1 || generation === 2) item.inventoryFinanceGeneration = generation;
+  }
+  const stamp = (items: OrderItem[]) => {
+    const occurrences = new Map<string, number>();
+    for (const item of items) {
+      const key = `${item.vendorId}:${item.productId}:${item.variantId ?? "main"}`;
+      const ordinal = occurrences.get(key) ?? 0; occurrences.set(key, ordinal + 1);
+      if (item.inventoryFinanceGeneration) item.inventoryLineId = `${key}:${ordinal}`;
+    }
+  };
+  stamp(this.items || []);
+  for (const sub of this.subOrders || []) stamp(sub.items || []);
+});
+OrderSchema.plugin(financeSessionPlugin);
 export const Order = models.Order || model<IOrder>("Order", OrderSchema);
+import { financeSessionPlugin } from "@/lib/finance/session-plugin";

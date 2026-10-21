@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/toast-notification";
 import { SubscriptionPaymentDialog } from "@/components/vendor/subscription-payment-dialog";
 import { formatCurrency } from "@/lib/intl/money";
 import { resolveCurrency } from "@/lib/intl/currencies";
+import { useTranslations } from "next-intl";
 
 /**
  * The pending charge is quoted in the currency the plan was priced in, which is
@@ -41,6 +42,17 @@ interface VendorApplicationStatusProps {
    * expired setup window: the vendor has been selling, and is being asked for
    * the first payment now rather than for the one they never made. */
   trialEnded?: boolean;
+  /**
+   * A suspended seller's money, read-only: what is held for them (payouts are
+   * frozen meanwhile) and their latest payouts. Suspension locks the dashboard
+   * but not their right to see what they are owed.
+   */
+  money?: {
+    currency: string;
+    ready: number;
+    held: number;
+    payouts: Array<{ number: string; status: string; net: number; currency: string; createdAt: string }>;
+  } | null;
 }
 
 export function VendorApplicationStatus({
@@ -51,7 +63,9 @@ export function VendorApplicationStatus({
   canContinueToDashboard = false,
   setupAccessExpired = false,
   trialEnded = false,
+  money = null,
 }: VendorApplicationStatusProps) {
+  const tMoney = useTranslations("vendor.suspendedMoney");
   const router = useRouter();
   const [payOpen, setPayOpen] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
@@ -185,6 +199,36 @@ export function VendorApplicationStatus({
                       ? "Opening dashboard..."
                       : "Continue to dashboard"}
                   </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {isSuspended && money ? (
+              <div className="mx-auto mt-6 max-w-md border-y py-4 text-start text-sm">
+                <p className="font-medium">{tMoney("title")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{tMoney("frozen")}</p>
+                <div className="mt-3 flex justify-between gap-4">
+                  <span className="text-muted-foreground">{tMoney("ready")}</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(money.ready, money.currency)}</span>
+                </div>
+                <div className="mt-2 flex justify-between gap-4">
+                  <span className="text-muted-foreground">{tMoney("held")}</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(money.held, money.currency)}</span>
+                </div>
+                {money.payouts.length > 0 ? (
+                  <>
+                    <p className="mt-4 font-medium">{tMoney("payouts")}</p>
+                    <ul className="mt-1 divide-y">
+                      {money.payouts.map((payout) => (
+                        <li key={payout.number} className="flex flex-wrap justify-between gap-2 py-1.5">
+                          <span className="min-w-0 truncate">
+                            {payout.number}
+                            <span className="ms-2 text-xs text-muted-foreground">{tMoney(`status.${payout.status}`)}</span>
+                          </span>
+                          <span className="tabular-nums">{formatCurrency(payout.net, payout.currency)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 ) : null}
               </div>
             ) : null}

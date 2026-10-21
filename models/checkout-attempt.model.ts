@@ -245,6 +245,8 @@ CheckoutAttemptSchema.index({ checkoutToken: 1, createdAt: -1 });
  */
 CheckoutAttemptSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 
+CheckoutAttemptSchema.plugin(financeSessionPlugin);
 export const CheckoutAttempt =
   models.CheckoutAttempt ||
   model("CheckoutAttempt", CheckoutAttemptSchema);
+import { financeSessionPlugin } from "@/lib/finance/session-plugin";

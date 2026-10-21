@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 import { StaffProfile, User } from "@/models";
 import { USER_ROLES } from "@/config/app.config";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
-import { sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
+import { assertSellerMayGiveStaff, sanitizeVendorStaffPermissions } from "@/lib/access/staff-authz";
 import { setUserRole } from "@/lib/access/user-role";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError, handleApiError } from "@/lib/api/errors";
@@ -131,6 +131,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       notes,
       isActive,
     } = body;
+
+    // Never more than this seller's plan gives the seller; what the member
+    // already holds is not given again. Refused before anything is written.
+    if (Array.isArray(permissions)) {
+      await assertSellerMayGiveStaff(
+        vendor._id,
+        sanitizeVendorStaffPermissions(permissions),
+        sanitizeVendorStaffPermissions((profile as { permissions?: unknown }).permissions),
+      );
+    }
 
     const userUpdate: Record<string, unknown> = {};
     if (name?.trim()) userUpdate.name = name.trim();

@@ -1,5 +1,5 @@
-import { DEFAULT_PRIMARY_COLOR } from "@/config/branding.config";
 import { escapeHtml } from "@/lib/email/escape-html";
+import { emailBrand, type EmailBrand } from "@/lib/email/brand-colors";
 
 /**
  * The invitation a new team member gets, from the admin's Team page or a
@@ -13,7 +13,10 @@ export function staffInviteEmailHtml(params: {
   /** "an administrator", "a staff member". */
   roleLabel: string;
   inviteUrl: string;
+  /** The store's brand colours (emailBrand); the shipped default without them. */
+  brand?: EmailBrand;
 }): string {
+  const brand = params.brand ?? emailBrand(null);
   const name = escapeHtml(params.name);
   const storeName = escapeHtml(params.storeName);
   const roleLabel = escapeHtml(params.roleLabel);
@@ -41,7 +44,7 @@ export function staffInviteEmailHtml(params: {
       </p>
 
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; background-color: ${DEFAULT_PRIMARY_COLOR}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+        <a href="${inviteUrl}" style="display: inline-block; padding: 14px 32px; background-color: ${brand.fill}; color: ${brand.ink}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
           Set Your Password
         </a>
       </div>
@@ -49,7 +52,7 @@ export function staffInviteEmailHtml(params: {
       <p style="color: #71717a; font-size: 13px; line-height: 1.6;">
         Or copy and paste this link into your browser:
       </p>
-      <p style="color: ${DEFAULT_PRIMARY_COLOR}; font-size: 13px; word-break: break-all;">
+      <p style="color: ${brand.link}; font-size: 13px; word-break: break-all;">
         ${inviteUrl}
       </p>
 

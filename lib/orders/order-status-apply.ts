@@ -1,3 +1,4 @@
+import type { DeliveryAttestedBy } from "@/lib/orders/delivery-attestation";
 import { ORDER_STATUS } from "@/config/app.config";
 import {
   DISPATCHED_ORDER_STATUSES,
@@ -99,7 +100,15 @@ function subOrderCascadeFilter(target?: string) {
  * The filter names a field even when it means "everything" — Mongo rejects an
  * empty `arrayFilters` document.
  */
-export function subOrderOverrideFilter(resurrecting: boolean) {
+export function subOrderOverrideFilter(resurrecting: boolean, target?: string) {
+  // An override TO delivered leaves consignments that were already delivered
+  // alone: re-stamping them dated their delivery today, which moved their
+  // payout hold and the shopper's return window to start over.
+  if (target === ORDER_STATUS.DELIVERED) {
+    return resurrecting
+      ? { "so.status": { $ne: ORDER_STATUS.DELIVERED } }
+      : { "so.status": { $nin: [ORDER_STATUS.CANCELLED, ORDER_STATUS.DELIVERED] } };
+  }
   return resurrecting
     ? { "so.status": { $exists: true } }
     : { "so.status": { $ne: ORDER_STATUS.CANCELLED } };
@@ -204,6 +213,11 @@ interface OrderStatusUpdateInput {
   changedBy?: string;
   trackingNumber?: string;
   carrier?: string;
+  /**
+   * Who is saying the parcels arrived, stamped beside `deliveredAt` on a move
+   * to delivered — see `lib/orders/delivery-attestation.ts`.
+   */
+  deliveryAttestedBy?: DeliveryAttestedBy;
 }
 
 /**
@@ -237,6 +251,9 @@ export function buildOrderStatusUpdates(
     }
     if (input.status === ORDER_STATUS.DELIVERED) {
       updates[subOrderPath("deliveredAt")] = changedAt;
+      if (input.deliveryAttestedBy) {
+        updates[subOrderPath("deliveryAttestedBy")] = input.deliveryAttestedBy;
+      }
     }
   }
 

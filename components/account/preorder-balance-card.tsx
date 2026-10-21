@@ -612,7 +612,7 @@ export function PreorderBalanceCard({
               role="status"
               className="flex gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2.5 text-sm text-foreground"
             >
-              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-store-link" aria-hidden="true" />
               <span>
                 {tf(
                   "orders.preorderBalance.processingNotice",

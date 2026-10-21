@@ -310,7 +310,7 @@ export function AboutPageView({
                       <VendorSignupGate>
                         <Link
                           href="/become-vendor"
-                          className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                          className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-store-link hover:underline"
                         >
                           {fill(page.sellerCtaLabel)}
                           <ArrowRight
@@ -337,7 +337,7 @@ export function AboutPageView({
                   const Icon = PROTECTION_ICONS[index] ?? CheckCircle2;
                   return (
                     <div key={item.id} className="flex gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-store-link">
                         <Icon className="h-4.5 w-4.5" aria-hidden />
                       </span>
                       <div className="min-w-0">
@@ -439,7 +439,7 @@ export function AboutPageView({
                         index === milestones.length - 1 && "pb-0",
                       )}
                     >
-                      <span className="font-semibold text-primary tabular-nums">
+                      <span className="font-semibold text-store-link tabular-nums">
                         {item.year}
                       </span>
                       <span className="text-muted-foreground">{fill(item.text)}</span>
@@ -469,7 +469,7 @@ export function AboutPageView({
                     href={member.linkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-primary"
+                    className="hover:text-store-link"
                   >
                     {member.name}
                   </a>
@@ -530,7 +530,7 @@ export function AboutPageView({
                         className={cn(
                           "h-4 w-4",
                           index < entry.rating
-                            ? "fill-amber-400 text-amber-400"
+                            ? "fill-current text-(--store-rating,#a86500)"
                             : "text-muted-foreground/30",
                         )}
                         aria-hidden

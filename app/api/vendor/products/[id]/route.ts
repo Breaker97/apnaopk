@@ -28,6 +28,13 @@ import { syncProductCategory } from "@/lib/catalog/categories";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { assertVendorPermission } from "@/lib/access/rbac";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
+import { vendorTaxChangePolicy } from "@/lib/tax/tax-settings";
+import {
+  INHERITED_PRODUCT_TAX,
+  productTaxOf,
+  taxAfterWrite,
+  vendorTaxRefusal,
+} from "@/lib/tax/vendor-tax";
 import {
   assignMissingProductBarcodes,
   extractClearedProductFields,
@@ -177,11 +184,21 @@ export const PUT = withApi<{ id: string }>(
     );
 
     const existing = await Product.findOne({ _id: id, vendorId: vendor._id })
-      .select("slug price preorder priceOnRequest collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets")
+      .select("slug price preorder priceOnRequest collectionIds category status sku barcode barcodeFormat barcodeSource variants shipping.isPhysicalProduct shipping.countryOfOrigin digitalAssets chargeTax taxRate taxClass")
       .lean();
     if (!existing) {
       return notFoundResponse("Product");
     }
+
+    // The product's tax is the store's to change unless Settings → Tax lets
+    // vendors; a save repeating it unchanged passes (lib/tax/vendor-tax.ts).
+    const taxBefore = productTaxOf(existing);
+    const taxRefusal = vendorTaxRefusal(
+      vendorTaxChangePolicy(settings.tax),
+      taxBefore,
+      taxAfterWrite(taxBefore, body as Record<string, unknown>),
+    );
+    if (taxRefusal) throw new AuthorizationError(taxRefusal);
 
     // `shipping.countryOfOrigin` is deliberately unrestricted — see the
     // create route: where a product was made is not where the store sells.

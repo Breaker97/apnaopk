@@ -1,3 +1,4 @@
+import { completedInventoryPostingEvidence } from "./inventory-posting-evidence";
 import { ValidationError } from "@/lib/api/errors";
 /**
  * Reports, as groupings of the ledger.
@@ -281,23 +282,45 @@ export async function getCostCoverage(
   ]);
   if (sales.length === 0) return [];
 
-  type CoverageLine = { price?: number; quantity?: number; cost?: number | null };
+  type CoverageLine = { price?: number; quantity?: number; cost?: number | null; inventoryFinanceGeneration?: number; inventoryLineId?: string; recognizedQuantity?: number };
   const linesBySale = new Map<string, CoverageLine[]>();
   const orderIds = [...new Set(sales.map((row) => String(row._id.order)))];
   for (let start = 0; start < orderIds.length; start += COVERAGE_BATCH) {
     const orders = await Order.find({
       _id: { $in: orderIds.slice(start, start + COVERAGE_BATCH) },
     })
-      .select("subOrders.vendorId subOrders.items.price subOrders.items.quantity subOrders.items.cost")
+      .select("subOrders.vendorId subOrders.items.price subOrders.items.quantity subOrders.items.cost subOrders.items.inventoryFinanceGeneration subOrders.items.inventoryLineId")
       .lean<
         Array<{
           _id: unknown;
           subOrders?: Array<{ vendorId?: unknown; items?: CoverageLine[] }>;
         }>
       >();
+    const generated = orders.some((o) => o.subOrders?.some((s) => s.items?.some((line) => line.inventoryFinanceGeneration)));
+    const recognized = new Map<string, number>();
+    if (generated) {
+      const { InventorySaleAllocation } = await import("@/models/inventory-allocation.model");
+      const { InventoryMovement } = await import("@/models/inventory-movement.model");
+      const rows = await InventorySaleAllocation.aggregate<{ _id: { orderId: unknown; lineId: string }; quantity: number }>([
+        { $match: { orderId: { $in: orders.map((o) => o._id) } } },
+        { $unwind: "$segments" },
+        ...completedInventoryPostingEvidence("$segments.movementId"),
+        { $lookup: { from: InventoryMovement.collection.name, localField: "segments.movementId", foreignField: "_id", as: "movement" } },
+        { $match: { "movement.accountingAt": { $lte: period.to } } },
+        { $group: { _id: { orderId: "$orderId", lineId: "$lineId" }, quantity: { $sum: "$segments.quantity" } } },
+      ]);
+      for (const row of rows) recognized.set(`${String(row._id.orderId)}:${row._id.lineId}`, row.quantity);
+      const { InventoryCostSource } = await import("@/models/inventory-cost-source.model");
+      const sources = await InventoryCostSource.aggregate<{ _id: { orderId: unknown; lineId: string }; quantity: number }>([
+        { $match: { orderId: { $in: orders.map((o) => o._id) }, accountingAt: { $lte: period.to } } },
+        ...completedInventoryPostingEvidence("$_id"),
+        { $group: { _id: { orderId: "$orderId", lineId: "$lineId" }, quantity: { $sum: "$quantity" } } },
+      ]);
+      for (const row of sources) recognized.set(`${String(row._id.orderId)}:${row._id.lineId}`, row.quantity);
+    }
     for (const order of orders) {
       for (const sub of order.subOrders || []) {
-        linesBySale.set(`${String(order._id)}:${String(sub.vendorId)}`, sub.items || []);
+        linesBySale.set(`${String(order._id)}:${String(sub.vendorId)}`, (sub.items || []).map((line) => ({ ...line, recognizedQuantity: recognized.get(`${String(order._id)}:${line.inventoryLineId}`) ?? 0 })));
       }
     }
   }
@@ -313,7 +336,9 @@ export async function getCostCoverage(
       const lineValue = Math.max(0, Number(line.price) || 0) * Math.max(0, Number(line.quantity) || 0);
       value += lineValue;
       const cost = Number(line.cost);
-      if (line.cost == null || !Number.isFinite(cost) || cost < 0) uncostedValue += lineValue;
+      if (line.inventoryFinanceGeneration === 2) uncostedValue += lineValue * (1 - Math.min(1, (line.recognizedQuantity ?? 0) / Math.max(1, Number(line.quantity) || 0)));
+      else if (line.cost == null || !Number.isFinite(cost) || cost < 0) uncostedValue += lineValue;
+      else if (line.inventoryFinanceGeneration) uncostedValue += lineValue * (1 - Math.min(1, (line.recognizedQuantity ?? 0) / Math.max(1, Number(line.quantity) || 0)));
     }
     // Nothing to weigh by — an order that lost its lines — reads as unknown.
     const share = value > 0 ? uncostedValue / value : 1;
@@ -723,18 +748,73 @@ export async function getVendorLedgerBalances(
   );
 }
 
+export type VendorStatementKind =
+  | "sale"
+  | "commission"
+  | "refund"
+  | "refund_reversed"
+  | "payout"
+  | "payout_returned"
+  | "commission_settled"
+  | "promotion_credit"
+  | "delivery_label"
+  | "repayment"
+  | "boost"
+  | "subscription"
+  | "other";
+
+/** Where one movement of a seller's payable belongs on their statement. */
+type StatementBucket =
+  | "earned"
+  | "refunded"
+  | "paidOut"
+  | "commissionSettled"
+  | "credits"
+  | "deliveryLabels"
+  | "repaid"
+  | "adjustments";
+
+/**
+ * What a ledger entry touching a seller's payable IS, from their side.
+ *
+ * Read by what produced the entry (its source and key), not by which way it
+ * moved the account. Read by direction, every entry that raised the payable
+ * was a "Sale": a payout the bank sent back, a refund that failed, a label
+ * voided, a promotion credit — each inflated Earned, and the commission a
+ * payout deducted was counted as money Paid out. The buckets add up to the
+ * same net movement, so the closing balance is what it always was.
+ */
+export function classifyVendorPayableEntry(entry: {
+  debit: string;
+  credit: string;
+  sourceKind?: string | null;
+  key?: string | null;
+}): { bucket: StatementBucket; kind: VendorStatementKind } | null {
+  const raises = entry.credit === LEDGER_ACCOUNT.VENDOR_PAYABLE;
+  const lowers = entry.debit === LEDGER_ACCOUNT.VENDOR_PAYABLE;
+  if (!raises && !lowers) return null;
+  const key = String(entry.key || "");
+  const kind = entry.sourceKind;
+  if (kind === LEDGER_SOURCE_KIND.ADJUSTMENT) return { bucket: "adjustments", kind: "other" };
+  if (kind === LEDGER_SOURCE_KIND.VENDOR_REPAYMENT) return { bucket: "repaid", kind: "repayment" };
+  if (kind === LEDGER_SOURCE_KIND.PAYOUT) {
+    if (key.includes(":commission-offset")) return { bucket: "commissionSettled", kind: "commission_settled" };
+    if (key.includes(":commission-credit")) return { bucket: "credits", kind: "promotion_credit" };
+    return { bucket: "paidOut", kind: raises ? "payout_returned" : "payout" };
+  }
+  if (key.includes(":shipping-to-store")) return { bucket: "deliveryLabels", kind: "delivery_label" };
+  if (lowers) return { bucket: "refunded", kind: "refund" };
+  if (kind === LEDGER_SOURCE_KIND.REFUND || key.endsWith(":reversal")) {
+    return { bucket: "refunded", kind: "refund_reversed" };
+  }
+  return { bucket: "earned", kind: "sale" };
+}
+
 export interface VendorStatementLine {
   id?: string;
   date: string;
   /** What happened, as an account pair the vendor can recognise. */
-  kind:
-    | "sale"
-    | "commission"
-    | "refund"
-    | "payout"
-    | "boost"
-    | "subscription"
-    | "other";
+  kind: VendorStatementKind;
   reference: string;
   currency: string;
   /**
@@ -750,7 +830,7 @@ export interface VendorStatementLine {
   amount: number;
 }
 
-interface VendorStatement {
+export interface VendorStatement {
   currency: string;
   /** Balance carried in from before the period. */
   opening: number;
@@ -767,6 +847,14 @@ interface VendorStatement {
    * as income the vendor had earned.
    */
   adjustments: number;
+  /** Commission on their own cash sales, settled out of a payout. */
+  commissionSettled: number;
+  /** Store promotions on their cash sales, paid to them in a payout. */
+  credits: number;
+  /** Delivery charges that went to the store's label instead. */
+  deliveryLabels: number;
+  /** Money they paid back by hand for sales refunded after a payout. */
+  repaid: number;
   /** What the platform holds for them at the end of the period. */
   closing: number;
   /** Commission owed on sales they collected themselves. */
@@ -779,6 +867,8 @@ interface VendorStatement {
   lineCount: number;
   /** True when `lines` is a page of a longer period rather than all of it. */
   truncated: boolean;
+  /** Charged orders in the period, counted independently of the listed page. */
+  owedOrderCount?: number;
 }
 
 /**
@@ -807,8 +897,20 @@ export async function getVendorStatement(
   vendorId: string,
   period: FinancePeriod,
   lineLimit = STATEMENT_LINE_LIMIT,
+  options: {
+    /**
+     * List the newest lines first. Reading the period's first page in date
+     * order and keeping its tail showed an overview the oldest of the month,
+     * whenever the month held more lines than the page.
+     */
+    newestFirst?: boolean;
+    page?: number;
+    currency?: string;
+    balance?: "owed";
+  } = {},
 ): Promise<VendorStatement[]> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
+  const currencyMatch = options.currency ? { currency: options.currency.toUpperCase() } : {};
   const accounts = [
     LEDGER_ACCOUNT.VENDOR_PAYABLE,
     LEDGER_ACCOUNT.COMMISSION_RECEIVABLE,
@@ -816,33 +918,40 @@ export async function getVendorStatement(
 
   // Only these entries become a line, so the line query filters on them too —
   // otherwise the page limit is spent on entries that render nothing.
+  const lineAccounts = options.balance === "owed" ? [LEDGER_ACCOUNT.COMMISSION_RECEIVABLE] : accounts;
   const lineMatch = {
     $or: [
-      { credit: LEDGER_ACCOUNT.VENDOR_PAYABLE },
-      { debit: LEDGER_ACCOUNT.VENDOR_PAYABLE },
-      { debit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE },
-      { credit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE },
+      { credit: { $in: lineAccounts } },
+      { debit: { $in: lineAccounts } },
     ],
   };
   /** The same rule as an aggregation expression, for the count. */
   const producesLine = {
     $or: [
-      { $eq: ["$credit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-      { $eq: ["$debit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-      { $eq: ["$debit", LEDGER_ACCOUNT.COMMISSION_RECEIVABLE] },
-      { $eq: ["$credit", LEDGER_ACCOUNT.COMMISSION_RECEIVABLE] },
+      { $in: ["$credit", lineAccounts] },
+      { $in: ["$debit", lineAccounts] },
     ],
   };
   const sumWhen = (condition: unknown) => ({
     $cond: [condition, "$amount", 0],
   });
 
-  const [openingRows, totalRows, entries] = await Promise.all([
+  const offset = (Math.max(1, options.page ?? 1) - 1) * lineLimit;
+  let entriesQuery = LedgerEntry.find({
+    vendorId: vendorObjectId,
+    ...currencyMatch,
+    date: { $gte: period.from, $lte: period.to },
+    ...lineMatch,
+  }).sort(options.newestFirst ? { date: -1, _id: -1 } : { date: 1, _id: 1 }).limit(lineLimit);
+  if (offset > 0) entriesQuery = entriesQuery.skip(offset);
+
+  const [openingRows, totalRows, entries, owedOrderCounts] = await Promise.all([
     // Everything before the period, folded into one number per currency.
     LedgerEntry.aggregate<{ _id: string; debits: number; credits: number; owedDebits: number; owedCredits: number }>([
       {
         $match: {
           vendorId: vendorObjectId,
+          ...currencyMatch,
           date: { $lt: period.from },
           $or: [{ debit: { $in: accounts } }, { credit: { $in: accounts } }],
         },
@@ -877,103 +986,47 @@ export async function getVendorStatement(
     // of lines below, so a vendor busy enough to fill it was shown a closing
     // balance computed from an arbitrary five hundred of their entries — wrong,
     // and wrong silently, since nothing on the screen said the list was partial.
+    //
+    // Grouped by what produced each entry (source and the part of its key that
+    // names the leg), then sorted into the statement's columns by
+    // `classifyVendorPayableEntry` — the same rule each listed line uses.
     LedgerEntry.aggregate<{
-      _id: string;
-      earned: number;
-      payableOut: number;
-      paidOut: number;
-      commission: number;
-      owedUp: number;
-      owedDown: number;
-      adjustmentsUp: number;
-      adjustmentsDown: number;
-      lineCount: number;
+      _id: { currency: string; debit: string; credit: string; kind?: string; tag: string };
+      amount: number;
+      lines: number;
     }>([
       {
         $match: {
           vendorId: vendorObjectId,
+          ...currencyMatch,
           date: { $gte: period.from, $lte: period.to },
         },
       },
       {
         $group: {
-          _id: "$currency",
-          // Sales only: an adjustment credits the same account and is counted
-          // on its own line below.
-          earned: {
-            $sum: sumWhen({
-              $and: [
-                { $eq: ["$credit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-                { $ne: ["$source.kind", LEDGER_SOURCE_KIND.ADJUSTMENT] },
-              ],
-            }),
+          _id: {
+            currency: "$currency",
+            debit: "$debit",
+            credit: "$credit",
+            kind: "$source.kind",
+            tag: {
+              $switch: {
+                branches: [
+                  { case: { $regexMatch: { input: "$key", regex: ":commission-offset" } }, then: ":commission-offset" },
+                  { case: { $regexMatch: { input: "$key", regex: ":commission-credit" } }, then: ":commission-credit" },
+                  { case: { $regexMatch: { input: "$key", regex: ":shipping-to-store" } }, then: ":shipping-to-store" },
+                  { case: { $regexMatch: { input: "$key", regex: ":reversal$" } }, then: ":reversal" },
+                ],
+                default: "",
+              },
+            },
           },
-          adjustmentsUp: {
-            $sum: sumWhen({
-              $and: [
-                { $eq: ["$credit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-                { $eq: ["$source.kind", LEDGER_SOURCE_KIND.ADJUSTMENT] },
-              ],
-            }),
-          },
-          adjustmentsDown: {
-            $sum: sumWhen({
-              $and: [
-                { $eq: ["$debit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-                { $eq: ["$source.kind", LEDGER_SOURCE_KIND.ADJUSTMENT] },
-              ],
-            }),
-          },
-          payableOut: {
-            $sum: sumWhen({
-              $and: [
-                { $eq: ["$debit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-                { $ne: ["$source.kind", LEDGER_SOURCE_KIND.ADJUSTMENT] },
-              ],
-            }),
-          },
-          // Identified by what PRODUCED the entry, not by which cash account
-          // it happened to credit. `payoutPaidPostings` credits the bank today,
-          // so pattern-matching on that account worked — right up until a
-          // payout leaves from the gateway or the till, at which point the
-          // money would be reported to the vendor as a refund of their own
-          // sales. The source kind is the fact; the account pair is a detail
-          // of one posting rule.
-          paidOut: {
-            $sum: sumWhen({
-              $and: [
-                { $eq: ["$debit", LEDGER_ACCOUNT.VENDOR_PAYABLE] },
-                { $eq: ["$source.kind", LEDGER_SOURCE_KIND.PAYOUT] },
-              ],
-            }),
-          },
-          commission: {
-            $sum: sumWhen({
-              $eq: ["$credit", LEDGER_ACCOUNT.COMMISSION_INCOME],
-            }),
-          },
-          owedUp: {
-            $sum: sumWhen({
-              $eq: ["$debit", LEDGER_ACCOUNT.COMMISSION_RECEIVABLE],
-            }),
-          },
-          owedDown: {
-            $sum: sumWhen({
-              $eq: ["$credit", LEDGER_ACCOUNT.COMMISSION_RECEIVABLE],
-            }),
-          },
-          lineCount: { $sum: { $cond: [producesLine, 1, 0] } },
+          amount: { $sum: "$amount" },
+          lines: { $sum: { $cond: [producesLine, 1, 0] } },
         },
       },
     ]),
-    LedgerEntry.find({
-      vendorId: vendorObjectId,
-      date: { $gte: period.from, $lte: period.to },
-      ...lineMatch,
-    })
-      .sort({ date: 1, _id: 1 })
-      .limit(lineLimit)
-      .lean<
+    entriesQuery.lean<
         Array<{
           _id?: unknown;
       date: Date;
@@ -982,8 +1035,15 @@ export async function getVendorStatement(
           amount: number;
           currency: string;
           source?: { kind?: string; ref?: string | null };
+          key?: string;
         }>
       >(),
+    options.balance === "owed" ? LedgerEntry.aggregate<{ _id: string; count: number }>([
+      { $match: { vendorId: vendorObjectId, ...currencyMatch, date: { $gte: period.from, $lte: period.to },
+        debit: LEDGER_ACCOUNT.COMMISSION_RECEIVABLE, "source.kind": LEDGER_SOURCE_KIND.ORDER } },
+      { $group: { _id: { currency: "$currency", orderId: "$source.id" } } },
+      { $group: { _id: "$_id.currency", count: { $sum: 1 } } },
+    ]) : Promise.resolve([]),
   ]);
 
   const byCurrency = new Map<string, VendorStatement>();
@@ -997,6 +1057,10 @@ export async function getVendorStatement(
         refunded: 0,
         paidOut: 0,
         adjustments: 0,
+        commissionSettled: 0,
+        credits: 0,
+        deliveryLabels: 0,
+        repaid: 0,
         closing: 0,
         owed: 0,
         openingOwed: 0,
@@ -1016,17 +1080,29 @@ export async function getVendorStatement(
     statement.openingOwed = round((row.owedDebits ?? 0) - (row.owedCredits ?? 0));
   }
 
+  for (const row of owedOrderCounts) ensure(row._id).owedOrderCount = row.count;
+
   for (const row of totalRows) {
-    const statement = ensure(String(row._id));
-    statement.earned = round(row.earned);
-    statement.paidOut = round(row.paidOut);
-    // Everything that lowered the payable other than a payout: a refund handing
-    // the vendor's share back.
-    statement.refunded = round(row.payableOut - row.paidOut);
-    statement.commission = round(row.commission);
-    statement.adjustments = round(row.adjustmentsUp - row.adjustmentsDown);
-    statement.owedMovement = round(row.owedUp - row.owedDown);
-    statement.lineCount = row.lineCount;
+    const statement = ensure(String(row._id.currency));
+    const { debit, credit, kind, tag } = row._id;
+    statement.lineCount += row.lines;
+    if (credit === LEDGER_ACCOUNT.COMMISSION_INCOME) statement.commission = round(statement.commission + row.amount);
+    if (debit === LEDGER_ACCOUNT.COMMISSION_RECEIVABLE) statement.owedMovement = round(statement.owedMovement + row.amount);
+    if (credit === LEDGER_ACCOUNT.COMMISSION_RECEIVABLE) statement.owedMovement = round(statement.owedMovement - row.amount);
+    const placed = classifyVendorPayableEntry({ debit, credit, sourceKind: kind, key: tag });
+    if (!placed) continue;
+    // Signed as the seller's balance moves: in, positive; out, negative.
+    const held = credit === LEDGER_ACCOUNT.VENDOR_PAYABLE ? row.amount : -row.amount;
+    switch (placed.bucket) {
+      case "earned": statement.earned = round(statement.earned + held); break;
+      case "refunded": statement.refunded = round(statement.refunded - held); break;
+      case "paidOut": statement.paidOut = round(statement.paidOut - held); break;
+      case "commissionSettled": statement.commissionSettled = round(statement.commissionSettled - held); break;
+      case "deliveryLabels": statement.deliveryLabels = round(statement.deliveryLabels - held); break;
+      case "credits": statement.credits = round(statement.credits + held); break;
+      case "repaid": statement.repaid = round(statement.repaid + held); break;
+      case "adjustments": statement.adjustments = round(statement.adjustments + held); break;
+    }
   }
 
   for (const entry of entries) {
@@ -1036,30 +1112,29 @@ export async function getVendorStatement(
     const raisesOwed = entry.debit === LEDGER_ACCOUNT.COMMISSION_RECEIVABLE;
     const lowersOwed = entry.credit === LEDGER_ACCOUNT.COMMISSION_RECEIVABLE;
 
-    // Checked before anything else: a correction credits the same account a
-    // sale does, and reading it as a sale told the vendor they had earned the
-    // platform's write-off.
-    const kind: VendorStatementLine["kind"] = entry.source?.kind ===
-    LEDGER_SOURCE_KIND.ADJUSTMENT
-      ? "other"
-      : raisesPayable
-      ? "sale"
-      : lowersPayable && entry.source?.kind === LEDGER_SOURCE_KIND.PAYOUT
-        ? "payout"
-        : lowersPayable
+    // What produced the entry decides its name — see
+    // `classifyVendorPayableEntry`. Commission lines that never touch the
+    // payable keep their own names.
+    const placed = classifyVendorPayableEntry({
+      debit: entry.debit,
+      credit: entry.credit,
+      sourceKind: entry.source?.kind,
+      key: entry.key,
+    });
+    const kind: VendorStatementLine["kind"] = placed
+      ? placed.kind
+      : entry.credit === LEDGER_ACCOUNT.COMMISSION_INCOME
+        ? "commission"
+        : // Settling the debt, or a refund taking part of it back off.
+          lowersOwed && entry.debit === LEDGER_ACCOUNT.REFUNDS
           ? "refund"
-          : entry.credit === LEDGER_ACCOUNT.COMMISSION_INCOME
+          : lowersOwed || raisesOwed
             ? "commission"
-            : // Settling the debt, or a refund taking part of it back off.
-              lowersOwed && entry.debit === LEDGER_ACCOUNT.REFUNDS
-              ? "refund"
-              : lowersOwed
-                ? "commission"
-                : entry.credit === LEDGER_ACCOUNT.BOOST_INCOME
-                  ? "boost"
-                  : entry.credit === LEDGER_ACCOUNT.SUBSCRIPTION_INCOME
-                    ? "subscription"
-                    : "other";
+            : entry.credit === LEDGER_ACCOUNT.BOOST_INCOME
+              ? "boost"
+              : entry.credit === LEDGER_ACCOUNT.SUBSCRIPTION_INCOME
+                ? "subscription"
+                : "other";
 
     // Signed from the VENDOR's point of view: what the platform owes them.
     const held = raisesPayable
@@ -1096,9 +1171,13 @@ export async function getVendorStatement(
     statement.closing = round(
       statement.opening +
         statement.earned +
-        statement.adjustments -
+        statement.adjustments +
+        statement.credits +
+        statement.repaid -
         statement.refunded -
-        statement.paidOut,
+        statement.paidOut -
+        statement.commissionSettled -
+        statement.deliveryLabels,
     );
     statement.closingOwed = round(statement.openingOwed + statement.owedMovement);
     statement.owed = statement.closingOwed;
@@ -1370,6 +1449,57 @@ export async function getTaxSummary(
     collected: round(row.collected),
     refunded: round(row.refunded),
     net: round(row.collected - row.refunded),
+  }));
+}
+
+export interface TaxPartSummary {
+  currency: string;
+  /** As named in Settings → Tax ("State", "County"); empty for an unnamed rate. */
+  name: string;
+  /** Percent. */
+  rate: number;
+  amount: number;
+}
+
+/**
+ * The tax charged on orders placed in the period, by the parts of its rates —
+ * the state, county and city shares a return asks for — from what each
+ * consignment recorded (lib/tax/tax-parts.ts). A companion to
+ * `getTaxSummary`, not a replacement: it is what was charged, before refunds,
+ * and orders from before parts were recorded are not in it.
+ */
+export async function getTaxPartsSummary(period: FinancePeriod): Promise<TaxPartSummary[]> {
+  const rows = await Order.aggregate<{
+    _id: { currency: string; name: string; rate: number };
+    amount: number;
+  }>([
+    {
+      $match: {
+        createdAt: { $gte: period.from, $lte: period.to },
+        ...placedOrderMatch(),
+        status: { $ne: "cancelled" },
+        "subOrders.taxParts.0": { $exists: true },
+      },
+    },
+    { $unwind: "$subOrders" },
+    { $unwind: "$subOrders.taxParts" },
+    {
+      $group: {
+        _id: {
+          currency: { $toUpper: { $ifNull: ["$currency", ""] } },
+          name: { $ifNull: ["$subOrders.taxParts.name", ""] },
+          rate: "$subOrders.taxParts.rate",
+        },
+        amount: { $sum: "$subOrders.taxParts.amount" },
+      },
+    },
+    { $sort: { "_id.currency": 1, "_id.rate": -1, "_id.name": 1 } },
+  ]);
+  return rows.map((row) => ({
+    currency: row._id.currency,
+    name: row._id.name,
+    rate: row._id.rate,
+    amount: round(row.amount),
   }));
 }
 

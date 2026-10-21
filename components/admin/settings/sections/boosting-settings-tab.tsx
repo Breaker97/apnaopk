@@ -487,7 +487,7 @@ function PageBuilderLink(props: { page?: string; children: ReactNode }) {
       href={
         props.page
           ? `/admin/online-store/customize?page=${encodeURIComponent(props.page)}`
-          : "/admin/online-store/customize"
+          : "/admin/online-store/customize?page=home"
       }
       className="text-primary font-medium hover:underline"
     >

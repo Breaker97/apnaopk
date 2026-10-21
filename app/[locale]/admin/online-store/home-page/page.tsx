@@ -11,5 +11,5 @@ interface PageProps {
  */
 export default async function OnlineStoreHomePage({ params }: PageProps) {
   const { locale } = await params;
-  redirect(await localeHref(locale, "/admin/online-store/customize"));
+  redirect(await localeHref(locale, "/admin/online-store/customize?page=home"));
 }

@@ -1,3 +1,5 @@
+import { readableForegroundColor } from "@/lib/theme-colors/contrast";
+import { themeColorInk } from "@/lib/theme-colors/theme-refs";
 import type { CSSProperties } from "react";
 import {
   backgroundAccentColor,
@@ -102,7 +104,7 @@ export type SurfaceTone = ColorTone;
 
 /** The ink a painted surface reads in, by tone — the default schemes' text. */
 export const SURFACE_INK: Record<SurfaceTone, string> = {
-  light: "#111827",
+  light: "#1a1a1a",
   dark: "#ffffff",
 };
 
@@ -128,8 +130,13 @@ export function surfaceInkCss(
   foreground?: HeaderFill,
 ): CSSProperties {
   if (foreground && hasBackground(foreground)) return fillColorCss(foreground);
+  // A theme colour's ink is the theme's own pair for it — readable in
+  // either mode, and live while the theme is being edited.
+  const themeInk =
+    background.type === "solid" ? themeColorInk(background.color) : undefined;
+  if (themeInk) return { color: themeInk };
   const tone = surfaceTone(background);
-  return tone ? { color: SURFACE_INK[tone] } : {};
+  return tone ? { color: readableForegroundColor(backgroundAccentColor(background) ?? "") } : {};
 }
 
 /**
@@ -140,6 +147,11 @@ export function surfaceInkCss(
  */
 export function rowSurfaceCss(row: HeaderLayoutRow): CSSProperties {
   const ink = surfaceInkCss(row.background, row.foreground);
+  // A row painted a THEME colour: its panels keep the theme's own tokens,
+  // which already match it; only the ink is the row's to set.
+  if (row.background.type === "solid" && themeColorInk(row.background.color)) {
+    return ink;
+  }
   const tone = surfaceTone(row.background);
   if (!tone || !ink.color) return ink;
   const paint = backgroundAccentColor(row.background);

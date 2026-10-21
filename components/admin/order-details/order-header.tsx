@@ -93,6 +93,7 @@ import {
 import { getPendingPaymentLock } from "@/lib/orders/pending-payment-lock";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { OpenReturnDialog } from "@/components/admin/returns/open-return-dialog";
+import { PrintInvoiceButton, useOrderPrint } from "@/components/invoice-templates/print";
 
 /**
  * Every state an override may move an order to.
@@ -268,6 +269,8 @@ export function OrderHeader({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [isDownloadingShippingLabel, setIsDownloadingShippingLabel] = useState(false);
+  // Invoice templates (Phase 6): Print invoice and the sticker, only with a default.
+  const templatePrint = useOrderPrint({ base: "/api/admin", orderId: String(order._id) });
 
   // Re-read after this component mutates a return (approve/receive/refund).
   // The initial list arrives as a prop from the server, so this only runs in
@@ -641,6 +644,7 @@ export function OrderHeader({
         trackingNumber:
           trackingNumber.trim() || order.trackingNumber || order.orderNumber,
       });
+      if (templatePrint.defaults?.sticker && (await templatePrint.printSticker())) return;
       const response = await fetch(
         `/api/admin/orders/${order._id}/shipping-label`,
       );
@@ -1505,6 +1509,7 @@ export function OrderHeader({
             <Printer className="mr-2 h-4 w-4" />
             {t("orderDetails.print")}
           </Button>
+          <PrintInvoiceButton print={templatePrint} onLegacyPrint={handlePrint} />
           <Button
             variant="outline"
             size="sm"
@@ -1546,10 +1551,10 @@ export function OrderHeader({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => void printShippingLabelDirect()}
-                  title={t("orderDetails.printThermalLabelHint")}
+                  title={templatePrint.stickerLabel ? undefined : t("orderDetails.printThermalLabelHint")}
                 >
                   <Printer className="h-4 w-4" />
-                  {t("orderDetails.printThermalLabel")}
+                  {templatePrint.stickerLabel ?? t("orderDetails.printThermalLabel")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

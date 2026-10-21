@@ -108,7 +108,8 @@ const nextConfig: NextConfig = {
   // runtime — and marking them external only moved the problem, since the
   // build then depended on the host's file tracer copying the right tree.
   // `lib/sanitize.ts` now uses `sanitize-html`: pure JavaScript, no DOM, no
-  // disk reads, so it bundles like any other module.
+  // disk reads, so it bundles like any other module. jsdom remains only as a
+  // devDependency, for the tests that ask for a DOM environment.
   // Skip the tsc pass inside `next build`. On a 373k-LOC codebase the type
   // check needs more heap than Node's default ~4GB cap, which is what made
   // buyer builds die with "JavaScript heap out of memory" even on big
@@ -173,6 +174,22 @@ const nextConfig: NextConfig = {
     // The invoice PDF registers Inter from disk (lib/orders/invoice-pdf.tsx);
     // any route that emails or serves an invoice needs the files traced.
     "/**": ["./public/fonts/inter/*.ttf"],
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/array/:path*",
+        destination: "https://us-assets.i.posthog.com/array/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+    ];
   },
   async headers() {
     return [
@@ -260,7 +277,8 @@ const nextConfig: NextConfig = {
     // Storage keys embed a timestamp and random suffix and are never reused,
     // so a stored image can never change under a URL: there is no reason to
     // re-optimize for a year. Persist .next/cache across deploys (a volume on
-    // Coolify/Dokploy) to get the full benefit — see docs/STORAGE_SETUP.md.
+    // Coolify/Dokploy) to get the full benefit — see
+    // https://storify.neurolightstudio.com/docs#deploy-dokploy.
     minimumCacheTTL: 31536000,
     // Those files are capped at IMAGE_CACHE_DISK_MB (unset 1024), the least
     // recently used going first. Next's own cap is half the free disk, and

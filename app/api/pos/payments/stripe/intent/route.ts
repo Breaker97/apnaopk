@@ -16,6 +16,9 @@ import {
 import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import { getEnabledPOSPaymentMethods } from "@/lib/pos/payment";
 import { calculatePOSOrderTotals } from "@/lib/pos/order-totals";
+import { quantizeToCurrency } from "@/lib/intl/money";
+import { resolvePosOperator } from "@/lib/pos/operator";
+import { posTaxRates, resolvePOSTaxExemption } from "@/lib/pos/sale-tax";
 import { assertPosDiscountAllowed } from "@/lib/pos/pos-discount-guard";
 
 const POSOrderItemSchema = z.object({
@@ -40,6 +43,16 @@ const POSOrderItemSchema = z.object({
 
 const POSStripeIntentBodySchema = z.object({
   items: z.array(POSOrderItemSchema).min(1),
+  /**
+   * What the card pays: the rest of a sale whose other tenders (cash, credit)
+   * the till has already taken. Absent: the whole sale. Never more than the
+   * server's own total; the order route matches the charge to its tender.
+   */
+  amount: z.number().positive().optional(),
+  /** Sold without tax — the same input the order route takes. */
+  taxExempt: z
+    .object({ reason: z.string().max(200), reference: z.string().max(120).optional() })
+    .optional(),
   customerId: z.string().optional(),
   posLocationId: z.string().optional(),
   discount: z
@@ -73,10 +86,11 @@ export const POST = withApi(
       throw new AuthorizationError();
     }
 
+    const operator = await resolvePosOperator(session.user, request.cookies);
     const body = await validateBody(request, POSStripeIntentBodySchema);
     let items = body.items;
     // Before the card is charged, not only when the order is written.
-    await assertPosDiscountAllowed(session.user, {
+    await assertPosDiscountAllowed(operator, {
       items,
       discount: body.discount,
     });
@@ -89,8 +103,9 @@ export const POST = withApi(
       new Set(items.map((item) => item.productId).filter(Boolean)),
     );
     const catalogProducts = await Product.find({ _id: { $in: productIds } })
-      .select("_id price vendorId variants")
+      .select("_id price vendorId variants taxRate taxClass category chargeTax")
       .lean();
+    const taxRateOf = await posTaxRates(catalogProducts);
     const productById = new Map(
       catalogProducts.map((product) => [String(product._id), product]),
     );
@@ -138,6 +153,7 @@ export const POST = withApi(
         ...item,
         price,
         ...(vendorScopeId ? { vendorId: vendorScopeId } : {}),
+        taxRate: taxRateOf(item.productId),
       };
     });
 
@@ -150,21 +166,32 @@ export const POST = withApi(
       throw new ValidationError("Stripe is not configured");
     }
 
+    // Priced exactly as the order route will price the sale it pays for.
+    const taxExemption = await resolvePOSTaxExemption(body.taxExempt, operator);
     const { total, subtotal, tax, totalDiscount } = calculatePOSOrderTotals({
       items,
       discount: body.discount,
       taxRate: settings.orders?.taxRate ?? 0,
+      pricesIncludeTax: settings.pos?.checkout?.pricesIncludeTax === true,
+      taxExempt: Boolean(taxExemption),
       currency: settings.general?.defaultCurrency || "USD",
     });
     if (total <= 0) {
       throw new ValidationError("Order total must be greater than zero");
+    }
+    const amount =
+      body.amount === undefined
+        ? total
+        : quantizeToCurrency(body.amount, settings.general?.defaultCurrency || "USD");
+    if (amount > total) {
+      throw new ValidationError("The card cannot pay more than the sale");
     }
 
     const currency = (settings.general?.defaultCurrency || "USD").toLowerCase();
     const paymentIntent = await getStripeForSecretKey(
       stripeCredentials.secretKey,
     ).paymentIntents.create({
-      amount: toStripeAmount(total, currency),
+      amount: toStripeAmount(amount, currency),
       currency,
       payment_method_types: ["card"],
       // Read back by POST /api/pos/orders (`posStripeIntentProblem`): the
@@ -172,7 +199,7 @@ export const POST = withApi(
       // opened this intent.
       metadata: {
         channel: "pos",
-        staffId: session.user.id,
+        staffId: operator.id,
         vendorId: vendorScopeId || "",
         customerId: body.customerId || "",
         posLocationId: body.posLocationId || "",
@@ -180,6 +207,7 @@ export const POST = withApi(
         tax: String(tax),
         discount: String(totalDiscount),
         total: String(total),
+        amount: String(amount),
       },
     });
 

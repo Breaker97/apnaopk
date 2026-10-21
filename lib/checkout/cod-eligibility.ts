@@ -26,17 +26,10 @@ export function assertCashOnDeliveryAllowed(params: {
   if (settings?.enabled === false) {
     throw new ValidationError("Cash on Delivery is disabled");
   }
-  // Digital deliverables release off the order itself, not off a courier
-  // hand-over, so any digital line on a COD order would be handed over before
-  // a single unit of cash changes hands — on a downloads-only order the money
-  // never has a moment to be collected at all, and on a mixed order the
-  // shopper can keep the files and refuse the parcel. Checkout keeps COD off
-  // the screen for these carts; this is the backstop.
-  if (params.hasDigitalItems) {
-    throw new ValidationError(
-      "Cash on Delivery is not available for orders that include digital items",
-    );
-  }
+  // Digital lines are allowed on COD: their downloads unlock only once the
+  // order is marked paid (`isOrderEntitledToDownloads`), so no file is handed
+  // over before the cash is collected. `hasDigitalItems` stays on the
+  // signature for the callers that already pass it.
   // A pre-order commits the seller's stock at reservation time, and its
   // deposit/pay-later maths assume money moves NOW — COD collects only at a
   // door weeks away, so a deposit pre-order on COD would reserve units having

@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useTheme } from "@/providers/theme-provider";
+import { opaqueHex, composite, parseColor } from "@/lib/theme-colors/color";
+import { readableForegroundColor, diagnoseContrast } from "@/lib/theme-colors/contrast";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -166,6 +169,7 @@ const TYPOGRAPHY_ROWS: { key: ProductCardTypographyKey; label: string }[] = [
   { key: "brand", label: "Brand Text" },
   { key: "seller", label: "Seller Text" },
   { key: "product", label: "Product Text" },
+  { key: "variant", label: "Variant Name Text" },
   { key: "category", label: "Category Text" },
   { key: "price", label: "Price Text" },
   { key: "discounted", label: "Discounted Price Text" },
@@ -219,8 +223,11 @@ export function ProductCardBuilder({
     attributes: Record<string, string>;
   };
 }) {
+  const { resolvedTheme } = useTheme();
   const t = useTranslations();
   const tSafe = createTSafe(t);
+  const percentOffLabel = (percent: number) =>
+    tSafe("product.percentOff", "{percent}% OFF", { percent });
 
   const [config, setConfig] = useState<ProductCardConfig>(() =>
     getDefaultProductCardConfig(),
@@ -323,8 +330,30 @@ export function ProductCardBuilder({
 
   // What every EMPTY field renders as, so each control shows the value in
   // effect — a hex, a weight, a size — instead of a blank swatch or "Auto".
-  const fallbacks = PRODUCT_CARD_COLOR_FALLBACKS;
+  const prefix=resolvedTheme === "dark" ? "d" : "l";
+  const themeColor=(role:string,fallback:string) => storeSurface?.vars[`--store-${prefix}-${role}`] || fallback;
+  const fillTokens:Record<string,string>={
+    "var(--primary)":themeColor("primary","#2065d1"),
+    "var(--foreground)":themeColor("text","#212b36"),
+    "var(--muted-foreground)":themeColor("text-muted","#637381"),
+    "var(--border)":themeColor("border","#ebebeb"),
+  };
+  const resolveLocal=(value:string) => fillTokens[value] ?? opaqueHex(value);
+  const fallbacks = {
+    ...PRODUCT_CARD_COLOR_FALLBACKS,
+    cardBackground:themeColor("surface","#ffffff"),cardBorder:themeColor("border","#ebebeb"),
+    discountChipBackground:themeColor("sale-surface","#fbe5e5"),discountChipColor:themeColor("on-sale-surface","#1a1a1a"),
+    ratingColor:themeColor("rating","#a86500"),cartBackground:themeColor("text","#212b36"),cartBorder:themeColor("border","#ebebeb"),
+  };
   const typographyDefaults = productCardTypographyDefaults(config.style);
+  for (const key of ["brand","seller","product"] as const) typographyDefaults[key].color=themeColor("text",typographyDefaults[key].color);
+  typographyDefaults.price.color=config.style.pricePill ? themeColor("sale-text",typographyDefaults.price.color) : themeColor("text",typographyDefaults.price.color);
+  for (const key of ["category","discounted"] as const) typographyDefaults[key].color=themeColor("text-muted",typographyDefaults[key].color);
+  const cartFill=resolveLocal(config.style.cartBackground || (config.style.cartVariant === "outline" ? fallbacks.cardBackground : fallbacks.cartBackground));
+  const paintedCart=cartFill ? composite(config.style.cartBackground && !fillTokens[config.style.cartBackground] ? config.style.cartBackground : cartFill,fallbacks.cardBackground) : null;
+  typographyDefaults.cart.color=config.style.cartVariant === "outline" && !config.style.cartBackground ? themeColor("text","#212b36") : paintedCart ? readableForegroundColor(paintedCart) : typographyDefaults.cart.color;
+  const cartInk=config.style.typography.cart?.color ? resolveLocal(config.style.typography.cart.color) : typographyDefaults.cart.color;
+  const cartDiagnostic=diagnoseContrast(!config.style.typography.cart?.color && (parseColor(config.style.cartBackground)?.a ?? 1) < 1 ? "" : cartInk ?? "",paintedCart ?? "");
   const colorTokens = PRODUCT_CARD_COLOR_TOKENS.map((token) => ({
     ...token,
     label: tSafe(`admin.productCardStudio.colorTokens.${token.key}`, token.label),
@@ -379,48 +408,83 @@ export function ProductCardBuilder({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
-  const findGroupIndex = (id: string) =>
-    groups.findIndex(
+  // A drag works on a local copy and commits ONCE, on drop, as the product
+  // page's editor does (store-pages/product-main-editor.tsx). Committing on
+  // every cross-group hover re-rendered the card preview beside the list,
+  // which moved the rows under the pointer and fired the next hover — a
+  // ping-pong React stopped as "Maximum update depth exceeded" (#185).
+  const [dragGroups, setDragGroups] = useState<ProductCardGroup[] | null>(null);
+  const shownGroups = dragGroups ?? groups;
+  // One cross-group hop per frame: a hop reflows both lists, and the
+  // collision check that follows must see the settled layout.
+  const hopPending = useRef(false);
+
+  const groupIndexIn = (list: ProductCardGroup[], id: string) =>
+    list.findIndex(
       (group) => group.id === id || group.items.some((item) => item.key === id),
     );
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    if (!over) return;
-    const from = findGroupIndex(String(active.id));
-    const to = findGroupIndex(String(over.id));
+    if (!over || hopPending.current) return;
+    const current = dragGroups ?? groups;
+    const from = groupIndexIn(current, String(active.id));
+    const to = groupIndexIn(current, String(over.id));
     if (from < 0 || to < 0 || from === to) return;
 
-    const next = groups.map((group) => ({ ...group, items: [...group.items] }));
+    const next = current.map((group) => ({ ...group, items: [...group.items] }));
     const fromItems = next[from].items;
     const itemIndex = fromItems.findIndex((item) => item.key === active.id);
     if (itemIndex < 0) return;
     const [moved] = fromItems.splice(itemIndex, 1);
     const overIndex = next[to].items.findIndex((item) => item.key === over.id);
+    // Hovering the group itself (its empty space, or an empty group) drops at
+    // its end; hovering a row lands before it, or after it once the dragged
+    // row's middle is past the row's middle.
+    const activeRect = active.rect.current.translated;
+    const below =
+      overIndex >= 0 &&
+      activeRect != null &&
+      activeRect.top + activeRect.height / 2 > over.rect.top + over.rect.height / 2;
     next[to].items.splice(
-      overIndex < 0 ? next[to].items.length : overIndex,
+      overIndex < 0 ? next[to].items.length : overIndex + (below ? 1 : 0),
       0,
       moved,
     );
-    commitGroups(next);
+    hopPending.current = true;
+    requestAnimationFrame(() => {
+      hopPending.current = false;
+    });
+    setDragGroups(next);
+  };
+
+  const endDrag = () => {
+    hopPending.current = false;
+    setDragGroups(null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const from = findGroupIndex(String(active.id));
-    const to = findGroupIndex(String(over.id));
-    if (from < 0 || from !== to) return; // cross-group moves happen in onDragOver
-    const items = groups[from].items;
-    const oldIndex = items.findIndex((item) => item.key === active.id);
-    const newIndex = items.findIndex((item) => item.key === over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-    const next = groups.map((group, index) =>
-      index === from
-        ? { ...group, items: arrayMove(items, oldIndex, newIndex) }
-        : group,
-    );
-    commitGroups(next);
+    const current = dragGroups ?? groups;
+    endDrag();
+    let next = current;
+    if (over && active.id !== over.id) {
+      const from = groupIndexIn(current, String(active.id));
+      const to = groupIndexIn(current, String(over.id));
+      if (from >= 0 && from === to) {
+        const items = current[from].items;
+        const oldIndex = items.findIndex((item) => item.key === active.id);
+        const newIndex = items.findIndex((item) => item.key === over.id);
+        if (oldIndex >= 0 && newIndex >= 0) {
+          next = current.map((group, index) =>
+            index === from
+              ? { ...group, items: arrayMove(items, oldIndex, newIndex) }
+              : group,
+          );
+        }
+      }
+    }
+    if (next !== groups) commitGroups(next);
   };
 
   const patchItem = (key: ProductCardElement, on: boolean) => {
@@ -454,7 +518,7 @@ export function ProductCardBuilder({
       case "discountChipOnImage":
         return (
           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
-            10% OFF
+            {percentOffLabel(10)}
           </span>
         );
       case "itemSold":
@@ -573,6 +637,7 @@ export function ProductCardBuilder({
               actionLabels={previewActionLabels}
               hasOptions={previewHasOptions}
               chooseOptionsLabel={tSafe("product.chooseOptions", "Choose options")}
+              percentOffLabel={percentOffLabel}
               className={cn("max-w-full", STOREFRONT_CARD_WIDTH)}
             />
           </div>
@@ -616,11 +681,13 @@ export function ProductCardBuilder({
                 id="product-card-order"
                 sensors={sensors}
                 collisionDetection={closestCorners}
+                onDragStart={() => setDragGroups(groups)}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
+                onDragCancel={endDrag}
               >
                 <div className="space-y-4">
-                  {groups.map((group, index) => (
+                  {shownGroups.map((group, index) => (
                     <OrderGroup
                       key={group.id}
                       group={group}
@@ -1282,6 +1349,7 @@ export function ProductCardBuilder({
                   tokens={colorTokens}
                   onChange={(cartBackground) => patchStyle({ cartBackground })}
                 />
+                {cartDiagnostic.passes !== true ? <p className="text-xs text-status-on-warning">{cartDiagnostic.ratio === null ? tSafe("admin.themeEditor.cannotVerifyColor","Cannot verify this custom color expression. Check the preview in both modes.") : `${cartDiagnostic.ratio.toFixed(2)}:1 / 4.5:1 · ${tSafe("admin.themeEditor.contrastLow","Low")}`}</p> : null}
                 <ColorRow
                   label={tSafe(
                     "admin.productCardStudio.styleRows.cartBorder",
@@ -1433,6 +1501,7 @@ export function ProductCardBuilder({
                     config={PRODUCT_CARD_TEMPLATES[id]}
                     outOfStock={false}
                     actionLabels={previewActionLabels}
+                    percentOffLabel={percentOffLabel}
                     className="pointer-events-none w-full"
                   />
                 </button>

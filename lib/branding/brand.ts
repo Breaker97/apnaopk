@@ -12,10 +12,13 @@ import { normalizeColorToHex } from "@/lib/site-config/appearance-colors";
 /**
  * The store's brand, as one object.
  *
- * Brand = who the store is (logo set, palette, default appearance). It is
- * theme-agnostic: switching storefront themes never touches it, and every
- * theme consumes it through the token chain (docs/THEME_ENGINE.md, "Design
- * decisions").
+ * Brand = who the store is (logo set, default appearance). It is
+ * theme-agnostic: switching storefront themes never touches it. Its COLOURS
+ * are each theme's own now (colour schema 4, docs/THEME_ENGINE.md "Design
+ * decisions"): `colors` here is the stored mirror of the live theme's key
+ * colours — and, for a theme still on schema 3, the old store-wide brand it
+ * follows. A reader that paints with the live theme's colours (dashboards,
+ * emails, mobile apps) asks `liveKeyColors()` instead, which cannot lag.
  *
  * The values are STILL STORED where their consumers have always read them —
  * assets under `general.*`, colors and the default mode under `appearance.*`.

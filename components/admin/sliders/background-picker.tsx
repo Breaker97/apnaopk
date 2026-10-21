@@ -22,6 +22,12 @@ import { uploadMediaAsset } from "@/components/ai-authoring/upload-image";
 import type { SlideBackground } from "@/lib/sliders/types";
 import { ColorPickerPanel } from "./color-picker";
 import { DEFAULT_GRADIENT, GradientPickerPanel } from "./gradient-picker";
+import {
+  ThemeColorSwatches,
+  useThemeColorChoices,
+} from "@/components/admin/theme-colors-context";
+import type { TSafe } from "@/components/admin/online-store/t-safe";
+import { themeColorRef } from "@/lib/theme-colors/theme-refs";
 
 /**
  * The background editor for one slide (the design's Frames 527/575/604):
@@ -41,7 +47,10 @@ export function BackgroundPicker({
   onChange,
   labels,
   modes = MODES,
+  tSafe,
 }: {
+  /** Copy for the theme-colour row, shown where the surface offers one. */
+  tSafe?: TSafe;
   value: SlideBackground;
   onChange: (background: SlideBackground) => void;
   labels: {
@@ -83,6 +92,7 @@ export function BackgroundPicker({
    */
   modes?: readonly SlideBackground["type"][];
 }) {
+  const themeChoices = useThemeColorChoices();
   const [uploading, setUploading] = useState<"image" | "video" | null>(null);
   const [library, setLibrary] = useState<"image" | "video" | "poster" | null>(null);
   const [showTint, setShowTint] = useState(false);
@@ -323,10 +333,25 @@ export function BackgroundPicker({
       </div>
 
       {value.type === "solid" ? (
-        <ColorPickerPanel
-          value={value.color ?? "#f1f1f1"}
-          onChange={(hex) => onChange({ ...value, type: "solid", color: hex })}
-        />
+        <>
+          {themeChoices && tSafe ? (
+            <ThemeColorSwatches
+              value={value.color}
+              onPick={(css) => onChange({ ...value, type: "solid", color: css })}
+              tSafe={tSafe}
+            />
+          ) : null}
+          <ColorPickerPanel
+            // A theme reference shows the colour it paints; dragging from
+            // there makes it a custom colour of the merchant's own.
+            value={
+              (themeChoices && themeColorRef(value.color)
+                ? themeChoices.swatches[themeColorRef(value.color)!.key]
+                : value.color) ?? "#f1f1f1"
+            }
+            onChange={(hex) => onChange({ ...value, type: "solid", color: hex })}
+          />
+        </>
       ) : null}
 
       {value.type === "gradient" ? (

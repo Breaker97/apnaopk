@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { TagInput } from "@/components/ui/tag-input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -82,6 +83,12 @@ import {
   DashboardStatsGrid,
   DashboardStatsGridSkeleton,
 } from "@/components/admin/dashboard-stat-card";
+import { inkOn } from "@/lib/theme-colors/theme-refs";
+import {
+  ThemeColorsProvider,
+  themePreviewStyle,
+  type ThemeColorChoices,
+} from "@/components/admin/theme-colors-context";
 
 type ConversationSummary = {
   id: string;
@@ -241,7 +248,14 @@ async function* readStreamEvents(
   if (last) yield last;
 }
 
-export function AISalesAgentAdmin({ locale }: { locale: string }) {
+export function AISalesAgentAdmin({
+  locale,
+  themeColors,
+}: {
+  locale: string;
+  /** The active theme's colours, so the widget can follow the theme. */
+  themeColors?: ThemeColorChoices;
+}) {
   const { confirm } = useConfirmation();
   const t = useTranslations("aiSalesAgentAdmin");
   // The widget preview shows real product prices, so it formats them exactly as
@@ -677,7 +691,8 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <ThemeColorsProvider value={themeColors}>
+    <div className="space-y-6" style={themePreviewStyle(themeColors ?? null)}>
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
@@ -1310,18 +1325,13 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                             update("faq", next);
                           }}
                         />
-                        <Input
+                        <TagInput
                           placeholder={t("behavior.faq.tagsPlaceholder")}
-                          value={(entry.tags || []).join(", ")}
-                          onChange={(event) => {
+                          aria-label={t("behavior.faq.tagsPlaceholder")}
+                          value={entry.tags || []}
+                          onValueChange={(tags) => {
                             const next = [...(settings.faq || [])];
-                            next[index] = {
-                              ...next[index],
-                              tags: event.target.value
-                                .split(",")
-                                .map((tag) => tag.trim())
-                                .filter(Boolean),
-                            };
+                            next[index] = { ...next[index], tags };
                             update("faq", next);
                           }}
                         />
@@ -1464,9 +1474,10 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                         className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-muted/40"
                       >
                         <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
                           style={{
                             background: `linear-gradient(135deg, ${settings.widget.primaryColor}, ${settings.widget.accentColor})`,
+                            color: inkOn(settings.widget.primaryColor),
                           }}
                         >
                           <Sparkles className="h-4 w-4" />
@@ -1599,9 +1610,10 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                 >
                   <div className="relative px-4 pt-4">
                     <div
-                      className="flex h-12 items-center justify-between rounded-full px-5 text-white"
+                      className="flex h-12 items-center justify-between rounded-full px-5"
                       style={{
                         background: `linear-gradient(135deg, ${settings.widget.primaryColor}, ${settings.widget.accentColor})`,
+                        color: inkOn(settings.widget.primaryColor),
                       }}
                     >
                       <span className="text-sm font-semibold tracking-wide">
@@ -1684,9 +1696,10 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                         type="button"
                         onClick={sendTest}
                         disabled={testing || !testMessage.trim()}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
                         style={{
                           backgroundColor: settings.widget.primaryColor,
+                          color: inkOn(settings.widget.primaryColor),
                         }}
                       >
                         {testing ? (
@@ -1808,15 +1821,14 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                           <div
                             className={cn(
                               "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm",
-                              isUser
-                                ? "text-white"
-                                : "bg-background text-foreground",
+                              isUser ? "" : "bg-background text-foreground",
                             )}
                             style={
                               isUser
                                 ? {
                                     backgroundColor:
                                       settings.widget.primaryColor,
+                                    color: inkOn(settings.widget.primaryColor),
                                   }
                                 : undefined
                             }
@@ -1832,7 +1844,7 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
                               className={cn(
                                 "mt-1 text-[10px]",
                                 isUser
-                                  ? "text-white/70"
+                                  ? "opacity-70"
                                   : "text-muted-foreground",
                               )}
                             >
@@ -1900,5 +1912,6 @@ export function AISalesAgentAdmin({ locale }: { locale: string }) {
         </SheetContent>
       </Sheet>
     </div>
+    </ThemeColorsProvider>
   );
 }

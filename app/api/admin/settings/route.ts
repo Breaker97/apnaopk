@@ -1,3 +1,9 @@
+import { Settings } from "@/models/settings.model";
+import { settingsSavePermissions } from "@/lib/settings/sensitive-settings";
+import { teamHasAny } from "@/lib/access/team-permissions";
+import { AuthorizationError, ConflictError } from "@/lib/api/errors";
+import { brandWriteGuard, normalizeBrandPatch } from "@/lib/theme-colors/settings-write";
+import { pickBrand } from "@/lib/theme-colors/brand";
 import { balanceChargeNoticeHoursError } from "@/lib/orders/preorder-gating";
 import { ValidationError } from "@/lib/api/errors";
 import { connectDB } from "@/lib/db";
@@ -59,6 +65,13 @@ import {
 } from "@/lib/cache-invalidation";
 import { ORDER_PREFIX_PATTERN } from "@/lib/orders/order-settings";
 import {
+  isTaxConfigured,
+  normalizeTaxSettings,
+  storeTaxRateAt,
+  taxSettingsProblem,
+  type StoredTaxSettings,
+} from "@/lib/tax/tax-settings";
+import {
   MAX_RETURN_WINDOW_DAYS,
   MIN_RETURN_WINDOW_DAYS,
   RETURN_SHIPPING_REFUND_MODES,
@@ -110,6 +123,10 @@ import {
 } from "@/lib/customers/loyalty";
 import { validateSmsSettings } from "@/lib/sms/sms-settings";
 import { validateMobileAppSettings } from "@/lib/settings/mobile-app";
+import {
+  MAX_OFFLINE_SESSION_HOURS,
+  MIN_OFFLINE_SESSION_HOURS,
+} from "@/lib/pos/offline-session";
 
 
 function toPlainRecord(value: unknown): Record<string, unknown> {
@@ -334,6 +351,51 @@ function validateBoostingSettings(data: Record<string, unknown>) {
         `${key} must be a whole number between ${min} and ${max}`,
       );
     }
+  }
+}
+
+/**
+ * Bounds for the POS section.
+ *
+ * `offline.sessionHours` decides how long a register that cannot reach the
+ * server keeps selling — and keeps looking like a working till on a device
+ * that has walked out of the shop. The settings save uses `findOneAndUpdate`,
+ * which skips the schema's own bounds, so the value is refused here. The
+ * limits are the ones the register clamps to on read.
+ */
+function validatePosSettings(data: Record<string, unknown>) {
+  if (Object.prototype.hasOwnProperty.call(data, "checkout")) {
+    const checkout = data.checkout;
+    if (!isPlainObject(checkout)) throw new ValidationError("checkout must be an object");
+    for (const key of ["allowDeposits", "requireOpenRegister"] as const) {
+      if (
+        Object.prototype.hasOwnProperty.call(checkout, key) &&
+        typeof checkout[key] !== "boolean"
+      ) {
+        throw new ValidationError(`checkout.${key} must be true or false`);
+      }
+    }
+    // Settings → Tax owns the shelf-price switch and writes this copy of it
+    // (`mirrorTaxSettings`); a POS save echoing an older value must not
+    // undo it.
+    delete checkout.pricesIncludeTax;
+  }
+  if (!Object.prototype.hasOwnProperty.call(data, "offline")) return;
+  const offline = data.offline;
+  if (!isPlainObject(offline)) {
+    throw new ValidationError("offline must be an object");
+  }
+  if (!Object.prototype.hasOwnProperty.call(offline, "sessionHours")) return;
+  const value = offline.sessionHours;
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < MIN_OFFLINE_SESSION_HOURS ||
+    value > MAX_OFFLINE_SESSION_HOURS
+  ) {
+    throw new ValidationError(
+      `offline.sessionHours must be a whole number between ${MIN_OFFLINE_SESSION_HOURS} and ${MAX_OFFLINE_SESSION_HOURS}`,
+    );
   }
 }
 
@@ -864,6 +926,53 @@ function validateCarrierSettings(data: Record<string, unknown>) {
   }
 }
 
+/**
+ * Settings → Tax is saved whole: the page's copy is checked, then stored
+ * normalized — the built-in classes first, one region, each class's rates in
+ * start order. `orders.taxRate` and the POS shelf-price switch follow it
+ * before the save (`mirrorTaxSettings`).
+ */
+function validateTaxSettings(data: Record<string, unknown>) {
+  const problem = taxSettingsProblem(data as StoredTaxSettings);
+  if (problem) throw new ValidationError(problem);
+  const tax = normalizeTaxSettings(data as StoredTaxSettings);
+  data.classes = tax.classes;
+  data.regions = tax.regions.map((region) => ({
+    ...region,
+    rates: region.rates.map((entry) => ({
+      ...entry,
+      effectiveFrom: entry.effectiveFrom ? new Date(entry.effectiveFrom) : null,
+    })),
+  }));
+  data.calculation = tax.calculation;
+  data.marketplace = tax.marketplace;
+}
+
+/**
+ * What the rest of the store still reads from the settings Tax replaced: the
+ * store's rate now, and whether the till's shelf prices include tax.
+ */
+function mirrorTaxSettings(settings: Awaited<ReturnType<typeof getSettings>>) {
+  const tax = (settings.toObject() as { tax?: StoredTaxSettings }).tax;
+  settings.set(
+    "orders.taxRate",
+    storeTaxRateAt(tax, Date.now(), Number(settings.orders?.taxRate) || 0),
+  );
+  settings.set(
+    "pos.checkout.pricesIncludeTax",
+    tax?.calculation?.posPricesIncludeTax === true,
+  );
+}
+
+/** `orders.taxRate` as every read sees it: the rate in effect now (`withEffectiveStoreRate`). */
+function syncEffectiveStoreRate(settings: Awaited<ReturnType<typeof getSettings>>) {
+  const tax = (settings.toObject() as { tax?: StoredTaxSettings }).tax;
+  if (!isTaxConfigured(tax)) return;
+  const stored = Number(settings.orders?.taxRate) || 0;
+  const now = storeTaxRateAt(tax, Date.now(), stored);
+  if (now !== stored) settings.set("orders.taxRate", now);
+}
+
 function validateOrderSettings(data: Record<string, unknown>) {
   if (Object.prototype.hasOwnProperty.call(data, "prefix")) {
     if (typeof data.prefix !== "string") {
@@ -878,10 +987,6 @@ function validateOrderSettings(data: Record<string, unknown>) {
     }
   }
 
-  if (Object.prototype.hasOwnProperty.call(data, "taxRate")) {
-    // Tax is stored as a decimal fraction: 10% = 0.10.
-    requireFiniteNumber(data.taxRate, "Tax rate", 0, 1);
-  }
   if (Object.prototype.hasOwnProperty.call(data, "defaultShippingCost")) {
     requireFiniteNumber(data.defaultShippingCost, "Default shipping cost", 0);
   }
@@ -1078,6 +1183,7 @@ function validateOrderSettings(data: Record<string, unknown>) {
       "vendorRate",
       "minWithdrawalAmount",
       "minWithdrawalByCurrency",
+      "autoPayoutDrafts",
     ]);
     for (const key of Object.keys(data.commission)) {
       if (!allowedCommissionKeys.has(key)) {
@@ -1095,6 +1201,12 @@ function validateOrderSettings(data: Record<string, unknown>) {
         "Minimum withdrawal amount",
         0,
       );
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(data.commission, "autoPayoutDrafts") &&
+      typeof data.commission.autoPayoutDrafts !== "boolean"
+    ) {
+      throw new ValidationError("Scheduled payouts must be on or off");
     }
     if (
       Object.prototype.hasOwnProperty.call(data.commission, "minWithdrawalByCurrency")
@@ -1307,7 +1419,7 @@ const SettingsUpdateSchema = z.object({
  */
 export const PUT = withApi(
   { auth: "admin", demo: "block-mutations" },
-  async ({ request, session }) => {
+  async ({ request, session, team }) => {
     // Rate limiting - settings changes are sensitive
     await rateLimitByUser(
       request,
@@ -1324,9 +1436,21 @@ export const PUT = withApi(
       SettingsUpdateSchema,
     );
 
+    // Per section: the store's secrets need `manage_sensitive_settings`; a
+    // section an Online Store, AI agent, boosts or vendors screen saves, that
+    // area's Manage (lib/settings/sensitive-settings.ts).
+    if (team && !team.fullAccess && !teamHasAny(team, settingsSavePermissions(section, data))) {
+      throw new AuthorizationError("Your team role does not include changing these settings.");
+    }
+
     // Atomic upsert rather than find-then-create: two admins saving different
     // sections on a brand-new store must not each mint their own document.
+    const capturedBrandDocument = await Settings.collection.findOne({});
     const settings = await loadSettingsDocument();
+    // The form's copy carries the tax rate in effect now (a scheduled rate
+    // may have started since the last save); the document is brought up to
+    // it before the fingerprints are compared, and stores it with this save.
+    syncEffectiveStoreRate(settings);
 
     // Stale-copy guard: the form vouches for the fingerprints it loaded; a
     // section someone else changed since then is not overwritten unnoticed.
@@ -1347,6 +1471,7 @@ export const PUT = withApi(
       if (section === "general") validateGeneralSettings(sectionData);
       if (section === "boosting") validateBoostingSettings(sectionData);
       if (section === "preorder") validatePreorderSettings(sectionData);
+      if (section === "pos") validatePosSettings(sectionData);
       if (section === "shipping") {
         validateShippingCountrySettings(
           sectionData,
@@ -1356,6 +1481,7 @@ export const PUT = withApi(
         validateCarrierSettings(sectionData);
       }
       if (section === "orders") validateOrderSettings(sectionData);
+      if (section === "tax") validateTaxSettings(sectionData);
       if (section === "security") validateSecuritySettings(sectionData);
       if (section === "email") validateEmailSettings(sectionData);
       if (section === "sms") validateSmsSettings(sectionData);
@@ -1458,6 +1584,9 @@ export const PUT = withApi(
         if (key === "preorder" && isPlainObject(value)) {
           validatePreorderSettings(value);
         }
+        if (key === "pos" && isPlainObject(value)) {
+          validatePosSettings(value);
+        }
         if (key === "boosting" && isPlainObject(value)) {
           validateBoostingSettings(value);
         }
@@ -1471,6 +1600,9 @@ export const PUT = withApi(
         }
         if (key === "orders" && isPlainObject(value)) {
           validateOrderSettings(value);
+        }
+        if (key === "tax" && isPlainObject(value)) {
+          validateTaxSettings(value);
         }
         if (key === "security" && isPlainObject(value)) {
           validateSecuritySettings(value);
@@ -1632,6 +1764,14 @@ export const PUT = withApi(
       settings.set("security.emailVerificationForVendorsSince", undefined);
     }
 
+    if (settings.isModified("tax")) mirrorTaxSettings(settings);
+
+    if (settings.isModified("appearance")) {
+      const patch = normalizeBrandPatch(Object.fromEntries(Object.entries(pickBrand(settings.appearance)).filter(([,value]) => value !== undefined)));
+      for (const [key,value] of Object.entries(patch)) settings.set(`appearance.${key}`,value);
+      settings.$where = { ...settings.$where, ...brandWriteGuard(capturedBrandDocument ?? beforeSettings) };
+    }
+
     // Orders placed before return terms were stored keep the rules they were
     // sold under: the first change after upgrading writes the old rules onto
     // them, before the new ones are saved (see `freezeLegacyReturnTerms`).
@@ -1653,7 +1793,10 @@ export const PUT = withApi(
         );
       });
     }
-    await settings.save();
+    try { await settings.save(); } catch (error) {
+      if (error instanceof Error && error.name === "DocumentNotFoundError") throw new ConflictError("Brand colors changed during this save. Reload before trying again.");
+      throw error;
+    }
 
     // Push a changed default onto the vendors still sitting on the old one.
     // Only when it actually changed: an unrelated Orders save must not restamp

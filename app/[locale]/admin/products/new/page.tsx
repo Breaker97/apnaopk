@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { ProductForm } from "@/components/admin/product-form";
 import { resolveProductFeatures } from "@/lib/products/product-features";
 import { getSettingsLean } from "@/models/settings.model";
+import { taxClassOptions } from "@/lib/tax/tax-settings";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
 
@@ -23,7 +24,8 @@ export default async function NewProductPage({ params }: PageProps) {
 
   // Settings → Products decides which formats, pre-orders and quotes the
   // editor offers; read here so the form is right on its first paint.
-  const productFeatures = resolveProductFeatures(await getSettingsLean());
+  const settings = await getSettingsLean();
+  const productFeatures = resolveProductFeatures(settings);
 
-  return <ProductForm productFeatures={productFeatures} />;
+  return <ProductForm productFeatures={productFeatures} taxClasses={taxClassOptions(settings.tax)} />;
 }

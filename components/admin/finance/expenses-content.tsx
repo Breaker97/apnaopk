@@ -1,5 +1,8 @@
 "use client";
-import { useFinanceRequest, type FinanceOutcome } from "@/hooks/use-finance-request";
+import {
+  useFinanceRequest,
+  type FinanceOutcome,
+} from "@/hooks/use-finance-request";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -129,8 +132,14 @@ export function ExpensesContent({
 
   const [rows, setRows] = useState<ExpenseRow[]>([]);
   const [totals, setTotals] = useState<ListPayload["totals"]>([]);
-  const [outstanding, setOutstanding] = useState<ListPayload["outstanding"]>([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [outstanding, setOutstanding] = useState<ListPayload["outstanding"]>(
+    [],
+  );
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -183,7 +192,10 @@ export function ExpensesContent({
     return () => clearTimeout(timer);
   }, [load]);
 
-  const refresh = useCallback(() => void load(pagination.page), [load, pagination.page]);
+  const refresh = useCallback(
+    () => void load(pagination.page),
+    [load, pagination.page],
+  );
 
   const openCreate = () => {
     setEditing(null);
@@ -225,8 +237,22 @@ export function ExpensesContent({
       });
       if (!ok) return;
       try {
-        const outcome = await apiClient.delete<FinanceOutcome>(`${API}/${row._id}`, { headers: { "if-match": String(row.version ?? 0), "idempotency-key": financeRequest.key(`delete:${row._id}`, row.version) } });
-        financeRequest.completed(outcome, label("finance.expenses.deleted", "Expense deleted"));
+        const outcome = await apiClient.delete<FinanceOutcome>(
+          `${API}/${row._id}`,
+          {
+            headers: {
+              "if-match": String(row.version ?? 0),
+              "idempotency-key": financeRequest.key(
+                `delete:${row._id}`,
+                row.version,
+              ),
+            },
+          },
+        );
+        financeRequest.completed(
+          outcome,
+          label("finance.expenses.deleted", "Expense deleted"),
+        );
         // The last row of the last page leaves that page empty.
         const page =
           rows.length === 1 && pagination.page > 1
@@ -257,14 +283,31 @@ export function ExpensesContent({
       });
       if (!ok) return;
       try {
-        const outcome = await apiClient.delete<FinanceOutcome>(`${API}/${row._id}/settle`, { headers: { "if-match": String(row.version ?? 0), "idempotency-key": financeRequest.key(`undo:${row._id}`, row.version) } });
-        financeRequest.completed(outcome, label("finance.expenses.markedUnpaid", "Marked as not paid"));
+        const outcome = await apiClient.delete<FinanceOutcome>(
+          `${API}/${row._id}/settle`,
+          {
+            headers: {
+              "if-match": String(row.version ?? 0),
+              "idempotency-key": financeRequest.key(
+                `undo:${row._id}`,
+                row.version,
+              ),
+            },
+          },
+        );
+        financeRequest.completed(
+          outcome,
+          label("finance.expenses.markedUnpaid", "Marked as not paid"),
+        );
         refresh();
       } catch (error) {
         toast.error(
           describeApiError(
             error,
-            label("finance.expenses.settleFailed", "Could not record the payment"),
+            label(
+              "finance.expenses.settleFailed",
+              "Could not record the payment",
+            ),
           ),
         );
       }
@@ -280,23 +323,29 @@ export function ExpensesContent({
 
   const paidFromLabel = useCallback(
     (key: string) =>
-      label(`finance.paidFrom.${key}`, {
-        bank: "Bank",
-        cash: "Cash",
-        gateway: "Gateway balance",
-        unpaid: "Not paid yet",
-      }[key] ?? key),
+      label(
+        `finance.paidFrom.${key}`,
+        {
+          bank: "Bank",
+          cash: "Cash",
+          gateway: "Gateway balance",
+          unpaid: "Not paid yet",
+        }[key] ?? key,
+      ),
     [label],
   );
 
   const intervalLabel = useCallback(
     (interval?: string) =>
-      label(`finance.expenses.${interval || "monthly"}`, {
-        weekly: "Every week",
-        monthly: "Every month",
-        quarterly: "Every quarter",
-        yearly: "Every year",
-      }[interval || "monthly"] ?? ""),
+      label(
+        `finance.expenses.${interval || "monthly"}`,
+        {
+          weekly: "Every week",
+          monthly: "Every month",
+          quarterly: "Every quarter",
+          yearly: "Every year",
+        }[interval || "monthly"] ?? "",
+      ),
     [label],
   );
 
@@ -463,7 +512,15 @@ export function ExpensesContent({
         ),
       },
     ],
-    [categoryLabel, label, locale, money, multiVendor, paidFromLabel, scheduleBadge],
+    [
+      categoryLabel,
+      label,
+      locale,
+      money,
+      multiVendor,
+      paidFromLabel,
+      scheduleBadge,
+    ],
   );
 
   const showingOwed = paidFrom === "unpaid" && period === "all";
@@ -488,7 +545,7 @@ export function ExpensesContent({
           <h1 className="text-2xl font-semibold tracking-tight">
             {label("finance.expenses.title", "Expenses")}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
             {label(
               "finance.expenses.subtitle",
               "The costs nothing else in the app can see — rent, salaries, advertising. Everything here was typed in by someone.",
@@ -523,7 +580,9 @@ export function ExpensesContent({
             </span>
             <span className="text-amber-900/80 tabular-nums dark:text-amber-200/80">
               {outstanding
-                .map((row) => `${money(row.amount, row.currency)} (${row.count})`)
+                .map(
+                  (row) => `${money(row.amount, row.currency)} (${row.count})`,
+                )
                 .join(" · ")}
             </span>
           </div>
@@ -617,7 +676,10 @@ export function ExpensesContent({
             ? [
                 {
                   id: "mark-unpaid",
-                  label: label("finance.expenses.markUnpaid", "Mark as not paid"),
+                  label: label(
+                    "finance.expenses.markUnpaid",
+                    "Mark as not paid",
+                  ),
                   icon: <RotateCcw className="h-4 w-4" />,
                   onClick: () => void markUnpaid(row),
                 },

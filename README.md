@@ -8,7 +8,8 @@ AI-powered tools, PWA/web-push notifications, internationalization (17
 languages), and 3D product media.
 
 This document is a complete guide to installing, configuring, running, and
-deploying Storify.
+deploying Storify. The full online documentation, with step-by-step deployment
+chapters, lives at <https://storify.neurolightstudio.com/docs>.
 
 ---
 
@@ -55,17 +56,17 @@ deploying Storify.
 - **Product boosting** — the admin sells a ladder of numbered sponsored
   positions and vendors book one for a range of days at that position's daily
   price; a revenue stream for the store owner. Off by default. See
-  [`docs/PRODUCT_BOOSTING.md`](docs/PRODUCT_BOOSTING.md).
+  [Product Boosting](https://storify.neurolightstudio.com/docs#boosting).
 - **AI tools** — AI assistant, AI sales agent, and content generation
   (OpenAI).
 - **Notifications** — transactional email (SMTP) and web-push (PWA).
 - **Omnichannel messaging** — SSE live chat plus vendor/platform WhatsApp and
   Messenger connections with unified inboxes. See
-  [`docs/OMNICHANNEL_MESSAGING.md`](docs/OMNICHANNEL_MESSAGING.md).
+  [Omnichannel Messaging](https://storify.neurolightstudio.com/docs#omnichannel).
 - **Shopping app API** — a REST API at `/api/mobile/shop/v1` for the store's
   shopping app: catalogue, home page, cart, checkout (cash on delivery and
   Stripe cards), orders, account, push. Off by default. See
-  [`docs/MOBILE_API.md`](docs/MOBILE_API.md).
+  [Mobile apps](https://storify.neurolightstudio.com/docs#mobile-overview).
 - **Internationalization** — 17 languages with RTL support.
 - **3D product media** — `@google/model-viewer` for `.glb`/`.gltf` models.
 
@@ -372,7 +373,8 @@ With the **Email** switch in Settings → Email off, the store sends with these
 alone (`SMTP_USER` and `SMTP_PASS` both set). Switched on, the values saved
 there take precedence and these fill any left blank.
 Provider settings (Gmail, Zoho, cPanel, Brevo, SendGrid, Amazon SES), the test
-email and the retry job are covered in [`docs/EMAIL_SETUP.md`](docs/EMAIL_SETUP.md).
+email and the retry job are covered in
+[Email / SMTP](https://storify.neurolightstudio.com/docs#email).
 
 ### Payment gateways (optional)
 
@@ -445,6 +447,7 @@ IDs are exposed to the browser for client-side tracking scripts.
 | `NEXT_PUBLIC_FACEBOOK_PIXEL_ID` | Facebook (Meta) Pixel ID.                              |
 | `NEXT_PUBLIC_TIKTOK_PIXEL_ID`   | TikTok Pixel ID.                                       |
 | `PLAUSIBLE_API_KEY`             | Plausible API key (server-side; admin analytics dashboard). |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | PostHog project token. Blank sends nothing; rebuild after changing it. |
 
 ---
 
@@ -463,7 +466,7 @@ IDs are exposed to the browser for client-side tracking scripts.
 > database, pass `--allow-real-store` (or set `STORIFY_ALLOW_REAL_STORE=1` for
 > `db:full-reset`).
 
-See `docs/DATABASE_COMMANDS.md` and `docs/SEED_VERIFICATION.md` for more detail.
+See [Database Setup](https://storify.neurolightstudio.com/docs#database) for more detail.
 
 ### Upgrading an existing database
 
@@ -568,6 +571,16 @@ them before going to production.**
 | Staff    | `staff@storify.com`    | `Staff@123`    |
 | Customer | `customer@storify.com` | `Customer@123` |
 
+Each template's showcase seller is created by `pnpm db:seed --template=<id>`
+(`config/demo-credentials.ts` → `DEMO_TEMPLATE_VENDORS`). On the login card these
+replace the `vendor@storify.com` row:
+
+| Template    | Store          | Email                       | Password    |
+| ----------- | -------------- | --------------------------- | ----------- |
+| Electronics | Electronica XR | `electronicaxr@storify.com` | `vendor@12` |
+| Classic     | Veloura        | `veloura@storify.com`       | `vendor@12` |
+| Furniture   | UrbanNest      | `urbannest@storify.com`     | `vendor@12` |
+
 The login page shows these credentials only when the deployment runs with
 `DEMO_MODE=true` (see `.env.example`). On a normal install the card is hidden —
 never enable demo mode on a real store.
@@ -631,7 +644,7 @@ registered in their dashboard, and only dispatches from India.
 
 Automation and tracking sync need `CRON_SECRET` and the two cron entries in
 `vercel.json`. Full setup, webhook verification and troubleshooting:
-[`docs/AUTOMATED_SHIPPING_CARRIERS.md`](docs/AUTOMATED_SHIPPING_CARRIERS.md).
+[Shipping Carriers](https://storify.neurolightstudio.com/docs#shipping-carriers).
 
 ### OpenAI (AI features)
 
@@ -758,13 +771,12 @@ Routes are locale-prefixed (e.g. `/en/admin`, `/ar/admin`).
 | Script                 | Description                                       |
 | ---------------------- | ------------------------------------------------- |
 | `pnpm dev`             | Start the Next.js dev server.                     |
-| `pnpm build`           | Production build (then corrects Turbopack's missing-chunk preloads, see `check:chunks`). |
+| `pnpm build`           | Production build, Node's heap capped at 6 GB (then corrects Turbopack's missing-chunk preloads, see `check:chunks`). |
 | `pnpm start`           | Start the production server (after `build`).      |
 | `pnpm lint`            | Run ESLint.                                       |
 | `pnpm typecheck`       | Run the TypeScript compiler (no emit).            |
-| `pnpm check:chunks`    | After `build`: every page preloads chunks that exist (see UPGRADE.md, Build requirements). |
+| `pnpm check:chunks`    | After `build`: every page preloads chunks that exist. |
 | `pnpm create-admin`    | Create an admin user.                             |
-| `pnpm link-credential` | Link a credential account to a user.              |
 | `pnpm db:seed`         | Seed catalog & settings.                          |
 | `pnpm db:seed:users`   | Seed sample users.                                |
 | `pnpm db:reset`        | Reset the database (destructive).                 |
@@ -789,7 +801,8 @@ Routes are locale-prefixed (e.g. `/en/admin`, `/ar/admin`).
 │   └── api/             # Route handlers (payments, media, webhooks, …)
 ├── components/          # UI and feature components
 ├── config/             # App, branding, i18n, permissions config
-├── docs/                # Internal docs & analysis
+├── contracts/          # Mobile API request/response types
+├── deploy/             # Dockerfile for prebuilt-image deploys
 ├── hooks/              # React hooks
 ├── lib/                # Server/client utilities, integrations
 ├── locales/            # i18n translation JSON (17 languages)
@@ -832,7 +845,7 @@ Routes are locale-prefixed (e.g. `/en/admin`, `/ar/admin`).
 > fixes. Node 24 LTS is recommended; `.nvmrc` pins it for local development.
 
 > **Deploying to Vercel or another serverless platform?** See
-> [docs/DEPLOYMENT_VERCEL.md](docs/DEPLOYMENT_VERCEL.md) — a few settings there
+> [Deploy to Vercel](https://storify.neurolightstudio.com/docs#deploy-vercel) — a few settings there
 > are not optional, and one of them silently disables background jobs if missed.
 
 ---

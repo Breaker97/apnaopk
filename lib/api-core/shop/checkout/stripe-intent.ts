@@ -22,7 +22,7 @@ import {
   admitAppCart,
   appCheckoutIdentity,
   appUserAgent,
-  assertDelivery,
+  assertFulfillmentSelection,
   inShopperWords,
   toCheckoutError,
   toPlaceInput,
@@ -63,7 +63,7 @@ export const stripeIntentRoute = defineRoute({
   reasons: { values: CHECKOUT_REASONS },
   handler: ({ input, session, client, mobileApp, locale }) =>
     withRequestScope(async () => {
-      assertDelivery(input);
+      assertFulfillmentSelection(input);
       const body = toPlaceInput(input, "card", locale);
       const settings = await getSettings();
       const { publishableKey, secretKey } = resolveStripeCredentials(settings.payment?.stripe);
@@ -84,6 +84,7 @@ export const stripeIntentRoute = defineRoute({
             selectedShippingOptionId: body.selectedShippingOptionId,
             vendorShippingSelections: body.vendorShippingSelections,
             fulfillmentMethod: body.fulfillmentMethod,
+            pickupLocationId: body.pickupLocationId,
             phone: body.phone,
             customerNote: body.customerNote,
             customFields: body.customFields,
@@ -130,7 +131,7 @@ export const stripeIntentRoute = defineRoute({
             headers: { "Retry-After": "5" },
           });
         }
-        throw await inShopperWords(toCheckoutError(error), locale);
+        throw await inShopperWords(toCheckoutError(error, input.fulfillmentMethod), locale);
       }
     }),
 });

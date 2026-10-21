@@ -144,7 +144,7 @@ export function CompareTable({
                           className={cn(
                             "size-3.5",
                             star < Math.round(product.rating)
-                              ? "fill-amber-500 text-amber-500"
+                              ? "fill-current text-(--store-rating,#a86500)"
                               : "fill-muted-foreground text-muted-foreground opacity-30",
                           )}
                         />

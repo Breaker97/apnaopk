@@ -53,7 +53,7 @@ export default async function TemplatesGalleryPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-12 lg:py-16">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+        <p className="text-sm font-semibold uppercase tracking-wider text-store-link">
           One engine, many storefronts
         </p>
         <h1 className="mt-2 text-3xl font-bold sm:text-4xl">

@@ -54,7 +54,10 @@ export const PRODUCT_EDITOR_FIELDS = [
   "name", "title", "description", "shortDescription", "price", "comparePrice", "cost", "unitPrice", "unitPriceUnit", "chargeTax", "priceOnRequest", "quoteButtonLabel",
   "sku", "barcode", "barcodeFormat", "barcodeSource", "stock", "inventory", "locationInventory", "images", "media", "digitalAssets", "digitalDelivery", "digitalPreview",
   "category", "brand", "productType", "collectionIds", "tags", "attributes", "options", "variants", "preorder", "seo", "publishing", "returns", "shipping", "status", "featured",
+  "taxClass", "taxRate",
 ] as const;
+/** A tax class key from Settings → Tax: standard, reduced, zero, exempt, or one the store added. */
+const TaxClassKey = z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/);
 export const ProductEditorFields = z.object({
   name: z.string().min(3).max(200), title: z.string().min(3).max(200).optional(),
   description: z.string().min(10).max(10_000), shortDescription: z.string().max(500).optional(),
@@ -75,6 +78,10 @@ export const ProductEditorFields = z.object({
   returns: z.object({ finalSale: z.boolean(), windowDays: z.number().int().min(1).max(365).nullable().optional() }).optional(),
   shipping: z.object({ isPhysicalProduct: z.boolean(), weight: Price.optional(), weightUnit: z.enum(["g", "kg", "lb", "oz"]).optional(), length: Price.optional(), width: Price.optional(), height: Price.optional(), dimensionUnit: z.enum(["cm", "in"]).optional(), countryOfOrigin: z.string().max(2).optional(), hsCode: z.string().max(100).optional(), customsDescription: z.string().max(500).optional() }).optional(),
   status: ProductStatus.optional(), featured: z.boolean().optional(),
+  /** Absent: the category's class or rate. Setting one clears taxRate; null clears it. */
+  taxClass: TaxClassKey.nullable().optional(),
+  /** A custom rate in percent; it takes the place of taxClass, and setting it clears that. */
+  taxRate: z.number().min(0).max(100).nullable().optional(),
 });
 export type ProductEditorFields = z.infer<typeof ProductEditorFields>;
 /** Keyed create, atomic initial inventory; draftId also owns pre-create uploads. */
@@ -103,6 +110,12 @@ export const ProductFormOptions = z.object({
   preorder: z.object({ allowed: z.boolean(), deferredBalanceSupported: z.boolean(), maxLeadDays: z.number(), maxDepositPercent: z.number(), blockedBy: z.string().optional() }),
   limits: z.object({ media: z.number().int(), variants: z.number().int(), digitalAssets: z.number().int(), productsRemaining: z.number().int().optional() }),
   uploads: z.array(UploadPolicy),
+  /** The store's tax classes; built-in ones carry an English name the app may translate by key. */
+  taxClasses: z.array(z.object({
+    key: TaxClassKey, name: z.string(), description: z.string().optional(), builtIn: z.boolean(),
+    /** Percent charged now; absent, the class is charged the standard rate. */
+    rate: z.number().optional(),
+  })).optional(),
 });
 export type ProductFormOptions = z.infer<typeof ProductFormOptions>;
 export const ProductEditorDetail = z.object({

@@ -2,7 +2,13 @@
 
 import { useRouter } from "@/hooks/use-locale-navigation";
 import { useTranslations } from "next-intl";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { cn } from "@/lib/utils";
 import type { PageSwitcher } from "@/lib/storefront/pages/page-switcher";
@@ -34,17 +40,21 @@ export function PageSwitcherSelect({
   const router = useRouter();
   const tSafe = createTSafe(useTranslations());
 
+  // One flat list of the store's pages. Landing pages are reached from the
+  // Pages screen, not from here — only the one being edited is listed, so
+  // the heading can still name it.
+  const options = [
+    ...switcher.templates,
+    ...switcher.landingPages.filter(
+      (option) => option.value === switcher.current,
+    ),
+    ...switcher.globalPages,
+  ];
+
   return (
-    <NativeSelect
-      aria-label={tSafe("admin.storeBuilder.switcher.label", "Page")}
+    <Select
       value={switcher.current}
-      className={cn(
-        variant === "title" &&
-          "h-auto cursor-pointer rounded-none border-0 bg-transparent px-0 py-0 text-lg font-semibold tracking-tight shadow-none transition-colors hover:text-primary focus-visible:ring-0",
-        className,
-      )}
-      onChange={(event) => {
-        const value = event.target.value;
+      onValueChange={(value) => {
         if (value === switcher.current) return;
         if (value.startsWith("nav:")) {
           router.push(value.slice(4));
@@ -55,36 +65,24 @@ export function PageSwitcherSelect({
         );
       }}
     >
-      <optgroup
-        label={tSafe("admin.storeBuilder.switcher.templates", "Templates")}
+      <SelectTrigger
+        aria-label={tSafe("admin.storeBuilder.switcher.label", "Page")}
+        className={cn(
+          variant === "title"
+            ? "h-auto rounded-none border-0 bg-transparent px-0 py-0 text-lg font-semibold tracking-tight shadow-none transition-colors hover:text-primary focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent data-[size=default]:h-auto"
+            : "rounded-lg border-border/60 bg-card shadow-xs transition-colors hover:bg-muted/40",
+          className,
+        )}
       >
-        {switcher.templates.map((option) => (
-          <option key={option.value} value={option.value}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent position="popper" align="start" className="min-w-56 rounded-lg">
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
             {option.label}
-          </option>
+          </SelectItem>
         ))}
-      </optgroup>
-      {switcher.landingPages.length > 0 ? (
-        <optgroup
-          label={tSafe(
-            "admin.storeBuilder.switcher.landingPages",
-            "Landing pages",
-          )}
-        >
-          {switcher.landingPages.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </optgroup>
-      ) : null}
-      <optgroup label={tSafe("admin.storeBuilder.switcher.global", "Global")}>
-        {switcher.globalPages.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </optgroup>
-    </NativeSelect>
+      </SelectContent>
+    </Select>
   );
 }

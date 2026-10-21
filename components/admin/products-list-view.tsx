@@ -1,3 +1,4 @@
+import type { StaffResourceActions } from "@/lib/access/staff-resource-actions";
 import { Suspense } from "react";
 import {
   Archive,
@@ -29,6 +30,7 @@ interface ProductsListViewProps {
   locale: string;
   area: "admin" | "staff";
   readOnly?: boolean;
+  actionAccess?: StaffResourceActions;
   staffScope?: StaffAccessScope | null;
   isMultiVendor?: boolean;
   searchParams: SearchParams;
@@ -47,6 +49,7 @@ export function ProductsListView({
   locale,
   area,
   readOnly,
+  actionAccess,
   staffScope,
   isMultiVendor = false,
   searchParams,
@@ -70,6 +73,7 @@ export function ProductsListView({
           locale={locale}
           area={area}
           readOnly={readOnly}
+          actionAccess={actionAccess}
           staffScope={staffScope}
           isMultiVendor={isMultiVendor}
           query={query}
@@ -83,6 +87,7 @@ async function ProductsTable({
   locale,
   area,
   readOnly,
+  actionAccess,
   staffScope,
   isMultiVendor,
   query,
@@ -90,6 +95,7 @@ async function ProductsTable({
   locale: string;
   area: "admin" | "staff";
   readOnly?: boolean;
+  actionAccess?: StaffResourceActions;
   staffScope?: StaffAccessScope | null;
   isMultiVendor: boolean;
   query: ReturnType<typeof parsePageQuery<typeof ProductListQuerySchema>>;
@@ -101,6 +107,7 @@ async function ProductsTable({
       locale={locale}
       area={area}
       readOnly={readOnly}
+          actionAccess={actionAccess}
       isMultiVendor={isMultiVendor}
       data={serializeRows(list.items)}
       pagination={{

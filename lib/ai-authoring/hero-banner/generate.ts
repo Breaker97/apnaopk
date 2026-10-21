@@ -1,7 +1,6 @@
-import { toFile } from "openai";
-
 import { fetchSourceImage } from "@/lib/ai-authoring/media";
 import { createAIAuthoringOpenAIClient } from "@/lib/ai-authoring/openai";
+import { aiSourceFile } from "@/lib/ai-authoring/source-image";
 
 import { buildHeroBannerVisualPrompt } from "./prompt";
 import type { HeroBannerBrief, HeroBannerRequest } from "./types";
@@ -10,17 +9,9 @@ type HeroImageResponse = {
   data?: Array<{ b64_json?: string }>;
 };
 
-function sourceExtension(contentType: string): string {
-  if (contentType.includes("jpeg") || contentType.includes("jpg")) return "jpg";
-  if (contentType.includes("webp")) return "webp";
-  return "png";
-}
-
 async function ownedSourceFile(sourceUrl: string) {
-  const { buffer, contentType } = await fetchSourceImage(sourceUrl);
-  return toFile(buffer, `hero-source.${sourceExtension(contentType)}`, {
-    type: contentType,
-  });
+  const { buffer } = await fetchSourceImage(sourceUrl);
+  return aiSourceFile(buffer, "hero-source");
 }
 
 export async function generateHeroBannerVisual(

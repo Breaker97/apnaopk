@@ -104,7 +104,7 @@ interface BrandFormProps {
   /** API collection path for create/fetch/update. Defaults to the admin API. */
   apiBase?: string;
   /** Admin area segment used to build the list/redirect path. Defaults to "admin". */
-  area?: "admin" | "vendor";
+  area?: "admin" | "vendor" | "staff";
 }
 
 export function BrandForm({
@@ -442,9 +442,9 @@ export function BrandForm({
                           aiGenerateAction={
                             <AiStudioImageField
                               entity="brand"
-                              // `area` is already "admin" | "vendor", which is
+                              // Staff use the platform media scope, which is
                               // exactly the scope the studio's endpoints take.
-                              scope={area}
+                              scope={area === "staff" ? "admin" : area}
                               locale={locale}
                               targetField="logo"
                               audience="shopper"

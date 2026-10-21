@@ -70,12 +70,12 @@ function RegisterContent({
         {/* Want to sell? Link - now uses dynamic setting */}
         {isMultiVendor && (
           <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-primary/5 border border-primary/10">
-            <Store className="h-4 w-4 text-primary" />
+            <Store className="h-4 w-4 text-store-link" />
             <span className="text-sm text-muted-foreground">
               {t("auth.wantToSell")}{" "}
               <Link
                 href="/become-vendor"
-                className="text-primary font-medium hover:underline"
+                className="text-store-link font-medium hover:underline"
               >
                 {t("auth.becomeVendor")}
               </Link>

@@ -1,4 +1,11 @@
 import { mongoose } from "@/lib/db";
+import { randomUUID } from "node:crypto";
+import { inventoryWriteContext, withInventoryWrite } from "./finance-context";
+import { runFinanceOperation, finishFinanceOperation } from "@/lib/finance/operations";
+import { FinanceOperation } from "@/models/finance-operation.model";
+import { InventoryMovement } from "@/models/inventory-movement.model";
+import { afterFinanceCommit, financeQuery, financeSession } from "@/lib/finance/transaction";
+import { rejectFinancialTransit } from "./finance-transfers";
 import { InventoryLocation, Product, Transfer } from "@/models";
 import {
   ConflictError,
@@ -560,18 +567,20 @@ async function moveLines(
     try {
       moved = await step(line);
     } catch (err) {
+      if (financeSession()) throw err;
       await rollback();
       throw err;
     }
     if (!moved) {
+      if (financeSession()) throw new ValidationError(failure(line));
       await rollback();
       throw new ValidationError(failure(line));
     }
     done.push(line);
   }
 
-  await refreshStorefrontStock(lines, direction);
-  await markForMetaCatalog(lines.map((line) => line.productId));
+  const refresh = async () => { await refreshStorefrontStock(lines, direction); await markForMetaCatalog(lines.map((line) => line.productId)); };
+  if (!afterFinanceCommit(refresh)) await refresh();
 }
 
 /**
@@ -640,6 +649,21 @@ function stockLine(item: TransferItemRecord, quantity: number): StockLine {
 // ---------------------------------------------------------------------------
 
 type TransferActor = { id: string; name?: string };
+
+async function financialTransferStep<T>(transfer: TransferRecord, actor: TransferActor, phase: "ship" | "receive" | "cancel", fingerprint: unknown, work: () => Promise<T>): Promise<T> {
+  const requestKey = inventoryWriteContext()?.requestKey ?? randomUUID();
+  if (typeof Product.exists !== "function" || !await Product.exists({ _id: { $in: transfer.items.map((item) => item.productId) }, inventoryFinanceGeneration: 1 })) return withInventoryWrite({ reason: "transfer", sourceKind: "transfer", sourceId: String(transfer._id), requestKey, transfer: { id: String(transfer._id), phase, from: transfer.fromLocationId, to: transfer.toLocationId } }, work);
+  const result = await runFinanceOperation({ action: `inventory:transfer:${phase}:${transfer._id}`, actorId: actor.id, requestKey, fingerprint, work: async () => {
+    const data = await withInventoryWrite({ reason: "transfer", sourceKind: "transfer", sourceId: String(transfer._id), actorId: actor.id, requestKey, transfer: { id: String(transfer._id), phase, from: transfer.fromLocationId, to: transfer.toLocationId } }, work);
+    const movementIds = await financeQuery(InventoryMovement.find({ "source.kind": "transfer", "source.id": String(transfer._id) }).select("_id")).lean();
+    const children = await financeQuery(FinanceOperation.find({ action: "inventory:movement", sourceId: { $in: movementIds.map((m) => String(m._id)) } }).select("_id")).lean();
+    return { result: { value: data ?? null, operationIds: children.map((op) => String(op._id)) }, postings: [], sourceId: String(transfer._id) };
+  } });
+  const movements = await InventoryMovement.find({ "source.kind": "transfer", "source.id": String(transfer._id) }).select("_id").lean();
+  const pending = await FinanceOperation.find({ state: "pending", sourceId: { $in: movements.map((m) => String(m._id)) } }).select("_id").lean();
+  if (!financeSession()) for (const op of pending) await finishFinanceOperation(op._id);
+  return (result.data.value && typeof result.data.value === "object" ? { ...result.data.value, bookkeepingState: result.bookkeepingState } : result.data.value) as T;
+}
 
 export function transferActor(user: SessionUser): TransferActor {
   return {
@@ -764,7 +788,8 @@ export async function returnTransferToDraft(
 export async function shipTransfer(
   transfer: TransferRecord,
   actor: TransferActor,
-) {
+): Promise<void> {
+  if (inventoryWriteContext()?.transfer?.phase !== "ship") return financialTransferStep(transfer, actor, "ship", { transferId: String(transfer._id) }, () => shipTransfer(transfer, actor));
   const locked = await lockTransfer(transfer._id, "ready_to_ship");
   try {
     await takeLines(
@@ -789,7 +814,8 @@ export async function shipTransfer(
 export async function cancelTransfer(
   transfer: TransferRecord,
   actor: TransferActor,
-) {
+): Promise<void> {
+  if (inventoryWriteContext()?.transfer?.phase !== "cancel") return financialTransferStep(transfer, actor, "cancel", { transferId: String(transfer._id) }, () => cancelTransfer(transfer, actor));
   const event = transferEvent("cancelled", actor);
 
   if (transfer.status !== "in_transit") {
@@ -847,7 +873,8 @@ export async function receiveTransfer(
   input: TransferReceiptInput[],
   note: string,
   actor: TransferActor,
-) {
+): Promise<{ completed: boolean; bookkeepingState?: "complete" | "pending" }> {
+  if (inventoryWriteContext()?.transfer?.phase !== "receive") return financialTransferStep(transfer, actor, "receive", { transferId: String(transfer._id), input, note }, () => receiveTransfer(transfer, input, note, actor));
   const locked = await lockTransfer(transfer._id, "in_transit");
 
   let plan: ReturnType<typeof planTransferReceipt>;
@@ -922,6 +949,7 @@ export async function receiveTransfer(
 
   const now = new Date();
   const receipt = transferEvent("received", actor, { note, lines: plan.lines });
+  if (financeSession()) await rejectFinancialTransit({ transferId: String(locked._id), fromLocationId: locked.fromLocationId, receiptId: String(receipt._id), actorId: actor.id, lines: plan.lines });
   const events = [receipt];
   if (plan.completes) events.push(transferEvent("completed", actor));
 
@@ -940,7 +968,7 @@ export async function receiveTransfer(
 
   // Best-effort and idempotent (keyed on the receipt): the stock has moved and
   // the receipt is recorded; a ledger hiccup must not report that as a failure.
-  await postTransferWriteOff({
+  const writeOff = () => postTransferWriteOff({
     transferId: locked._id,
     transferNumber: locked.transferNumber,
     receiptId: receipt._id,
@@ -954,6 +982,7 @@ export async function receiveTransfer(
   }).catch((err) =>
     console.error("Failed to post transfer write-off to the ledger:", err),
   );
+  if (!afterFinanceCommit(async () => { await writeOff(); })) await writeOff();
 
   return { completed: plan.completes };
 }

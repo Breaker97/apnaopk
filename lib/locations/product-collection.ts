@@ -18,7 +18,8 @@ import "server-only";
  */
 
 import { InventoryLocation } from "@/models/inventory-location.model";
-import { Product } from "@/models";
+import { Product, Vendor } from "@/models";
+import { vendorAllowsPickup } from "@/lib/vendors/vendor-fulfillment";
 import { connectDB } from "@/lib/db";
 import {
   branchStocksLine,
@@ -103,7 +104,7 @@ export async function resolveProductCollectionOffer(input: {
 
   await connectDB();
 
-  const [product, branches] = await Promise.all([
+  const [product, branches, vendor] = await Promise.all([
     // Projected deliberately: this is the only place per-branch counts are
     // read for the storefront, and they must not travel any further than this
     // function's own arithmetic.
@@ -130,9 +131,12 @@ export async function resolveProductCollectionOffer(input: {
       .limit(BRANCH_SCAN_LIMIT)
       .select("_id name")
       .lean<Array<{ _id: unknown; name?: string }>>(),
+    Vendor.findById(vendorId)
+      .select("shipping.fulfillmentMode")
+      .lean<{ shipping?: { fulfillmentMode?: unknown } } | null>(),
   ]);
 
-  if (!product || branches.length === 0) return null;
+  if (!product || !vendor || !vendorAllowsPickup(vendor.shipping?.fulfillmentMode) || branches.length === 0) return null;
 
   // Nothing downloadable is ever collected, whatever the seller's counter says.
   if (product.shipping?.isPhysicalProduct === false) return null;

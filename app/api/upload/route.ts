@@ -6,10 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { isInternalError, publicErrorMessage } from "@/lib/api/errors";
+import { handleApiError, isInternalError, publicErrorMessage } from "@/lib/api/errors";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { isAdmin } from "@/lib/access/rbac";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
 import { isPublicMediaKey } from "@/lib/storage/private-prefixes";
 import { auditDelete, createAuditContext } from "@/lib/audit";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -184,6 +186,12 @@ export async function DELETE(request: NextRequest) {
         { success: false, message: "You do not have permission to delete files" },
         { status: 403 },
       );
+    }
+    // The Media Library is Settings → Storage's: its team role must manage settings.
+    try {
+      await enforceTeamRole(request, session.user.id, { teamPermissions: [ADMIN_AREA_PERMISSIONS.MANAGE_SETTINGS] });
+    } catch (error) {
+      return handleApiError(error);
     }
     const demoBlock = getDemoModeMutationResponse();
     if (demoBlock) return demoBlock;

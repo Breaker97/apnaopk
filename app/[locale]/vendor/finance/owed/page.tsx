@@ -10,6 +10,9 @@ import { dashboardPickerBounds } from "@/lib/finance/dashboard-finance-period";
 import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
 import { formatCurrency } from "@/lib/intl/money";
 import { loadVendorFinance } from "@/lib/finance/vendor-page-data";
+import { vendorFinanceQuery } from "@/lib/finance/vendor-finance-query";
+import { VendorStatementPagination } from "@/components/vendor/finance/vendor-statement-pagination";
+import Link from "@/components/language/link";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -31,11 +34,12 @@ export default async function VendorOwedPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const search = await searchParams;
-  const { period, statements } = await loadVendorFinance({
+  const { period, statements, page, pageSize, currency } = await loadVendorFinance({
     locale,
     searchParams: search,
     // The dashboard's period and picker, opening on the month like the overview.
     periods: "dashboard",
+    balance: "owed",
   });
   const pickerBounds = dashboardPickerBounds(period);
 
@@ -62,8 +66,11 @@ export default async function VendorOwedPage({
           from={pickerBounds.from}
           to={pickerBounds.to}
           defaultPeriod="month"
+          resetPage
         />
       </div>
+
+      {currency ? <p className="text-xs text-muted-foreground">{currency} · <Link className="text-primary hover:underline" href={`/vendor/finance/owed?${vendorFinanceQuery(period)}`}>{label("finance.statement.allCurrencies", "Show all currencies")}</Link></p> : null}
 
       {statements.length === 0 ? (
         <Card>
@@ -97,18 +104,29 @@ export default async function VendorOwedPage({
                     {
                       id: `${statement.currency}-orders`,
                       icon: <ArrowDownRight className="h-4 w-4" />,
-                      label: label("finance.statement.owedOrders", "Orders"),
-                      value: String(owedLines.length),
+                      label: label("finance.statement.chargedOrders", "Orders charged this period"),
+                      value: String(statement.owedOrderCount ?? 0),
                       subLabel: statement.currency,
                     },
                   ] satisfies DashboardStatCardItem[]
                 }
               />
-              <VendorStatementTable lines={owedLines} locale={locale} />
+              {statement.openingOwed !== 0 ? <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-1 text-xs text-muted-foreground">
+                <span>{label("finance.statement.debtBroughtForward", "Debt brought forward")}: <span className="font-medium tabular-nums text-foreground">{formatCurrency(statement.openingOwed, statement.currency)}</span></span>
+                <span>{label("finance.statement.debtMovement", "Change this period")}: <span className="font-medium tabular-nums text-foreground">{formatCurrency(statement.owedMovement, statement.currency)}</span></span>
+                <Link className="font-medium text-primary hover:underline" href={`/vendor/finance/owed?${vendorFinanceQuery({ key: "custom", from: new Date(0), to: new Date(period.from.getTime() - 1) }, statement.currency)}`}>{label("finance.statement.earlierActivity", "View earlier activity")}</Link>
+              </div> : null}
+              <VendorStatementTable lines={owedLines} locale={locale} emptyMessage={statement.lineCount > 0 ? label("finance.statement.emptyPage", "No entries in this currency on this page.") : label("finance.statement.noDebtMovement", "No commission movements in this period.")} />
             </section>
           );
         })
       )}
+      <VendorStatementPagination
+        page={page} pageSize={pageSize}
+        total={statements.reduce((sum, statement) => sum + statement.lineCount, 0)}
+        shown={statements.reduce((sum, statement) => sum + statement.lines.length, 0)}
+        href={`/vendor/finance/owed?${vendorFinanceQuery(period, currency)}`}
+      />
     </div>
   );
 }

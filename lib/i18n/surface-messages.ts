@@ -76,9 +76,14 @@ export const STOREFRONT_BACK_OFFICE_PATHS: Readonly<
 > = {
   // Account menu / header link label; the payment method names the account
   // order page shares with the dashboards
-  // (components/common/payment-method-meta.ts).
+  // (components/common/payment-method-meta.ts); the preferences drawer the
+  // account area's top bar shares with them.
   admin: [
     "settings.title",
+    // The Save bar the account's Preferences page shares with the settings.
+    "settings.saveBar",
+    "settings.saveChanges",
+    "preferences",
     "dashboardPage.payment",
     "paymentTransactionsPage.providers",
   ],

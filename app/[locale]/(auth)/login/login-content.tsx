@@ -98,7 +98,7 @@ function LoginContent({ oauthEnabled, demoCredentials }: LoginPageProps) {
       <Card className="shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-2">
-            <Shield className="h-12 w-12 text-primary" />
+            <Shield className="h-12 w-12 text-store-link" />
           </div>
           <CardTitle className="text-2xl font-bold">
             {t("auth.twoFactorTitle")}

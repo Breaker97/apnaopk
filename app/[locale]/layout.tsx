@@ -34,6 +34,7 @@ import { normalizeCountryAvailability } from "@/lib/intl/country-availability";
 import { mtnMomoPhoneExample } from "@/lib/payments/mtn-momo";
 import { resolveMtnMomoCredentials } from "@/lib/settings/credentials";
 import { withFallback } from "@/lib/storefront/cached-read";
+import { liveKeyColors } from "@/lib/storefront/themes/key-colors";
 
 /**
  * The root layout. It lives inside `[locale]` so that `<html lang dir>` comes
@@ -166,6 +167,7 @@ const getInitialAppSettings = withFallback(
       const settings = await getSettings();
       const general = settings.general;
       const appearance = settings.appearance;
+      const liveColors = liveKeyColors(settings);
 
       return {
         isMultiVendor: Boolean(settings.multiVendorMode?.enabled),
@@ -224,9 +226,12 @@ const getInitialAppSettings = withFallback(
         appearance: {
           themeMode: normalizeThemeMode(appearance?.theme),
           presetColor: appearance?.presetColor || "default",
-          primaryColor: appearance?.primaryColor || DEFAULT_PRIMARY_COLOR,
-          secondaryColor: appearance?.secondaryColor || DEFAULT_SECONDARY_COLOR,
-          accentColor: appearance?.accentColor || DEFAULT_ACCENT_COLOR,
+          // The live theme's key colours, read from the theme (not from the
+          // mirror in `appearance.*`, which can lag behind a theme made live
+          // by another tool): the dashboards are painted with them.
+          primaryColor: liveColors.primary || DEFAULT_PRIMARY_COLOR,
+          secondaryColor: liveColors.secondary || DEFAULT_SECONDARY_COLOR,
+          accentColor: liveColors.accent || DEFAULT_ACCENT_COLOR,
         },
       };
     },
@@ -275,7 +280,6 @@ export default async function RootLayout({
     primary: appearance?.primaryColor ?? DEFAULT_PRIMARY_COLOR,
     secondary: appearance?.secondaryColor ?? DEFAULT_SECONDARY_COLOR,
     accent: appearance?.accentColor ?? DEFAULT_ACCENT_COLOR,
-    skeleton: appearance?.skeletonColor ?? "",
   });
 
   // Only what storefront client components can translate. The dashboards

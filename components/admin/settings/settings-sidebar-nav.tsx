@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { Search } from "lucide-react";
+import { Search, Undo2 } from "lucide-react";
 import Link from "@/components/language/link";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,9 +30,9 @@ import { useSettingsNavStatus } from "./settings-nav-status";
 
 /**
  * The dashboard sidebar's menu while a settings page is open: the settings
- * sections take the main menu's place under a search box, the way Cloudflare
- * swaps an account's menu for a domain's. The way back out is the sidebar
- * footer's button, where the Settings button sits on the main menu.
+ * sections take the main menu's place under a search box and the way back to
+ * the dashboard, the way Cloudflare swaps an account's menu for a domain's
+ * (with "Back to Domains" under its search).
  *
  * Every entry is a plain link. Unsaved edits are the settings provider's to
  * guard (`useUnsavedChangesGuard`) — it holds any link click on the page while
@@ -81,6 +81,7 @@ export function AdminSettingsSidebarNav({
     else groups.push({ id: section.group, sections: [{ ...section, label }] });
   }
 
+  const backLabel = tSafe("common.backToDashboard", "Back to dashboard");
   const unsavedLabel = tSafe("admin.settings.unsaved", "Unsaved");
   const attentionLabel = tSafe(
     "admin.settings.needsAttention",
@@ -106,41 +107,79 @@ export function AdminSettingsSidebarNav({
 
   return (
     <>
-      {/* The search box takes the slot the way-back button held: the rail has
-          no room for it, so the slot goes with it. */}
-      <SidebarGroup className="pb-1 group-data-[collapsible=icon]:hidden">
-        <SidebarGroupContent>
-          <div className="relative">
-            <Search
-              className={cn(
-                "pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2",
-                isApparent ? "text-white/70" : "text-muted-foreground",
+      {/* Pinned over the sections as they scroll: the search box (the rail
+          has no room for it) and the way back out, then a rule. */}
+      <div className="sticky top-0 z-10 mb-1 flex flex-col gap-2 bg-sidebar">
+        <SidebarGroup className="pb-1 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupContent>
+            <div className="relative">
+              <Search
+                className={cn(
+                  "pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2",
+                  isApparent ? "text-white/70" : "text-muted-foreground",
+                )}
+              />
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={tSafe("admin.settings.search", "Search settings")}
+                aria-label={tSafe("admin.settings.search", "Search settings")}
+                className={cn(
+                  "h-8 rounded-lg ps-8 text-[13px] shadow-none md:text-[13px]",
+                  isApparent
+                    ? "border-white/25 bg-white/10 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/25 dark:bg-white/10"
+                    : "bg-background",
+                )}
+              />
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup className="py-0 group-data-[collapsible=icon]:px-1 group-data-[collapsible=icon]:pt-2">
+          <SidebarMenu className="group-data-[collapsible=icon]:items-center">
+            <SidebarMenuItem className="group-data-[collapsible=icon]:w-full">
+              {withTooltip(
+                backLabel,
+                <SidebarMenuButton
+                  asChild
+                  size="sm"
+                  className={cn(
+                    "h-9 gap-3 rounded-lg px-3 text-[13px] font-semibold transition-colors",
+                    railButtonClass,
+                    isApparent
+                      ? "bg-white/15 text-white hover:bg-white/20 hover:text-white"
+                      : "bg-foreground/[0.07] text-foreground hover:bg-foreground/10 hover:text-foreground",
+                  )}
+                >
+                  <Link
+                    prefetch={false}
+                    href="/admin/dashboard"
+                    onClick={closeDrawer}
+                  >
+                    <Undo2
+                      className={cn(
+                        "size-4.5 shrink-0 stroke-2",
+                        isRTL && "-scale-x-100",
+                      )}
+                    />
+                    <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
+                      {backLabel}
+                    </span>
+                  </Link>
+                </SidebarMenuButton>,
               )}
-            />
-            <Input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={tSafe("admin.settings.search", "Search settings")}
-              aria-label={tSafe("admin.settings.search", "Search settings")}
-              className={cn(
-                "h-8 rounded-lg ps-8 text-[13px] shadow-none md:text-[13px]",
-                isApparent
-                  ? "border-white/25 bg-white/10 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/25 dark:bg-white/10"
-                  : "bg-background",
-              )}
-            />
-          </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
-      <div
-        role="separator"
-        className={cn(
-          "mx-2 mb-1 h-px shrink-0 group-data-[collapsible=icon]:hidden",
-          isApparent ? "bg-white/20" : "bg-border",
-        )}
-      />
+        <div
+          role="separator"
+          className={cn(
+            "mx-2 mt-1 h-px shrink-0 group-data-[collapsible=icon]:mx-1",
+            isApparent ? "bg-white/20" : "bg-border",
+          )}
+        />
+      </div>
 
       {groups.length === 0 ? (
         <p

@@ -22,6 +22,8 @@ import {
   loadTeamChangeContext,
 } from "@/lib/access/team-roles";
 import { revokeAllSessions } from "@/lib/auth/session-revocation";
+import { resolveTeamAccess } from "@/lib/access/team-permissions";
+import { assertMayManageMember } from "@/lib/access/team-member-roles";
 import { notifyAccountStatusChange } from "@/lib/notifications/notifications";
 import { afterResponse } from "@/lib/after-response";
 
@@ -30,7 +32,9 @@ import { afterResponse } from "@/lib/after-response";
  * changed on the Team page, which keeps the owner untouchable and the store
  * one working administrator; here a demotion wrote `role` alone, the admin
  * membership in `roles` survived it, and the "demoted" admin kept every
- * right. Bans and removals of an administrator follow the Team rules too.
+ * right. Bans and removals of an administrator follow the Team rules too,
+ * and a team account (an administrator or staff) is changed here only by
+ * someone above it, as on the Team page.
  */
 const TEAM_ROLE_HERE =
   "Administrators and team members are changed from Settings → Team, where the owner and last-administrator rules are kept.";
@@ -40,6 +44,20 @@ function holdsAdmin(user: { role?: string | null; roles?: string[] | null }) {
     user.role === USER_ROLES.ADMIN ||
     (user.roles ?? []).includes(USER_ROLES.ADMIN)
   );
+}
+
+/** Refuses a change to a team account at or above the caller's own level (lib/access/team-member-roles.ts). */
+async function assertBelowCaller(
+  team: Parameters<typeof assertMayManageMember>[0] | undefined,
+  callerId: string,
+  user: { _id: unknown; role?: string | null; roles?: string[] | null },
+) {
+  const admin = holdsAdmin(user);
+  if (!admin && !isStaffRole(user.role)) return;
+  await assertMayManageMember(team ?? (await resolveTeamAccess(callerId)), {
+    userId: String(user._id),
+    role: admin ? USER_ROLES.ADMIN : user.role,
+  });
 }
 
 /**
@@ -74,7 +92,7 @@ export const GET = withApi<{ id: string }>(
  */
 export const PUT = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const { id } = params;
 
     // Validate ID format
@@ -147,6 +165,11 @@ export const PUT = withApi<{ id: string }>(
       );
       if (!decision.allowed) throw new AuthorizationError(decision.reason);
     }
+    // Anything else about a team account (its status, name or phone) only
+    // by someone above it.
+    if (Object.keys(allowedUpdates).length > 0) {
+      await assertBelowCaller(team, session.user.id, userBefore);
+    }
 
     // `role` and `roles` together, as every other role write does.
     if (roleChange) await setUserRole(id, roleChange);
@@ -211,7 +234,7 @@ export const PUT = withApi<{ id: string }>(
  */
 export const DELETE = withApi<{ id: string }>(
   { auth: "admin" },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const { id } = params;
 
     // Validate ID format
@@ -250,6 +273,7 @@ export const DELETE = withApi<{ id: string }>(
       );
       if (!decision.allowed) throw new AuthorizationError(decision.reason);
     }
+    await assertBelowCaller(team, session.user.id, user);
 
     // A user who owns a vendor account must be deleted through the vendor
     // flow first — deleting here would orphan the Vendor (and its products,

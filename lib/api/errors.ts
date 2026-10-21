@@ -188,6 +188,7 @@ export function publicErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function handleApiError(error: unknown): NextResponse {
+  if (error instanceof Error && error.name === "InventoryRuleError") return NextResponse.json({ success: false, message: error.message, code: (error as Error & { code: string }).code }, { status: 400 });
   // Handle rate limit errors with Retry-After header
   if (error instanceof RateLimitError) {
     return NextResponse.json(

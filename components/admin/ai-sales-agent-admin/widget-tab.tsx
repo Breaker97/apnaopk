@@ -4,7 +4,8 @@ import type { Dispatch, SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import { ArrowUp, Eye, Palette, Plus, Sliders } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
+import { ColorField } from "@/components/admin/online-store/builder-fields";
+import { inkOn } from "@/lib/theme-colors/theme-refs";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
@@ -167,72 +168,19 @@ export function WidgetTab({ settings, setSettings, faviconUrl }: WidgetTabProps)
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t("widget.appearance.primaryColor")}</Label>
-                <div className="flex items-center gap-3">
-                  <ColorSwatchPicker
-                    className="h-10 w-16"
-                    alpha={false}
-                    ariaLabel={t("widget.appearance.primaryColor")}
-                    value={settings.widget.primaryColor}
-                    onChange={(hex) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        widget: {
-                          ...prev.widget,
-                          primaryColor: hex,
-                        },
-                      }))
-                    }
-                  />
-                  <Input
-                    value={settings.widget.primaryColor}
-                    onChange={(event) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        widget: {
-                          ...prev.widget,
-                          primaryColor: event.target.value,
-                        },
-                      }))
-                    }
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("widget.appearance.accentColor")}</Label>
-                <div className="flex items-center gap-3">
-                  <ColorSwatchPicker
-                    className="h-10 w-16"
-                    alpha={false}
-                    ariaLabel={t("widget.appearance.accentColor")}
-                    value={settings.widget.accentColor}
-                    onChange={(hex) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        widget: {
-                          ...prev.widget,
-                          accentColor: hex,
-                        },
-                      }))
-                    }
-                  />
-                  <Input
-                    value={settings.widget.accentColor}
-                    onChange={(event) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        widget: {
-                          ...prev.widget,
-                          accentColor: event.target.value,
-                        },
-                      }))
-                    }
-                    className="flex-1"
-                  />
-                </div>
-              </div>
+              {(["primaryColor", "accentColor"] as const).map((key) => (
+                <ColorField
+                  key={key}
+                  label={t(`widget.appearance.${key}`)}
+                  value={settings.widget[key]}
+                  onChange={(value) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      widget: { ...prev.widget, [key]: value },
+                    }))
+                  }
+                />
+              ))}
             </div>
 
             <div className="space-y-2">
@@ -340,9 +288,10 @@ export function WidgetTab({ settings, setSettings, faviconUrl }: WidgetTabProps)
               >
                 <div className="relative px-4 pt-4">
                   <div
-                    className="flex h-12 items-center justify-between rounded-full px-5 text-white"
+                    className="flex h-12 items-center justify-between rounded-full px-5"
                     style={{
                       background: `linear-gradient(135deg, ${settings.widget.primaryColor}, ${settings.widget.accentColor})`,
+                      color: inkOn(settings.widget.primaryColor),
                     }}
                   >
                     <span className="text-sm font-semibold tracking-wide">
@@ -382,9 +331,10 @@ export function WidgetTab({ settings, setSettings, faviconUrl }: WidgetTabProps)
                       {t("widget.preview.typeMessage")}
                     </span>
                     <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
                       style={{
                         backgroundColor: settings.widget.primaryColor,
+                        color: inkOn(settings.widget.primaryColor),
                       }}
                     >
                       <ArrowUp className="h-4 w-4" />

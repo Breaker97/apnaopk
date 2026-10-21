@@ -1,4 +1,6 @@
 import "server-only";
+import { financialSourceTransitionActive, withFinancialStockTransaction } from "@/lib/inventory/finance-source-transaction";
+import { financeSession } from "@/lib/finance/transaction";
 
 import { CheckoutAttempt, CHECKOUT_ATTEMPT_STATUS } from "@/models";
 import {
@@ -96,9 +98,19 @@ export async function holdAttemptStock(params: {
   const minutes = Number(params.minutes ?? DEFAULT_STOCK_HOLD_MINUTES);
   if (!(minutes > 0)) return null;
 
+  if (!financialSourceTransitionActive()) {
+    try { return await withFinancialStockTransaction(lines.map((line) => line.productId), String(params.attemptId), () => holdAttemptStock(params)); }
+    catch (error) { if (error instanceof InsufficientStockError) return { soldOutProductId: String(error.line?.productId ?? "") }; throw error; }
+  }
+  if (financeSession()) {
+    const attempt = await CheckoutAttempt.findById(params.attemptId).select("stockHold").lean();
+    if (attempt?.stockHold?.lines?.length && !attempt.stockHold.releasedAt) return null;
+  }
+
   try {
-    await decrementInventory(lines, params.inventoryOpts || {});
+    await decrementInventory(lines, { ...params.inventoryOpts, financeSource: { kind: "checkout_attempt", id: String(params.attemptId) } });
   } catch (error) {
+    if (financeSession()) throw error;
     if (error instanceof InsufficientStockError) {
       return { soldOutProductId: String(error.line?.productId ?? "") };
     }
@@ -118,10 +130,11 @@ export async function holdAttemptStock(params: {
       },
     },
   ).catch(async (error) => {
+    if (financeSession()) throw error;
     // The goods are off the shelf and nothing records it. Put them straight
     // back rather than leaving a hold that nothing can release.
     console.error("Failed to record a checkout stock hold; releasing it:", error);
-    await restoreInventory(lines, params.inventoryOpts || {}).catch((err) =>
+    await restoreInventory(lines, { ...params.inventoryOpts, financeSource: { kind: "checkout_attempt", id: String(params.attemptId) } }).catch((err) =>
       console.error("Failed to release an unrecorded stock hold:", err),
     );
     throw error;
@@ -149,6 +162,10 @@ type HeldAttempt = {
  * whose stock climbs every time a job runs twice.
  */
 export async function releaseAttemptStock(attemptId: unknown): Promise<boolean> {
+  if (!financialSourceTransitionActive()) {
+    const attempt = await CheckoutAttempt.findById(attemptId).select("stockHold.lines").lean();
+    return withFinancialStockTransaction((attempt?.stockHold?.lines ?? []).map((line: StockHoldLine) => String(line.productId)), String(attemptId), () => releaseAttemptStock(attemptId));
+  }
   const claimed = (await CheckoutAttempt.findOneAndUpdate(
     {
       _id: attemptId,
@@ -172,12 +189,11 @@ export async function releaseAttemptStock(attemptId: unknown): Promise<boolean> 
   try {
     await restoreInventory(
       lines,
-      claimed.stockHold.locationId
-        ? { locationId: claimed.stockHold.locationId }
-        : {},
+      { ...(claimed.stockHold.locationId ? { locationId: claimed.stockHold.locationId } : {}), financeSource: { kind: "checkout_attempt", id: String(attemptId) } },
     );
     return true;
   } catch (error) {
+    if (financeSession()) throw error;
     // Stamped but not restored: say so loudly, because the shop is now short
     // of stock it actually has, and no later run will try again.
     console.error(

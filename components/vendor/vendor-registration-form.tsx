@@ -1,5 +1,6 @@
 "use client";
 
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "@/components/language/link";
 import { useForm, type Resolver , useWatch } from "react-hook-form";
@@ -537,6 +538,10 @@ export function VendorRegistrationForm({
       const result = await res.json();
 
       if (res.ok && result.success) {
+        posthogClient.capture("vendor_registration_submitted", {
+          store_name: str("storeName"),
+          country: str("country"),
+        });
         toast.success(t("applicationSubmitted"));
         setExistingApplication({
           hasApplication: true,

@@ -1,3 +1,4 @@
+import { quantizeToCurrency } from "@/lib/intl/money";
 import { Payout } from "@/models/payout.model";
 /**
  * The bridge between what happened and what gets posted.
@@ -25,13 +26,14 @@ import {
   LedgerEntry,
   LEDGER_SOURCE_KIND,
 } from "@/models/ledger-entry.model";
-import { LEDGER_ACCOUNT, type LedgerAccount } from "@/lib/finance/accounts";
+import { LEDGER_ACCOUNT, type LedgerAccount, type LedgerBook } from "@/lib/finance/accounts";
 // The constant, not `lib/multi-vendor` — that module reaches into geocoding
 // and `next/cache`, which a plain script (the backfill) cannot load. The
 // finance layer has no business pulling that stack in either.
 import { appConfig } from "@/config/app.config";
 import { isPlatformSettled } from "@/lib/payments/payment-custody";
 import { postLedgerEntries, postingKey } from "@/lib/finance/ledger";
+import { financeQuery } from "@/lib/finance/transaction";
 import {
   adjustmentPostings,
   expensePostings,
@@ -39,11 +41,11 @@ import {
   orderPaidPostings,
   payoutPaidPostings,
   payoutReversalPostings,
-  platformPaymentPostings,
   platformPaymentRefundPostings,
   platformPaymentReversalPostings,
   accumulateRefundBacks,
   cashAccountFor,
+  posTenderReclassPostings,
   decomposeOrder,
   isConsignmentCollected,
   fitRefundAllocation,
@@ -62,8 +64,9 @@ import {
   moveShareToOtherBook,
   restockCostPostings,
   storeFundedCancellationPostings,
-  disputeFeeInOrderCurrency,
   disputeFeePostings,
+  platformDisputeFeePostings,
+  platformDisputeLossPostings,
   storeCreditPostings,
   subscriptionInvoicePostings,
   testLabelCorrectionPostings,
@@ -95,7 +98,7 @@ const ORDER_POSTING_PROJECTION =
   // and `subOrders._id` is how a refund names the consignment it belongs to.
   // `storeCredit` is the part the shopper's credit paid (R8), which never
   // reached the cash account the sale is posted to.
-  "orderNumber currency total tax shippingCost discount storeCredit coupon.type coupon.fundedBy customs.dutyAmount paidAt createdAt paymentMethod paymentStatus status preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidFrom preorderBalancePaymentFee channel paymentCustody stripePaymentIntentId paymentFee paymentFeeCurrency paymentFeeRate subOrders._id subOrders.vendorId subOrders.subtotal subOrders.couponDiscount subOrders.shippingDiscount subOrders.commission subOrders.vendorEarnings subOrders.shippingCost subOrders.codCollectedBy subOrders.paymentStatus subOrders.status subOrders.fulfillment.method subOrders.items.productId subOrders.items.variantId subOrders.items.cost subOrders.items.quantity subOrders.items.preorderOutstandingAmount subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.paidAt";
+  "orderNumber currency total tax shippingCost discount storeCredit posTenders posBalanceDue coupon.type coupon.fundedBy customs.dutyAmount paidAt createdAt paymentMethod paymentStatus status preorderOutstandingAmount preorderBalancePaidAt preorderBalancePaidFrom preorderBalancePaymentFee channel paymentCustody stripePaymentIntentId paymentFee paymentFeeCurrency paymentFeeRate subOrders._id subOrders.vendorId subOrders.subtotal subOrders.couponDiscount subOrders.shippingDiscount subOrders.tax subOrders.commission subOrders.vendorEarnings subOrders.shippingCost subOrders.codCollectedBy subOrders.paymentStatus subOrders.status subOrders.fulfillment.method subOrders.items.productId subOrders.items.variantId subOrders.items.cost subOrders.items.quantity subOrders.items.inventoryFinanceGeneration subOrders.items.inventoryLineId subOrders.items.preorderOutstandingAmount subOrders.shippingRevenueTo subOrders.platformLabelAt subOrders.paidAt";
 
 /**
  * Which vendors are the admin-owned store.
@@ -161,7 +164,7 @@ async function storeCurrency(): Promise<string> {
 async function loadPostingOrder(
   orderId: unknown,
 ): Promise<PostingOrder | null> {
-  const loaded = await Order.findById(orderId)
+  const loaded = await financeQuery(Order.findById(orderId))
     .select(ORDER_POSTING_PROJECTION)
     .lean<PostingOrder | null>();
   if (!loaded) return null;
@@ -203,11 +206,53 @@ export async function postOrderPaid(orderId: unknown): Promise<number> {
   await recordOrderCollections(orderId);
   const order = await loadPostingOrder(orderId);
   if (!order) return 0;
-  return postLedgerEntries(
+  const posted = await postLedgerEntries(
     orderPaidPostings(order, {
       ...(await orderContext()),
       raisedOutstanding: await loadRaisedOutstanding(order),
     }),
+  );
+  if ((order.subOrders ?? []).some((sub) => (sub.items ?? []).some((item) => item.inventoryFinanceGeneration === 1))) {
+    const { synchronizeOrderInventoryCost } = await import("@/lib/inventory/finance-sales");
+    await synchronizeOrderInventoryCost(orderId);
+  }
+  return posted + (await postPosTenderReclass(order));
+}
+
+/**
+ * A split counter sale's tenders, moved into their own cash accounts (see
+ * `posTenderReclassPostings`). Measured against what the sale's own entries
+ * actually put into the order's account — so a sale whose cash is not the
+ * platform's moves nothing — and keyed per account, so a replay moves nothing
+ * twice. Part of `postOrderPaid`, so the reconcile and backfill that replay
+ * it post this too.
+ */
+async function postPosTenderReclass(
+  order: Awaited<ReturnType<typeof loadPostingOrder>> & {
+    posTenders?: Array<{ method: string; amount: number }> | null;
+  },
+): Promise<number> {
+  if (!order || String(order.channel || "").toLowerCase() !== "pos") return 0;
+  const tenders = order.posTenders ?? [];
+  if (tenders.length < 2) return 0;
+  const from = cashAccountFor(order);
+  const rows = await LedgerEntry.find({
+    "source.kind": LEDGER_SOURCE_KIND.ORDER,
+    "source.id": new Types.ObjectId(String(order._id)),
+    $or: [{ debit: from }, { credit: from }],
+    key: { $not: /:pos-tender:/ },
+  })
+    .select("book currency debit credit amount")
+    .lean<Array<{ book: string; currency: string; debit: string; credit: string; amount: number }>>();
+  const drawn = new Map<string, { book: LedgerBook; currency: string; amount: number }>();
+  for (const row of rows) {
+    const key = `${row.book}:${row.currency}`;
+    const share = drawn.get(key) ?? { book: row.book as LedgerBook, currency: row.currency, amount: 0 };
+    share.amount += row.debit === from ? row.amount : -row.amount;
+    drawn.set(key, share);
+  }
+  return postLedgerEntries(
+    posTenderReclassPostings({ order, tenders, drawn: [...drawn.values()] }),
   );
 }
 
@@ -247,20 +292,23 @@ async function loadRaisedOutstanding(order: {
 async function loadRefundRow(refundId: unknown): Promise<{
   allocation: RefundAllocationInput[] | null;
   storeCredit: boolean;
+  createdAt?: Date;
 }> {
   if (!refundId || !Types.ObjectId.isValid(String(refundId))) {
     return { allocation: null, storeCredit: false };
   }
-  const refund = await PaymentTransaction.findById(refundId)
-    .select("refundAllocation metadata.storeCredit")
+  const refund = await financeQuery(PaymentTransaction.findById(refundId))
+    .select("refundAllocation metadata.storeCredit createdAt")
     .lean<{
       refundAllocation?: RefundAllocationInput[] | null;
       metadata?: { storeCredit?: boolean };
+      createdAt?: Date;
     } | null>();
   const allocation = refund?.refundAllocation;
   return {
     allocation: allocation && allocation.length > 0 ? allocation : null,
     storeCredit: refund?.metadata?.storeCredit === true,
+    createdAt: refund?.createdAt,
   };
 }
 
@@ -302,7 +350,7 @@ async function loadPriorRefunds(
     filter._id = { $lt: new Types.ObjectId(String(before)) };
   }
 
-  const rows = await PaymentTransaction.find(filter)
+  const rows = await financeQuery(PaymentTransaction.find(filter))
     .sort({ _id: 1 })
     .select("grossAmount refundAllocation")
     .lean<
@@ -656,23 +704,203 @@ export async function postDisputeFee(params: {
     defaults.has(sub?.vendorId ? String(sub.vendorId) : ""),
   );
   const shares = bookSharesOfCharge(order, { defaultVendorIds: defaults });
-  const fee = disputeFeeInOrderCurrency(order, params);
-  return postLedgerEntries(
-    disputeFeePostings({
-      disputeId: params.disputeId,
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      amount: fee.amount,
-      currency: fee.currency,
-      date: params.date || new Date(),
-      book: anyOwn ? "own" : "marketplace",
-      returned: params.returned,
-      part: params.part,
-      note: fee.note,
-    }).flatMap((entry) => [entry, ...moveShareToOtherBook(entry, shares)]),
+  // Readers use the movement's own FX rate. A later dispute must never
+  // borrow the capture's original rate when its currency could not be converted.
+  const fee = params;
+  const [template] = disputeFeePostings({
+    disputeId: params.disputeId,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    amount: fee.amount,
+    currency: fee.currency,
+    date: params.date || new Date(),
+    book: anyOwn ? "own" : "marketplace",
+    returned: params.returned,
+    part: params.part,
+    note: fee.note,
+  });
+  if (!template) return 0;
+  const { FinanceOperation } = await import("@/models/finance-operation.model");
+  const { finishFinanceOperation, runFinanceOperation, financialFingerprint } =
+    await import("@/lib/finance/operations");
+  // Finish any frozen legs before deriving the next correction. A main fee
+  // entry alone does not prove its share entries finished after a crash.
+  const pending = await FinanceOperation.find({
+    action: "dispute:fee",
+    sourceId: String(order._id),
+    state: "pending",
+    "result.feePostingKey": template.key,
+  })
+    .select("_id")
+    .lean();
+  for (const operation of pending)
+    if (!(await finishFinanceOperation(operation._id)))
+      throw new Error("Dispute fee bookkeeping remains pending");
+  const escaped = template.key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const existing = await LedgerEntry.find({
+    $or: [
+      { key: template.key },
+      { key: { $regex: `^${escaped}:correction:[0-9]+$` } },
+    ],
+  })
+    .select("debit amount currency")
+    .lean<Array<{ debit: string; amount: number; currency: string }>>();
+  if (existing.some((entry) => entry.currency !== fee.currency.toUpperCase()))
+    throw new Error(
+      "Dispute fee currency changed; reconciliation needs review",
+    );
+  const booked = existing.reduce(
+    (sum, entry) =>
+      sum + (entry.debit === template.debit ? 1 : -1) * entry.amount,
+    0,
   );
+  const change = quantizeToCurrency(fee.amount - booked, fee.currency);
+  if (change === 0) return 0;
+  const posting = {
+    ...template,
+    amount: Math.abs(change),
+    ...(change < 0 ? { debit: template.credit, credit: template.debit } : {}),
+    key: existing.length
+      ? `${template.key}:correction:${existing.length}`
+      : template.key,
+  };
+  // Keep historical fee entries immutable. Stripe's fee readings are totals
+  // per currency/direction; late movements change the total, not the old key.
+  const operation = await runFinanceOperation<{
+    feePostingKey: string;
+    written: number;
+  }>({
+    actorId: "system",
+    action: "dispute:fee",
+    requestKey: financialFingerprint({
+      key: template.key,
+      currency: fee.currency,
+      target: fee.amount,
+      generation: existing.length,
+    }),
+    fingerprint: {
+      key: template.key,
+      currency: fee.currency,
+      target: fee.amount,
+      generation: existing.length,
+    },
+    work: async () => ({
+      sourceId: order._id,
+      result: { feePostingKey: template.key, written: 1 },
+      postings: [posting, ...moveShareToOtherBook(posting, shares)],
+    }),
+  });
+  if (operation.bookkeepingState !== "complete")
+    throw new Error("Dispute fee bookkeeping remains pending");
+  return operation.data.written;
 }
 
+
+/**
+ * A dispute on a vendor's payment to the platform: the money the gateway is
+ * holding that no refund has already accounted for, brought in line with
+ * `target`. Reads what is on the books for this dispute and posts the
+ * difference, so reading the same dispute again posts nothing. Returns the
+ * signed change posted — positive when more is lost, negative when it came back.
+ */
+export async function postPlatformDisputeLoss(params: {
+  disputeId: string;
+  paymentId: unknown;
+  reference?: string | null;
+  target: number;
+  currency: string;
+  date?: Date;
+}): Promise<number> {
+  const prefix = postingKey(
+    "platform_payment",
+    params.paymentId,
+    "dispute",
+    params.disputeId,
+    "loss",
+  );
+  const existing = await LedgerEntry.find({
+    "source.kind": "platform_payment",
+    "source.id": new Types.ObjectId(String(params.paymentId)),
+    key: { $regex: `^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:` },
+  })
+    .select("debit amount")
+    .lean<Array<{ debit?: string; amount?: number }>>();
+  const booked = existing.reduce(
+    (sum, entry) =>
+      sum +
+      (entry.debit === "chargeback_losses" ? 1 : -1) * Number(entry.amount || 0),
+    0,
+  );
+  const change = quantizeToCurrency(
+    Math.max(0, Number(params.target) || 0) - booked,
+    params.currency,
+  );
+  if (change === 0) return 0;
+  await postLedgerEntries(
+    platformDisputeLossPostings({
+      disputeId: params.disputeId,
+      paymentId: params.paymentId,
+      reference: params.reference,
+      amount: Math.abs(change),
+      currency: params.currency,
+      date: params.date || new Date(),
+      returned: change < 0,
+      part: existing.length + 1,
+    }),
+  );
+  return change;
+}
+
+/**
+ * A dispute's fee on a vendor's payment, or its return, in line with the total
+ * the gateway reports. Late movements change the total, not an old entry: each
+ * difference is its own correction under its own key.
+ */
+export async function postPlatformDisputeFee(params: {
+  disputeId: string;
+  paymentId: unknown;
+  reference?: string | null;
+  amount: number;
+  currency: string;
+  date?: Date;
+  returned?: boolean;
+  part?: string;
+  note?: string;
+}): Promise<number> {
+  const [template] = platformDisputeFeePostings({
+    ...params,
+    date: params.date || new Date(),
+  });
+  if (!template) return 0;
+  const escaped = template.key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const existing = await LedgerEntry.find({
+    $or: [
+      { key: template.key },
+      { key: { $regex: `^${escaped}:correction:[0-9]+$` } },
+    ],
+  })
+    .select("debit amount currency")
+    .lean<Array<{ debit: string; amount: number; currency: string }>>();
+  if (existing.some((entry) => entry.currency !== template.currency))
+    throw new Error("Dispute fee currency changed; reconciliation needs review");
+  const booked = existing.reduce(
+    (sum, entry) =>
+      sum + (entry.debit === template.debit ? 1 : -1) * entry.amount,
+    0,
+  );
+  const change = quantizeToCurrency(params.amount - booked, params.currency);
+  if (change === 0) return 0;
+  return postLedgerEntries([
+    {
+      ...template,
+      amount: Math.abs(change),
+      ...(change < 0 ? { debit: template.credit, credit: template.debit } : {}),
+      key: existing.length
+        ? `${template.key}:correction:${existing.length}`
+        : template.key,
+    },
+  ]);
+}
 
 /**
  * Bring what the books hold as a dispute's loss beyond the sale in line with
@@ -689,7 +917,27 @@ export async function postChargebackLoss(params: {
 }): Promise<number> {
   const order = await loadPostingOrder(params.orderId);
   if (!order) return 0;
-  const prefix = postingKey("order", order._id, "dispute", params.disputeId, "beyond-sale");
+  const prefix = postingKey(
+    "order",
+    order._id,
+    "dispute",
+    params.disputeId,
+    "beyond-sale",
+  );
+  const { FinanceOperation } = await import("@/models/finance-operation.model");
+  const { finishFinanceOperation, runFinanceOperation, financialFingerprint } =
+    await import("@/lib/finance/operations");
+  const pending = await FinanceOperation.find({
+    action: "dispute:loss",
+    sourceId: String(order._id),
+    state: "pending",
+    "result.lossPostingKey": prefix,
+  })
+    .select("_id")
+    .lean();
+  for (const operation of pending)
+    if (!(await finishFinanceOperation(operation._id)))
+      throw new Error("Dispute loss bookkeeping remains pending");
   const existing = (
     await LedgerEntry.find({
       "source.kind": "order",
@@ -704,31 +952,58 @@ export async function postChargebackLoss(params: {
     .filter((entry) => !String(entry.key || "").includes(":book-share:"));
   const booked = existing.reduce(
     (sum, entry) =>
-      sum + (entry.debit === "chargeback_losses" ? 1 : -1) * Number(entry.amount || 0),
+      sum +
+      (entry.debit === "chargeback_losses" ? 1 : -1) *
+        Number(entry.amount || 0),
     0,
   );
   const target = Math.max(0, Number(params.target) || 0);
-  const change = Math.round((target - booked) * 1000) / 1000;
-  if (Math.abs(change) < 0.005) return 0;
+  const change = quantizeToCurrency(target - booked, params.currency);
+  if (change === 0) return 0;
 
   const defaults = await getDefaultVendorIds();
   const anyOwn = (order.subOrders || []).some((sub) =>
     defaults.has(sub?.vendorId ? String(sub.vendorId) : ""),
   );
   const shares = bookSharesOfCharge(order, { defaultVendorIds: defaults });
-  return postLedgerEntries(
-    chargebackLossPostings({
-      disputeId: params.disputeId,
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      amount: Math.abs(change),
+  const postings = chargebackLossPostings({
+    disputeId: params.disputeId,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    amount: Math.abs(change),
+    currency: params.currency,
+    date: params.date || new Date(),
+    book: anyOwn ? "own" : "marketplace",
+    returned: change < 0,
+    part: existing.length + 1,
+  }).flatMap((entry) => [entry, ...moveShareToOtherBook(entry, shares)]);
+  const operation = await runFinanceOperation<{
+    lossPostingKey: string;
+    written: number;
+  }>({
+    actorId: "system",
+    action: "dispute:loss",
+    requestKey: financialFingerprint({
+      key: prefix,
       currency: params.currency,
-      date: params.date || new Date(),
-      book: anyOwn ? "own" : "marketplace",
-      returned: change < 0,
-      part: existing.length + 1,
-    }).flatMap((entry) => [entry, ...moveShareToOtherBook(entry, shares)]),
-  );
+      target,
+      generation: existing.length,
+    }),
+    fingerprint: {
+      key: prefix,
+      currency: params.currency,
+      target,
+      generation: existing.length,
+    },
+    work: async () => ({
+      sourceId: order._id,
+      result: { lossPostingKey: prefix, written: 1 },
+      postings,
+    }),
+  });
+  if (operation.bookkeepingState !== "complete")
+    throw new Error("Dispute loss bookkeeping remains pending");
+  return operation.data.written;
 }
 
 export async function postRefund(params: {
@@ -789,16 +1064,18 @@ export async function postRefund(params: {
  * the same figures the whole allocation effort existed to get rid of, and they
  * would have come back through the one path nobody looks at.
  */
-export async function postRefundReversal(params: {
+export async function buildRefundReversalPostings(params: {
   orderId: unknown;
   amount: number;
   refundId?: unknown;
   date?: Date;
   /** Why it is reversed, for the entries' note. */
   note?: string;
-}): Promise<number> {
+  /** Freeze missing original legs too, so a late/failed refund post can heal. */
+  completeOriginal?: boolean;
+}) {
   const order = await loadPostingOrder(params.orderId);
-  if (!order) return 0;
+  if (!order) throw new Error("The order for this refund reversal was not found");
 
   const decomposition = decomposeOrder(order);
   const subOrders = (order.subOrders || []).filter(Boolean);
@@ -814,19 +1091,65 @@ export async function postRefundReversal(params: {
   // Against what the refund came out of: a refund to store credit (R8) is put
   // back on the credit owed, not on a cash account it never touched.
   const row = await loadRefundRow(params.refundId);
-  return postLedgerEntries(
-    refundReversalPostings({
-      order,
-      amount: params.amount,
-      refundId: params.refundId,
-      date: params.date,
-      allocation: row.allocation,
-      alreadyReversed,
-      context: await orderContext(),
-      ...(row.storeCredit ? { against: "store_credit" as const } : {}),
-      ...(params.note ? { note: params.note } : {}),
+  const input = {
+    order,
+    amount: params.amount,
+    refundId: params.refundId,
+    date: params.date,
+    allocation: row.allocation,
+    alreadyReversed,
+    context: await orderContext(),
+    ...(row.storeCredit ? { against: "store_credit" as const } : {}),
+    ...(params.note ? { note: params.note } : {}),
+  };
+  if (!params.completeOriginal) return refundReversalPostings(input);
+
+  // A refund can become failed before its asynchronous original posting
+  // lands. Failed rows no longer appear in the normal refund sweep. Save
+  // both missing original entries and their mirrors in the reversal receipt.
+  // Already-posted entries are mirrored exactly, even if the sale changed.
+  const originals = refundPostings({ ...input, date: row.createdAt });
+  const posted = await financeQuery(LedgerEntry.find({
+    key: { $in: originals.map((entry) => entry.key) },
+  })).select("date book debit credit amount currency vendorId source key note baseCurrency fxRate")
+    .lean<typeof originals>();
+  const byKey = new Map(posted.map((entry) => [entry.key, entry]));
+  const date = params.date || new Date();
+  return [
+    ...originals.filter((entry) => !byKey.has(entry.key)),
+    ...originals.map((expected) => {
+      const entry = byKey.get(expected.key) || expected;
+      return {
+        ...entry,
+        date,
+        debit: entry.credit,
+        credit: entry.debit,
+        key: `${entry.key}:reversal`,
+        note: params.note || "Refund failed at the gateway",
+      };
     }),
-  );
+  ];
+}
+
+export async function postRefundReversal(
+  params: Parameters<typeof buildRefundReversalPostings>[0],
+): Promise<number> {
+  // New reversals carry frozen postings. A later ledger sweep must finish
+  // those, not recompute their amounts/dates from a subsequently changed order.
+  if (params.refundId) {
+    const { FinanceOperation } = await import("@/models/finance-operation.model");
+    const operation = await FinanceOperation.findOne({
+      key: `system:refund:reverse:${String(params.refundId)}`,
+    }).select("_id").lean();
+    if (operation) {
+      const { finishFinanceOperation } = await import("./operations");
+      if (!await finishFinanceOperation(operation._id)) {
+        throw new Error("Refund reversal bookkeeping remains pending");
+      }
+      return 0;
+    }
+  }
+  return postLedgerEntries(await buildRefundReversalPostings(params));
 }
 
 export async function postPayoutPaid(payout: {
@@ -1131,12 +1454,31 @@ export async function postRestockedCost(params: {
   );
   if (![...standingByVendor.values()].some((balance) => balance > 0)) return 0;
 
+  // Sales the inventory cutover adopted are reversed by their allocation when
+  // the units come back; reversing them here too would count the cost twice.
+  const { InventorySaleAllocation } = await import(
+    "@/models/inventory-allocation.model"
+  );
+  const adoptedRows = await InventorySaleAllocation.find({
+    orderId: new Types.ObjectId(String(order._id)),
+    generation: 0,
+  })
+    .select("subOrderId productId variantId")
+    .lean<Array<{ subOrderId: unknown; productId: unknown; variantId?: unknown }>>();
+  const adopted = new Set(
+    adoptedRows.map(
+      (row) =>
+        `${String(row.subOrderId)}:${String(row.productId)}:${row.variantId ? String(row.variantId) : ""}`,
+    ),
+  );
+
   return postLedgerEntries(
     restockCostPostings({
       order,
       context: await orderContext(),
       restocked: params.restocked,
       standingByVendor,
+      adopted,
       eventKey: params.eventKey,
       date: params.date || new Date(),
     }),

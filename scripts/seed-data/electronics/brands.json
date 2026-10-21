@@ -187,7 +187,7 @@
       "$date": "2026-08-30T09:49:14.772Z"
     },
     "updatedAt": {
-      "$date": "2026-08-30T09:49:14.772Z"
+      "$date": "2026-10-16T04:14:54.692Z"
     },
     "__v": 0
   },
@@ -310,5 +310,32 @@
       "$date": "2026-09-03T15:19:31.607Z"
     },
     "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6abc8a1129cff9b7a894f60b"
+    },
+    "name": "Realme",
+    "slug": "realme",
+    "description": "",
+    "logo": "https://cdn-storify.neurolight.studio/uploads/vendor/6a97d80da843a901df252b96/2026/09/1790740998525-3206a9ecd809e03dcdab226946b59aa9/realme-logo-8426.png",
+    "website": "",
+    "order": 0,
+    "isActive": true,
+    "featured": false,
+    "ownerVendorId": {
+      "$oid": "6a97d80da843a901df252b96"
+    },
+    "approvalStatus": "approved",
+    "deletedAt": null,
+    "productCount": 0,
+    "createdAt": {
+      "$date": "2026-09-30T04:03:29.501Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-30T04:06:36.616Z"
+    },
+    "__v": 0,
+    "rejectionReason": ""
   }
 ]

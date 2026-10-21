@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { InventoryPosition } from "@/models/inventory-position.model";
 import * as z from "zod";
 import { LedgerEntry, LEDGER_SOURCE_KIND } from "@/models/ledger-entry.model";
 import { getSettings } from "@/models/settings.model";
@@ -111,6 +112,7 @@ export const POST = withApi(
       settings.general?.defaultCurrency || "USD"
     ).toUpperCase();
     const currency = (body.currency || storeCurrency).toUpperCase();
+    if ((body.book !== LEDGER_BOOK.MARKETPLACE || !settings.multiVendorMode?.enabled) && ["inventory", "cost_of_goods", "opening_inventory_equity"].some((account) => body.debit === account || body.credit === account) && await InventoryPosition.exists({ currency })) throw new ValidationError("Synchronized stock and its cost must be changed through Inventory or its recorded sale/return, so quantity and ledger stay together.");
 
     // A currency the books have never held is a typo, not a correction: posting
     // in it opens a fresh balance in a denomination nothing else uses, while

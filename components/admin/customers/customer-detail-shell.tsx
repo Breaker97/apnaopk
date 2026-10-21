@@ -1,5 +1,6 @@
 "use client";
 
+import { parseTagText } from "@/lib/customers/tag-text";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import {
@@ -119,18 +120,6 @@ interface CustomerDetailsResponse {
         image?: string;
         status?: CustomerStatus;
       };
-}
-
-function parseTags(input: string): string[] {
-  if (!input.trim()) return [];
-  return Array.from(
-    new Set(
-      input
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    ),
-  );
 }
 
 function getUser(profile: CustomerDetailsResponse) {
@@ -443,7 +432,7 @@ export function CustomerDetailShell({
           : 0,
         loyaltyTier: form.loyaltyTier,
         acquisitionSource: form.acquisitionSource.trim() || undefined,
-        tags: parseTags(form.tagsInput),
+        tags: parseTagText(form.tagsInput),
         notes: form.notes.trim() || undefined,
         marketingOptIn: form.marketingOptIn,
         emailNotifications: form.emailNotifications,

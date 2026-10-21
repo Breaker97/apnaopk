@@ -4,7 +4,8 @@ import { connectDB } from "@/lib/db";
 import { resolveClientIp } from "@/lib/api/client-ip";
 import { BlogComment, BlogPost } from "@/models";
 import { auth } from "@/lib/auth/auth";
-import { USER_ROLES } from "@/config/app.config";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
+import { isAdminHolding } from "@/lib/access/team-route-guard";
 import { createdResponse, paginatedResponse } from "@/lib/api/response";
 import {
   handleApiError,
@@ -44,7 +45,8 @@ export async function GET(request: NextRequest) {
 
     const query: Record<string, unknown> = {};
     const session = await auth.api.getSession({ headers: await headers() });
-    const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    // An administrator whose team role reaches the blog sees past the public view.
+    const isAdmin = await isAdminHolding(session?.user, [ADMIN_AREA_PERMISSIONS.VIEW_CONTENT, ADMIN_AREA_PERMISSIONS.MANAGE_CONTENT]);
 
     if (!isAdmin && !(await isShownPost(postId))) {
       // Only the comments under a post the blog shows: a private or
@@ -93,7 +95,8 @@ export async function POST(request: NextRequest) {
     const data = parsed.data;
 
     const session = await auth.api.getSession({ headers: await headers() });
-    const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    // An administrator whose team role reaches the blog sees past the public view.
+    const isAdmin = await isAdminHolding(session?.user, [ADMIN_AREA_PERMISSIONS.VIEW_CONTENT, ADMIN_AREA_PERMISSIONS.MANAGE_CONTENT]);
     // Anyone but an admin comments only on a post the blog shows.
     if (!isValidObjectId(data.postId)) throw new NotFoundError("Post");
     const post = await BlogPost.findOne({

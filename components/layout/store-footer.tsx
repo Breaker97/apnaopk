@@ -1,5 +1,6 @@
 "use client";
 
+import { DEVICES, resolveDimensions, responsivePaddingStyle, viewportStyle } from "@/lib/site-config/responsive-dimensions";
 import { type CSSProperties } from "react";
 import {
   Facebook,
@@ -30,7 +31,6 @@ import {
   type FooterSettings,
 } from "@/lib/site-config/footer-config";
 import type { LogoWidths } from "@/lib/site-config/header-config";
-import { paddingStyle } from "@/lib/site-config/header-layout-style";
 import {
   footerLayoutFromSettings,
   resolveFooterLayout,
@@ -134,9 +134,7 @@ export function StoreFooter({
         "--footer-accent": activeColors.accentColor,
       } as CSSProperties)
     : undefined;
-  const contentClass = footerSettings?.layout.fullWidth
-    ? "w-full px-4 sm:px-6 lg:px-8"
-    : "container mx-auto px-4";
+  const contentClass = "chrome-responsive-container";
   const resolveHref = (raw: string) => {
     if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
     if (raw.startsWith("/")) {
@@ -244,7 +242,7 @@ export function StoreFooter({
 
   /** One item, in the markup the footer has always drawn it with. */
   const renderItem = (item: FooterLayoutItem) => {
-    const inset = paddingStyle(item.padding);
+    const inset = responsivePaddingStyle(item);
     switch (item.type) {
       case "brand":
         return (
@@ -261,15 +259,17 @@ export function StoreFooter({
               // from `lg` up.
               <span
                 className={cn(
-                  "relative block max-w-full",
-                  logoWidths.matchesHeader
-                    ? "h-8 w-(--footer-logo-width) lg:h-auto lg:w-(--footer-logo-width-lg)"
-                    : "w-(--footer-logo-width)",
+                  "relative block max-w-full footer-responsive-logo",
                 )}
                 style={
                   {
-                    "--footer-logo-width": `${logoWidths.mobile}px`,
-                    "--footer-logo-width-lg": `${logoWidths.desktop}px`,
+                    ...Object.fromEntries(DEVICES.map((device) => [
+                      `--footer-logo-height-${device}`, device !== "desktop" && resolveDimensions(item, device).size === 0 ? "32px" : "auto",
+                    ])),
+                    ...Object.fromEntries(DEVICES.map((device) => {
+                      const sizes = resolveFooterLogoWidths(resolveDimensions(item, device).size, headerLogoWidths);
+                      return [`--footer-logo-${device}`, `${device === "desktop" ? sizes.desktop : device === "tablet" ? sizes.tablet ?? sizes.mobile : sizes.mobile}px`];
+                    })),
                   } as CSSProperties
                 }
               >
@@ -277,8 +277,7 @@ export function StoreFooter({
                   src={currentLogoUrl}
                   alt={footerLogoAlt || resolvedStoreName}
                   className={cn(
-                    "w-full object-contain object-left",
-                    logoWidths.matchesHeader ? "h-8 lg:h-auto" : "h-auto",
+                    "w-full object-contain object-left footer-responsive-logo-image",
                   )}
                   width={Math.round(logoWidths.desktop)}
                   height={Math.round(logoWidths.desktop / 4)}
@@ -287,7 +286,7 @@ export function StoreFooter({
             ) : (
               <>
                 <Store
-                  className="h-6 w-6 text-primary"
+                  className="h-6 w-6 text-store-link"
                   style={
                     activeColors
                       ? ({ color: "var(--footer-accent)" } as CSSProperties)
@@ -324,7 +323,7 @@ export function StoreFooter({
             {resolvedContact.phone && item.showPhone ? (
               <a
                 href={`tel:${resolvedContact.phone.replace(/\s+/g, "")}`}
-                className="flex items-center gap-2 transition-colors hover:text-primary"
+                className="flex items-center gap-2 transition-colors hover:text-store-link"
               >
                 <Phone className="h-4 w-4" />
                 <span>{resolvedContact.phone}</span>
@@ -333,7 +332,7 @@ export function StoreFooter({
             {resolvedContact.email && item.showEmail ? (
               <a
                 href={`mailto:${resolvedContact.email}`}
-                className="flex items-center gap-2 transition-colors hover:text-primary"
+                className="flex items-center gap-2 transition-colors hover:text-store-link"
               >
                 <Mail className="h-4 w-4" />
                 <span>{resolvedContact.email}</span>
@@ -373,7 +372,7 @@ export function StoreFooter({
                     // render per link before the shopper touched one. These
                     // are secondary pages; a click pays one round trip.
                     prefetch={false}
-                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                    className="text-sm text-muted-foreground transition-colors hover:text-store-link"
                     style={mutedStyle}
                   >
                     {link.label}
@@ -422,7 +421,7 @@ export function StoreFooter({
                 href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground transition-colors hover:text-primary"
+                className="text-muted-foreground transition-colors hover:text-store-link"
                 style={mutedStyle}
                 aria-label={social.label}
               >
@@ -451,9 +450,12 @@ export function StoreFooter({
           // Below `lg` the tracks are the grid's own, so a column wider than
           // one track says so by spanning; from `lg` the row states every
           // track explicitly and a span would fight it.
-          column.width > 1 && "col-span-2 lg:col-span-1",
+          "footer-responsive-column",
         )}
         style={{
+          ...Object.fromEntries(DEVICES.map((device) => [
+            `--footer-span-${device}`, device === "desktop" ? "auto" : `span ${column.width > 1 ? 2 : 1}`,
+          ])),
           gap: headingGap ?? column.gap,
           justifyContent: FLOW_JUSTIFY[column.justify],
           alignItems:
@@ -523,8 +525,8 @@ export function StoreFooter({
             the row's inline `padding: 48 0` then overwrote the gutter's left
             and right — so on a phone the footer ran flush to the screen
             edge. Now the row's padding adds to the gutter instead. */}
-        <div className={contentClass}>
-          <div style={paddingStyle(row.padding)}>
+        <div className={contentClass} style={viewportStyle(layout.viewport, footerSettings?.layout.fullWidth ?? false)}>
+          <div style={responsivePaddingStyle(row)}>
             <div
               className={cn(
                 "footer-row grid",
@@ -541,9 +543,16 @@ export function StoreFooter({
               style={
                 {
                   gap: row.gap,
-                  "--footer-cols": drawnColumns
-                    .map((column) => `minmax(0, ${column.width}fr)`)
-                    .join(" "),
+                  ...Object.fromEntries(DEVICES.map((device) => [
+                    `--footer-row-span-${device}`, strip || drawnColumns.some((column) => column.responsive?.[device]?.width !== undefined) ? "auto" : undefined,
+                  ])),
+                  ...Object.fromEntries(DEVICES.map((device) => [
+                    `--footer-cols-${device}`, device === "desktop" ||
+                      (device === "tablet" && strip) ||
+                      drawnColumns.some((column) => column.responsive?.[device]?.width !== undefined)
+                        ? drawnColumns.map((column) => `minmax(0, ${resolveDimensions(column, device).width}fr)`).join(" ")
+                        : `repeat(${strip ? 1 : device === "mobile" ? 2 : 4}, minmax(0, 1fr))`,
+                  ])),
                 } as CSSProperties
               }
             >

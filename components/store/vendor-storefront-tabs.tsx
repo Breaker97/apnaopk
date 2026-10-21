@@ -124,7 +124,7 @@ export function VendorStorefrontTabs({
             className={cn(
               "inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-sm font-medium transition-colors sm:px-4",
               isActive
-                ? "border-primary font-semibold text-primary"
+                ? "border-primary font-semibold text-store-link"
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
             )}
           >
@@ -134,7 +134,7 @@ export function VendorStorefrontTabs({
                 className={cn(
                   "rounded-full px-1.5 py-px text-[11px] font-semibold tabular-nums",
                   isActive
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/10 text-store-link"
                     : "bg-muted text-muted-foreground",
                 )}
               >

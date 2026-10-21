@@ -61,7 +61,7 @@ export function ProductsMobileToolbar({
       <button
         type="button"
         onClick={onOpenFilters}
-        className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-s-md text-sm font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-s-md text-sm font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
       >
         <SlidersHorizontal className="size-4" aria-hidden="true" />
         {filtersLabel}

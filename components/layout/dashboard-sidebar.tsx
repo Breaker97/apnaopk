@@ -1,5 +1,7 @@
 "use client";
 
+import { apparentSidebarIsDark, apparentSidebarStyle } from "@/lib/theme-colors/apparent-sidebar";
+import { teamPageRequirement } from "@/lib/access/team-route-permissions";
 import Link from "@/components/language/link";
 import * as React from "react";
 import { useTranslations } from "next-intl";
@@ -46,11 +48,12 @@ import {
   Rocket,
   Receipt,
   Landmark,
+  BookOpen,
   GalleryHorizontalEnd,
   LayoutGrid,
   PanelsTopLeft,
   History,
-  Undo2,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -76,7 +79,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useAppSettings, presetColors } from "@/stores/app-settings";
+import { apparentPaintColor, useAppSettings, presetColors } from "@/stores/app-settings";
 import { useAiAvailability } from "@/components/ai-authoring/ai-availability-provider";
 import {
   useMultiVendorMode,
@@ -87,8 +90,11 @@ import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { AppImage } from "@/components/ui/app-image";
 import { useAppTheme } from "@/providers/theme-provider";
 import { useInboxUnreadCount } from "@/hooks/use-inbox-unread-count";
-import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
+import {
+  SidebarAccountMenu,
+  type AccountMenuLink,
+} from "@/components/layout/account-menu";
 import { adminSettingsSectionFromPath } from "@/components/admin/settings/settings-sections";
 import { AdminSettingsSidebarNav } from "@/components/admin/settings/settings-sidebar-nav";
 
@@ -135,6 +141,7 @@ const iconMap: Record<string, LucideIcon> = {
   Rocket,
   Receipt,
   Landmark,
+  BookOpen,
   GalleryHorizontalEnd,
   LayoutGrid,
   History,
@@ -149,11 +156,8 @@ const iconMap: Record<string, LucideIcon> = {
  * requires `isAdmin` — so following one bounced them to the login page from
  * inside their own dashboard.
  *
- * Not currently reachable for vendors: the POS terminal itself renders no
- * sidebar, and `/vendor/pos/locations` now redirects out of the POS tree, so
- * there is no `/vendor/pos/*` sub-page left to land on. It is built correctly
- * anyway — the wrongness was latent, not absent, and the next vendor POS
- * sub-page would have brought it straight back.
+ * Reached by vendors on `/vendor/pos/staff`, their till reports (the POS
+ * terminal itself renders no sidebar).
  */
 type DashboardArea = "admin" | "vendor";
 
@@ -172,8 +176,8 @@ function buildPosNavItems(area: DashboardArea): NavItem[] {
         href: "/vendor/orders",
         icon: "ClipboardList",
       },
-      // A vendor's staff are managed outside POS — there is no
-      // `/vendor/pos/staff` to point at, and the admin path would bounce them.
+      // The seller's till reports. Their staff are managed outside POS.
+      { label: "pos.reports.navLabel", href: "/vendor/pos/staff", icon: "BarChart3" },
       { label: "admin.sidebar.staff", href: "/vendor/staff", icon: "Users" },
       { label: "locations.title", href: "/vendor/locations", icon: "MapPin" },
     ];
@@ -187,9 +191,10 @@ function buildPosNavItems(area: DashboardArea): NavItem[] {
       icon: "ClipboardList",
     },
     {
-      label: "admin.sidebar.posStaff",
+      // Till sales by cashier and counter, and the drawers' counts.
+      label: "pos.reports.navLabel",
       href: "/admin/pos/staff",
-      icon: "Users",
+      icon: "BarChart3",
     },
     {
       // The canonical screen, not the `/admin/pos/locations` redirect that used
@@ -222,10 +227,18 @@ interface DashboardSidebarProps {
   };
   vendorPermissions?: string[];
   /**
+   * The admin area only: the member's team role (lib/access/team-permissions.ts).
+   * A restricted member sees only the areas their role reaches; absent or
+   * `fullAccess` shows everything.
+   */
+  teamAccess?: { fullAccess: boolean; permissions: string[] };
+  /**
    * The vendor area only: the store lets vendors see their abandoned
    * checkouts (Vendors → Configuration). Absent reads as off.
    */
   vendorAbandonedCheckouts?: boolean;
+  /** The admin area only: the running release, shown under the account menu. */
+  appVersion?: string;
 }
 
 const adminNavGroups: {
@@ -430,6 +443,14 @@ const adminNavGroups: {
             href: "/admin/finance",
             icon: "Landmark",
           },
+          // Stock value and its ledger. The page sits under /admin/inventory
+          // for staff who reach it from Inventory; the most-specific-href rule
+          // above lights it up here, not under Products.
+          {
+            label: "admin.sidebar.inventoryLedger",
+            href: "/admin/inventory/finance",
+            icon: "BookOpen",
+          },
           {
             label: "admin.sidebar.expenses",
             href: "/admin/finance/expenses",
@@ -552,6 +573,11 @@ const adminNavGroups: {
             label: "admin.sidebar.sliders",
             href: "/admin/online-store/sliders",
             icon: "GalleryHorizontalEnd",
+          },
+          {
+            label: "admin.sidebar.campaignBanners",
+            href: "/admin/online-store/campaign-banners",
+            icon: "Megaphone",
           },
           {
             label: "admin.sidebar.checkout",
@@ -846,6 +872,10 @@ function buildVendorNavGroups(
     items.push(activityLogItem);
   }
 
+  // Online Store and POS sit under their own Sales Channels heading, as they
+  // do in the admin nav.
+  const salesChannelItems: NavItem[] = [];
+
   // The Vendor CMS, named and shaped like the admin's Online Store: the
   // vendor's own landing page (the Home tab of their storefront) and the
   // sliders it places. Gated like the store profile it sits beside.
@@ -854,7 +884,7 @@ function buildVendorNavGroups(
     perms.has("manage_store_settings") ||
     perms.has("edit_store_settings")
   ) {
-    items.push({
+    salesChannelItems.push({
       label: "admin.sidebar.onlineStore",
       href: "/vendor/online-store",
       icon: "Store",
@@ -869,19 +899,36 @@ function buildVendorNavGroups(
           href: "/vendor/online-store/sliders",
           icon: "GalleryHorizontalEnd",
         },
+        {
+          label: "admin.sidebar.campaignBanners",
+          href: "/vendor/online-store/campaign-banners",
+          icon: "Megaphone",
+        },
       ],
     });
   }
 
   if (posEnabled && perms.has("access_pos")) {
-    items.push({
+    salesChannelItems.push({
       label: "admin.sidebar.pos",
       href: "/vendor/pos",
       icon: "ShoppingCart",
     });
+    items.push({
+      label: "pos.reports.navLabel",
+      href: "/vendor/pos/staff",
+      icon: "BarChart3",
+    });
   }
 
-  return [{ label: "", items }];
+  if (salesChannelItems.length === 0) {
+    return [{ label: "", items }];
+  }
+
+  return [
+    { label: "", items },
+    { label: "admin.sidebar.salesChannels", items: salesChannelItems },
+  ];
 }
 
 function filterNavGroupsByHref<T extends { items: NavItem[] }>(
@@ -892,6 +939,29 @@ function filterNavGroupsByHref<T extends { items: NavItem[] }>(
     ...group,
     items: filterNavItemsByHref(group.items, blockedHrefs),
   }));
+}
+
+function filterNavGroupsByTeamRole<T extends { items: NavItem[] }>(
+  groups: T[],
+  reaches: (href: string) => boolean,
+): T[] {
+  return groups
+    .map((group) => ({ ...group, items: filterNavItemsByTeamRole(group.items, reaches) }))
+    .filter((group) => group.items.length > 0);
+}
+
+/** A section stays while any entry under it is reachable; a leaf, when it is. */
+function filterNavItemsByTeamRole(
+  items: NavItem[],
+  reaches: (href: string) => boolean,
+): NavItem[] {
+  return items.flatMap((item) => {
+    if (item.items) {
+      const children = filterNavItemsByTeamRole(item.items, reaches);
+      return children.length > 0 ? [{ ...item, items: children }] : [];
+    }
+    return reaches(item.href) ? [item] : [];
+  });
 }
 
 function filterNavItemsByHref(
@@ -910,11 +980,12 @@ function filterNavItemsByHref(
 
 // Determine whether `href` is the active nav target for the current path.
 // Exact matches always win. A prefix match (basePath nested under href) only
-// counts when no sibling href is a longer, more specific match — this prevents
-// an "index" child (whose href is a prefix of its siblings, e.g. /admin/vendors)
-// from lighting up alongside the deeper sibling that actually matches
-// (e.g. /admin/vendors/onboarding).
-function isNavHrefActive(
+// counts when no other href in the tree is a longer, more specific match — so
+// an "index" child (/admin/vendors) does not light up alongside the deeper
+// sibling that actually matches (/admin/vendors/onboarding), and a page listed
+// in one section (Finance › /admin/inventory/finance) does not also light up
+// the section whose href it happens to sit under (Products › /admin/inventory).
+export function isNavHrefActive(
   basePath: string,
   href: string,
   siblingHrefs: string[],
@@ -942,6 +1013,7 @@ function CollapsedHoverSubmenu({
   isApparent,
   isRTL,
   basePath,
+  navHrefs,
   tLabel,
 }: {
   item: NavItem;
@@ -951,6 +1023,8 @@ function CollapsedHoverSubmenu({
   isApparent: boolean;
   isRTL: boolean;
   basePath: string;
+  /** Every href in the tree; the most specific match wins. */
+  navHrefs: string[];
   tLabel: (key: string) => string;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -1046,7 +1120,7 @@ function CollapsedHoverSubmenu({
             const isChildItemActive = isNavHrefActive(
               basePath,
               child.href,
-              submenuItems.map((c) => c.href),
+              navHrefs,
             );
             return (
               <DropdownMenuItem
@@ -1075,74 +1149,52 @@ function CollapsedHoverSubmenu({
   );
 }
 
-// The one action pinned to the sidebar's foot. It is drawn as a filled button,
-// so it never reads as the list's last row, and its padding (px-5 = the
-// content's px-3 + the group's px-2) lines its icon up with the menu icons
-// above it.
-function SidebarFooterAction({
-  Icon,
-  href,
-  label,
-  isActive,
+// The sidebar's foot: the signed-in account, with the release under it in the
+// admin area.
+function DashboardSidebarFooter({
+  locale,
+  user,
+  accountLinks,
+  appVersion,
   isApparent,
-  mirrorIcon,
+  isRTL,
+  isIconCollapsed,
 }: {
-  Icon: LucideIcon;
-  href: string;
-  label: string;
-  isActive: boolean;
+  locale: string;
+  user: { name: string; email: string; image?: string };
+  accountLinks: AccountMenuLink[];
+  appVersion?: string;
   isApparent: boolean;
-  mirrorIcon: boolean;
+  isRTL: boolean;
+  isIconCollapsed: boolean;
 }) {
+  const t = useTranslations();
+
   return (
-    <SidebarFooter className="mt-auto px-5 py-3 group-data-[collapsible=icon]:p-2">
-      <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-        <SidebarMenuItem className="group-data-[collapsible=icon]:w-full">
-          <SidebarMenuButton
-            asChild
-            size="sm"
-            isActive={isActive}
-            className={cn(
-              "h-10 rounded-lg px-3 text-[13px] font-semibold transition-colors group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5",
-              isApparent
-                ? isActive
-                  ? "bg-white/25 text-white hover:bg-white/30 hover:text-white data-[active=true]:bg-white/25 data-[active=true]:text-white"
-                  : "bg-white/15 text-white hover:bg-white/20 hover:text-white"
-                : isActive
-                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary dark:bg-white/15 dark:text-white dark:hover:bg-white/20 dark:data-[active=true]:bg-white/15 dark:data-[active=true]:text-white"
-                  : "bg-foreground/[0.07] text-foreground hover:bg-foreground/10 hover:text-foreground",
-            )}
-          >
-            <Link
-              prefetch={false}
-              href={href}
-              className="relative flex w-full items-center gap-3 group-data-[collapsible=icon]:justify-center"
-            >
-              <Icon
-                className={cn(
-                  "size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:size-5",
-                  mirrorIcon && "-scale-x-100",
-                )}
-              />
-              <span className="flex-1 group-data-[collapsible=icon]:hidden">
-                {label}
-              </span>
-              <span
-                className={cn(
-                  "hidden text-[11px] leading-tight group-data-[collapsible=icon]:block text-center break-words whitespace-normal overflow-visible",
-                  isApparent
-                    ? "text-white"
-                    : isActive
-                      ? "text-sidebar-accent-foreground"
-                      : "text-muted-foreground",
-                )}
-              >
-                {label}
-              </span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
+    <SidebarFooter className="mt-auto gap-2 px-3 py-3 group-data-[collapsible=icon]:p-2">
+      <SidebarAccountMenu
+        locale={locale}
+        user={user}
+        links={accountLinks}
+        isApparent={isApparent}
+        isRTL={isRTL}
+        isIconCollapsed={isIconCollapsed}
+      />
+      {appVersion && (
+        <p
+          className={cn(
+            "text-center text-[11px] leading-none tabular-nums",
+            isApparent ? "text-white/70" : "text-muted-foreground",
+          )}
+        >
+          <span className="group-data-[collapsible=icon]:hidden">
+            {t("admin.accountMenu.version", { version: `v${appVersion}` })}
+          </span>
+          <span className="hidden group-data-[collapsible=icon]:inline">
+            v{appVersion}
+          </span>
+        </p>
+      )}
     </SidebarFooter>
   );
 }
@@ -1185,10 +1237,11 @@ export function DashboardSidebar({
   locale,
   user,
   vendorPermissions,
+  teamAccess,
   vendorAbandonedCheckouts = false,
+  appVersion,
 }: DashboardSidebarProps) {
   const t = useTranslations();
-  const tSafe = useFallbackTranslator(t);
   const pathname = usePathname();
   const basePath = React.useMemo(() => {
     const prefix = `/${locale}`;
@@ -1198,7 +1251,7 @@ export function DashboardSidebar({
     }
     return pathname;
   }, [pathname, locale]);
-  const { navColor, presetColor, primaryColor, rtl } = useAppSettings();
+  const { navColor, navPaint, presetColor, primaryColor, secondaryColor, previewBrand, rtl } = useAppSettings();
   const { isMultiVendor } = useMultiVendorMode();
   const {
     storeName,
@@ -1235,8 +1288,8 @@ export function DashboardSidebar({
     basePath.startsWith("/staff/pos/");
 
   // Settings open inside the dashboard: while one of its pages is showing, the
-  // settings menu takes the main menu's place, with a way back out pinned to
-  // the footer where the Settings button sat.
+  // settings menu takes the main menu's place, with a way back out under its
+  // search box.
   const settingsSectionId =
     user.role === USER_ROLES.ADMIN
       ? adminSettingsSectionFromPath(basePath)
@@ -1312,8 +1365,19 @@ export function DashboardSidebar({
       });
     }
 
+    // A restricted team role: only the areas it reaches, by the same rules the
+    // area layouts enforce.
+    if (user.role === USER_ROLES.ADMIN && teamAccess && !teamAccess.fullAccess) {
+      const held = new Set(teamAccess.permissions);
+      nextGroups = filterNavGroupsByTeamRole(nextGroups, (href) => {
+        const required = teamPageRequirement(href);
+        return !required || required.length === 0 || required.some((permission) => held.has(permission));
+      });
+    }
+
     return nextGroups;
   }, [
+    teamAccess,
     user.role,
     isMultiVendor,
     posEnabled,
@@ -1323,6 +1387,20 @@ export function DashboardSidebar({
     vendorPermissions,
     vendorAbandonedCheckouts,
   ]);
+
+  const navHrefs = React.useMemo(
+    () =>
+      navGroups.flatMap((group) =>
+        group.items.flatMap((item) => [
+          item.href,
+          ...(item.items ?? []).flatMap((child) => [
+            child.href,
+            ...(child.items ?? []).map((grandChild) => grandChild.href),
+          ]),
+        ]),
+      ),
+    [navGroups],
+  );
 
   // Polled only when Inbox is actually in the nav: a vendor without inbox
   // access would be answered 403 on every tick.
@@ -1343,18 +1421,22 @@ export function DashboardSidebar({
   const isIconCollapsed =
     !isMobile && collapsible === "icon" && sidebarState === "collapsed";
 
-  // Determine if using apparent (dark) sidebar
+  // Determine if using apparent (brand-painted) sidebar
   const isApparent = navColor === "apparent";
-  const useDarkSidebarBrand = isDark || isApparent;
 
-  // Get the preset color value for apparent mode (use hex for inline style
-  // compatibility). Prefer the live primary color so custom (non-preset) brand
-  // colors also drive the apparent sidebar; fall back to the built-in preset
-  // hex for legacy documents where primaryColor may be missing.
+  // The apparent sidebar's paint: the live theme's primary, or its secondary
+  // when the viewer chose it (Preferences) — or the theme editor's unsaved
+  // colours while it is open. The built-in preset hex backs up legacy
+  // documents where the colour may be missing.
+  const paintColor = apparentPaintColor({ navPaint, primaryColor, secondaryColor, previewBrand });
   const presetColorHex =
-    typeof primaryColor === "string" && primaryColor.trim()
-      ? primaryColor
+    typeof paintColor === "string" && paintColor.trim()
+      ? paintColor
       : presetColors[presetColor]?.hex;
+  // The logo's dark-surface artwork only where the sidebar IS dark: a light
+  // brand (cyan, orange) paints a light apparent sidebar.
+  const useDarkSidebarBrand =
+    isDark || (isApparent && apparentSidebarIsDark(presetColorHex));
   const currentLogoUrl =
     useDarkSidebarBrand &&
     typeof darkModeLogoUrl === "string" &&
@@ -1434,17 +1516,19 @@ export function DashboardSidebar({
       for (const item of group.items) {
         const children = item.items;
         if (!children?.length) continue;
-        const isSelfActive =
-          basePath === item.href || basePath.startsWith(`${item.href}/`);
+        const isSelfActive = isNavHrefActive(basePath, item.href, navHrefs);
         const isChildActive = children.some(
           (child) =>
-            basePath === child.href || basePath.startsWith(`${child.href}/`),
+            isNavHrefActive(basePath, child.href, navHrefs) ||
+            (child.items ?? []).some((grandChild) =>
+              isNavHrefActive(basePath, grandChild.href, navHrefs),
+            ),
         );
         if (isSelfActive || isChildActive) openSet.add(item.href);
       }
     }
     return openSet;
-  }, [navGroups, basePath]);
+  }, [navGroups, navHrefs, basePath]);
 
   const [openSections, setOpenSections] = React.useState<Set<string>>(
     () => initiallyOpenHrefs,
@@ -1492,49 +1576,30 @@ export function DashboardSidebar({
     );
   }, [user.role, vendorPermissions]);
 
-  const footerSettings = React.useMemo(() => {
+  // The signed-in person's own pages, offered by the account menu at the
+  // sidebar's foot.
+  const accountLinks = React.useMemo<AccountMenuLink[]>(() => {
     if (user.role === USER_ROLES.ADMIN) {
-      return {
-        path: "/admin/settings",
+      return [
+        { href: "/admin/profile", label: t("adminProfile.title"), Icon: UserRound },
         // Straight to the first section: `/admin/settings` only redirects
         // there, at the cost of a second round trip through its layout.
-        href: "/admin/settings/general",
-        label: t("common.settings"),
-      };
+        { href: "/admin/settings/general", label: t("common.settings"), Icon: Settings },
+      ];
     }
 
+    // A vendor's profile is a tab of their settings page, behind the same
+    // permission.
     if (canAccessVendorSettings) {
-      return {
-        path: "/vendor/settings",
-        href: "/vendor/settings",
-        label: tLabel("vendor.settings"),
-      };
+      return [
+        { href: "/vendor/settings?tab=account", label: t("common.profile"), Icon: UserRound },
+        { href: "/vendor/settings", label: tLabel("vendor.settings"), Icon: Settings },
+      ];
     }
 
-    return null;
+    return [];
   }, [user.role, canAccessVendorSettings, t, tLabel]);
 
-  // The one button pinned to the sidebar's foot: Settings on the main menu, the
-  // way back to the dashboard once the settings menu has taken its place.
-  const footerAction = settingsSectionId
-    ? {
-        Icon: Undo2,
-        href: "/admin/dashboard",
-        label: tSafe("common.backToDashboard", "Back to dashboard"),
-        isActive: false,
-        mirrorInRtl: true,
-      }
-    : footerSettings
-      ? {
-          Icon: Settings,
-          href: footerSettings.href,
-          label: footerSettings.label,
-          isActive:
-            basePath === footerSettings.path ||
-            basePath.startsWith(`${footerSettings.path}/`),
-          mirrorInRtl: false,
-        }
-      : null;
 
   // ============================================
   // POS Terminal — no sidebar (fullscreen)
@@ -1558,16 +1623,7 @@ export function DashboardSidebar({
         )}
         style={
           isApparent
-            ? ({
-                "--sidebar": presetColorHex,
-                "--color-sidebar": presetColorHex,
-                "--sidebar-foreground": "#ffffff",
-                "--color-sidebar-foreground": "#ffffff",
-                "--sidebar-accent": "rgb(255 255 255 / 0.2)",
-                "--color-sidebar-accent": "rgb(255 255 255 / 0.2)",
-                "--sidebar-accent-foreground": "#ffffff",
-                "--color-sidebar-accent-foreground": "#ffffff",
-              } as React.CSSProperties)
+            ? apparentSidebarStyle(presetColorHex)
             : undefined
         }
         collapsible={collapsible}
@@ -1703,16 +1759,15 @@ export function DashboardSidebar({
           </SidebarGroup>
         </SidebarContent>
 
-        {footerAction && (
-          <SidebarFooterAction
-            Icon={footerAction.Icon}
-            href={footerAction.href}
-            label={footerAction.label}
-            isActive={footerAction.isActive}
-            isApparent={isApparent}
-            mirrorIcon={footerAction.mirrorInRtl && isRTL}
-          />
-        )}
+        <DashboardSidebarFooter
+          locale={locale}
+          user={user}
+          accountLinks={accountLinks}
+          appVersion={appVersion}
+          isApparent={isApparent}
+          isRTL={isRTL}
+          isIconCollapsed={isIconCollapsed}
+        />
       </Sidebar>
     );
   }
@@ -1730,16 +1785,7 @@ export function DashboardSidebar({
       )}
       style={
         isApparent
-          ? ({
-              "--sidebar": presetColorHex,
-              "--color-sidebar": presetColorHex,
-              "--sidebar-foreground": "#ffffff",
-              "--color-sidebar-foreground": "#ffffff",
-              "--sidebar-accent": "rgb(255 255 255 / 0.2)",
-              "--color-sidebar-accent": "rgb(255 255 255 / 0.2)",
-              "--sidebar-accent-foreground": "#ffffff",
-              "--color-sidebar-accent-foreground": "#ffffff",
-            } as React.CSSProperties)
+          ? apparentSidebarStyle(presetColorHex)
           : undefined
       }
       collapsible={collapsible}
@@ -1803,16 +1849,20 @@ export function DashboardSidebar({
                 {group.items.map((item) => {
                   const Icon = iconMap[item.icon] || Package;
                   // Check if item matches current path (self)
-                  const isSelfActive =
-                    basePath === item.href ||
-                    basePath.startsWith(`${item.href}/`);
+                  const isSelfActive = isNavHrefActive(
+                    basePath,
+                    item.href,
+                    navHrefs,
+                  );
 
-                  // Check if any child matches current path
+                  // Check if any child (or grandchild) matches current path
                   const isChildActive = Boolean(
                     item.items?.some(
                       (child) =>
-                        basePath === child.href ||
-                        basePath.startsWith(`${child.href}/`),
+                        isNavHrefActive(basePath, child.href, navHrefs) ||
+                        (child.items ?? []).some((grandChild) =>
+                          isNavHrefActive(basePath, grandChild.href, navHrefs),
+                        ),
                     ),
                   );
 
@@ -1820,7 +1870,6 @@ export function DashboardSidebar({
 
                   if (item.items && item.items.length > 0) {
                     const children = item.items;
-                    const childHrefs = children.map((child) => child.href);
                     const isOpen = isChildActive || openSections.has(item.href);
                     const isSectionActive = isActive;
                     const isSectionExpanded = isOpen || isChildActive;
@@ -1836,6 +1885,7 @@ export function DashboardSidebar({
                           isApparent={isApparent}
                           isRTL={isRTL}
                           basePath={basePath}
+                          navHrefs={navHrefs}
                           tLabel={tLabel}
                         />
                       );
@@ -1889,16 +1939,16 @@ export function DashboardSidebar({
                               const childSelfActive = isNavHrefActive(
                                 basePath,
                                 child.href,
-                                childHrefs,
+                                navHrefs,
                               );
                               const grandChildren = child.items ?? [];
-                              const grandChildHrefs = grandChildren.map(
-                                (grandChild) => grandChild.href,
-                              );
                               const isGrandChildActive = grandChildren.some(
                                 (grandChild) =>
-                                  basePath === grandChild.href ||
-                                  basePath.startsWith(`${grandChild.href}/`),
+                                  isNavHrefActive(
+                                    basePath,
+                                    grandChild.href,
+                                    navHrefs,
+                                  ),
                               );
                               const isChildItemActive =
                                 childSelfActive || isGrandChildActive;
@@ -2002,7 +2052,7 @@ export function DashboardSidebar({
                                           isNavHrefActive(
                                             basePath,
                                             grandChild.href,
-                                            grandChildHrefs,
+                                            navHrefs,
                                           );
 
                                         return (
@@ -2116,16 +2166,15 @@ export function DashboardSidebar({
         ))}
       </SidebarContent>
 
-      {footerAction && (
-        <SidebarFooterAction
-          Icon={footerAction.Icon}
-          href={footerAction.href}
-          label={footerAction.label}
-          isActive={footerAction.isActive}
-          isApparent={isApparent}
-          mirrorIcon={footerAction.mirrorInRtl && isRTL}
-        />
-      )}
+      <DashboardSidebarFooter
+        locale={locale}
+        user={user}
+        accountLinks={accountLinks}
+        appVersion={appVersion}
+        isApparent={isApparent}
+        isRTL={isRTL}
+        isIconCollapsed={isIconCollapsed}
+      />
     </Sidebar>
   );
 }

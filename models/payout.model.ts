@@ -146,6 +146,15 @@ const PayoutSchema = new Schema(
       type: Date,
     },
     /**
+     * How long the slice is held, counted from `paidAt`: the release date is
+     * set when the payout is paid. Absent on payouts made before, whose date
+     * was counted from creation.
+     */
+    preorderReserveDays: {
+      type: Number,
+      min: 0,
+    },
+    /**
      * Stamped once a later payout has actually paid the slice out, so a
      * matured reserve is released exactly once. Absent means still held.
      */
@@ -213,7 +222,9 @@ const PayoutSchema = new Schema(
     version: { type: Number, default: 0, min: 0 },
     calculationVersion: { type: String },
     calculatedAt: { type: Date },
-    periodBoundary: { type: String, enum: ["calendar", "timestamp"] },
+    // "open": no start date was chosen — every payable sale up to the end;
+    // `periodStart` then holds the oldest sale the payout took.
+    periodBoundary: { type: String, enum: ["calendar", "timestamp", "open"] },
     eligibleEarnings: { type: Number },
     breakdown: { type: Schema.Types.Mixed },
     allocations: { type: [Schema.Types.Mixed], default: undefined },
@@ -224,6 +235,8 @@ const PayoutSchema = new Schema(
     preorderReserveReservedAt: { type: Date },
     reserveCreditRecovered: { type: Number, validate: Number.isFinite },
     requiresRequote: { type: Boolean, default: false },
+    /** Why `requiresRequote` was set — see lib/finance/payout-requote.ts. */
+    requoteReason: { type: String, trim: true, maxlength: 200 },
     statusHistory: {
       type: [
         new Schema(

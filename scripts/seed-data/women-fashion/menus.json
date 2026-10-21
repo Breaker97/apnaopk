@@ -47,6 +47,7 @@
         "type": "category",
         "target": "_self",
         "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789370408766-wv4huh/78d7e9b2-771c-4107-a228-3bd565e703ff.webp",
+        "promoMode": "side",
         "children": []
       },
       {
@@ -55,6 +56,7 @@
         "type": "category",
         "target": "_self",
         "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789327810310-j45uws/dress.webp",
+        "promoMode": "side",
         "children": [
           {
             "label": "Skirts",
@@ -89,7 +91,7 @@
       "$date": "2026-09-12T11:27:06.990Z"
     },
     "updatedAt": {
-      "$date": "2026-09-17T07:48:22.378Z"
+      "$date": "2026-09-25T20:16:55.871Z"
     }
   }
 ]

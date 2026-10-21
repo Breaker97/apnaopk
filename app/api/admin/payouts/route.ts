@@ -12,7 +12,7 @@ import { validateBody } from "@/lib/api/validate";
 import * as z from "zod";
 
 const PayoutCreateSchema = z.object({
-  vendorId: z.string().max(64), periodStart: z.string().max(40), periodEnd: z.string().max(40),
+  vendorId: z.string().max(64), periodStart: z.string().max(40).optional(), periodEnd: z.string().max(40),
   currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).optional(),
   note: z.string().max(2000).optional(), requestKey: z.string().min(8).max(160).optional(),
   expectedCalculationVersion: z.string().max(64).optional(),

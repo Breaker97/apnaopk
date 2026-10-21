@@ -437,6 +437,9 @@ async function moveOrphans(
   const locations = database.collection("inventorylocations");
   const products = database.collection("products");
   const vendors = database.collection("vendors");
+  if (!dryRun && await products.findOne({ _id: { $in: orphans.map((row) => new mongoose.Types.ObjectId(row.productId)) }, inventoryFinanceGeneration: 1 }, { projection: { _id: 1 } })) {
+    throw new Error("Financially tracked stock must move through an attributed inventory transfer; raw location backfill would bypass its positions and ledger evidence.");
+  }
   const targetByVendor = new Map<string, string>();
 
   for (const vendorId of new Set(orphans.map((row) => row.vendorId))) {

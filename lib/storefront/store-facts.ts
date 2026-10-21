@@ -3,6 +3,7 @@ import { appConfig } from "@/config/app.config";
 import { DEFAULT_CURRENCY, type ThemeMode } from "@/config/branding.config";
 import { normalizePasswordPolicy, type PasswordPolicy } from "@/lib/auth/password-policy";
 import { brandIconUrl, resolveBrand } from "@/lib/branding/brand";
+import { liveKeyColors } from "@/lib/storefront/themes/key-colors";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { normalizeCheckoutSettings } from "@/lib/checkout/checkout-config";
 import { connectDB } from "@/lib/db";
@@ -56,7 +57,8 @@ async function readStoreFacts(): Promise<StoreFacts> {
     iconUrl: brandIconUrl(brand.assets),
     currencyCode: general?.defaultCurrency || DEFAULT_CURRENCY,
     routing: resolveLocaleRouting(general),
-    primaryColor: brand.colors.primary,
+    // The live theme's primary (the mobile apps are painted with it).
+    primaryColor: liveKeyColors(settings).primary,
     defaultMode: brand.defaultMode,
     multiVendor: Boolean(settings.multiVendorMode?.enabled),
     guestCheckout: normalizeCheckoutSettings(settings.checkout).accounts.guestCheckout,

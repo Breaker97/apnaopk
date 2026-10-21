@@ -236,13 +236,13 @@ export function BoostPerformanceContent(props: {
                   <Bar
                     dataKey="impressions"
                     name={label("boosts.stats.impressions", "Impressions")}
-                    fill="hsl(var(--primary))"
+                    fill="var(--primary)"
                     radius={[3, 3, 0, 0]}
                   />
                   <Bar
                     dataKey="clicks"
                     name={label("boosts.stats.clicks", "Clicks")}
-                    fill="hsl(var(--muted-foreground))"
+                    fill="var(--muted-foreground)"
                     radius={[3, 3, 0, 0]}
                   />
                 </BarChart>

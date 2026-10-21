@@ -308,7 +308,7 @@ export function ProductSectionTabs({
                 ) : (
                   <Button
                     size="sm"
-                    className="hidden h-9 bg-foreground px-4 text-xs font-bold text-background hover:bg-foreground/90 sm:inline-flex"
+                    className="hidden h-9 bg-store-secondary px-4 text-xs font-bold text-store-on-secondary hover:bg-store-secondary/90 sm:inline-flex"
                     style={purchaseButtonCss(sty, "cart", "compact")}
                     onClick={handleAddToCart}
                     disabled={purchaseShut}

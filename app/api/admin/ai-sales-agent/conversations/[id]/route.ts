@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth/auth";
 import { connectDB, mongoose } from "@/lib/db";
@@ -52,6 +53,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
     if (session.user.role !== USER_ROLES.ADMIN) throw new AuthorizationError();
+    await enforceTeamRole(_request, session.user.id, { adminOnly: true });
 
     await connectDB();
     const { id } = await context.params;
@@ -111,6 +113,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
     if (session.user.role !== USER_ROLES.ADMIN) throw new AuthorizationError();
+    await enforceTeamRole(request, session.user.id, { adminOnly: true });
 
     const demoBlock = getDemoModeMutationResponse();
     if (demoBlock) return demoBlock;

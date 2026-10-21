@@ -1,5 +1,6 @@
 "use client";
 
+import { inkOn } from "@/lib/theme-colors/theme-refs";
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "@/hooks/use-locale-navigation";
@@ -297,6 +298,9 @@ export function AISalesAgentWidget({
 
   const right = config.widget.position !== "bottom-left";
   const headerGradient = `linear-gradient(135deg, ${config.widget.primaryColor}, ${config.widget.accentColor})`;
+  // Text on the widget's colour: the theme's pair for a theme colour, else
+  // white or near-black by contrast — never white on a light brand.
+  const ink = inkOn(config.widget.primaryColor);
 
   return (
     <div
@@ -323,8 +327,8 @@ export function AISalesAgentWidget({
         >
           <div className="relative px-4 pt-4">
             <div
-              className="flex h-12 items-center justify-between rounded-full px-5 text-white"
-              style={{ background: headerGradient }}
+              className="flex h-12 items-center justify-between rounded-full px-5"
+              style={{ background: headerGradient, color: ink }}
             >
               <span className="text-sm font-semibold tracking-wide">
                 {config.widget.headerTitle?.trim() || config.agentName}
@@ -415,8 +419,8 @@ export function AISalesAgentWidget({
                 onClick={() => void sendMessage()}
                 disabled={loading || !input.trim()}
                 aria-label={t("send")}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40"
-                style={{ backgroundColor: config.widget.primaryColor }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity disabled:opacity-40"
+                style={{ backgroundColor: config.widget.primaryColor, color: ink }}
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -442,7 +446,7 @@ export function AISalesAgentWidget({
           onPointerDown={preloadPanel}
           onFocus={preloadPanel}
           onClick={() => setOpen(true)}
-          style={{ background: headerGradient }}
+          style={{ background: headerGradient, color: ink }}
         >
           <MessageCircle className="h-6 w-6" />
           <span className="sr-only">{t("open")}</span>

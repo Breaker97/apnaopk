@@ -257,7 +257,7 @@ export function ListingFilters({
           <button
             type="button"
             onClick={clearFilters}
-            className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+            className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-store-link transition-colors hover:text-store-link/80"
           >
             <X className="h-3 w-3" aria-hidden="true" />
             {t("common.clearAll")}
@@ -551,7 +551,7 @@ function FacetOptions({
         {viewAllHref ? (
           <Link
             href={viewAllHref}
-            className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+            className="inline-flex items-center gap-1.5 pt-1 text-sm font-medium text-store-link transition-colors hover:text-store-link/80"
           >
             {viewAllLabel}
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />

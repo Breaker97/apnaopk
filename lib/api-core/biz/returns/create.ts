@@ -1,3 +1,4 @@
+import { flagScheduledPayoutsForOrder } from "@/lib/finance/payout-requote";
 import type { ReturnCreateRequest, ReturnCreateResult, ReturnCase } from "@/contracts/mobile/biz/v1/returns";
 import { Order, ReturnRequest, PaymentTransaction } from "@/models";
 import { planReturnRequest, assertReturnEligible } from "@/lib/returns/return-plan";
@@ -66,6 +67,8 @@ export async function createBizReturns(input: ReturnCreateRequest, context: Retu
         for (const row of created) await recordReturnOrderEvent({ operationId: operation.id, leg: `create:${row._id}`, actorId: context.actorId, context, orderId: order._id, orderNumber: order.orderNumber, action: "STATUS_CHANGE", summary: `Return ${row.returnNumber} opened and approved`, metadata: { returnNumber: row.returnNumber, status: "approved" }, session });
         return created.map((row) => row.toObject() as ReturnRecord);
       });
+      // A payout already holding these goods would pay for what is coming back.
+      for (const row of rows) await flagScheduledPayoutsForOrder({ orderId: row.orderId, vendorIds: row.vendorIds, reason: `Return ${row.returnNumber} was opened.`, reachesCommissionSettlements: false });
       await returnCreationAftermath(rows, context.workspace.workspace === "vendor" ? "vendor" : "staff");
       return { data: await loadResults(rows), resources: rows.map((row) => ({ kind: "return" as const, id: String(row._id) })) };
     },

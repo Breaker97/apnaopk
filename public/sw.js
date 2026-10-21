@@ -4,6 +4,22 @@ const CACHE_PREFIX = "storify-pwa-";
 const LEGACY_CACHE_PREFIXES = ["marketify-pwa-"];
 const STATIC_CACHE = `${CACHE_PREFIX}v5-static`;
 
+/**
+ * Product pictures for the register, kept so the till's grid still shows them
+ * with the connection down — a cashier picks the right product by its photo.
+ *
+ * Only images a register page asks for are kept (the request's referrer is a
+ * POS page: same-origin requests carry the full page URL under the site's
+ * `strict-origin-when-cross-origin` policy), only same-origin answers — the
+ * image optimizer's — because an opaque cross-origin one cannot be stamped,
+ * and only up to `POS_IMAGE_LIMIT`, the least recently stored going first.
+ * The till warms this after each snapshot pull (lib/pos/offline-images.ts).
+ */
+const POS_IMAGE_CACHE = `${CACHE_PREFIX}v1-pos-images`;
+const POS_IMAGE_LIMIT = 600;
+const POS_IMAGE_TRIM_EVERY_MS = 60 * 1000;
+let posImagesTrimmedAt = 0;
+
 // The one document kept for offline navigations. Stored under a key of its own
 // so it can never be confused with a live page response.
 const OFFLINE_FALLBACK_KEY = "/__offline-fallback";
@@ -45,6 +61,114 @@ function posShellKey(pathname) {
   return `/__pos-shell${pathname}`;
 }
 
+/**
+ * Keeping the runtime cache from growing forever.
+ *
+ * Build assets are content-hashed, so every deploy adds a new set and nothing
+ * ever replaced the old ones: a till on a store that deploys often carried
+ * every bundle it had ever loaded. The cache name cannot carry the build (this
+ * file is static and does not change per deploy), and evicting the oldest
+ * entries first is unsafe — a bundle the current build still uses may well be
+ * the oldest one stored, and losing it is a till that renders and cannot sell.
+ *
+ * So entries are evicted by disuse instead. Each one is stamped when stored,
+ * and stamped again when it is served from the cache (at most once a day per
+ * entry, to keep writes off the hot path). Once a day, after a page has loaded
+ * from the network — the one moment anything still needed is about to be
+ * fetched again anyway — entries unused for `CACHE_MAX_IDLE_MS` are deleted.
+ * The POS shell is stamped only when it is rendered online, so a shell that
+ * old is one the offline session window would lock in any case.
+ *
+ * Entries stored before stamping existed get a stamp on the first sweep rather
+ * than being deleted: a till must not lose its offline shell to an upgrade.
+ */
+const STAMP_HEADER = "x-storify-cached-at";
+const CACHE_MAX_IDLE_MS = 14 * 24 * 60 * 60 * 1000;
+const RESTAMP_AFTER_MS = 24 * 60 * 60 * 1000;
+const SWEEP_EVERY_MS = 24 * 60 * 60 * 1000;
+const SWEEP_MARKER_KEY = "/__cache-swept-at";
+
+/**
+ * Cache keys requested in the last few minutes, by absolute URL, with when.
+ *
+ * The sweep reads an entry's stamp and then deletes it; a page fetching that
+ * same asset in between would have it deleted from under it. Checking this map
+ * in the same tick as the delete closes that gap: a request records its key
+ * before its first await, so either the sweep sees it and keeps the entry, or
+ * the request's own cache operations are issued after the delete.
+ *
+ * Time-bounded rather than kept for the worker's life: a worker the browser
+ * keeps alive would otherwise shield every entry it had ever served.
+ */
+const touchedAt = new Map();
+const TOUCH_GUARD_MS = 5 * 60 * 1000;
+
+function touch(key) {
+  touchedAt.set(key, Date.now());
+}
+
+function inUse(key, now) {
+  const at = touchedAt.get(key);
+  return at !== undefined && now - at < TOUCH_GUARD_MS;
+}
+
+function absoluteKey(key) {
+  return new URL(typeof key === "string" ? key : key.url, self.location.origin)
+    .href;
+}
+
+function stampOf(response) {
+  const value = Number(response?.headers.get(STAMP_HEADER));
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/** A copy of `response` carrying the time it was stored. */
+function stamped(response, now = Date.now()) {
+  const headers = new Headers(response.headers);
+  headers.set(STAMP_HEADER, String(now));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function sweepCache(now = Date.now()) {
+  const cache = await caches.open(STATIC_CACHE);
+
+  const marker = await cache.match(SWEEP_MARKER_KEY);
+  const lastSweep = marker ? Number(await marker.text()) : 0;
+  if (Number.isFinite(lastSweep) && now - lastSweep < SWEEP_EVERY_MS) return;
+  await cache.put(SWEEP_MARKER_KEY, new Response(String(now)));
+
+  const keep = new Set([
+    absoluteKey(OFFLINE_FALLBACK_KEY),
+    absoluteKey(SWEEP_MARKER_KEY),
+  ]);
+  const cutoff = now - CACHE_MAX_IDLE_MS;
+
+  for (const [key, at] of touchedAt) {
+    if (now - at >= TOUCH_GUARD_MS) touchedAt.delete(key);
+  }
+
+  for (const request of await cache.keys()) {
+    const key = absoluteKey(request);
+    if (keep.has(key)) continue;
+
+    const response = await cache.match(request);
+    if (!response) continue;
+
+    const at = stampOf(response);
+    if (!at) {
+      // Stored before stamping existed. Given a full idle period from now.
+      if (!inUse(key, now)) await cache.put(request, stamped(response, now));
+      continue;
+    }
+    // The check and the delete in one tick — see `touchedAt`.
+    if (at < cutoff && !inUse(key, now)) await cache.delete(request);
+  }
+}
+
 function isAppCacheKey(key) {
   return (
     key.startsWith(CACHE_PREFIX) ||
@@ -66,7 +190,12 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => isAppCacheKey(key) && key !== STATIC_CACHE)
+            .filter(
+              (key) =>
+                isAppCacheKey(key) &&
+                key !== STATIC_CACHE &&
+                key !== POS_IMAGE_CACHE,
+            )
             .map((key) => caches.delete(key)),
         ),
       )
@@ -115,8 +244,66 @@ function isStorableFallback(request, response) {
   );
 }
 
+function isPosImageRequest(request) {
+  if (request.method !== "GET" || request.destination !== "image") return false;
+  try {
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin) return false;
+    const referrer = request.referrer ? new URL(request.referrer) : null;
+    return Boolean(
+      referrer &&
+        referrer.origin === self.location.origin &&
+        POS_PATH_PATTERN.test(referrer.pathname),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Keep the register's picture cache to `POS_IMAGE_LIMIT`, oldest stored first. */
+async function trimPosImages(now = Date.now()) {
+  if (now - posImagesTrimmedAt < POS_IMAGE_TRIM_EVERY_MS) return;
+  posImagesTrimmedAt = now;
+  const cache = await caches.open(POS_IMAGE_CACHE);
+  const keys = await cache.keys();
+  if (keys.length <= POS_IMAGE_LIMIT) return;
+  const dated = await Promise.all(
+    keys.map(async (request) => ({ request, at: stampOf(await cache.match(request)) })),
+  );
+  dated.sort((a, b) => a.at - b.at);
+  for (const { request } of dated.slice(0, dated.length - POS_IMAGE_LIMIT)) {
+    await cache.delete(request);
+  }
+}
+
+/**
+ * Cache first: a product picture's URL changes when the picture does, so a
+ * stored one is never stale. With nothing stored and no network, the image
+ * fails as it would have, and the tile shows its placeholder.
+ */
+async function posImageResponse(event, request) {
+  const cache = await caches.open(POS_IMAGE_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok && response.type === "basic") {
+    const copy = stamped(response.clone());
+    event.waitUntil(
+      cache
+        .put(request, copy)
+        .then(() => trimPosImages())
+        .catch(() => undefined),
+    );
+  }
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (isPosImageRequest(request)) {
+    event.respondWith(posImageResponse(event, request));
+    return;
+  }
   if (!isCacheableSameOriginGet(request)) return;
 
   const url = new URL(request.url);
@@ -127,26 +314,36 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          let stored = Promise.resolve();
+
           if (isPos) {
             // Only a real, successful render is worth keeping: a redirect to
             // the login page or a 403 would otherwise become the "offline
             // register" and lock the counter out for good.
             if (response.ok && response.type === "basic" && !response.redirected) {
-              const copy = response.clone();
-              caches
+              const shellKey = posShellKey(url.pathname);
+              touch(absoluteKey(shellKey));
+              const copy = stamped(response.clone());
+              stored = caches
                 .open(STATIC_CACHE)
-                .then((cache) => cache.put(posShellKey(url.pathname), copy))
+                .then((cache) => cache.put(shellKey, copy))
                 .catch(() => undefined);
             }
-            return response;
-          }
-
-          if (isStorableFallback(request, response)) {
+          } else if (isStorableFallback(request, response)) {
             const copy = response.clone();
-            caches
+            stored = caches
               .open(STATIC_CACHE)
               .then((cache) => cache.put(OFFLINE_FALLBACK_KEY, copy))
               .catch(() => undefined);
+          }
+
+          // A page just loaded from the network, so whatever it needs is about
+          // to be fetched and stamped again: the one safe moment to drop what
+          // nothing has used for weeks. At most once a day (`sweepCache`).
+          if (response.ok) {
+            event.waitUntil(
+              stored.then(() => sweepCache()).catch(() => undefined),
+            );
           }
           return response;
         })
@@ -177,13 +374,28 @@ self.addEventListener("fetch", (event) => {
 
   if (!isStaticAsset) return;
 
+  // Before the first await — see `touchedAt`.
+  touch(absoluteKey(request));
+
   event.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) return cached;
+      if (cached) {
+        // Still in use: keep it from being swept. Once a day at most.
+        if (Date.now() - stampOf(cached) > RESTAMP_AFTER_MS) {
+          const copy = stamped(cached.clone());
+          event.waitUntil(
+            caches
+              .open(STATIC_CACHE)
+              .then((cache) => cache.put(request, copy))
+              .catch(() => undefined),
+          );
+        }
+        return cached;
+      }
 
       return fetch(request).then((response) => {
         if (response.ok) {
-          const copy = response.clone();
+          const copy = stamped(response.clone());
           caches
             .open(STATIC_CACHE)
             .then((cache) => cache.put(request, copy))

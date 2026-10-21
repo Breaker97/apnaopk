@@ -68,6 +68,8 @@ interface GatewayRefundSync {
   /** Left for the next run because a refund was being recorded on the order. */
   busy: number;
   failed: number;
+  discoveryComplete?: boolean;
+  failureDetails?: Array<{ recordId: string; error: string }>;
   error?: string;
 }
 
@@ -109,6 +111,7 @@ async function tallied(
   tally: GatewayRefundSync,
   kind: "recorded" | "reversed",
   apply: () => Promise<number | boolean>,
+  recordId: string,
 ) {
   tally.checked += 1;
   try {
@@ -120,7 +123,11 @@ async function tallied(
       return;
     }
     tally.failed += 1;
-    console.error("Refund sync could not apply a refund:", error);
+    const details = (tally.failureDetails ??= []);
+    if (details.length < 5) {
+      details.push({ recordId, error: (error instanceof Error ? error.message : String(error)).slice(0, 300) });
+    }
+    console.error("Refund sync could not apply a refund:", recordId, error);
   }
 }
 
@@ -139,10 +146,13 @@ async function syncStripeRefunds(
     created: { gte: Math.floor((now.getTime() - REFUND_SYNC_LOOKBACK_MS) / 1000) },
     limit: PAGE_SIZE,
   })) {
-    if (++seen > MAX_PAGES * PAGE_SIZE) break;
+    if (++seen > MAX_PAGES * PAGE_SIZE) {
+      tally.discoveryComplete = false;
+      break;
+    }
     if (DEAD_STATUSES.has(String(refund.status || ""))) {
       // Undone off the books if it was ever on them; nothing otherwise.
-      await tallied(tally, "reversed", async () => await syncVendorSubscriptionRefunds({ payment_intent: refund.payment_intent }, stripe, now) || await reverseFailedOrderRefund(refund));
+      await tallied(tally, "reversed", async () => await syncVendorSubscriptionRefunds({ payment_intent: refund.payment_intent }, stripe, now) || await reverseFailedOrderRefund(refund), refund.id);
     } else {
       live.push(refund);
     }
@@ -215,7 +225,7 @@ async function syncStripeRefunds(
       const platform = await processPlatformChargeRefunded(charge);
       const subscription = await syncVendorSubscriptionRefunds(charge, stripe, now);
       return recorded > 0 || platform || subscription;
-    });
+    }, chargeId);
   }
   return "synced";
 }
@@ -241,6 +251,7 @@ async function syncRazorpayRefunds(
     });
     listed.push(...refunds);
     if (refunds.length < PAGE_SIZE) break;
+    if (page === MAX_PAGES - 1) tally.discoveryComplete = false;
   }
 
   const known = await knownRefundIds(listed.map((refund) => refund.id));
@@ -255,6 +266,7 @@ async function syncRazorpayRefunds(
               : undefined,
           currency: refund.currency || undefined,
         }),
+        refund.id,
       );
       continue;
     }
@@ -272,7 +284,7 @@ async function syncRazorpayRefunds(
           })
         : false;
       return recorded > 0 || platform;
-    });
+    }, refund.id);
   }
   return "synced";
 }
@@ -297,6 +309,7 @@ async function syncPaystackRefunds(
       perPage: PAGE_SIZE,
     });
     pageCount = result.pageCount;
+    if (pageCount > MAX_PAGES) tally.discoveryComplete = false;
     listed.push(...result.refunds);
   }
 
@@ -316,6 +329,7 @@ async function syncPaystackRefunds(
               : undefined,
           currency: currency || undefined,
         }),
+        String(refund.id),
       );
       continue;
     }
@@ -343,7 +357,7 @@ async function syncPaystackRefunds(
       );
       const platform = await syncPaystackPlatformRefund({ transaction, secretKey });
       return recorded > 0 || platform;
-    });
+    }, transaction.id || transaction.reference || "unknown transaction");
   }
   return "synced";
 }

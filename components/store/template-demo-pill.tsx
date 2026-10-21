@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { LayoutGrid } from "lucide-react";
+import { usePathname } from "@/hooks/use-locale-navigation";
 import { cn } from "@/lib/utils";
 import type { DemoTemplate } from "@/components/store/template-demo-dialog";
 
@@ -50,6 +51,14 @@ export function TemplateDemoPill({
   // Stays mounted after the first open so the close animation still plays.
   const [requested, setRequested] = useState(false);
   const tabRef = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
+
+  // A storefront showcase: the customer dashboard is the shopper's own space,
+  // not a place to pitch other templates from.
+  const accountBase = `/${locale}/account`;
+  if (pathname === accountBase || pathname?.startsWith(`${accountBase}/`)) {
+    return null;
+  }
 
   return (
     <>

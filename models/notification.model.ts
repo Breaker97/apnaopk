@@ -29,8 +29,14 @@ export enum NotificationType {
   BOOST_DAYS_RELEASED = "boost_days_released",
   /** Store credit added to a shopper's account (R8). */
   STORE_CREDIT = "store_credit",
+  /** A seller's payout was drawn up, sent, returned or called off. */
+  PAYOUT = "payout",
   SYSTEM = "system",
 }
+
+/** Column limits, shared with the write that fits text to them. */
+export const NOTIFICATION_TITLE_MAX_LENGTH = 100;
+export const NOTIFICATION_MESSAGE_MAX_LENGTH = 500;
 
 const existingNotificationModel = mongoose.models.Notification as
   | Model<INotification>
@@ -76,12 +82,12 @@ const NotificationSchema = new Schema<INotification>(
     title: {
       type: String,
       required: true,
-      maxlength: 100,
+      maxlength: NOTIFICATION_TITLE_MAX_LENGTH,
     },
     message: {
       type: String,
       required: true,
-      maxlength: 500,
+      maxlength: NOTIFICATION_MESSAGE_MAX_LENGTH,
     },
     link: {
       type: String,

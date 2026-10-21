@@ -1,4 +1,3 @@
-import { toFile } from "openai";
 import { getStorageService } from "@/lib/storage";
 import { assertOwnStorageUrl } from "@/lib/storage/own-storage-url";
 import {
@@ -12,6 +11,7 @@ import type {
   AIAuthoringRequest,
 } from "./types";
 import { createAIAuthoringOpenAIClient } from "./openai";
+import { aiSourceFile } from "./source-image";
 
 const MAX_SOURCE_IMAGE_BYTES = 25 * 1024 * 1024;
 /** A source image has this long to arrive whole. */
@@ -35,12 +35,6 @@ function mimeTypeForFormat(format: AIAuthoringMediaOptions["outputFormat"]) {
 function extensionForFormat(format: AIAuthoringMediaOptions["outputFormat"]) {
   if (format === "jpeg") return "jpg";
   if (format === "webp") return "webp";
-  return "png";
-}
-
-function extensionForContentType(contentType: string): string {
-  if (contentType.includes("jpeg") || contentType.includes("jpg")) return "jpg";
-  if (contentType.includes("webp")) return "webp";
   return "png";
 }
 
@@ -357,16 +351,13 @@ export async function editAuthoringMedia(
     throw new Error("A source image is required to edit");
   }
 
-  const { buffer: sourceBuffer, contentType: sourceContentType } =
-    await fetchSourceImage(request.sourceUrl);
+  const { buffer: sourceBuffer } = await fetchSourceImage(request.sourceUrl);
+  // Before the client is built: a source the provider cannot take should fail
+  // without touching the provider.
+  const sourceFile = await aiSourceFile(sourceBuffer, "source");
 
   const client = createAIAuthoringOpenAIClient(runtime.apiKey);
   const outputFormat = options.outputFormat || "png";
-  const sourceFile = await toFile(
-    sourceBuffer,
-    `source.${extensionForContentType(sourceContentType)}`,
-    { type: sourceContentType },
-  );
 
   const response = (await client.images.edit({
     model:

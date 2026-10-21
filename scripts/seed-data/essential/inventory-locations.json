@@ -49,7 +49,7 @@
       "$date": "2026-08-07T16:01:02.701Z"
     },
     "updatedAt": {
-      "$date": "2026-08-24T18:13:12.260Z"
+      "$date": "2026-09-09T14:08:54.183Z"
     },
     "mapsUrl": "",
     "fulfillsOnlineOrders": true,
@@ -61,7 +61,8 @@
       ]
     },
     "fulfillmentPriority": 0,
-    "pickupArea": ""
+    "pickupArea": "",
+    "sellsAtCounter": true
   },
   {
     "_id": {
@@ -211,6 +212,39 @@
   },
   {
     "_id": {
+      "$oid": "6a7de7534853e38afbcb2a1c"
+    },
+    "vendorId": {
+      "$oid": "6a086b3d4f82afda4ea77ef9"
+    },
+    "name": "Main pickup location",
+    "address": "Uttar Badda",
+    "isDefault": false,
+    "isActive": true,
+    "fulfillsOnlineOrders": true,
+    "pickupEnabled": false,
+    "instructions": "",
+    "weeklyHours": [],
+    "createdAt": {
+      "$date": "2026-08-13T15:48:35.817Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-09T14:08:54.189Z"
+    },
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        90.3890144,
+        23.7643863
+      ]
+    },
+    "fulfillmentPriority": 1,
+    "mapsUrl": "",
+    "pickupArea": "",
+    "sellsAtCounter": true
+  },
+  {
+    "_id": {
       "$oid": "6a7de7554853e38afbcb2a1d"
     },
     "vendorId": {
@@ -223,7 +257,7 @@
       "$date": "2026-08-13T15:48:37.533Z"
     },
     "updatedAt": {
-      "$date": "2026-08-21T01:09:21.216Z"
+      "$date": "2026-08-30T01:04:13.833Z"
     },
     "geo": {
       "type": "Point",
@@ -252,7 +286,7 @@
       "$date": "2026-08-13T15:48:38.039Z"
     },
     "updatedAt": {
-      "$date": "2026-08-13T15:50:26.639Z"
+      "$date": "2026-10-12T04:40:25.555Z"
     },
     "geo": {
       "type": "Point",
@@ -334,9 +368,10 @@
       "$date": "2026-08-13T20:00:11.644Z"
     },
     "updatedAt": {
-      "$date": "2026-08-21T10:58:08.571Z"
+      "$date": "2026-08-31T07:34:59.317Z"
     },
-    "__v": 0
+    "__v": 0,
+    "sellsAtCounter": true
   },
   {
     "_id": {

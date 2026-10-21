@@ -1,4 +1,6 @@
 import { mongoose } from "@/lib/db";
+import { installProductFinanceHooks } from "@/lib/inventory/finance-model-hooks";
+import { financeSessionPlugin } from "@/lib/finance/session-plugin";
 import { htmlToPlainText } from "@/lib/strings";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import { generateBarcode, generateSku } from "@/lib/products/codes";
@@ -347,6 +349,27 @@ const ProductSchema = new Schema<IProduct>(
     priceOnRequest: {
       type: Boolean,
       default: false,
+    },
+    /**
+     * This product's own custom sales-tax rate, in percent. Absent (null) it
+     * takes its tax class's, then its category's, then the store's (Settings →
+     * Tax); 0 sells it tax-free. Resolved by lib/tax/tax-rates.ts — read it there.
+     */
+    taxRate: {
+      type: Number,
+      min: [0, "Tax rate cannot be negative"],
+      max: [100, "Tax rate cannot exceed 100%"],
+      default: null,
+    },
+    /**
+     * The product's tax class (Settings → Tax): `standard`, `reduced`, `zero`,
+     * `exempt` or one the store added. Absent (null) it takes its category's.
+     */
+    taxClass: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: null,
     },
     quoteButtonLabel: {
       type: String,
@@ -1035,8 +1058,15 @@ ProductSchema.pre("validate", function () {
   doc.search = buildProductSearchIndex(doc as unknown as ProductSearchSource);
 });
 
+ProductSchema.add({
+  inventoryFinanceGeneration: { type: Number, immutable: true },
+  inventoryFinanceCurrency: { type: String, uppercase: true, immutable: true },
+});
+
+ProductSchema.plugin(financeSessionPlugin);
 export const Product =
   models.Product || model<IProduct>("Product", ProductSchema);
+installProductFinanceHooks(Product);
 
 /**
  * Shape `syncProductAggregates` reads. Loosely typed because it is fed by a

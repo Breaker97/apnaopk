@@ -27,3 +27,30 @@ export function isRetryableGatewayError(error: unknown): boolean {
   // No status at all: the request never got an answer.
   return true;
 }
+
+/**
+ * The gateway says it has no such object — an id from another account or mode.
+ *
+ * A dispute read while the store was on test keys is not on the live account
+ * once the keys change, and it never will be. Retrying it hourly as a failure
+ * only raises a false alarm. Stripe answers 404 `resource_missing`, PayPal and
+ * Paystack 404, and Razorpay a 400 that says the id does not exist.
+ */
+export function isGatewayNotFoundError(error: unknown): boolean {
+  if (error instanceof GatewayApiError) {
+    if (error.status === 404 || error.status === 410) return true;
+    return (
+      error.status === 400 &&
+      /does not exist|not found|no such|invalid (dispute|resource)/i.test(error.message)
+    );
+  }
+  const shape = error as
+    | { statusCode?: number; status?: number; code?: string }
+    | null
+    | undefined;
+  return (
+    shape?.statusCode === 404 ||
+    shape?.status === 404 ||
+    shape?.code === "resource_missing"
+  );
+}

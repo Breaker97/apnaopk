@@ -1,17 +1,53 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Plus, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
+import { useSavedColors } from "@/hooks/use-saved-colors";
+import {
+  formatColor,
+  nextColorFormat,
+  parseTypedColor,
+  rgbaToHex,
+  type ColorFormat,
+} from "@/lib/theme-colors/color-format";
 import { cn } from "@/lib/utils";
 
 /**
  * Custom solid-color picker (the design's Frame 527): saturation/value
- * square, hue rail, hex input. No dependency — the panel is two CSS
- * gradients and pointer math, which is all a picker is.
+ * square, hue rail, opacity rail and a colour field that reads as hex, rgb,
+ * hsl or oklch, plus colours kept for next time. The panel is two CSS
+ * gradients and pointer math; what it hands back is always a hex.
  */
 
 const HEX_INPUT = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+/**
+ * What was typed as a hex colour, in any spelling the field accepts: hex as
+ * typed, or rgb()/hsl()/oklch() converted. Null when it is not a colour.
+ */
+function resolveTyped(text: string): string | null {
+  const hex = typedHex(text);
+  if (HEX_INPUT.test(hex)) return hex;
+  const color = parseTypedColor(text);
+  return color ? rgbaToHex(color) : null;
+}
+
+/** What was typed, with the "#" a merchant may leave off. */
+function typedHex(text: string): string {
+  const trimmed = text.trim();
+  return trimmed && !trimmed.startsWith("#") ? `#${trimmed}` : trimmed;
+}
+
+/** One spelling per colour (#abc and #AABBCC are the same), or null. */
+function canonicalHex(value: string | undefined | null): string | null {
+  const hex = typedHex(value ?? "").toLowerCase();
+  if (!HEX_INPUT.test(hex)) return null;
+  return hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+}
 
 /**
  * The alpha a hex carries, 0–1; a three- or six-digit hex is opaque. Kept
@@ -111,6 +147,13 @@ function useDragArea(
   return { areaRef, handlePointer };
 }
 
+const FORMAT_NAMES: Record<ColorFormat, string> = {
+  hex: "HEX",
+  rgb: "RGB",
+  hsl: "HSL",
+  oklch: "OKLCH",
+};
+
 export function ColorPickerPanel({
   value,
   onChange,
@@ -126,21 +169,32 @@ export function ColorPickerPanel({
   alpha?: boolean;
   className?: string;
 }) {
+  const tSafe = useFallbackTranslator(useTranslations());
   const [hsv, setHsv] = useState(() => hexToHsv(value || "#f1f1f1"));
   const [alpha, setAlpha] = useState(() => hexAlpha(value || "#f1f1f1"));
-  const [hexText, setHexText] = useState(value || "#f1f1f1");
+  const [format, setFormat] = useState<ColorFormat>("hex");
+  const [fieldText, setFieldText] = useState(value || "#f1f1f1");
   // Track the last hex WE emitted, so an external value change (another
   // swatch selected) resyncs the panel without fighting the drag loop.
   const emitted = useRef(value);
+  const { colors: savedColors, save: saveColor, remove: removeColor } = useSavedColors();
 
   useEffect(() => {
     if (value && value !== emitted.current) {
+      // The parent handing back the colour just typed, in its own spelling
+      // (#abc → #aabbcc), is not a new colour: rewriting the field then
+      // would mangle the rest of what is being typed.
+      const echo = canonicalHex(value);
+      if (echo && echo === canonicalHex(emitted.current)) {
+        emitted.current = value;
+        return;
+      }
       setHsv(hexToHsv(value));
       setAlpha(hexAlpha(value));
-      setHexText(value);
+      setFieldText(formatColor(value, format));
       emitted.current = value;
     }
-  }, [value]);
+  }, [value, format]);
 
   const emit = useCallback(
     (next: { h: number; s: number; v: number }, requestedAlpha: number) => {
@@ -148,11 +202,11 @@ export function ColorPickerPanel({
       setHsv(next);
       setAlpha(nextAlpha);
       const hex = withAlpha(hsvToHex(next.h, next.s, next.v), nextAlpha);
-      setHexText(hex);
+      setFieldText(formatColor(hex, format));
       emitted.current = hex;
       onChange(hex);
     },
-    [onChange, withOpacity],
+    [onChange, withOpacity, format],
   );
 
   const { areaRef: squareRef, handlePointer: onSquarePointer } = useDragArea(
@@ -166,6 +220,36 @@ export function ColorPickerPanel({
   );
 
   const currentHex = hsvToHex(hsv.h, hsv.s, hsv.v);
+  const currentValue = withAlpha(currentHex, alpha).toLowerCase();
+
+  /** The hex the parent holds now, in the spelling it was given. */
+  const heldHex = () => (canonicalHex(emitted.current) ? emitted.current : currentValue);
+
+  const cycleFormat = () => {
+    const next = nextColorFormat(format);
+    setFormat(next);
+    setFieldText(formatColor(heldHex(), next));
+  };
+
+  /** Make a kept colour the current one. */
+  const applySaved = (saved: string) => {
+    // A swatch kept with opacity must not put an alpha into a field that
+    // stores plain #rrggbb.
+    const hex = withOpacity ? saved : saved.slice(0, 7);
+    setHsv(hexToHsv(hex));
+    setAlpha(hexAlpha(hex));
+    setFieldText(formatColor(hex, format));
+    emitted.current = hex;
+    onChange(hex);
+  };
+
+  const acceptsTyped = (hex: string | null): hex is string =>
+    hex !== null && (withOpacity || hex.length !== 9);
+
+  const formatLabel = `${tSafe("admin.colorPicker.format", "Color format")}: ${FORMAT_NAMES[format]}`;
+  const opacityLabel = tSafe("admin.colorPicker.opacity", "Opacity");
+  const saveLabel = tSafe("admin.colorPicker.save", "Save this color");
+  const isSaved = savedColors.includes(currentValue);
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -206,53 +290,32 @@ export function ColorPickerPanel({
       {/* Opacity, on the same kind of rail as the hue: the colour fades
           into a chequerboard so a half-transparent white is not a rail of
           nothing. The value rides in the hex as its last two digits. */}
-      <div
-        hidden={!withOpacity}
-        ref={alphaRef}
-        onPointerDown={onAlphaPointer}
-        className="relative h-3.5 w-full cursor-pointer touch-none rounded-full"
-        style={{ background: CHECKERBOARD }}
-        aria-label="Opacity"
-      >
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: `linear-gradient(to right, transparent, ${currentHex})`,
-          }}
-        />
-        <div
-          className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-          style={{
-            left: `${alpha * 100}%`,
-            height: "18px",
-            width: "18px",
-            background: `linear-gradient(${withAlpha(currentHex, alpha)}, ${withAlpha(currentHex, alpha)}), ${CHECKERBOARD}`,
-          }}
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-foreground">hex</span>
-        <Input
-          value={hexText}
-          onChange={(event) => {
-            const next = event.target.value;
-            setHexText(next);
-            const trimmed = next.trim();
-            if (
-              HEX_INPUT.test(trimmed) &&
-              (withOpacity || trimmed.length !== 9)
-            ) {
-              setHsv(hexToHsv(trimmed));
-              setAlpha(hexAlpha(trimmed));
-              emitted.current = trimmed;
-              onChange(trimmed);
-            }
-          }}
-          className="h-8 flex-1 text-sm"
-          spellCheck={false}
-        />
-        {withOpacity ? (
-          <>
+      {withOpacity ? (
+        <div className="flex items-center gap-3">
+          <div
+            ref={alphaRef}
+            onPointerDown={onAlphaPointer}
+            className="relative h-3.5 min-w-0 flex-1 cursor-pointer touch-none rounded-full"
+            style={{ background: CHECKERBOARD }}
+            aria-label={opacityLabel}
+          >
+            <div
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: `linear-gradient(to right, transparent, ${currentHex})`,
+              }}
+            />
+            <div
+              className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
+              style={{
+                left: `${alpha * 100}%`,
+                height: "18px",
+                width: "18px",
+                background: `linear-gradient(${withAlpha(currentHex, alpha)}, ${withAlpha(currentHex, alpha)}), ${CHECKERBOARD}`,
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
             <NumberInput
               min={0}
               max={100}
@@ -264,11 +327,98 @@ export function ColorPickerPanel({
                 if (next !== undefined) emit(hsv, next / 100);
               }}
               className="h-8 w-[4.5rem] text-sm"
-              aria-label="Opacity"
+              aria-label={opacityLabel}
             />
             <span className="text-xs text-muted-foreground">%</span>
-          </>
-        ) : null}
+          </div>
+        </div>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={cycleFormat}
+          aria-label={formatLabel}
+          title={formatLabel}
+          className="h-8 min-w-[3.25rem] shrink-0 rounded-md border border-input bg-background px-2 text-xs font-semibold text-foreground shadow-xs transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          {FORMAT_NAMES[format]}
+        </button>
+        <Input
+          aria-label={tSafe("admin.colorPicker.value", "Color value")}
+          value={fieldText}
+          onChange={(event) => {
+            const next = event.target.value;
+            setFieldText(next);
+            const hex = resolveTyped(next);
+            if (acceptsTyped(hex)) {
+              setHsv(hexToHsv(hex));
+              setAlpha(hexAlpha(hex));
+              emitted.current = hex;
+              onChange(hex);
+            }
+          }}
+          // Text that never became a colour goes back to the one in use,
+          // rather than sitting there looking applied.
+          onBlur={() => {
+            if (!acceptsTyped(resolveTyped(fieldText))) {
+              setFieldText(formatColor(emitted.current || value || "#f1f1f1", format));
+            }
+          }}
+          className="h-8 min-w-0 flex-1 text-sm"
+          // Colour codes read left to right, whatever the page's direction.
+          dir="ltr"
+          spellCheck={false}
+        />
+      </div>
+      {/* Colours kept for next time (this browser). Delete or Backspace on a
+          focused swatch drops it, as does its × — shown on hover or focus. */}
+      <div
+        role="group"
+        aria-label={tSafe("admin.colorPicker.saved", "Saved colors")}
+        className="flex flex-wrap items-center gap-1"
+      >
+        <button
+          type="button"
+          onClick={() => saveColor(currentValue)}
+          disabled={isSaved}
+          aria-label={saveLabel}
+          title={saveLabel}
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-dashed border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+        >
+          <Plus className="h-3 w-3" />
+        </button>
+        {savedColors.map((saved) => (
+          <div key={saved} className="group/saved relative">
+            <button
+              type="button"
+              onClick={() => applySaved(saved)}
+              onKeyDown={(event) => {
+                if (event.key === "Delete" || event.key === "Backspace") {
+                  event.preventDefault();
+                  removeColor(saved);
+                }
+              }}
+              aria-label={tSafe("admin.colorPicker.use", "Use {color}", { color: saved })}
+              aria-pressed={saved === currentValue}
+              title={saved}
+              className={cn(
+                "relative block h-6 w-6 cursor-pointer overflow-hidden rounded-full border border-border transition-shadow focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+                saved === currentValue && "ring-2 ring-foreground ring-offset-1 ring-offset-background",
+              )}
+              style={{ background: CHECKERBOARD }}
+            >
+              <span className="absolute inset-0" style={{ backgroundColor: saved }} />
+            </button>
+            <button
+              type="button"
+              onClick={() => removeColor(saved)}
+              aria-label={tSafe("admin.colorPicker.remove", "Remove {color}", { color: saved })}
+              className="absolute -end-1 -top-1 hidden h-3.5 w-3.5 place-items-center rounded-full bg-foreground text-background group-focus-within/saved:grid group-hover/saved:grid"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

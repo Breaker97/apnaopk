@@ -21,7 +21,8 @@ type CreationProduct = Omit<ResolvedAdminOrderLine["product"], "variants"> & {
     barcode?: string; preorder?: { enabled?: boolean }; locationInventory?: Array<{ locationId?: unknown; quantity?: number }>;
   }>;
 };
-export const CREATION_PRODUCT_FIELDS = "_id name title sku barcode barcodeNormalized skuNormalized status price cost images priceOnRequest shipping inventory preorder.enabled vendorId updatedAt stock locationInventory variants";
+// `comparePrice options` complete a created line's variant snapshot (lib/orders/order-line-variant.ts).
+export const CREATION_PRODUCT_FIELDS = "_id name title sku barcode barcodeNormalized skuNormalized status price comparePrice cost images priceOnRequest shipping inventory preorder.enabled vendorId updatedAt stock locationInventory variants options";
 type CreationVariant = NonNullable<CreationProduct["variants"]>[number];
 
 /** Exact branch availability, never stock from a different branch as a fallback. */

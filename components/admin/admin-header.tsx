@@ -7,29 +7,19 @@ import Link from "@/components/language/link";
 import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import { SearchModal } from "@/components/admin/search-modal";
 import {
-  User,
+  UserRound,
   Settings,
-  LogOut,
   LayoutDashboard,
   ShoppingCart,
   Globe,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { signOutAndReload } from "@/lib/auth/auth-client";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { PreferencesDrawer } from "@/components/layout/preferences-drawer";
 import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { NotificationDrawer } from "@/components/admin/notification-drawer";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { HeaderAccountMenu } from "@/components/layout/account-menu";
 import { USER_ROLES } from "@/config/app.config";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { useAppSettings as usePublicAppSettings } from "@/providers/app-settings-provider";
@@ -84,10 +74,6 @@ export function AdminHeader({
       ? `/${locale}/vendor/dashboard`
       : `/${locale}/admin/dashboard`;
 
-  const handleLogout = async () => {
-    await signOutAndReload(locale);
-  };
-
   const handleLocaleChange = async (newLocale: Locale) => {
     if (!pathname) return;
     const currentPrefix = `/${locale}`;
@@ -98,15 +84,6 @@ export function AdminHeader({
     // asked here rather than by its own link guard.
     if (!(await confirmLeaveSettings(newPathname))) return;
     router.push(newPathname);
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   const currentLocaleConfig = localeConfig[locale];
@@ -169,7 +146,11 @@ export function AdminHeader({
         ) : (
           <SidebarTrigger className="size-9" />
         )}
-        <SearchModal />
+        {/* The POS header carries the store logo where other pages have the
+            sidebar trigger, so between md and lg the left cell is too narrow
+            for logo + search pill and the pill runs under the centre buttons.
+            The ⌘K shortcut still works while the pill is hidden. */}
+        <SearchModal triggerClassName={isPosTerminal ? "md:hidden lg:flex" : undefined} />
       </div>
 
       {/* Center buttons */}
@@ -221,74 +202,47 @@ export function AdminHeader({
         {/* Notifications Drawer */}
         <NotificationDrawer locale={locale} />
 
-        {/* The viewer's own preferences; nothing in it is store-wide. */}
-        <PreferencesDrawer locale={locale} />
-
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-10 w-10 border border-border p-1"
-            >
-              <Avatar className="h-full w-full">
-                <AvatarImage src={user.image} alt={user.name} />
-                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            sideOffset={10}
-            collisionPadding={12}
-            className="w-56 max-w-[calc(100vw-1.5rem)] rounded-xl border-border/60 bg-popover/95 shadow-xl backdrop-blur"
+        {isAdmin && (
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-primary"
           >
-            <DropdownMenuLabel>
-              <div className="flex min-w-0 flex-col space-y-1">
-                <p className="truncate text-sm font-medium leading-tight">
-                  {user.name}
-                </p>
-                <p
-                  className="truncate text-xs leading-tight text-muted-foreground"
-                  title={user.email}
-                >
-                  {user.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={`/${locale}/admin/profile`} className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                <span>{t("adminProfile.title")}</span>
-              </Link>
-            </DropdownMenuItem>
-            {isAdmin && (
-              <DropdownMenuItem asChild>
-                <Link
-                  // Straight to the first section, as the sidebar's Settings
-                  // button does: `/admin/settings` only redirects there.
-                  href={`/${locale}/admin/settings/general`}
-                  className="cursor-pointer"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>
-                    {t("common.settings")}
-                  </span>
-                </Link>
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="text-destructive focus:text-destructive"
+            <Link
+              // Straight to the first section: `/admin/settings` only
+              // redirects there.
+              href="/admin/settings/general"
+              aria-label={t("common.settings")}
+              title={t("common.settings")}
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t("common.logout")}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <Settings className="h-5 w-5" />
+            </Link>
+          </Button>
+        )}
+
+        {/* The viewer's own preferences, opened from the account menu;
+            nothing in it is store-wide. */}
+        <PreferencesDrawer locale={locale} showTrigger={false} />
+
+        {/* The account menu lives in the sidebar's foot; the POS terminal
+            has no sidebar, so it keeps one here. */}
+        {isPosTerminal && (
+          <HeaderAccountMenu
+            locale={locale}
+            user={user}
+            links={[
+              { href: "/admin/profile", label: t("adminProfile.title"), Icon: UserRound },
+              ...(isAdmin
+                ? [
+                    // Straight to the first section: `/admin/settings` only
+                    // redirects there.
+                    { href: "/admin/settings/general", label: t("common.settings"), Icon: Settings },
+                  ]
+                : []),
+            ]}
+          />
+        )}
       </div>
     </header>
   );

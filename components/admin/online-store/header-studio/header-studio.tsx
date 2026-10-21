@@ -1,5 +1,7 @@
 "use client";
 
+import { DeviceSelector, ViewportFields } from "../responsive-dimensions-fields";
+import type { LayoutDevice } from "@/lib/site-config/responsive-dimensions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, RotateCcw } from "lucide-react";
@@ -67,6 +69,11 @@ import {
 } from "@/components/admin/online-store/header-studio/mutations";
 import { cn } from "@/lib/utils";
 import {
+  ThemeColorsProvider,
+  themePreviewStyle,
+  type ThemeColorChoices,
+} from "@/components/admin/theme-colors-context";
+import {
   STUDIO_CONTROL_RADIUS,
   itemMeta,
 } from "@/components/admin/online-store/header-studio/layout-style";
@@ -78,6 +85,12 @@ interface HeaderStudioProps {
    * own draft → publish gate.
    */
   initialChromeSections: SectionInstance[];
+  /**
+   * The active theme's colours: offered in every colour field so a button
+   * or a row can follow Theme settings → Colors, and set on the studio so a
+   * referenced colour previews as the store's own.
+   */
+  themeColors?: ThemeColorChoices;
 }
 
 interface SettingsPayload {
@@ -120,12 +133,13 @@ const collisionDetection: CollisionDetection = (args) => {
   return closestCenter({ ...args, droppableContainers });
 };
 
-export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
+export function HeaderStudio({ initialChromeSections, themeColors }: HeaderStudioProps) {
   const t = useTranslations();
   // Memoised on `t`: the load effect depends on it, and a fresh closure per
   // render would refetch the settings forever.
   const tSafe = useMemo(() => createTSafe(t), [t]);
 
+  const [device, setDevice] = useState<LayoutDevice>("desktop");
   const [header, setHeader] = useState<HeaderSettings | null>(null);
   const [initialHeader, setInitialHeader] = useState<HeaderSettings | null>(
     null,
@@ -481,7 +495,11 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
     : null;
 
   return (
-    <div className={cn("mx-auto w-full max-w-7xl", STUDIO_CONTROL_RADIUS)}>
+    <ThemeColorsProvider value={themeColors}>
+    <div
+      className={cn("mx-auto w-full max-w-7xl", STUDIO_CONTROL_RADIUS)}
+      style={themePreviewStyle(themeColors ?? null)}
+    >
       <div>
       <AdminFormStickyHeader
         className="!mx-0 -mt-2 border-b-0 px-0 shadow-none md:px-0"
@@ -528,6 +546,12 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
       />
       </div>
 
+      <div className="my-4 space-y-3">
+        <DeviceSelector device={device} onChange={setDevice} tSafe={tSafe} />
+        <ViewportFields device={device} settings={layout.viewport} fullWidth={header.layout.fullWidth} logoWidth={header.brand.mobileLogoWidth} tSafe={tSafe} onChange={(viewport) => setLayout({ ...layout, viewport })} />
+      </div>
+
+      {device === "desktop" ? <>
       {/* Preview: what the storefront will paint. Pinned under the
           dashboard header so a property change lower on the page is seen
           the moment it is made — the whole point of editing beside a
@@ -669,6 +693,8 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
       </DndContext>
       </section>
 
+      </> : <p className="py-4 text-sm text-muted-foreground">{tSafe("admin.responsive.compactHeader", "Mobile and tablet use the compact logo, cart and search header. Set their content width, padding and logo width above.")}</p>}
+
       <TemplateDialog
         open={templateOpen}
         onOpenChange={setTemplateOpen}
@@ -695,6 +721,7 @@ export function HeaderStudio({ initialChromeSections }: HeaderStudioProps) {
         />
       ) : null}
     </div>
+    </ThemeColorsProvider>
   );
 }
 

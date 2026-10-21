@@ -114,6 +114,12 @@ export function MessageThread({
               viewerMode === "store"
                 ? message.direction === "outbound" || note
                 : message.direction === "inbound";
+            // The other side's picture: the shopper's for the store, the
+            // store's logo for the shopper.
+            const otherImage =
+              viewerMode === "store"
+                ? conversation.contact.image
+                : conversation.ownerImage;
             const dayLabel = dayLabels[index];
             const showDay = dayLabel !== dayLabels[index - 1];
 
@@ -150,6 +156,17 @@ export function MessageThread({
             const bubble = Boolean(
               body || template || message.attachments.length,
             );
+            // Pictures and videos alone sit in a thin frame, not a padded
+            // bubble, as Messenger and WhatsApp show them.
+            const mediaOnly =
+              !body &&
+              !template &&
+              !note &&
+              message.attachments.length > 0 &&
+              message.attachments.every(
+                (attachment) =>
+                  attachment.type === "image" || attachment.type === "video",
+              );
 
             return (
               <Fragment key={message._id}>
@@ -170,10 +187,9 @@ export function MessageThread({
                   {!own ? (
                     startsRun ? (
                       <Avatar className="size-7 shrink-0">
-                        {/* The customer's picture is theirs: a shopper sees the store's initials, not their own face. */}
-                        {viewerMode === "store" && conversation.contact.image ? (
+                        {otherImage ? (
                           <AvatarImage
-                            src={conversation.contact.image}
+                            src={otherImage}
                             alt={message.senderName}
                           />
                         ) : null}
@@ -213,12 +229,19 @@ export function MessageThread({
                     {bubble ? (
                       <div
                         className={cn(
-                          "rounded-2xl px-3.5 py-2 text-sm shadow-xs",
+                          "rounded-2xl text-sm shadow-xs",
+                          !mediaOnly && "px-3.5 py-2",
                           note
                             ? "border border-amber-500/30 bg-amber-500/10 text-foreground"
                             : own
                               ? "bg-primary text-primary-foreground"
                               : "border bg-card text-foreground",
+                          // The frame is a border and the media is clipped to
+                          // its inner edge, so the picture's corners follow
+                          // the frame's — the tail corner included.
+                          mediaOnly &&
+                            "overflow-hidden border-2 [&_img]:rounded-none [&_video]:rounded-none",
+                          mediaOnly && own && "border-primary",
                           failed && "ring-2 ring-destructive",
                           own && !endsRun && "rounded-ee-md",
                           own && endsRun && "rounded-ee-sm",

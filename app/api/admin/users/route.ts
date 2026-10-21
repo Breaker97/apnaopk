@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models";
 import { paginatedResponse } from "@/lib/api/response";
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
     if (session.user.role !== USER_ROLES.ADMIN) throw new AuthorizationError();
+    await enforceTeamRole(request, session.user.id, { adminOnly: true });
 
     // Rate limiting
     await rateLimitByUser(

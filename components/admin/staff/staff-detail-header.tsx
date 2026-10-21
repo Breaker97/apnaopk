@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/providers/currency-provider";
 import { cn } from "@/lib/utils";
 import type { StaffHeaderData, StaffStats } from "./staff-detail-types";
+import { memberStatusChoice } from "@/components/admin/team/member-status-control";
 
 interface StaffDetailHeaderProps {
   data: StaffHeaderData;
@@ -15,7 +16,7 @@ interface StaffDetailHeaderProps {
   /** Live from the form, so the badges track unsaved edits. */
   permissionCount: number;
   totalPermissions: number;
-  /** Live staff-access toggle, which is separate from the account status. */
+  /** The staff-access switch from before it was folded into Status: off reads as Paused. */
   accessEnabled: boolean;
   hasPosAccess: boolean;
   loading?: boolean;
@@ -31,8 +32,8 @@ const STATUS_META: Record<
   { label: string; variant: "default" | "outline" | "destructive"; dot: string }
 > = {
   active: { label: "Active", variant: "default", dot: "bg-emerald-500" },
-  inactive: { label: "Inactive", variant: "outline", dot: "bg-amber-500" },
-  banned: { label: "Banned", variant: "destructive", dot: "bg-destructive" },
+  paused: { label: "Paused", variant: "outline", dot: "bg-amber-500" },
+  suspended: { label: "Suspended", variant: "destructive", dot: "bg-destructive" },
 };
 
 function initials(name: string) {
@@ -111,7 +112,7 @@ export function StaffDetailHeader({
   inviteDisabled = false,
 }: StaffDetailHeaderProps) {
   const { formatPrice } = useCurrency();
-  const status = STATUS_META[data.status] ?? STATUS_META.active;
+  const status = STATUS_META[memberStatusChoice(data.status, accessEnabled)] ?? STATUS_META.active;
   const kpiLoading = statsLoading ?? loading;
   const counts = stats;
   const lastOrder = relativeDate(counts?.lastOrderAt);
@@ -158,13 +159,6 @@ export function StaffDetailHeader({
                     />
                     {status.label}
                   </Badge>
-                  {/* Access is its own switch: an active account whose staff
-                      access is off still cannot open the dashboard. */}
-                  {!accessEnabled && (
-                    <Badge variant="outline" className="gap-1">
-                      Access off
-                    </Badge>
-                  )}
                   {data.department && (
                     <Badge variant="outline">{data.department}</Badge>
                   )}

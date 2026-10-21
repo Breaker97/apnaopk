@@ -195,6 +195,18 @@
   "account": {
     "welcome": "欢迎回来，{name}！",
     "overviewDesc": "您的账号概览",
+    "overview": {
+      "needsAttention": "需要您关注",
+      "actionNeeded": "需要处理",
+      "addressTitle": "我们无法送达您的地址",
+      "addressDeadline": "发货已暂停，请在 {date} 前更正地址",
+      "addressPaused": "在地址更正之前发货已暂停",
+      "fixAddress": "更正地址",
+      "paymentDue": "待付款",
+      "payBy": "请在 {date} 前付款",
+      "moreInProgress": "另有 {count} 个进行中",
+      "plusMore": "另 {count} 个"
+    },
     "totalOrders": "订单总数",
     "pendingOrders": "待处理订单",
     "wishlistItems": "心愿单商品",
@@ -314,6 +326,10 @@
     "marketingPreferences": "营销偏好",
     "marketingOptIn": "营销邮件",
     "marketingOptInDesc": "接收营销通讯和特别优惠",
+    "groupOrders": "您的订单",
+    "groupWishlist": "您的心愿单",
+    "groupNews": "资讯与优惠",
+    "marketingOptInHint": "关闭此项即可退订所有营销邮件。",
     "totalSpent": "总消费",
     "avgOrderValue": "平均订单金额",
     "memberSince": "注册时间",
@@ -381,7 +397,8 @@
     "getHelp": "获取帮助",
     "brands": "品牌",
     "vendors": "商家",
-    "compare": "对比"
+    "compare": "对比",
+    "inbox": "收件箱"
   },
   "productsPage": {
     "empty": "未找到商品",
@@ -417,7 +434,10 @@
     "featuredProducts": "精选商品"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "搜索 分类..."
+    "searchPlaceholder": "搜索 分类...",
+    "count": "{count, plural, other {# 个分类}}",
+    "perRowGroup": "每行分类数",
+    "perRow": "每行 {count} 个"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# 件商品} other {# 件商品}}",
@@ -504,6 +524,7 @@
     "heroSubtitle": "发现来自认证商家的优质商品。安心购物，享受顺畅配送直达家门。",
     "shopByCategory": "按分类选购",
     "shopByCategoryDescription": "浏览按分类整理的丰富商品",
+    "shopAllInCategory": "查看全部{name}",
     "viewAllCategories": "查看所有分类",
     "whyChooseUs": "为什么选择 {storeName}？",
     "whyChooseUsDescription": "我们提供为你打造的最佳购物体验",
@@ -610,7 +631,8 @@
     "addToBag": "加入购物车",
     "color": "颜色",
     "colors": "颜色",
-    "itemsSold": "已售 {count}"
+    "itemsSold": "已售 {count}",
+    "percentOff": "省{percent}%"
   },
   "reviews": {
     "basedOn": "基于 {count} 条评价",
@@ -924,7 +946,6 @@
     "notificationSettingsDesc": "管理邮件和推送通知",
     "accountSettings": "账户设置",
     "accountSettingsDesc": "管理您的个人账户信息",
-    "viewStore": "View Store",
     "viewOrders": "订单",
     "productSummary": "商品状态汇总",
     "active": "活跃",
@@ -1133,7 +1154,17 @@
       "socialUrl": "链接",
       "socialAdd": "添加链接",
       "socialRemove": "移除链接",
-      "shareButtons": "分享按钮"
+      "shareButtons": "分享按钮",
+      "changeEmail": "更改",
+      "changeEmailTitle": "更改邮箱",
+      "changeEmailDescription": "之后你将使用新邮箱登录。我们会将此次更改通知你当前的邮箱。",
+      "newEmail": "新邮箱",
+      "currentPasswordForEmail": "当前密码",
+      "updateEmail": "更新邮箱",
+      "emailChanged": "邮箱已更新。今后请使用新邮箱登录。",
+      "emailChangeFailed": "邮箱更新失败",
+      "phoneInvalid": "请输入有效的电话号码",
+      "payoutScheduleHint": "在您的打款日，当已就绪的金额达到您和店铺设定的最低金额时，店铺会准备一笔打款，然后汇入上方账户。"
     },
     "untitledProduct": "未命名商品",
     "dashboardWidgets": {
@@ -1304,6 +1335,78 @@
     },
     "activityLog": {
       "title": "活动日志"
+    },
+    "payoutDetail": {
+      "back": "打款",
+      "period": "{start} – {end} 下单的销售",
+      "noteFromStore": "店铺备注",
+      "grossSales": "总销售额",
+      "grossSalesHint": "您在以下订单中的份额",
+      "commission": "佣金",
+      "shipping": "配送费",
+      "shippingHint": "向买家收取的、由您配送的包裹费用",
+      "adjustment": {
+        "recoveryDeducted": "退款追收",
+        "recoveryDeductedHint": "此前已打款给您、之后发生退款的订单",
+        "recoveryReturned": "退还追收款",
+        "recoveryReturnedHint": "此前追收的退款已被撤销",
+        "reserveHeld": "预售预留金",
+        "reserveHeldHint": "为应对延迟拒付而暂扣",
+        "reserveReleased": "释放预售预留金",
+        "reserveReleasedHint": "在此前打款中暂扣，现已释放",
+        "reserveCreditDeducted": "追收预留金",
+        "reserveCreditDeductedHint": "已释放的预留金，其所在打款被退回",
+        "reserveCreditReturned": "退还预留金追收款",
+        "reserveCreditReturnedHint": "其所在打款重新支付后退还",
+        "commissionOffset": "现金销售佣金",
+        "commissionOffsetHint": "您自行收款的销售所欠佣金，在此结算而不另开账单",
+        "commissionCredit": "现金销售的店铺促销",
+        "commissionCreditHint": "店铺承担的、超出您应付佣金的折扣"
+      },
+      "reserveUntil": "于 {date} 释放",
+      "otherAdjustments": "其他调整",
+      "otherAdjustmentsHint": "退款追收和预售预留金变动",
+      "netPayout": "净打款",
+      "sentOn": "{date} 已发出",
+      "reference": "参考号 {reference}",
+      "returnedOn": "{date} 被退回 — 其中的销售已回到您的余额",
+      "history": "处理记录",
+      "returnedStep": "款项被退回",
+      "orders": "本次打款包含的订单",
+      "order": "订单",
+      "placed": "下单时间",
+      "yourShare": "您的份额",
+      "afterCommission": "扣除佣金后",
+      "noOrders": "没有与此打款关联的订单。"
+    },
+    "suspendedMoney": {
+      "title": "您的资金",
+      "frozen": "账户暂停期间，打款会暂停。您的销售仍会继续计入，并在访问恢复后支付。",
+      "ready": "可打款",
+      "held": "仍在配送中或处于退货期限内",
+      "payouts": "最近打款",
+      "status": {
+        "pending": "待处理",
+        "processing": "处理中",
+        "paid": "已打款",
+        "failed": "失败",
+        "cancelled": "已取消"
+      }
+    },
+    "commissionCard": {
+      "canceled": "付款已取消。账单仍未结清。",
+      "settled": "佣金账单已结清。",
+      "pendingInfo": "付款仍在处理中 — 确认后账单将自动结清。",
+      "verifyFailed": "暂时无法确认该笔付款。",
+      "pollTimeout": "暂时无法确认付款。确认后账单将自动结清。",
+      "checkPhone": "请查看手机并批准付款请求。",
+      "failed": "无法发起付款",
+      "title": "您应付的佣金",
+      "subtitle": "您自行收款的销售（现金、货到付款或您自己的终端）产生的佣金，因此无法从打款中扣除。",
+      "payNow": "立即支付",
+      "noMethods": "目前没有可用的支付方式。请联系平台管理员以其他方式结算。",
+      "dialogTitle": "结算佣金",
+      "continue": "继续付款"
     }
   },
   "adminProfile": {
@@ -1930,7 +2033,6 @@
       "themes": "主题",
       "pages": "页面",
       "pos": "销售点",
-      "posStaff": "员工",
       "posLocations": "位置",
       "addPage": "添加页面",
       "dashboard": "仪表盘",
@@ -1949,6 +2051,7 @@
       "customize": "自定义",
       "finance": "财务",
       "financeOverview": "总览",
+      "inventoryLedger": "库存与账簿",
       "expenses": "支出",
       "receivables": "应收款",
       "financeReports": "报表",
@@ -1970,6 +2073,7 @@
       "returns": "退货",
       "shipping": "配送",
       "sliders": "轮播图",
+      "campaignBanners": "活动横幅",
       "staff": "团队",
       "toggle": "展开或收起侧边栏",
       "vendorConfiguration": "配置",
@@ -2399,7 +2503,7 @@
             "ses": "Amazon SES",
             "other": "其他"
           },
-          "docs": "完整说明：docs/EMAIL_SETUP.md",
+          "docs": "完整说明：https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "为用于发信的 Google 账户开启 2-Step Verification。",
             "step2": "创建一个名为 {storeName} 的应用专用密码，并复制这个 16 位密码。Google 只会显示一次。",
@@ -2751,7 +2855,20 @@
         "soundPayment": "付款已接受",
         "soundOrderComplete": "销售完成",
         "soundError": "错误或库存警告",
-        "soundPlay": "播放提示音：{sound}"
+        "soundPlay": "播放提示音：{sound}",
+        "offlineWindow": "离线销售时长",
+        "offlineWindowHint": "收银机最后一次连接服务器后,在无网络的情况下可继续销售的时长。超时后将锁定,直到能再次登录。范围为 {min} 到 {max} 小时。",
+        "offlineWindowUnit": "小时",
+        "allowDeposits": "允许定金",
+        "allowDepositsDesc": "对已关联顾客的销售，收银机可以先收取部分款项，其余稍后再收。商品会被预留，全额付清后才计入销售。",
+        "requireOpenRegister": "必须打开钱箱才能销售",
+        "requireOpenRegisterDesc": "每台收银机在收款前必须以备用金打开钱箱，使每笔销售都计入一个在结班时清点的班次。",
+        "pricesIncludeTax": "价格含税",
+        "openCashDrawer": "打开钱箱",
+        "openCashDrawerDesc": "收银台收付现金时自动弹开钱箱。需要 QZ Tray 和带钱箱接口的小票打印机；每台收银机在钱箱菜单中选择自己的打印机。",
+        "pricesIncludeTaxMovedOn": "已开启：货架价格已含税。此开关现已移至税费设置。",
+        "pricesIncludeTaxMovedOff": "已关闭：税费会加在货架价格之上。此开关现已移至税费设置。",
+        "pricesIncludeTaxLink": "打开税费设置"
       },
       "vendorPermissions": {
         "title": "市场政策",
@@ -2777,9 +2894,8 @@
       },
       "orders": {
         "title": "订单设置",
-        "description": "订单号、税费和退货。",
+        "description": "订单编号、配送和退货。",
         "prefix": "订单号前缀",
-        "taxRate": "税率",
         "shippingCost": "标准运费",
         "freeShippingThreshold": "包邮门槛",
         "shippingHandledByZones": "费率来自你的配送区域。",
@@ -2827,7 +2943,6 @@
         "shippingRefundNever": "从不",
         "ordersHeading": "订单",
         "prefixExample": "订单号将显示为 <strong>{example}</strong>。",
-        "taxRateHint": "在结账和 POS 中计入订单。",
         "shipping": "配送",
         "shippingLink": "配送与物流",
         "shippingCostHint": "配送区域关闭时，每个订单支付的运费。",
@@ -2843,7 +2958,18 @@
         "commissionSummaryLabel": "佣金和最低结算金额",
         "commissionSummary": "佣金 {rate}%，最低结算金额 {amount}。",
         "vendorConfigLink": "商家配置",
-        "refundAdminFeeUpTo": "%，最高"
+        "refundAdminFeeUpTo": "%，最高",
+        "tax": "税费",
+        "taxMoved": "税率、税类和税务登记信息现已移至税费设置。",
+        "taxLink": "打开税费设置"
+      },
+      "invoices": {
+        "title": "发票设置",
+        "entry": {
+          "title": "发票、小票和贴纸",
+          "description": "设计店铺打印的内容，并为每种类型选择默认模板。",
+          "action": "打开发票设置"
+        }
       },
       "storage": {
         "title": "存储设置",
@@ -2905,7 +3031,7 @@
         },
         "setup": {
           "title": "{provider} 配置指南",
-          "docs": "完整说明：docs/STORAGE_SETUP.md",
+          "docs": "完整说明：https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "复制",
           "copyFailed": "无法复制",
           "console": {
@@ -3035,7 +3161,7 @@
           "step6": "首次抓取后，Catalog → Issues 会列出 Meta 拒绝的所有商品。",
           "caution": "生成新 URL 后，请修改现有数据源的 URL。如果再添加一个数据源，每件商品都会重复出现。",
           "link": "打开 Commerce Manager",
-          "docs": "完整说明：docs/META_CATALOG.md"
+          "docs": "完整说明：https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Facebook 和 Instagram 通过 Meta 的 Catalog API 在几分钟内获取您的商品变更。",
         "source": {
@@ -3115,7 +3241,7 @@
             "caution": "请像对待密码一样保管令牌。令牌被撤销或过期时，实时同步会暂停，并通知管理员。",
             "off": "关闭实时同步后，已在 Meta 中的商品保持不变。如不再需要，请在 Commerce Manager 中删除。",
             "link": "打开 Business settings",
-            "docs": "完整说明：docs/META_CATALOG.md"
+            "docs": "完整说明：https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -3634,11 +3760,13 @@
           "byCurrencyLabel": "其他货币的最低金额",
           "byCurrencyRemove": "移除 {currency} 的最低金额",
           "description": "适用于没有套餐的商家。也可在订单设置中编辑。",
-          "minWithdrawalDescription": "商家可申请结算的最低余额，以店铺货币计。",
+          "minWithdrawalDescription": "可打款的最低余额，以店铺货币计。",
           "minWithdrawalLabel": "最低提现金额",
           "rateDescription": "平台从每笔商家销售中保留的百分比。",
           "rateLabel": "佣金比例",
-          "title": "默认佣金"
+          "title": "默认佣金",
+          "autoPayoutDraftsLabel": "按各商家的周期准备打款",
+          "autoPayoutDraftsDescription": "在商家的打款日（每周、每两周或每月，由商家选择），若可打款金额足够，系统会生成一笔打款。您仍需自行汇款并将其标记为已支付。"
         },
         "description": "商家的注册、审批和订阅套餐政策。",
         "documents": {
@@ -3941,6 +4069,10 @@
             "preorderAccess": {
               "title": "预售权限",
               "hint": "已批准、已拒绝或已撤销"
+            },
+            "payouts": {
+              "title": "打款",
+              "hint": "已准备、已发出、已退回或已取消"
             }
           },
           "customer": {
@@ -4106,6 +4238,221 @@
       "saveBar": {
         "unsaved": "未保存的更改",
         "discard": "放弃"
+      },
+      "tax": {
+        "title": "税费设置",
+        "description": "您收取的税费、您的登记地，以及税费的计算方式。",
+        "tabsLabel": "税费设置分区",
+        "moreOptions": "更多选项",
+        "tabs": {
+          "rates": "税率",
+          "registration": "税务登记",
+          "calculation": "计算",
+          "vendors": "商家"
+        },
+        "links": {
+          "report": "税费报表",
+          "invoices": "发票设置"
+        },
+        "registrationMissingLabel": "未填写税务登记号",
+        "rates": {
+          "description": "各税类适用的税率。未设置税类的商品按标准税率计税。",
+          "notCharging": "未收取税费",
+          "notChargingHint": "所有税率均为 0%，因此任何销售都不计税。请在下方设置标准税率，以开始收取税费。",
+          "removedClass": "部分商品使用的税类已不存在",
+          "removedClassHint": "{products, plural, other {# 个商品}}和{categories, plural, other {# 个分类}}归属于已移除的税类，因此按标准税率计税。请在各自的编辑器中为它们选择税类。",
+          "default": "默认",
+          "partsBadge": "{count, plural, other {# 个税项}}",
+          "neverCharged": "从不计税",
+          "noRate": "尚无税率。在您设置之前，按标准税率计税。",
+          "rateLabel": "{name} 税率",
+          "rateTotalLabel": "{name} 税率，即各税项之和",
+          "expandLabel": "{name} 的选项",
+          "usageProducts": "{count, plural, other {# 个商品}}",
+          "usageCategories": "{count, plural, other {# 个分类}}",
+          "next": "{date} 起变更为 {rate}",
+          "name": "名称",
+          "note": "备注",
+          "optional": "可选",
+          "notePlaceholder": "此税类包含哪些商品",
+          "partsTitle": "税项",
+          "total": "合计 {rate}",
+          "partName": "税项名称",
+          "partRate": "税项税率",
+          "partPlaceholder1": "州",
+          "partPlaceholder2": "县",
+          "partPlaceholder3": "市",
+          "compound": "在上方税项基础上叠加计税",
+          "compoundHint": "各税项相加计算，就像州、县和市的销售税一样。叠加计税的税项按价格加上其上方各税项后的金额计算。",
+          "addPart": "添加税项",
+          "splitIntoParts": "拆分为税项",
+          "removePart": "移除此税项",
+          "scheduleTitle": "已安排的变更",
+          "scheduleAdd": "安排变更",
+          "startsOn": "生效日期",
+          "newRate": "新税率",
+          "removeScheduled": "移除此项已安排的变更",
+          "earlierTitle": "此前的税率",
+          "earlierLine": "自 {date} 起 {rate}",
+          "fromStart": "自始生效",
+          "removeEarlier": "移除此前的税率",
+          "removeClass": "移除税类",
+          "removeClassInUse": "{products, plural, other {# 个商品}}和{categories, plural, other {# 个分类}}正在使用此税类。移除后，它们将按标准税率计税。",
+          "removeClassHint": "其税率将一并移除。",
+          "addClass": "添加税类",
+          "newName": "税类名称",
+          "newNamePlaceholder": "图书",
+          "classRate": "税率",
+          "add": "添加税类",
+          "cancel": "取消",
+          "full": "最多可添加 {count} 个税类。",
+          "untaxedNote": "{count, plural, other {# 个商品}}已设置为不收取税费。",
+          "customNote": "{products, plural, other {# 个商品}}和{categories, plural, other {# 个分类}}设置了各自的自定义税率。该税率不会随此处的税率变更；将它们归入某个税类即可保持同步。"
+        },
+        "registration": {
+          "description": "您的店铺进行税务登记的地区。所有销售均按该地区的税率计税。",
+          "missing": "未填写税务登记号",
+          "missingHint": "您正在收取税费，但尚未添加税务登记信息，例如销售税许可证号码。",
+          "country": "国家/地区",
+          "name": "地区名称",
+          "optional": "可选",
+          "nameHint": "留空时显示国家/地区名称。",
+          "registrationLabel": "登记号名称",
+          "registrationLabelPlaceholder": "销售税许可证",
+          "registrationLabelHint": "税务机关对它的称呼：销售税许可证、卖家许可证。",
+          "registrationNumber": "税务登记号",
+          "registrationNumberHint": "税务机关为您签发的号码。"
+        },
+        "calculation": {
+          "posTitle": "收银台",
+          "posDescription": "收银时如何理解货架价格。",
+          "posPricesIncludeTax": "货架价格含税",
+          "posPricesIncludeTaxDesc": "收银机按货架上的价格收款，并显示其中包含的税费，而不是另外加收税费。",
+          "rulesTitle": "税费计算方式",
+          "rulesDescription": "这些规则适用于所有销售，无需在此设置。",
+          "chainTitle": "商品按以下第一个已设置的项计税",
+          "chain": {
+            "own": "自身的自定义税率",
+            "class": "所属税类",
+            "category": "所属分类的税率",
+            "standard": "标准税率"
+          },
+          "facts": {
+            "online": {
+              "label": "在线商店",
+              "text": "在线商店中显示的价格不含税，税费在结账时加收。"
+            },
+            "discounts": {
+              "label": "折扣",
+              "text": "税费按顾客在扣除折扣和优惠券后实际支付的金额计算。"
+            },
+            "shipping": {
+              "label": "运费",
+              "text": "运费和关税不计税。"
+            },
+            "region": {
+              "label": "地区",
+              "text": "无论顾客地址在哪里，所有销售均按您所在地区的税率计税。"
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "标准",
+            "description": "大多数商品。其税率即为您店铺的税率。"
+          },
+          "reduced": {
+            "name": "低税率",
+            "description": "法律规定按较低税率计税的商品。"
+          },
+          "zero": {
+            "name": "零税率",
+            "description": "按 0% 计税的应税商品。"
+          },
+          "exempt": {
+            "name": "免税",
+            "description": "完全不在征税范围内的商品。"
+          }
+        },
+        "picker": {
+          "label": "税费",
+          "inheritCategory": "与所属分类相同",
+          "inheritParent": "与上级分类相同",
+          "custom": "自定义税率",
+          "customRate": "自定义税率",
+          "customHint": "自定义税率优先于所有税类，且不会随税费设置中的税率变更而更新。",
+          "hint": "税率由税类决定，可在“设置 → 税费设置”中设置。",
+          "removedClass": "{key}（已移除：标准税率）"
+        },
+        "vendors": {
+          "policyTitle": "商家商品税费",
+          "policyDescription": "您的商店需对其平台收取的税费负责。选择谁可以更改商家商品的税费：收取税费、税类和自定义税率。",
+          "policy": {
+            "approval": "需您批准",
+            "approvalHint": "商家发送请求，由您在下方批准或拒绝。在此之前，其商品保持原有税费。",
+            "never": "仅限您",
+            "neverHint": "商家可以查看其商品的税费，但无法更改，也不能请求更改。",
+            "free": "商家自行更改",
+            "freeHint": "商家无需请求即可更改自己商品的税费。"
+          },
+          "requestsTitle": "税费变更请求",
+          "requestsDescription": "批准后，请求中的每件商品都将应用所请求的税费。拒绝后，税费保持不变，并告知商家原因。",
+          "pendingTab": "待处理",
+          "decidedTab": "已处理",
+          "loading": "正在加载请求…",
+          "empty": "没有待处理的请求。",
+          "emptyDecided": "尚无已处理的请求。",
+          "loadFailed": "无法加载请求",
+          "unknownStore": "未知商店",
+          "requestedOn": "请求于 {date}",
+          "asksFor": "请求",
+          "now": "当前 {tax}",
+          "moreProducts": "{count, plural, other {及另外 # 件商品}}",
+          "reason": "原因",
+          "noteLabel": "给商家的备注",
+          "noteRequiredHint": "拒绝时必填",
+          "optional": "可选",
+          "notePlaceholder": "给商家的简短备注",
+          "addNote": "添加备注",
+          "noteRequired": "请填写备注，让商家了解原因",
+          "approve": "批准",
+          "decline": "拒绝",
+          "cancel": "取消",
+          "sendDecline": "发送拒绝",
+          "approvedToast": "已批准税费变更",
+          "declinedToast": "已拒绝请求",
+          "decisionFailed": "无法保存处理结果",
+          "pending": "待处理",
+          "approved": "已批准",
+          "declined": "已拒绝",
+          "withdrawn": "已撤回",
+          "decisionNote": "备注：{note}"
+        },
+        "request": {
+          "notCharged": "不收取税费",
+          "inherit": "与所属分类相同",
+          "customRate": "自定义税率 {rate}%",
+          "lockedLabel": "税费",
+          "lockedApproval": "此商品的税费变更需经商店批准。",
+          "lockedNever": "此商品的税费由商店管理。",
+          "newProductApproval": "新商品按其所属分类计税。保存后，您可以请求使用其他税费。",
+          "requestChange": "请求更改",
+          "pending": "已请求更改：{tax}。等待商店处理。",
+          "withdraw": "撤回",
+          "withdrawn": "请求已撤回",
+          "withdrawFailed": "无法撤回请求",
+          "dialogTitle": "请求更改税费",
+          "dialogDescription": "{count, plural, =1 {商店将审核您的请求。在批准之前，该商品保持当前税费。} other {商店将审核您针对 # 件商品的请求。在批准之前，这些商品保持当前税费。}}",
+          "chargeTax": "收取税费",
+          "reason": "为什么需要更改税费？",
+          "reasonPlaceholder": "例如：在我们州，这些商品免征销售税。",
+          "reasonTooShort": "请用一句话说明为什么需要更改税费。",
+          "send": "发送请求",
+          "cancel": "取消",
+          "sent": "请求已发送给商店",
+          "sendFailed": "无法发送请求",
+          "bulkAction": "请求更改税费"
+        }
       }
     },
     "reports": "报表",
@@ -4113,7 +4460,6 @@
     "approveVendor": "通过商家",
     "rejectVendor": "拒绝商家",
     "pos": "销售点",
-    "posStaff": "员工",
     "posLocations": "位置",
     "productsPage": {
       "stats": {
@@ -4322,7 +4668,10 @@
           "countryOfOrigin": "国家名称或两位字母代码，例如 BD。",
           "hsCode": "海关税则编码。",
           "barcode": "EAN-13、UPC-A、GTIN-14 或 Code 128。留空则自动生成。",
-          "vendorId": "商品所属的商家，与商家导出文件中的值相同。默认：你自己的店铺。"
+          "vendorId": "商品所属的商家，与商家导出文件中的值相同。默认：你自己的店铺。",
+          "chargeTax": "true 或 false：是否对该商品收税。默认为 true。",
+          "taxClass": "税费设置中的税类：standard、reduced、zero、exempt 或您添加的税类。填写 inherit 可重新使用所属分类的税费。",
+          "taxRate": "以百分比表示的自定义税率，例如 7.5。它会取代税类，因此 taxClass 和 taxRate 只填其一，不要同时填写。"
         },
         "title": "导入商品",
         "description": "通过 CSV 或 JSON 文件批量添加新商品或更新现有商品。",
@@ -4403,7 +4752,9 @@
       "actions": {
         "export": "导出",
         "import": "导入",
-        "addCollection": "添加 集合"
+        "addCollection": "添加 集合",
+        "importExport": "导入 / 导出",
+        "downloadSample": "下载示例文件"
       },
       "bulkActions": {
         "setActive": "设为启用",
@@ -4442,6 +4793,67 @@
         "deleteBulkError": "失败 到 删除 部分 集合",
         "updateSuccess": "{count} 集合 已更新",
         "updateError": "失败 到 更新 {count} 集合"
+      },
+      "importDialog": {
+        "title": "导入集合",
+        "description": "通过 CSV 文件批量添加新集合或更新现有集合。",
+        "sampleTitle": "从示例文件开始",
+        "sampleDescription": "示例文件包含导入时读取的列，以及两个示例集合：一个 manual，一个 automated。将示例替换为你自己的集合，保留第一行不变，然后在此上传文件。",
+        "sampleCsv": "示例 CSV",
+        "sampleFailed": "无法下载示例文件",
+        "dropTitle": "选择文件或拖放到此处",
+        "dropHint": "CSV · 最多 {rows} 个集合 · {size} MB",
+        "removeFile": "移除文件",
+        "fileTooLarge": "此文件超过 {size} MB。请拆分成较小的文件。",
+        "wrongType": "请选择 .csv 文件。",
+        "rulesTitle": "行的导入方式",
+        "rules": {
+          "match": "包含现有集合 id 或 slug 的行会更新该集合。两者都没有的行会按 title 匹配，没有匹配项时则创建新集合。",
+          "blank": "单元格留空时，保留集合的当前值。新集合默认为 manual 的 draft。",
+          "products": "manual 集合通过 slug、SKU 或名称列出其商品，用 | 分隔。商品必须已存在；匹配不到任何商品的名称会被跳过并在结果中提示。商品单元格留空则保留当前商品。",
+          "conditions": "automated 集合需要在 conditions 列中至少写一条规则，格式为 JSON，参见列说明中的示例。"
+        },
+        "columnsTitle": "列说明",
+        "required": "新集合必填",
+        "columns": {
+          "title": "集合名称。",
+          "slug": "集合的网址。留空则根据 title 生成。也用于找到要更新的集合。",
+          "id": "仅出现在导出的文件中。用于准确找到要更新的集合。",
+          "description": "简短的纯文本描述。",
+          "descriptionHtml": "完整描述，可使用 HTML。",
+          "imageUrl": "集合封面的公开图片链接（https://…）。",
+          "imageAlt": "封面图片的替代文字。留空则使用 title。",
+          "collectionType": "manual 或 automated。文件未指定时，新集合为 manual。",
+          "status": "active 或 draft。文件未指定时，新集合为 draft。",
+          "products": "用于 manual 集合：商品的 slug、SKU 或名称，用 | 分隔，例如 blue-shirt|red-shirt。",
+          "productIds": "仅出现在导出的文件中：商品 id，用 | 分隔。与 products 一起使用。",
+          "conditions": "用于 automated 集合：以 JSON 列表填写规则。可用字段：title、productType、vendor、tag、price、comparePrice、weight、stock、createdAt、category、brand。",
+          "conditionMatch": "all 或 any：商品需满足所有规则，还是满足任意一条即可。默认为 all。",
+          "sortOrder": "manual、best-selling、title-asc、title-desc、price-asc、price-desc、created-asc 或 created-desc。",
+          "position": "用于决定该集合在列表中排序的数字。数字越小越靠前。",
+          "onlineStore": "true 或 false：是否在在线商店中显示该集合。默认为 true。",
+          "pointOfSale": "true 或 false：是否在销售点显示。默认为 false。",
+          "seoPageTitle": "搜索引擎为集合页面显示的标题。",
+          "seoMetaDescription": "搜索引擎为集合页面显示的描述。"
+        },
+        "cancel": "取消",
+        "submit": "导入集合",
+        "importing": "正在导入… 大文件可能需要一分钟左右，请勿关闭此窗口。",
+        "requestFailed": "无法导入该文件，请重试。",
+        "resultTitle": "导入完成",
+        "resultFailedTitle": "无法导入该文件",
+        "created": "已创建",
+        "updated": "已更新",
+        "failed": "失败",
+        "warnings": "提示",
+        "errorsTitle": "未导入的行",
+        "errorsHint": "请在文件中修正这些行，然后重新导入。已导入的行会更新对应的集合，不会重复添加。",
+        "rowLabel": "第 {row} 行",
+        "fileLabel": "文件",
+        "moreErrors": "…另有 {count} 条，请查看可下载的列表。",
+        "downloadErrors": "下载错误列表",
+        "importAnother": "导入其他文件",
+        "done": "完成"
       }
     },
     "categoriesDataTable": {
@@ -4708,7 +5120,7 @@
       "vendor_status": "商家状态",
       "approved": "已通过",
       "pending": "待审核",
-      "suspended": "已暂停",
+      "suspended": "已停用",
       "rejected": "已拒绝",
       "commission": "佣金",
       "sales": "销售额",
@@ -4819,7 +5231,158 @@
       "team_members_exported": "团队成员已导出",
       "team_members_could_not_be_exported": "团队成员导出失败",
       "vendors_exported": "商家已导出",
-      "vendors_could_not_be_exported": "商家导出失败"
+      "vendors_could_not_be_exported": "商家导出失败",
+      "area": "区域",
+      "view": "查看",
+      "manage": "管理",
+      "failed_to_load_the_role": "无法加载角色",
+      "name_is_required": "名称为必填项",
+      "failed_to_save_the_role": "无法保存角色",
+      "role_updated": "角色已更新",
+      "role_created": "角色已创建",
+      "failed_to_delete_the_role": "无法删除角色",
+      "role_deleted": "角色已删除",
+      "edit_role": "编辑角色",
+      "new_role": "新角色",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "角色决定其成员可以做什么。修改角色会影响其所有成员。",
+      "save_role": "保存角色",
+      "role_details": "角色详情",
+      "name": "名称",
+      "dashboard": "仪表盘",
+      "admin_dashboard": "管理后台",
+      "staff_area": "员工区",
+      "any_permission_in_the_admin_dashboard": "管理后台中的任意权限",
+      "store_records_and_the_till_in_the_staff_area": "员工区中的店铺记录与收银台",
+      "every_permission": "全部权限",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "管理员始终拥有全部权限，包括以后新增的权限。要限制某位管理员，请给他分配其他角色。",
+      "delete_this_role": "删除此角色？",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "有成员的角色无法删除；请先为他们分配其他角色。",
+      "roles": "角色",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "每类团队成员可以做什么。在成员页面为其分配角色。",
+      "create_role": "创建角色",
+      "built_in": "内置",
+      "members": "名成员",
+      "view_role": "查看角色",
+      "the_store_owner_always_holds_every_permission": "店主始终拥有全部权限。",
+      "the_home_screen_s_figures": "首页的数据",
+      "returns_refunds": "退货与退款",
+      "quotes": "报价",
+      "price_requests_and_offers": "询价与报价",
+      "applications_stores_plans_and_commissions": "申请、店铺、套餐与佣金",
+      "payouts": "商家结算",
+      "manage_sends_vendors_their_money": "管理会向商家打款",
+      "payments": "支付",
+      "transactions_and_chargebacks": "交易与拒付",
+      "finance": "财务",
+      "ledger_expenses_periods_and_reports": "总账、费用、期间与报表",
+      "marketing": "营销",
+      "boosts": "推广",
+      "sponsored_products": "赞助商品",
+      "online_store": "网店",
+      "theme_pages_menus_sliders_checkout": "主题、页面、菜单、轮播图、结账",
+      "blog": "博客",
+      "posts_categories_comments": "文章、分类、评论",
+      "ai_sales_agent": "AI 销售助手",
+      "its_settings_and_conversations": "其设置与对话",
+      "ai_studio": "AI 工作室",
+      "all_accounts": "所有账户",
+      "every_sign_in_on_the_store": "店铺中的每一次登录",
+      "settings": "设置",
+      "store_settings": "店铺设置",
+      "sensitive_settings": "敏感设置",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "支付网关、存储、邮件/短信服务商、登录、安全、承运商",
+      "activity_log": "操作日志",
+      "who_did_what": "谁做了什么",
+      "team": "团队",
+      "manage_adds_and_edits_members_within_your_own_permissions": "管理可在你自己的权限范围内添加和编辑成员",
+      "create_and_change_roles": "创建和修改角色",
+      "member": "成员",
+      "permission": "权限",
+      "role": "角色",
+      "abandoned_checkouts": "弃单结账",
+      "added_for_this_member": "为该成员添加",
+      "all_vendors_and_locations_including_ones_added_later": "所有商家和地点，包括以后添加的",
+      "also_catalogues_for_ads": "也包括广告目录",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "回复收件箱，查看订单和客户",
+      "brands": "品牌",
+      "campaign_banners": "活动横幅",
+      "can": "可以",
+      "can_sign_in_and_work": "可以登录和工作。",
+      "can_t": "不能",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "不能登录，也不能重置密码。适用于不欢而散的人。",
+      "can_t_sign_in_turn_back_on_any_time": "不能登录。随时可以重新开启。",
+      "cashier": "收银员",
+      "catalog": "目录",
+      "categories": "分类",
+      "changed": "已更改",
+      "changed_from_the_role": "与角色不同",
+      "create": "创建",
+      "creating_and_cancelling_orders_stays_with_the_store": "创建和取消订单由店铺负责",
+      "customer_accounts_are_changed_by_the_store": "客户账户由店铺修改",
+      "discounts_gift_cards": "折扣和礼品卡",
+      "every_staff_permission": "全部员工权限",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "管理后台成员可获得的全部权限，按区域划分。",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "员工区成员可获得的全部权限，按区域划分。",
+      "everything_except_deleting_records": "除删除记录外的全部",
+      "everything_in_the_staff_area_deleting_included": "员工区的全部，包括删除",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "此角色可获得的全部权限，按区域划分。虚线框表示与角色不同。",
+      "everywhere": "所有地方",
+      "gives_access": "授予访问权限",
+      "inbox": "收件箱",
+      "invite": "邀请",
+      "manage_the_till": "管理收银台",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "管理收银台包括折扣、收银报表和柜台",
+      "moderate": "审核",
+      "money": "资金",
+      "moves_money": "涉及资金流动",
+      "new_team_member": "新团队成员",
+      "nothing_yet": "暂无",
+      "online_store_reports": "网店和报表",
+      "only_in_the_admin_dashboard": "仅限管理后台",
+      "only_these": "仅这些",
+      "open_past_the_return_window": "超过退货期限也可开启",
+      "pause": "暂停",
+      "paused": "已暂停",
+      "permissions_given": "已授予的权限",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "选择 Manager 或 Administrator 才能授予其中任何一项。员工在员工区和收银台工作。",
+      "pick_vendors_locations_or_regions_below": "在下方选择商家、地点或区域",
+      "point_of_sale": "收银台 (POS)",
+      "popups_and_bars_on_the_home_page": "首页上的弹窗和横条",
+      "refund": "退款",
+      "refund_sends_money_back_to_the_customer": "退款会把钱退还给客户",
+      "reply": "回复",
+      "reviews": "评价",
+      "rings_up_sales_at_the_register": "在收银台完成销售",
+      "role_name": "角色名称",
+      "role_name_e_g_floor_lead": "角色名称，例如：楼面主管",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "在“角色”页面创建的角色会在这里显示为更多卡片。",
+      "sales_associate": "销售助理",
+      "save_as_a_role": "另存为角色",
+      "scope": "范围",
+      "secrets": "机密信息",
+      "selling": "销售",
+      "send_recovery_emails": "发送挽回邮件",
+      "shift_lead": "值班主管",
+      "staff_area_pos": "员工区和收银台",
+      "start_from": "从此开始",
+      "store_admin": "店铺管理",
+      "summary": "摘要",
+      "support_agent": "客服专员",
+      "taken_away_for_this_member": "为该成员移除",
+      "the_books": "账本",
+      "the_register_orders_customers_and_the_inbox": "收银台、订单、客户和收件箱",
+      "use": "使用",
+      "use_the_register": "使用收银台",
+      "watch": "注意",
+      "what_this_staff_member_can_do_by_area": "此员工可以做的事，按区域划分。",
+      "where_they_work": "工作范围",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "工作范围和初始权限。可在下方为该成员单独更改任何权限。",
+      "works_in_the_admin_dashboard": "在管理后台工作",
+      "works_in_the_staff_area_and_at_the_till": "在员工区和收银台工作",
+      "writes_copy_and_images_with_the_store_s_ai_key": "使用店铺的 AI 密钥撰写文字和生成图片",
+      "anything_only_in_the_admin_dashboard": "任何仅限管理后台的内容",
+      "this_member": "该成员",
+      "by_role": "按角色"
     },
     "customersPage": {
       "stats": {
@@ -5288,15 +5851,28 @@
       "createSection": {
         "title": "创建打款",
         "selectVendor": "选择商家",
-        "periodStart": "周期开始",
+        "periodStart": "周期开始（可选）",
         "periodEnd": "周期结束",
         "creating": "创建中...",
         "create": "创建",
-        "optionalNote": "可选备注"
+        "optionalNote": "可选备注",
+        "description": "向商家支付当前可打款的金额：已过退货期限的已送达销售额，减去其所欠款项。",
+        "searchVendor": "搜索商家",
+        "noVendor": "未找到商家",
+        "searching": "搜索中…",
+        "vendorMissing": "该商家已不存在",
+        "suspended": "已暂停 — 打款已冻结",
+        "startHint": "留空则包含截至结束日期的所有可打款销售。",
+        "frozen": "该商家已被暂停，打款已冻结。在恢复之前，其销售仍会继续计入。",
+        "belowMinimum": "{amount} 低于最低打款金额 {minimum}。",
+        "orderCount": "本次打款包含 {count, plural, other {# 个订单}}。",
+        "moreThanMax": "一次打款最多只能包含最早的 {count} 个可打款订单，其余将计入下一次打款。",
+        "sellerConfirmed": "{count, plural, other {# 次送达}}由商家而非承运商确认。",
+        "commissionLeft": "商家所欠佣金中有 {amount} 未能在本次打款中抵扣，仍为欠款。"
       },
       "listSection": {
         "title": "打款批次",
-        "searchPlaceholder": "搜索打款编号",
+        "searchPlaceholder": "搜索打款编号或商家",
         "allStatuses": "全部状态",
         "columns": {
           "payout": "打款",
@@ -5320,9 +5896,20 @@
         "pageOf": "第 {page} 页，共 {totalPages} 页"
       },
       "toast": {
-        "requiredFields": "商家、开始日期和结束日期为必填项。",
+        "requiredFields": "请选择商家和结束日期。",
         "createSuccess": "打款已创建。",
         "createError": "创建打款失败"
+      },
+      "sendTo": {
+        "title": "收款账户",
+        "missing": "未登记银行账户。请让商家在设置中添加，或通过现金或支付网关打款。",
+        "accountName": "账户名称",
+        "accountNumber": "账号",
+        "bankName": "银行",
+        "routingNumber": "路由号码",
+        "swiftCode": "SWIFT",
+        "show": "显示账号",
+        "copy": "复制{field}"
       }
     },
     "paymentTransactionsPage": {
@@ -5477,6 +6064,19 @@
       },
       "seo": {
         "untitledProduct": "未命名商品"
+      },
+      "leave": {
+        "title": "不保存就离开？",
+        "descriptionNew": "此商品尚未保存。现在离开，您输入的内容将在此处丢失；此浏览器会保留一份副本，您下次添加商品时可以恢复。",
+        "descriptionEdit": "您对此商品的更改尚未保存。现在离开，这些更改将丢失。",
+        "confirm": "离开",
+        "cancel": "留下"
+      },
+      "draft": {
+        "title": "发现未保存的商品",
+        "body": "此浏览器保留了一个 {time} 的商品，它从未被保存。",
+        "restore": "恢复",
+        "discard": "放弃"
       }
     },
     "onlineStorePage": {
@@ -6584,20 +7184,38 @@
         "settings": "主题设置",
         "css": "自定义 CSS"
       },
-      "customCss": {
-        "title": "自定义 CSS"
-      },
       "preview": {
         "pages": {
+          "product": "商品页",
           "home": "首页",
+          "products": "商品",
           "cart": "购物车",
           "search": "搜索"
-        }
+        },
+        "desktop": "桌面端",
+        "mobile": "移动端",
+        "hint": "实时预览——显示未保存的更改。",
+        "open": "打开店铺",
+        "title": "店铺预览",
+        "page": "预览页面"
       },
-      "launchTitle": "主题设置"
+      "customCss": {
+        "title": "自定义 CSS",
+        "description": "在主题自带样式之后添加的规则，作用于店铺的每个页面。按主题分别保存——切换主题时，会换用该主题自己的样式表。颜色、字体排版和形状请优先在“主题设置”中调整；这里用于处理那里调整不到的细节。",
+        "hint": "请将规则限定在 .store-surface 范围内，以免影响管理后台。",
+        "save": "保存 CSS",
+        "saved": "自定义 CSS 已保存"
+      },
+      "launchTitle": "主题设置",
+      "launchDescription": "当前主题的颜色、字体排版、布局、形状和按钮，可在店铺实时预览旁直接编辑。按主题分别保存——切换主题时，会换用该主题自己的设置。",
+      "launch": "打开主题编辑器"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "退货（30 天）",
+          "description": "{count} 件处理中"
+        },
         "needsReview": {
           "title": "待审核",
           "description": "批准或拒绝"
@@ -6658,7 +7276,7 @@
       "enterFullscreen": "进入全屏",
       "exitFullscreen": "退出全屏",
       "reset": "恢复默认",
-      "personalNote": "仅对您本人、在此浏览器中生效。店铺的徽标、颜色和默认外观请在 在线商店 → 主题 → 品牌 中设置。",
+      "personalNote": "仅对您本人、在此浏览器中生效。店铺的徽标和默认外观请在 在线商店 → 主题 → 品牌 中设置，颜色请在主题设置中设置。",
       "darkMode": "深色模式",
       "contrast": "对比度",
       "rtl": "从右到左",
@@ -6666,7 +7284,12 @@
       "sidebar": "侧边栏",
       "sidebarColor": "颜色",
       "sidebarIntegrate": "融合",
-      "sidebarApparent": "突出"
+      "sidebarApparent": "突出",
+      "sidebarPaint": "侧边栏使用的颜色",
+      "sidebarPaintPrimary": "主要",
+      "sidebarPaintSecondary": "次要",
+      "sidebarPaintHint": "使用你当前上线主题的颜色。",
+      "sidebarPaintChange": "去修改"
     },
     "preorderAccess": {
       "vendorFallback": "商家",
@@ -7095,6 +7718,7 @@
         "genericError": "发生错误"
       },
       "mega": {
+        "shopAll": "查看全部{name}",
         "links": "链接",
         "addCategory": "添加 分类",
         "addLink": "添加链接",
@@ -7342,25 +7966,255 @@
         "title": "页脚"
       }
     },
+    "customizeHub": {
+      "title": "自定义",
+      "description": "选择要自定义的店铺页面。"
+    },
     "themeEditor": {
+      "presets": {
+        "default": "蓝色",
+        "cyan": "青色",
+        "purple": "紫色",
+        "blue": "黑色",
+        "orange": "橙色",
+        "red": "红色"
+      },
+      "colorMode": "颜色模式",
+      "darkFollows": "深色模式会自动跟随你的浅色配色。点击某个颜色可仅为深色模式单独设置。",
+      "advancedColors": "高级",
+      "advancedLowContrast": "这里有颜色不易看清",
+      "sections": {
+        "page": "页面",
+        "text": "文字",
+        "sales": "促销与评分",
+        "lines": "线条",
+        "states": "状态",
+        "soft": "浅色背景"
+      },
+      "sourceDefault": "主题默认",
+      "sourceAuto": "自动",
+      "sourceCustom": "自定义",
+      "colorSource": "颜色来源",
+      "autoDarkHint": "跟随你的浅色配色，并自动调整以便在深色页面上清晰显示。",
+      "defaultHint": "主题自带的颜色，与其他颜色搭配易于阅读。",
+      "usedFor": "用于",
+      "useReadable": "使用 {color}",
+      "backToAuto": "恢复自动",
+      "resetToDefault": "重置为主题默认",
+      "textAuto": "自动文字颜色",
+      "accentUse": "精选和菜单标签",
+      "saleUse": "折扣和促销价",
+      "lowContrastOn": "在{surface}上不易看清（{ratio}:1）。建议达到 {minimum}:1。",
+      "groups": {
+        "colors": {
+          "description": "这些颜色仅供 {theme} 使用。你的其他主题保留各自的颜色。",
+          "label": "颜色"
+        },
+        "type": {
+          "label": "字体排版",
+          "description": "标题、正文和按钮的字体与样式。"
+        },
+        "layout": {
+          "label": "布局",
+          "description": "页面宽度，以及主视觉和横幅版块继承的全局默认值。"
+        },
+        "shape": {
+          "label": "形状",
+          "description": "圆角、边框和阴影。精确数值，单位为像素。"
+        },
+        "buttons": {
+          "label": "按钮",
+          "description": "操作按钮的尺寸和行为。"
+        }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "背景",
+          "hint": "每个页面的底色。"
+        },
+        "surface": {
+          "label": "卡片和菜单",
+          "hint": "面板、弹出框、下拉菜单和菜单。"
+        },
+        "surfaceAlt": {
+          "label": "色带和标签",
+          "hint": "带底色的区块、图片背景和中性标签。"
+        },
+        "text": {
+          "label": "文字",
+          "hint": "标题和正文。"
+        },
+        "textMuted": {
+          "label": "次要文字",
+          "hint": "说明文字、分类、占位文字。"
+        },
+        "border": {
+          "label": "分隔线",
+          "hint": "区块之间和卡片周围的线条。"
+        },
+        "primary": {
+          "label": "主按钮",
+          "hint": "主按钮、购物车数量和当前选项卡的下划线。"
+        },
+        "onPrimary": {
+          "label": "主色上的文字",
+          "hint": "主按钮上的文字。"
+        },
+        "secondary": {
+          "label": "次按钮",
+          "hint": "“加入购物车”及其他次按钮。"
+        },
+        "onSecondary": {
+          "label": "次色上的文字",
+          "hint": "“加入购物车”按钮上的文字。"
+        },
+        "accent": {
+          "label": "强调色",
+          "hint": "商品卡片上的“精选”标签和商店菜单中的徽标。"
+        },
+        "sale": {
+          "label": "促销",
+          "hint": "折扣徽标和促销价。"
+        },
+        "rating": {
+          "label": "评分星级",
+          "hint": "评价星级。"
+        },
+        "link": {
+          "label": "链接",
+          "hint": "链接、“查看全部”和当前菜单项：使用主要色的文字，并保持清晰易读。"
+        },
+        "onAccent": {
+          "label": "强调色上的文字",
+          "hint": "强调色上的标签文字。"
+        },
+        "accentSurface": {
+          "label": "强调色背景",
+          "hint": "促销文字后面的浅强调色。"
+        },
+        "onAccentSurface": {
+          "label": "强调色背景上的文字",
+          "hint": "浅强调色上的文字。"
+        },
+        "hoverSurface": {
+          "label": "悬停背景",
+          "hint": "鼠标悬停时的菜单和按钮。"
+        },
+        "onHover": {
+          "label": "悬停时的文字",
+          "hint": "悬停背景上的文字。"
+        },
+        "selectedSurface": {
+          "label": "选中背景",
+          "hint": "下拉菜单中已勾选的项目，以及菜单中的当前行。"
+        },
+        "onSelected": {
+          "label": "选中时的文字",
+          "hint": "选中背景上的文字。"
+        },
+        "focusRing": {
+          "label": "焦点环",
+          "hint": "键盘用户看到的焦点轮廓。"
+        },
+        "fieldBorder": {
+          "label": "输入框边框",
+          "hint": "结账字段、表单和下拉菜单。页眉搜索框的边框在页眉工作室中单独设置。"
+        },
+        "onSale": {
+          "label": "促销色上的文字",
+          "hint": "实心折扣徽标上的文字。"
+        },
+        "saleText": {
+          "label": "促销文字",
+          "hint": "页面上的促销价和节省金额。"
+        },
+        "saleSurface": {
+          "label": "促销背景",
+          "hint": "价格旁折扣标签后面的底色。"
+        },
+        "onSaleSurface": {
+          "label": "促销背景上的文字",
+          "hint": "浅促销色上的文字。"
+        },
+        "skeleton": {
+          "label": "加载占位",
+          "hint": "页面加载时显示的灰色块。"
+        }
+      },
       "title": "主题设置",
       "back": "主题",
+      "unsaved": "未保存的更改",
+      "allSaved": "所有更改已保存",
       "discard": "放弃",
       "save": "保存",
       "saved": "主题设置已保存",
       "saveFailed": "保存失败",
+      "resetGroup": "重置此组",
+      "resetAll": "全部重置为主题默认",
+      "resetAllTitle": "重置所有设置？",
       "preview": "预览",
-      "brandRef": "品牌",
+      "controls": "设置",
+      "setCustom": "设置自定义颜色",
+      "contrastHint": "与其背景的对比度",
       "modeLight": "浅色",
       "modeDark": "深色",
-      "groups": {
-        "colors": {
-          "label": "颜色"
+      "leaveGuard": "你有未保存的主题更改。",
+      "fonts": {
+        "inter": "中性、技术感，默认字体",
+        "manrope": "几何风格，现代零售",
+        "dm-sans": "圆润、友好",
+        "plus-jakarta-sans": "柔和几何，生活方式",
+        "nunito": "圆润笔画末端，活泼",
+        "source-sans-3": "人文风格，适合长文阅读",
+        "space-grotesk": "个性怪诞体，科技感",
+        "playfair-display": "高对比度，杂志风格",
+        "lora": "沉稳易读的衬线体",
+        "fraunces": "柔和、温暖，健康生活",
+        "cormorant-garamond": "奢华、时尚",
+        "dm-serif-display": "仅用于标题（单一字重）",
+        "noto-sans-bengali": "孟加拉文 + 拉丁文，无衬线",
+        "noto-serif-bengali": "孟加拉文 + 拉丁文，衬线"
+      },
+      "resetColors": "重置主题颜色",
+      "invalidColor": "请输入有效的 hex 或 RGB 颜色。预览会保留上一个有效颜色。",
+      "contrastPass": "通过",
+      "contrastLow": "偏低",
+      "previewLoading": "正在连接实时预览…",
+      "previewOutdated": "刷新预览以加载最新的颜色引擎。",
+      "refreshPreview": "刷新预览",
+      "cannotVerifyColor": "无法验证此自定义颜色表达式。请在两种模式下检查预览。",
+      "themeChanged": "你编辑期间，另一个主题已被启用。请为该主题重新打开编辑器。",
+      "conflictKeepDraft": "你编辑期间，其他人保存了这些设置。再次点击“保存”可用你的更改替换对方的更改，点击“放弃”则加载对方的版本。",
+      "darkOwnHint": "深色模式在这里使用自己的颜色（{color}），因此不会跟随此颜色。请在“深色”选项卡中修改。",
+      "keyColorsTitle": "关键颜色",
+      "keyColorsHint": "指向某个颜色即可在预览中查看",
+      "keyColors": {
+        "primary": {
+          "label": "主要",
+          "sample": "立即购买"
         },
-        "layout": {
-          "label": "布局"
+        "secondary": {
+          "label": "次要",
+          "sample": "加入购物车"
+        },
+        "accent": {
+          "label": "强调",
+          "sample": "精选"
+        },
+        "skeleton": {
+          "label": "加载"
         }
-      }
+      },
+      "themeDefaultNamed": "{theme} 默认",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "调色板",
+      "saveAsPalette": "存为调色板",
+      "resetToNamed": "恢复为{name}",
+      "themeOnly": "仅 {theme}",
+      "moreColors": "更多颜色",
+      "advancedHintStates": "悬停、选中、焦点、促销背景",
+      "resetAllDescriptionTheme": "所有分组（包括颜色）都会恢复为 {theme} 自带的默认值。你的其他主题不受影响。点击“保存”之前不会保存任何内容。",
+      "previewShowing": "正在标出使用{color}的位置"
     },
     "searchInsights": {
       "title": "搜索洞察",
@@ -7414,7 +8268,8 @@
         "payout": "打款",
         "brand": "品牌",
         "slider": "幻灯片",
-        "menu": "菜单"
+        "menu": "菜单",
+        "teamRole": "团队角色"
       },
       "empty": {
         "clearFilters": "清除筛选"
@@ -7440,6 +8295,124 @@
           }
         }
       }
+    },
+    "categoryForm": {
+      "taxRate": "税费"
+    },
+    "themeColors": {
+      "title": "主题颜色",
+      "refs": {
+        "primary": "主要",
+        "secondary": "次要",
+        "accent": "强调",
+        "background": "背景",
+        "surface": "卡片",
+        "surfaceAlt": "色带和标签",
+        "text": "文字",
+        "textMuted": "次要文字",
+        "border": "分隔线"
+      },
+      "following": "跟随主题的{name}。可在 主题设置 → 颜色 中更改。",
+      "followingShort": "主题 · {name}",
+      "hint": "选择主题颜色以跟随 主题设置 → 颜色。",
+      "pick": "使用主题颜色"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "加载打款概览失败",
+      "loadPayoutsError": "加载打款记录失败",
+      "columns": {
+        "payout": "打款",
+        "period": "周期",
+        "status": "状态",
+        "netAmount": "净额"
+      },
+      "bankMissingTitle": "未登记收款账户",
+      "bankMissing": "缺少：{fields}。在“业务”标签页补充这些信息之前，只能通过现金或支付网关打款。",
+      "frozenTitle": "打款已冻结",
+      "frozen": "该商家已被暂停。其销售仍会继续计入，但在恢复之前不会打款。",
+      "owedNow": "当前应付",
+      "owedNowHint": "现在创建打款时的金额：已过退货期限、已送达且已付款的销售额，减去商家的欠款。",
+      "createPayout": "创建打款",
+      "noneAwaiting": "没有待打款的已送达且已付款订单。",
+      "nothingPayable": "有 {count, plural, other {# 个符合条件的订单}}，但扣除退款和折扣后没有可打款金额。",
+      "across": "共 {count, plural, other {# 个订单}} · 总额 {gross} 减去佣金 {commission}。退款和折扣已扣除。",
+      "belowMinimumTitle": "低于最低提现金额",
+      "belowMinimum": "打款金额至少为 {minimum}。现在创建将被拒绝。",
+      "commissionLeft": "商家在现金销售上所欠佣金中有 {amount} 无法在下次打款中抵扣，仍为欠款。",
+      "overpaidTitle": "已为事后退款的销售支付 {amount}",
+      "overpaidRecovered": "其中 {amount} 已从上方金额中扣除。剩余部分将从后续打款中扣除。",
+      "overpaidLater": "将从商家的下一次打款中扣除；如商家已还款，请记录还款。",
+      "otherCurrenciesTitle": "{currencies} 余额",
+      "otherCurrencies": "该商家还使用 {currencies} 进行过交易。这些余额不包含在上方金额中，需要单独打款 — 不同货币从不合并计算。",
+      "trade": "交易",
+      "tradeHint": "该商家所有未取消订单的销售额，以 {currency} 计",
+      "grossSales": "总销售额",
+      "vendorEarnings": "商家收益",
+      "vendorEarningsHint": "总额减去佣金",
+      "paidOut": "已打款",
+      "pendingAmount": "{amount} 待处理",
+      "platformRevenue": "来自该商家的平台收入",
+      "platformRevenueHint": "其销售产生的佣金和平台保留的运费，加上其支付的订阅费。为扣除平台成本前的收入。",
+      "commission": "佣金",
+      "commissionHint": "基于已送达且已付款的销售，已扣除退款",
+      "subscriptions": "订阅",
+      "invoicesPaid": "{total} 张账单中已支付 {paid} 张",
+      "noInvoices": "无账单",
+      "shipping": "运费",
+      "shippingHint": "平台保留，不打款",
+      "total": "合计",
+      "history": "打款记录",
+      "historyHint": "为该商家记录的打款，最新的在前",
+      "historyEmpty": "尚未为该商家创建任何打款",
+      "repayment": {
+        "open": "记录还款",
+        "listTitle": "手动还款",
+        "undo": "撤销",
+        "voidReason": "为什么要撤销这笔还款？",
+        "voided": "还款已撤销",
+        "failed": "无法保存还款",
+        "title": "记录还款",
+        "description": "商家为打款后才退款的销售而退还的款项。该金额会从其欠款中扣除，后续打款将不再追收。",
+        "amount": "金额（{currency}）",
+        "receivedInto": "收款账户",
+        "receivedAt": "到账日期",
+        "reference": "参考号",
+        "note": "备注",
+        "cancel": "取消",
+        "save": "记录还款",
+        "saving": "保存中…",
+        "recorded": "还款已记录"
+      }
+    },
+    "colorPicker": {
+      "format": "颜色格式",
+      "opacity": "不透明度",
+      "value": "颜色值",
+      "saved": "已保存的颜色",
+      "save": "保存此颜色",
+      "use": "使用 {color}",
+      "remove": "移除 {color}"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, other {与角色有 # 处不同}}",
+      "changesFromRole": "{count, plural, other {与{role}有 # 处不同}}，仅限该成员",
+      "resetTo": "恢复为{role}",
+      "matchesRole": "与{role}一致。勾选或取消任意项即可只为{name}更改。",
+      "roleSaved": "“{name}”已成为角色，该成员已使用此角色。"
+    },
+    "tagInput": {
+      "placeholder": "添加标签",
+      "selected": "已选中 {tag}。按 Backspace 可将其移除。",
+      "duplicate": "{tag} 已添加",
+      "tooLong": "标签最多 {max} 个字符",
+      "tooMany": "最多可添加 {max} 个标签",
+      "added": "已添加 {tag}",
+      "removed": "已移除 {tag}",
+      "remove": "移除 {tag}"
+    },
+    "accountMenu": {
+      "myAccount": "我的账户",
+      "version": "版本 {version}"
     }
   },
   "footer": {
@@ -7488,7 +8461,19 @@
     "searchCustomers": "按姓名、邮箱或电话搜索...",
     "addNote": "为此订单添加备注...",
     "subtotal": "小计",
-    "tax": "税费",
+    "tax": {
+      "label": "税",
+      "included": "税（已含）",
+      "exempt": "免税",
+      "exemptWith": "免税 · {reason}",
+      "exemptTitle": "免税销售",
+      "exemptIntro": "此笔销售不收税。原因会保存在订单中并打印在小票上。",
+      "exemptReason": "原因（必填）",
+      "exemptReference": "免税证明编号（选填）",
+      "exemptApply": "免税销售",
+      "exemptRemove": "收取税费",
+      "close": "关闭"
+    },
     "total": "合计",
     "charge": "收款",
     "selectPaymentMethod": "选择支付方式",
@@ -7524,10 +8509,463 @@
       "emailPlaceholder": "customer@example.com",
       "phone": "电话",
       "phonePlaceholder": "输入电话号码",
-      "nameEmailRequired": "姓名和邮箱为必填项",
       "created": "客户创建成功",
       "createError": "创建客户失败",
-      "save": "保存客户"
+      "save": "保存客户",
+      "nameContactRequired": "请输入顾客姓名，以及邮箱或电话号码",
+      "contactHint": "邮箱或电话号码其一即可。只有电话号码的顾客将在没有账户的情况下保存。",
+      "marketingOptIn": "顾客同意通过邮件接收资讯和优惠"
+    },
+    "offline": {
+      "bannerOffline": "离线 — 销售正在排队保存",
+      "bannerStockAge": "显示的库存来自{age}",
+      "bannerSignedOut": "已退出登录 — 请重新登录以同步",
+      "bannerSignedOutNote": "排队中的销售仍保存在此设备上。",
+      "bannerBackOnline": "已恢复联网",
+      "waitingToSync": "{count, plural, other {# 笔销售等待同步}}",
+      "needsReview": "{count, plural, other {# 笔需要审核}}",
+      "review": "审核",
+      "signIn": "登录",
+      "syncNow": "立即同步",
+      "lockedTitle": "请重新联网以继续销售",
+      "lockedLastSeen": "此收银机最后一次连接服务器是在{time}。出于安全考虑,它会保持锁定,直到能再次登录。",
+      "lockedNever": "此收银机尚未在此设备上连接过服务器,因此无法离线使用。",
+      "lockedQueued": "{count, plural, other {仍有 <strong>#</strong> 笔离线销售保存在此设备上,恢复联网后将自动同步。}}请勿清除浏览器数据。",
+      "waitingForConnection": "正在等待网络连接…",
+      "reviewTitle": "被服务器拒绝的销售",
+      "reviewDescription": "每一笔都已在柜台付款。请解决问题后重新发送,或在手动登记后将其丢弃。",
+      "reviewLabel": "需要审核的离线销售",
+      "reviewEmpty": "没有需要审核的内容了。",
+      "reviewReceipt": "收据 {number}",
+      "reviewTaken": "收款于{time}",
+      "reviewAttempts": "{count, plural, other {尝试 # 次}}",
+      "reviewServerSaid": "服务器返回:{message}",
+      "reviewDiscard": "丢弃",
+      "reviewSendAgain": "重新发送",
+      "close": "关闭",
+      "anotherCounter": "其他柜台",
+      "discardTitle": "要从队列中丢弃这笔销售吗?",
+      "discardDescription": "收据 {number} 将永远不会发送到服务器。仅在该笔销售已通过其他方式登记后才这样做 — 顾客手中持有这张收据。",
+      "savedOffline": "已离线保存 — 收据 {number}",
+      "savedOfflineNote": "网络恢复后将自动同步。",
+      "outboxFull": "此收银机有太多未同步的销售。请先联网同步,再继续收款。",
+      "noStorage": "此浏览器无法保存离线销售,因此未完成这笔销售。",
+      "readerOnly": "仅读卡器",
+      "touchOrStripe": "感应或 Stripe"
+    },
+    "counter": {
+      "unavailable": "柜台不可用",
+      "sharedStock": "共享库存",
+      "finishSaleFirst": "请先完成或取消当前销售",
+      "changeCounter": "正在从{name}销售。更换柜台",
+      "sellingFrom": "销售来源",
+      "sellingAt": "在{name}销售",
+      "findCounter": "查找柜台...",
+      "noMatch": "没有匹配的柜台。",
+      "heldCount": "挂单 {count}",
+      "activeCount": "{count} 个启用",
+      "deactivated": "当前柜台已停用",
+      "pickerTitle": "您在哪个柜台?",
+      "pickerNote": "库存、挂起的销售以及此收银机打印的每张收据都将遵循这个选择。",
+      "findYourCounter": "查找您的柜台...",
+      "recentOnDevice": "此设备最近使用",
+      "otherCounters": "其他柜台",
+      "defaultLocation": "默认地点",
+      "startSellingAt": "开始在{name}销售",
+      "pickCounter": "选择柜台",
+      "signedInAs": "当前登录:{name}",
+      "signedIn": "已登录",
+      "shortcutsMany": "前九个按 <key>1</key>–<key>9</key>,其余请输入查找,",
+      "shortcutsFew": "按 <key>1</key>–<key>{last}</key> 选择,",
+      "shortcutEnter": "按 <key>Enter</key> 开始",
+      "sellFromShared": "改为从共享库存销售",
+      "switchLabel": "切换柜台",
+      "switchTitle": "在销售进行中切换柜台?",
+      "switchUnits": "柜台上有 {count, plural, other {# 件商品}},按{from}的价格和库存计价。",
+      "switchChecking": "正在检查{to}能供应哪些商品…",
+      "switchRemovedOne": "<b>{name}</b> <b>在{to}没有库存</b> — 将从这笔销售中移除。",
+      "switchRemovedMany": "<b>{name}</b> 及其他 {others} 件<b>在{to}没有库存</b> — 将从这笔销售中移除。",
+      "switchReduced": "{count, plural, other {# 行将减少到{to}实际拥有的库存数量。}}",
+      "switchAllAvailable": "这笔销售的每一行在{to}都有货。",
+      "switchHeldStay": "{count, plural, other {此处挂起的 # 笔销售会留在{from}。在{to}将看不到它们。}}",
+      "switchHeldStayNone": "此处挂起的销售会留在{from}。在{to}将看不到它们。",
+      "switchReceiptChanges": "从下一行开始,库存数量和收据页脚将改为{to}。",
+      "switchHold": "挂起这笔销售,然后切换",
+      "switchRecheck": "切换并重新检查库存",
+      "switchRemovesAll": "移除全部 {total} 行",
+      "switchKeeps": "保留 {total} 行中的 {kept} 行",
+      "switchStay": "留在{from}",
+      "nowSellingFrom": "现在从{name}销售",
+      "nowSellingShared": "现在从共享库存销售",
+      "probeFailed": "无法检查该柜台的库存。收银机未切换。",
+      "holdFailed": "无法挂起这笔销售。收银机未切换。",
+      "rechecked": "已重新检查销售 · {changes}",
+      "holdLabel": "更换柜台 → {name}",
+      "heldBehind": "{count, plural, other {<b># 笔销售</b>仍挂起在{name}}}",
+      "goBackTo": "返回{name}",
+      "dismiss": "关闭",
+      "saleBlocked": "此柜台已不可用。收款前请选择其他柜台。"
+    },
+    "scan": {
+      "closeDialogFirst": "请先关闭打开的对话框,再重新扫描。",
+      "multipleMatches": "多个商品与此代码匹配。请修正重复的 SKU 或条形码。",
+      "noMatch": "未找到与扫描代码对应的商品。",
+      "lookupFailed": "无法查询扫描的代码。"
+    },
+    "held": {
+      "removed": "{count, plural, other {已移除 # 行}}",
+      "repriced": "{count} 行已更新价格",
+      "reduced": "{count} 行已减少至可用库存",
+      "resumed": "已恢复挂单",
+      "resumedWithChanges": "已恢复挂单 · {changes}",
+      "nothingAvailable": "此挂单中的商品都已不可用。挂单已保留在收银机上。",
+      "recheckFailed": "无法检查当前价格和库存。挂单仍保留在收银机上。",
+      "finishFirst": "请先完成或挂起当前销售,再恢复其他挂单。",
+      "holdFailed": "无法挂起此订单。这笔销售仍在购物车中。",
+      "holdFull": "此收银机已有 {max} 个挂单。请先恢复或删除一个。",
+      "orderHeld": "订单已挂起",
+      "orderHeldLabel": "订单已挂起 · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "只有管理 POS 的人员才能给予折扣",
+      "cashMustCover": "收取的现金必须足以支付订单总额",
+      "noReceipt": "没有可用的收据数据",
+      "printPreviewFailed": "无法打开打印预览",
+      "noInvoice": "此订单没有可用的发票",
+      "invoicePopupBlocked": "无法打开发票。请允许弹出窗口。"
+    },
+    "complete": {
+      "title": "销售完成",
+      "items": "{count, plural, other {# 件商品}}",
+      "soldAt": "售于 {name}",
+      "viewReceipt": "查看小票",
+      "printReceipt": "打印小票",
+      "newSale": "新销售",
+      "emailReceipt": "邮件发送小票",
+      "textReceipt": "短信发送小票",
+      "send": "发送",
+      "cancel": "取消",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "顾客电话号码",
+      "sentEmail": "小票已通过邮件发送至 {to}",
+      "sentSms": "小票已通过短信发送至 {to}",
+      "alreadySent": "刚刚已发送至 {to}",
+      "sendFailed": "小票发送失败",
+      "offlineHint": "此笔销售同步后即可发送和查看小票。"
+    },
+    "pay": {
+      "title": "收款",
+      "balanceTitle": "收取余款",
+      "draftItems": "{count, plural, other {草稿 · # 件商品}}",
+      "close": "关闭",
+      "totalDue": "应付总额",
+      "remaining": "待付",
+      "ofTotal": "已付 {paid}，共 {total}",
+      "payments": "付款",
+      "remove": "移除",
+      "discountPercent": "已应用 {value}% 折扣",
+      "discountAmount": "已应用 {amount} 折扣",
+      "cashDesc": "可找零",
+      "bank": "银行转账",
+      "bankDesc": "附参考号",
+      "manualDesc": "自定义方式",
+      "storeCredit": "店铺余额",
+      "storeCreditDesc": "可用 {amount}",
+      "split": "拆分",
+      "cashGiven": "收到现金",
+      "amount": "金额",
+      "changeDue": "找零",
+      "stillOwed": "其余部分以其他方式支付",
+      "tooMuch": "待付金额不超过 {amount}",
+      "tooMuchCredit": "店铺余额仅有 {amount}",
+      "touch": "感应",
+      "touchDesc": "在读卡器上感应或插入卡片",
+      "stripe": "Stripe",
+      "stripeDesc": "卡片信息表单",
+      "readyForTap": "准备好感应或插卡",
+      "readyForTapNote": "顾客在读卡器上感应或插入卡片。",
+      "referenceOptional": "参考号（选填）",
+      "referencePlaceholder": "交易 ID、授权码等",
+      "stripePaysRest": "其余部分用卡支付：{amount}",
+      "cardNumber": "卡号",
+      "expiry": "有效期",
+      "cvc": "CVC",
+      "stripeNotConfigured": "支付设置中尚未配置 Stripe。",
+      "stripeLoading": "正在加载安全卡片字段…",
+      "stripeSecured": "由 Stripe 保护 — 提交时卡片信息会被令牌化。",
+      "stripeFailed": "刷卡支付未成功",
+      "processing": "处理中…",
+      "acceptCash": "收取现金",
+      "charge": "收取 {amount}",
+      "chargeOnReader": "在读卡器上收取 {amount}",
+      "useCredit": "用店铺余额支付 {amount}",
+      "addPayment": "添加 {amount} 的{method}付款",
+      "takeDeposit": "收取 {amount} 定金，{due} 稍后支付",
+      "takePart": "现在收取 {amount}，仍欠 {due}",
+      "depositNeedsCustomer": "收取定金需先关联顾客",
+      "depositTaken": "已收取 {number} 的定金。仍需支付 {due}。",
+      "completeSale": "完成销售"
+    },
+    "sales": {
+      "title": "销售",
+      "close": "关闭",
+      "back": "返回",
+      "searchPlaceholder": "小票号或电话号码",
+      "dueOnly": "仅显示有欠款的",
+      "empty": "未找到销售。",
+      "recentHint": "本收银台最近的销售",
+      "selectHint": "选择一笔销售查看。",
+      "offline": "查找销售需要网络连接。",
+      "loadFailed": "无法加载销售",
+      "balanceDue": "欠 {amount}",
+      "balanceDueLabel": "余款",
+      "items": "商品",
+      "payments": "付款",
+      "total": "合计",
+      "refunded": "已退款",
+      "split": "拆分",
+      "collectBalance": "收取余款 · {amount}",
+      "collectFailed": "无法收款",
+      "balancePaid": "余款已付清。销售已完成。",
+      "balancePart": "已收款。仍需支付 {due}。",
+      "print": "打印小票",
+      "viewInvoice": "查看发票"
+    },
+    "register": {
+      "title": "钱箱",
+      "openChip": "钱箱已开",
+      "closedChip": "钱箱已关",
+      "openToSell": "收款前请先打开钱箱。",
+      "close": "关闭",
+      "failed": "钱箱更新失败",
+      "offline": "开箱、结班和现金进出需要网络连接。销售仍会计入已打开的钱箱。",
+      "openIntro": "第一笔销售前清点钱箱中的现金，并将其录入为备用金。",
+      "openingFloat": "备用金",
+      "openRegister": "打开钱箱",
+      "opened": "钱箱已打开",
+      "openedAt": "{time} 开箱",
+      "salesCount": "销售笔数",
+      "grossSales": "销售总额",
+      "cashSales": "现金销售",
+      "cashIn": "存入现金",
+      "cashOut": "取出现金",
+      "cashRefunds": "现金退款",
+      "expectedCash": "钱箱应有金额",
+      "countedCash": "清点现金",
+      "variance": "差额",
+      "balanced": "相符",
+      "over": "长款",
+      "short": "短款",
+      "cashInIntro": "非销售放入钱箱的现金，例如从保险柜取来的零钱。",
+      "cashOutIntro": "非退款取出的现金，例如存入保险柜或支付的费用。",
+      "amount": "金额",
+      "reason": "原因",
+      "reasonPlaceholder": "原因（必填）",
+      "cashAdded": "已向钱箱存入现金",
+      "cashRemoved": "已从钱箱取出现金",
+      "back": "返回",
+      "note": "结班备注",
+      "notePlaceholder": "结班报告备注（选填）",
+      "queuedFirst": "{count, plural, other {# 笔销售}}仍在等待同步。同步完成后再结班。",
+      "closeRegister": "结班关箱",
+      "closed": "钱箱已关闭",
+      "xReport": "X 报表",
+      "zReport": "Z 报表",
+      "printX": "打印 X 报表",
+      "printZ": "打印 Z 报表",
+      "printBlocked": "报表窗口被拦截。请允许此网站的弹出窗口以便打印。",
+      "reportOpened": "开箱",
+      "reportClosed": "结班",
+      "tender": {
+        "cash": "现金",
+        "card": "银行卡",
+        "bank": "银行转账",
+        "manual": "其他",
+        "store_credit": "店铺余额"
+      },
+      "noSale": "无销售开箱",
+      "noSaleIntro": "无需销售即可打开钱箱，用于换零或核对。原因会记录在钱箱报表中。",
+      "noSaleDone": "钱箱已打开",
+      "printer": "钱箱打印机",
+      "printerIntro": "钱箱通过与之连接的小票打印机，借助本电脑上的 QZ Tray 打开。请选择该打印机。",
+      "printerFind": "查找打印机",
+      "printerQzMissing": "本电脑未运行 QZ Tray",
+      "printerNone": "此收银机没有钱箱",
+      "printerPin": "钱箱引脚",
+      "printerTest": "测试",
+      "printerTestFailed": "钱箱未打开。请检查打印机和 QZ Tray。",
+      "printerSave": "保存",
+      "printerSaved": "已为此收银机保存钱箱打印机",
+      "printerNotSet": "请先设置钱箱打印机",
+      "printerCurrent": "钱箱：{name}",
+      "printerSetUp": "设置钱箱打印机"
+    },
+    "returns": {
+      "action": "办理退货",
+      "title": "办理退货",
+      "close": "关闭",
+      "offline": "退货需要网络连接。请在收银机恢复在线后办理。",
+      "loadFailed": "无法加载此笔销售的商品",
+      "previewFailed": "无法计算退款金额",
+      "failed": "退货办理失败",
+      "nothingReturnable": "此笔销售没有可退的商品。",
+      "returnable": "可退 {count} 件",
+      "blockedFinalSale": "不退不换",
+      "blockedWindow": "已过退货期",
+      "blockedOther": "不可退",
+      "less": "减一",
+      "more": "加一",
+      "condition": "状况",
+      "conditions": {
+        "new": "未拆封",
+        "opened": "已拆封，可再售",
+        "damaged": "已损坏",
+        "missing_parts": "缺少配件",
+        "unusable": "无法使用"
+      },
+      "restockHint": "未拆封和已拆封的商品会退回本收银台的库存。",
+      "reason": "原因",
+      "reasons": {
+        "wrong_size_or_variant": "尺码或规格不对",
+        "damaged_or_defective": "损坏或有缺陷",
+        "not_as_described": "与描述不符",
+        "wrong_item_received": "商品错误",
+        "arrived_late": "到货太晚",
+        "changed_mind": "改变主意",
+        "other": "其他"
+      },
+      "note": "备注",
+      "notePlaceholder": "备注（选填）",
+      "noteRequired": "请说明问题（必填）",
+      "refundTo": "退款至",
+      "methods": {
+        "cash": "钱箱现金",
+        "card": "银行卡（手动）",
+        "bank": "银行转账",
+        "original": "退回原卡",
+        "store_credit": "店铺余额",
+        "exchange": "换货",
+        "later": "稍后退款"
+      },
+      "adminOnly": "退款由管理员办理。退货现在记录，退款将在“退货”中等待管理员处理。",
+      "exchangeHint": "退款金额将用于接下来的一笔新销售。",
+      "laterHint": "退货现在记录。稍后在“退货”中退款。",
+      "refundTotal": "退款",
+      "restockingFee": "含 {amount} 的重新上架费",
+      "submit": "办理退货",
+      "done": "退货 {numbers} 已办理",
+      "doneRefunded": "已退款 {amount}。",
+      "doneCash": "请从钱箱中付给顾客 {amount}。",
+      "doneCredit": "已向顾客的店铺余额添加 {amount}。",
+      "creditBack": "{amount} 已退回顾客的店铺余额，该余额曾支付了这笔销售的一部分。",
+      "doneLater": "退款正在等待管理员处理。",
+      "doneExchange": "{amount} 将用于新销售。",
+      "print": "打印退货单",
+      "printBlocked": "退货单窗口被拦截。请允许此网站的弹出窗口以便打印。",
+      "slipTitle": "退货",
+      "slipSale": "销售",
+      "exchangeReference": "换货 {numbers}",
+      "exchangeBanner": "换货额度 {amount}",
+      "exchangeDismiss": "放弃换货额度",
+      "exchangeDismissHint": "未使用：请从钱箱付给顾客现金 {amount}。"
+    },
+    "operator": {
+      "title": "收银员",
+      "close": "关闭",
+      "offline": "切换收银员需要网络连接。收银台仍由当前操作的人使用。",
+      "loadFailed": "无法加载收银员",
+      "failed": "操作未成功，请重试。",
+      "workingNow": "当前收银",
+      "switchBack": "切回 {name}",
+      "takeOver": "接管收银台",
+      "nobody": "还没有同事设置收银 PIN。每个人在登录时设置自己的 PIN。",
+      "pin": "PIN",
+      "switch": "切换收银员",
+      "switched": "现在由 {name} 收银",
+      "setPin": "设置我的收银 PIN",
+      "changePin": "修改我的收银 PIN",
+      "pinIntro": "{name}，请选择一个 4 到 8 位的 PIN。同事用各自的 PIN 接管此收银台。",
+      "newPin": "新 PIN",
+      "confirmPin": "再次输入 PIN",
+      "pinMismatch": "两次输入的 PIN 不一致",
+      "savePin": "保存 PIN",
+      "pinSaved": "你的收银 PIN 已设置",
+      "back": "返回"
+    },
+    "reports": {
+      "navLabel": "POS 报表",
+      "title": "收银报表",
+      "subtitle": "按收银员和收银台统计的销售、按支付方式统计的收款，以及每个钱箱的清点结果。",
+      "loadFailed": "报表加载失败",
+      "period": "时间段",
+      "presets": {
+        "today": "今天",
+        "yesterday": "昨天",
+        "week": "最近 7 天",
+        "month": "最近 30 天",
+        "thisMonth": "本月"
+      },
+      "counter": "收银台",
+      "allCounters": "所有收银台",
+      "refresh": "刷新",
+      "export": "导出 CSV",
+      "empty": "此时间段没有销售。",
+      "noSessions": "此时间段没有打开过钱箱。",
+      "stats": {
+        "sales": "销售笔数",
+        "items": "售出 {count, plural, other {# 件}}",
+        "gross": "销售总额",
+        "discounts": "折扣 {amount}",
+        "net": "扣除退款后",
+        "refunds": "已退款 {amount}",
+        "average": "平均每笔",
+        "balanceDue": "定金仍欠 {amount}"
+      },
+      "byCashier": "按收银员",
+      "byCounter": "按收银台",
+      "byTender": "按支付方式收款",
+      "sessions": "钱箱班次",
+      "unknownCashier": "未知收银员",
+      "noCounter": "无收银台",
+      "open": "未结班",
+      "payments": "{count, plural, other {# 笔付款}}",
+      "tenders": {
+        "cash": "现金",
+        "card": "银行卡",
+        "bank": "银行转账",
+        "manual": "其他",
+        "store_credit": "店铺余额"
+      },
+      "columns": {
+        "name": "名称",
+        "sales": "销售笔数",
+        "items": "件数",
+        "gross": "销售总额",
+        "discounts": "折扣",
+        "refunds": "退款",
+        "net": "净额",
+        "average": "平均",
+        "tender": "支付方式",
+        "payments": "付款",
+        "amount": "金额",
+        "session": "班次",
+        "counter": "收银台",
+        "openedBy": "开箱人",
+        "opened": "开箱",
+        "closed": "结班",
+        "expected": "应有现金",
+        "counted": "实点",
+        "variance": "差额"
+      }
+    },
+    "quickKeys": {
+      "tab": "收藏",
+      "empty": "还没有快捷键",
+      "emptyManager": "在商品网格中为商品加星标，即可放到所有收银台的这里。",
+      "emptyCashier": "POS 管理人员可以为商品加星标，把它们放到这里。",
+      "add": "加入收藏",
+      "remove": "移出收藏",
+      "failed": "收藏未能保存"
     }
   },
   "locations": {
@@ -7568,7 +9006,17 @@
     "deleteError": "删除位置失败",
     "updateError": "更新位置失败",
     "saveError": "保存位置失败",
-    "actions": "操作"
+    "actions": "操作",
+    "deliveryOrder": "配送顺序",
+    "deliveryOrderHint": "线上订单从有库存的第一个位置发货，然后是第二个，依此类推。",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "不配送",
+    "services": "服务",
+    "pickup": "自提",
+    "returns": "退货",
+    "noTill": "无收银",
+    "shipSooner": "优先从此处发货",
+    "shipLater": "延后从此处发货"
   },
   "toast": {
     "createdSuccess": "{resource}创建成功",
@@ -7855,7 +9303,10 @@
     "loadOlderConversations": "加载更早的对话",
     "attachments": {
       "alt": "聊天附件",
-      "open": "打开附件"
+      "open": "打开附件",
+      "view": "查看完整图片",
+      "openNewTab": "在新标签页中打开",
+      "download": "下载"
     },
     "assignment": {
       "label": "负责客服",
@@ -7903,7 +9354,7 @@
       "webhookUrlNotPublic": "Meta 仅接受公开的 HTTPS 回调地址。请先在正式域名（或隧道）上打开本页面，再进行注册。",
       "setup": {
         "title": "{provider} 设置指南",
-        "docs": "完整说明：docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "完整说明：https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "创建一个 Meta 应用，并为其添加 WhatsApp 产品。",
           "config": "创建一个授予以下权限的 Facebook Login for Business 配置，并把它的 ID 填入 META_WHATSAPP_CONFIGURATION_ID。",
@@ -8041,6 +9492,7 @@
     "noLinks": "尚未共享任何链接",
     "subject": "主题",
     "viewProduct": "查看商品",
+    "removeAttachment": "移除附件",
     "messageProduct": {
       "open": "打开{name}",
       "priceOnRequest": "价格面议"
@@ -8475,7 +9927,10 @@
     },
     "paidFrom": {
       "cash": "现金",
-      "other": "其他"
+      "other": "其他",
+      "bank": "银行",
+      "gateway": "支付网关余额",
+      "unpaid": "尚未支付"
     },
     "expenses": {
       "title": "支出",
@@ -8508,10 +9963,43 @@
         "sale": "促销",
         "refund": "退款",
         "commission": "佣金",
-        "other": "调整"
+        "other": "调整",
+        "payout": "已打款",
+        "boost": "推广",
+        "subscription": "订阅",
+        "payout_returned": "打款被退回",
+        "refund_reversed": "退款已撤销",
+        "commission_settled": "从打款中结算佣金",
+        "promotion_credit": "促销抵扣",
+        "delivery_label": "运单",
+        "repayment": "您的还款"
       },
       "statements": "对账单",
-      "owedOrders": "订单"
+      "owedOrders": "订单",
+      "title": "您的财务",
+      "subtitle": "您赚取的收益、已打款的金额，以及平台为您代管的款项。",
+      "opening": "期初余额",
+      "openingHint": "从本期之前结转",
+      "earned": "收益",
+      "earnedHint": "您的销售份额，已扣除佣金",
+      "paidOut": "已打款",
+      "closing": "代管余额",
+      "closingHint": "账面余额 — 上方卡片显示可打款的金额",
+      "owed": "您的欠款",
+      "owedHint": "您自行收款的订单所产生的佣金",
+      "activity": "交易明细",
+      "empty": "本期没有任何变动。销售、退款和打款发生后会显示在这里。",
+      "emptyTitle": "暂无内容",
+      "emptyBody": "订单付款后，对账单会逐步记录。每笔销售会增加您的收益；每次打款会将其转出。",
+      "heldChange": "代管余额",
+      "owedChange": "您的欠款",
+      "statementsSubtitle": "所有影响您余额的销售、退款和打款。",
+      "seeAll": "查看完整对账单",
+      "export": "导出",
+      "truncated": "仅显示 {total} 条记录中的前 {shown} 条。请选择更短的时间段查看其余记录 — 上方余额始终涵盖整个时间段。",
+      "owedTitle": "应付平台款项",
+      "owedSubtitle": "您自行收款的订单所产生的佣金。款项已在您手中，这是您需为此支付的部分。",
+      "owedEmpty": "本期您没有欠款。"
     },
     "reports": {
       "title": "报表",
@@ -8521,6 +10009,118 @@
       "month": "本月",
       "closedAt": "已关闭",
       "reopen": "重新打开"
+    },
+    "balance": {
+      "title": "应付给您的款项",
+      "ready": "可用于下次打款",
+      "readyHint": "来自 {count} 个已送达且已过退货期限的订单",
+      "belowMinimum": "达到 {amount} 后才会打款",
+      "held": "等待退货期限结束",
+      "heldHint": "已送达，送达 {days} 天后可打款",
+      "reserve": "为预售暂扣",
+      "reserveHint": "自 {date} 起释放",
+      "reserveUndated": "将在后续打款中释放",
+      "owedBack": "应退还给店铺",
+      "owedBackHint": "此前已打款给您、之后发生退款的订单；将从下次打款中扣除",
+      "tooManyOrders": "可打款订单超过 500 个：店铺将从最早的订单开始分批支付",
+      "frozen": "账户暂停期间，打款会暂停。您的销售仍会继续计入。",
+      "inPayout": "在准备中的打款里",
+      "inPayoutHint": "{numbers} — 正在汇给您",
+      "notDelivered": "尚未送达",
+      "notDeliveredHint": "{count} 个已付款订单正在配送；退货期限从送达时开始计算",
+      "awaitingBalance": "等待尾款的预售订单",
+      "awaitingBalanceHint": "买家支付尾款且商品送达后即可打款",
+      "commissionLeft": "待结算佣金",
+      "commissionLeftHint": "来自您自行收款的销售；将从后续打款中扣除或通过账单结算",
+      "owedBackLater": "仍需退还给店铺",
+      "owedBackLaterHint": "此前已打款给您、之后发生退款的订单；超出下次打款可扣除的金额，将从之后的打款中扣除"
+    },
+    "payout": {
+      "changedElsewhere": "此打款已被更改，已重新加载。",
+      "updated": "打款已更新。",
+      "notFound": "未找到打款。",
+      "backToPayouts": "打款",
+      "ordersUpTo": "截至 {date} 的订单",
+      "orderCount": "{count} 个订单",
+      "requote": "此打款创建后，其中的订单发生了变化。请取消并重新创建。",
+      "frozen": "该商家已被暂停，因此无法发出此打款。请恢复该商家，或取消此打款。",
+      "howItWasWorkedOut": "此打款的计算方式",
+      "grossSales": "总销售额",
+      "grossSalesHint": "商家在以下订单中的份额",
+      "commission": "佣金",
+      "ofGross": "（占总额）",
+      "shippingAmount": "配送费",
+      "shippingAmountHint": "向买家收取的、由商家配送的包裹费用",
+      "reserveUntil": "于 {date} 释放",
+      "commissionOffset": "现金销售佣金",
+      "commissionOffsetHint": "商家自行收款的销售所欠佣金，在此扣除而不另开账单",
+      "commissionCredit": "现金销售的店铺促销",
+      "commissionCreditHint": "在商家自行收款的销售中，店铺承担的、超出其应付佣金的折扣",
+      "otherAdjustments": "其他调整",
+      "otherAdjustmentsHint": "退款追收和预售预留金变动",
+      "netPayout": "净打款",
+      "paidOn": "{date} 已支付",
+      "reference": "付款参考号",
+      "noReference": "未记录付款参考号",
+      "returnedOn": "{date} 被退回 — 需再次向商家支付",
+      "statusTitle": "状态",
+      "returnedStep": "款项被退回",
+      "notRecorded": "未记录",
+      "notYet": "尚未",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "未记录",
+      "note": "备注",
+      "noteReturnedHint": "— 必填：款项被退回的原因",
+      "noteHint": "— 保存在打款中，商家可见",
+      "returnedOnLabel": "款项退回日期",
+      "returnedWarning": "仅在银行退回款项时使用。账簿分录将被冲销，需再次向商家支付，这些销售会重新计入下一次打款。",
+      "saveWarning": "将打款标记为已支付会记入账簿分录并结算相关订单。此操作无法撤销 — 如有错误需通过调整来更正。",
+      "noChanges": "暂无更改",
+      "ordersTitle": "本次打款包含的订单",
+      "ordersHint": "截至 {date} 所有已送达且未打款的订单",
+      "order": "订单",
+      "placed": "下单时间",
+      "orderStatus": "订单状态",
+      "payment": "付款",
+      "vendorShare": "商家份额",
+      "vendorEarnings": "扣除佣金后",
+      "noOrders": "没有与此打款关联的订单。",
+      "sellerShareNote": "各订单中商家的商品份额合计为总销售额；扣除佣金后合计为净打款。店铺收取的运费和税费不包括在内。",
+      "adjustment": {
+        "recoveryDeducted": "退款追收",
+        "recoveryDeductedHint": "此前已打款、之后发生退款的订单",
+        "recoveryReturned": "退还追收款",
+        "recoveryReturnedHint": "此前追收的退款已被撤销",
+        "reserveHeld": "预售预留金",
+        "reserveHeldHint": "为应对延迟拒付而暂扣",
+        "reserveReleased": "释放预售预留金",
+        "reserveReleasedHint": "在此前打款中暂扣，现已到期",
+        "reserveCreditDeducted": "追收预留金",
+        "reserveCreditDeductedHint": "已释放的预留金，其所在打款被退回",
+        "reserveCreditReturned": "退还预留金追收款",
+        "reserveCreditReturnedHint": "其所在打款重新支付后退还",
+        "commissionOffset": "现金销售佣金",
+        "commissionOffsetHint": "商家自行收款的销售所欠佣金",
+        "commissionCredit": "现金销售的店铺促销",
+        "commissionCreditHint": "店铺承担的、超出应付佣金的折扣"
+      }
+    },
+    "receivables": {
+      "title": "与商家的应收应付",
+      "subtitle": "代商家持有的款项，以及商家自行收款的销售所欠的佣金。",
+      "vendor": "商家",
+      "net": "待结算净额",
+      "emptyTitle": "没有未结款项",
+      "emptyBody": "订单付款后会显示余额：平台会代管商家的份额直到打款完成，而自行收取现金的商家需支付相应佣金。",
+      "collectNote": "数据读取自账簿，因此销售在款项到账时即计入。当前可打款金额请查看“打款”。",
+      "overpaidTitle": "打款金额超过了曾代管的金额",
+      "overpaidHint": "某次打款结算了商家自行收款的销售。新的打款已不会出现这种情况；已记录的余额需在财务概览中通过调整来清除。",
+      "owedBackTitle": "需要还款的商家",
+      "owedBackHint": "通常是在向商家打款后发生了退款。该金额会自动从其下一次打款中扣除；如商家已还款，请在该商家的“打款”标签页记录还款。不要再额外记录调整 — 否则会重复追收。",
+      "heldForVendors": "您为商家代管的款项",
+      "commissionTheyOwe": "商家欠您的佣金",
+      "netToSettle": "仍待结算净额",
+      "netHint": "账面上的应付净额 — 打款只会发送已送达的部分"
     }
   },
   "ui": {

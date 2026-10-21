@@ -6,6 +6,7 @@ import {
   PaymentTransaction,
   Payout,
   ReturnRequest,
+  VendorRepayment,
 } from "@/models";
 import { PAYOUT_HOLDING_RETURN_STATUSES } from "@/lib/returns/returns";
 import { isPlatformCollectedCod } from "@/lib/payments/cod-collection";
@@ -63,7 +64,7 @@ export const PAYABLE_ORDER_PROJECTION =
   // asks: a vendor is paid their delivery out of money the store is holding.
   // The lines' sellers and own return windows decide how long each seller's
   // payout waits (`orderPayoutHoldCutoff`).
-  "total subtotal discount coupon currency paymentMethod channel paymentCustody stripePaymentIntentId items.lineDiscount items.vendorId items.returnWindowDays subOrders returnTerms";
+  "total subtotal discount coupon currency paymentMethod channel paymentCustody stripePaymentIntentId items.lineDiscount items.vendorId items.returnWindowDays subOrders returnTerms createdAt";
 
 export interface PayableOrderLike {
   total?: number;
@@ -126,6 +127,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The order fields a payout hold reads. */
 type PayoutHoldOrderLike = {
+  /** When it was ordered — the delivery date of a parcel delivered unstamped. */
+  createdAt?: Date | string | null;
   returnTerms?: ReturnTermsLike | null;
   items?: ReadonlyArray<
     { vendorId?: unknown; returnWindowDays?: number | null } | null | undefined
@@ -186,14 +189,33 @@ export function orderPayoutHoldCutoff(
 ): Date {
   const days = orderPayoutHoldDays(order, settings, vendorId);
   const { windowStart } = resolveOrderReturnPolicy(order, settings);
+  const wanted = vendorId === undefined || vendorId === null ? null : String(vendorId);
   const parcels = (order?.subOrders || []).filter(
     (sub): sub is NonNullable<typeof sub> => Boolean(sub) && sub?.status !== "cancelled",
   );
   if (windowStart === "last_delivery" && parcels.length > 1) {
+    // A parcel delivered before deliveries were dated counts as delivered when
+    // it was ordered, rather than blocking every seller on the order for ever.
+    const orderedAt = order?.createdAt ? new Date(order.createdAt).getTime() : 0;
     const delivered = parcels.map((sub) =>
-      sub.deliveredAt ? new Date(sub.deliveredAt).getTime() : NaN,
+      sub.deliveredAt
+        ? new Date(sub.deliveredAt).getTime()
+        : sub.status === "delivered"
+          ? orderedAt
+          : NaN,
     );
-    if (delivered.some((time) => !Number.isFinite(time))) return new Date(0);
+    if (delivered.some((time) => !Number.isFinite(time))) {
+      // A sibling parcel that never arrives (lost, stuck in transit) would hold
+      // this seller's money for good. They wait for it at most the store's
+      // payout-hold cap after their own delivery; then their own delivery
+      // starts their hold, as it does under a per-parcel window.
+      if (wanted === null) return new Date(0);
+      const own = parcels.find((sub) => String(sub.vendorId ?? "") === wanted);
+      const ownAt = own?.deliveredAt ? new Date(own.deliveredAt).getTime() : NaN;
+      const maxWait = resolveReturnPolicy(settings).payoutHoldMaxDays;
+      if (!Number.isFinite(ownAt) || ownAt + maxWait * DAY_MS > now.getTime()) return new Date(0);
+      return new Date(now.getTime() - days * DAY_MS);
+    }
     const last = Math.max(...delivered);
     return last + days * DAY_MS <= now.getTime() ? now : new Date(0);
   }
@@ -266,6 +288,11 @@ export function buildPayableOrderFilter(
    * `loadOrderIdsHeldForReturns`. Left out of what a payout may take.
    */
   heldForReturns?: ReadonlyArray<unknown>,
+  /**
+   * Instead of consignments nobody has claimed, those THIS payout claimed: the
+   * same rule for what a payout may hold, asked again when it is paid.
+   */
+  claimedByPayout?: Types.ObjectId | string,
 ): Record<string, unknown> {
   const vendorObjectId = new Types.ObjectId(String(vendorId));
   // THIS consignment's money, not the order's. The order-level payment arm
@@ -276,7 +303,9 @@ export function buildPayableOrderFilter(
     vendorId: vendorObjectId,
     status: "delivered",
     paymentStatus: SETTLED_SUB_ORDER_PAYMENT_MATCH,
-    payoutStatus: { $nin: ["scheduled", "paid"] },
+    ...(claimedByPayout
+      ? { payoutStatus: "scheduled", payoutId: new Types.ObjectId(String(claimedByPayout)) }
+      : { payoutStatus: { $nin: ["scheduled", "paid"] } }),
     ...(deliveredBefore ? pastPayoutHoldMatch(deliveredBefore) : {}),
   };
 
@@ -334,7 +363,34 @@ export function buildPayableOrderFilter(
 }
 
 /**
- * Orders a return is still open on for `vendorId` — its payout waits on them.
+ * Paid sales of this seller's not delivered yet — the money the store holds
+ * for them that will become payable once the parcel arrives and its return
+ * window passes. The same custody arms as the payable filter, so the seller's
+ * "not delivered yet" never counts money the store does not have.
+ */
+export function buildUndeliveredSalesFilter(
+  vendorId: Types.ObjectId | string,
+): Record<string, unknown> {
+  const vendorObjectId = new Types.ObjectId(String(vendorId));
+  const waiting = {
+    vendorId: vendorObjectId,
+    status: { $nin: ["delivered", "cancelled"] },
+    paymentStatus: SETTLED_SUB_ORDER_PAYMENT_MATCH,
+  };
+  return {
+    status: { $ne: "cancelled" },
+    paymentStatus: { $in: SETTLED_ORDER_PAYMENT_STATUSES },
+    $nor: [uncollectedPreorderBalanceMatch()],
+    $or: [
+      { ...platformSettledOrderFilter(), subOrders: { $elemMatch: waiting } },
+      { paymentMethod: "cod", subOrders: { $elemMatch: { ...waiting, ...platformCollectedCodMatch() } } },
+    ],
+  };
+}
+
+/**
+ * Orders a return is still open on for `vendorId`, or a refund is still in
+ * flight on — its payout waits on them.
  *
  * The return window alone was not enough: a return opened on its last day was
  * refunded after the payout, and that money could only come back out of the
@@ -345,10 +401,33 @@ export function buildPayableOrderFilter(
 export async function loadOrderIdsHeldForReturns(
   vendorId: Types.ObjectId | string,
 ): Promise<Types.ObjectId[]> {
-  return financeQuery(ReturnRequest.distinct("orderId", {
-    vendorIds: new Types.ObjectId(String(vendorId)),
-    status: { $in: PAYOUT_HOLDING_RETURN_STATUSES },
-  }));
+  const vendorObjectId = new Types.ObjectId(String(vendorId));
+  const [returns, refunds] = await Promise.all([
+    financeQuery(ReturnRequest.distinct("orderId", {
+      vendorIds: vendorObjectId,
+      status: { $in: PAYOUT_HOLDING_RETURN_STATUSES },
+    })),
+    // A refund still on its way out. Refunds are timed by when their row was
+    // written, so one written pending before a payout claimed the sale and
+    // settled after read as "already deducted" — and was never taken back.
+    // The sale waits until the refund settles, either way. One that names
+    // only other sellers leaves this seller's sale alone.
+    financeQuery(PaymentTransaction.distinct("orderId", {
+      type: "refund",
+      status: "pending",
+      $or: [
+        { "refundAllocation.0": { $exists: false } },
+        { "refundAllocation.vendorId": vendorObjectId },
+      ],
+    })),
+  ]);
+  const seen = new Set<string>();
+  return [...returns, ...refunds].filter((id) => {
+    const key = String(id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }) as Types.ObjectId[];
 }
 
 /**
@@ -853,9 +932,11 @@ function couponDiscountRatioFor(
  * other way. Written once because a second copy of this arithmetic would drift
  * from the first the moment either was touched.
  *
- * Never negative. The mirror case is not the mirror answer: less settled than
- * expected means sales are still waiting to be claimed by the next payout or
- * the next invoice, not that anybody owes anything.
+ * Never negative for a payout. The mirror case is not the mirror answer: less
+ * settled than expected means sales are still waiting to be claimed by the next
+ * payout or the next invoice, not that anybody owes anything. (A commission
+ * settlement is read `signed`: there the store may have paid out a promotion
+ * that a refund then cancelled, and that is owed back.)
  *
  * CUMULATIVE, and that is the half callers must not forget. The figure is every
  * late refund there has ever been on a settled sale, so a correction the next
@@ -873,6 +954,12 @@ function couponDiscountRatioFor(
 async function loadSettlementDrift(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
+  /**
+   * What an order with no currency of its own is counted as — the store's.
+   * Omitted, the currency asked for, as before; then an old order in the
+   * store's currency could be recovered in every currency a payout is made in.
+   */
+  storeCurrency?: string;
   /** Orders carrying a settled consignment for this vendor. */
   orderFilter: Record<string, unknown>;
   /** Which of the vendor's consignments this settlement covered. */
@@ -881,6 +968,14 @@ async function loadSettlementDrift(params: {
   settledAt: (sub: PayableSubOrderLike) => Date | null | undefined;
   /** Which figure the settlement moved. */
   read: (totals: VendorPayableTotals) => number;
+  /**
+   * Keep the sign. A commission settlement can be wrong in the vendor's
+   * disfavour too: the store paid out its own promotion on a cash sale, the
+   * sale was refunded, and the promotion that was paid is no longer owed. That
+   * is a debt the vendor has to give back, and flooring it at zero lost it.
+   * A payout's own overpayment stays floored — see {@link overpaidToVendor}.
+   */
+  signed?: boolean;
 }): Promise<(asOf?: Date) => number> {
   const vendorObjectId = new Types.ObjectId(String(params.vendorId));
   const currency = params.currency.toUpperCase();
@@ -942,7 +1037,7 @@ async function loadSettlementDrift(params: {
             vendorObjectId,
             refunds,
             params.isSettled,
-            currency,
+            params.storeCurrency?.toUpperCase() || currency,
             // Signed, so a sale a refund fee took below zero counts in full.
             { unfloored: true },
           ),
@@ -956,10 +1051,11 @@ async function loadSettlementDrift(params: {
     // summaries of one set of rows rather than one summary minus another: a
     // breakdown carries per-vendor maps, and subtracting those would be
     // inventing arithmetic nobody checked.
-    return overpaidToVendor(
-      valueIn(summarizeRefundRows(relevant, (row) => !isLate(row))),
-      valueIn(summarizeRefundRows(relevant)),
-    );
+    const atSettlement = valueIn(summarizeRefundRows(relevant, (row) => !isLate(row)));
+    const now = valueIn(summarizeRefundRows(relevant));
+    return params.signed
+      ? roundMoney(atSettlement - now)
+      : overpaidToVendor(atSettlement, now);
   };
 }
 
@@ -1027,6 +1123,20 @@ async function sumOverpaymentRecovered(
     }
   }
 
+  // Money the seller paid back by hand recovers the overpayment exactly as a
+  // payout's deduction does — recorded, so it is "tracked" too.
+  const repaid = roundMoney(
+    (
+      await financeQuery(VendorRepayment.find({
+        vendorId: vendorObjectId,
+        currency: currency.toUpperCase(),
+        status: "recorded",
+      }))
+        .select("amount")
+        .lean<Array<{ amount?: number | null }>>()
+    ).reduce((sum, row) => sum + Number(row.amount || 0), 0),
+  );
+
   return payouts.reduce(
     (totals, row) => {
       // Signed: a payout that handed back a recovery the vendor turned out not
@@ -1046,7 +1156,7 @@ async function sumOverpaymentRecovered(
         tracked: totals.tracked,
       };
     },
-    { total: 0, tracked: 0 },
+    { total: repaid, tracked: repaid },
   );
 }
 
@@ -1149,6 +1259,7 @@ export async function fetchVendorEarnedCommission(params: {
 export async function fetchVendorOverpayment(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
+  storeCurrency?: string;
 }): Promise<number> {
   return Math.max(0, await fetchVendorOverpaymentBalance(params));
 }
@@ -1168,6 +1279,8 @@ export async function fetchVendorOverpayment(params: {
 export async function fetchVendorOverpaymentBalance(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
+  /** See `loadSettlementDrift`. */
+  storeCurrency?: string;
 }): Promise<number> {
   const driftAsOf = await loadSettlementDrift({
     ...params,
@@ -1216,6 +1329,8 @@ export async function fetchVendorOverpaymentBalance(params: {
 export async function fetchVendorCommissionCreditBalance(params: {
   vendorId: Types.ObjectId | string;
   currency: string;
+  /** See `loadSettlementDrift`. */
+  storeCurrency?: string;
 }): Promise<number> {
   const driftAsOf = await loadSettlementDrift({
     ...params,
@@ -1232,12 +1347,21 @@ export async function fetchVendorCommissionCreditBalance(params: {
     // invoices. Reading commission alone credited back the promotion slice
     // too — a vendor who paid 20 on 30 of commission got 30 back on a refund.
     read: (totals) => totals.commissionAmount - totals.promotionCredit,
+    // Both directions: a refund that shrinks a commission bill is a credit to
+    // the vendor, and one that cancels a promotion the store already paid out
+    // is a debt of the vendor's.
+    signed: true,
   });
-  const drift = Math.max(0, driftAsOf());
+  // Signed, so a promotion credit a payout already paid and a refund then
+  // cancelled comes back as negative credit — commission owed again, which the
+  // next bill carries whole (`applyCommissionCredit`).
+  const drift = driftAsOf();
   const applied = await sumCommissionCreditApplied(
     params.vendorId,
     params.currency,
-    driftAsOf,
+    // An invoice written before `creditApplied` existed could only ever have
+    // taken a positive credit; its drift is read the way it was then.
+    (asOf) => Math.max(0, driftAsOf(asOf)),
   );
   return roundMoney(drift - applied);
 }

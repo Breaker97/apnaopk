@@ -1,5 +1,8 @@
 "use client";
 
+import { apparentSidebarIsDark, apparentSidebarStyle } from "@/lib/theme-colors/apparent-sidebar";
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
+
 import * as React from "react";
 import Link from "@/components/language/link";
 import { usePathname } from "@/hooks/use-locale-navigation";
@@ -9,11 +12,14 @@ import {
   SearchX,
   ClipboardList,
   LayoutDashboard,
+  Megaphone,
   MessageSquare,
   type LucideIcon,
   Package,
   ShoppingBag,
   ShoppingCart,
+  FolderTree,
+  Tag,
   Users,
   UserRound,
   Warehouse,
@@ -39,12 +45,14 @@ import {
 } from "@/config/permissions.config";
 import {
   presetColors,
+  apparentPaintColor,
   useAppSettings as useUiAppSettings,
 } from "@/stores/app-settings";
 import { useAppSettings as usePublicAppSettings } from "@/providers/app-settings-provider";
 import { useAppTheme } from "@/providers/theme-provider";
 import { AppImage } from "@/components/ui/app-image";
 import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
+import { SidebarAccountMenu } from "@/components/layout/account-menu";
 import { useInboxUnreadCount } from "@/hooks/use-inbox-unread-count";
 import type { Locale } from "@/config/i18n.config";
 
@@ -76,6 +84,12 @@ interface StaffSidebarProps {
    * away (`staffScopeReachesAbandonedCheckouts`). Absent reads as true.
    */
   abandonedCheckoutsInScope?: boolean;
+  /**
+   * Whether the staff member is unscoped. The campaign banners are the whole
+   * store's, so one limited to vendors, locations or regions is not offered
+   * them (the page turns them away). Absent reads as true.
+   */
+  campaignBannersInScope?: boolean;
 }
 
 function buildStaffNav(
@@ -83,6 +97,7 @@ function buildStaffNav(
   permissions: StaffPermission[],
   posEnabled: boolean,
   abandonedCheckoutsInScope = true,
+  campaignBannersInScope = true,
 ): NavGroup[] {
   const has = (perm: StaffPermission) => permissions.includes(perm);
 
@@ -95,7 +110,7 @@ function buildStaffNav(
     },
   ];
 
-  if (has(STAFF_PERMISSIONS.VIEW_ORDERS)) {
+  if (staffResourcePermissions("orders").some(has)) {
     mainItems.push({
       key: "orders",
       href: "/staff/orders",
@@ -115,6 +130,16 @@ function buildStaffNav(
     });
   }
 
+  // The popups and bars on the store's Home page.
+  if (has(STAFF_PERMISSIONS.VIEW_CAMPAIGN_BANNERS) && campaignBannersInScope) {
+    mainItems.push({
+      key: "campaign-banners",
+      href: "/staff/campaign-banners",
+      label: "admin.sidebar.campaignBanners",
+      icon: Megaphone,
+    });
+  }
+
   if (
     has(STAFF_PERMISSIONS.VIEW_PRODUCTS) ||
     has(STAFF_PERMISSIONS.MANAGE_PRODUCTS) ||
@@ -128,6 +153,12 @@ function buildStaffNav(
       label: "admin.sidebar.products",
       icon: Package,
     });
+  }
+
+  for (const [resource, icon] of [["categories", FolderTree], ["brands", Tag]] as const) {
+    if (staffResourcePermissions(resource).some(has)) {
+      mainItems.push({ key: resource, href: `/staff/${resource}`, label: `admin.sidebar.${resource}`, icon });
+    }
   }
 
   if (
@@ -202,6 +233,17 @@ function buildStaffNav(
           label: "admin.sidebar.pos",
           icon: ShoppingCart,
         },
+        // Till reports: sales by cashier and counter, the drawers' counts.
+        ...(has(STAFF_PERMISSIONS.MANAGE_POS)
+          ? [
+              {
+                key: "posReports",
+                href: "/staff/pos/staff",
+                label: "pos.reports.navLabel",
+                icon: BarChart3,
+              },
+            ]
+          : []),
       ],
     });
   }
@@ -221,10 +263,11 @@ export function StaffSidebar({
   posEnabled,
   storeName,
   abandonedCheckoutsInScope = true,
+  campaignBannersInScope = true,
 }: StaffSidebarProps) {
   const t = useTranslations();
   const pathname = usePathname();
-  const { navColor, presetColor, primaryColor, rtl } = useUiAppSettings();
+  const { navColor, navPaint, presetColor, primaryColor, secondaryColor, previewBrand, rtl } = useUiAppSettings();
   const {
     storeName: liveStoreName,
     logoUrl,
@@ -255,8 +298,15 @@ export function StaffSidebar({
   );
 
   const navGroups = React.useMemo(
-    () => buildStaffNav(locale, permissions, posEnabled, abandonedCheckoutsInScope),
-    [locale, permissions, posEnabled, abandonedCheckoutsInScope],
+    () =>
+      buildStaffNav(
+        locale,
+        permissions,
+        posEnabled,
+        abandonedCheckoutsInScope,
+        campaignBannersInScope,
+      ),
+    [locale, permissions, posEnabled, abandonedCheckoutsInScope, campaignBannersInScope],
   );
 
   // Polled only when Inbox is in the nav — without inbox access the endpoint
@@ -275,11 +325,15 @@ export function StaffSidebar({
     !isMobile && collapsible === "icon" && sidebarState === "collapsed";
 
   const isApparent = navColor === "apparent";
-  const useDarkSidebarBrand = isDark || isApparent;
+  // The live theme's primary, or its secondary when the viewer chose it — or
+  // the theme editor's unsaved colours while it is open.
+  const paintColor = apparentPaintColor({ navPaint, primaryColor, secondaryColor, previewBrand });
   const presetColorHex =
-    typeof primaryColor === "string" && primaryColor.trim()
-      ? primaryColor
+    typeof paintColor === "string" && paintColor.trim()
+      ? paintColor
       : presetColors[presetColor]?.hex;
+  const useDarkSidebarBrand =
+    isDark || (isApparent && apparentSidebarIsDark(presetColorHex));
 
   const brandStoreName =
     typeof liveStoreName === "string" && liveStoreName.trim()
@@ -358,16 +412,7 @@ export function StaffSidebar({
   };
 
   const sidebarStyle = isApparent
-    ? ({
-        "--sidebar": presetColorHex,
-        "--color-sidebar": presetColorHex,
-        "--sidebar-foreground": "#ffffff",
-        "--color-sidebar-foreground": "#ffffff",
-        "--sidebar-accent": "rgb(255 255 255 / 0.2)",
-        "--color-sidebar-accent": "rgb(255 255 255 / 0.2)",
-        "--sidebar-accent-foreground": "#ffffff",
-        "--color-sidebar-accent-foreground": "#ffffff",
-      } as React.CSSProperties)
+    ? apparentSidebarStyle(presetColorHex)
     : undefined;
 
   // The longest nav href the path sits under is the one open. Plain prefix
@@ -389,9 +434,6 @@ export function StaffSidebar({
   if (basePath === "/staff/pos") {
     return null;
   }
-
-  const profileHref = "/staff/profile";
-  const isProfileActive = isItemActive(`/staff/profile`);
 
   return (
     <Sidebar
@@ -511,49 +553,17 @@ export function StaffSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2 mt-auto">
-        <SidebarMenu className="group-data-[collapsible=icon]:items-center">
-          <SidebarMenuItem className="group-data-[collapsible=icon]:w-full">
-            <SidebarMenuButton
-              asChild
-              size="sm"
-              isActive={isProfileActive}
-              className={cn(
-                "rounded-lg px-3 py-2.5 h-9 text-[13px] transition-colors group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5",
-                isApparent
-                  ? isProfileActive
-                    ? "bg-white/20 text-white hover:bg-white/25 font-semibold"
-                    : "text-white/80 hover:bg-white/10 hover:text-white font-semibold"
-                  : isProfileActive
-                    ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-50 dark:bg-white/15 dark:text-white dark:hover:bg-white/20 font-semibold"
-                    : "text-foreground/70 hover:bg-muted/60 hover:text-foreground font-semibold",
-              )}
-            >
-              <Link
-                prefetch={false}
-                href={profileHref}
-                className="relative flex w-full items-center gap-3 group-data-[collapsible=icon]:justify-center"
-              >
-                <UserRound className="size-4.5 shrink-0 stroke-2 transition-transform duration-300 group-data-[collapsible=icon]:size-5" />
-                <span className="flex-1 truncate group-data-[collapsible=icon]:hidden">
-                  {user.name || user.email}
-                </span>
-                <span
-                  className={cn(
-                    "hidden text-[11px] leading-tight group-data-[collapsible=icon]:block text-center wrap-break-word whitespace-normal overflow-visible",
-                    isApparent
-                      ? "text-white"
-                      : isProfileActive
-                        ? "text-sidebar-accent-foreground"
-                        : "text-muted-foreground",
-                  )}
-                >
-                  {tLabel("common.profile")}
-                </span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="mt-auto px-3 py-3 group-data-[collapsible=icon]:p-2">
+        <SidebarAccountMenu
+          locale={locale}
+          user={user}
+          links={[
+            { href: "/staff/profile", label: tLabel("common.profile"), Icon: UserRound },
+          ]}
+          isApparent={isApparent}
+          isRTL={isRTL}
+          isIconCollapsed={isIconCollapsed}
+        />
       </SidebarFooter>
     </Sidebar>
   );

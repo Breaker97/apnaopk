@@ -1,3 +1,4 @@
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { Product, User } from "@/models";
 import { connectDB } from "@/lib/db";
 import { NextRequest } from "next/server";
@@ -40,7 +41,7 @@ export const GET = withApi(
   async ({ request, session }) => {
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
-      [STAFF_PERMISSIONS.VIEW_ORDERS],
+      staffResourcePermissions("orders"),
     );
 
     await rateLimitByUser(

@@ -31,6 +31,7 @@ import {
 import { IOTEC_MIN_AMOUNT } from "@/lib/payments/iotec";
 import { isValidAppScheme } from "@/lib/settings/mobile-app";
 import type { ShippingRateOption } from "@/lib/shipping/shipping";
+import { checkoutFieldErrors } from "./app-checkout";
 
 /**
  * A priced checkout (`prepareCheckout(…, { mode: "quote" })`) as the contract
@@ -95,7 +96,7 @@ function shippingOf(
   money: (amount: number) => CheckoutQuoteLine["unitPrice"],
 ): CheckoutShipping {
   const empty = { options: [], sellers: [] };
-  if (!priced.hasShippableItems) return { status: "NOT_REQUIRED", ...empty };
+  if (priced.pickupFulfillment || !priced.hasShippableItems) return { status: "NOT_REQUIRED", ...empty };
   if (priced.awaitingAddress || !priced.shippingResolution) {
     return { status: "NEEDS_ADDRESS", ...empty };
   }
@@ -162,7 +163,7 @@ function paymentMethodsOf(priced: PricedCheckout, appScheme: string): CheckoutPa
   const ctx: MethodContext = { readiness: resolveCheckoutGatewayReadiness(priced.settings), appScheme };
   return PAYMENT_METHODS.flatMap(({ id, flow, name, answer }) => {
     const answered = answer(priced, ctx);
-    return answered ? [{ ...answered, id, flow, name }] : [];
+    return answered ? [{ ...answered, id, flow, name: id === "cod" && priced.pickupFulfillment ? "Cash at pickup" : name }] : [];
   });
 }
 
@@ -177,12 +178,6 @@ function codMethod(priced: PricedCheckout): MethodAnswer {
   });
   // In the order lib/checkout/cod-eligibility.ts refuses them.
   if (cod?.enabled === false) return refuse("DISABLED", "Cash on Delivery is disabled");
-  if (priced.hasDigitalItems) {
-    return refuse(
-      "DIGITAL_ITEMS",
-      "Cash on Delivery is not available for orders that include digital items",
-    );
-  }
   const breach = codLimitBreach({
     total: priced.total,
     minOrderAmount: cod?.minOrderAmount,
@@ -340,6 +335,17 @@ export function toCheckoutQuote(priced: PricedCheckout, ctx: QuoteContext): Chec
     lines,
     itemCount: priced.items.reduce((sum, item) => sum + item.quantity, 0),
     shipping,
+    ...(priced.pickupFulfillment ? {
+      fulfillment: {
+        method: "pickup" as const,
+        pickup: {
+          vendorId: priced.pickupFulfillment.pickup.vendorId,
+          pickupLocationId: priced.pickupFulfillment.pickup.pickupLocationId,
+          pickupLocationName: priced.pickupFulfillment.pickup.pickupLocationName,
+          ...(priced.pickupFulfillment.pickup.pickupArea ? { pickupArea: priced.pickupFulfillment.pickup.pickupArea } : {}),
+        },
+      },
+    } : {}),
     ...(priced.appliedCoupon
       ? {
           coupon: {
@@ -378,7 +384,7 @@ export function toCheckoutQuote(priced: PricedCheckout, ctx: QuoteContext): Chec
       ctx,
       priced.normalizedShippingAddress.country || undefined,
     ),
-    fieldErrors: { ...ctx.schemaErrors, ...priced.formErrors },
+    fieldErrors: checkoutFieldErrors({ ...ctx.schemaErrors, ...priced.formErrors }, priced.pickupFulfillment?.method),
     ...(moneySettled(shipping)
       ? { quoteHash: checkoutQuoteHash(checkoutFiguresOf(priced)) }
       : {}),

@@ -8,6 +8,12 @@ import {
   assertAdminOrStaffPermissions,
 } from "@/lib/access/staff-authz";
 import type { StaffAccessScope } from "@/lib/access/staff-scope";
+import type { TeamAccess } from "@/lib/access/team-permissions";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
+import { auditAccessDenied } from "@/lib/access/access-denied-audit";
+import { isStaffRole } from "@/lib/access/staff-role";
+import { afterResponse } from "@/lib/after-response";
+import { createAuditContext } from "@/lib/audit";
 import {
   rateLimitByIP,
   rateLimitByUser,
@@ -54,6 +60,12 @@ import { getDemoModeMutationResponse } from "@/lib/demo-mode";
  *                      `staffPermissions` (checked in `staffMode`);
  *                      the staff grants land in `ctx.staff`.
  *
+ * An administrator is further held to their team role (Owner and
+ * Administrator: everything): the route's `teamPermissions`, else the rule
+ * for its path in lib/access/team-route-permissions.ts. Under /api/admin, and
+ * on any `auth: "admin"` route, a path no rule names is refused to a
+ * restricted member. Their access lands in `ctx.team`.
+ *
  * Demo modes (`demo`, only meaningful while DEMO_MODE is on):
  * - undefined         — refuse DELETE, allow creates and updates (default).
  * - "block-mutations" — refuse every write.
@@ -82,6 +94,8 @@ interface ApiContext<TParams> {
   session: ApiSession | null;
   /** Present only for auth: "admin-or-staff". */
   staff?: StaffGrants;
+  /** The administrator's team role and permissions, when the route needed them. */
+  team?: TeamAccess;
 }
 
 interface AuthedApiContext<TParams> extends ApiContext<TParams> {
@@ -94,6 +108,11 @@ interface WithApiOptions {
   staffPermissions?: StaffPermission[];
   /** Whether staff need any (default) or all of `staffPermissions`. */
   staffMode?: "any" | "all";
+  /**
+   * What an administrator's team role must hold (any one), instead of the
+   * rule lib/access/team-route-permissions.ts has for the path.
+   */
+  teamPermissions?: readonly string[];
   /**
    * Per-user rate limit (per-IP when the route is public / the caller is
    * anonymous). `action` names the bucket, e.g. "admin:coupons:list".
@@ -146,9 +165,10 @@ export function withApi<TParams = Record<string, never>>(
   handler: (ctx: AuthedApiContext<TParams>) => Promise<NextResponse | Response>,
 ): RouteHandler<TParams> {
   return async (request, context) => {
+    let session: ApiSession | null = null;
     try {
-      let session: ApiSession | null = null;
       let staff: StaffGrants | undefined;
+      let team: TeamAccess | undefined;
 
       if (options.auth) {
         session = await auth.api.getSession({ headers: await headers() });
@@ -170,6 +190,13 @@ export function withApi<TParams = Record<string, never>>(
             };
           }
         }
+      }
+
+      if (session && isAdmin(session.user)) {
+        team = await enforceTeamRole(request, session.user.id, {
+          adminOnly: options.auth === "admin",
+          teamPermissions: options.teamPermissions,
+        });
       }
 
       // After auth so anonymous callers still get a 401 rather than a demo
@@ -209,9 +236,28 @@ export function withApi<TParams = Record<string, never>>(
         params,
         session: session as ApiSession,
         staff,
+        team,
       });
     } catch (error) {
+      if (error instanceof AuthorizationError && session) recordRefusal(request, session, error);
       return handleApiError(error);
     }
   };
+}
+
+/**
+ * A refusal answered to a member of the team goes into the Activity Log
+ * (lib/access/access-denied-audit.ts), after the answer. A shopper or a seller
+ * refused a team route is not the team's to record.
+ */
+function recordRefusal(request: NextRequest, session: ApiSession, error: AuthorizationError) {
+  if (!isAdmin(session.user) && !isStaffRole(session.user.role)) return;
+  const path = request.nextUrl?.pathname ?? new URL(request.url).pathname;
+  afterResponse(() =>
+    auditAccessDenied(createAuditContext(request, session), {
+      method: request.method,
+      path,
+      reason: error.message,
+    }),
+  );
 }

@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PayoutPeriod } from "@/components/payouts/payout-period";
 import { formatCurrency } from "@/lib/intl/money";
 import {
   DataTable,
@@ -25,6 +26,8 @@ export type PayoutTableRow = {
   netAmount: number;
   periodStart: string;
   periodEnd: string;
+  /** How the dates were chosen — see components/payouts/payout-period.tsx. */
+  periodBoundary?: string;
   vendorId?: { _id?: string; storeName?: string };
   createdAt: string;
 };
@@ -118,7 +121,6 @@ export function usePayoutStatusTabs() {
 }
 
 export function PayoutsTableCard({
-  locale,
   data,
   isLoading,
   title,
@@ -145,25 +147,12 @@ export function PayoutsTableCard({
   rowActionsHeader,
 }: PayoutsTableCardProps) {
   const t = useTranslations();
-  const dateFormatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
-    [locale],
-  );
-
   const translatePayoutStatus = useCallback(
     (statusValue: string) =>
       t(`admin.payoutsPage.statuses.${toKeyToken(statusValue)}`, {
         defaultMessage: toReadablePayoutLabel(statusValue),
       }),
     [t],
-  );
-
-  const formatDate = useCallback(
-    (value: string) => {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
-    },
-    [dateFormatter],
   );
 
   const columns = useMemo<DataTableColumn<PayoutTableRow>[]>(
@@ -227,15 +216,13 @@ export function PayoutsTableCard({
         header: t("admin.payoutsPage.listSection.columns.period"),
         sortable: true,
         cell: (row) => (
-          <span className="text-muted-foreground">
-            {formatDate(row.periodStart)} - {formatDate(row.periodEnd)}
-          </span>
+          <PayoutPeriod start={row.periodStart} end={row.periodEnd} boundary={row.periodBoundary} />
         ),
         className: "w-[260px] hidden md:table-cell",
         headerClassName: "hidden md:table-cell",
       },
     ],
-    [detailHref, formatDate, showVendorColumn, t, translatePayoutStatus],
+    [detailHref, showVendorColumn, t, translatePayoutStatus],
   );
 
   const tableHeader = useMemo(

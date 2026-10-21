@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
 import { Menu } from "@/models";
 import { auth } from "@/lib/auth/auth";
-import { USER_ROLES } from "@/config/app.config";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
+import { isAdminHolding } from "@/lib/access/team-route-guard";
 import {
   successResponse,
   createdResponse,
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest) {
     const usePagination = page > 0 && limit > 0;
 
     const session = await auth.api.getSession({ headers: await headers() });
-    const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    // An administrator whose team role reaches the menus sees past the public view.
+    const isAdmin = await isAdminHolding(session?.user, [ADMIN_AREA_PERMISSIONS.VIEW_ONLINE_STORE, ADMIN_AREA_PERMISSIONS.MANAGE_ONLINE_STORE]);
 
     if (isAdmin) {
       await ensureDefaultMenus();

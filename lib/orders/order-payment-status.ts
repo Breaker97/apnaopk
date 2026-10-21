@@ -540,6 +540,11 @@ export function owesPreorderBalanceMatch(): Record<string, unknown> {
  * stamp the balance leaves whether it arrived through a gateway or was
  * recorded by hand.
  *
+ * A counter sale taken as a deposit (lib/pos/collect-balance.ts) has
+ * collected what its balance does not still owe — read off `posBalanceDue`,
+ * which the till lowers with each payment and nothing else touches, so a
+ * deposit sale cancelled or refunded still says what it took.
+ *
  * Kept here, free of the refund flow that first needed it, because the
  * invoice prints the same figure.
  */
@@ -550,6 +555,7 @@ export function getPreorderCollectedAmount(order: {
   preorderBalancePaidAt?: Date | null;
   preorderBalancePaidAmount?: number | null;
   storeCredit?: { applied?: number | null; state?: string | null } | null;
+  posBalanceDue?: number | null;
 }): number {
   // Store credit given back before the payment came paid for nothing (R8):
   // only a late payment can make such an order paid, and it brought the rest.
@@ -562,6 +568,8 @@ export function getPreorderCollectedAmount(order: {
   if (String(order.paymentStatus || PAYMENT_STATUS.PENDING) === PAYMENT_STATUS.PENDING) {
     return 0;
   }
+  const counterBalance = Math.max(0, Number(order.posBalanceDue || 0));
+  if (counterBalance > 0) return Math.max(0, total - Math.min(counterBalance, total));
   const outstanding = Math.min(
     Math.max(0, Number(order.preorderOutstandingAmount || 0)),
     total,

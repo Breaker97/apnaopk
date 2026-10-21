@@ -2,7 +2,7 @@ import { cache } from "react";
 import { connectDB } from "@/lib/db";
 import { getSettings, Order, PaymentTransaction, Product, User } from "@/models";
 import { USER_ROLES } from "@/config/app.config";
-import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
+import { isPosWalkIn, posWalkInName } from "@/lib/orders/pos-walk-in";
 import {
   BUCKET_KEY_FORMAT,
   buildAllTimeChartSeries,
@@ -357,6 +357,7 @@ export const getRecentOrders = cache(async (): Promise<RecentOrder[]> => {
     channel?: string;
     staffId?: string;
     customerId?: unknown;
+    posCustomerName?: string;
     total?: number;
     status?: string;
     paymentMethod?: string;
@@ -391,6 +392,7 @@ export const getRecentOrders = cache(async (): Promise<RecentOrder[]> => {
         channel: 1,
         staffId: 1,
         customerId: 1,
+        posCustomerName: 1,
       },
     },
   ]);
@@ -400,9 +402,10 @@ export const getRecentOrders = cache(async (): Promise<RecentOrder[]> => {
     orderNumber: row.orderNumber || "",
     // A walk-in POS sale is filed under its cashier: no name, and a flag the
     // card turns into its own label.
-    ...(isPosWalkIn(row)
+    // A phone-only customer the till took a name from is named.
+    ...(isPosWalkIn(row) && !posWalkInName(row)
       ? { walkIn: true }
-      : { customerName: row.customerName || undefined }),
+      : { customerName: posWalkInName(row) ?? (row.customerName || undefined) }),
     total: typeof row.total === "number" ? row.total : 0,
     status: row.status || "pending",
     paymentMethod: row.paymentMethod,

@@ -105,7 +105,7 @@ export function StorefrontCardPreview({
               </span>
             )}
             {product.featured && (
-              <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground opacity-0 shadow-sm transition-opacity duration-300 group-hover:opacity-100">
+              <span className="inline-flex items-center rounded-full bg-highlight px-2.5 py-1 text-xs font-medium text-highlight-foreground opacity-0 shadow-sm transition-opacity duration-300 group-hover:opacity-100">
                 {tf("common.featured", "Featured")}
               </span>
             )}

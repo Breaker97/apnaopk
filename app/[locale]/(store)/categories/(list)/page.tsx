@@ -1,15 +1,22 @@
+import { cookies } from "next/headers";
 import { getLocaleRouting } from "@/lib/i18n/locale-routing";
 import Link from "@/components/language/link";
 import { ArrowRight, ImageOff, Package, PackageSearch, Search } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { StoreBreadcrumb } from "@/components/store/store-breadcrumb";
+import { CategoryDensityGrid } from "@/components/store/category-density-grid";
 import { ElectronicsPager } from "@/components/store/electronics-pager";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import {
   getStorefrontCategories,
   type StorefrontCategory,
 } from "@/lib/storefront/storefront-categories";
+import {
+  CATEGORIES_PAGE_SIZE,
+  CATEGORY_DENSITY_COOKIE,
+  parseCategoryDensity,
+} from "@/lib/storefront/category-density";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import {
   themeCategoriesPageTiles,
@@ -21,9 +28,6 @@ interface PageProps {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
-
-/** Whole rows at the widest grid: four tiles across, or five cards. */
-const PAGE_SIZE = { tiles: 12, cards: 20 } as const;
 
 /**
  * Every category in one place, under every template: a search bar, the
@@ -43,11 +47,17 @@ export default async function CategoriesPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const { storeDefault } = await getLocaleRouting();
-  const [t, search, settings] = await Promise.all([
+  const [t, search, settings, cookieStore] = await Promise.all([
     getTranslations({ locale }),
     searchParams,
     getStorefrontSettings(),
+    cookies(),
   ]);
+  // The shopper's per-row pick (six until they choose), so the first byte
+  // already has the right columns.
+  const density = parseCategoryDensity(
+    cookieStore.get(CATEGORY_DENSITY_COOKIE)?.value,
+  );
 
   const tiles = themeCategoriesPageTiles(settings.theme.id);
   const twoTone = themeUsesTwoToneHeadings(settings.theme.id);
@@ -58,7 +68,7 @@ export default async function CategoriesPage({
   const { categories, pagination } = await getStorefrontCategories({
     flat: true,
     page,
-    limit: PAGE_SIZE[tiles],
+    limit: CATEGORIES_PAGE_SIZE,
     search: query,
   });
 
@@ -127,30 +137,30 @@ export default async function CategoriesPage({
 
       <div className={twoTone ? "mt-10 lg:mt-14" : "mt-8"}>
         {categories.length > 0 ? (
-          tiles === "tiles" ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 lg:gap-[26px]">
-              {categories.map((category) => (
-                <CategoryTile key={category._id} category={category} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-              {categories.map((category) => (
-                <CategoryCard
-                  key={category._id}
-                  category={category}
-                  countLabel={t("storeCategoryDetailPage.productsCount", {
-                    count: category.productCount || 0,
-                  })}
-                  viewLabel={
-                    t.has("storeCategoriesPage.viewProducts")
-                      ? t("storeCategoriesPage.viewProducts")
-                      : "View products"
-                  }
-                />
-              ))}
-            </div>
-          )
+          <CategoryDensityGrid
+            variant={tiles}
+            total={pagination.total}
+            initialDensity={density}
+          >
+            {tiles === "tiles"
+              ? categories.map((category) => (
+                  <CategoryTile key={category._id} category={category} />
+                ))
+              : categories.map((category) => (
+                  <CategoryCard
+                    key={category._id}
+                    category={category}
+                    countLabel={t("storeCategoryDetailPage.productsCount", {
+                      count: category.productCount || 0,
+                    })}
+                    viewLabel={
+                      t.has("storeCategoriesPage.viewProducts")
+                        ? t("storeCategoriesPage.viewProducts")
+                        : "View products"
+                    }
+                  />
+                ))}
+          </CategoryDensityGrid>
         ) : (
           <div className="flex flex-col items-center gap-2 rounded-4xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
             <PackageSearch className="size-6 text-muted-foreground" aria-hidden />
@@ -188,7 +198,7 @@ function CategoryTile({
       href={`/categories/${encodeURIComponent(category.slug)}`}
       className="group flex flex-col"
     >
-      <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-xl bg-muted transition-colors group-hover:bg-muted/70">
+      <span className="grid aspect-square w-full place-items-center overflow-hidden rounded-xl bg-muted transition-colors group-hover:bg-muted/70 lg:group-data-[density=8]/density:rounded-lg">
         {image ? (
           <AppImage
             src={image}
@@ -203,7 +213,7 @@ function CategoryTile({
           <Package className="size-9 text-muted-foreground" aria-hidden />
         )}
       </span>
-      <span className="mt-3 line-clamp-2 px-1 text-[15px] font-bold leading-tight tracking-[-0.01em] text-foreground transition-colors group-hover:text-primary sm:text-[17px]">
+      <span className="mt-3 line-clamp-2 px-1 text-[15px] font-bold leading-tight tracking-[-0.01em] text-foreground transition-colors group-hover:text-store-link sm:text-[17px] lg:group-data-[density=6]/density:text-[15px] lg:group-data-[density=8]/density:mt-2 lg:group-data-[density=8]/density:text-sm">
         {category.name}
       </span>
     </Link>
@@ -233,7 +243,7 @@ function CategoryCard({
             alt={category.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-contain p-6 transition-transform duration-300 group-hover:scale-105"
+            className="object-contain p-6 transition-transform duration-300 group-hover:scale-105 lg:group-data-[density=6]/density:p-[18px] lg:group-data-[density=8]/density:p-3"
           />
         ) : (
           <div className="grid h-full w-full place-items-center text-muted-foreground/55">
@@ -242,17 +252,17 @@ function CategoryCard({
         )}
       </div>
 
-      <div className="space-y-2 p-3 sm:p-4">
+      <div className="space-y-2 p-3 sm:p-4 lg:group-data-[density=8]/density:p-2.5">
         <div>
-          <h2 className="line-clamp-1 text-sm font-semibold text-foreground sm:text-base">
+          <h2 className="line-clamp-1 text-sm font-semibold text-foreground sm:text-base lg:group-data-[density=6]/density:text-[15px] lg:group-data-[density=8]/density:text-[13px]">
             {category.name}
           </h2>
-          <p className="mt-1 line-clamp-2 min-h-9 text-xs leading-4 text-muted-foreground">
+          <p className="mt-1 line-clamp-2 min-h-9 text-xs leading-4 text-muted-foreground lg:group-data-[density=8]/density:hidden">
             {category.description || countLabel}
           </p>
         </div>
 
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-store-link">
           {viewLabel}
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </span>

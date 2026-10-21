@@ -1,3 +1,5 @@
+import { flagScheduledPayoutsForOrder } from "@/lib/finance/payout-requote";
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Order } from "@/models";
@@ -7,6 +9,7 @@ import {
   handleApiError,
   AuthenticationError,
   AuthorizationError,
+  ConflictError,
   ValidationError,
 } from "@/lib/api/errors";
 import { auth } from "@/lib/auth/auth";
@@ -71,7 +74,12 @@ import {
   createRefundTransaction,
   ensureChargeTransaction,
 } from "@/lib/payments/payment-transactions";
-import { refundOrderPayment } from "@/lib/orders/order-refund";
+import { RefundOutcomeUnknownError, refundOrderPayment } from "@/lib/orders/order-refund";
+import {
+  holdRefundsWrite,
+  logRefundUnconfirmedError,
+  refundUnconfirmedProblem,
+} from "@/lib/orders/refund-unconfirmed";
 import { assertManualPaymentStatusChange } from "@/lib/orders/manual-payment-status";
 import { getPreorderCollectedAmount } from "@/lib/orders/order-payment-status";
 import { getOrderRefundCeiling } from "@/lib/orders/preorder-cancel-refund";
@@ -136,7 +144,7 @@ export const GET = withApi<{ id: string }>(
   async ({ request, params, session }) => {
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
-      [STAFF_PERMISSIONS.VIEW_ORDERS],
+      staffResourcePermissions("orders"),
     );
 
     await rateLimitByUser(
@@ -728,6 +736,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           `Only ${formatAmount(gatewayRoom)} can go back to the original payment — the rest of this order was paid with store credit. Give more of this refund as store credit.`,
         );
       }
+      // A refund the gateway never answered may have gone through. Sent again
+      // ahead of the gateway's report of it, it is paid twice — so while that
+      // is unsettled nothing more goes to a gateway from this order. Nothing is
+      // reserved yet, so refusing here costs nothing to hand back.
+      if (!recordsMoneyAlreadyGone && gatewayAmount > 0) {
+        const unconfirmed = refundUnconfirmedProblem(
+          before as Parameters<typeof refundUnconfirmedProblem>[0],
+        );
+        if (unconfirmed) throw new ConflictError(unconfirmed);
+      }
       // What this refund may reach, at the currency's own precision — the
       // same `orderRefundRoom` the refund dialog shows. Naming the delivery
       // grows it by the part of the held-back charge named and no further:
@@ -984,6 +1002,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         await Order.updateOne(...releaseRefundInFlightWrite(before._id, refundStamp)).catch(
         logRefundInFlightReleaseError,
       );
+        if (gatewayError instanceof RefundOutcomeUnknownError) {
+          // Handed back above so the gateway's report can record the refund if
+          // it was made; held here so it is not sent a second time first.
+          await Order.updateOne(...holdRefundsWrite(before._id)).catch(
+            logRefundUnconfirmedError,
+          );
+          throw new ConflictError(gatewayError.message);
+        }
         const message =
           gatewayError instanceof Error
             ? gatewayError.message
@@ -1128,7 +1154,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       isOverride && body.status ? buildRollbackUnsets(body.status) : {};
     const writeOptions =
       isOverride && usesSubOrderArrayFilter({ ...updates, ...unsets })
-        ? { arrayFilters: [subOrderOverrideFilter(isResurrection)] }
+        ? {
+            arrayFilters: [
+              subOrderOverrideFilter(
+                isResurrection,
+                // Narrowed only when nothing else in this write has to reach
+                // the delivered consignments — marking them paid, say.
+                updates[subOrderPath("paymentStatus")] === undefined ? body.status : undefined,
+              ),
+            ],
+          }
         : subOrderUpdateOptions(updates);
 
     // Sub-order writes use the filtered positional operator so an order-level
@@ -1172,6 +1207,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
       return notFoundResponse("Order");
+    }
+
+    // An override that takes a delivered order back (or cancels it) changes
+    // what any payout already holding it is worth.
+    if (isOverride && body.status && body.status !== ORDER_STATUS.DELIVERED) {
+      await flagScheduledPayoutsForOrder({
+        orderId: order._id,
+        reason: `An admin moved the order back to ${body.status}.`,
+      });
     }
 
     // Another refund finishing beside this one may have written its own

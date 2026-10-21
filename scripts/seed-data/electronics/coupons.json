@@ -11,13 +11,12 @@
     "minOrderAmount": 0,
     "maxDiscount": 200,
     "usageLimit": null,
-    "usedCount": 0,
-    "perUserLimit": 1,
+    "perUserLimit": 100,
     "startDate": {
-      "$date": "2026-08-27T17:51:23.880Z"
+      "$date": "2026-08-27T00:00:00Z"
     },
     "endDate": {
-      "$date": "2026-11-25T17:51:23.880Z"
+      "$date": "2027-12-01T00:00:00Z"
     },
     "status": "active",
     "vendorId": null,
@@ -27,8 +26,44 @@
     "createdAt": {
       "$date": "2026-08-27T17:51:23.881Z"
     },
+    "fundedBy": "platform",
+    "listed": true,
+    "usedCount": 0,
     "updatedAt": {
-      "$date": "2026-08-29T07:33:44.278Z"
+      "$date": "2026-10-16T06:24:45.663Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6ac8a9fab270ec2da5d9e0bb"
+    },
+    "code": "NEW",
+    "type": "percentage",
+    "value": 10,
+    "minOrderAmount": 500,
+    "maxDiscount": null,
+    "usageLimit": null,
+    "usedCount": 0,
+    "perUserLimit": 1,
+    "startDate": {
+      "$date": "2026-10-09T00:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-10-30T00:00:00Z"
+    },
+    "status": "active",
+    "vendorId": {
+      "$oid": "6a980391ad6869b1f3756d93"
+    },
+    "applicableProducts": [],
+    "applicableCategories": [],
+    "excludedProducts": [],
+    "listed": false,
+    "createdAt": {
+      "$date": "2026-10-09T08:46:50.923Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-16T06:24:45.663Z"
     },
     "__v": 0
   }

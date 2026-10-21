@@ -1,4 +1,5 @@
 import { CAPABILITIES, type Capability } from "@/contracts/mobile/biz/v1/me";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
 import { WORKSPACES, type Workspace } from "@/contracts/mobile/biz/v1/common";
 import {
   STAFF_PERMISSIONS,
@@ -36,11 +37,16 @@ export type BizWorkspaceMode = "account" | "any" | Workspace;
  *   staff permissions; `[]` every staff member, `null` none.
  * - `vendor`: a seller, any one of these, as their plan resolves them
  *   (`manage_x` covers `edit_x`); `[]` every seller, `null` none.
- * An administrator is always let through.
+ * - `team`: an administrator held to a team role (config/team-permissions.config.ts),
+ *   any one of these; absent, the staff list (the same strings). A rule closed
+ *   to staff without one is the full administrators' alone.
+ * An administrator with full access (the Owner, the Administrator role) is
+ * always let through.
  */
 export interface BizPermission {
   staff: readonly StaffPermission[] | null;
   vendor: readonly VendorPermission[] | null;
+  team?: readonly string[];
 }
 
 export interface BizAccessRule {
@@ -140,7 +146,7 @@ export const CAPABILITY_ACCESS = {
   // No staff permission approves a seller: administrators only, as on the website.
   REVIEW_VENDOR_APPLICATIONS: {
     workspace: "platform",
-    permission: { staff: null, vendor: null },
+    permission: { staff: null, vendor: null, team: [ADMIN_AREA_PERMISSIONS.MANAGE_VENDORS] },
   },
   VIEW_RETURNS: {
     workspace: "any",
@@ -156,12 +162,12 @@ export const CAPABILITY_ACCESS = {
   },
   ISSUE_REFUNDS: {
     workspace: "platform",
-    permission: { staff: null, vendor: null },
+    permission: { staff: null, vendor: null, team: [ADMIN_AREA_PERMISSIONS.MANAGE_RETURNS] },
   },
   // The leaf also verifies refundPayer/custody and the current settlement state.
   RECORD_REFUND_SETTLEMENT: {
     workspace: "any",
-    permission: { staff: null, vendor: [VENDOR_PERMISSIONS.EDIT_ORDERS] },
+    permission: { staff: null, vendor: [VENDOR_PERMISSIONS.EDIT_ORDERS], team: [ADMIN_AREA_PERMISSIONS.MANAGE_RETURNS] },
   },
   // A business's own notes about a customer (lib/customers/business-customers.ts):
   // the store's team share the store's, a seller's team the seller's. Seeing a
@@ -190,6 +196,11 @@ export const CAPABILITY_ACCESS = {
  * Spread one into the entry: `defineBizRoute({ …, ...BIZ_ACCESS.VIEW_ORDERS })`.
  */
 export const BIZ_ACCESS = {
+  FINANCE_INVENTORY: { workspace: "platform", permission: { staff: null, vendor: null, team: [ADMIN_AREA_PERMISSIONS.VIEW_FINANCE, ADMIN_AREA_PERMISSIONS.MANAGE_FINANCE] } },
+  /** Recording or correcting what stock cost: the same people, held to Manage. */
+  FINANCE_INVENTORY_WRITE: { workspace: "platform", permission: { staff: null, vendor: null, team: [ADMIN_AREA_PERMISSIONS.MANAGE_FINANCE] } },
+  COUNT_OWN_INVENTORY: { workspace: "platform", permission: { staff: [STAFF_PERMISSIONS.EDIT_INVENTORY, STAFF_PERMISSIONS.MANAGE_INVENTORY], vendor: null } },
+  VIEW_OWN_INVENTORY: { workspace: "platform", permission: { staff: [STAFF_PERMISSIONS.VIEW_INVENTORY], vendor: null } },
   account: { workspace: "account", permission: ANY_OPERATOR },
   workspace: { workspace: "any", permission: ANY_OPERATOR },
   ...CAPABILITY_ACCESS,
@@ -264,7 +275,11 @@ export function chooseWorkspace(
 
 /** Whether a grant's permissions satisfy a rule's (an administrator always does). */
 export function grantHasPermission(grant: BizWorkspaceGrant, permission: BizPermission): boolean {
-  if (grant.kind === "admin") return true;
+  if (grant.kind === "admin") {
+    if (!grant.team) return true;
+    const wanted = permission.team ?? permission.staff;
+    return wanted !== null && (wanted.length === 0 || wanted.some((p) => grant.team!.permissions.includes(p)));
+  }
   if (grant.kind === "staff") {
     const wanted = permission.staff;
     return wanted !== null && (wanted.length === 0 || wanted.some((p) => grant.permissions.includes(p)));

@@ -19,6 +19,8 @@ import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { requireVendorAreaAccess } from "@/lib/access/vendor-area-guard";
 import { PRODUCT_STATUS } from "@/config/app.config";
 import { VendorProductsTable } from "@/components/vendor/products-table";
+import { getSettingsLean } from "@/models/settings.model";
+import { taxClassOptions, vendorTaxLock } from "@/lib/tax/tax-settings";
 import { parsePageQuery } from "@/lib/api/validate";
 import { serializeRows } from "@/lib/api/list-query";
 import { AdminListQuerySchema } from "@/lib/validations";
@@ -204,7 +206,13 @@ async function VendorProductsTableSection({
   // Parsed with the schema the API route uses, so the page and the endpoint
   // can never read one query string two different ways.
   const query = parsePageQuery(searchParams, AdminListQuerySchema);
-  const list = await fetchVendorProductList(query, vendorId);
+  const [list, settings] = await Promise.all([
+    fetchVendorProductList(query, vendorId),
+    getSettingsLean(),
+  ]);
+  // Under "with approval" the vendor asks for a tax change for several
+  // products at once from here (Settings → Tax Settings → Vendors).
+  const canRequestTax = canEditProduct && vendorTaxLock(settings.tax) === "approval";
 
   return (
     <VendorProductsTable
@@ -213,6 +221,7 @@ async function VendorProductsTableSection({
       canEditProduct={canEditProduct}
       canDeleteProduct={canDeleteProduct}
       canBoostProduct={canBoostProduct}
+      taxClasses={canRequestTax ? taxClassOptions(settings.tax) : undefined}
       data={serializeRows(list.items)}
       pagination={{
         page: list.page,

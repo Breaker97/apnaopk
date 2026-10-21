@@ -469,6 +469,15 @@ export function VendorConfigSettingsTab(props: {
                 }
               />
             </div>
+            <ToggleRow
+              label={t("admin.settings.vendorConfig.commission.autoPayoutDraftsLabel")}
+              description={t("admin.settings.vendorConfig.commission.autoPayoutDraftsDescription")}
+              checked={commission.autoPayoutDrafts !== false}
+              disabled={disabled}
+              onChange={(next) =>
+                props.updateCommissionField("orders.commission.autoPayoutDrafts", next)
+              }
+            />
             <MinWithdrawalByCurrency
               value={commission.minWithdrawalByCurrency || {}}
               storeCurrency={String(props.settings.general.defaultCurrency || "USD")}

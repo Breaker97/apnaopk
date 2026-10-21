@@ -51,6 +51,10 @@ export const formSchema = z.object({
       .default("none"),
     cost: z.number().optional(),
     chargeTax: z.boolean(),
+    // Its own rate in percent; empty takes the category's or the store's.
+    taxRate: z.number().min(0).max(100).nullable().optional(),
+    // Its Settings → Tax class; empty takes the category's. A custom rate wins.
+    taxClass: z.string().nullable().optional(),
     // "Price on request" — sell by quote instead of by price. The price input
     // and the display-price accordion are hidden while this is on, because
     // none of those numbers reach a shopper (lib/products/quote-pricing.ts).
@@ -140,6 +144,23 @@ export type Brand = {
   _id: string;
   name: string;
   slug: string;
+};
+/** One entry of the media gallery, as the form keeps it outside react-hook-form. */
+export type ProductFormMediaItem = {
+  _id: string;
+  url: string;
+  filename?: string;
+  type?: string;
+  mimeType?: string;
+  alt?: string;
+  position: number;
+  size?: number;
+  width?: number;
+  height?: number;
+  thumbnailUrl?: string;
+  provider?: "youtube" | "vimeo";
+  embedId?: string;
+  fit?: "auto" | "contain" | "cover";
 };
 export type CollectionOption = { _id: string; title: string; slug: string };
 export type CollectionIdValue = string | { _id?: string };

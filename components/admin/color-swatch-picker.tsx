@@ -67,7 +67,14 @@ export function ColorSwatchPicker({
       <PopoverContent
         align={align}
         className="z-[100] w-64 p-3"
-        onOpenAutoFocus={(event) => event.preventDefault()}
+        tabIndex={-1}
+        // Focus moves into the picker (not onto its hex field, which would
+        // open a phone's keyboard), so Tab walks its controls instead of
+        // leaving the popover and closing it.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus();
+        }}
       >
         <ColorPickerPanel value={value} onChange={onChange} alpha={alpha} />
       </PopoverContent>

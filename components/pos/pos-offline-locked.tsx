@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
+import { useFormatter, useNow, useTranslations } from "next-intl";
 import { Lock, Wifi } from "lucide-react";
 import type { POSOfflineSessionState } from "@/lib/pos/offline-session";
 
@@ -23,8 +23,11 @@ export function POSOfflineLocked({
   session,
   queuedCount,
 }: POSOfflineLockedProps) {
+  const t = useTranslations("pos.offline");
+  const format = useFormatter();
+  const now = useNow({ updateInterval: 60_000 });
   const lastSeen = session.lastAuthenticatedAt
-    ? formatDistanceToNow(session.lastAuthenticatedAt, { addSuffix: true })
+    ? format.relativeTime(session.lastAuthenticatedAt, now)
     : null;
 
   return (
@@ -34,26 +37,26 @@ export function POSOfflineLocked({
           <Lock className="h-6 w-6" aria-hidden />
         </div>
 
-        <h2 className="text-lg font-semibold">Reconnect to keep selling</h2>
+        <h2 className="text-lg font-semibold">{t("lockedTitle")}</h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
           {lastSeen
-            ? `This register last reached the server ${lastSeen}. For security it stays locked until it can sign in again.`
-            : "This register has not reached the server on this device yet, so it cannot be used offline."}
+            ? t("lockedLastSeen", { time: lastSeen })
+            : t("lockedNever")}
         </p>
 
         {queuedCount > 0 && (
           <p className="mt-4 rounded-lg bg-muted/60 px-3 py-2 text-sm">
-            <strong>{queuedCount}</strong> offline sale
-            {queuedCount === 1 ? " is" : "s are"} still saved on this device and
-            will sync automatically once you are back online. Do not clear the
-            browser data.
+            {t.rich("lockedQueued", {
+              count: queuedCount,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         )}
 
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Wifi className="h-3.5 w-3.5" aria-hidden />
-          Waiting for a connection…
+          {t("waitingForConnection")}
         </div>
       </div>
     </div>

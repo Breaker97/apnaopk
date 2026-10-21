@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { Clock3, Loader2, Paperclip, Send } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Clock3, FileText, Film, Loader2, Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { WarningBanner } from "@/components/ui/warning-banner";
@@ -9,8 +9,15 @@ import { WarningBanner } from "@/components/ui/warning-banner";
 interface MessageComposerProps {
   value: string;
   onChange: (value: string) => void;
+  /** Sends the typed text and any staged files together. */
   onSubmit: () => void;
-  onAttach?: (file: File) => void;
+  /**
+   * Files picked but not sent yet. With `onAttachmentsChange` the composer
+   * offers the paperclip: picking stages a file here, with a preview and a
+   * remove button, and only Send sends it — as in Messenger or WhatsApp.
+   */
+  attachments?: File[];
+  onAttachmentsChange?: (files: File[]) => void;
   /** The file types the conversation's channel takes, for the file picker. */
   attachAccept?: string;
   sending: boolean;
@@ -20,6 +27,7 @@ interface MessageComposerProps {
   placeholder: string;
   sendLabel: string;
   attachLabel?: string;
+  removeAttachmentLabel?: string;
   /** More buttons beside the file button: the product picker. */
   actions?: React.ReactNode;
   /** What is put on the reply before it is sent: a product to share. */
@@ -43,6 +51,26 @@ function enterSends(event: React.KeyboardEvent<HTMLTextAreaElement>) {
   return !window.matchMedia?.("(pointer: coarse)").matches;
 }
 
+/** A staged file as its chip shows it; image chips carry a local preview. */
+function useStagedPreviews(files: File[]) {
+  const previews = useMemo(
+    () =>
+      files.map((file) => ({
+        file,
+        url: file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
+      })),
+    [files],
+  );
+  // The object URLs live as long as their chips.
+  useEffect(
+    () => () => {
+      for (const preview of previews) if (preview.url) URL.revokeObjectURL(preview.url);
+    },
+    [previews],
+  );
+  return previews;
+}
+
 /**
  * The composer is a `shrink-0` row inside a `min-h-0` flex column, so it stays
  * pinned to the bottom of the pane no matter how long the thread grows. The
@@ -54,7 +82,8 @@ export function MessageComposer({
   value,
   onChange,
   onSubmit,
-  onAttach,
+  attachments = [],
+  onAttachmentsChange,
   attachAccept,
   sending,
   uploading = false,
@@ -63,6 +92,7 @@ export function MessageComposer({
   placeholder,
   sendLabel,
   attachLabel,
+  removeAttachmentLabel,
   actions,
   attachment,
   hasAttachment = false,
@@ -70,7 +100,9 @@ export function MessageComposer({
   warning,
 }: MessageComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const ready = Boolean(value.trim()) || hasAttachment;
+  const previews = useStagedPreviews(attachments);
+  const busy = sending || uploading;
+  const ready = Boolean(value.trim()) || hasAttachment || attachments.length > 0;
 
   return (
     <div className="shrink-0 border-t bg-card px-4 py-3">
@@ -84,21 +116,61 @@ export function MessageComposer({
 
       {attachment}
 
+      {previews.length > 0 ? (
+        <ul className="mb-2 flex flex-wrap gap-2">
+          {previews.map(({ file, url }, index) => (
+            <li
+              key={`${file.name}-${file.size}-${index}`}
+              className="relative flex h-16 items-center gap-2 overflow-hidden rounded-xl border bg-muted/40"
+            >
+              {url ? (
+                // A local blob preview: next/image cannot optimise it.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={url} alt={file.name} className="h-16 w-16 object-cover" />
+              ) : (
+                <span className="flex max-w-48 items-center gap-2 ps-3 pe-8 text-xs">
+                  {file.type.startsWith("video/") ? (
+                    <Film className="size-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <FileText className="size-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="truncate">{file.name}</span>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  onAttachmentsChange?.(attachments.filter((_, i) => i !== index))
+                }
+                disabled={busy}
+                aria-label={
+                  removeAttachmentLabel ? `${removeAttachmentLabel}: ${file.name}` : file.name
+                }
+                className="absolute end-1 top-1 grid size-5 place-items-center rounded-full bg-background/90 text-foreground shadow-sm transition-colors hover:bg-background disabled:opacity-50"
+              >
+                <X className="size-3" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <div className="flex items-end gap-2">
-        {onAttach || actions ? (
+        {onAttachmentsChange || actions ? (
           <div className="flex shrink-0 items-center gap-0.5 pb-1.5">
-            {onAttach ? (
+            {onAttachmentsChange ? (
               <>
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept={attachAccept}
                   className="sr-only"
                   tabIndex={-1}
                   aria-hidden="true"
                   onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) onAttach(file);
+                    const picked = Array.from(event.target.files ?? []);
+                    if (picked.length > 0) onAttachmentsChange([...attachments, ...picked]);
                     event.target.value = "";
                   }}
                 />
@@ -107,16 +179,12 @@ export function MessageComposer({
                   size="icon"
                   variant="ghost"
                   className="size-8 rounded-full"
-                  disabled={uploading || disabled}
+                  disabled={busy || disabled}
                   onClick={() => fileInputRef.current?.click()}
                   aria-label={attachLabel}
                   title={attachLabel}
                 >
-                  {uploading ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Paperclip className="text-muted-foreground" />
-                  )}
+                  <Paperclip className="text-muted-foreground" />
                 </Button>
               </>
             ) : null}
@@ -138,7 +206,7 @@ export function MessageComposer({
           onKeyDown={(event) => {
             if (enterSends(event)) {
               event.preventDefault();
-              onSubmit();
+              if (ready && !busy && !disabled) onSubmit();
             }
           }}
         />
@@ -147,12 +215,12 @@ export function MessageComposer({
           type="button"
           size="icon"
           className="size-11 shrink-0 rounded-full"
-          disabled={!ready || sending || disabled}
+          disabled={!ready || busy || disabled}
           onClick={onSubmit}
           aria-label={sendLabel}
           title={sendLabel}
         >
-          {sending ? (
+          {busy ? (
             <Loader2 className="animate-spin" />
           ) : (
             <Send className="rtl:-scale-x-100" />

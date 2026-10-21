@@ -7,6 +7,7 @@ import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { getSettings } from "@/models/settings.model";
 import { withApi } from "@/lib/api/handler";
 import { getVendorDashboardData } from "@/lib/vendors/vendor-order-metrics";
+import { countVendorFollowers } from "@/lib/vendors/vendor-follow";
 import { resolveDashboardPeriod } from "@/lib/admin/dashboard-period";
 
 /**
@@ -53,6 +54,12 @@ export const GET = withApi(
       to: searchParams.get("to") ?? undefined,
     });
 
-    return successResponse(await getVendorDashboardData(vendor._id, range));
+    // Followers are not period-driven: the card shows the store's count today.
+    const [data, followers] = await Promise.all([
+      getVendorDashboardData(vendor._id, range),
+      countVendorFollowers(vendor._id),
+    ]);
+
+    return successResponse({ ...data, stats: { ...data.stats, followers } });
   },
 );

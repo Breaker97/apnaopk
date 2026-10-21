@@ -38,6 +38,42 @@
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-surface: var(--highlight-surface);
+  --color-highlight-surface-foreground: var(--highlight-surface-foreground);
+  --color-store-sale: var(--store-sale);
+  --color-store-on-sale: var(--store-on-sale);
+  --color-store-sale-text: var(--store-sale-text);
+  --color-store-sale-surface: var(--store-sale-surface);
+  --color-store-on-sale-surface: var(--store-on-sale-surface);
+  --color-store-rating: var(--store-rating);
+  /* Outside a store surface a link is the primary, as it always was. */
+  --color-store-link: var(--store-link, var(--primary));
+  /* Add to cart: the theme's Secondary role; outside a store surface it is
+     the text colour, the dark button it has always been. */
+  --color-store-secondary: var(--store-secondary, var(--foreground));
+  --color-store-on-secondary: var(--store-on-secondary, var(--background));
+  --color-status-positive: var(--status-positive);
+  --color-status-on-positive: var(--status-on-positive);
+  --color-status-negative: var(--status-negative);
+  --color-status-on-negative: var(--status-on-negative);
+  --color-status-warning: var(--status-warning);
+  --color-status-on-warning: var(--status-on-warning);
+  --color-status-info: var(--status-info);
+  --color-status-on-info: var(--status-on-info);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-on-neutral: var(--status-on-neutral);
+  --color-tier-bronze: var(--tier-bronze);
+  --color-tier-on-bronze: var(--tier-on-bronze);
+  --color-tier-silver: var(--tier-silver);
+  --color-tier-on-silver: var(--tier-on-silver);
+  --color-tier-gold: var(--tier-gold);
+  --color-tier-on-gold: var(--tier-on-gold);
+  --color-tier-platinum: var(--tier-platinum);
+  --color-tier-on-platinum: var(--tier-on-platinum);
   --color-skeleton: var(--skeleton);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
@@ -67,6 +103,24 @@
 }
 
 :root {
+  --status-positive: #dcfce7;
+  --status-on-positive: #166534;
+  --status-negative: #fee2e2;
+  --status-on-negative: #991b1b;
+  --status-warning: #fef3c7;
+  --status-on-warning: #92400e;
+  --status-info: #dbeafe;
+  --status-on-info: #1e40af;
+  --status-neutral: #f3f4f6;
+  --status-on-neutral: #374151;
+  --tier-bronze: #ffedd5;
+  --tier-on-bronze: #9a3412;
+  --tier-silver: #f3f4f6;
+  --tier-on-silver: #374151;
+  --tier-gold: #fef3c7;
+  --tier-on-gold: #92400e;
+  --tier-platinum: #ede9fe;
+  --tier-on-platinum: #5b21b6;
   --radius: 1rem;
   --background: oklch(0.97 0 0); /* #F4F6F8 approx */
   --foreground: oklch(0.2 0 0); /* #212B36 approx */
@@ -84,7 +138,10 @@
   --accent-foreground: oklch(0.55 0.2 250);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  /* Field outlines a step stronger than dividers, so an empty input still
+     reads as one without the heavy grey a brand-derived 3:1 border gave
+     every dashboard form. */
+  --input: #c4cdd5;
   --ring: oklch(0.55 0.2 250);
   --chart-1: oklch(0.55 0.2 250); /* Blue */
   --chart-2: oklch(0.7 0.15 80); /* Yellow/Orange */
@@ -102,6 +159,24 @@
 }
 
 .dark {
+  --status-positive: #143c2a;
+  --status-on-positive: #86efac;
+  --status-negative: #451c22;
+  --status-on-negative: #fca5a5;
+  --status-warning: #422d16;
+  --status-on-warning: #fcd34d;
+  --status-info: #1c3152;
+  --status-on-info: #93c5fd;
+  --status-neutral: #30343b;
+  --status-on-neutral: #e5e7eb;
+  --tier-bronze: #432919;
+  --tier-on-bronze: #fdba74;
+  --tier-silver: #30343b;
+  --tier-on-silver: #e5e7eb;
+  --tier-gold: #422d16;
+  --tier-on-gold: #fcd34d;
+  --tier-platinum: #33264d;
+  --tier-on-platinum: #c4b5fd;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -136,9 +211,79 @@
 }
 
 
+/* The brand outside the storefront: the dashboards, auth-less pages, error
+   pages. `buildCustomColorVars` emits a value per mode; these pick the
+   active one. Each fallback is a readable PAIR — what an unbranded page (or
+   one rendered before the variables exist) paints. `secondary` and `input`
+   are not here on purpose: the dashboards keep shadcn's neutral secondary
+   chip and a light field border, whatever the brand. */
+:root {
+  --primary: var(--brand-l-primary, #2065d1);
+  --primary-foreground: var(--brand-l-on-primary, #ffffff);
+  --accent: var(--brand-l-hover-surface, #f1f1f1);
+  --accent-foreground: var(--brand-l-on-hover, #212b36);
+  --selection: var(--brand-l-selected-surface, #eaf1fc);
+  --selection-foreground: var(--brand-l-on-selected, #212b36);
+  --highlight: var(--brand-l-accent, #f59e0b);
+  --highlight-foreground: var(--brand-l-on-accent, #1a1a1a);
+  --highlight-surface: var(--brand-l-accent-surface, #fef3e2);
+  --highlight-surface-foreground: var(--brand-l-on-accent-surface, #1a1a1a);
+  --ring: var(--brand-l-focus-ring, #2065d1);
+  --primary-hover: var(--brand-l-primary-hover, var(--primary));
+  --primary-pressed: var(--brand-l-primary-pressed, var(--primary));
+  --store-link: var(--brand-l-link, #2065d1);
+  --sidebar-primary: var(--brand-l-primary, #2065d1);
+  --sidebar-primary-foreground: var(--brand-l-on-primary, #ffffff);
+  --sidebar-accent: var(--brand-l-selected-surface, #eaf1fc);
+  --sidebar-accent-foreground: var(--brand-l-on-selected, #212b36);
+  --sidebar-ring: var(--brand-l-focus-ring, #2065d1);
+  /* Theme colour references outside the storefront (dashboard previews,
+     pages with no store surface): the brand mapping above stands in. Each
+     resolves on <html>, where `.dark` already picked the mode. */
+  --theme-primary: var(--primary);
+  --theme-on-primary: var(--primary-foreground);
+  --theme-secondary: var(--secondary);
+  --theme-on-secondary: var(--secondary-foreground);
+  --theme-accent: var(--highlight);
+  --theme-on-accent: var(--highlight-foreground);
+  --theme-background: var(--background);
+  --theme-on-background: var(--foreground);
+  --theme-surface: var(--card);
+  --theme-on-surface: var(--card-foreground);
+  --theme-surface-alt: var(--muted);
+  --theme-on-surface-alt: var(--foreground);
+  --theme-text: var(--foreground);
+  --theme-on-text: var(--background);
+  --theme-text-muted: var(--muted-foreground);
+  --theme-on-text-muted: var(--background);
+  --theme-border: var(--border);
+  --theme-on-border: var(--foreground);
+}
+:root.dark {
+  --primary: var(--brand-d-primary, #4a7fe0);
+  --primary-foreground: var(--brand-d-on-primary, #ffffff);
+  --accent: var(--brand-d-hover-surface, #333333);
+  --accent-foreground: var(--brand-d-on-hover, #fafafa);
+  --selection: var(--brand-d-selected-surface, #29334a);
+  --selection-foreground: var(--brand-d-on-selected, #fafafa);
+  --highlight: var(--brand-d-accent, #f59e0b);
+  --highlight-foreground: var(--brand-d-on-accent, #1a1a1a);
+  --highlight-surface: var(--brand-d-accent-surface, #4b3c21);
+  --highlight-surface-foreground: var(--brand-d-on-accent-surface, #ffffff);
+  --ring: var(--brand-d-focus-ring, #4a7fe0);
+  --primary-hover: var(--brand-d-primary-hover, var(--primary));
+  --primary-pressed: var(--brand-d-primary-pressed, var(--primary));
+  --store-link: var(--brand-d-link, #7398f4);
+  --sidebar-primary: var(--brand-d-primary, #4a7fe0);
+  --sidebar-primary-foreground: var(--brand-d-on-primary, #ffffff);
+  --sidebar-accent: var(--brand-d-selected-surface, #29334a);
+  --sidebar-accent-foreground: var(--brand-d-on-selected, #fafafa);
+  --sidebar-ring: var(--brand-d-focus-ring, #4a7fe0);
+}
+
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   *,
   *::before,
@@ -461,7 +606,7 @@ html::-webkit-scrollbar-thumb:hover {
 }
 
 .rich-text-content :where(a) {
-  color: var(--primary);
+  color: var(--store-link, var(--primary));
   text-decoration-line: underline;
   text-underline-offset: 3px;
 }
@@ -686,44 +831,132 @@ html::-webkit-scrollbar-thumb:hover {
   --card: var(--store-l-surface);
   --popover: var(--store-l-surface);
   --muted: var(--store-l-surface-alt);
-  --secondary: var(--store-l-secondary);
+  /* Tag chips and neutral badges are Bands & chips; Add to cart is the
+     Secondary role (--store-secondary). */
+  --secondary: var(--store-l-surface-alt);
+  --store-secondary: var(--store-l-secondary);
+  --store-on-secondary: var(--store-l-on-secondary);
   --foreground: var(--store-l-text);
   --card-foreground: var(--store-l-text);
   --popover-foreground: var(--store-l-text);
-  --secondary-foreground: var(--store-l-on-secondary);
+  --secondary-foreground: var(--store-l-text);
   --muted-foreground: var(--store-l-text-muted);
   --border: var(--store-l-border);
-  --input: var(--store-l-border);
+  --input: var(--store-l-field-border);
   --primary: var(--store-l-primary);
-  --ring: var(--store-l-primary);
+  --primary-hover: var(--store-l-primary-hover);
+  --primary-pressed: var(--store-l-primary-pressed);
+  --ring: var(--store-l-focus-ring);
   --primary-foreground: var(--store-l-on-primary);
-  --accent: var(--store-l-accent);
-  --accent-foreground: var(--store-l-text);
+  --accent: var(--store-l-hover-surface);
+  --accent-foreground: var(--store-l-on-hover);
   --store-sale: var(--store-l-sale);
   --store-rating: var(--store-l-rating);
   --store-link: var(--store-l-link);
+  --on-foreground: var(--store-l-on-text);
+  --on-muted-foreground: var(--store-l-on-text-muted);
+  --on-border: var(--store-l-on-border);
+  --selection: var(--store-l-selected-surface);
+  --selection-foreground: var(--store-l-on-selected);
+  --highlight: var(--store-l-accent);
+  --highlight-foreground: var(--store-l-on-accent);
+  --highlight-surface: var(--store-l-accent-surface);
+  --highlight-surface-foreground: var(--store-l-on-accent-surface);
+  --store-on-sale: var(--store-l-on-sale);
+  --store-sale-text: var(--store-l-sale-text);
+  --store-sale-surface: var(--store-l-sale-surface);
+  --store-on-sale-surface: var(--store-l-on-sale-surface);
+  --sidebar-accent: var(--store-l-selected-surface);
+  --sidebar-accent-foreground: var(--store-l-on-selected);
+  --sidebar-ring: var(--store-l-focus-ring);
+  --skeleton: var(--store-l-skeleton);
+  /* Theme colour references (lib/theme-colors/theme-refs.ts): stable
+     aliases a header, footer or widget colour can name. Never reassigned
+     below the surface, so they cannot form a cycle with the shadcn names. */
+  --theme-primary: var(--store-l-primary);
+  --theme-on-primary: var(--store-l-on-primary);
+  --theme-secondary: var(--store-l-secondary);
+  --theme-on-secondary: var(--store-l-on-secondary);
+  --theme-accent: var(--store-l-accent);
+  --theme-on-accent: var(--store-l-on-accent);
+  --theme-background: var(--store-l-background);
+  --theme-on-background: var(--store-l-text);
+  --theme-surface: var(--store-l-surface);
+  --theme-on-surface: var(--store-l-text);
+  --theme-surface-alt: var(--store-l-surface-alt);
+  --theme-on-surface-alt: var(--store-l-text);
+  --theme-text: var(--store-l-text);
+  --theme-on-text: var(--store-l-on-text);
+  --theme-text-muted: var(--store-l-text-muted);
+  --theme-on-text-muted: var(--store-l-on-text-muted);
+  --theme-border: var(--store-l-border);
+  --theme-on-border: var(--store-l-on-border);
 }
 .dark :is(.store-surface, body[data-store-theme]) {
   --background: var(--store-d-background);
   --card: var(--store-d-surface);
   --popover: var(--store-d-surface);
   --muted: var(--store-d-surface-alt);
-  --secondary: var(--store-d-secondary);
+  /* Tag chips and neutral badges are Bands & chips; Add to cart is the
+     Secondary role (--store-secondary). */
+  --secondary: var(--store-d-surface-alt);
+  --store-secondary: var(--store-d-secondary);
+  --store-on-secondary: var(--store-d-on-secondary);
   --foreground: var(--store-d-text);
   --card-foreground: var(--store-d-text);
   --popover-foreground: var(--store-d-text);
-  --secondary-foreground: var(--store-d-on-secondary);
+  --secondary-foreground: var(--store-d-text);
   --muted-foreground: var(--store-d-text-muted);
   --border: var(--store-d-border);
-  --input: var(--store-d-border);
+  --input: var(--store-d-field-border);
   --primary: var(--store-d-primary);
-  --ring: var(--store-d-primary);
+  --primary-hover: var(--store-d-primary-hover);
+  --primary-pressed: var(--store-d-primary-pressed);
+  --ring: var(--store-d-focus-ring);
   --primary-foreground: var(--store-d-on-primary);
-  --accent: var(--store-d-accent);
-  --accent-foreground: var(--store-d-text);
+  --accent: var(--store-d-hover-surface);
+  --accent-foreground: var(--store-d-on-hover);
   --store-sale: var(--store-d-sale);
   --store-rating: var(--store-d-rating);
   --store-link: var(--store-d-link);
+  --on-foreground: var(--store-d-on-text);
+  --on-muted-foreground: var(--store-d-on-text-muted);
+  --on-border: var(--store-d-on-border);
+  --selection: var(--store-d-selected-surface);
+  --selection-foreground: var(--store-d-on-selected);
+  --highlight: var(--store-d-accent);
+  --highlight-foreground: var(--store-d-on-accent);
+  --highlight-surface: var(--store-d-accent-surface);
+  --highlight-surface-foreground: var(--store-d-on-accent-surface);
+  --store-on-sale: var(--store-d-on-sale);
+  --store-sale-text: var(--store-d-sale-text);
+  --store-sale-surface: var(--store-d-sale-surface);
+  --store-on-sale-surface: var(--store-d-on-sale-surface);
+  --sidebar-accent: var(--store-d-selected-surface);
+  --sidebar-accent-foreground: var(--store-d-on-selected);
+  --sidebar-ring: var(--store-d-focus-ring);
+  --skeleton: var(--store-d-skeleton);
+  /* Theme colour references (lib/theme-colors/theme-refs.ts): stable
+     aliases a header, footer or widget colour can name. Never reassigned
+     below the surface, so they cannot form a cycle with the shadcn names. */
+  --theme-primary: var(--store-d-primary);
+  --theme-on-primary: var(--store-d-on-primary);
+  --theme-secondary: var(--store-d-secondary);
+  --theme-on-secondary: var(--store-d-on-secondary);
+  --theme-accent: var(--store-d-accent);
+  --theme-on-accent: var(--store-d-on-accent);
+  --theme-background: var(--store-d-background);
+  --theme-on-background: var(--store-d-text);
+  --theme-surface: var(--store-d-surface);
+  --theme-on-surface: var(--store-d-text);
+  --theme-surface-alt: var(--store-d-surface-alt);
+  --theme-on-surface-alt: var(--store-d-text);
+  --theme-text: var(--store-d-text);
+  --theme-on-text: var(--store-d-on-text);
+  --theme-text-muted: var(--store-d-text-muted);
+  --theme-on-text-muted: var(--store-d-on-text-muted);
+  --theme-border: var(--store-d-border);
+  --theme-on-border: var(--store-d-on-border);
 }
 
 /* The surface's own text colour. `color` inherits as a computed value, so
@@ -747,22 +980,79 @@ html::-webkit-scrollbar-thumb:hover {
   --card: var(--store-l-surface);
   --popover: var(--store-l-surface);
   --muted: var(--store-l-surface-alt);
-  --secondary: var(--store-l-secondary);
+  /* Tag chips and neutral badges are Bands & chips; Add to cart is the
+     Secondary role (--store-secondary). */
+  --secondary: var(--store-l-surface-alt);
+  --store-secondary: var(--store-l-secondary);
+  --store-on-secondary: var(--store-l-on-secondary);
   --foreground: var(--store-l-text);
   --card-foreground: var(--store-l-text);
   --popover-foreground: var(--store-l-text);
-  --secondary-foreground: var(--store-l-on-secondary);
+  --secondary-foreground: var(--store-l-text);
   --muted-foreground: var(--store-l-text-muted);
   --border: var(--store-l-border);
-  --input: var(--store-l-border);
+  --input: var(--store-l-field-border);
   --primary: var(--store-l-primary);
-  --ring: var(--store-l-primary);
+  --primary-hover: var(--store-l-primary-hover);
+  --primary-pressed: var(--store-l-primary-pressed);
+  --ring: var(--store-l-focus-ring);
   --primary-foreground: var(--store-l-on-primary);
-  --accent: var(--store-l-accent);
-  --accent-foreground: var(--store-l-text);
+  --accent: var(--store-l-hover-surface);
+  --accent-foreground: var(--store-l-on-hover);
   --store-sale: var(--store-l-sale);
   --store-rating: var(--store-l-rating);
   --store-link: var(--store-l-link);
+  --on-foreground: var(--store-l-on-text);
+  --on-muted-foreground: var(--store-l-on-text-muted);
+  --on-border: var(--store-l-on-border);
+  --selection: var(--store-l-selected-surface);
+  --selection-foreground: var(--store-l-on-selected);
+  --highlight: var(--store-l-accent);
+  --highlight-foreground: var(--store-l-on-accent);
+  --highlight-surface: var(--store-l-accent-surface);
+  --highlight-surface-foreground: var(--store-l-on-accent-surface);
+  --store-on-sale: var(--store-l-on-sale);
+  --store-sale-text: var(--store-l-sale-text);
+  --store-sale-surface: var(--store-l-sale-surface);
+  --store-on-sale-surface: var(--store-l-on-sale-surface);
+  --sidebar-accent: var(--store-l-selected-surface);
+  --sidebar-accent-foreground: var(--store-l-on-selected);
+  --sidebar-ring: var(--store-l-focus-ring);
+  --skeleton: var(--store-l-skeleton);
+  /* Status pairs too: "Only 3 left" and "You save" sit on the plane's white
+     cards, where the dark scheme's pale status inks would vanish. */
+  --status-positive: #dcfce7;
+  --status-on-positive: #166534;
+  --status-negative: #fee2e2;
+  --status-on-negative: #991b1b;
+  --status-warning: #fef3c7;
+  --status-on-warning: #92400e;
+  --status-info: #dbeafe;
+  --status-on-info: #1e40af;
+  --status-neutral: #f3f4f6;
+  --status-on-neutral: #374151;
+  /* Theme colour references (lib/theme-colors/theme-refs.ts): stable
+     aliases a header, footer or widget colour can name. Never reassigned
+     below the surface, so they cannot form a cycle with the shadcn names. */
+  --theme-primary: var(--store-l-primary);
+  --theme-on-primary: var(--store-l-on-primary);
+  --theme-secondary: var(--store-l-secondary);
+  --theme-on-secondary: var(--store-l-on-secondary);
+  --theme-accent: var(--store-l-accent);
+  --theme-on-accent: var(--store-l-on-accent);
+  --theme-background: var(--store-l-background);
+  --theme-on-background: var(--store-l-text);
+  --theme-surface: var(--store-l-surface);
+  --theme-on-surface: var(--store-l-text);
+  --theme-surface-alt: var(--store-l-surface-alt);
+  --theme-on-surface-alt: var(--store-l-text);
+  --theme-text: var(--store-l-text);
+  --theme-on-text: var(--store-l-on-text);
+  --theme-text-muted: var(--store-l-text-muted);
+  --theme-on-text-muted: var(--store-l-on-text-muted);
+  --theme-border: var(--store-l-border);
+  --theme-on-border: var(--store-l-on-border);
+
   color-scheme: light;
 }
 
@@ -806,7 +1096,8 @@ html::-webkit-scrollbar-thumb:hover {
   height: var(--store-btn-height);
 }
 [data-hover="darken"] [data-slot="button"][data-variant="default"]:hover {
-  filter: brightness(0.92);
+  background-color: var(--primary-hover,var(--primary));
+  filter: none;
 }
 [data-hover="lift"] [data-slot="button"][data-variant="default"]:hover {
   transform: translateY(-1px);
@@ -1807,11 +2098,51 @@ body[data-store-theme]
 /* Loading placeholders (`bg-skeleton`, the Skeleton component and every
    section skeleton). A neutral grey, deliberately not the accent tint: on a
    coloured brand every loading screen pulsed in the brand hue and read as
-   content rather than as absence. Branding → Skeleton colour sets
-   `--skeleton` on <html> (app/layout.tsx) and wins over both. */
+   content rather than as absence. The storefront paints the theme's own
+   "Loading placeholder" colour per mode (`--store-l/d-skeleton`, mapped on
+   the store surface above); everywhere else keeps these neutrals. */
 :root {
   --skeleton: rgb(0 0 0 / 0.06);
 }
 .dark {
   --skeleton: rgb(255 255 255 / 0.08);
 }
+
+:is(.store-surface,body[data-store-theme]) [data-slot="button"][data-variant="default"]:active {
+  background-color: var(--primary-pressed,var(--primary));
+}
+
+/* Shared chrome breakpoints: mobile <768, tablet <1024, desktop >=1024.
+   CSS selects dimensions before hydration so the chrome never flashes a
+   different device's spacing. */
+:root { --layout-mobile: 1; --layout-tablet: 0; --layout-desktop: 0; }
+.chrome-responsive-container {
+  width: 100%;
+  margin-inline: auto;
+  max-width: var(--chrome-width-mobile);
+}
+.footer-responsive-column { grid-column: var(--footer-row-span-mobile, var(--footer-span-mobile)); }
+.footer-row { grid-template-columns: var(--footer-cols-mobile); }
+.store-surface[data-container="fixed"] { --chrome-theme-width: min(100%, var(--store-page-width, 1280px)); }
+.store-surface[data-container="full"] { --chrome-theme-width: 100%; --chrome-theme-padding: var(--store-page-padding, 1rem); }
+.footer-responsive-logo { width: var(--footer-logo-mobile); height: var(--footer-logo-height-mobile); }
+  .footer-responsive-logo-image { height: var(--footer-logo-height-mobile); }
+@media (min-width: 640px) { :root { --theme-container-width: 640px; --chrome-full-mobile-gutter: 24px; } }
+@media (min-width: 768px) {
+  :root { --layout-mobile: 0; --layout-tablet: 1; --theme-container-width: 768px; }
+  .chrome-responsive-container { max-width: var(--chrome-width-tablet); }
+  .footer-responsive-column { grid-column: var(--footer-row-span-tablet, var(--footer-span-tablet)); }
+  .footer-responsive-logo { width: var(--footer-logo-tablet); height: var(--footer-logo-height-tablet); }
+  .footer-responsive-logo-image { height: var(--footer-logo-height-tablet); }
+  .footer-row { grid-template-columns: var(--footer-cols-tablet); }
+}
+@media (min-width: 1024px) {
+  :root { --layout-tablet: 0; --layout-desktop: 1; --theme-container-width: 1024px; }
+  .chrome-responsive-container { max-width: var(--chrome-width-desktop); }
+  .footer-responsive-column { grid-column: auto; }
+  .footer-responsive-logo { width: var(--footer-logo-desktop); height: var(--footer-logo-height-desktop); }
+  .footer-responsive-logo-image { height: var(--footer-logo-height-desktop); }
+  .footer-row { grid-template-columns: var(--footer-cols-desktop); }
+}
+@media (min-width: 1280px) { :root { --theme-container-width: 1280px; } }
+@media (min-width: 1360px) { :root { --theme-container-width: 1360px; } }

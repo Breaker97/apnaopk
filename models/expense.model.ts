@@ -115,6 +115,17 @@ interface IExpense extends Document {
   debitAccount?: string | null;
   createdBy: string;
   updatedBy?: string | null;
+  /** Vendor corrections keep the previous values on the same owned record. */
+  vendorHistory?: Array<{
+    at: Date;
+    by: string;
+    action: "edit" | "void";
+    before: Record<string, unknown>;
+    reason?: string;
+  }>;
+  voidedAt?: Date | null;
+  voidedBy?: string | null;
+  voidReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -200,6 +211,16 @@ const ExpenseSchema = new Schema<IExpense>(
     debitAccount: { type: String, default: null },
     createdBy: { type: String, required: true },
     updatedBy: { type: String, default: null },
+    vendorHistory: { type: [new Schema({
+      at: { type: Date, required: true },
+      by: { type: String, required: true },
+      action: { type: String, enum: ["edit", "void"], required: true },
+      before: { type: Schema.Types.Mixed, required: true },
+      reason: { type: String, maxlength: 500 },
+    }, { _id: false })], default: undefined },
+    voidedAt: { type: Date, default: null },
+    voidedBy: { type: String, default: null },
+    voidReason: { type: String, maxlength: 500, default: null },
   },
   { timestamps: true },
 );

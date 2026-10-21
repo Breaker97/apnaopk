@@ -7,6 +7,7 @@ import { AdminListQuerySchema } from "@/lib/validations";
 import { Product } from "@/models";
 import { getSettings } from "@/models/settings.model";
 import { resolveProductFeatures } from "@/lib/products/product-features";
+import { taxClassOptions, vendorTaxChangePolicy } from "@/lib/tax/tax-settings";
 import { VENDOR_PERMISSIONS } from "@/config/permissions.config";
 import { hasVendorPermission, isAdmin, assertVendorPermission } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
@@ -184,6 +185,9 @@ export const POST = withApi(
           ? undefined
           : { limit: productLimit.limit, current: productLimit.current },
       productFeatures: resolveProductFeatures(settings),
+      taxClasses: new Set(taxClassOptions(settings.tax).map((entry) => entry.key)),
+      // A vendor's rows may not change tax the store keeps for itself.
+      vendorTaxPolicy: vendorTaxChangePolicy(settings.tax),
     });
 
     await auditProductImport(request, session, file.name, result);

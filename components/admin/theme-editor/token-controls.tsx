@@ -21,11 +21,7 @@ import {
   toColorInputValue,
 } from "@/lib/site-config/appearance-colors";
 import { FONT_CATALOG, fontFamilyStack } from "@/lib/storefront/fonts/catalog";
-import type { BrandColors } from "@/lib/storefront/themes/compile";
-import {
-  BRAND_COLOR_REFS,
-  type TokenField,
-} from "@/lib/storefront/themes/tokens";
+import type { TokenField } from "@/lib/storefront/themes/tokens";
 import { cn } from "@/lib/utils";
 import {
   PageWidthDiagram,
@@ -35,7 +31,7 @@ import {
  * One control per token kind, generated from the schema — the editor never
  * hand-builds a field. What each kind renders:
  *
- * - color:     swatch + hex + a "Brand ▾" reference menu + inherit chip
+ * - color:     swatch + hex + a reset to the field's own default
  * - length:    number input with unit + inline slider, limits from the schema
  * - font:      a trigger that shows the face in itself; list with samples
  * - select:    native select (many options — weights)
@@ -67,73 +63,59 @@ function FieldRow({
 
 /* ---------------- color ---------------- */
 
-const REF_LABELS: Record<string, string> = {
-  "brand.primary": "Brand primary",
-  "brand.secondary": "Brand secondary",
-  "brand.accent": "Brand accent",
-};
-
-function resolveSwatch(value: string, brand: BrandColors, resolved: string) {
-  if (value === "brand.primary") return brand.primary;
-  if (value === "brand.secondary") return brand.secondary;
-  if (value === "brand.accent") return brand.accent;
-  return normalizeColorToHex(value) ?? resolved;
-}
-
 export function ColorControl({
   field,
   value,
   onChange,
-  brand,
   /** The color this role currently resolves to (for the swatch when ""). */
   resolved,
   /** The color this one is read against, for the AA badge. */
   against,
+  minimum = 4.5,
   tSafe,
 }: {
   field: TokenField;
   value: string;
   onChange: (value: string) => void;
-  brand: BrandColors;
   resolved: string;
   against?: string;
+  minimum?: number;
   tSafe: TSafe;
 }) {
   const id = useId();
-  const swatch = resolveSwatch(value, brand, resolved);
-  const isRef = (BRAND_COLOR_REFS as readonly string[]).includes(value);
+  const swatch = normalizeColorToHex(value) ?? resolved;
   const inherited = value === "";
+  const label = tSafe(`admin.themeEditor.colorRoles.${field.key}.label`, field.label);
   const ratio =
     against && normalizeColorToHex(swatch) && normalizeColorToHex(against)
       ? contrastRatio(swatch, against)
       : null;
 
   return (
-    <FieldRow label={field.label} hint={field.hint} htmlFor={id}>
+    <FieldRow label={label} hint={tSafe(`admin.themeEditor.colorRoles.${field.key}.hint`,field.hint ?? "")} htmlFor={id}>
+      <p className="text-[10px] text-muted-foreground">{inherited ? tSafe("admin.themeEditor.sourceAuto","Theme default / derived") : tSafe("admin.themeEditor.sourceCustom","Custom color")}</p>
       <div className="flex items-center gap-1.5">
         <ColorSwatchPicker
-          ariaLabel={`${field.label} picker`}
+          ariaLabel={`${label} picker`}
           value={toColorInputValue(swatch, "#888888")}
           onChange={onChange}
           alpha={false}
         >
           <button
             type="button"
-            aria-label={`${field.label} picker`}
+            aria-label={`${label} picker`}
             className="relative h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-md border border-border"
             style={{ backgroundColor: swatch || "transparent" }}
           />
         </ColorSwatchPicker>
-        {inherited || isRef ? (
+        {inherited ? (
           <button
             type="button"
             onClick={() => onChange(toColorInputValue(swatch, "#888888"))}
             className="flex h-8 min-w-0 flex-1 items-center rounded-md border border-dashed border-border px-2 text-left text-xs text-muted-foreground hover:border-foreground/40"
             title={tSafe("admin.themeEditor.setCustom", "Set a custom color")}
           >
-            <span className="truncate">
-              {isRef ? REF_LABELS[value] : field.inherit}
-            </span>
+            <span className="truncate">{field.inherit}</span>
           </button>
         ) : (
           <Input
@@ -149,52 +131,24 @@ export function ColorControl({
             className="h-8 min-w-0 flex-1 text-xs"
           />
         )}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 shrink-0 gap-1 px-2 text-xs"
-              aria-label={tSafe("admin.themeEditor.useReference", "Use a brand color")}
-            >
-              {tSafe("admin.themeEditor.brandRef", "Brand")}
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-52 p-1">
-            {BRAND_COLOR_REFS.map((ref) => (
-              <button
-                key={ref}
-                type="button"
-                onClick={() => onChange(ref)}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-muted"
-              >
-                <span
-                  className="h-4 w-4 rounded-sm border border-border"
-                  style={{ backgroundColor: resolveSwatch(ref, brand, "") }}
-                />
-                {REF_LABELS[ref]}
-                {value === ref ? <Check className="ml-auto h-3.5 w-3.5" /> : null}
-              </button>
-            ))}
-            {field.inherit ? (
-              <button
-                type="button"
-                onClick={() => onChange("")}
-                className="mt-1 flex w-full items-center gap-2 rounded-sm border-t border-border px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted"
-              >
-                <X className="h-3.5 w-3.5" />
-                {field.inherit}
-              </button>
-            ) : null}
-          </PopoverContent>
-        </Popover>
+        {!inherited && field.inherit ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="h-8 w-8 shrink-0 text-muted-foreground"
+            aria-label={field.inherit}
+            title={field.inherit}
+            onClick={() => onChange("")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
         {ratio !== null ? (
           <span
             className={cn(
               "shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
-              ratio >= 4.5
+              ratio >= minimum
                 ? "border-emerald-600/50 text-emerald-700 dark:text-emerald-400"
                 : ratio >= 3
                   ? "border-amber-600/50 text-amber-700 dark:text-amber-400"
@@ -202,10 +156,11 @@ export function ColorControl({
             )}
             title={tSafe("admin.themeEditor.contrastHint", "Contrast against its surface")}
           >
-            {ratio >= 4.5 ? "AA" : ratio.toFixed(1)}
+            {`${ratio.toFixed(2)}:1 · ${ratio >= minimum ? tSafe("admin.themeEditor.contrastPass","Pass") : tSafe("admin.themeEditor.contrastLow","Low")} (${minimum}:1)`}
           </span>
         ) : null}
       </div>
+      {!inherited && !normalizeColorToHex(value) ? <p className="text-xs text-destructive">{tSafe("admin.themeEditor.invalidColor","Enter a valid hex or RGB color. Preview keeps the last valid color.")}</p> : null}
     </FieldRow>
   );
 }

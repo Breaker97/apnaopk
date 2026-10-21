@@ -1,0 +1,280 @@
+[
+  {
+    "_id": {
+      "$oid": "6acb78c4e98668762b4739b5"
+    },
+    "vendorId": {
+      "$oid": "6a0a98ed5d747a63e3255c0b"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-10-11T11:54:55.797Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "e75d0982-67e8-436f-a0d8-364d3aca493e",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Featured Categories",
+            "source": "manual",
+            "limit": 8,
+            "categoryIds": [
+              "6a087f49894b3f639931fd02",
+              "6a088075894b3f639931fd07",
+              "6a8485c74ff48f1b8b6ca8e6",
+              "6a8485264ff48f1b8b6ca8e2"
+            ],
+            "style": "{\"columns\":7,\"align\":\"center\"}",
+            "variant": "cards",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "510fa9c1-fe74-4e72-8090-14b00dd112ca",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "bento3",
+            "width": "fixed",
+            "height": "threeFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "e557990d-85b5-45d0-b14d-eabcf330d665",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791721602065-0f2d352036b6a8f38dc4850db70e9b58/72ea8b82396886d56f697392cad909d4.jpg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "ff67f849-6997-4a6e-b1a8-6e167380f07b",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791720643954-1556d5d2d87b1ebb46cd97c97542b63c/2938e1e92db1d0c9b416179471334536.jpg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "03470178-8967-4a87-85f9-cccc5a0a40d8",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791721617562-d2677332ff01df1f7c1aacaa7d5ff359/b2749a214dffc7cd688960bc4ec6a787.jpg",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "39d5535f-4323-48a1-b142-a8b30b715427",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": true,
+          "settings": {
+            "code": "WINTER15",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "",
+            "background": {
+              "type": "image",
+              "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791722407608-6b7cec45f9bce51b76c5efb984ae84aa/203bbee4c17863b5c55bab3db609d9ba.jpg",
+              "imageWidth": 1199
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "cea8c9d1-b114-477a-ac65-3e231f7b4059",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-10-11T12:42:49.780Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "published": {
+      "sections": [
+        {
+          "id": "e75d0982-67e8-436f-a0d8-364d3aca493e",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Featured Categories",
+            "source": "manual",
+            "limit": 8,
+            "categoryIds": [
+              "6a087f49894b3f639931fd02",
+              "6a088075894b3f639931fd07",
+              "6a8485c74ff48f1b8b6ca8e6",
+              "6a8485264ff48f1b8b6ca8e2"
+            ],
+            "style": "{\"columns\":7,\"align\":\"center\"}",
+            "variant": "cards",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "510fa9c1-fe74-4e72-8090-14b00dd112ca",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "bento3",
+            "width": "fixed",
+            "height": "threeFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "e557990d-85b5-45d0-b14d-eabcf330d665",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791721602065-0f2d352036b6a8f38dc4850db70e9b58/72ea8b82396886d56f697392cad909d4.jpg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "ff67f849-6997-4a6e-b1a8-6e167380f07b",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791720643954-1556d5d2d87b1ebb46cd97c97542b63c/2938e1e92db1d0c9b416179471334536.jpg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "03470178-8967-4a87-85f9-cccc5a0a40d8",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791721617562-d2677332ff01df1f7c1aacaa7d5ff359/b2749a214dffc7cd688960bc4ec6a787.jpg",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "39d5535f-4323-48a1-b142-a8b30b715427",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": true,
+          "settings": {
+            "code": "WINTER15",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "",
+            "background": {
+              "type": "image",
+              "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791722407608-6b7cec45f9bce51b76c5efb984ae84aa/203bbee4c17863b5c55bab3db609d9ba.jpg",
+              "imageWidth": 1199
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "cea8c9d1-b114-477a-ac65-3e231f7b4059",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-10-11T12:42:54.783Z"
+      },
+      "publishedBy": null
+    },
+    "settings": {
+      "announcement": {
+        "text": "",
+        "link": "",
+        "color": "",
+        "startsAt": "",
+        "endsAt": ""
+      },
+      "seo": {
+        "title": "",
+        "description": "",
+        "image": ""
+      },
+      "accentColor": "",
+      "showSimilarProducts": true,
+      "defaultTab": "home",
+      "hideAboutTab": false,
+      "hideShippingTab": false,
+      "bannerSize": "standard",
+      "defaultSort": "popular"
+    },
+    "takedown": null,
+    "updatedAt": {
+      "$date": "2026-10-11T12:42:54.783Z"
+    }
+  }
+]

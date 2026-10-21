@@ -1,3 +1,11 @@
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
+import { enforceTeamRoleForUser } from "@/lib/access/team-route-guard";
+import { teamHasAny } from "@/lib/access/team-permissions";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
+import { createProductWithReceivedStock, createProductWithOpeningStock } from "@/lib/inventory/finance-product-create";
+import { inventoryRequestKey } from "@/lib/inventory/finance-recovery";
+import { replayFinanceRequest } from "@/lib/finance/operations";
+import { withInventoryWrite } from "@/lib/inventory/finance-context";
 import { NextRequest } from "next/server";
 import { connectDB, mongoose } from "@/lib/db";
 import { Product } from "@/models";
@@ -14,6 +22,13 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { PRODUCT_STATUS, USER_ROLES } from "@/config/app.config";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import { vendorTaxChangePolicy } from "@/lib/tax/tax-settings";
+import {
+  INHERITED_PRODUCT_TAX,
+  productTaxOf,
+  taxAfterWrite,
+  vendorTaxRefusal,
+} from "@/lib/tax/vendor-tax";
 import { validateQuery, validateBody } from "@/lib/api/validate";
 import { ProductListQuerySchema, CreateProductSchema } from "@/lib/validations";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -71,8 +86,9 @@ export async function GET(request: NextRequest) {
     if (!session) throw new AuthenticationError();
     const access = await assertAdminOrStaffPermissions(
       session as unknown as { user: { id: string; role: string } },
-      [STAFF_PERMISSIONS.VIEW_PRODUCTS],
+      staffResourcePermissions("products"),
     );
+    await enforceTeamRoleForUser(request, session.user);
 
     // Rate limiting
     await rateLimitByUser(
@@ -124,6 +140,8 @@ export async function POST(request: NextRequest) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new AuthenticationError();
     let staffScope: StaffAccessScope | null | undefined;
+    let vendorOwnedStaff = false;
+    const team = await enforceTeamRoleForUser(request, session.user);
     if (session.user.role !== USER_ROLES.ADMIN) {
       const access = await assertAdminOrStaffPermissions(
         session as unknown as { user: { id: string; role: string } },
@@ -133,6 +151,7 @@ export async function POST(request: NextRequest) {
         ],
       );
       staffScope = access.staffScope;
+      vendorOwnedStaff = access.vendorOwned === true;
       if (hasStaffScope(access.staffScope) && !access.staffScope?.vendorIds.length) {
         throw new AuthorizationError(
           "Staff must be assigned to a vendor before creating products",
@@ -151,7 +170,23 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
     const body = await validateBody(request, CreateProductSchema);
-    const productData = body;
+    // Staff a vendor created are that vendor's door to the catalog: the tax
+    // rule vendors work under holds for them too (lib/tax/vendor-tax.ts).
+    if (vendorOwnedStaff) {
+      const taxRefusal = vendorTaxRefusal(
+        vendorTaxChangePolicy((await getSettingsLean()).tax),
+        null,
+        taxAfterWrite(INHERITED_PRODUCT_TAX, body as Record<string, unknown>),
+      );
+      if (taxRefusal) throw new AuthorizationError(taxRefusal);
+    }
+    const { initialStockReceipt, ...productData } = body;
+    const initialStockKey = initialStockReceipt || request.headers.get("idempotency-key") ? inventoryRequestKey(request) : undefined;
+    if (initialStockReceipt && (session.user.role !== USER_ROLES.ADMIN || (team && !teamHasAny(team, [ADMIN_AREA_PERMISSIONS.MANAGE_FINANCE])))) throw new AuthorizationError("Recording a stock purchase requires Finance access.");
+    if (initialStockKey) {
+      const replay = await replayFinanceRequest<{ product: unknown; operationIds: string[] }>({ action: "inventory:product-create", actorId: session.user.id, requestKey: initialStockKey, fingerprint: () => body });
+      if (replay) return createdResponse({ ...(replay.data.product as Record<string, unknown>), bookkeepingState: replay.bookkeepingState, inventoryOperationId: replay.operationId });
+    }
     // `shipping.countryOfOrigin` is deliberately not checked against the
     // store's country availability: it is customs data about where the goods
     // were manufactured, not a country the store sells or ships to.
@@ -260,13 +295,21 @@ export async function POST(request: NextRequest) {
       vendorId,
       productSource: "admin",
     });
+    let inventoryBookkeeping: { bookkeepingState: "complete" | "pending"; operationId: string } | undefined;
     await product.validate();
     try {
       await reserveProductBarcodeRegistry(
         String(product._id),
         product.toObject() as unknown as Record<string, unknown>,
       );
-      await product.save();
+      if (initialStockReceipt && initialStockKey) {
+        const result = await createProductWithReceivedStock(product, initialStockReceipt, session.user.id, initialStockKey, body);
+        inventoryBookkeeping = result;
+        if (result.data.product) product.set(result.data.product);
+      } else if (initialStockKey) {
+        const result = await createProductWithOpeningStock(product, session.user.id, initialStockKey, body);
+        inventoryBookkeeping = result;
+      } else await withInventoryWrite({ reason: "opening", sourceKind: "product", sourceId: String(product._id), actorId: session.user.id, channel: "web" }, () => product.save());
       await syncProductBarcodeRegistry(
         String(product._id),
         product.toObject() as unknown as Record<string, unknown>,
@@ -298,7 +341,7 @@ export async function POST(request: NextRequest) {
     revalidateProductContent({ slugs: [product.slug] });
     await markProductsForCatalogSync([product._id]);
 
-    return createdResponse(product);
+    return createdResponse(inventoryBookkeeping ? { ...product.toObject(), bookkeepingState: inventoryBookkeeping.bookkeepingState, inventoryOperationId: inventoryBookkeeping.operationId } : product);
   } catch (error) {
     return handleApiError(error);
   }

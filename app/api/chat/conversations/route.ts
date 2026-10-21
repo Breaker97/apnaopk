@@ -14,8 +14,10 @@ import { resolveConversationViewer } from "@/lib/conversations/viewer";
 
 // No `name`/`email`: the shopper is signed in, so their identity comes from the
 // session rather than from anything the client can claim.
+// `message` may be empty when a product is shared: the product card is the
+// message. The service refuses an empty one without a product.
 const StartConversationSchema = z.object({
-  message: z.string().min(1).max(4000),
+  message: z.string().max(4000).default(""),
   subject: z.string().trim().max(180).optional(),
   productId: z.string().trim().optional(),
   vendorId: z.string().trim().optional(),

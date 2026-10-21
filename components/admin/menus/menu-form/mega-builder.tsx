@@ -14,12 +14,14 @@ export function MegaMenuPreview({
   railLabel,
   viewAllLabel,
   viewAllShortLabel,
+  shopAllLabel,
   emptyLabel,
 }: {
   items: MenuItem[];
   railLabel: string;
   viewAllLabel: string;
   viewAllShortLabel: string;
+  shopAllLabel: (categoryLabel: string) => string;
   emptyLabel: string;
 }) {
   const roots = toHeaderItems(items).filter((item) => item.label.trim());
@@ -42,6 +44,7 @@ export function MegaMenuPreview({
           viewAllHref="#"
           viewAllLabel={viewAllLabel}
           viewAllShortLabel={viewAllShortLabel}
+          shopAllLabel={shopAllLabel}
           onNavigate={() => {}}
         />
       </div>

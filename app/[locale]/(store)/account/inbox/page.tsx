@@ -11,6 +11,8 @@ import {
 import { tryResolveConversationViewer } from "@/lib/conversations/viewer";
 import { buildLoginUrl } from "@/lib/auth/return-path";
 import { localeHref } from "@/lib/i18n/locale-routing";
+import { brandIconUrl, resolveBrand } from "@/lib/branding/brand";
+import { getSettingsLean } from "@/models/settings.model";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -57,40 +59,31 @@ export default async function CustomerInboxPage({
     : [];
 
   // A storefront chat button arrives with product context, or — from a vendor
-  // storefront — with only the vendor. Reopen the matching thread when there is
-  // one; otherwise hand the context to the inbox as a draft so the first message
-  // creates the thread.
+  // storefront — with only the vendor. A shopper has one thread per store, so
+  // the store's thread is reopened when there is one, with the product staged
+  // in its composer; otherwise the context becomes a draft and the first
+  // message creates the thread.
   const requestedProductId =
     typeof search.product === "string" ? search.product : undefined;
   const requestedVendorId =
     typeof search.vendor === "string" ? search.vendor : undefined;
-  // Only a thread that still takes messages is reopened: one the store closed
-  // or marked as spam would refuse every send, so a new one is drafted instead.
-  const replyable = chatConversations.filter(
-    (conversation) =>
-      conversation.status !== "closed" && conversation.status !== "spam",
-  );
-  const existingContextConversation = requestedProductId
-    ? replyable.find(
-        (conversation) =>
-          conversation.productContext?.productId === requestedProductId &&
-          (requestedVendorId
-            ? conversation.ownerVendorId === requestedVendorId
-            : conversation.ownerType === "platform"),
-      )
-    : requestedVendorId
-      ? // Store-level thread with this vendor: the one without product context,
-        // so a "chat with the store" click never reopens a product question.
-        replyable.find(
+  // The same thread the start endpoint files a message under: the latest live
+  // chat with this store that is not closed (the list is newest first).
+  const existingContextConversation =
+    requestedProductId || requestedVendorId
+      ? chatConversations.find(
           (conversation) =>
-            conversation.ownerVendorId === requestedVendorId &&
-            !conversation.productContext,
+            conversation.channel === "live_chat" &&
+            ["open", "pending", "resolved"].includes(conversation.status) &&
+            (requestedVendorId
+              ? conversation.ownerVendorId === requestedVendorId
+              : conversation.ownerType === "platform"),
         )
       : undefined;
   const requestedVariantId =
     typeof search.variant === "string" ? search.variant : undefined;
   const draftContext =
-    (requestedProductId || requestedVendorId) && !existingContextConversation
+    requestedProductId || (requestedVendorId && !existingContextConversation)
       ? {
           productId: requestedProductId,
           vendorId: requestedVendorId,
@@ -109,8 +102,14 @@ export default async function CustomerInboxPage({
         }
       : undefined;
 
+  // The avatar of the store's own threads ("Store support"): the brand's
+  // square mark, else its logo.
+  const brandAssets = resolveBrand(await getSettingsLean()).assets;
+  const platformImage =
+    brandIconUrl(brandAssets) || brandAssets.logoUrl || undefined;
+
   return (
-    <div className="flex flex-col gap-4 [--inbox-offset:11rem]">
+    <div className="flex flex-col gap-4 [--inbox-offset:7.5rem]">
       <div className="shrink-0">
         <h1 className="text-xl font-bold sm:text-2xl">{t("title")}</h1>
         <p className="text-sm text-muted-foreground sm:text-base">
@@ -124,6 +123,7 @@ export default async function CustomerInboxPage({
         <ConversationInbox
           locale={locale}
           viewerMode="customer"
+          platformImage={platformImage}
           title={chatLabel("inbox.customerTitle", "Store conversations")}
           emptyTitle={chatLabel(
             "inbox.emptyCustomer",
@@ -134,6 +134,9 @@ export default async function CustomerInboxPage({
             existingContextConversation?._id || selectedConversationId
           }
           draftContext={draftContext}
+          draftConversationId={
+            draftContext ? existingContextConversation?._id : undefined
+          }
         />
       </RouteMessages>
     </div>

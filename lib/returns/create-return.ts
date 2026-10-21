@@ -1,5 +1,6 @@
 import "server-only";
 
+import { flagScheduledPayoutsForOrder } from "@/lib/finance/payout-requote";
 import { Types } from "mongoose";
 import { Order, ReturnRequest } from "@/models";
 import { ValidationError } from "@/lib/api/errors";
@@ -250,6 +251,18 @@ export async function createReturnRequests(params: {
   }
 
   const jobs: Promise<unknown>[] = [];
+  for (const returnRequest of created) {
+    // A payout already holding these goods would pay for what is coming back.
+    jobs.push(
+      flagScheduledPayoutsForOrder({
+        orderId: returnRequest.orderId,
+        vendorIds: (returnRequest.vendorIds as unknown[] | undefined) ?? [],
+        reason: `Return ${returnRequest.returnNumber} was opened.`,
+        // A cash sale's commission moves only once the return is refunded.
+        reachesCommissionSettlements: false,
+      }),
+    );
+  }
   for (const returnRequest of created) {
     if (params.openedBy === "customer") {
       jobs.push(notifyReturnRequestSubmitted(returnRequest, settings));

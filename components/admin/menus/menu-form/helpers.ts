@@ -9,7 +9,9 @@ import {
   getMegaGroupColumns,
   getMegaGroupLimit,
   getMegaLinkLimit,
+  getMegaVisibleLinkCount,
   getMenuTreeMaxDepth,
+  isMegaTallShape,
   trimMenuTreeDepth,
 } from "@/lib/site-config/menu-depth";
 
@@ -88,8 +90,15 @@ export function getMegaPromoMode(item?: MenuItem | null): MegaPromoMode {
  * uploaded yet: the cap must not jump around while the merchant is still
  * filling the form. The storefront falls back to the full four columns when a
  * "side" category has no image, which only ever grants more room than promised.
+ *
+ * `rootCount` is how many categories the rail lists: one row of columns takes
+ * its link cap from the rail's height, so the builder needs it to quote the
+ * same number the storefront draws.
  */
-export function getMegaCategoryBudget(category?: MenuItem | null) {
+export function getMegaCategoryBudget(
+  category?: MenuItem | null,
+  rootCount = 0,
+) {
   const mode = getMegaPromoMode(category);
   const hasSidePromo = mode === "side";
   const columns = getMegaGroupColumns(hasSidePromo);
@@ -101,13 +110,24 @@ export function getMegaCategoryBudget(category?: MenuItem | null) {
     Math.max(Math.min(groupCount, groupLimit), 1) / columns,
   );
 
+  const linkLimit = getMegaLinkLimit(rows, mode === "bottom", rootCount);
+  const isTall = isMegaTallShape(rows, mode === "bottom");
+
   return {
     mode,
     columns,
     rows,
     groupLimit,
-    linkLimit: getMegaLinkLimit(rows, mode === "bottom"),
+    linkLimit,
+    /** How many of a column's `total` links the storefront draws. */
+    visibleLinks: (total: number) =>
+      getMegaVisibleLinkCount(total, linkLimit, isTall),
   };
+}
+
+/** Categories the storefront rail lists: the unnamed ones are skipped there. */
+export function getMegaRootCount(items: MenuItem[]) {
+  return items.filter((item) => item.label.trim()).length;
 }
 
 export function getMegaPromoImages(item?: MenuItem | null): string[] {
@@ -352,10 +372,36 @@ export function mergeGeneratedCategoryItem(
     isMegaColumn: current?.isMegaColumn || item.isMegaColumn,
     columnTitle: current?.columnTitle || item.columnTitle,
     description: item.description || current?.description,
-    children: (item.children || []).map((child) =>
-      mergeGeneratedCategoryItem(child, currentByResource),
-    ),
+    children: [
+      ...(item.children || []).map((child) =>
+        mergeGeneratedCategoryItem(child, currentByResource),
+      ),
+      // Sync only ever generates category items, so any other child of the
+      // matching current item was typed in here and has to survive the swap.
+      ...(current?.children || []).filter(isHandAddedItem),
+    ],
   };
+}
+
+function isHandAddedItem(item: MenuItem) {
+  return item.type !== "category";
+}
+
+/**
+ * The tree sync applies: the generated categories carrying over what the
+ * merchant set on them, followed by the rail rows that were added by hand.
+ */
+export function mergeCategorySync(
+  currentItems: MenuItem[],
+  generatedItems: MenuItem[],
+): MenuItem[] {
+  const currentByResource = buildItemIndex(currentItems);
+  return [
+    ...generatedItems.map((item) =>
+      mergeGeneratedCategoryItem(item, currentByResource),
+    ),
+    ...currentItems.filter(isHandAddedItem),
+  ];
 }
 
 export function buildCategorySyncDiff(

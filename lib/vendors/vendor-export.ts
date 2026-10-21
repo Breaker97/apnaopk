@@ -4,6 +4,10 @@ import { audit, type AuditContext } from "@/lib/audit";
 import { csvFileResponse, csvLine, datedCsvFilename } from "@/lib/catalog/csv";
 import { fetchAdminVendorList } from "@/lib/vendors/vendor-list";
 import {
+  pickVendorListFilters,
+  type AdminVendorListFilters,
+} from "@/lib/validations/list-query";
+import {
   VENDOR_EXPORT_ONLY_HEADERS,
   VENDOR_TEMPLATE_COLUMNS,
 } from "@/lib/vendors/vendor-import-format";
@@ -146,23 +150,29 @@ async function readLookups(items: VendorExportItem[]): Promise<VendorExportLooku
 }
 
 /**
- * The download for a request's `search`, `status` and `sortOrder`, with how many
- * vendors it holds and what narrowed it, which the caller records in the
- * Activity Log.
+ * The download for a request's `search`, `status`, filter row and `sortOrder`,
+ * with how many vendors it holds and what narrowed it, which the caller records
+ * in the Activity Log.
  *
  * `search` is the validated one, regex-escaped for the query; the filters handed
  * back are what the person typed, which is what the log should read.
  */
 export async function buildVendorExport(
   request: NextRequest,
-  query: { search?: string; status?: string; sortOrder?: "asc" | "desc" },
+  query: {
+    search?: string;
+    status?: string;
+    sortOrder?: "asc" | "desc";
+  } & AdminVendorListFilters,
 ) {
+  const filterRow = pickVendorListFilters(query);
   const list = await fetchAdminVendorList({
     page: 1,
     limit: MAX_EXPORT_ROWS,
     search: query.search,
     status: query.status,
     sortOrder: query.sortOrder,
+    ...filterRow,
   });
   const items = list.items as VendorExportItem[];
   const params = request.nextUrl.searchParams;
@@ -173,6 +183,7 @@ export async function buildVendorExport(
     filters: {
       search: params.get("search") || undefined,
       status: query.status,
+      ...filterRow,
     },
     response: csvFileResponse(datedCsvFilename("vendors"), vendorCsvLines(items, lookups)),
   };
@@ -188,7 +199,7 @@ export function auditVendorsExported(
   context: AuditContext,
   details: {
     rowCount: number;
-    filters: { search?: string; status?: string };
+    filters: { search?: string; status?: string } & AdminVendorListFilters;
   },
 ) {
   // The search box is free text from a query string: capped, so one row cannot

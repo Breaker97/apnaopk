@@ -17,6 +17,7 @@ import {
   loadPriorReturnUnits,
   recomputeReturnEstimate,
   repriceReturnForReceipt,
+  returnClaimProblem,
 } from "@/lib/returns/return-plan";
 import { mergeReturnOverrides } from "@/lib/returns/return-price-overrides";
 import {
@@ -35,6 +36,8 @@ import {
   releasesReturnQuantity,
   RETURN_DECLINE_MESSAGES,
   RETURN_DECLINE_REASON_LABELS,
+  disposedUnitsOfLine,
+  receiptChangeProblem,
   returnHasRestocked,
   returnGoodsBack,
   returnMayRestock,
@@ -318,6 +321,17 @@ export const PUT = withApi<{ id: string }>(
 
       const approvalOrder = await Order.findById(before.orderId).lean();
       if (!approvalOrder) throw new ValidationError("Order not found for this return");
+      // Not more than the order has left to take back: approving one unit of
+      // two frees the other for a new return, and raising this one again must
+      // not count it twice.
+      const claimProblem = await returnClaimProblem({
+        order: approvalOrder,
+        orderId: before.orderId,
+        returnId: before._id,
+        current: before.items as ReturnRequestItem[],
+        next: items,
+      });
+      if (claimProblem) throw new ValidationError(claimProblem);
       const prior = await loadPriorUnits();
       // Counted already, it is worth what arrived — re-sending the approval
       // after a short count put the whole value back on the cap.
@@ -352,6 +366,18 @@ export const PUT = withApi<{ id: string }>(
           (entry) => entry.orderItemIndex === item.orderItemIndex,
         );
         if (!received) return item;
+        // Not a count that takes back, or changes the kind of, goods already
+        // on the shelf or settled from the held stock.
+        const recountProblem = receiptChangeProblem({
+          line: item,
+          quantity: Math.min(
+            Number(item.quantityApproved ?? item.quantityRequested ?? 0),
+            Number(received.quantityReceived || 0),
+          ),
+          condition: received.condition,
+          disposed: disposedUnitsOfLine(before, item.orderItemIndex),
+        });
+        if (recountProblem) throw new ValidationError(recountProblem);
         return {
           ...item,
           quantityReceived: Math.min(
@@ -445,11 +471,12 @@ export const PUT = withApi<{ id: string }>(
 
     if (!returnRequest) {
       const current = await ReturnRequest.findById(id)
-        .select("status inventoryRestored items.quantityRestocked actualRefund.amount")
+        .select("status inventoryRestored items.quantityRestocked unsellableDispositions actualRefund.amount")
         .lean<{
           status?: string;
           inventoryRestored?: boolean;
           items?: Array<{ quantityRestocked?: number }>;
+          unsellableDispositions?: Array<{ action?: string; quantity?: number }>;
           actualRefund?: { amount?: number };
         } | null>();
       if (!current) return notFoundResponse("Return request");

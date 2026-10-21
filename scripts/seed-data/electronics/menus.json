@@ -76,6 +76,7 @@
         "type": "category",
         "target": "_self",
         "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916504284-jc75q5/ChatGPT_Image_Aug_23__2026__08_57_54_PM.webp",
+        "description": "Explore charging essentials, cables, protective cases, and portable storage for your everyday electronics.",
         "children": []
       },
       {
@@ -87,57 +88,484 @@
         "children": []
       },
       {
-        "label": "Cameras & Smart Home",
-        "url": "/products?category=cameras-smart-home",
+        "label": "Cameras",
+        "url": "/products?category=cameras",
         "type": "category",
         "target": "_self",
         "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915969832-qfjsj8/ChatGPT_Image_Aug_19__2026__11_12_01_AM.webp",
         "children": []
       },
       {
+        "label": "Desktop",
+        "url": "/products?category=desktop",
+        "type": "category",
+        "target": "_self",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916660319-f3morw/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+        "description": "Explore desktop PCs, core components, monitors, and peripherals for home, office, and gaming setups.",
+        "promoMode": "bottom",
+        "promoImages": [
+          "https://cdn-storify.neurolight.studio/uploads/2026/10/1791869938634-c5e8008f91bf4d45940f63b55f878025/M6_Mac_Mini_Duo_in_Motion.png",
+          "https://cdn-storify.neurolight.studio/uploads/2026/10/1791818182271-34c96489aff3245cccd7485797304d87/F60_Mechanical_Keyboards_in_Motion.png"
+        ],
+        "children": [
+          {
+            "label": "Desktop PCs",
+            "url": "/products?category=desktop-pcs",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791808287466-b14da8de9c4013ed828056177d6b9739/ASUS_ExpertCenter_Desktop_Workstation.png",
+            "description": "Ready-made desktop computers for home offices, gaming, and professional work.",
+            "children": [
+              {
+                "label": "Gaming Desktops",
+                "url": "/products?category=gaming-desktops",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791792484062-b6ea0880482d33ffba607512827cf1d3/RGB_Gaming_PC_Tower_Showcase.png",
+                "description": "Browse gaming desktops in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Office Desktops",
+                "url": "/products?category=office-desktops",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791800891168-15de03360f2672952a16b3214cdb8fd0/Dell_Inspiron_Desktop_Setup_Isolated.png",
+                "description": "Browse office desktops in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "All-in-One PCs",
+                "url": "/products?category=all-in-one-pcs",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791792118288-4336c96f798f45ef48e44c7ff63646fa/Lenovo_All-in-One_Windows_Desktop_Set.png",
+                "description": "Browse all-in-one pcs in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Mini PCs",
+                "url": "/products?category=mini-pcs",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791800470975-980dbce1a493bf1f7e0309493d5754e0/Silver_Mac_Mini_Three-Quarter_Product_Render.png",
+                "description": "Browse mini pcs in desktop pcs. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "PC Components",
+            "url": "/products?category=pc-components",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791808071326-51841fc2a7e9f9d951130e26d3799f1e/Staggered_G.SKILL_Trident_Z_RGB_RAM_Set.png",
+            "description": "Core computer components for building, upgrading, and maintaining a desktop PC.",
+            "children": [
+              {
+                "label": "Processors",
+                "url": "/products?category=processors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791809861639-29d335c90e1f573c9450a086291a704e/Intel_Xeon_Processor_Chip_Cutout.png",
+                "description": "Browse processors in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Motherboards",
+                "url": "/products?category=motherboards",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791809522402-ba743146c1d7b8ff705e2f2bcf8d77fa/Gigabyte_LGA1700_Motherboard_Cutout.png",
+                "description": "Browse motherboards in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Graphics Cards",
+                "url": "/products?category=graphics-cards",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791809228666-9993f657fa4ee449cb89cbc5d5d67a02/AMD_Radeon_Triple-Fan_Graphics_Card.png",
+                "description": "Browse graphics cards in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Desktop RAM",
+                "url": "/products?category=desktop-ram",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791808366855-318cc47726a4a57ff80ff55c3066e6f2/Green_Samsung_DDR4_RAM_Modules.png",
+                "description": "Browse desktop ram in pc components. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Monitors",
+            "url": "/products?category=desktop-monitors",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791801550749-d0ea34888c3d1e6d6fd2b857911258e0/Dell_Monitor_with_Vibrant_Blue-Purple_Display.png",
+            "description": "Displays for gaming, everyday desktop use, creative work, and high-resolution viewing.",
+            "children": [
+              {
+                "label": "Gaming Monitors",
+                "url": "/products?category=gaming-monitors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791803609542-b5c4901e736f4d7eb0252b61c03dfe6a/ASUS_Monitor_Sci-Fi_Gaming_Showcase.png",
+                "description": "Browse gaming monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Office Monitors",
+                "url": "/products?category=office-monitors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791806586267-c994af38ed2035120042ffa7140632ff/Lenovo_All-in-One_Windows_11_Display.png",
+                "description": "Browse office monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "4K Monitors",
+                "url": "/products?category=4k-monitors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791801999246-3e81b85c50c3015e531c56bdb5b0180b/Neon_Wave_Gaming_Monitor_Render.png",
+                "description": "Browse 4k monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Ultrawide Monitors",
+                "url": "/products?category=ultrawide-monitors",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791807113031-a858cd73ed3262c9a763cbf73161d493/Best_Acer_Nitro_34_Inch_Curved_Monitor_2026_-_WQHD_Home_Office.jpeg",
+                "description": "Browse ultrawide monitors in monitors. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "PC Peripherals",
+            "url": "/products?category=pc-peripherals",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791810767637-632f34c1a8f26bf2c1d9a64fbe467b8a/RGB_Gaming_Setup_with_Fantasy_Display.png",
+            "description": "Input devices, webcams, and power backup equipment for a complete desktop setup.",
+            "children": [
+              {
+                "label": "Keyboards",
+                "url": "/products?category=keyboards",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791811978717-d1af3ff917b2f669975b6a87dbb65b20/RGB_Mechanical_Keyboard_with_Keycap_Puller.png",
+                "description": "Browse keyboards in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Computer Mice",
+                "url": "/products?category=computer-mice",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791811366597-bf88588529e86971dfcbbafb6e11ec36/Futuristic_Magenta_Gaming_Mouse.png",
+                "description": "Browse computer mice in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Webcams",
+                "url": "/products?category=webcams",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791813645966-d015b559c85ac072be35467baefcd85f/EMEET_4K_UHD_Webcam_Render.png",
+                "description": "Browse webcams in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "UPS & Power Backup",
+                "url": "/products?category=ups-power-backup",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791812267731-c3b2b9231be11fe27c313326f6ea37a4/Dark_Gray_Four-Bay_NAS_Enclosure.png",
+                "description": "Browse ups & power backup in pc peripherals. Explore options for your desktop setup and compare products to find what fits your needs.",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
         "label": "Gaming",
         "url": "/products?category=gaming",
         "type": "category",
         "target": "_self",
-        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916056736-fqsi5u/ChatGPT_Image_Aug_20__2026__12_43_23_PM.webp",
-        "children": []
+        "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791903315856-4882ec9a19187e64dba0379f4fc2a2f8/PS5_DualSense_1080x1800.png",
+        "description": "Explore gaming consoles and accessories for console play, portable gaming, and an everyday gaming setup.",
+        "promoMode": "side",
+        "children": [
+          {
+            "label": "Gaming Accessories",
+            "url": "/products?category=gaming-accessories",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791875941792-6b6bbd5a8976042363889bb698fc2945/Multi-Device_Gaming_Stand_with_Controllers_and_Headphones.png",
+            "description": "Explore controllers, headsets, keyboards, and mice to complete your gaming setup.",
+            "children": [
+              {
+                "label": "Gaming Controllers",
+                "url": "/products?category=gaming-controllers",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791877896103-bf48d800622760bbbda69755ac885724/Black_and_Yellow_Brush-Stroke_Controller.png",
+                "description": "Browse gaming controllers for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Gaming Headsets",
+                "url": "/products?category=gaming-headsets",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791878594385-c1d8846a3f5ebea4ef2eca8f886c07c4/Neon_Blue_Gaming_Headset.png",
+                "description": "Browse gaming headsets for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Gaming Keyboards",
+                "url": "/products?category=gaming-keyboards",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791878997990-7453b3b1902ffc1dd1f664b66cb0b36a/Rainbow_RGB_Gaming_Keyboard_Cutout.png",
+                "description": "Browse gaming keyboards for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Gaming Mice",
+                "url": "/products?category=gaming-mice",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791879432583-b68ed23f3d77df5aa20d0781a84e4db6/Neon_RGB_Gaming_Mouse_Cutout.png",
+                "description": "Browse gaming mice for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Gaming Mouse Pads",
+                "url": "/products?category=gaming-mouse-pads",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791885987348-b7a9b5e390a4bbd46046146f663a85ea/Topographic_Contour_Desk_Mat_Set.png",
+                "description": "Browse gaming mouse pads for a comfortable desk setup and smooth mouse movement.",
+                "children": []
+              },
+              {
+                "label": "Racing Wheels",
+                "url": "/products?category=gaming-racing-wheels",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791886564959-13c5b6b35b62ae6986665716568f50af/PXN_Racing_Wheel_Gaming_Set.png",
+                "description": "Explore racing wheels and driving accessories for racing games and simulation setups.",
+                "children": []
+              },
+              {
+                "label": "Gaming Microphones",
+                "url": "/products?category=gaming-microphones",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791879648185-e87681dee1d82cc9d135381fe6faaf50/Fifine_RGB_Desktop_Microphone_Isolated.png",
+                "description": "Browse gaming microphones for voice chat, streaming, and recording at your gaming desk.",
+                "children": []
+              },
+              {
+                "label": "Controller Charging Docks",
+                "url": "/products?category=controller-charging-docks",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791876244105-6792ae1c131943cbc8c0ec5334c5c8e7/GIVO_Dual_Controller_Charging_Dock.png",
+                "description": "Explore charging docks to keep compatible gaming controllers ready for your next session.",
+                "children": []
+              },
+              {
+                "label": "Gaming Carrying Cases",
+                "url": "/products?category=gaming-carrying-cases",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791876451848-f1f02ba5a91bc47610e739c4f9460a91/Open_Nintendo_Switch_Travel_Case_with_Accessories.png",
+                "description": "Browse carrying cases to store and transport gaming consoles, controllers, and accessories.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Gaming Consoles",
+            "url": "/products?category=gaming-consoles",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791887044889-53971d622e55f4ab12255bcfcd990b3d/Nintendo_Switch_Dock_and_Joy-Cons.png",
+            "description": "Explore home and handheld gaming consoles for different play styles and entertainment setups.",
+            "children": [
+              {
+                "label": "PlayStation Consoles",
+                "url": "/products?category=playstation-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791896737756-d9c641c157103e144c2aa1361fc543a4/PlayStation_4_Pro_and_DualShock_4.png",
+                "description": "Browse playstation consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Xbox Consoles",
+                "url": "/products?category=xbox-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791902849488-f2c5e04286c1315bc103e5ec96dabc0c/Xbox_Series_X_Console_and_Controller_Cutout.png",
+                "description": "Browse xbox consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Nintendo Consoles",
+                "url": "/products?category=nintendo-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791896194977-96ee8c7af63e0f4dfa3d74bc8495a00e/Angled_Nintendo_Switch_Product_Render.png",
+                "description": "Browse nintendo consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Handheld Gaming Consoles",
+                "url": "/products?category=handheld-gaming-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791895507434-fd8e6640572d1142f7216f7c98386282/Handheld_Spielkonsole_2700_Spiele_7__Video_Game_Consoles_Spielkonsole_Xmas_16gb.jpeg",
+                "description": "Browse handheld gaming consoles for your gaming setup. Compare products and explore options for home entertainment, portable play, and everyday gaming.",
+                "children": []
+              },
+              {
+                "label": "Retro Gaming Consoles",
+                "url": "/products?category=retro-gaming-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791897831960-2ec3c78dcd4fa81dd60cf1ee6dc8d5d5/White_Retro_Handheld_Racing_Console.png",
+                "description": "Explore retro gaming consoles for classic games and familiar styles of play.",
+                "children": []
+              },
+              {
+                "label": "VR Gaming Systems",
+                "url": "/products?category=vr-gaming-systems",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791901718950-6eed3a81d835b385546f414900d55e41/White_VR_Headset_and_Controllers_Set.png",
+                "description": "Explore virtual reality gaming systems for immersive games and interactive entertainment.",
+                "children": []
+              },
+              {
+                "label": "Digital Edition Consoles",
+                "url": "/products?category=digital-edition-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791887660401-37929087d7d2582bf0579164061070c1/PlayStation_Console_and_Controller_Cutout.png",
+                "description": "Explore digital edition gaming consoles for downloadable games and connected entertainment.",
+                "children": []
+              },
+              {
+                "label": "Portable PC Consoles",
+                "url": "/products?category=portable-pc-consoles",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791897489510-ba426f2027fcef5173e2133022a8245f/MSI_Handheld_Gaming_Console_with_Neon_Dragon_Display.png",
+                "description": "Browse portable PC gaming consoles for handheld play and flexible gaming away from the desk.",
+                "children": []
+              }
+            ]
+          }
+        ]
       },
       {
-        "label": "Laptops. Tablets & PC",
-        "url": "/products?category=laptops-tablets-pc",
+        "label": "Laptops",
+        "url": "/products?category=laptops",
         "type": "category",
         "target": "_self",
         "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787915882259-rqqaqq/ChatGPT_Image_Aug_19__2026__04_49_49_PM.webp",
+        "description": "Explore laptops by brand, use, and form factor, with accessories for work, study, gaming, and creative projects.",
         "children": []
       },
       {
-        "label": "Mobile Phones",
-        "url": "/products?category=mobile-phones",
+        "label": "Phones",
+        "url": "/products?category=phones",
         "type": "category",
         "target": "_self",
-        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887860046-pff58a/ChatGPT_Image_Aug_28__2026__08_44_21_AM.webp",
+        "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791817006427-96ea067202f237da72fb35a4884a2720/Premium_Burgundy_Smartphone_Sale.png",
+        "description": "Explore iPhones, Android smartphones, feature phones, and mobile accessories for communication, work, and entertainment.",
+        "promoMode": "side",
         "children": [
           {
-            "label": "Phones",
-            "url": "/products?category=phones",
+            "label": "iPhones",
+            "url": "/products?category=iphones",
             "type": "category",
             "target": "_self",
             "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889242869-wg429y/ChatGPT_Image_Aug_28__2026__09_53_38_AM.webp",
+            "description": "Explore iPhone models and product families for everyday communication, photography, and work.",
             "children": [
-              {
-                "label": "Google",
-                "url": "/products?category=google",
-                "type": "category",
-                "target": "_self",
-                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890599847-e2h880/ChatGPT_Image_Aug_28__2026__10_13_58_AM.webp",
-                "children": []
-              },
               {
                 "label": "Iphone",
                 "url": "/products?category=iphone",
                 "type": "category",
                 "target": "_self",
                 "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887922966-vtv546/ChatGPT_Image_Aug_19__2026__06_50_02_PM.webp",
+                "description": "Browse iphone in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "iPhone Pro",
+                "url": "/products?category=iphone-pro",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791814145520-bf5b1b477b81d41a76a8d4fd3f3007a7/Transparent_iPhone_Lock_Screen_Product_Render.png",
+                "description": "Browse iphone pro in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "iPhone Pro Max",
+                "url": "/products?category=iphone-pro-max",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815310087-ef34146a6a84485f127605c9417bc3a5/ChatGPT_Image_Sep_29__2026__06_27_11_PM-3.png",
+                "description": "Browse iphone pro max in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "iPhone Plus",
+                "url": "/products?category=iphone-plus",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815242743-6c9a6ca29a9cefd210244475e7f0fd5a/Overlapping_Pink_iPhones_Product_Render.png",
+                "description": "Browse iphone plus in iphones. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Android Phones",
+            "url": "/products?category=android-phones",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791814787415-3b235d7bcec4c5daff367b3f714afb41/Mystic_Bronze_Samsung_Phone_Pair.png",
+            "description": "Browse Android smartphones by brand for a choice of features, designs, and budgets.",
+            "children": [
+              {
+                "label": "Samsung",
+                "url": "/products?category=samsung",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889553331-cgo8ig/ChatGPT_Image_Aug_28__2026__09_59_02_AM.webp",
+                "description": "Browse samsung in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Google",
+                "url": "/products?category=google",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890599847-e2h880/ChatGPT_Image_Aug_28__2026__10_13_58_AM.webp",
+                "description": "Browse google in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
                 "children": []
               },
               {
@@ -146,14 +574,7 @@
                 "type": "category",
                 "target": "_self",
                 "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787891457789-hv688h/ChatGPT_Image_Aug_28__2026__10_30_45_AM.webp",
-                "children": []
-              },
-              {
-                "label": "Samsung",
-                "url": "/products?category=samsung",
-                "type": "category",
-                "target": "_self",
-                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787889553331-cgo8ig/ChatGPT_Image_Aug_28__2026__09_59_02_AM.webp",
+                "description": "Browse oneplus in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
                 "children": []
               },
               {
@@ -162,6 +583,53 @@
                 "type": "category",
                 "target": "_self",
                 "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787890671683-gnui5s/ChatGPT_Image_Aug_28__2026__10_17_36_AM.webp",
+                "description": "Browse xiaomi in android phones. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "label": "Phone Accessories",
+            "url": "/products?category=phone-accessories",
+            "type": "category",
+            "target": "_self",
+            "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815401605-5678a18b258e2c0f0461b73abf528a25/ChatGPT_Image_Aug_28__2026__11_04_21_AM.webp",
+            "description": "Practical accessories for charging, connecting, protecting, and carrying your phone.",
+            "children": [
+              {
+                "label": "Adapters",
+                "url": "/products?category=adapters",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/09/1790577725821-ocsduj/ChatGPT_Image_Sep_28__2026__12_41_29_PM.png",
+                "description": "Browse adapters in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Phone Chargers",
+                "url": "/products?category=phone-chargers",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887860046-pff58a/ChatGPT_Image_Aug_28__2026__08_44_21_AM.webp",
+                "description": "Browse phone chargers in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Phone Holders",
+                "url": "/products?category=phone-holders",
+                "type": "category",
+                "target": "_self",
+                "image": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791815939441-320dbb9362d20c7fbd0faa3b11151a32/Mpow_Black_Car_Phone_Mount.png",
+                "description": "Browse phone holders in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
+                "children": []
+              },
+              {
+                "label": "Phone Camera Accessories",
+                "url": "/products?category=phone-camera-accessories",
+                "type": "category",
+                "target": "_self",
+                "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787887860046-pff58a/ChatGPT_Image_Aug_28__2026__08_44_21_AM.webp",
+                "description": "Browse phone camera accessories in phone accessories. Explore options for your phones setup and compare products to find what fits your needs.",
                 "children": []
               }
             ]
@@ -169,11 +637,11 @@
         ]
       },
       {
-        "label": "PC Parts",
-        "url": "/products?category=pc-parts",
+        "label": "Smartwatch",
+        "url": "/products?category=smartwatch",
         "type": "category",
         "target": "_self",
-        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916660319-f3morw/ChatGPT_Image_Aug_19__2026__01_01_29_PM.webp",
+        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917107300-70b8da/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
         "children": []
       },
       {
@@ -182,14 +650,7 @@
         "type": "category",
         "target": "_self",
         "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787916110749-jhcbm7/ChatGPT_Image_Aug_19__2026__09_56_38_PM.webp",
-        "children": []
-      },
-      {
-        "label": "Wearable Technology",
-        "url": "/products?category=wearable-technology",
-        "type": "category",
-        "target": "_self",
-        "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787917107300-70b8da/ChatGPT_Image_Aug_20__2026__12_27_56_PM.webp",
+        "description": "Explore televisions, home audio systems, headphones, and accessories for your entertainment setup.",
         "children": []
       }
     ],
@@ -199,7 +660,7 @@
       "$date": "2026-08-27T20:28:00.200Z"
     },
     "updatedAt": {
-      "$date": "2026-08-29T05:31:49.798Z"
+      "$date": "2026-10-13T14:55:28.632Z"
     }
   }
 ]

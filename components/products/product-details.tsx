@@ -15,6 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { VendorExternalChannels } from "@/components/chat/vendor-external-channels";
 import { type Locale } from "@/config/i18n.config";
+import {
+  vendorInstagramUrl,
+  vendorMessengerUrl,
+  vendorTelegramUrl,
+  vendorWhatsAppUrl,
+} from "@/lib/notifications/vendor-messaging";
 import type { ProductFulfillmentNotes } from "@/lib/products/fulfillment-notes";
 import {
   productInfoSectionKind,
@@ -245,6 +251,16 @@ export async function ProductDetails({
      and Chat rows. Live chat follows the server's rule — on unless switched
      off, so a seller with no saved messaging settings still gets the button —
      while the external channels need those settings to exist. */
+  /** Whether `renderChatControls` draws anything at all. */
+  const hasChatControls =
+    messaging?.liveChatEnabled !== false ||
+    Boolean(
+      messaging &&
+        (vendorWhatsAppUrl(messaging) ||
+          vendorMessengerUrl(messaging) ||
+          vendorTelegramUrl(messaging) ||
+          vendorInstagramUrl(messaging)),
+    );
   const renderChatControls = () => (
     <div className="flex flex-wrap items-center gap-2">
       {messaging?.liveChatEnabled !== false ? (
@@ -451,14 +467,24 @@ export async function ProductDetails({
         );
       case "vendor": {
         // A marketplace shopper reaches the seller from its name, so the
-        // "Sold by" row — on in every arrangement, and rendered only for a
-        // third-party seller in multi-vendor mode — carries the chat
-        // controls. A store that placed the `chat` row itself keeps them
+        // "Sold by" row — on in every arrangement — carries the chat
+        // controls. The name shows only for a third-party seller in
+        // multi-vendor mode; the store's own products keep the row with the
+        // name's side left empty, so their chat (to the store) sits in the
+        // same place. A store that placed the `chat` row itself keeps them
         // there instead of showing them twice.
         const soldBy = renderSoldBy();
-        const chat = soldBy && !hasChatRow ? renderChatControls() : null;
+        const chat =
+          !hasChatRow && (soldBy || hasChatControls)
+            ? renderChatControls()
+            : null;
         return chat ? (
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-x-4 gap-y-2",
+              soldBy ? "justify-between" : "justify-end",
+            )}
+          >
             {soldBy}
             {chat}
           </div>
@@ -475,7 +501,7 @@ export async function ProductDetails({
             {vis.ratingMinimized ? (
               <span className="flex items-center gap-1.5">
                 <Star
-                  className="h-4 w-4 fill-amber-500 text-amber-500"
+                  className="h-4 w-4 fill-current text-(--store-rating,#a86500)"
                   style={starStyle}
                 />
                 <span className="text-sm font-semibold text-foreground">
@@ -490,7 +516,7 @@ export async function ProductDetails({
                     className={cn(
                       "h-4 w-4",
                       index < Math.round(product.rating)
-                        ? "fill-amber-500 text-amber-500"
+                        ? "fill-current text-(--store-rating,#a86500)"
                         : "fill-muted-foreground text-muted-foreground opacity-30",
                     )}
                     style={
@@ -504,7 +530,7 @@ export async function ProductDetails({
               sectionTargets.reviews ? (
                 <Link
                   href="#reviews"
-                  className="relative text-xs font-medium text-muted-foreground before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] hover:text-foreground"
+                  className="relative text-xs font-medium text-store-link before:absolute before:-inset-x-1 before:-inset-y-2 before:content-[''] hover:text-foreground"
                 >
                   ({product.reviewCount})
                 </Link>

@@ -124,14 +124,14 @@ export function NavDropdown({
                 key={child.id}
                 href={hrefFor(child.url)}
                 onClick={close}
-                className="group/tile flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
+                className="group/tile flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <NavTileArt icon={child.icon} label={child.label} />
                 <span className="flex min-w-0 flex-col">
                   {/* Two lines, not one: a collection called "Headphones &
                       Audio Accessories" truncated to "Headphones & Au…" is
                       the failure this design exists to avoid. */}
-                  <span className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover/tile:text-primary">
+                  <span className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover/tile:text-store-link">
                     {child.label || "Link"}
                   </span>
                   {child.description ? (
@@ -149,7 +149,7 @@ export function NavDropdown({
               key={child.id}
               href={hrefFor(child.url)}
               onClick={close}
-              className="flex items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
+              className="flex items-center rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               {child.label || "Link"}
             </Link>

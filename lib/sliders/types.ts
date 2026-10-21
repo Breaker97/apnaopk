@@ -1,3 +1,5 @@
+import { contrastRatio as wcagContrast, readableForegroundColor, textThreshold } from "@/lib/theme-colors/contrast";
+import { composite, parseColor } from "@/lib/theme-colors/color";
 /**
  * Reusable sliders — the shared vocabulary.
  *
@@ -16,10 +18,9 @@ import {
   readBoolean,
   readNumber,
 } from "@/lib/site-config/normalize-primitives";
-import { readableForegroundColor } from "@/lib/site-config/appearance-colors";
 import { isTrustedRemoteUrl } from "@/lib/remote-image-domains";
 import type { CSSProperties } from "react";
-import { color, hexChannels, oneOf, str } from "./normalize-values";
+import { color, hexChannels, isoDate, oneOf, str } from "./normalize-values";
 import {
   backgroundAccentColor,
   backgroundFilterCss,
@@ -1163,12 +1164,6 @@ function normalizePlate(raw: unknown): SlidePlate | undefined {
   };
 }
 
-function isoDate(value: unknown): string | undefined {
-  return typeof value === "string" && value && !Number.isNaN(Date.parse(value))
-    ? value
-    : undefined;
-}
-
 function normalizeSchedule(raw: unknown): SlideSchedule | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const source = record(raw);
@@ -1537,7 +1532,7 @@ export function textStyleCss(
 
 /** The class every CTA wears on both surfaces; `sl-cta` aliases its box. */
 export const SLIDE_CTA_CLASS =
-  "sl-text sl-cta inline-flex h-auto max-w-full items-center justify-center whitespace-nowrap transition-opacity hover:opacity-90";
+  "sl-text sl-cta inline-flex h-auto max-w-full items-center justify-center whitespace-nowrap transition-colors hover:underline";
 
 /**
  * The attributes the theme restyles a button by (face, weight, case,
@@ -2111,21 +2106,13 @@ export type SlideWarning =
 export const MAX_SLIDE_VIDEO_BYTES = 8 * 1024 * 1024;
 
 
-function luminance({ r, g, b }: { r: number; g: number; b: number }): number {
-  const channel = (v: number) => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-}
+export const contrastRatio = wcagContrast;
 
-/** WCAG contrast between two colours, 1 (none) to 21. Unreadable hex counts as fine. */
-export function contrastRatio(foreground: string, background: string): number {
-  const fg = hexChannels(foreground);
-  const bg = hexChannels(background);
-  if (!fg || !bg) return 21;
-  const [light, dark] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
-  return (light + 0.05) / (dark + 0.05);
+/** Conservative threshold at the smallest size this band can render. */
+export function slideTextContrastThreshold(slide:SliderSlide,element:SlideTextElement,shape:SlideShape):number {
+  const style=resolveTextStyle(slide,element,shape);
+  const size=Math.max(MIN_TEXT_PX,(Math.min(style.size,FLUID_TEXT_BASE_PX)+Math.max(0,style.size-FLUID_TEXT_BASE_PX)*FLUID_MIN_SHARE)*(resolveSlideLayout(slide,shape).scale/100));
+  return textThreshold(size,Number(style.weight ?? 400));
 }
 
 /**
@@ -2152,11 +2139,19 @@ export function slideWarnings(
   if ((artwork || slide.productImage) && !slide.alt.trim()) out.push("no-alt");
   if (elements.heading && !slide.texts.heading.trim()) out.push("heading-empty");
   const plate = slide.plate && hexChannels(slide.plate.color);
-  const flat =
-    plate && plate.a >= 0.5 ? slide.plate!.color : artwork ? undefined : backgroundAccentColor(background);
-  if (flat && elements.heading) {
-    const ink = resolveTextStyle(slide, "heading", shape).color ?? (artwork ? "#ffffff" : "#1f2937");
-    if (contrastRatio(ink, flat) < 3) out.push("low-contrast");
+  const flat = plate?.a === 1 ? slide.plate!.color : !artwork && background.type === "solid" ? backgroundAccentColor(background) : undefined;
+  const ground = flat && parseColor(flat) ? composite(flat, backgroundAccentColor(background) ?? "#ffffff") : undefined;
+  for (const element of ["tagline","heading","description","cta","cta2"] as const) {
+    if (!elements[element] || !slide.texts[element]) continue;
+    const style=resolveTextStyle(slide,element,shape);
+    let surface=ground;
+    let ink=style.color ?? (artwork ? "#ffffff" : "#1f2937");
+    if (element === "cta" || element === "cta2") {
+      const chrome=ctaVariantChrome(element === "cta" ? slide.ctaVariant : slide.cta2Variant,style);
+      surface=chrome.background === "transparent" ? ground : chrome.background;
+      ink=style.color ?? chrome.textColor;
+    }
+    if (surface && contrastRatio(ink,surface)<slideTextContrastThreshold(slide,element,shape)) {out.push("low-contrast");break;}
   }
   return out;
 }
@@ -2172,14 +2167,14 @@ export function suggestContrastFix(
   shape: SlideShape,
   behind: string,
 ): Partial<SliderSlide> | null {
+  if (!parseColor(behind)) return null;
   const LIGHT = "#ffffff";
-  const DARK = "#1f2937";
-  const ink = contrastRatio(LIGHT, behind) >= contrastRatio(DARK, behind) ? LIGHT : DARK;
+  const ink = readableForegroundColor(behind);
   // A flat colour always has an ink that reads on it at 3:1. A picture's
   // sample is a MEAN — the light and dark spots it averages are what the
   // copy actually sits on — so a picture has to clear the stricter 4.5:1
   // before ink alone is called enough; otherwise it is darkened as well.
-  const enough = isArtwork(resolveSlideBackground(slide, shape)) ? 4.5 : 3;
+  const enough = 4.5;
   const inkStyles = (colour: string): SliderSlide["styles"] => {
     const styles = structuredClone(slide.styles);
     const band = shape === "landscape" ? styles.landscape : (styles[shape] ??= {});
@@ -2188,7 +2183,7 @@ export function suggestContrastFix(
     }
     return styles;
   };
-  if (contrastRatio(ink, behind) >= enough) return { styles: inkStyles(ink) };
+  if (contrastRatio(ink, behind) >= enough && !(ink === "#000000" && isArtwork(resolveSlideBackground(slide,shape)))) return { styles: inkStyles(ink) };
   const background = resolveSlideBackground(slide, shape);
   if (!isArtwork(background)) return { styles: inkStyles(ink) };
   const darkened: SlideBackground = {

@@ -23,6 +23,17 @@ export const PayoutSummary = z.object({
   grossEligible: Money.optional(),
   breakdown: z.record(z.string(), Money).optional(),
   eligible: z.boolean().optional(),
+  /**
+   * Why no payout can be made now, in the store's words — "No payable amount",
+   * "Below minimum withdrawal", or that payouts are frozen while the seller is
+   * suspended. Absent when one can.
+   */
+  eligibilityReason: z.string().optional(),
+  /** Payouts are frozen while the seller is suspended; sales keep counting. */
+  frozen: z.boolean().optional(),
+  /** Commission owed on cash sales that does not fit in the next payout and stays owed. */
+  commissionNotDeducted: Money.optional(),
+  /** More than one payout's worth of orders is ready: they are paid in parts. */
   hasMore: z.boolean().optional(),
   availableCurrencies: z.array(z.string()).optional(),
   calculatedAt: z.string().optional(),
@@ -94,5 +105,7 @@ export const PayoutDetail = PayoutListItem.extend({
   method: z.string().optional(),
   /** The payment's reference, as the store recorded it. */
   reference: z.string().optional(),
+  /** The store's note on the payout — why it came back, say. */
+  note: z.string().optional(),
 });
 export type PayoutDetail = z.infer<typeof PayoutDetail>;

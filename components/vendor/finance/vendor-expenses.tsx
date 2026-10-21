@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Download, Plus, Receipt } from "lucide-react";
+import { Download, Plus, Receipt, Pencil, Ban } from "lucide-react";
 import {
   DataTable,
   type DataTableColumn,
@@ -32,14 +32,15 @@ import {
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { toast } from "@/components/ui/toast-notification";
-import { apiClient } from "@/lib/api/client";
+import { apiClient, describeApiError } from "@/lib/api/client";
 import { formatCurrency } from "@/lib/intl/money";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_LABELS,
   type ExpenseCategory,
 } from "@/lib/finance/expense-categories";
-import { expenseListRange } from "@/lib/finance/expense-list-range";
+import { expenseListRange, vendorExpenseExportQuery } from "@/lib/finance/expense-list-range";
+import { useFinanceRequest } from "@/hooks/use-finance-request";
 import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 
@@ -51,6 +52,7 @@ interface Row {
   currency: string;
   description: string;
   payee?: string | null;
+  version?: number;
 }
 
 const API = "/api/vendor/finance/expenses";
@@ -79,6 +81,7 @@ export function VendorExpenses({
   period,
   from,
   to,
+  canManage,
 }: {
   storeCurrency: string;
   /** The resolved period key: one of the dashboard's, or "custom" for picked dates. */
@@ -86,6 +89,7 @@ export function VendorExpenses({
   /** The period as "YYYY-MM-DD" days, "" for all time. */
   from: string;
   to: string;
+  canManage: boolean;
 }) {
   const t = useTranslations();
   const label = useFallbackTranslator(t);
@@ -97,8 +101,13 @@ export function VendorExpenses({
   const [isLoading, setIsLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [voiding, setVoiding] = useState<Row | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const finance = useFinanceRequest();
+  const requestSequence = useRef(0);
   const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
+    date: localToday(),
     category: "other" as ExpenseCategory,
     amount: "",
     description: "",
@@ -107,6 +116,7 @@ export function VendorExpenses({
 
   const load = useCallback(
     (page = 1) => {
+      const sequence = ++requestSequence.current;
       // Named periods are read from the viewer's own today, so an expense
       // dated today is in the list it was recorded in.
       const range = expenseListRange(period, from, to, localToday());
@@ -120,6 +130,7 @@ export function VendorExpenses({
           },
         })
         .then((data) => {
+          if (sequence !== requestSequence.current) return;
           setRows(data.data || []);
           setTotals(data.totals || []);
           setPagination({
@@ -128,12 +139,13 @@ export function VendorExpenses({
             total: data.pagination?.total ?? 0,
           });
         })
-        .catch(() => {
-          // A vendor without the permission simply sees nothing here.
+        .catch((error) => {
+          if (sequence !== requestSequence.current) return;
+          toast.error(describeApiError(error, label("finance.expenses.loadFailed", "Could not load expenses")));
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => { if (sequence === requestSequence.current) setIsLoading(false); });
     },
-    [category, period, from, to],
+    [category, period, from, to, label],
   );
   const reload = useCallback(() => {
     setIsLoading(true);
@@ -183,6 +195,7 @@ export function VendorExpenses({
   });
 
   const save = useCallback(async () => {
+    if (!canManage) return;
     const amount = Number(form.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error(label("finance.expenses.amountRequired", "Enter an amount above zero"));
@@ -196,27 +209,56 @@ export function VendorExpenses({
     }
     setIsSaving(true);
     try {
-      await apiClient.post(API, {
+      const payload = {
         date: form.date,
         category: form.category,
         amount,
         description: form.description.trim(),
         payee: form.payee.trim(),
-      });
-      toast.success(label("finance.expenses.created", "Expense recorded"));
+      };
+      if (editing) {
+        await apiClient.put(`${API}/${editing._id}`, payload, { headers: {
+          "if-match": String(editing.version ?? 0),
+          "idempotency-key": finance.key(`vendor-expense:edit:${editing._id}`, { ...payload, version: editing.version ?? 0 }),
+        } });
+      } else await apiClient.post(API, payload);
+      finance.completed({}, editing ? label("finance.expenses.updated", "Expense updated") : label("finance.expenses.created", "Expense recorded"));
       setOpen(false);
+      setEditing(null);
       setForm({ ...form, amount: "", description: "", payee: "" });
       void reload();
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : label("finance.expenses.saveFailed", "Could not save the expense"),
-      );
+      toast.error(describeApiError(error, label("finance.expenses.saveFailed", "Could not save the expense")));
     } finally {
       setIsSaving(false);
     }
-  }, [form, label, reload]);
+  }, [form, label, reload, canManage, editing, finance]);
+
+  const openEdit = (row: Row) => {
+    setEditing(row);
+    setForm({ date: row.date.slice(0, 10), category: row.category, amount: String(row.amount), description: row.description, payee: row.payee ?? "" });
+    setOpen(true);
+  };
+
+  const voidExpense = async () => {
+    if (!canManage || !voiding || voidReason.trim().length < 3) return;
+    setIsSaving(true);
+    const payload = { reason: voidReason.trim() };
+    try {
+      await apiClient.request("DELETE", `${API}/${voiding._id}`, payload, { headers: {
+        "if-match": String(voiding.version ?? 0),
+        "idempotency-key": finance.key(`vendor-expense:void:${voiding._id}`, { ...payload, version: voiding.version ?? 0 }),
+      } });
+      finance.completed({}, label("finance.expenses.voided", "Expense voided"));
+      setVoiding(null);
+      setVoidReason("");
+      void reload();
+    } catch (error) {
+      toast.error(describeApiError(error, label("finance.expenses.saveFailed", "Could not save the expense")));
+    } finally { setIsSaving(false); }
+  };
+
+  const exportQuery = vendorExpenseExportQuery(period, from, to, localToday(), category);
 
   const columns = useMemo<DataTableColumn<Row>[]>(
     () => [
@@ -299,24 +341,25 @@ export function VendorExpenses({
               {formatCurrency(total.amount, total.currency)}
             </span>
           ))}
-          {/* Their own costs, in the same file format as their statement —
-              an accountant wants both halves or neither. `ytd` rather than the
-              statement's 30 days: a cost list is filed once a year. */}
+          {/* Export the same calendar days and category as the list. */}
           <Button asChild variant="outline">
             {/* An anchor, not next/link: this is a file download, not a
                 navigation. Routing it through the client router would fetch the
                 CSV into memory and land on a blank screen, and it would take
                 right-click-save with it. */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/api/vendor/finance/export?type=expenses&period=ytd">
+            <a href={`/api/vendor/finance/export?${exportQuery}`}>
               <Download className="h-4 w-4" />
               {label("finance.expenses.export", "Export")}
             </a>
           </Button>
-          <Button onClick={() => setOpen(true)}>
+          {canManage ? <Button onClick={() => {
+            setEditing(null);
+            setForm({ date: localToday(), category: "other", amount: "", description: "", payee: "" });
+            setOpen(true);
+          }}>
             <Plus className="h-4 w-4" />
             {label("finance.expenses.add", "Record expense")}
-          </Button>
+          </Button> : null}
         </div>
       </div>
 
@@ -344,6 +387,10 @@ export function VendorExpenses({
           totalPages: pagination.totalPages,
         }}
         onPageChange={changePage}
+        rowActions={canManage ? row => [
+          { id: "edit", label: label("common.edit", "Edit"), icon: <Pencil className="size-4" />, onClick: () => openEdit(row) },
+          { id: "void", label: label("finance.expenses.void", "Void expense"), icon: <Ban className="size-4" />, variant: "destructive", onClick: () => { setVoiding(row); setVoidReason(""); } },
+        ] : undefined}
         emptyIcon={<Receipt className="h-8 w-8" />}
         emptyMessage={label(
           "finance.expenses.empty",
@@ -351,11 +398,11 @@ export function VendorExpenses({
         )}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={value => { if (!isSaving) setOpen(value); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {label("finance.expenses.add", "Record expense")}
+              {editing ? label("finance.expenses.editTitle", "Edit expense") : label("finance.expenses.add", "Record expense")}
             </DialogTitle>
             <DialogDescription>
               {label(
@@ -382,7 +429,7 @@ export function VendorExpenses({
               </Label>
               <CurrencyInput
                 id="vendor-expense-amount"
-                currencySymbol={storeCurrency}
+                currencySymbol={editing?.currency ?? storeCurrency}
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
               />
@@ -438,8 +485,26 @@ export function VendorExpenses({
               {label("common.cancel", "Cancel")}
             </Button>
             <Button onClick={() => void save()} disabled={isSaving}>
-              {label("finance.expenses.add", "Record expense")}
+              {editing ? label("common.save", "Save") : label("finance.expenses.add", "Record expense")}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(voiding)} onOpenChange={value => { if (!value && !isSaving) setVoiding(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{label("finance.expenses.void", "Void expense")}</DialogTitle>
+            <DialogDescription>{label("finance.expenses.voidHint", "Remove this expense from your totals. Its original details and the reason will stay in your records.")}</DialogDescription>
+          </DialogHeader>
+          {voiding ? <p className="text-sm font-medium">{voiding.description} · {formatCurrency(voiding.amount, voiding.currency)}</p> : null}
+          <div className="space-y-1.5">
+            <Label htmlFor="vendor-expense-void-reason">{label("finance.expenses.voidReason", "Reason")}</Label>
+            <Input id="vendor-expense-void-reason" value={voidReason} maxLength={500} onChange={event => setVoidReason(event.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={isSaving} onClick={() => setVoiding(null)}>{label("common.cancel", "Cancel")}</Button>
+            <Button variant="destructive" disabled={isSaving || voidReason.trim().length < 3} onClick={() => void voidExpense()}>{label("finance.expenses.void", "Void expense")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

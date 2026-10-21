@@ -31,6 +31,7 @@ import {
   manualMigrations,
   migrationArgs,
   needLabel,
+  runnerFlags,
   spawnPlan,
 } from "./migrations.mjs";
 
@@ -125,7 +126,7 @@ Flags the runner does not recognise are passed to the migration:
   ${BOLD}pnpm db:migrate ledger -- --rebuild${RESET}     re-post the ledger after a rule change
 
 ${DIM}Always dry-run first. A dry pass that reports 0 is a migration you can skip.
-See docs/UPGRADE.md for which migrations each release needs.${RESET}
+See https://storify.neurolightstudio.com/docs#updates for which migrations each release needs.${RESET}
 `);
 }
 
@@ -189,6 +190,7 @@ function suggest(name) {
 function runMigration(migration, { dryRun, extra }) {
   const args = [
     ...envFileFlags(migration),
+    ...runnerFlags(migration),
     path.join("scripts", migration.script),
     ...migrationArgs(migration, { dryRun, extra }),
   ];

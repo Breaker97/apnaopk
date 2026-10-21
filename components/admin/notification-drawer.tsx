@@ -102,6 +102,16 @@ const initialCounts: NotificationCounts = {
   archived: 0,
 };
 
+const OPEN_EVENT = "storify:notifications-open";
+
+/**
+ * Opens the drawer from elsewhere on the page — the sidebar's account menu —
+ * without a second copy of it: the one in the header listens for this.
+ */
+export function openNotificationDrawer() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
+
 function supportsBrowserPush() {
   return (
     typeof window !== "undefined" &&
@@ -435,6 +445,12 @@ export function NotificationDrawer({ locale }: NotificationDrawerProps) {
     () => readPushStatus().then(setPushStatus),
     [],
   );
+
+  useEffect(() => {
+    const openDrawer = () => setOpen(true);
+    window.addEventListener(OPEN_EVENT, openDrawer);
+    return () => window.removeEventListener(OPEN_EVENT, openDrawer);
+  }, []);
 
   // Opening the drawer is the moment staleness would be noticed, so revalidate
   // then rather than waiting out the background interval.

@@ -8,21 +8,21 @@
     "visual": "color_label",
     "values": [
       {
-        "_id": "2fc1418a-4da3-4931-9360-91d4383f8192",
+        "_id": "c575ce2f-253c-4f32-ae5c-b875faa68e73",
         "value": "Cosmic Orange",
         "colorCode": "#f94e15",
         "position": 0
       },
       {
-        "_id": "a5101085-43d9-4d27-9c3c-856a09a6f3c1",
+        "_id": "c3e63071-ff5f-42f9-a30e-4d604bf28cd6",
         "value": "Deep Blue",
         "colorCode": "#2a3551",
         "position": 1
       },
       {
-        "_id": "4dc08e33-ba06-4d24-a901-19d690679026",
-        "value": "Sliver",
-        "colorCode": "#b4b1b1",
+        "_id": "3d4fcecd-a035-4882-bde1-65307b925633",
+        "value": "Navy Blue",
+        "colorCode": "#1d4ee2",
         "position": 2
       }
     ],
@@ -32,7 +32,7 @@
       "$date": "2026-08-28T05:53:05.494Z"
     },
     "updatedAt": {
-      "$date": "2026-09-05T05:16:59.162Z"
+      "$date": "2026-10-12T22:50:04.055Z"
     },
     "__v": 0
   },
@@ -45,22 +45,22 @@
     "visual": "rectangle",
     "values": [
       {
-        "_id": "55353d0f-156b-48b1-8c62-fa50e347d4a3",
+        "_id": "a3f77acd-804f-4025-8aad-cee19497efd8",
         "value": "1TB",
         "position": 0
       },
       {
-        "_id": "a9add7e5-16cc-4c9d-aef0-9d63602af104",
+        "_id": "04e8f88e-2c7f-4909-afdb-c134e168363e",
         "value": "256GB",
         "position": 1
       },
       {
-        "_id": "d4b5f15e-e7af-437f-a6fd-24d688239359",
+        "_id": "dc032ff4-84dc-42b0-a397-d888fad5fd2b",
         "value": "512GB",
         "position": 2
       },
       {
-        "_id": "ba0faa32-8afb-4b64-a6a7-6efd0e78a481",
+        "_id": "c53474c4-5016-4b5a-854f-27832b6cfdc4",
         "value": "2TB",
         "position": 3
       }
@@ -71,7 +71,7 @@
       "$date": "2026-08-28T05:55:55.829Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T05:55:55.829Z"
+      "$date": "2026-10-16T15:13:07.561Z"
     },
     "__v": 0
   },
@@ -142,14 +142,29 @@
     "visual": "rectangle",
     "values": [
       {
-        "_id": "f7fdea46-6d7d-4b0c-b7af-9f829c5627bf",
-        "value": "11 inch",
+        "_id": "8c797127-1e60-4a96-8c8c-a631d918c0ff",
+        "value": "Small",
         "position": 0
       },
       {
-        "_id": "5efc37ed-c685-4aa7-ba7f-4f4365de6125",
-        "value": "13 inch",
+        "_id": "c406798b-f42a-4d70-a24b-a91c14ed7fbc",
+        "value": "Medium",
         "position": 1
+      },
+      {
+        "_id": "07427d90-27e2-42a4-b81d-d1836044f8c0",
+        "value": "Large",
+        "position": 2
+      },
+      {
+        "_id": "47c89532-994a-4938-9d35-38ae1719e327",
+        "value": "XL",
+        "position": 3
+      },
+      {
+        "_id": "d4de8d6e-cb58-442f-b5b1-c15c2e532f92",
+        "value": "XXL",
+        "position": 4
       }
     ],
     "position": 4,
@@ -158,7 +173,7 @@
       "$date": "2026-08-29T12:09:16.040Z"
     },
     "updatedAt": {
-      "$date": "2026-08-29T12:09:16.040Z"
+      "$date": "2026-09-09T04:38:08.270Z"
     },
     "__v": 0
   },
@@ -217,35 +232,6 @@
     },
     "updatedAt": {
       "$date": "2026-09-01T06:45:21.921Z"
-    },
-    "__v": 0
-  },
-  {
-    "_id": {
-      "$oid": "6a9964d68a17b3f75046c2d1"
-    },
-    "name": "Network 2",
-    "type": "text",
-    "visual": "rectangle",
-    "values": [
-      {
-        "_id": "8eab3267-36ac-4890-8476-a7149b318e34",
-        "value": "GPS",
-        "position": 0
-      },
-      {
-        "_id": "2398e352-dad7-4d1e-9e98-6cdf221131f1",
-        "value": "LTE",
-        "position": 1
-      }
-    ],
-    "position": 7,
-    "isActive": true,
-    "createdAt": {
-      "$date": "2026-09-03T12:15:18.814Z"
-    },
-    "updatedAt": {
-      "$date": "2026-09-03T12:15:18.814Z"
     },
     "__v": 0
   }

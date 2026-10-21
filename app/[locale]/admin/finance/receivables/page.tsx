@@ -150,8 +150,8 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3">
           <p className="text-sm font-semibold text-destructive">
             {label(
-              "finance.receivables.overpaidTitle",
-              "Paid out more than was ever held",
+              "finance.receivables.owedBackTitle",
+              "Sellers who owe money back",
             )}
           </p>
           <ul className="mt-2 space-y-1">
@@ -169,8 +169,8 @@ export default async function AdminReceivablesPage({ params }: PageProps) {
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
             {label(
-              "finance.receivables.overpaidHint",
-              "A payout settled a sale whose money the vendor had collected themselves. New payouts can no longer do this; the balance already recorded is cleared with an adjustment on the Finance overview.",
+              "finance.receivables.owedBackHint",
+              "Usually a refund after the seller was already paid. It comes off their next payout on its own, or record a repayment on the seller's Payouts tab if they pay it back. Do not post an adjustment as well — that would recover it twice.",
             )}
           </p>
         </div>

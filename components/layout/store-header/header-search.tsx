@@ -418,7 +418,7 @@ function HeaderSearchSuggestions({ className }: { className: string }) {
           <Link
             key={product._id}
             href={`/${locale}/products/${product.slug}`}
-            className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/60"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-accent hover:text-accent-foreground"
             onClick={() => {
               setQuery(label);
               setShowSuggestions(false);

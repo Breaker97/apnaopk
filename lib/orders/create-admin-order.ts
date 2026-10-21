@@ -26,7 +26,14 @@ import { markOrderInventoryReserved } from "@/lib/orders/order-inventory";
 import { ensureChargeTransaction } from "@/lib/payments/payment-transactions";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
+import { orderLineVariantSnapshot } from "@/lib/orders/order-line-variant";
 import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
+import { computeTax, type TaxLine } from "@/lib/tax/tax-engine";
+import {
+  manualOrderLineTaxes,
+  manualOrderTax,
+  type ManualTaxLine,
+} from "@/lib/orders/manual-order-tax";
 import type { getSettings } from "@/models/settings.model";
 
 /**
@@ -134,17 +141,45 @@ type Settings = Awaited<ReturnType<typeof getSettings>>;
 export function priceAdminOrder(input: {
   lines: ReadonlyArray<{ price: number; quantity: number }>;
   discount: number;
+  /** One percentage for the whole order — used when no line has a rate of its own. */
   taxRate: number;
+  /** Each line's rate (lib/orders/manual-order-tax.ts); the discount is shared across them. */
+  taxLines?: TaxLine[] | null;
   shippingCost: number;
   currency: string;
 }) {
   const subtotal = roundMoney(input.lines.reduce((sum, line) => sum + line.price * line.quantity, 0));
   const discount = Math.min(roundMoney(input.discount), subtotal);
   const taxableSubtotal = Math.max(subtotal - discount, 0);
-  const tax = quantizeToCurrency(taxableSubtotal * (input.taxRate / 100), input.currency);
+  const tax = input.taxLines?.length
+    ? computeTax({ lines: input.taxLines, discount, currency: input.currency }).tax
+    : quantizeToCurrency(taxableSubtotal * (input.taxRate / 100), input.currency);
   const shippingCost = quantizeToCurrency(input.shippingCost, input.currency);
   const total = quantizeToCurrency(taxableSubtotal + tax + shippingCost, input.currency);
   return { subtotal, discount, tax, shippingCost, total };
+}
+
+/**
+ * A manual order's totals with its tax worked out — each line at its
+ * product's rate unless a percentage was typed. What the order form previews
+ * is what the save charges: both price through here.
+ */
+export async function priceManualOrder(input: {
+  lines: ReadonlyArray<ManualTaxLine>;
+  discount: number;
+  shippingCost: number;
+  taxRate?: number | null;
+  /** `settings.orders.taxRate`, a fraction. */
+  storeRate: number;
+  currency: string;
+}) {
+  const plan = await manualOrderTax(input);
+  const totals = priceAdminOrder({
+    ...input,
+    taxRate: plan.taxRate,
+    taxLines: plan.taxLines,
+  });
+  return { ...totals, plan };
 }
 
 /**
@@ -163,8 +198,11 @@ export async function createAdminOrder(params: {
   billingAddress?: Record<string, unknown>;
   shippingCost: number;
   discount: number;
-  /** A percentage of the goods after the discount. */
-  taxRate: number;
+  /**
+   * A percentage of the goods after the discount. Absent, each line is taxed
+   * at its product's rate (lib/orders/manual-order-tax.ts).
+   */
+  taxRate?: number | null;
   paymentMethod: string;
   paymentStatus: "pending" | "paid";
   notes?: string;
@@ -197,9 +235,23 @@ export async function createAdminOrder(params: {
     vendorContext,
     (item) => item.product.vendorId,
   );
-  const { subtotal, discount, tax, shippingCost, total } = priceAdminOrder({
-    ...params, currency: orderCurrency,
+  const { plan: taxPlan, subtotal, discount, tax, shippingCost, total } = await priceManualOrder({
+    ...params,
+    storeRate: Number(settings.orders?.taxRate) || 0,
+    currency: orderCurrency,
   });
+  const lineTaxes = await manualOrderLineTaxes(params.lines, {
+    plan: taxPlan,
+    line: (item) => item,
+    discount,
+    tax,
+    currency: orderCurrency,
+  });
+  // The variant as it was sold, from the product the lines were resolved
+  // against (`price comparePrice options variants`).
+  const variantSnapshotOf = new Map(
+    params.lines.map((item) => [item, orderLineVariantSnapshot(item.product, item.variantId)]),
+  );
 
   const subOrders = await buildVendorSubOrders(vendorGroups, {
     codCollectedByDefault: settings.shipping?.codCollectedBy,
@@ -214,9 +266,11 @@ export async function createAdminOrder(params: {
     getCost: (item) =>
       resolveOrderItemCost({ product: item.product, variant: item.variant }),
     getImage: (item) => item.image,
+    getVariantSnapshot: (item) => variantSnapshotOf.get(item) ?? {},
     fallbackCommissionPercent:
       settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
     status: "pending",
+    ...lineTaxes,
   });
 
   // The delivery charge belongs to the parcels, as a checkout order's does.
@@ -234,8 +288,10 @@ export async function createAdminOrder(params: {
     quantity: item.quantity,
   }));
 
+  const inventoryReservationSourceId = new Types.ObjectId().toString();
+  const financeSource = { kind: "order_reservation", id: inventoryReservationSourceId };
   try {
-    await decrementInventory(inventoryLines);
+    await decrementInventory(inventoryLines, { financeSource });
   } catch (err) {
     if (err instanceof InsufficientStockError) {
       throw new ValidationError("Some selected items do not have enough stock");
@@ -260,6 +316,7 @@ export async function createAdminOrder(params: {
   let order;
   try {
     order = await Order.create({
+      inventoryReservationSourceId,
       orderNumber: await getNextOnlineOrderNumber(settings.orders?.prefix),
       currency: orderCurrency,
       customerId: params.customerId,
@@ -279,6 +336,12 @@ export async function createAdminOrder(params: {
         }),
         quantity: item.quantity,
         image: item.image,
+        // The tax this line carried, as its consignment line records it — a
+        // return of the line reads it from here.
+        taxRate: lineTaxes.getTaxRate?.(item),
+        tax: lineTaxes.getTax?.(item),
+        taxParts: lineTaxes.getTaxParts?.(item),
+        ...variantSnapshotOf.get(item),
       })),
       subOrders: subOrdersToSave,
       shippingAddress: params.shippingAddress,
@@ -302,7 +365,7 @@ export async function createAdminOrder(params: {
       ...(params.extra || {}),
     });
   } catch (err) {
-    await restoreInventory(inventoryLines).catch((restoreErr) =>
+    await restoreInventory(inventoryLines, { financeSource }).catch((restoreErr) =>
       console.error("Failed to restore inventory after admin order failure:", restoreErr),
     );
     throw err;

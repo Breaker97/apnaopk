@@ -227,11 +227,14 @@ export const stockAdjustmentRoute = defineBizRoute({
             adjustment: true,
             reason: input.reason,
             note: input.note,
+            actorId: session.user.id,
+            channel: "mobile",
             receipt,
           },
           { locationIds, productFilter: productScopeFilter(scope) },
         );
         if (!outcome.success) {
+          if (outcome.code) throw new MobileApiError(409, "CONFLICT", outcome.error);
           if (outcome.error === STOCK_ADJUSTMENT_KEY_REUSED) {
             throw new MobileApiError(
               422,

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent, type Ref } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type Ref,
+} from "react";
 import Link from "@/components/language/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { AppImage } from "@/components/ui/app-image";
@@ -12,6 +19,8 @@ import {
   getMegaGroupColumns,
   getMegaGroupLimit,
   getMegaLinkLimit,
+  getMegaVisibleLinkCount,
+  isMegaTallShape,
 } from "@/lib/site-config/menu-depth";
 import { DEFAULT_CATEGORY_TRIGGER } from "@/lib/site-config/header-config";
 import {
@@ -137,10 +146,13 @@ function getMegaFlyoutLayout(
     hasSidePromo,
     hasBottomPromo,
     excluded,
+    railRowCount,
   }: {
     hasSidePromo: boolean;
     hasBottomPromo: boolean;
     excluded: HeaderMenuItem[];
+    /** Categories in the rail beside the flyout, whose height sets the tall cap. */
+    railRowCount: number;
   },
 ) {
   const children = getVisibleMegaChildren(root).filter(
@@ -162,6 +174,7 @@ function getMegaFlyoutLayout(
       loose: ungrouped.slice(0, MEGA_FLAT_COLUMNS * MEGA_LINKS_PER_GROUP_TALL),
       columnCount: Math.min(MEGA_FLAT_COLUMNS, Math.max(ungrouped.length, 1)),
       linkLimit: MEGA_LINKS_PER_GROUP_TALL,
+      isTall: false,
     };
   }
 
@@ -175,7 +188,7 @@ function getMegaFlyoutLayout(
   const usedColumns = groups.length + looseSlot;
   const columnCount = Math.min(columns, Math.max(usedColumns, 1));
   const rows = Math.ceil(usedColumns / columnCount);
-  const linkLimit = getMegaLinkLimit(rows, hasBottomPromo);
+  const linkLimit = getMegaLinkLimit(rows, hasBottomPromo, railRowCount);
 
   return {
     isFlat: false as const,
@@ -183,6 +196,7 @@ function getMegaFlyoutLayout(
     loose: ungrouped.slice(0, linkLimit),
     columnCount,
     linkLimit,
+    isTall: isMegaTallShape(rows, hasBottomPromo),
   };
 }
 
@@ -233,6 +247,7 @@ export function CustomMegaMenuPanel({
   viewAllHref,
   viewAllLabel,
   viewAllShortLabel,
+  shopAllLabel,
   railRadius = DEFAULT_RAIL_RADIUS,
   railWidth = DEFAULT_RAIL_WIDTH,
   onNavigate,
@@ -242,6 +257,8 @@ export function CustomMegaMenuPanel({
   viewAllHref: string;
   viewAllLabel: string;
   viewAllShortLabel: string;
+  /** The flyout footer's link to the open category, e.g. "Shop All Gaming". */
+  shopAllLabel: (categoryLabel: string) => string;
   /** Bottom corners follow the trigger button's radius — see header-trigger-style. */
   railRadius?: number;
   /** Matches the trigger button's width; the flyout sizes itself around it. */
@@ -419,12 +436,15 @@ export function CustomMegaMenuPanel({
                     else closeNow();
                   }}
                   onClick={onNavigate}
+                  // Full foreground, one step above the flyout's /75 links, so
+                  // the rail reads as the level above them. h-9 is
+                  // MEGA_RAIL_ROW_HEIGHT in lib/site-config/menu-depth.ts.
                   className={cn(
-                    "flex h-10 items-center justify-between gap-2 rounded-lg px-3 text-[13.5px] transition-colors",
+                    "flex h-9 items-center justify-between gap-2 rounded-lg px-3 text-[13.5px] transition-colors",
                     "focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2",
                     isActive
-                      ? "bg-primary/10 font-medium text-primary"
-                      : "text-foreground/75 hover:text-foreground",
+                      ? "bg-primary/10 font-medium text-store-link"
+                      : "text-foreground hover:bg-muted/60",
                   )}
                 >
                   <span className="min-w-0 truncate">{item.label}</span>
@@ -443,16 +463,17 @@ export function CustomMegaMenuPanel({
             );
           })}
         </ul>
-        <div className="border-t border-border/60 px-4 py-3">
-          <Link
+        {/* Same h-10 as the flyout's footer, so the two footer rules meet
+            in one line across the seam. */}
+        <div className="flex h-10 shrink-0 items-center border-t border-border/60 px-4">
+          <MegaMenuMoreLink
             href={viewAllHref}
             onClick={onNavigate}
             onMouseEnter={scheduleClose}
             onFocus={closeNow}
-            className="rounded-sm text-[13px] font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           >
             {viewAllLabel}
-          </Link>
+          </MegaMenuMoreLink>
         </div>
       </nav>
 
@@ -463,7 +484,9 @@ export function CustomMegaMenuPanel({
           ref={flyoutRef}
           root={activeRoot}
           railWidth={railWidth}
+          railRowCount={roots.length}
           viewAllShortLabel={viewAllShortLabel}
+          shopAllLabel={shopAllLabel}
           onPointerEnter={clearTimers}
           onPointerLeave={scheduleClose}
           onNavigate={onNavigate}
@@ -477,7 +500,9 @@ function MegaMenuFlyout({
   ref,
   root,
   railWidth,
+  railRowCount,
   viewAllShortLabel,
+  shopAllLabel,
   onPointerEnter,
   onPointerLeave,
   onNavigate,
@@ -485,7 +510,9 @@ function MegaMenuFlyout({
   ref: Ref<HTMLDivElement>;
   root: HeaderMenuItem;
   railWidth: number;
+  railRowCount: number;
   viewAllShortLabel: string;
+  shopAllLabel: (categoryLabel: string) => string;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
   onNavigate: () => void;
@@ -496,14 +523,13 @@ function MegaMenuFlyout({
     mode === "bottom"
       ? getMegaBottomPromoCards(root)
       : { cards: [] as MegaPromoCard[], legacySources: [] as HeaderMenuItem[] };
-  const { isFlat, groups, loose, columnCount, linkLimit } = getMegaFlyoutLayout(
-    root,
-    {
+  const { isFlat, groups, loose, columnCount, linkLimit, isTall } =
+    getMegaFlyoutLayout(root, {
       hasSidePromo: !!sidePromoImage,
       hasBottomPromo: cards.length > 0,
       excluded: legacySources,
-    },
-  );
+      railRowCount,
+    });
 
   return (
     <div
@@ -514,7 +540,9 @@ function MegaMenuFlyout({
       onMouseLeave={onPointerLeave}
       // The width guard is what keeps the panel inside the store container at
       // every viewport: the rail's own width plus 48px of breathing room,
-      // capped at 940px — exactly four 200px columns plus gaps and padding.
+      // capped at 920px — exactly four 200px columns plus gutters and padding.
+      // Inside the cap the panel is only as wide as its columns, so a short
+      // category never stretches its links apart.
       // Inline because the rail width is a merchant setting, so the cap has to
       // be computed rather than picked from Tailwind's scale.
       style={{ maxWidth: getMegaFlyoutMaxWidth(railWidth) }}
@@ -523,7 +551,7 @@ function MegaMenuFlyout({
         // cards read as one and no stub of rail shadow hangs below a short
         // panel. The wrapper stays items-start, so a panel TALLER than the
         // rail still doesn't drag the rail down into empty popover.
-        "flex max-h-[min(74vh,580px)] min-w-0 flex-col self-stretch overflow-y-auto rounded-e-xl border border-s-0 border-border/60 bg-popover",
+        "flex max-h-[min(74vh,580px)] min-w-0 flex-col self-stretch rounded-e-xl border border-s-0 border-border/60 bg-popover",
         "animate-in fade-in-0 duration-150 motion-reduce:animate-none",
         PANEL_SHADOW,
         // The flyout butts against the rail, and its blur reaches ~12px past
@@ -535,73 +563,115 @@ function MegaMenuFlyout({
         "[clip-path:inset(-60px_-60px_-60px_0)] rtl:[clip-path:inset(-60px_0_-60px_-60px)]",
       )}
     >
-      <div className="flex min-w-0">
-        <div
-          className={cn(
-            "grid min-w-0 px-7 py-7",
-            isFlat ? "gap-x-7 gap-y-px" : "gap-x-7 gap-y-6",
-          )}
-          style={{
-            gridTemplateColumns: `repeat(${columnCount}, minmax(0, 200px))`,
-          }}
-        >
-          {isFlat
-            ? loose.map((item) => (
-                <MegaMenuLeafLink
-                  key={getHeaderMenuItemKey(item)}
-                  item={item}
-                  onNavigate={onNavigate}
-                />
-              ))
-            : (
-              <>
-                {groups.map((group) => (
-                  <MegaMenuColumn
-                    key={getHeaderMenuItemKey(group)}
-                    group={group}
-                    linkLimit={linkLimit}
-                    viewAllShortLabel={viewAllShortLabel}
+      {/* Only the body scrolls, so the footer stays on the rail footer's line. */}
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* pt-1 matches the rail list's p-1, so with h-9 headings each
+              column's rule lands on the bottom edge of the rail's first row.
+              The flat list has no headings and starts its first link level
+              with the first rail row's label instead. */}
+          <div
+            className={cn(
+              "grid min-w-0 gap-x-6 ps-6 pb-3",
+              sidePromoImage ? "pe-3" : "pe-6",
+              isFlat ? "gap-y-px pt-2" : "gap-y-4 pt-1",
+            )}
+            style={{
+              gridTemplateColumns: `repeat(${columnCount}, minmax(0, 200px))`,
+            }}
+          >
+            {isFlat
+              ? loose.map((item) => (
+                  <MegaMenuLeafLink
+                    key={getHeaderMenuItemKey(item)}
+                    item={item}
                     onNavigate={onNavigate}
                   />
-                ))}
-                {loose.length > 0 ? (
-                  <div className="flex min-w-0 flex-col gap-px pt-1">
-                    {loose.map((item) => (
-                      <MegaMenuLeafLink
-                        key={getHeaderMenuItemKey(item)}
-                        item={item}
-                        onNavigate={onNavigate}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </>
-            )}
+                ))
+              : (
+                <>
+                  {groups.map((group) => (
+                    <MegaMenuColumn
+                      key={getHeaderMenuItemKey(group)}
+                      group={group}
+                      linkLimit={linkLimit}
+                      isTall={isTall}
+                      viewAllShortLabel={viewAllShortLabel}
+                      onNavigate={onNavigate}
+                    />
+                  ))}
+                  {loose.length > 0 ? (
+                    <div className="flex min-w-0 flex-col gap-px pt-1">
+                      {loose.map((item) => (
+                        <MegaMenuLeafLink
+                          key={getHeaderMenuItemKey(item)}
+                          item={item}
+                          onNavigate={onNavigate}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              )}
+          </div>
+
+          {/* Pinned to the bottom of the body, with the same 24px gutter as
+              the columns so each card spans exactly two of them. */}
+          {cards.length > 0 ? (
+            <div
+              className="mt-auto grid gap-x-6 px-6 pb-6"
+              style={{
+                gridTemplateColumns: `repeat(${cards.length}, minmax(0, 1fr))`,
+              }}
+            >
+              {cards.map((card, index) => (
+                <Link
+                  key={`${index}-${card.image}`}
+                  href={card.href}
+                  target={card.target}
+                  rel={card.target === "_blank" ? "noopener noreferrer" : undefined}
+                  onClick={onNavigate}
+                  className="group relative block aspect-[1296/366] overflow-hidden rounded-xl border border-border/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+                >
+                  {/* The frame keeps the studio's 1296 × 366 ratio at any
+                      width, so a studio-authored card covers it exactly;
+                      cover only matters for art uploaded by hand, which it
+                      trims rather than stretches. */}
+                  <AppImage
+                    src={card.image}
+                    width={864}
+                    height={244}
+                    alt={card.label}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </div>
 
-        {/* The banner stretches to whatever the link grid measures, which the
-            column/row caps keep inside a narrow band (roughly 220–290px). That
-            is the whole point of the caps: without them the image grew with the
-            group count and distorted badly, which is why this used to be pinned
-            to a fixed portrait instead. */}
+        {/* The banner runs the body's full height: never under 262px, and at
+            most 376px beside the tallest rail. No divider and no shadow of its
+            own — the card's hairline is enough inside an already lifted panel. */}
         {sidePromoImage ? (
-          <div className="flex w-[236px] shrink-0 border-s border-border/50 px-6 py-7">
+          <div className="flex w-[210px] shrink-0 p-3">
             <Link
               href={root.href}
               target={root.target}
               rel={root.target === "_blank" ? "noopener noreferrer" : undefined}
               onClick={onNavigate}
-              className="group relative block min-h-[262px] flex-1 overflow-hidden rounded-xl border border-border/60 shadow-sm transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+              className="group relative block min-h-[262px] flex-1 overflow-hidden rounded-xl border border-border/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               {/* Absolutely placed, so the art can only ever fill the frame the
-                  link grid sized — left in flow, a portrait taller than the
-                  columns pushes the whole flyout down to its own aspect.
+                  body sized — left in flow, a portrait taller than the columns
+                  pushes the whole flyout down to its own aspect.
 
-                  object-cover, not fill: this frame's height follows the grid,
-                  so its ratio moves between shapes and stretching art authored
-                  at 3:5 would distort baked-in type by about a sixth. Covering
-                  trims instead — at most 8.7% off one pair of edges, which the
-                  studio prompt asks authors to keep quiet. */}
+                  object-cover, not fill: this frame's height follows the rail,
+                  so its ratio moves between stores and stretching art authored
+                  at 3:5 would distort baked-in type. Covering trims instead —
+                  at most 9% off one pair of edges, which the studio prompt
+                  asks authors to keep quiet. */}
               <AppImage
                 src={sidePromoImage}
                 width={480}
@@ -615,39 +685,16 @@ function MegaMenuFlyout({
         ) : null}
       </div>
 
-      {/* Padded to the same 28px as the link grid so the cards line up with the
-          columns above them rather than floating a couple of pixels wide. */}
-      {cards.length > 0 ? (
-        <div
-          className="-mt-1.5 grid gap-5 px-7 pb-7"
-          style={{
-            gridTemplateColumns: `repeat(${cards.length}, minmax(0, 1fr))`,
-          }}
+      {/* Same h-10 as the rail's footer, so one rule runs across both cards. */}
+      <div className="flex h-10 shrink-0 items-center border-t border-border/60 px-6">
+        <MegaMenuMoreLink
+          href={root.href}
+          target={root.target}
+          onClick={onNavigate}
         >
-          {cards.map((card, index) => (
-            <Link
-              key={`${index}-${card.image}`}
-              href={card.href}
-              target={card.target}
-              rel={card.target === "_blank" ? "noopener noreferrer" : undefined}
-              onClick={onNavigate}
-              className="group relative block h-[122px] overflow-hidden rounded-xl border border-border/60 shadow-sm transition-shadow hover:shadow-lg focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-            >
-              {/* This frame is fixed, so a studio-authored card covers it
-                  exactly; cover only matters for art uploaded by hand, which
-                  it trims rather than stretches. */}
-              <AppImage
-                src={card.image}
-                width={864}
-                height={244}
-                alt={card.label}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-              />
-            </Link>
-          ))}
-        </div>
-      ) : null}
+          {shopAllLabel(root.label)}
+        </MegaMenuMoreLink>
+      </div>
     </div>
   );
 }
@@ -655,16 +702,21 @@ function MegaMenuFlyout({
 function MegaMenuColumn({
   group,
   linkLimit,
+  isTall,
   viewAllShortLabel,
   onNavigate,
 }: {
   group: HeaderMenuItem;
   linkLimit: number;
+  isTall: boolean;
   viewAllShortLabel: string;
   onNavigate: () => void;
 }) {
   const children = getVisibleMegaChildren(group);
-  const visibleChildren = children.slice(0, linkLimit);
+  const visibleChildren = children.slice(
+    0,
+    getMegaVisibleLinkCount(children.length, linkLimit, isTall),
+  );
   const hiddenCount = children.length - visibleChildren.length;
 
   return (
@@ -675,13 +727,14 @@ function MegaMenuColumn({
         rel={group.target === "_blank" ? "noopener noreferrer" : undefined}
         onClick={onNavigate}
         className={cn(
-          "relative mb-2 block min-w-0 truncate border-b border-border pb-2",
-          "text-[12.5px] font-semibold uppercase tracking-[0.07em] text-foreground transition-colors hover:text-primary",
-          "after:absolute after:-bottom-px after:start-0 after:h-0.5 after:w-11 after:bg-primary",
+          "mb-1.5 flex h-9 min-w-0 items-center border-b border-border",
+          "text-[12.5px] font-semibold uppercase tracking-[0.07em] text-foreground transition-colors hover:text-store-link",
           "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
         )}
       >
-        {group.columnTitle || group.label}
+        <span className="min-w-0 truncate">
+          {group.columnTitle || group.label}
+        </span>
       </Link>
       <div className="flex min-w-0 flex-col gap-px">
         {visibleChildren.map((child) => (
@@ -693,16 +746,57 @@ function MegaMenuColumn({
         ))}
       </div>
       {hiddenCount > 0 ? (
-        <Link
+        <MegaMenuMoreLink
           href={group.href}
           onClick={onNavigate}
-          className="group/more mt-1.5 inline-flex items-center gap-1 rounded-sm text-[12.5px] font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+          className="mt-1"
         >
           {viewAllShortLabel} ({children.length})
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/more:translate-x-0.5 rtl:rotate-180" />
-        </Link>
+        </MegaMenuMoreLink>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Every "see more" link in the panel — the rail's View All Categories, a
+ * column's View all, the flyout's Shop All — wears this one style, so none of
+ * them reads as a different kind of thing.
+ */
+function MegaMenuMoreLink({
+  href,
+  target,
+  className,
+  children,
+  onClick,
+  onMouseEnter,
+  onFocus,
+}: {
+  href: string;
+  target?: HeaderMenuItem["target"];
+  className?: string;
+  children: ReactNode;
+  onClick: () => void;
+  onMouseEnter?: () => void;
+  onFocus?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      target={target}
+      rel={target === "_blank" ? "noopener noreferrer" : undefined}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onFocus={onFocus}
+      className={cn(
+        "group/more inline-flex min-w-0 max-w-full items-center gap-1 rounded-sm text-[13px] font-medium leading-5 text-store-link transition-colors hover:text-store-link/80",
+        "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+        className,
+      )}
+    >
+      <span className="min-w-0 truncate">{children}</span>
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover/more:translate-x-0.5 rtl:rotate-180" />
+    </Link>
   );
 }
 
@@ -713,19 +807,22 @@ function MegaMenuLeafLink({
   item: HeaderMenuItem;
   onNavigate: () => void;
 }) {
+  // 26px tall (py-[3px] + leading-5): MEGA_LINK_ROW_HEIGHT in
+  // lib/site-config/menu-depth.ts counts on it.
   return (
     <Link
       href={item.href}
       target={item.target}
       rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
       onClick={onNavigate}
-      className="inline-flex min-w-0 max-w-full items-center gap-[7px] rounded-sm py-1 text-[13.5px] text-foreground/75 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+      className="inline-flex min-w-0 max-w-full items-center gap-[7px] rounded-sm py-[3px] text-[13.5px] leading-5 text-foreground/75 transition-colors hover:text-store-link focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
     >
       <span className="min-w-0 truncate">{item.label}</span>
       {item.badge ? (
-        // Micro-tag, not the generic grey badge: it sits inside a dense link
-        // list and has to read as an accent without out-shouting the label.
-        <span className="shrink-0 rounded-md bg-primary/10 px-[5px] py-px text-[9.5px] font-medium uppercase tracking-[0.04em] text-primary">
+        // Micro-tag in the theme's promotional ACCENT — one of the two places
+        // the accent is meant for (with the Featured label), so "New" or
+        // "Sale" beside a link reads as a promotion, not as a link state.
+        <span className="shrink-0 rounded-md bg-highlight px-[5px] py-px text-[9.5px] font-semibold uppercase tracking-[0.04em] text-highlight-foreground">
           {item.badge}
         </span>
       ) : null}

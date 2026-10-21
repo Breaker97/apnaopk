@@ -205,5 +205,5 @@ export function getDefaultHeaderLayout(): HeaderLayout {
  */
 export function resolveHeaderLayout(value: unknown): HeaderLayout {
   const layout = normalizeHeaderLayout(value);
-  return layout.rows.length ? layout : getDefaultHeaderLayout();
+  return layout.rows.length ? layout : { ...getDefaultHeaderLayout(), viewport: layout.viewport };
 }

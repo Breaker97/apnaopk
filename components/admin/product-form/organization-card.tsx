@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useWatch, type UseFormReturn } from "react-hook-form";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FormControl,
@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TagInput } from "@/components/ui/tag-input";
 import { Separator } from "@/components/ui/separator";
 import { CategoryPicker } from "@/components/admin/product-form/category-picker";
 import type {
@@ -51,29 +51,12 @@ export function OrganizationCard({
   categoriesState = "ready",
 }: OrganizationCardProps) {
   const t = useTranslations();
-  const [tagInput, setTagInput] = useState("");
   const [collectionSearchValue, setCollectionSearchValue] = useState("");
   const [showCollectionDropdown, setShowCollectionDropdown] = useState(false);
 
   const watchedCollectionIds =
     useWatch({ control: form.control, name: "collectionIds" }) || [];
   const watchedTags = useWatch({ control: form.control, name: "tags" }) || [];
-
-  const handleAddTag = () => {
-    const next = tagInput.trim();
-    if (!next) return;
-    const current = form.getValues("tags");
-    if (!current.includes(next)) form.setValue("tags", [...current, next]);
-    setTagInput("");
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    const current = form.getValues("tags");
-    form.setValue(
-      "tags",
-      current.filter((t) => t !== tag),
-    );
-  };
 
   const handleToggleCollectionId = (collectionId: string) => {
     const currentIds = form.getValues("collectionIds");
@@ -287,42 +270,12 @@ export function OrganizationCard({
           <FormLabel>
             {t("admin.productForm.fields.tags")}
           </FormLabel>
-          <div className="flex gap-2">
-            <Input
-              placeholder={t(
-                "admin.productForm.placeholders.addTag",
-              )}
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddTag();
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleAddTag}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {watchedTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="cursor-pointer"
-                onClick={() => handleRemoveTag(tag)}
-              >
-                {tag}
-                <X className="ml-1 h-3 w-3" />
-              </Badge>
-            ))}
-          </div>
+          <TagInput
+            value={watchedTags}
+            onValueChange={(tags) => form.setValue("tags", tags)}
+            placeholder={t("admin.productForm.placeholders.addTag")}
+            aria-label={t("admin.productForm.fields.tags")}
+          />
         </div>
       </CardContent>
     </Card>

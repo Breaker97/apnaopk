@@ -18,7 +18,11 @@
           "settings": {
             "grid": "leftCategoryBar3",
             "width": "fixed",
-            "height": "threeFifths"
+            "height": "threeFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
           },
           "blocks": [
             {
@@ -77,9 +81,21 @@
           "visible": true,
           "settings": {
             "title": "Shop by Categories",
-            "source": "topLevel",
+            "source": "manual",
             "limit": 20,
-            "categoryIds": [],
+            "categoryIds": [
+              "6a90ffda050bfb18a78dcd42",
+              "6a916f55050bfb18a78dce45",
+              "6a91733da98471c5da7515b3",
+              "6a916e40050bfb18a78dce41",
+              "6a916f1d050bfb18a78dce44",
+              "6a916ecf050bfb18a78dce42",
+              "6a917038050bfb18a78dce46",
+              "6a917179a98471c5da7515b0",
+              "6a9170dd050bfb18a78dce47",
+              "6a910bb4050bfb18a78dcd4f"
+            ],
+            "style": "",
             "variant": "circles",
             "titleSize": "default"
           },
@@ -103,7 +119,11 @@
           "settings": {
             "grid": "feature",
             "width": "fixed",
-            "height": "threeQuarters"
+            "height": "threeQuarters",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
           },
           "blocks": [
             {
@@ -198,6 +218,9 @@
               "settings": {
                 "label": "Featured",
                 "source": "featured",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
                 "productIds": []
               }
             },
@@ -208,6 +231,9 @@
               "settings": {
                 "label": "New Arrivals",
                 "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
                 "productIds": []
               }
             },
@@ -218,6 +244,22 @@
               "settings": {
                 "label": "On Sale",
                 "source": "discounted",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            },
+            {
+              "id": "8244ec08-c97e-408e-bc0f-20de35bd5400",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "Collections",
+                "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
                 "productIds": []
               }
             }
@@ -229,7 +271,7 @@
           "version": 1,
           "visible": true,
           "settings": {
-            "limit": 8,
+            "limit": 10,
             "desktopColumns": 5,
             "titleSize": "default"
           },
@@ -245,7 +287,7 @@
             "subheading": "Today's Featured",
             "ctaLabel": "View All Deals",
             "link": "/products",
-            "endsAt": "2026-09-24T17:51:00.000Z",
+            "endsAt": "2026-10-18T12:34:44.580Z",
             "height": 560,
             "image": "/placeholder-product.png",
             "background": {
@@ -269,6 +311,11 @@
             "foreground": "#ffffff",
             "showSavings": true,
             "showStock": true,
+            "cardGap": 16,
+            "corners": "custom",
+            "panelRadius": 16,
+            "cardRadius": 12,
+            "imageFit": "followProduct",
             "layout": "featured-4",
             "productIds": [],
             "variant": "deals-panel",
@@ -296,6 +343,12 @@
           "visible": true,
           "settings": {
             "title": "",
+            "gapMode": "custom",
+            "gap": 44,
+            "panelWidth": 0,
+            "panelHeight": 0,
+            "corners": "custom",
+            "panelRadius": 16,
             "titleSize": "default"
           },
           "blocks": [
@@ -306,6 +359,12 @@
               "settings": {
                 "collection": "6a91215d050bfb18a78dcd5e",
                 "limit": 4,
+                "products": [
+                  "6aba57a97a5948c3496d7d87",
+                  "6a911b63050bfb18a78dcd5b",
+                  "6a915bbd050bfb18a78dcdc6",
+                  "6a91634e050bfb18a78dce06"
+                ],
                 "kind": "slider",
                 "image": "",
                 "slider": "new-slider-1787917529240"
@@ -318,6 +377,7 @@
               "settings": {
                 "collection": "6a93df77e43b0a05f71297e3",
                 "limit": 4,
+                "products": [],
                 "kind": "slider",
                 "image": "",
                 "slider": "new-slider-1787917804233"
@@ -330,9 +390,10 @@
               "settings": {
                 "collection": "6a93fc3be43b0a05f7129849",
                 "limit": 4,
-                "kind": "image",
+                "products": [],
+                "kind": "slider",
                 "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788073632058-uftze5/Frame_694.webp",
-                "slider": ""
+                "slider": "hero-slider-2-copy"
               }
             }
           ]
@@ -353,22 +414,36 @@
                   "tagline": false,
                   "price": false,
                   "cta": true,
+                  "cta2": false,
                   "countdown": false
                 },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
                 "texts": {
                   "tagline": "",
                   "heading": "MacBook Pro",
                   "description": "Market-specific assortments balancing contemporary styling, comfort, durability.",
-                  "cta": "Shop Now"
+                  "cta": "Shop Now",
+                  "cta2": ""
                 },
                 "ctaVariant": "light",
+                "cta2Variant": "outline",
                 "styles": {
                   "landscape": {
                     "heading": {
                       "color": "#ffffff"
                     },
                     "description": {
-                      "color": "#9a9a9a"
+                      "weight": "300",
+                      "width": 39,
+                      "color": "#fffafa57"
                     }
                   },
                   "square": {
@@ -391,9 +466,11 @@
                     }
                   }
                 },
-                "link": "/products",
+                "link": "/products/macbook-pro-m5-14-inch-24gb1tb-10-core-cpu-10-core-gpu",
+                "link2": "",
                 "productId": "",
                 "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788612984300-aoy308/OnPaste.20260905-185602.webp",
+                "artInFront": false,
                 "countdownEndsAt": "",
                 "reveal": "fade",
                 "background": {
@@ -422,8 +499,9 @@
                   "landscape": {
                     "h": "left",
                     "v": "middle",
-                    "gap": 13,
-                    "scale": 108
+                    "gap": 29,
+                    "scale": 130,
+                    "padding": 80
                   },
                   "square": {
                     "v": "top"
@@ -476,14 +554,18 @@
         {
           "id": "preset-electronics-11",
           "type": "product-browser",
-          "version": 2,
+          "version": 3,
           "visible": true,
           "settings": {
             "title": "",
             "source": "all",
+            "categoryId": "",
+            "brandId": "",
+            "collectionId": "",
             "layout": "browser",
-            "rows": 2,
-            "desktopColumns": 5,
+            "endless": false,
+            "rows": 4,
+            "desktopColumns": 6,
             "productIds": [
               "6a92737baa34b8f92ac35f92",
               "6a91634e050bfb18a78dce06"
@@ -543,7 +625,7 @@
           "id": "4354e34a-8fc1-458b-a57d-fccdd3b2524a",
           "type": "become-vendor",
           "version": 1,
-          "visible": false,
+          "visible": true,
           "settings": {
             "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788674270237-s101px/Group_424.webp",
             "title": "Start Selling With Us Today",
@@ -568,7 +650,7 @@
           "id": "c27ef737-3a10-4520-a1fd-824fa326392d",
           "type": "promotion-banner",
           "version": 1,
-          "visible": true,
+          "visible": false,
           "settings": {
             "slides": [
               {
@@ -580,15 +662,27 @@
                   "tagline": false,
                   "price": false,
                   "cta": true,
+                  "cta2": false,
                   "countdown": false
                 },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
                 "texts": {
                   "tagline": "",
                   "heading": "Start Selling With Us Today",
                   "description": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
-                  "cta": "Become a Vendor"
+                  "cta": "Become a Vendor",
+                  "cta2": ""
                 },
                 "ctaVariant": "dark",
+                "cta2Variant": "outline",
                 "styles": {
                   "landscape": {
                     "heading": {
@@ -605,8 +699,10 @@
                   }
                 },
                 "link": "/become-vendor",
+                "link2": "",
                 "productId": "",
                 "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788674720458-4xee4l/Group_424.webp",
+                "artInFront": false,
                 "countdownEndsAt": "",
                 "reveal": "fade",
                 "background": {
@@ -650,7 +746,7 @@
           "id": "6d759b25-67f7-4c2d-b8b9-87de58002e3a",
           "type": "gap",
           "version": 1,
-          "visible": true,
+          "visible": false,
           "settings": {
             "height": 60
           },
@@ -731,6 +827,9 @@
           "type": "service-benefits",
           "version": 1,
           "visible": false,
+          "settings": {
+            "variant": "theme"
+          },
           "blocks": [
             {
               "id": "34e18efb-3d57-41a0-94dc-d7cbc36a8abd",
@@ -786,7 +885,7 @@
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-07T09:40:56.121Z"
+        "$date": "2026-10-11T17:31:26.391Z"
       },
       "updatedBy": null
     },
@@ -802,7 +901,11 @@
           "settings": {
             "grid": "leftCategoryBar3",
             "width": "fixed",
-            "height": "threeFifths"
+            "height": "threeFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
           },
           "blocks": [
             {
@@ -861,9 +964,21 @@
           "visible": true,
           "settings": {
             "title": "Shop by Categories",
-            "source": "topLevel",
+            "source": "manual",
             "limit": 20,
-            "categoryIds": [],
+            "categoryIds": [
+              "6a90ffda050bfb18a78dcd42",
+              "6a916f55050bfb18a78dce45",
+              "6a91733da98471c5da7515b3",
+              "6a916e40050bfb18a78dce41",
+              "6a916f1d050bfb18a78dce44",
+              "6a916ecf050bfb18a78dce42",
+              "6a917038050bfb18a78dce46",
+              "6a917179a98471c5da7515b0",
+              "6a9170dd050bfb18a78dce47",
+              "6a910bb4050bfb18a78dcd4f"
+            ],
+            "style": "",
             "variant": "circles",
             "titleSize": "default"
           },
@@ -887,7 +1002,11 @@
           "settings": {
             "grid": "feature",
             "width": "fixed",
-            "height": "threeQuarters"
+            "height": "threeQuarters",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
           },
           "blocks": [
             {
@@ -982,6 +1101,9 @@
               "settings": {
                 "label": "Featured",
                 "source": "featured",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
                 "productIds": []
               }
             },
@@ -992,6 +1114,9 @@
               "settings": {
                 "label": "New Arrivals",
                 "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
                 "productIds": []
               }
             },
@@ -1002,6 +1127,22 @@
               "settings": {
                 "label": "On Sale",
                 "source": "discounted",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            },
+            {
+              "id": "8244ec08-c97e-408e-bc0f-20de35bd5400",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "Collections",
+                "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
                 "productIds": []
               }
             }
@@ -1013,7 +1154,7 @@
           "version": 1,
           "visible": true,
           "settings": {
-            "limit": 8,
+            "limit": 10,
             "desktopColumns": 5,
             "titleSize": "default"
           },
@@ -1029,7 +1170,7 @@
             "subheading": "Today's Featured",
             "ctaLabel": "View All Deals",
             "link": "/products",
-            "endsAt": "2026-09-24T17:51:00.000Z",
+            "endsAt": "2026-10-18T12:34:44.580Z",
             "height": 560,
             "image": "/placeholder-product.png",
             "background": {
@@ -1053,6 +1194,11 @@
             "foreground": "#ffffff",
             "showSavings": true,
             "showStock": true,
+            "cardGap": 16,
+            "corners": "custom",
+            "panelRadius": 16,
+            "cardRadius": 12,
+            "imageFit": "followProduct",
             "layout": "featured-4",
             "productIds": [],
             "variant": "deals-panel",
@@ -1080,6 +1226,12 @@
           "visible": true,
           "settings": {
             "title": "",
+            "gapMode": "custom",
+            "gap": 44,
+            "panelWidth": 0,
+            "panelHeight": 0,
+            "corners": "custom",
+            "panelRadius": 16,
             "titleSize": "default"
           },
           "blocks": [
@@ -1090,6 +1242,12 @@
               "settings": {
                 "collection": "6a91215d050bfb18a78dcd5e",
                 "limit": 4,
+                "products": [
+                  "6aba57a97a5948c3496d7d87",
+                  "6a911b63050bfb18a78dcd5b",
+                  "6a915bbd050bfb18a78dcdc6",
+                  "6a91634e050bfb18a78dce06"
+                ],
                 "kind": "slider",
                 "image": "",
                 "slider": "new-slider-1787917529240"
@@ -1102,6 +1260,7 @@
               "settings": {
                 "collection": "6a93df77e43b0a05f71297e3",
                 "limit": 4,
+                "products": [],
                 "kind": "slider",
                 "image": "",
                 "slider": "new-slider-1787917804233"
@@ -1114,9 +1273,10 @@
               "settings": {
                 "collection": "6a93fc3be43b0a05f7129849",
                 "limit": 4,
-                "kind": "image",
+                "products": [],
+                "kind": "slider",
                 "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788073632058-uftze5/Frame_694.webp",
-                "slider": ""
+                "slider": "hero-slider-2-copy"
               }
             }
           ]
@@ -1137,22 +1297,36 @@
                   "tagline": false,
                   "price": false,
                   "cta": true,
+                  "cta2": false,
                   "countdown": false
                 },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
                 "texts": {
                   "tagline": "",
                   "heading": "MacBook Pro",
                   "description": "Market-specific assortments balancing contemporary styling, comfort, durability.",
-                  "cta": "Shop Now"
+                  "cta": "Shop Now",
+                  "cta2": ""
                 },
                 "ctaVariant": "light",
+                "cta2Variant": "outline",
                 "styles": {
                   "landscape": {
                     "heading": {
                       "color": "#ffffff"
                     },
                     "description": {
-                      "color": "#9a9a9a"
+                      "weight": "300",
+                      "width": 39,
+                      "color": "#fffafa57"
                     }
                   },
                   "square": {
@@ -1175,9 +1349,11 @@
                     }
                   }
                 },
-                "link": "/products",
+                "link": "/products/macbook-pro-m5-14-inch-24gb1tb-10-core-cpu-10-core-gpu",
+                "link2": "",
                 "productId": "",
                 "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788612984300-aoy308/OnPaste.20260905-185602.webp",
+                "artInFront": false,
                 "countdownEndsAt": "",
                 "reveal": "fade",
                 "background": {
@@ -1206,8 +1382,9 @@
                   "landscape": {
                     "h": "left",
                     "v": "middle",
-                    "gap": 13,
-                    "scale": 108
+                    "gap": 29,
+                    "scale": 130,
+                    "padding": 80
                   },
                   "square": {
                     "v": "top"
@@ -1260,14 +1437,18 @@
         {
           "id": "preset-electronics-11",
           "type": "product-browser",
-          "version": 2,
+          "version": 3,
           "visible": true,
           "settings": {
             "title": "",
             "source": "all",
+            "categoryId": "",
+            "brandId": "",
+            "collectionId": "",
             "layout": "browser",
-            "rows": 2,
-            "desktopColumns": 5,
+            "endless": false,
+            "rows": 4,
+            "desktopColumns": 6,
             "productIds": [
               "6a92737baa34b8f92ac35f92",
               "6a91634e050bfb18a78dce06"
@@ -1327,7 +1508,7 @@
           "id": "4354e34a-8fc1-458b-a57d-fccdd3b2524a",
           "type": "become-vendor",
           "version": 1,
-          "visible": false,
+          "visible": true,
           "settings": {
             "image": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788674270237-s101px/Group_424.webp",
             "title": "Start Selling With Us Today",
@@ -1352,7 +1533,7 @@
           "id": "c27ef737-3a10-4520-a1fd-824fa326392d",
           "type": "promotion-banner",
           "version": 1,
-          "visible": true,
+          "visible": false,
           "settings": {
             "slides": [
               {
@@ -1364,15 +1545,27 @@
                   "tagline": false,
                   "price": false,
                   "cta": true,
+                  "cta2": false,
                   "countdown": false
                 },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
                 "texts": {
                   "tagline": "",
                   "heading": "Start Selling With Us Today",
                   "description": "Join our marketplace, manage products easily, accept secure payments, and grow your business faster.",
-                  "cta": "Become a Vendor"
+                  "cta": "Become a Vendor",
+                  "cta2": ""
                 },
                 "ctaVariant": "dark",
+                "cta2Variant": "outline",
                 "styles": {
                   "landscape": {
                     "heading": {
@@ -1389,8 +1582,10 @@
                   }
                 },
                 "link": "/become-vendor",
+                "link2": "",
                 "productId": "",
                 "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788674720458-4xee4l/Group_424.webp",
+                "artInFront": false,
                 "countdownEndsAt": "",
                 "reveal": "fade",
                 "background": {
@@ -1434,7 +1629,7 @@
           "id": "6d759b25-67f7-4c2d-b8b9-87de58002e3a",
           "type": "gap",
           "version": 1,
-          "visible": true,
+          "visible": false,
           "settings": {
             "height": 60
           },
@@ -1515,6 +1710,9 @@
           "type": "service-benefits",
           "version": 1,
           "visible": false,
+          "settings": {
+            "variant": "theme"
+          },
           "blocks": [
             {
               "id": "34e18efb-3d57-41a0-94dc-d7cbc36a8abd",
@@ -1570,14 +1768,14 @@
         }
       ],
       "publishedAt": {
-        "$date": "2026-09-07T09:13:08.702Z"
+        "$date": "2026-10-11T17:31:27.300Z"
       },
       "publishedBy": null
     },
     "templateType": "home",
     "title": "Home",
     "updatedAt": {
-      "$date": "2026-09-07T09:40:56.124Z"
+      "$date": "2026-10-11T17:31:27.301Z"
     }
   },
   {
@@ -1599,7 +1797,7 @@
           "settings": {
             "galleryLayout": "bottom",
             "rows": "[{\"id\":\"g1\",\"items\":[{\"key\":\"breadcrumb\",\"on\":true},{\"key\":\"brand\",\"on\":true},{\"key\":\"title\",\"on\":true},{\"key\":\"rating\",\"on\":true},{\"key\":\"vendor\",\"on\":true}]},{\"id\":\"g2\",\"items\":[{\"key\":\"price\",\"on\":true}]},{\"id\":\"g3\",\"items\":[{\"key\":\"variants\",\"on\":true}]},{\"id\":\"g4\",\"items\":[{\"key\":\"quantity-cart\",\"on\":true}]},{\"id\":\"g5\",\"items\":[{\"key\":\"description\",\"on\":true},{\"key\":\"details\",\"on\":true},{\"key\":\"faq\",\"on\":true}]},{\"id\":\"g6\",\"items\":[{\"key\":\"info-card\",\"on\":true},{\"key\":\"share\",\"on\":true}]}]",
-            "detailStyle": ""
+            "detailStyle": "{\"visibility\":{\"discountChip\":true,\"discountChipOnImage\":true,\"itemSold\":true,\"ratingCount\":true,\"ratingMinimized\":false,\"variantCount\":false,\"quantity\":true,\"zoom\":true,\"thumbnails\":true,\"accordionOpenFirst\":false},\"style\":{\"cardRadius\":12,\"cardPadding\":16,\"cardBackground\":\"\",\"cardBorder\":\"\",\"cardBorderWidth\":1,\"previewBackground\":\"\",\"previewHeight\":0,\"groupGap\":36,\"itemGap\":10,\"typography\":{},\"brandLogoHeight\":48,\"brandLogoMaxWidth\":224,\"galleryWidth\":50,\"stickyColumn\":true,\"contentMaxWidth\":0,\"galleryBleedLeft\":false,\"galleryBleedTop\":false,\"imageRadius\":8,\"imageGap\":16,\"imageFit\":\"contain\",\"imagePadding\":-1,\"thumbSize\":160,\"thumbRadius\":6,\"thumbActiveBorder\":\"\",\"actions\":\"both\",\"buttonHeight\":44,\"buttonLayout\":\"inline\",\"buttonCase\":\"theme\",\"cartLabel\":\"\",\"buyLabel\":\"\",\"cartBackground\":\"\",\"cartBorder\":\"\",\"cartBorderWidth\":0,\"cartRadius\":5,\"buyBackground\":\"\",\"buyBorder\":\"\",\"buyBorderWidth\":0,\"quantityBorder\":\"\",\"ratingColor\":\"\",\"stockBackground\":\"\",\"stockRadius\":8,\"inStockBackground\":\"\",\"inStockColor\":\"\",\"outOfStockBackground\":\"\",\"outOfStockColor\":\"\",\"preorderBackground\":\"\",\"preorderColor\":\"\",\"lowStockColor\":\"\",\"discountBackground\":\"\",\"discountColor\":\"\",\"discountRadius\":999,\"accordionIcon\":\"plus\",\"accordionDivider\":\"\",\"shareSize\":40,\"shareRadius\":8,\"shareBackground\":\"\",\"shareIconColor\":\"\",\"shareNetworks\":{\"facebook\":true,\"twitter\":true,\"whatsapp\":true,\"email\":true,\"copyLink\":true}}}"
           },
           "blocks": []
         },
@@ -1619,6 +1817,7 @@
           "type": "product-reviews",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         },
         {
@@ -1626,6 +1825,7 @@
           "type": "product-sponsored",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         },
         {
@@ -1656,15 +1856,27 @@
                   "tagline": false,
                   "price": false,
                   "cta": true,
+                  "cta2": false,
                   "countdown": false
                 },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
                 "texts": {
                   "tagline": "",
                   "heading": "MacBook Pro",
                   "description": "Market-specific assortments balancing contemporary styling, comfort, durability.\n",
-                  "cta": "Shop Now"
+                  "cta": "Shop Now",
+                  "cta2": ""
                 },
                 "ctaVariant": "dark",
+                "cta2Variant": "outline",
                 "styles": {
                   "landscape": {
                     "cta": {
@@ -1673,8 +1885,10 @@
                   }
                 },
                 "link": "",
+                "link2": "",
                 "productId": "",
                 "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787919226072-rx7uy6/image_866.webp",
+                "artInFront": false,
                 "countdownEndsAt": "",
                 "reveal": "fade",
                 "background": {
@@ -1716,7 +1930,7 @@
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-06T07:29:33.735Z"
+        "$date": "2026-10-11T12:57:40.953Z"
       },
       "updatedBy": null
     },
@@ -1732,7 +1946,7 @@
           "settings": {
             "galleryLayout": "bottom",
             "rows": "[{\"id\":\"g1\",\"items\":[{\"key\":\"breadcrumb\",\"on\":true},{\"key\":\"brand\",\"on\":true},{\"key\":\"title\",\"on\":true},{\"key\":\"rating\",\"on\":true},{\"key\":\"vendor\",\"on\":true}]},{\"id\":\"g2\",\"items\":[{\"key\":\"price\",\"on\":true}]},{\"id\":\"g3\",\"items\":[{\"key\":\"variants\",\"on\":true}]},{\"id\":\"g4\",\"items\":[{\"key\":\"quantity-cart\",\"on\":true}]},{\"id\":\"g5\",\"items\":[{\"key\":\"description\",\"on\":true},{\"key\":\"details\",\"on\":true},{\"key\":\"faq\",\"on\":true}]},{\"id\":\"g6\",\"items\":[{\"key\":\"info-card\",\"on\":true},{\"key\":\"share\",\"on\":true}]}]",
-            "detailStyle": ""
+            "detailStyle": "{\"visibility\":{\"discountChip\":true,\"discountChipOnImage\":true,\"itemSold\":true,\"ratingCount\":true,\"ratingMinimized\":false,\"variantCount\":false,\"quantity\":true,\"zoom\":true,\"thumbnails\":true,\"accordionOpenFirst\":false},\"style\":{\"cardRadius\":12,\"cardPadding\":16,\"cardBackground\":\"\",\"cardBorder\":\"\",\"cardBorderWidth\":1,\"previewBackground\":\"\",\"previewHeight\":0,\"groupGap\":36,\"itemGap\":10,\"typography\":{},\"brandLogoHeight\":48,\"brandLogoMaxWidth\":224,\"galleryWidth\":50,\"stickyColumn\":true,\"contentMaxWidth\":0,\"galleryBleedLeft\":false,\"galleryBleedTop\":false,\"imageRadius\":8,\"imageGap\":16,\"imageFit\":\"contain\",\"imagePadding\":-1,\"thumbSize\":160,\"thumbRadius\":6,\"thumbActiveBorder\":\"\",\"actions\":\"both\",\"buttonHeight\":44,\"buttonLayout\":\"inline\",\"buttonCase\":\"theme\",\"cartLabel\":\"\",\"buyLabel\":\"\",\"cartBackground\":\"\",\"cartBorder\":\"\",\"cartBorderWidth\":0,\"cartRadius\":5,\"buyBackground\":\"\",\"buyBorder\":\"\",\"buyBorderWidth\":0,\"quantityBorder\":\"\",\"ratingColor\":\"\",\"stockBackground\":\"\",\"stockRadius\":8,\"inStockBackground\":\"\",\"inStockColor\":\"\",\"outOfStockBackground\":\"\",\"outOfStockColor\":\"\",\"preorderBackground\":\"\",\"preorderColor\":\"\",\"lowStockColor\":\"\",\"discountBackground\":\"\",\"discountColor\":\"\",\"discountRadius\":999,\"accordionIcon\":\"plus\",\"accordionDivider\":\"\",\"shareSize\":40,\"shareRadius\":8,\"shareBackground\":\"\",\"shareIconColor\":\"\",\"shareNetworks\":{\"facebook\":true,\"twitter\":true,\"whatsapp\":true,\"email\":true,\"copyLink\":true}}}"
           },
           "blocks": []
         },
@@ -1742,7 +1956,8 @@
           "version": 1,
           "visible": true,
           "settings": {
-            "title": ""
+            "title": "",
+            "titleSize": "default"
           },
           "blocks": []
         },
@@ -1751,6 +1966,7 @@
           "type": "product-reviews",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         },
         {
@@ -1758,6 +1974,7 @@
           "type": "product-sponsored",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         },
         {
@@ -1767,7 +1984,8 @@
           "visible": true,
           "settings": {
             "title": "",
-            "variant": "electronics"
+            "variant": "electronics",
+            "titleSize": "default"
           },
           "blocks": []
         },
@@ -1787,15 +2005,27 @@
                   "tagline": false,
                   "price": false,
                   "cta": true,
+                  "cta2": false,
                   "countdown": false
                 },
+                "order": [
+                  "tagline",
+                  "heading",
+                  "description",
+                  "price",
+                  "countdown",
+                  "cta",
+                  "cta2"
+                ],
                 "texts": {
                   "tagline": "",
                   "heading": "MacBook Pro",
                   "description": "Market-specific assortments balancing contemporary styling, comfort, durability.\n",
-                  "cta": "Shop Now"
+                  "cta": "Shop Now",
+                  "cta2": ""
                 },
                 "ctaVariant": "dark",
+                "cta2Variant": "outline",
                 "styles": {
                   "landscape": {
                     "cta": {
@@ -1804,8 +2034,10 @@
                   }
                 },
                 "link": "",
+                "link2": "",
                 "productId": "",
                 "productImage": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1787919226072-rx7uy6/image_866.webp",
+                "artInFront": false,
                 "countdownEndsAt": "",
                 "reveal": "fade",
                 "background": {
@@ -1840,20 +2072,21 @@
             "heading": "",
             "subheading": "",
             "ctaLabel": "",
-            "link": ""
+            "link": "",
+            "titleSize": "default"
           },
           "blocks": []
         }
       ],
       "publishedAt": {
-        "$date": "2026-08-28T12:14:03.955Z"
+        "$date": "2026-10-11T12:57:40.953Z"
       },
       "publishedBy": null
     },
     "templateType": "product",
     "title": "Product",
     "updatedAt": {
-      "$date": "2026-09-06T07:29:33.735Z"
+      "$date": "2026-10-11T12:57:40.953Z"
     }
   },
   {
@@ -1917,6 +2150,7 @@
           "type": "header-bar",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         },
         {
@@ -1947,8 +2181,8 @@
               "type": "tag",
               "visible": true,
               "settings": {
-                "label": "Mobile Phones",
-                "url": "/categories/mobile-phones"
+                "label": "Phones",
+                "url": "/categories/phones"
               }
             },
             {
@@ -1974,8 +2208,8 @@
               "type": "tag",
               "visible": true,
               "settings": {
-                "label": "Cameras & Smart Home",
-                "url": "/categories/cameras-smart-home"
+                "label": "Cameras",
+                "url": "/categories/cameras"
               }
             },
             {
@@ -1991,7 +2225,7 @@
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-06T07:29:29.456Z"
+        "$date": "2026-10-11T12:57:40.953Z"
       },
       "updatedBy": null
     },
@@ -2050,6 +2284,7 @@
           "type": "header-bar",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         },
         {
@@ -2080,8 +2315,8 @@
               "type": "tag",
               "visible": true,
               "settings": {
-                "label": "Mobile Phones",
-                "url": "/categories/mobile-phones"
+                "label": "Phones",
+                "url": "/categories/phones"
               }
             },
             {
@@ -2107,8 +2342,8 @@
               "type": "tag",
               "visible": true,
               "settings": {
-                "label": "Cameras & Smart Home",
-                "url": "/categories/cameras-smart-home"
+                "label": "Cameras",
+                "url": "/categories/cameras"
               }
             },
             {
@@ -2124,13 +2359,13 @@
         }
       ],
       "publishedAt": {
-        "$date": "2026-09-05T20:39:10.464Z"
+        "$date": "2026-10-11T12:57:40.953Z"
       },
       "publishedBy": null
     },
     "title": "Header",
     "updatedAt": {
-      "$date": "2026-09-06T07:29:29.456Z"
+      "$date": "2026-10-11T12:57:40.953Z"
     }
   },
   {
@@ -2149,11 +2384,12 @@
           "type": "footer-bar",
           "version": 1,
           "visible": true,
+          "settings": {},
           "blocks": []
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-06T07:27:28.451Z"
+        "$date": "2026-10-11T12:57:40.953Z"
       },
       "updatedBy": null
     },
@@ -2166,17 +2402,80 @@
           "id": "preset-electronics-footer-1",
           "type": "footer-bar",
           "version": 1,
-          "visible": true
+          "visible": true,
+          "settings": {}
         }
       ],
       "publishedAt": {
-        "$date": "2026-08-27T17:51:28.520Z"
+        "$date": "2026-10-11T12:57:40.953Z"
       },
       "publishedBy": null
     },
     "title": "Footer",
     "updatedAt": {
-      "$date": "2026-09-06T07:27:28.451Z"
+      "$date": "2026-10-11T12:57:40.953Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6ac0a52cb1e0f775aa030108"
+    },
+    "key": "template:products:default",
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-10-03T06:48:08.645Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "products-main",
+          "type": "products-main",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "heading": "",
+            "titleAlign": "theme",
+            "breadcrumbAlign": "theme",
+            "filterLayout": "sidebar",
+            "featuredProducts": "theme",
+            "pagination": "theme",
+            "categoryStyle": "hidden",
+            "categoryAlign": "left",
+            "categorySource": "topLevel",
+            "categoryLimit": 12,
+            "categoryRadius": 12,
+            "categorySize": 0,
+            "categoryGap": 24,
+            "categoryIds": [],
+            "coverSlider": "",
+            "cover": {
+              "type": "solid"
+            },
+            "coverWidth": "contained",
+            "coverScope": "coverTitleCategories",
+            "coverText": "",
+            "coverHeight": 0,
+            "coverRadius": 16,
+            "coverOverlay": 0,
+            "coverBreadcrumb": true,
+            "variant": "theme",
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-10-03T06:48:17.285Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "kind": "template",
+    "published": null,
+    "templateType": "products",
+    "title": "Products",
+    "updatedAt": {
+      "$date": "2026-10-03T06:48:17.285Z"
     }
   }
 ]

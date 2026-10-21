@@ -1,5 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { CategoryForm } from "@/components/admin/category-form";
+import { getSettingsLean } from "@/models/settings.model";
+import { taxClassOptions } from "@/lib/tax/tax-settings";
 import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
 
 interface PageProps {
@@ -12,5 +14,8 @@ export default async function EditCategoryPage({ params }: PageProps) {
 
   await requireAdminPageAccess(locale);
 
-  return <CategoryForm categoryId={id} />;
+  // Settings → Tax's classes, for the category's tax picker.
+  const taxClasses = taxClassOptions((await getSettingsLean()).tax);
+
+  return <CategoryForm categoryId={id} taxClasses={taxClasses} />;
 }

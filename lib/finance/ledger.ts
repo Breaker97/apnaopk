@@ -20,6 +20,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { Types } from "mongoose";
 import { LedgerEntry, type LedgerSourceKind } from "@/models/ledger-entry.model";
 import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
+import { processSingleton } from "@/lib/process-singleton";
 import {
   LEDGER_ACCOUNT_TYPES,
   debitSign,
@@ -27,7 +28,7 @@ import {
   type LedgerBook,
 } from "@/lib/finance/accounts";
 
-const strictRecovery = new AsyncLocalStorage<boolean>();
+const strictRecovery = processSingleton("finance:strict-ledger", () => new AsyncLocalStorage<boolean>());
 export const withStrictLedger = <T>(work: () => Promise<T>) => strictRecovery.run(true, work);
 
 export interface LedgerPosting {

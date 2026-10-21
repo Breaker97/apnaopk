@@ -15,6 +15,7 @@ import { listingCoverBanner } from "@/components/store/sections/listing/cover-ba
 import {
   LISTING_GRID_COLUMNS_CLASS,
   LISTING_PREVIEW_ROW,
+  LISTING_SKELETON_COLUMNS_CLASS,
 } from "@/components/products/listing-view-constants";
 import { ListingShell } from "@/components/products/listing-view";
 import { ListingFeaturedProductsLazy as ListingFeaturedProducts } from "@/components/store/sections/listing/featured-products-lazy";
@@ -29,6 +30,8 @@ import { ProductsBreadcrumb } from "@/components/store/sections/listing/products
 import { ElectronicsSectionHeading } from "@/components/store/sections/themes/electronics-section-heading";
 import { getStorefrontOutOfStockDisplay } from "@/lib/catalog/product-visibility";
 import { fetchListingFeaturedProducts } from "@/lib/storefront/listing-featured";
+import { DEFAULT_LISTING_VIEW } from "@/lib/storefront/listing-view";
+import { readListingView } from "@/lib/storefront/read-listing-view";
 import { resolveStockFacet } from "@/lib/catalog/catalog-display";
 import {
   optionsFacet,
@@ -57,8 +60,12 @@ import type { ProductsTemplateResource } from "@/lib/storefront/sections/types";
 import { getStorefrontSettings } from "@/lib/storefront/storefront-settings";
 import { cn } from "@/lib/utils";
 
-/** A page of the numbered grid: 8 rows of the 4-column desktop grid. */
-const PAGE_SIZE = 32;
+/**
+ * A page of the numbered grid: 9 rows of the 4-column desktop grid, and whole
+ * rows at the other densities too (36 is 18 rows of 2, 6 of 6) — a full page
+ * never ends on a half-empty row whichever view is picked.
+ */
+const PAGE_SIZE = 36;
 
 /**
  * The products listing core — title, filters, sort toolbar and grid — under
@@ -117,6 +124,8 @@ export async function ProductsListing({
     // Opened on one category, the listing is that category's page: its
     // name for the title, its trail, its sub-departments in the row.
     listingCategory,
+    // The shopper's saved view; the builder's frame is not their page.
+    initialView,
   ] = await Promise.all([
     getStorefrontProductFilters(),
     getStorefrontProductBrands(),
@@ -124,6 +133,7 @@ export async function ProductsListing({
     getStorefrontSettings(),
     getStorefrontOutOfStockDisplay(),
     resolveListingCategory(resource.searchParams),
+    preview ? Promise.resolve(DEFAULT_LISTING_VIEW) : readListingView(),
   ]);
 
   const { showStockFacet, stockParam, stockSet } = resolveStockFacet(
@@ -460,6 +470,8 @@ export async function ProductsListing({
             <ListingShell
               viewLabel={t("common.view")}
               listLabel={t.has("productsPage.listView") ? t("productsPage.listView") : "List"}
+              initialView={initialView}
+              remember={!preview}
               actions={
                 layout.filterLayout === "filterButton" ? (
                   <ListingFilterBar facets={facets} layout="filterButton" />
@@ -492,6 +504,7 @@ export async function ProductsListing({
                 fallback={
                   <ProductSkeleton
                     count={preview ? LISTING_PREVIEW_ROW : paged ? PAGE_SIZE : 12}
+                    className={LISTING_SKELETON_COLUMNS_CLASS}
                   />
                 }
               >

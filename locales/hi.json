@@ -193,6 +193,18 @@
   "account": {
     "welcome": "वापसी पर स्वागत है, {name}!",
     "overviewDesc": "आपका खाता एक नज़र में",
+    "overview": {
+      "needsAttention": "आपके ध्यान की आवश्यकता है",
+      "actionNeeded": "कार्रवाई आवश्यक",
+      "addressTitle": "हम आपके पते पर डिलीवरी नहीं कर सकते",
+      "addressDeadline": "शिपिंग रुकी हुई है, कृपया {date} तक पता सुधारें",
+      "addressPaused": "पता सुधारे जाने तक शिपिंग रुकी हुई है",
+      "fixAddress": "पता ठीक करें",
+      "paymentDue": "भुगतान बाकी",
+      "payBy": "{date} तक भुगतान करें",
+      "moreInProgress": "{count} और प्रगति में",
+      "plusMore": "+{count} और"
+    },
     "totalOrders": "कुल ऑर्डर",
     "pendingOrders": "लंबित ऑर्डर",
     "wishlistItems": "इच्छा सूची आइटम",
@@ -312,6 +324,10 @@
     "marketingPreferences": "मार्केटिंग प्राथमिकताएँ",
     "marketingOptIn": "मार्केटिंग ईमेल",
     "marketingOptInDesc": "मार्केटिंग संचार और विशेष ऑफ़र प्राप्त करें",
+    "groupOrders": "आपके ऑर्डर",
+    "groupWishlist": "आपकी विशलिस्ट",
+    "groupNews": "समाचार और ऑफ़र",
+    "marketingOptInHint": "सभी मार्केटिंग ईमेल से सदस्यता छोड़ने के लिए इसे बंद करें।",
     "totalSpent": "कुल खर्च",
     "avgOrderValue": "औसत ऑर्डर मूल्य",
     "memberSince": "सदस्य बनने की तिथि",
@@ -377,6 +393,7 @@
     "wishlist": "इच्छा सूची",
     "blog": "ब्लॉग",
     "getHelp": "मदद प्राप्त करें",
+    "inbox": "इनबॉक्स",
     "vendors": "विक्रेता"
   },
   "productsPage": {
@@ -413,7 +430,10 @@
     "featuredProducts": "फ़ीचर्ड उत्पाद"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "खोजें श्रेणियाँ..."
+    "searchPlaceholder": "खोजें श्रेणियाँ...",
+    "count": "{count, plural, one {# श्रेणी} other {# श्रेणियाँ}}",
+    "perRowGroup": "प्रति पंक्ति श्रेणियाँ",
+    "perRow": "प्रति पंक्ति {count}"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# उत्पाद} other {# उत्पाद}}",
@@ -500,6 +520,7 @@
     "heroSubtitle": "सत्यापित विक्रेताओं से शानदार उत्पाद खोजें। भरोसे के साथ खरीदें और सहज डिलीवरी का आनंद लें।",
     "shopByCategory": "श्रेणी के अनुसार खरीदें",
     "shopByCategoryDescription": "श्रेणियों के अनुसार व्यवस्थित हमारे उत्पादों की विस्तृत रेंज देखें",
+    "shopAllInCategory": "{name} में सब देखें",
     "viewAllCategories": "सभी श्रेणियाँ देखें",
     "whyChooseUs": "{storeName} क्यों चुनें?",
     "whyChooseUsDescription": "हम आपके लिए बनाई गई सुविधाओं के साथ बेहतरीन शॉपिंग अनुभव देते हैं",
@@ -607,7 +628,8 @@
     "color": "रंग",
     "colors": "रंग",
     "size": "आकार",
-    "itemsSold": "{count} बेचे गए"
+    "itemsSold": "{count} बेचे गए",
+    "percentOff": "{percent}% छूट"
   },
   "reviews": {
     "basedOn": "{count} समीक्षाओं के आधार पर",
@@ -925,7 +947,6 @@
     "notificationSettingsDesc": "ईमेल और पुश सूचनाएँ प्रबंधित करें",
     "accountSettings": "खाता सेटिंग्स",
     "accountSettingsDesc": "अपने व्यक्तिगत खाते का विवरण प्रबंधित करें",
-    "viewStore": "View Store",
     "viewOrders": "ऑर्डर",
     "productSummary": "उत्पाद स्थिति",
     "active": "सक्रिय",
@@ -1135,7 +1156,17 @@
       "socialUrl": "लिंक",
       "socialAdd": "लिंक जोड़ें",
       "socialRemove": "लिंक हटाएँ",
-      "shareButtons": "शेयर बटन"
+      "shareButtons": "शेयर बटन",
+      "changeEmail": "बदलें",
+      "changeEmailTitle": "अपना ईमेल बदलें",
+      "changeEmailDescription": "अब आप नए ईमेल से साइन इन करेंगे। हम आपके मौजूदा ईमेल पर इस बदलाव की सूचना भेजेंगे।",
+      "newEmail": "नया ईमेल",
+      "currentPasswordForEmail": "मौजूदा पासवर्ड",
+      "updateEmail": "ईमेल अपडेट करें",
+      "emailChanged": "ईमेल अपडेट हो गया। अब से अपने नए ईमेल से साइन इन करें।",
+      "emailChangeFailed": "ईमेल अपडेट नहीं हो सका",
+      "phoneInvalid": "मान्य फ़ोन नंबर दर्ज करें",
+      "payoutScheduleHint": "आपके पेआउट वाले दिन, जब तैयार राशि आपकी और स्टोर की न्यूनतम सीमा तक पहुँच जाती है, तो स्टोर उसका पेआउट तैयार करता है। फिर स्टोर उसे ऊपर दिए खाते में भेजता है।"
     },
     "untitledProduct": "बिना शीर्षक का उत्पाद",
     "dashboardWidgets": {
@@ -1308,6 +1339,78 @@
     },
     "activityLog": {
       "title": "गतिविधि लॉग"
+    },
+    "payoutDetail": {
+      "back": "पेआउट",
+      "period": "{start} – {end} के बीच ऑर्डर हुई बिक्री",
+      "noteFromStore": "स्टोर का नोट",
+      "grossSales": "सकल बिक्री",
+      "grossSalesHint": "नीचे दिए ऑर्डर में आपका हिस्सा",
+      "commission": "कमीशन",
+      "shipping": "डिलीवरी शुल्क",
+      "shippingHint": "आपके डिलीवर किए पार्सल के लिए खरीदारों से लिया गया",
+      "adjustment": {
+        "recoveryDeducted": "रिफ़ंड वसूली",
+        "recoveryDeductedHint": "पहले आपको दिया गया था, उन ऑर्डर पर जो बाद में रिफ़ंड हुए",
+        "recoveryReturned": "वसूली लौटाई गई",
+        "recoveryReturnedHint": "पहले वसूला गया रिफ़ंड पूर्ववत हुआ",
+        "reserveHeld": "प्री-ऑर्डर रिज़र्व रोका गया",
+        "reserveHeldHint": "देर से आने वाले चार्जबैक के लिए रोका गया",
+        "reserveReleased": "प्री-ऑर्डर रिज़र्व जारी हुआ",
+        "reserveReleasedHint": "पिछले पेआउट में रोका गया था, अब जारी हुआ",
+        "reserveCreditDeducted": "रिज़र्व वसूला गया",
+        "reserveCreditDeductedHint": "जारी हुआ रिज़र्व जिसका पेआउट वापस आ गया",
+        "reserveCreditReturned": "रिज़र्व वसूली लौटाई गई",
+        "reserveCreditReturnedHint": "उसका पेआउट दोबारा भुगतान होने के बाद लौटाया गया",
+        "commissionOffset": "नकद बिक्री पर कमीशन",
+        "commissionOffsetHint": "जिन बिक्रियों का पैसा आपने खुद लिया उन पर बकाया, इनवॉइस के बजाय यहाँ निपटाया गया",
+        "commissionCredit": "नकद बिक्री पर स्टोर के प्रमोशन",
+        "commissionCreditHint": "आपके बकाया कमीशन से ज़्यादा छूट, जिसका भुगतान स्टोर ने किया"
+      },
+      "reserveUntil": "{date} को जारी होगा",
+      "otherAdjustments": "अन्य समायोजन",
+      "otherAdjustmentsHint": "रिफ़ंड वसूली और प्री-ऑर्डर रिज़र्व की गतिविधियाँ",
+      "netPayout": "शुद्ध पेआउट",
+      "sentOn": "{date} को भेजा गया",
+      "reference": "संदर्भ {reference}",
+      "returnedOn": "{date} को वापस आया — इसकी बिक्री फिर से आपके बैलेंस में है",
+      "history": "क्या हुआ",
+      "returnedStep": "पैसा वापस आया",
+      "orders": "इस पेआउट के ऑर्डर",
+      "order": "ऑर्डर",
+      "placed": "ऑर्डर की तारीख",
+      "yourShare": "आपका हिस्सा",
+      "afterCommission": "कमीशन के बाद",
+      "noOrders": "इस पेआउट से कोई ऑर्डर जुड़ा नहीं है।"
+    },
+    "suspendedMoney": {
+      "title": "आपका पैसा",
+      "frozen": "आपका खाता निलंबित रहने तक पेआउट रुके हुए हैं। आपकी बिक्री गिनी जाती रहेगी और पहुँच बहाल होने पर भुगतान होगा।",
+      "ready": "पेआउट के लिए तैयार",
+      "held": "अभी रास्ते में या रिटर्न अवधि में",
+      "payouts": "हाल के पेआउट",
+      "status": {
+        "pending": "लंबित",
+        "processing": "प्रसंस्करण में",
+        "paid": "भुगतान किया गया",
+        "failed": "विफल",
+        "cancelled": "रद्द"
+      }
+    },
+    "commissionCard": {
+      "canceled": "भुगतान रद्द हुआ। इनवॉइस अभी भी खुला है।",
+      "settled": "कमीशन इनवॉइस चुका दिया गया।",
+      "pendingInfo": "भुगतान अभी प्रोसेस हो रहा है — पुष्टि होते ही इनवॉइस अपने आप चुक जाएगा।",
+      "verifyFailed": "हम अभी तक उस भुगतान की पुष्टि नहीं कर सके।",
+      "pollTimeout": "हम अभी तक भुगतान की पुष्टि नहीं कर सके। पुष्टि होते ही इनवॉइस अपने आप चुक जाएगा।",
+      "checkPhone": "अपना फ़ोन देखें और भुगतान अनुरोध स्वीकृत करें।",
+      "failed": "भुगतान शुरू नहीं हो सका",
+      "title": "आप पर बकाया कमीशन",
+      "subtitle": "उन बिक्रियों पर कमीशन जिनका पैसा आपने खुद लिया — नकद, COD या अपने टर्मिनल से — इसलिए इसे पेआउट से नहीं काटा जा सका।",
+      "payNow": "अभी भुगतान करें",
+      "noMethods": "इसके लिए कोई भुगतान तरीका उपलब्ध नहीं है। किसी और तरीके से चुकाने के लिए मार्केटप्लेस एडमिन से संपर्क करें।",
+      "dialogTitle": "कमीशन चुकाएँ",
+      "continue": "भुगतान पर जाएँ"
     }
   },
   "adminProfile": {
@@ -1927,7 +2030,6 @@
       "themes": "थीम्स",
       "pages": "पेज",
       "pos": "पॉइंट ऑफ सेल",
-      "posStaff": "स्टाफ",
       "posLocations": "स्थान",
       "addPage": "पेज जोड़ें",
       "dashboard": "डैशबोर्ड",
@@ -1946,6 +2048,7 @@
       "customize": "कस्टमाइज़ करें",
       "finance": "वित्त",
       "financeOverview": "अवलोकन",
+      "inventoryLedger": "इन्वेंटरी और लेजर",
       "expenses": "व्यय",
       "receivables": "प्राप्य राशि",
       "financeReports": "रिपोर्ट",
@@ -1967,6 +2070,7 @@
       "returns": "रिटर्न",
       "shipping": "शिपिंग",
       "sliders": "स्लाइडर",
+      "campaignBanners": "कैंपेन बैनर",
       "staff": "टीम",
       "toggle": "साइडबार दिखाएँ या छिपाएँ",
       "vendorConfiguration": "कॉन्फ़िगरेशन",
@@ -2397,7 +2501,7 @@
             "ses": "Amazon SES",
             "other": "अन्य"
           },
-          "docs": "पूरी गाइड: docs/EMAIL_SETUP.md",
+          "docs": "पूरी गाइड: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "जिस Google खाते से आप भेजेंगे, उसमें 2-Step Verification चालू करें।",
             "step2": "{storeName} नाम से एक ऐप पासवर्ड बनाएँ और 16 अक्षरों वाला पासवर्ड कॉपी करें। Google इसे सिर्फ़ एक बार दिखाता है।",
@@ -2749,7 +2853,20 @@
         "soundPayment": "भुगतान स्वीकृत",
         "soundOrderComplete": "बिक्री पूर्ण",
         "soundError": "त्रुटि या स्टॉक चेतावनी",
-        "soundPlay": "ध्वनि चलाएँ: {sound}"
+        "soundPlay": "ध्वनि चलाएँ: {sound}",
+        "offlineWindow": "ऑफ़लाइन बिक्री अवधि",
+        "offlineWindowHint": "सर्वर तक आख़िरी बार पहुँचने के बाद कोई रजिस्टर बिना कनेक्शन के कितनी देर तक बिक्री करता रहेगा। उसके बाद यह तब तक लॉक रहेगा जब तक दोबारा साइन इन न कर सके। {min} से {max} घंटे के बीच।",
+        "offlineWindowUnit": "घंटे",
+        "allowDeposits": "अग्रिम राशि की अनुमति दें",
+        "allowDepositsDesc": "ग्राहक जुड़ी बिक्री पर रजिस्टर अभी बिक्री का कुछ हिस्सा और बाकी बाद में ले सकता है। सामान अलग रखा जाता है, और पूरा भुगतान होने पर बिक्री दर्ज होती है।",
+        "requireOpenRegister": "बेचने के लिए दराज़ खुली होना ज़रूरी",
+        "requireOpenRegisterDesc": "बिक्री लेने से पहले हर रजिस्टर को फ़्लोट के साथ अपनी दराज़ खोलनी होगी, ताकि हर बिक्री ऐसे सत्र में जाए जिसे बंद करते समय गिना जाता है।",
+        "pricesIncludeTax": "कीमतों में टैक्स शामिल",
+        "openCashDrawer": "कैश दराज़ खोलें",
+        "openCashDrawerDesc": "काउंटर पर नकद लेन-देन होने पर कैश दराज़ खोल दें। इसके लिए QZ Tray और दराज़ पोर्ट वाला रसीद प्रिंटर चाहिए; हर रजिस्टर अपने दराज़ मेनू से प्रिंटर चुनता है।",
+        "pricesIncludeTaxMovedOn": "चालू: शेल्फ की कीमतों में टैक्स पहले से शामिल है। यह स्विच अब टैक्स सेटिंग्स में है।",
+        "pricesIncludeTaxMovedOff": "बंद: शेल्फ की कीमतों पर टैक्स जोड़ा जाता है। यह स्विच अब टैक्स सेटिंग्स में है।",
+        "pricesIncludeTaxLink": "टैक्स सेटिंग्स खोलें"
       },
       "vendorPermissions": {
         "title": "मार्केटप्लेस नीति",
@@ -2775,9 +2892,8 @@
       },
       "orders": {
         "title": "ऑर्डर सेटिंग्स",
-        "description": "ऑर्डर नंबर, टैक्स और रिटर्न।",
+        "description": "ऑर्डर नंबर, शिपिंग और रिटर्न।",
         "prefix": "ऑर्डर नंबर प्रीफ़िक्स",
-        "taxRate": "टैक्स दर",
         "shippingCost": "स्टैंडर्ड शिपिंग",
         "freeShippingThreshold": "मुफ़्त शिपिंग के लिए न्यूनतम ऑर्डर",
         "shippingHandledByZones": "दरें आपके शिपिंग ज़ोन से आती हैं।",
@@ -2825,7 +2941,6 @@
         "shippingRefundNever": "कभी नहीं",
         "ordersHeading": "ऑर्डर",
         "prefixExample": "ऑर्डर नंबर <strong>{example}</strong> जैसे दिखेंगे।",
-        "taxRateHint": "चेकआउट और POS में ऑर्डर पर जोड़ा जाता है।",
         "shipping": "शिपिंग",
         "shippingLink": "शिपिंग और डिलीवरी",
         "shippingCostHint": "शिपिंग ज़ोन बंद रहने पर हर ऑर्डर डिलीवरी के लिए जितना चुकाता है।",
@@ -2841,7 +2956,18 @@
         "commissionSummaryLabel": "कमीशन और न्यूनतम भुगतान",
         "commissionSummary": "{rate}% कमीशन, न्यूनतम भुगतान {amount}।",
         "vendorConfigLink": "विक्रेता कॉन्फ़िगरेशन",
-        "refundAdminFeeUpTo": "%, अधिकतम"
+        "refundAdminFeeUpTo": "%, अधिकतम",
+        "tax": "टैक्स",
+        "taxMoved": "टैक्स दरें, टैक्स क्लास और आपका रजिस्ट्रेशन अब टैक्स सेटिंग्स में हैं।",
+        "taxLink": "टैक्स सेटिंग्स खोलें"
+      },
+      "invoices": {
+        "title": "चालान सेटिंग्स",
+        "entry": {
+          "title": "चालान, रसीदें और स्टिकर",
+          "description": "अपनी दुकान जो प्रिंट करती है उसे डिज़ाइन करें और हर प्रकार का डिफ़ॉल्ट टेम्पलेट चुनें।",
+          "action": "चालान सेटिंग्स खोलें"
+        }
       },
       "storage": {
         "title": "स्टोरेज सेटिंग्स",
@@ -2903,7 +3029,7 @@
         },
         "setup": {
           "title": "{provider} सेटअप गाइड",
-          "docs": "पूरी गाइड: docs/STORAGE_SETUP.md",
+          "docs": "पूरी गाइड: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "कॉपी",
           "copyFailed": "कॉपी नहीं हो सका",
           "console": {
@@ -3033,7 +3159,7 @@
           "step6": "पहले फ़ेच के बाद, Catalog → Issues में वे सभी आइटम दिखते हैं जिन्हें Meta ने अस्वीकार किया है।",
           "caution": "नया URL बनाने के बाद, मौजूदा डेटा सोर्स का URL बदलें। दूसरा डेटा सोर्स हर प्रोडक्ट को दो बार दिखाएगा।",
           "link": "Commerce Manager खोलें",
-          "docs": "पूरी गाइड: docs/META_CATALOG.md"
+          "docs": "पूरी गाइड: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "Meta के Catalog API के ज़रिए Facebook और Instagram को आपके प्रोडक्ट में हुए बदलाव कुछ ही मिनटों में मिल जाते हैं।",
         "source": {
@@ -3113,7 +3239,7 @@
             "caution": "टोकन को पासवर्ड की तरह संभालें। अगर इसे रद्द किया जाता है या इसकी समय-सीमा खत्म हो जाती है, तो लाइव सिंक रुक जाता है और एडमिन को सूचना दी जाती है।",
             "off": "लाइव सिंक बंद करने पर Meta में पहले से मौजूद आइटम जैसे हैं वैसे ही रहते हैं। अगर अब आपको उनकी ज़रूरत नहीं है, तो उन्हें Commerce Manager में हटा दें।",
             "link": "Business settings खोलें",
-            "docs": "पूरी गाइड: docs/META_CATALOG.md"
+            "docs": "पूरी गाइड: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -3632,11 +3758,13 @@
           "byCurrencyLabel": "दूसरी मुद्राओं में न्यूनतम",
           "byCurrencyRemove": "{currency} की न्यूनतम सीमा हटाएँ",
           "description": "बिना प्लान वाले विक्रेताओं पर लागू होता है। ऑर्डर सेटिंग्स में भी संपादित किया जा सकता है।",
-          "minWithdrawalDescription": "सबसे कम बैलेंस जिसे विक्रेता भुगतान के रूप में माँग सकता है, आपके स्टोर की मुद्रा में।",
+          "minWithdrawalDescription": "सबसे छोटा बैलेंस जिस पर पेआउट किया जाता है, आपके स्टोर की मुद्रा में।",
           "minWithdrawalLabel": "न्यूनतम निकासी राशि",
           "rateDescription": "हर विक्रेता बिक्री पर प्लेटफ़ॉर्म जितना प्रतिशत रखता है।",
           "rateLabel": "कमीशन दर",
-          "title": "डिफ़ॉल्ट कमीशन"
+          "title": "डिफ़ॉल्ट कमीशन",
+          "autoPayoutDraftsLabel": "हर विक्रेता के शेड्यूल पर पेआउट तैयार करें",
+          "autoPayoutDraftsDescription": "विक्रेता के पेआउट वाले दिन (साप्ताहिक, हर दो हफ़्ते या मासिक, जैसा उन्होंने चुना) जब चुकाने लायक राशि हो तो पेआउट तैयार किया जाता है। पैसा भेजना और उसे भुगतान हुआ चिह्नित करना आपको ही करना है।"
         },
         "description": "विक्रेताओं के पंजीकरण, मंज़ूरी और सब्सक्रिप्शन प्लान की नीति।",
         "documents": {
@@ -3939,6 +4067,10 @@
             "preorderAccess": {
               "title": "प्री-ऑर्डर अनुमति",
               "hint": "स्वीकृत, अस्वीकृत या वापस ली गई"
+            },
+            "payouts": {
+              "title": "पेआउट",
+              "hint": "तैयार, भेजा गया, वापस आया या रद्द"
             }
           },
           "customer": {
@@ -4104,6 +4236,221 @@
       "saveBar": {
         "unsaved": "असहेजे बदलाव",
         "discard": "हटाएँ"
+      },
+      "tax": {
+        "title": "टैक्स सेटिंग्स",
+        "description": "आप क्या टैक्स लगाते हैं, कहाँ रजिस्टर्ड हैं, और टैक्स की गणना कैसे होती है।",
+        "tabsLabel": "टैक्स सेटिंग्स के सेक्शन",
+        "moreOptions": "और विकल्प",
+        "tabs": {
+          "rates": "दरें",
+          "registration": "रजिस्ट्रेशन",
+          "calculation": "गणना",
+          "vendors": "विक्रेता"
+        },
+        "links": {
+          "report": "टैक्स रिपोर्ट",
+          "invoices": "इनवॉइस सेटिंग्स"
+        },
+        "registrationMissingLabel": "रजिस्ट्रेशन नंबर नहीं है",
+        "rates": {
+          "description": "हर क्लास पर कितना टैक्स लगता है। जिन उत्पादों की कोई क्लास नहीं है, उन पर स्टैंडर्ड दर लगती है।",
+          "notCharging": "टैक्स नहीं लिया जा रहा है",
+          "notChargingHint": "हर दर 0% है, इसलिए किसी बिक्री पर टैक्स नहीं लगता। टैक्स लगाना शुरू करने के लिए नीचे स्टैंडर्ड दर सेट करें।",
+          "removedClass": "कुछ उत्पाद ऐसी क्लास का उपयोग करते हैं जो अब मौजूद नहीं है",
+          "removedClassHint": "{products, plural, one {# उत्पाद} other {# उत्पाद}} और {categories, plural, one {# श्रेणी} other {# श्रेणियाँ}} एक हटाई गई क्लास में रखे गए हैं, इसलिए उन पर स्टैंडर्ड दर लगती है। उनके एडिटर में जाकर उनके लिए कोई क्लास चुनें।",
+          "default": "डिफ़ॉल्ट",
+          "partsBadge": "{count, plural, one {# भाग} other {# भाग}}",
+          "neverCharged": "कभी टैक्स नहीं लगता",
+          "noRate": "अभी कोई दर नहीं। जब तक आप दर सेट नहीं करते, स्टैंडर्ड दर लगती है।",
+          "rateLabel": "{name} की दर",
+          "rateTotalLabel": "{name} की दर, उसके भागों का कुल योग",
+          "expandLabel": "{name} के विकल्प",
+          "usageProducts": "{count, plural, one {# उत्पाद} other {# उत्पाद}}",
+          "usageCategories": "{count, plural, one {# श्रेणी} other {# श्रेणियाँ}}",
+          "next": "{date} को {rate} हो जाएगी",
+          "name": "नाम",
+          "note": "नोट",
+          "optional": "वैकल्पिक",
+          "notePlaceholder": "इस क्लास में क्या आता है",
+          "partsTitle": "दर के भाग",
+          "total": "कुल {rate}",
+          "partName": "भाग का नाम",
+          "partRate": "भाग की दर",
+          "partPlaceholder1": "राज्य",
+          "partPlaceholder2": "काउंटी",
+          "partPlaceholder3": "शहर",
+          "compound": "ऊपर के भागों के ऊपर लगता है",
+          "compoundHint": "भाग आपस में जुड़ते हैं, जैसे राज्य, काउंटी और शहर का सेल्स टैक्स जुड़ता है। ऊपर से लगने वाले भाग की गणना कीमत और उसके ऊपर के भागों को मिलाकर होती है।",
+          "addPart": "भाग जोड़ें",
+          "splitIntoParts": "भागों में बाँटें",
+          "removePart": "यह भाग हटाएँ",
+          "scheduleTitle": "शेड्यूल किया गया बदलाव",
+          "scheduleAdd": "बदलाव शेड्यूल करें",
+          "startsOn": "शुरू होने की तारीख",
+          "newRate": "नई दर",
+          "removeScheduled": "यह शेड्यूल किया गया बदलाव हटाएँ",
+          "earlierTitle": "पिछली दरें",
+          "earlierLine": "{date} से {rate}",
+          "fromStart": "शुरुआत से",
+          "removeEarlier": "यह पिछली दर हटाएँ",
+          "removeClass": "क्लास हटाएँ",
+          "removeClassInUse": "{products, plural, one {# उत्पाद} other {# उत्पाद}} और {categories, plural, one {# श्रेणी} other {# श्रेणियाँ}} इस क्लास का उपयोग करते हैं। इसे हटाने के बाद उन पर स्टैंडर्ड दर लगेगी।",
+          "removeClassHint": "इसके साथ इसकी दरें भी हट जाएँगी।",
+          "addClass": "क्लास जोड़ें",
+          "newName": "क्लास का नाम",
+          "newNamePlaceholder": "किताबें",
+          "classRate": "दर",
+          "add": "क्लास जोड़ें",
+          "cancel": "रद्द करें",
+          "full": "आप अधिकतम {count} क्लास जोड़ सकते हैं।",
+          "untaxedNote": "{count, plural, one {# उत्पाद} other {# उत्पाद}} पर टैक्स न लगाने के लिए सेट है।",
+          "customNote": "{products, plural, one {# उत्पाद} other {# उत्पाद}} और {categories, plural, one {# श्रेणी} other {# श्रेणियाँ}} की अपनी कस्टम दर सेट है। यह दर यहाँ की दरों के साथ नहीं बदलती; इन्हें किसी क्लास में रखने पर ये उनके साथ बनी रहती हैं।"
+        },
+        "registration": {
+          "description": "जहाँ आपका स्टोर टैक्स के लिए रजिस्टर्ड है। हर बिक्री पर इसी क्षेत्र की दरों से टैक्स लगता है।",
+          "missing": "कोई रजिस्ट्रेशन नंबर नहीं",
+          "missingHint": "आप टैक्स ले रहे हैं, लेकिन आपने अपना टैक्स रजिस्ट्रेशन, जैसे सेल्स टैक्स परमिट नंबर, नहीं जोड़ा है।",
+          "country": "देश",
+          "name": "क्षेत्र का नाम",
+          "optional": "वैकल्पिक",
+          "nameHint": "इसे खाली छोड़ने पर देश का नाम दिखाया जाता है।",
+          "registrationLabel": "रजिस्ट्रेशन का नाम",
+          "registrationLabelPlaceholder": "सेल्स टैक्स परमिट",
+          "registrationLabelHint": "आपका टैक्स प्राधिकरण इसे जिस नाम से पुकारता है: सेल्स टैक्स परमिट, विक्रेता परमिट।",
+          "registrationNumber": "रजिस्ट्रेशन नंबर",
+          "registrationNumberHint": "आपके टैक्स प्राधिकरण द्वारा आपको जारी किया गया नंबर।"
+        },
+        "calculation": {
+          "posTitle": "पॉइंट ऑफ़ सेल",
+          "posDescription": "काउंटर पर शेल्फ की कीमतें कैसे पढ़ी जाती हैं।",
+          "posPricesIncludeTax": "शेल्फ की कीमतों में टैक्स शामिल",
+          "posPricesIncludeTaxDesc": "काउंटर शेल्फ पर लिखी कीमत ही लेता है और टैक्स ऊपर से जोड़ने के बजाय उसी कीमत के अंदर दिखाता है।",
+          "rulesTitle": "टैक्स की गणना कैसे होती है",
+          "rulesDescription": "ये नियम हर बिक्री पर लागू होते हैं। यहाँ कुछ सेट करने की ज़रूरत नहीं है।",
+          "chainTitle": "किसी उत्पाद पर इनमें से पहली सेट की गई दर लगती है",
+          "chain": {
+            "own": "उसकी अपनी कस्टम दर",
+            "class": "उसकी टैक्स क्लास",
+            "category": "उसकी श्रेणी की दर",
+            "standard": "स्टैंडर्ड दर"
+          },
+          "facts": {
+            "online": {
+              "label": "ऑनलाइन स्टोर",
+              "text": "ऑनलाइन स्टोर में कीमतें बिना टैक्स के दिखाई जाती हैं; टैक्स चेकआउट पर जोड़ा जाता है।"
+            },
+            "discounts": {
+              "label": "छूट",
+              "text": "छूट और कूपन के बाद ग्राहक जितना भुगतान करता है, उस पर टैक्स लगता है।"
+            },
+            "shipping": {
+              "label": "शिपिंग",
+              "text": "शिपिंग और कस्टम ड्यूटी पर टैक्स नहीं लगता।"
+            },
+            "region": {
+              "label": "क्षेत्र",
+              "text": "ग्राहक का पता कहीं का भी हो, हर बिक्री पर आपके क्षेत्र की दरों से टैक्स लगता है।"
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "स्टैंडर्ड",
+            "description": "ज़्यादातर सामान। इसकी दर ही आपके स्टोर की टैक्स दर है।"
+          },
+          "reduced": {
+            "name": "कम दर",
+            "description": "वे सामान जिन पर कानून के अनुसार कम दर से टैक्स लगता है।"
+          },
+          "zero": {
+            "name": "शून्य दर",
+            "description": "टैक्स योग्य सामान, जिन पर 0% लगता है।"
+          },
+          "exempt": {
+            "name": "छूट प्राप्त",
+            "description": "वे सामान जो पूरी तरह टैक्स के दायरे से बाहर हैं।"
+          }
+        },
+        "picker": {
+          "label": "टैक्स",
+          "inheritCategory": "इसकी श्रेणी के समान",
+          "inheritParent": "इसकी मूल श्रेणी के समान",
+          "custom": "कस्टम दर",
+          "customRate": "कस्टम टैक्स दर",
+          "customHint": "कस्टम दर हर क्लास से ऊपर मानी जाती है और टैक्स सेटिंग्स में किए गए दर बदलावों के साथ नहीं बदलती।",
+          "hint": "दर क्लास से तय होती है, जिसे सेटिंग्स → टैक्स सेटिंग्स में सेट किया जाता है।",
+          "removedClass": "{key} (हटाई गई: स्टैंडर्ड दर)"
+        },
+        "vendors": {
+          "policyTitle": "विक्रेताओं के उत्पादों का टैक्स",
+          "policyDescription": "आपके मार्केटप्लेस में वसूले गए टैक्स की ज़िम्मेदारी आपके स्टोर की है। चुनें कि विक्रेता के उत्पादों का टैक्स कौन बदल सकता है: टैक्स लें, टैक्स क्लास और कस्टम दरें।",
+          "policy": {
+            "approval": "आपकी स्वीकृति से",
+            "approvalHint": "विक्रेता अनुरोध भेजते हैं, और आप नीचे उसे स्वीकृत या अस्वीकार करते हैं। तब तक उनके उत्पादों का टैक्स वही रहता है।",
+            "never": "सिर्फ़ आप",
+            "neverHint": "विक्रेता अपने उत्पादों का टैक्स देख सकते हैं, लेकिन उसे न बदल सकते हैं और न ही बदलाव का अनुरोध कर सकते हैं।",
+            "free": "विक्रेता खुद",
+            "freeHint": "विक्रेता बिना पूछे अपने उत्पादों का टैक्स बदलते हैं।"
+          },
+          "requestsTitle": "टैक्स बदलाव के अनुरोध",
+          "requestsDescription": "स्वीकृत करने पर अनुरोध के हर उत्पाद पर मांगा गया टैक्स लग जाता है। अस्वीकार करने पर टैक्स वही रहता है और विक्रेता को कारण बताया जाता है।",
+          "pendingTab": "लंबित",
+          "decidedTab": "जवाब दिए गए",
+          "loading": "अनुरोध लोड हो रहे हैं…",
+          "empty": "कोई अनुरोध लंबित नहीं है।",
+          "emptyDecided": "अभी तक किसी अनुरोध का जवाब नहीं दिया गया है।",
+          "loadFailed": "अनुरोध लोड नहीं हो सके",
+          "unknownStore": "अज्ञात स्टोर",
+          "requestedOn": "{date} को अनुरोध किया गया",
+          "asksFor": "मांगा गया",
+          "now": "अभी {tax}",
+          "moreProducts": "{count, plural, one {और # अन्य उत्पाद} other {और # अन्य उत्पाद}}",
+          "reason": "कारण",
+          "noteLabel": "विक्रेता के लिए नोट",
+          "noteRequiredHint": "अस्वीकार करने के लिए ज़रूरी",
+          "optional": "वैकल्पिक",
+          "notePlaceholder": "विक्रेता के लिए एक छोटा नोट",
+          "addNote": "नोट जोड़ें",
+          "noteRequired": "नोट लिखें ताकि विक्रेता को कारण पता चले",
+          "approve": "स्वीकृत करें",
+          "decline": "अस्वीकार करें",
+          "cancel": "रद्द करें",
+          "sendDecline": "अस्वीकृति भेजें",
+          "approvedToast": "टैक्स बदलाव स्वीकृत किया गया",
+          "declinedToast": "अनुरोध अस्वीकार किया गया",
+          "decisionFailed": "निर्णय सेव नहीं हो सका",
+          "pending": "लंबित",
+          "approved": "स्वीकृत",
+          "declined": "अस्वीकृत",
+          "withdrawn": "वापस लिया गया",
+          "decisionNote": "नोट: {note}"
+        },
+        "request": {
+          "notCharged": "टैक्स नहीं लिया जाता",
+          "inherit": "इसकी श्रेणी के समान",
+          "customRate": "कस्टम दर {rate}%",
+          "lockedLabel": "टैक्स",
+          "lockedApproval": "इस उत्पाद के टैक्स में बदलाव स्टोर स्वीकृत करता है।",
+          "lockedNever": "इस उत्पाद का टैक्स स्टोर संभालता है।",
+          "newProductApproval": "नए उत्पाद पर उसकी श्रेणी के अनुसार टैक्स लगता है। सेव होने के बाद आप अलग टैक्स का अनुरोध कर सकते हैं।",
+          "requestChange": "बदलाव का अनुरोध करें",
+          "pending": "बदलाव का अनुरोध किया गया: {tax}। स्टोर के जवाब का इंतज़ार है।",
+          "withdraw": "वापस लें",
+          "withdrawn": "अनुरोध वापस लिया गया",
+          "withdrawFailed": "अनुरोध वापस नहीं लिया जा सका",
+          "dialogTitle": "टैक्स बदलाव का अनुरोध करें",
+          "dialogDescription": "{count, plural, one {स्टोर आपके अनुरोध की समीक्षा करेगा। स्वीकृति मिलने तक उत्पाद पर मौजूदा टैक्स ही लागू रहेगा।} other {स्टोर # उत्पादों के लिए आपके अनुरोध की समीक्षा करेगा। स्वीकृति मिलने तक उन पर मौजूदा टैक्स ही लागू रहेगा।}}",
+          "chargeTax": "टैक्स लें",
+          "reason": "टैक्स क्यों बदलना चाहिए?",
+          "reasonPlaceholder": "उदाहरण: हमारे राज्य में इन वस्तुओं पर सेल्स टैक्स की छूट है।",
+          "reasonTooShort": "एक वाक्य में बताएं कि टैक्स क्यों बदलना चाहिए।",
+          "send": "अनुरोध भेजें",
+          "cancel": "रद्द करें",
+          "sent": "अनुरोध स्टोर को भेजा गया",
+          "sendFailed": "अनुरोध भेजा नहीं जा सका",
+          "bulkAction": "टैक्स बदलाव का अनुरोध"
+        }
       }
     },
     "reports": "रिपोर्ट",
@@ -4111,7 +4458,6 @@
     "approveVendor": "विक्रेता अनुमोदित करें",
     "rejectVendor": "विक्रेता अस्वीकार करें",
     "pos": "Point of Sale",
-    "posStaff": "Staff",
     "posLocations": "Locations",
     "productsPage": {
       "stats": {
@@ -4320,7 +4666,10 @@
           "countryOfOrigin": "देश का नाम या दो अक्षरों का कोड, जैसे BD।",
           "hsCode": "कस्टम्स टैरिफ़ कोड।",
           "barcode": "EAN-13, UPC-A, GTIN-14 या Code 128। खाली होने पर अपने आप बनता है।",
-          "vendorId": "उत्पाद जिस विक्रेता का है, जैसा विक्रेता के एक्सपोर्ट में होता है। डिफ़ॉल्ट: आपका अपना स्टोर।"
+          "vendorId": "उत्पाद जिस विक्रेता का है, जैसा विक्रेता के एक्सपोर्ट में होता है। डिफ़ॉल्ट: आपका अपना स्टोर।",
+          "chargeTax": "true या false: इस उत्पाद पर टैक्स लगाना है या नहीं। डिफ़ॉल्ट true।",
+          "taxClass": "टैक्स सेटिंग्स की एक टैक्स क्लास: standard, reduced, zero, exempt या आपकी जोड़ी हुई कोई क्लास। श्रेणी का टैक्स फिर से इस्तेमाल करने के लिए inherit लिखें।",
+          "taxRate": "प्रतिशत में एक कस्टम टैक्स दर, जैसे 7.5। यह टैक्स क्लास की जगह लेती है, इसलिए taxClass या taxRate में से एक भरें, दोनों नहीं।"
         },
         "title": "उत्पाद इम्पोर्ट करें",
         "description": "CSV या JSON फ़ाइल से एक साथ कई नए उत्पाद जोड़ें या मौजूदा उत्पाद अपडेट करें।",
@@ -4401,7 +4750,9 @@
       "actions": {
         "export": "एक्सपोर्ट",
         "import": "इम्पोर्ट",
-        "addCollection": "जोड़ें कलेक्शन"
+        "addCollection": "जोड़ें कलेक्शन",
+        "importExport": "आयात / निर्यात",
+        "downloadSample": "नमूना फ़ाइल डाउनलोड करें"
       },
       "bulkActions": {
         "setActive": "सक्रिय करें",
@@ -4440,6 +4791,67 @@
         "deleteBulkError": "विफल को हटाएं कुछ कलेक्शन्स",
         "updateSuccess": "{count} कलेक्शन्स अपडेटेड",
         "updateError": "विफल को अपडेट {count} कलेक्शन्स"
+      },
+      "importDialog": {
+        "title": "कलेक्शन इम्पोर्ट करें",
+        "description": "CSV फ़ाइल से एक साथ कई नए कलेक्शन जोड़ें या मौजूदा कलेक्शन अपडेट करें।",
+        "sampleTitle": "सैंपल फ़ाइल से शुरू करें",
+        "sampleDescription": "इसमें वे कॉलम हैं जिन्हें इम्पोर्ट पढ़ता है, और दो उदाहरण कलेक्शन, एक manual और एक automated। उदाहरणों की जगह अपने कलेक्शन डालें, पहली पंक्ति जैसी है वैसी ही रहने दें, और फ़ाइल यहाँ अपलोड करें।",
+        "sampleCsv": "सैंपल CSV",
+        "sampleFailed": "सैंपल फ़ाइल डाउनलोड नहीं हो सकी",
+        "dropTitle": "फ़ाइल चुनें या उसे यहाँ खींचकर लाएँ",
+        "dropHint": "CSV · अधिकतम {rows} कलेक्शन · {size} MB",
+        "removeFile": "फ़ाइल हटाएँ",
+        "fileTooLarge": "यह फ़ाइल {size} MB से बड़ी है। इसे छोटी फ़ाइलों में बाँटें।",
+        "wrongType": ".csv फ़ाइल चुनें।",
+        "rulesTitle": "पंक्तियाँ कैसे इम्पोर्ट होती हैं",
+        "rules": {
+          "match": "जिस पंक्ति में किसी मौजूदा कलेक्शन का id या slug हो, वह उसी कलेक्शन को अपडेट करती है। जिसमें दोनों में से कुछ न हो, उसे title से मिलाया जाता है, और कुछ न मिले तो नया कलेक्शन बनता है।",
+          "blank": "खाली सेल में कलेक्शन का मौजूदा मान बना रहता है। नया कलेक्शन manual ड्राफ्ट के रूप में शुरू होता है।",
+          "products": "manual कलेक्शन में उत्पाद slug, SKU या नाम से लिखे जाते हैं, | से अलग करके। उत्पाद पहले से मौजूद होने चाहिए; जो नाम किसी उत्पाद से नहीं मिलता उसे छोड़ दिया जाता है और रिपोर्ट में दिखाया जाता है। products का खाली सेल मौजूदा उत्पाद बनाए रखता है।",
+          "conditions": "automated कलेक्शन के लिए conditions कॉलम में कम से कम एक नियम चाहिए, जो कॉलम गाइड के उदाहरण की तरह JSON में लिखा हो।"
+        },
+        "columnsTitle": "कॉलम गाइड",
+        "required": "नए कलेक्शन के लिए ज़रूरी",
+        "columns": {
+          "title": "कलेक्शन का नाम।",
+          "slug": "कलेक्शन का वेब पता। खाली होने पर title से बनता है। अपडेट किए जाने वाले कलेक्शन को ढूँढने में भी काम आता है।",
+          "id": "सिर्फ़ एक्सपोर्ट की गई फ़ाइलों में होता है। अपडेट किए जाने वाले सटीक कलेक्शन को ढूँढता है।",
+          "description": "छोटा सादा-टेक्स्ट विवरण।",
+          "descriptionHtml": "पूरा विवरण। HTML की अनुमति है।",
+          "imageUrl": "कलेक्शन के कवर के लिए सार्वजनिक इमेज लिंक (https://…)।",
+          "imageAlt": "कवर इमेज का वैकल्पिक टेक्स्ट। खाली होने पर title इस्तेमाल होता है।",
+          "collectionType": "manual या automated। फ़ाइल में कुछ और न लिखा हो तो नए कलेक्शन manual होते हैं।",
+          "status": "active या draft। फ़ाइल में कुछ और न लिखा हो तो नए कलेक्शन draft होते हैं।",
+          "products": "manual कलेक्शन के लिए: उत्पादों के slug, SKU या नाम, | से अलग किए हुए, जैसे blue-shirt|red-shirt।",
+          "productIds": "सिर्फ़ एक्सपोर्ट की गई फ़ाइलों में: | से अलग किए गए उत्पादों के id। products के साथ मिलाकर इस्तेमाल होता है।",
+          "conditions": "automated कलेक्शन के लिए: नियम JSON सूची के रूप में। फ़ील्ड: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand।",
+          "conditionMatch": "all या any: उत्पाद को हर नियम पूरा करना है या सिर्फ़ एक। डिफ़ॉल्ट all।",
+          "sortOrder": "manual, best-selling, title-asc, title-desc, price-asc, price-desc, created-asc या created-desc।",
+          "position": "एक संख्या जो सूचियों में इस कलेक्शन का क्रम तय करती है। कम संख्या पहले आती है।",
+          "onlineStore": "true या false: कलेक्शन को ऑनलाइन स्टोर में दिखाना है या नहीं। डिफ़ॉल्ट true।",
+          "pointOfSale": "true या false: इसे पॉइंट ऑफ़ सेल पर दिखाना है या नहीं। डिफ़ॉल्ट false।",
+          "seoPageTitle": "सर्च इंजन कलेक्शन पेज के लिए जो शीर्षक दिखाते हैं।",
+          "seoMetaDescription": "सर्च इंजन कलेक्शन पेज के लिए जो विवरण दिखाते हैं।"
+        },
+        "cancel": "रद्द करें",
+        "submit": "कलेक्शन इम्पोर्ट करें",
+        "importing": "इम्पोर्ट हो रहा है… बड़ी फ़ाइलों में एक मिनट लग सकता है। यह विंडो खुली रखें।",
+        "requestFailed": "फ़ाइल इम्पोर्ट नहीं हो सकी। फिर से कोशिश करें।",
+        "resultTitle": "इम्पोर्ट पूरा हुआ",
+        "resultFailedTitle": "फ़ाइल इम्पोर्ट नहीं हो सकी",
+        "created": "बनाए गए",
+        "updated": "अपडेट किए गए",
+        "failed": "विफल",
+        "warnings": "नोट",
+        "errorsTitle": "जो पंक्तियाँ इम्पोर्ट नहीं हुईं",
+        "errorsHint": "अपनी फ़ाइल में इन पंक्तियों को ठीक करें और फिर से इम्पोर्ट करें। जो पंक्तियाँ इम्पोर्ट हो चुकी हैं, वे कॉपी जोड़ने के बजाय उन्हीं कलेक्शन को अपडेट करती हैं।",
+        "rowLabel": "पंक्ति {row}",
+        "fileLabel": "फ़ाइल",
+        "moreErrors": "…और डाउनलोड की जा सकने वाली सूची में {count} और।",
+        "downloadErrors": "त्रुटियों की सूची डाउनलोड करें",
+        "importAnother": "दूसरी फ़ाइल इम्पोर्ट करें",
+        "done": "पूरा"
       }
     },
     "categoriesDataTable": {
@@ -4820,7 +5232,159 @@
       "team_members_exported": "टीम सदस्य एक्सपोर्ट हो गए",
       "team_members_could_not_be_exported": "टीम सदस्य एक्सपोर्ट नहीं हो सके",
       "vendors_exported": "विक्रेता एक्सपोर्ट हो गए",
-      "vendors_could_not_be_exported": "विक्रेता एक्सपोर्ट नहीं हो सके"
+      "vendors_could_not_be_exported": "विक्रेता एक्सपोर्ट नहीं हो सके",
+      "area": "क्षेत्र",
+      "view": "देखें",
+      "manage": "प्रबंधित करें",
+      "failed_to_load_the_role": "भूमिका लोड नहीं हो सकी",
+      "name_is_required": "नाम ज़रूरी है",
+      "failed_to_save_the_role": "भूमिका सहेजी नहीं जा सकी",
+      "role_updated": "भूमिका अपडेट हुई",
+      "role_created": "भूमिका बनाई गई",
+      "failed_to_delete_the_role": "भूमिका हटाई नहीं जा सकी",
+      "role_deleted": "भूमिका हटाई गई",
+      "edit_role": "भूमिका संपादित करें",
+      "new_role": "नई भूमिका",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "भूमिका तय करती है कि उसके सदस्य क्या कर सकते हैं। इसे बदलने से सभी सदस्यों के लिए बदलता है।",
+      "save_role": "भूमिका सहेजें",
+      "role_details": "भूमिका का विवरण",
+      "name": "नाम",
+      "dashboard": "डैशबोर्ड",
+      "admin_dashboard": "एडमिन डैशबोर्ड",
+      "staff_area": "स्टाफ क्षेत्र",
+      "any_permission_in_the_admin_dashboard": "एडमिन डैशबोर्ड में कोई भी अनुमति",
+      "store_records_and_the_till_in_the_staff_area": "स्टाफ क्षेत्र में स्टोर के रिकॉर्ड और POS",
+      "every_permission": "सभी अनुमतियाँ",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "एडमिनिस्ट्रेटर के पास हमेशा सभी अनुमतियाँ होती हैं, बाद में जुड़ने वाली भी। किसी एडमिन को सीमित करने के लिए उसे दूसरी भूमिका दें।",
+      "delete_this_role": "यह भूमिका हटाएँ?",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "सदस्यों वाली भूमिका हटाई नहीं जा सकती; पहले उन्हें दूसरी भूमिका दें।",
+      "roles": "भूमिकाएँ",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "हर तरह का टीम सदस्य क्या कर सकता है। सदस्य को उसके पेज पर भूमिका दें।",
+      "create_role": "भूमिका बनाएँ",
+      "built_in": "बिल्ट-इन",
+      "members": "सदस्य",
+      "view_role": "भूमिका देखें",
+      "the_store_owner_always_holds_every_permission": "स्टोर के मालिक के पास हमेशा सभी अनुमतियाँ होती हैं।",
+      "the_home_screen_s_figures": "होम स्क्रीन के आँकड़े",
+      "returns_refunds": "रिटर्न और रिफ़ंड",
+      "quotes": "कोटेशन",
+      "price_requests_and_offers": "कीमत के अनुरोध और ऑफ़र",
+      "applications_stores_plans_and_commissions": "आवेदन, स्टोर, प्लान और कमीशन",
+      "payouts": "पेआउट",
+      "manage_sends_vendors_their_money": "प्रबंधन विक्रेताओं को उनका पैसा भेजता है",
+      "payments": "भुगतान",
+      "transactions_and_chargebacks": "लेन-देन और चार्जबैक",
+      "finance": "वित्त",
+      "ledger_expenses_periods_and_reports": "लेजर, खर्च, अवधियाँ और रिपोर्ट",
+      "marketing": "मार्केटिंग",
+      "boosts": "बूस्ट",
+      "sponsored_products": "प्रायोजित उत्पाद",
+      "online_store": "ऑनलाइन स्टोर",
+      "theme_pages_menus_sliders_checkout": "थीम, पेज, मेन्यू, स्लाइडर, चेकआउट",
+      "blog": "ब्लॉग",
+      "posts_categories_comments": "पोस्ट, श्रेणियाँ, टिप्पणियाँ",
+      "ai_sales_agent": "AI सेल्स एजेंट",
+      "its_settings_and_conversations": "इसकी सेटिंग्स और बातचीत",
+      "ai_studio": "AI स्टूडियो",
+      "all_accounts": "सभी खाते",
+      "every_sign_in_on_the_store": "स्टोर पर हर साइन-इन",
+      "settings": "सेटिंग्स",
+      "store_settings": "स्टोर सेटिंग्स",
+      "sensitive_settings": "संवेदनशील सेटिंग्स",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "पेमेंट गेटवे, स्टोरेज, ईमेल/SMS प्रदाता, साइन-इन, सुरक्षा, कूरियर",
+      "activity_log": "गतिविधि लॉग",
+      "who_did_what": "किसने क्या किया",
+      "team": "टीम",
+      "manage_adds_and_edits_members_within_your_own_permissions": "प्रबंधन आपकी अपनी अनुमतियों के भीतर सदस्य जोड़ता और संपादित करता है",
+      "create_and_change_roles": "भूमिकाएँ बनाएँ और बदलें",
+      "member": "सदस्य",
+      "permission": "अनुमति",
+      "role": "भूमिका",
+      "staff": "स्टाफ",
+      "abandoned_checkouts": "छोड़े गए चेकआउट",
+      "added_for_this_member": "इस सदस्य के लिए जोड़ा गया",
+      "all_vendors_and_locations_including_ones_added_later": "सभी विक्रेता और लोकेशन, बाद में जुड़ने वाले भी",
+      "also_catalogues_for_ads": "विज्ञापनों के लिए कैटलॉग भी",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "इनबॉक्स का जवाब देता है और ऑर्डर व ग्राहक देखता है",
+      "brands": "ब्रांड",
+      "campaign_banners": "कैंपेन बैनर",
+      "can": "कर सकता है",
+      "can_sign_in_and_work": "साइन इन करके काम कर सकता है।",
+      "can_t": "नहीं कर सकता",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "साइन इन या पासवर्ड रीसेट नहीं कर सकता। उस व्यक्ति के लिए जो अनबन के साथ गया।",
+      "can_t_sign_in_turn_back_on_any_time": "साइन इन नहीं कर सकता। कभी भी फिर से चालू करें।",
+      "cashier": "कैशियर",
+      "catalog": "कैटलॉग",
+      "categories": "श्रेणियाँ",
+      "changed": "बदला गया",
+      "changed_from_the_role": "भूमिका से अलग",
+      "create": "बनाएं",
+      "creating_and_cancelling_orders_stays_with_the_store": "ऑर्डर बनाना और रद्द करना स्टोर के पास रहता है",
+      "customer_accounts_are_changed_by_the_store": "ग्राहक खाते स्टोर बदलता है",
+      "discounts_gift_cards": "छूट और गिफ़्ट कार्ड",
+      "every_staff_permission": "स्टाफ की सभी अनुमतियाँ",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "एडमिन डैशबोर्ड के सदस्य को जो कुछ दिया जा सकता है, क्षेत्र के अनुसार।",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "स्टाफ क्षेत्र के सदस्य को जो कुछ दिया जा सकता है, क्षेत्र के अनुसार।",
+      "everything_except_deleting_records": "रिकॉर्ड हटाने के अलावा सब कुछ",
+      "everything_in_the_staff_area_deleting_included": "स्टाफ क्षेत्र में सब कुछ, हटाना भी",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "इस भूमिका को जो कुछ दिया जा सकता है, क्षेत्र के अनुसार। डैश वाले बॉक्स भूमिका से अलग हैं।",
+      "everywhere": "हर जगह",
+      "gives_access": "पहुँच देता है",
+      "inbox": "इनबॉक्स",
+      "invite": "आमंत्रण",
+      "manage_the_till": "POS प्रबंधित करें",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "POS प्रबंधन में छूट, POS रिपोर्ट और काउंटर शामिल हैं",
+      "moderate": "मॉडरेट",
+      "money": "पैसा",
+      "moves_money": "पैसा भेजता है",
+      "new_team_member": "नया टीम सदस्य",
+      "nothing_yet": "अभी कुछ नहीं",
+      "online_store_reports": "ऑनलाइन स्टोर और रिपोर्ट",
+      "only_in_the_admin_dashboard": "केवल एडमिन डैशबोर्ड में",
+      "only_these": "केवल ये",
+      "open_past_the_return_window": "रिटर्न अवधि के बाद भी खोलें",
+      "pause": "रोकें",
+      "paused": "रुका हुआ",
+      "permissions_given": "दी गई अनुमतियाँ",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "इनमें से कोई देने के लिए Manager या Administrator चुनें। स्टाफ, स्टाफ क्षेत्र और POS पर काम करता है।",
+      "pick_vendors_locations_or_regions_below": "नीचे विक्रेता, लोकेशन या क्षेत्र चुनें",
+      "point_of_sale": "पॉइंट ऑफ़ सेल",
+      "popups_and_bars_on_the_home_page": "होम पेज पर पॉपअप और बार",
+      "refund": "रिफ़ंड",
+      "refund_sends_money_back_to_the_customer": "रिफ़ंड ग्राहक को पैसा वापस भेजता है",
+      "reply": "जवाब दें",
+      "reviews": "समीक्षाएँ",
+      "rings_up_sales_at_the_register": "रजिस्टर पर बिक्री करता है",
+      "role_name": "भूमिका का नाम",
+      "role_name_e_g_floor_lead": "भूमिका का नाम, जैसे फ़्लोर लीड",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "भूमिकाएँ स्क्रीन पर बनाई गई भूमिकाएँ यहाँ और कार्ड के रूप में दिखती हैं।",
+      "sales_associate": "सेल्स एसोसिएट",
+      "save_as_a_role": "भूमिका के रूप में सहेजें",
+      "scope": "दायरा",
+      "secrets": "गोपनीय जानकारी",
+      "selling": "बिक्री",
+      "send_recovery_emails": "रिकवरी ईमेल भेजें",
+      "shift_lead": "शिफ़्ट लीड",
+      "staff_area_pos": "स्टाफ क्षेत्र और POS",
+      "start_from": "यहाँ से शुरू करें",
+      "store_admin": "स्टोर एडमिन",
+      "summary": "सारांश",
+      "support_agent": "सपोर्ट एजेंट",
+      "taken_away_for_this_member": "इस सदस्य के लिए हटाया गया",
+      "the_books": "हिसाब-किताब",
+      "the_register_orders_customers_and_the_inbox": "रजिस्टर, ऑर्डर, ग्राहक और इनबॉक्स",
+      "use": "उपयोग करें",
+      "use_the_register": "रजिस्टर का उपयोग करें",
+      "watch": "ध्यान दें",
+      "what_this_staff_member_can_do_by_area": "यह स्टाफ सदस्य क्या कर सकता है, क्षेत्र के अनुसार।",
+      "where_they_work": "कहाँ काम करते हैं",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "कहाँ काम करेंगे और किससे शुरू करेंगे। आप नीचे इस सदस्य के लिए कोई भी अनुमति बदल सकते हैं।",
+      "works_in_the_admin_dashboard": "एडमिन डैशबोर्ड में काम करता है",
+      "works_in_the_staff_area_and_at_the_till": "स्टाफ क्षेत्र और POS पर काम करता है",
+      "writes_copy_and_images_with_the_store_s_ai_key": "स्टोर की AI कुंजी से टेक्स्ट और इमेज लिखता है",
+      "anything_only_in_the_admin_dashboard": "केवल एडमिन डैशबोर्ड की कोई भी चीज़",
+      "this_member": "यह सदस्य",
+      "by_role": "भूमिका के अनुसार"
     },
     "customersPage": {
       "stats": {
@@ -5289,15 +5853,28 @@
       "createSection": {
         "title": "पेआउट बनाएं",
         "selectVendor": "वेंडर चुनें",
-        "periodStart": "अवधि शुरू",
+        "periodStart": "अवधि शुरू (वैकल्पिक)",
         "periodEnd": "अवधि समाप्त",
         "creating": "बनाया जा रहा है...",
         "create": "बनाएं",
-        "optionalNote": "वैकल्पिक नोट"
+        "optionalNote": "वैकल्पिक नोट",
+        "description": "विक्रेता को वह राशि देता है जो अभी देय है: रिटर्न अवधि पार कर चुकी डिलीवर हुई बिक्री, उस पर जो बकाया है उसे घटाकर।",
+        "searchVendor": "विक्रेता खोजें",
+        "noVendor": "कोई विक्रेता नहीं मिला",
+        "searching": "खोजा जा रहा है…",
+        "vendorMissing": "यह विक्रेता अब मौजूद नहीं है",
+        "suspended": "निलंबित — पेआउट रुके हुए हैं",
+        "startHint": "अंतिम तिथि तक की हर देय बिक्री शामिल करने के लिए खाली छोड़ें।",
+        "frozen": "यह विक्रेता निलंबित है, इसलिए पेआउट रुके हुए हैं। बहाल होने तक उनकी बिक्री गिनी जाती रहेगी।",
+        "belowMinimum": "{amount} न्यूनतम पेआउट {minimum} से कम है।",
+        "orderCount": "इस पेआउट में {count, plural, one {# ऑर्डर है} other {# ऑर्डर हैं}}।",
+        "moreThanMax": "एक पेआउट में केवल सबसे पुराने {count} देय ऑर्डर आते हैं; बाकी अगले पेआउट में जाएँगे।",
+        "sellerConfirmed": "{count, plural, one {# डिलीवरी की पुष्टि} other {# डिलीवरी की पुष्टि}} कैरियर ने नहीं, विक्रेता ने की।",
+        "commissionLeft": "विक्रेता पर बकाया कमीशन में से {amount} इस पेआउट में नहीं समाया और बकाया रहेगा।"
       },
       "listSection": {
         "title": "पेआउट रन",
-        "searchPlaceholder": "पेआउट नंबर खोजें",
+        "searchPlaceholder": "पेआउट नंबर या विक्रेता खोजें",
         "allStatuses": "सभी स्थितियां",
         "columns": {
           "payout": "पेआउट",
@@ -5321,9 +5898,20 @@
         "pageOf": "पेज {page} / {totalPages}"
       },
       "toast": {
-        "requiredFields": "वेंडर, आरंभ तिथि और समाप्ति तिथि आवश्यक हैं।",
+        "requiredFields": "विक्रेता और अंतिम तिथि चुनें।",
         "createSuccess": "पेआउट बना दिया गया।",
         "createError": "पेआउट बनाने में विफल"
+      },
+      "sendTo": {
+        "title": "यहाँ भेजें",
+        "missing": "कोई बैंक खाता दर्ज नहीं है। विक्रेता से अपनी सेटिंग्स में खाता जोड़ने को कहें, या नकद या गेटवे से भुगतान करें।",
+        "accountName": "खाता नाम",
+        "accountNumber": "खाता संख्या",
+        "bankName": "बैंक",
+        "routingNumber": "रूटिंग नंबर",
+        "swiftCode": "SWIFT",
+        "show": "खाता संख्या दिखाएँ",
+        "copy": "{field} कॉपी करें"
       }
     },
     "paymentTransactionsPage": {
@@ -5486,6 +6074,19 @@
       },
       "seo": {
         "untitledProduct": "बिना शीर्षक का उत्पाद"
+      },
+      "leave": {
+        "title": "बिना सहेजे छोड़ें?",
+        "descriptionNew": "यह उत्पाद अभी सहेजा नहीं गया है। अभी छोड़ने पर आपकी दी गई जानकारी यहाँ खो जाएगी; यह ब्राउज़र एक कॉपी रखता है, जिसे आप अगली बार उत्पाद जोड़ते समय वापस ला सकते हैं।",
+        "descriptionEdit": "इस उत्पाद में आपके बदलाव सहेजे नहीं गए हैं। अभी छोड़ने पर वे खो जाएँगे।",
+        "confirm": "छोड़ें",
+        "cancel": "रुकें"
+      },
+      "draft": {
+        "title": "बिना सहेजा उत्पाद मिला",
+        "body": "इस ब्राउज़र में {time} का एक उत्पाद रखा है, जो कभी सहेजा नहीं गया।",
+        "restore": "वापस लाएँ",
+        "discard": "हटा दें"
       }
     },
     "onlineStorePage": {
@@ -6613,20 +7214,38 @@
         "settings": "थीम सेटिंग्स",
         "css": "कस्टम CSS"
       },
-      "customCss": {
-        "title": "कस्टम CSS"
-      },
       "preview": {
         "pages": {
+          "product": "उत्पाद पेज",
           "home": "होम",
+          "products": "उत्पाद",
           "cart": "कार्ट",
-          "search": "खोजें"
-        }
+          "search": "खोज"
+        },
+        "desktop": "डेस्कटॉप",
+        "mobile": "मोबाइल",
+        "hint": "लाइव प्रीव्यू — असहेजे बदलाव भी दिखाता है।",
+        "open": "स्टोर खोलें",
+        "title": "स्टोरफ्रंट प्रीव्यू",
+        "page": "प्रीव्यू पेज"
       },
-      "launchTitle": "थीम सेटिंग्स"
+      "customCss": {
+        "title": "कस्टम CSS",
+        "description": "थीम की अपनी स्टाइल के बाद जोड़े गए नियम, स्टोरफ्रंट के हर पेज पर। यह हर थीम के लिए अलग से सहेजा जाता है — थीम बदलने पर उस थीम की अपनी स्टाइलशीट लागू हो जाती है। रंग, टाइपोग्राफ़ी और आकार के लिए थीम सेटिंग्स को प्राथमिकता दें; इसका इस्तेमाल उन बारीकियों के लिए करें जो थीम सेटिंग्स में नहीं मिलतीं।",
+        "hint": "नियमों को .store-surface तक सीमित रखें, ताकि वे कभी एडमिन तक न पहुँचें।",
+        "save": "CSS सहेजें",
+        "saved": "कस्टम CSS सहेजा गया"
+      },
+      "launchTitle": "थीम सेटिंग्स",
+      "launchDescription": "सक्रिय थीम के रंग, टाइपोग्राफ़ी, लेआउट, आकार और बटन, जिन्हें आपके स्टोर के लाइव प्रीव्यू के साथ-साथ संपादित किया जाता है। सेटिंग्स हर थीम के लिए अलग से सहेजी जाती हैं — थीम बदलने पर उस थीम की अपनी सेटिंग्स लागू हो जाती हैं।",
+      "launch": "थीम एडिटर खोलें"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "रिटर्न (30 दिन)",
+          "description": "{count} अभी खुले"
+        },
         "needsReview": {
           "title": "समीक्षा बाकी",
           "description": "स्वीकृत या अस्वीकार करें"
@@ -6687,7 +7306,7 @@
       "enterFullscreen": "फ़ुलस्क्रीन में जाएँ",
       "exitFullscreen": "फ़ुलस्क्रीन से बाहर निकलें",
       "reset": "डिफ़ॉल्ट पर रीसेट करें",
-      "personalNote": "केवल आपके लिए, इसी ब्राउज़र में। आपके स्टोर के लोगो, रंग और डिफ़ॉल्ट रूप ऑनलाइन स्टोर → थीम्स → ब्रांडिंग में सेट होते हैं।",
+      "personalNote": "केवल आपके लिए, इसी ब्राउज़र में। आपके स्टोर के लोगो और डिफ़ॉल्ट रूप ऑनलाइन स्टोर → थीम्स → ब्रांडिंग में, और रंग थीम सेटिंग्स में सेट होते हैं।",
       "darkMode": "डार्क मोड",
       "contrast": "कंट्रास्ट",
       "rtl": "दाएँ से बाएँ",
@@ -6695,7 +7314,12 @@
       "sidebar": "साइडबार",
       "sidebarColor": "रंग",
       "sidebarIntegrate": "घुला-मिला",
-      "sidebarApparent": "उभरा हुआ"
+      "sidebarApparent": "उभरा हुआ",
+      "sidebarPaint": "साइडबार को इस रंग से रंगें",
+      "sidebarPaintPrimary": "प्राथमिक",
+      "sidebarPaintSecondary": "द्वितीयक",
+      "sidebarPaintHint": "आपकी लाइव थीम के रंग इस्तेमाल करता है।",
+      "sidebarPaintChange": "रंग बदलें"
     },
     "preorderAccess": {
       "vendorFallback": "विक्रेता",
@@ -7137,6 +7761,7 @@
         "genericError": "एक त्रुटि हुई"
       },
       "mega": {
+        "shopAll": "{name} में सब देखें",
         "categories": "श्रेणियाँ",
         "links": "लिंक",
         "addCategory": "जोड़ें श्रेणी",
@@ -7368,22 +7993,255 @@
         "title": "फुटर"
       }
     },
+    "customizeHub": {
+      "title": "कस्टमाइज़",
+      "description": "कस्टमाइज़ करने के लिए स्टोर का एक पेज चुनें।"
+    },
     "themeEditor": {
-      "title": "थीम सेटिंग्स",
-      "back": "थीम्स",
-      "saved": "थीम सेटिंग्स सहेजी गईं",
-      "saveFailed": "सहेजना विफल रहा",
-      "brandRef": "ब्रांड",
-      "modeLight": "हल्का",
-      "modeDark": "गहरा",
+      "presets": {
+        "default": "नीला",
+        "cyan": "सियान",
+        "purple": "बैंगनी",
+        "blue": "काला",
+        "orange": "नारंगी",
+        "red": "लाल"
+      },
+      "colorMode": "रंग मोड",
+      "darkFollows": "गहरा मोड अपने आप आपके हल्के रंगों का पालन करता है। किसी रंग को केवल गहरे मोड के लिए सेट करने हेतु उस पर क्लिक करें।",
+      "advancedColors": "एडवांस्ड",
+      "advancedLowContrast": "यहाँ का एक रंग पढ़ने में कठिन है",
+      "sections": {
+        "page": "पेज",
+        "text": "टेक्स्ट",
+        "sales": "सेल और रेटिंग",
+        "lines": "लाइनें",
+        "states": "स्थितियाँ",
+        "soft": "हल्की पृष्ठभूमियाँ"
+      },
+      "sourceDefault": "थीम डिफ़ॉल्ट",
+      "sourceAuto": "ऑटो",
+      "sourceCustom": "कस्टम",
+      "colorSource": "रंग का स्रोत",
+      "autoDarkHint": "आपके हल्के रंगों का पालन करता है, गहरे पेज पर दिखने के लिए समायोजित।",
+      "defaultHint": "थीम का अपना रंग, बाकी रंगों के साथ आसानी से पढ़ा जा सके, इसलिए चुना गया।",
+      "usedFor": "कहाँ उपयोग होता है",
+      "useReadable": "{color} उपयोग करें",
+      "backToAuto": "ऑटो पर वापस जाएँ",
+      "resetToDefault": "थीम डिफ़ॉल्ट पर रीसेट करें",
+      "textAuto": "स्वचालित टेक्स्ट रंग",
+      "accentUse": "फ़ीचर्ड और मेनू लेबल",
+      "saleUse": "छूट और सेल कीमतें",
+      "lowContrastOn": "{surface} पर देखना कठिन है ({ratio}:1)। कम से कम {minimum}:1 रखें।",
       "groups": {
         "colors": {
+          "description": "ये रंग केवल {theme} इस्तेमाल करती है। आपकी दूसरी थीम अपने रंग रखती हैं।",
           "label": "रंग"
         },
+        "type": {
+          "label": "टाइपोग्राफ़ी",
+          "description": "हेडिंग, बॉडी टेक्स्ट और बटन के फ़ॉन्ट और शैली।"
+        },
         "layout": {
-          "label": "लेआउट"
+          "label": "लेआउट",
+          "description": "पेज की चौड़ाई, और वे ग्लोबल डिफ़ॉल्ट जो हीरो और बैनर सेक्शन अपनाते हैं।"
+        },
+        "shape": {
+          "label": "आकार",
+          "description": "कोने, बॉर्डर और शैडो। पिक्सेल में सटीक मान।"
+        },
+        "buttons": {
+          "label": "बटन",
+          "description": "एक्शन बटन का आकार और व्यवहार।"
         }
-      }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "पृष्ठभूमि",
+          "hint": "हर पेज के पीछे।"
+        },
+        "surface": {
+          "label": "कार्ड और मेनू",
+          "hint": "पैनल, पॉपओवर, ड्रॉपडाउन और मेनू।"
+        },
+        "surfaceAlt": {
+          "label": "बैंड और चिप्स",
+          "hint": "बैंड वाले सेक्शन, इमेज की पृष्ठभूमि और न्यूट्रल चिप्स।"
+        },
+        "text": {
+          "label": "टेक्स्ट",
+          "hint": "हेडिंग और मुख्य टेक्स्ट।"
+        },
+        "textMuted": {
+          "label": "द्वितीयक टेक्स्ट",
+          "hint": "कैप्शन, श्रेणियाँ, प्लेसहोल्डर।"
+        },
+        "border": {
+          "label": "डिवाइडर",
+          "hint": "सेक्शनों के बीच और कार्ड के चारों ओर की लाइनें।"
+        },
+        "primary": {
+          "label": "प्राथमिक बटन",
+          "hint": "मुख्य बटन, कार्ट की गिनती और सक्रिय टैब की लाइनें।"
+        },
+        "onPrimary": {
+          "label": "प्राथमिक पर टेक्स्ट",
+          "hint": "प्राथमिक बटनों पर लेबल।"
+        },
+        "secondary": {
+          "label": "द्वितीयक बटन",
+          "hint": "“कार्ट में जोड़ें” और बाकी द्वितीयक बटन।"
+        },
+        "onSecondary": {
+          "label": "द्वितीयक पर टेक्स्ट",
+          "hint": "“कार्ट में जोड़ें” बटन पर लेबल।"
+        },
+        "accent": {
+          "label": "एक्सेंट",
+          "hint": "उत्पाद कार्ड पर फ़ीचर्ड लेबल और स्टोर मेनू के बैज।"
+        },
+        "sale": {
+          "label": "सेल",
+          "hint": "छूट बैज और सेल कीमतें।"
+        },
+        "rating": {
+          "label": "रेटिंग स्टार",
+          "hint": "रिव्यू स्टार।"
+        },
+        "link": {
+          "label": "लिंक",
+          "hint": "लिंक, “सभी देखें” और सक्रिय मेनू आइटम: प्राथमिक रंग में टेक्स्ट, जिसे पढ़ने लायक रखा जाता है।"
+        },
+        "onAccent": {
+          "label": "एक्सेंट पर टेक्स्ट",
+          "hint": "एक्सेंट रंग पर लेबल।"
+        },
+        "accentSurface": {
+          "label": "एक्सेंट पृष्ठभूमि",
+          "hint": "प्रमोशनल टेक्स्ट के पीछे एक्सेंट का हल्का शेड।"
+        },
+        "onAccentSurface": {
+          "label": "एक्सेंट पृष्ठभूमि पर टेक्स्ट",
+          "hint": "एक्सेंट शेड पर टेक्स्ट।"
+        },
+        "hoverSurface": {
+          "label": "होवर पृष्ठभूमि",
+          "hint": "पॉइंटर के नीचे के मेनू और बटन।"
+        },
+        "onHover": {
+          "label": "होवर पर टेक्स्ट",
+          "hint": "होवर पृष्ठभूमि पर लेबल।"
+        },
+        "selectedSurface": {
+          "label": "चयनित पृष्ठभूमि",
+          "hint": "ड्रॉपडाउन में चेक किए गए आइटम और मेनू की सक्रिय पंक्ति।"
+        },
+        "onSelected": {
+          "label": "चयनित पर टेक्स्ट",
+          "hint": "चयनित पृष्ठभूमि पर लेबल।"
+        },
+        "focusRing": {
+          "label": "फ़ोकस रिंग",
+          "hint": "वह आउटलाइन जिसे कीबोर्ड उपयोगकर्ता देखते हैं।"
+        },
+        "fieldBorder": {
+          "label": "इनपुट बॉर्डर",
+          "hint": "चेकआउट फ़ील्ड, फ़ॉर्म और ड्रॉपडाउन। हेडर के सर्च बॉक्स का बॉर्डर अलग से हेडर स्टूडियो में सेट होता है।"
+        },
+        "onSale": {
+          "label": "सेल पर टेक्स्ट",
+          "hint": "ठोस छूट बैज पर लेबल।"
+        },
+        "saleText": {
+          "label": "सेल टेक्स्ट",
+          "hint": "पेज पर सेल कीमतें और बचत।"
+        },
+        "saleSurface": {
+          "label": "सेल पृष्ठभूमि",
+          "hint": "कीमतों के बगल वाले छूट चिप्स के पीछे।"
+        },
+        "onSaleSurface": {
+          "label": "सेल पृष्ठभूमि पर टेक्स्ट",
+          "hint": "सेल शेड पर टेक्स्ट।"
+        },
+        "skeleton": {
+          "label": "लोडिंग प्लेसहोल्डर",
+          "hint": "पेज लोड होते समय दिखने वाले स्लेटी ब्लॉक।"
+        }
+      },
+      "title": "थीम सेटिंग्स",
+      "back": "थीम्स",
+      "unsaved": "असहेजे बदलाव",
+      "allSaved": "सभी बदलाव सहेजे गए",
+      "discard": "हटाएँ",
+      "save": "सहेजें",
+      "saved": "थीम सेटिंग्स सहेजी गईं",
+      "saveFailed": "सहेजना विफल रहा",
+      "resetGroup": "समूह रीसेट करें",
+      "resetAll": "सब कुछ थीम डिफ़ॉल्ट पर रीसेट करें",
+      "resetAllTitle": "हर सेटिंग रीसेट करें?",
+      "preview": "प्रीव्यू",
+      "controls": "सेटिंग्स",
+      "setCustom": "कस्टम रंग सेट करें",
+      "contrastHint": "अपनी सतह के मुकाबले कंट्रास्ट",
+      "modeLight": "हल्का",
+      "modeDark": "गहरा",
+      "leaveGuard": "आपके थीम बदलाव अभी सहेजे नहीं गए हैं।",
+      "fonts": {
+        "inter": "तटस्थ, तकनीकी, डिफ़ॉल्ट",
+        "manrope": "ज्यामितीय, आधुनिक रिटेल",
+        "dm-sans": "गोलाकार, दोस्ताना",
+        "plus-jakarta-sans": "नरम ज्यामितीय, लाइफ़स्टाइल",
+        "nunito": "गोल सिरे, चंचल",
+        "source-sans-3": "ह्यूमनिस्ट, लंबे लेखों के लिए",
+        "space-grotesk": "अनोखा ग्रोटेस्क, टेक",
+        "playfair-display": "हाई-कंट्रास्ट, संपादकीय",
+        "lora": "शांत, पठनीय सेरिफ़",
+        "fraunces": "नरम, गर्मजोशी भरा, वेलनेस",
+        "cormorant-garamond": "लग्ज़री, फ़ैशन",
+        "dm-serif-display": "केवल हेडलाइन (एक वेट)",
+        "noto-sans-bengali": "बांग्ला + लैटिन, सैंस",
+        "noto-serif-bengali": "बांग्ला + लैटिन, सेरिफ़"
+      },
+      "resetColors": "थीम के रंग रीसेट करें",
+      "invalidColor": "मान्य hex या RGB रंग डालें। प्रीव्यू अंतिम मान्य रंग रखता है।",
+      "contrastPass": "पास",
+      "contrastLow": "कम",
+      "previewLoading": "लाइव प्रीव्यू से जुड़ रहा है…",
+      "previewOutdated": "नया कलर इंजन लोड करने के लिए प्रीव्यू रीफ़्रेश करें।",
+      "refreshPreview": "प्रीव्यू रीफ़्रेश करें",
+      "cannotVerifyColor": "इस कस्टम रंग एक्सप्रेशन की जाँच नहीं हो सकती। दोनों मोड में प्रीव्यू देखें।",
+      "themeChanged": "आपके संपादन के दौरान कोई दूसरी थीम सक्रिय कर दी गई। उस थीम के लिए एडिटर फिर से खोलें।",
+      "conflictKeepDraft": "आपके संपादन के दौरान किसी और ने ये सेटिंग्स सहेज दीं। उनके बदलावों की जगह अपने बदलाव रखने के लिए फिर से “सहेजें” दबाएँ, या उनके बदलाव लोड करने के लिए “हटाएँ” दबाएँ।",
+      "darkOwnHint": "गहरे मोड का यहाँ अपना रंग ({color}) है, इसलिए वह इस रंग का पालन नहीं करता। उसे “गहरा” टैब में बदलें।",
+      "keyColorsTitle": "मुख्य रंग",
+      "keyColorsHint": "प्रीव्यू में देखने के लिए किसी रंग पर पॉइंटर ले जाएँ",
+      "keyColors": {
+        "primary": {
+          "label": "प्राथमिक",
+          "sample": "अभी खरीदें"
+        },
+        "secondary": {
+          "label": "द्वितीयक",
+          "sample": "कार्ट में जोड़ें"
+        },
+        "accent": {
+          "label": "एक्सेंट",
+          "sample": "विशेष"
+        },
+        "skeleton": {
+          "label": "लोडिंग"
+        }
+      },
+      "themeDefaultNamed": "{theme} डिफ़ॉल्ट",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "पैलेट",
+      "saveAsPalette": "पैलेट के रूप में सहेजें",
+      "resetToNamed": "{name} पर लौटें",
+      "themeOnly": "केवल {theme}",
+      "moreColors": "और रंग",
+      "advancedHintStates": "होवर, चयन, फ़ोकस, सेल पृष्ठभूमि",
+      "resetAllDescriptionTheme": "रंगों सहित हर समूह {theme} के अपने डिफ़ॉल्ट पर लौट जाता है। आपकी दूसरी थीम नहीं बदलतीं। सहेजें दबाने तक कुछ भी सहेजा नहीं जाता।",
+      "previewShowing": "{color} कहाँ इस्तेमाल हुआ है, यह चिह्नित किया जा रहा है"
     },
     "searchInsights": {
       "title": "सर्च इनसाइट्स",
@@ -7440,7 +8298,8 @@
         "payout": "पेआउट",
         "brand": "ब्रांड",
         "slider": "स्लाइडशो",
-        "menu": "मेनू"
+        "menu": "मेनू",
+        "teamRole": "टीम भूमिका"
       },
       "empty": {
         "clearFilters": "फ़िल्टर साफ़ करें"
@@ -7466,6 +8325,124 @@
           }
         }
       }
+    },
+    "categoryForm": {
+      "taxRate": "टैक्स"
+    },
+    "themeColors": {
+      "title": "थीम के रंग",
+      "refs": {
+        "primary": "प्राथमिक",
+        "secondary": "द्वितीयक",
+        "accent": "एक्सेंट",
+        "background": "पृष्ठभूमि",
+        "surface": "कार्ड",
+        "surfaceAlt": "बैंड और चिप्स",
+        "text": "टेक्स्ट",
+        "textMuted": "द्वितीयक टेक्स्ट",
+        "border": "डिवाइडर"
+      },
+      "following": "थीम के {name} रंग का पालन करता है। इसे थीम सेटिंग्स → रंग में बदलें।",
+      "followingShort": "थीम · {name}",
+      "hint": "थीम सेटिंग्स → रंग का पालन करने के लिए थीम का कोई रंग चुनें।",
+      "pick": "थीम का रंग उपयोग करें"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "पेआउट सारांश लोड नहीं हो सका",
+      "loadPayoutsError": "पेआउट लोड नहीं हो सके",
+      "columns": {
+        "payout": "पेआउट",
+        "period": "अवधि",
+        "status": "स्थिति",
+        "netAmount": "शुद्ध राशि"
+      },
+      "bankMissingTitle": "कोई पेआउट खाता दर्ज नहीं",
+      "bankMissing": "कमी: {fields}। Business टैब में विवरण जोड़े जाने तक पेआउट केवल नकद या गेटवे से दिया जा सकता है।",
+      "frozenTitle": "पेआउट रुके हुए हैं",
+      "frozen": "यह विक्रेता निलंबित है। उनकी बिक्री गिनी जाती रहेगी, पर बहाल होने तक कुछ भी भुगतान नहीं होगा।",
+      "owedNow": "अभी बकाया",
+      "owedNowHint": "अभी बनाए गए पेआउट में क्या जाएगा: रिटर्न अवधि पार कर चुकी डिलीवर और भुगतान हुई बिक्री, विक्रेता पर बकाया घटाकर।",
+      "createPayout": "पेआउट बनाएं",
+      "noneAwaiting": "कोई डिलीवर और भुगतान हुआ ऑर्डर पेआउट की प्रतीक्षा में नहीं है।",
+      "nothingPayable": "{count, plural, one {# योग्य ऑर्डर} other {# योग्य ऑर्डर}}, लेकिन रिफ़ंड और छूट के बाद कुछ भी देय नहीं बचता।",
+      "across": "{count, plural, one {# ऑर्डर} other {# ऑर्डर}} में · {gross} सकल में से {commission} कमीशन घटाकर। रिफ़ंड और छूट पहले ही घटा दिए गए हैं।",
+      "belowMinimumTitle": "न्यूनतम निकासी से कम",
+      "belowMinimum": "पेआउट कम से कम {minimum} होना चाहिए। अभी बनाया गया पेआउट अस्वीकार हो जाएगा।",
+      "commissionLeft": "नकद बिक्री पर विक्रेता के बकाया कमीशन में से {amount} अगले पेआउट में नहीं समाता और बकाया रहेगा।",
+      "overpaidTitle": "बाद में रिफ़ंड हुई बिक्री के लिए {amount} का भुगतान हुआ",
+      "overpaidRecovered": "इसमें से {amount} ऊपर की राशि से पहले ही घटा दिया गया है। जो बचेगा वह आगे के पेआउट से कटेगा।",
+      "overpaidLater": "यह विक्रेता के अगले पेआउट से कटेगा, या अगर वे पैसा लौटा दें तो वापसी भुगतान दर्ज करें।",
+      "otherCurrenciesTitle": "{currencies} में बैलेंस",
+      "otherCurrencies": "इस विक्रेता ने {currencies} में भी कारोबार किया है। वे बैलेंस ऊपर के आँकड़ों में नहीं हैं और उनके लिए अलग पेआउट चाहिए — मुद्राएँ कभी आपस में जोड़ी नहीं जातीं।",
+      "trade": "कारोबार",
+      "tradeHint": "हर गैर-रद्द ऑर्डर में इस विक्रेता ने जो बेचा, {currency} में",
+      "grossSales": "सकल बिक्री",
+      "vendorEarnings": "विक्रेता की कमाई",
+      "vendorEarningsHint": "सकल में से कमीशन घटाकर",
+      "paidOut": "भुगतान किया गया",
+      "pendingAmount": "{amount} लंबित",
+      "platformRevenue": "इस विक्रेता से प्लेटफ़ॉर्म की आय",
+      "platformRevenueHint": "उनकी बिक्री से कमीशन और रखा गया शिपिंग शुल्क, साथ में उनके चुकाए सब्सक्रिप्शन शुल्क। प्लेटफ़ॉर्म की लागत से पहले की आय।",
+      "commission": "कमीशन",
+      "commissionHint": "डिलीवर और भुगतान हुई बिक्री पर, रिफ़ंड घटाकर",
+      "subscriptions": "सब्सक्रिप्शन",
+      "invoicesPaid": "{total} में से {paid} इनवॉइस का भुगतान हुआ",
+      "noInvoices": "कोई इनवॉइस नहीं",
+      "shipping": "शिपिंग",
+      "shippingHint": "रखा गया, पेआउट में नहीं दिया गया",
+      "total": "कुल",
+      "history": "पेआउट इतिहास",
+      "historyHint": "इस विक्रेता के दर्ज पेआउट, नए पहले",
+      "historyEmpty": "इस विक्रेता के लिए अभी तक कोई पेआउट नहीं बना है",
+      "repayment": {
+        "open": "वापसी भुगतान दर्ज करें",
+        "listTitle": "हाथ से लौटाया गया",
+        "undo": "पूर्ववत करें",
+        "voidReason": "यह वापसी भुगतान पूर्ववत क्यों किया जा रहा है?",
+        "voided": "वापसी भुगतान पूर्ववत किया गया",
+        "failed": "वापसी भुगतान सहेजा नहीं जा सका",
+        "title": "वापसी भुगतान दर्ज करें",
+        "description": "पेआउट के बाद रिफ़ंड हुई बिक्री के लिए विक्रेता ने जो पैसा लौटाया। यह उनके बकाये से घटता है, ताकि आगे के पेआउट इसे वसूलना बंद कर दें।",
+        "amount": "राशि ({currency})",
+        "receivedInto": "कहाँ प्राप्त हुआ",
+        "receivedAt": "पैसा आने का दिन",
+        "reference": "संदर्भ",
+        "note": "नोट",
+        "cancel": "रद्द करें",
+        "save": "वापसी भुगतान दर्ज करें",
+        "saving": "सहेजा जा रहा है…",
+        "recorded": "वापसी भुगतान दर्ज हुआ"
+      }
+    },
+    "colorPicker": {
+      "format": "रंग का प्रारूप",
+      "opacity": "अपारदर्शिता",
+      "value": "रंग का मान",
+      "saved": "सहेजे गए रंग",
+      "save": "इस रंग को सहेजें",
+      "use": "{color} का उपयोग करें",
+      "remove": "{color} हटाएँ"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {भूमिका से # बदलाव} other {भूमिका से # बदलाव}}",
+      "changesFromRole": "{count, plural, one {{role} से # बदलाव} other {{role} से # बदलाव}}, केवल इस सदस्य के लिए",
+      "resetTo": "{role} पर वापस जाएँ",
+      "matchesRole": "{role} से मेल खाता है। केवल {name} के लिए बदलने हेतु कुछ भी चुनें या हटाएँ।",
+      "roleSaved": "\"{name}\" अब एक भूमिका है, और यह सदस्य उस पर है।"
+    },
+    "tagInput": {
+      "placeholder": "टैग जोड़ें",
+      "selected": "{tag} चुना गया। हटाने के लिए Backspace दबाएँ।",
+      "duplicate": "{tag} पहले से जोड़ा जा चुका है",
+      "tooLong": "एक टैग में अधिकतम {max} अक्षर हो सकते हैं",
+      "tooMany": "आप अधिकतम {max} टैग जोड़ सकते हैं",
+      "added": "{tag} जोड़ा गया",
+      "removed": "{tag} हटाया गया",
+      "remove": "{tag} हटाएँ"
+    },
+    "accountMenu": {
+      "myAccount": "मेरा खाता",
+      "version": "संस्करण {version}"
     }
   },
   "footer": {
@@ -7514,7 +8491,19 @@
     "searchCustomers": "नाम, ईमेल, या फ़ोन से खोजें...",
     "addNote": "इस ऑर्डर में एक नोट जोड़ें...",
     "subtotal": "उप-योग",
-    "tax": "कर",
+    "tax": {
+      "label": "टैक्स",
+      "included": "टैक्स (शामिल)",
+      "exempt": "टैक्स मुक्त",
+      "exemptWith": "टैक्स मुक्त · {reason}",
+      "exemptTitle": "टैक्स-मुक्त बिक्री",
+      "exemptIntro": "यह बिक्री बिना टैक्स के करें। कारण ऑर्डर में रखा जाता है और रसीद पर छपता है।",
+      "exemptReason": "कारण (ज़रूरी)",
+      "exemptReference": "छूट प्रमाणपत्र संख्या (वैकल्पिक)",
+      "exemptApply": "बिना टैक्स बेचें",
+      "exemptRemove": "टैक्स लें",
+      "close": "बंद करें"
+    },
     "total": "कुल",
     "charge": "चार्ज करें",
     "selectPaymentMethod": "भुगतान विधि चुनें",
@@ -7550,10 +8539,463 @@
       "emailPlaceholder": "customer@example.com",
       "phone": "फ़ोन",
       "phonePlaceholder": "फ़ोन नंबर दर्ज करें",
-      "nameEmailRequired": "नाम और ईमेल आवश्यक हैं",
       "created": "ग्राहक सफलतापूर्वक बनाया गया",
       "createError": "ग्राहक बनाने में विफल",
-      "save": "ग्राहक सहेजें"
+      "save": "ग्राहक सहेजें",
+      "nameContactRequired": "ग्राहक का नाम, और एक ईमेल या फ़ोन नंबर दर्ज करें",
+      "contactHint": "एक ईमेल या फ़ोन नंबर काफ़ी है। सिर्फ़ फ़ोन नंबर वाले ग्राहक को बिना खाते के रखा जाता है।",
+      "marketingOptIn": "ग्राहक ईमेल से खबरें और ऑफ़र पाने के लिए सहमत है"
+    },
+    "offline": {
+      "bannerOffline": "ऑफ़लाइन — बिक्रियाँ कतार में रखी जा रही हैं",
+      "bannerStockAge": "दिखाया गया स्टॉक {age} का है",
+      "bannerSignedOut": "साइन आउट हो गया — सिंक करने के लिए फिर से साइन इन करें",
+      "bannerSignedOutNote": "कतार में रखी बिक्रियाँ इस डिवाइस पर सहेजी रहेंगी।",
+      "bannerBackOnline": "फिर से ऑनलाइन",
+      "waitingToSync": "{count, plural, one {# बिक्री सिंक होने की प्रतीक्षा में} other {# बिक्रियाँ सिंक होने की प्रतीक्षा में}}",
+      "needsReview": "{count, plural, one {# की समीक्षा ज़रूरी} other {# की समीक्षा ज़रूरी}}",
+      "review": "समीक्षा करें",
+      "signIn": "साइन इन करें",
+      "syncNow": "अभी सिंक करें",
+      "lockedTitle": "बिक्री जारी रखने के लिए फिर से कनेक्ट करें",
+      "lockedLastSeen": "यह रजिस्टर आख़िरी बार {time} सर्वर तक पहुँचा था। सुरक्षा के लिए यह तब तक लॉक रहेगा जब तक दोबारा साइन इन न कर सके।",
+      "lockedNever": "यह रजिस्टर इस डिवाइस पर अभी तक सर्वर तक नहीं पहुँचा है, इसलिए इसे ऑफ़लाइन इस्तेमाल नहीं किया जा सकता।",
+      "lockedQueued": "{count, plural, one {<strong>#</strong> ऑफ़लाइन बिक्री अभी भी इस डिवाइस पर सहेजी है और ऑनलाइन लौटते ही अपने-आप सिंक हो जाएगी।} other {<strong>#</strong> ऑफ़लाइन बिक्रियाँ अभी भी इस डिवाइस पर सहेजी हैं और ऑनलाइन लौटते ही अपने-आप सिंक हो जाएँगी।}} ब्राउज़र का डेटा साफ़ न करें।",
+      "waitingForConnection": "कनेक्शन की प्रतीक्षा…",
+      "reviewTitle": "सर्वर ने जिन बिक्रियों को अस्वीकार किया",
+      "reviewDescription": "इनमें से हर एक का भुगतान काउंटर पर हो चुका है। कारण ठीक करके दोबारा भेजें, या हाथ से दर्ज करने के बाद हटा दें।",
+      "reviewLabel": "समीक्षा वाली ऑफ़लाइन बिक्रियाँ",
+      "reviewEmpty": "समीक्षा के लिए कुछ नहीं बचा।",
+      "reviewReceipt": "रसीद {number}",
+      "reviewTaken": "{time} ली गई",
+      "reviewAttempts": "{count, plural, one {# प्रयास} other {# प्रयास}}",
+      "reviewServerSaid": "सर्वर का जवाब: {message}",
+      "reviewDiscard": "हटाएँ",
+      "reviewSendAgain": "दोबारा भेजें",
+      "close": "बंद करें",
+      "anotherCounter": "दूसरा काउंटर",
+      "discardTitle": "इस बिक्री को कतार से हटाएँ?",
+      "discardDescription": "रसीद {number} कभी सर्वर पर नहीं भेजी जाएगी। ऐसा तभी करें जब बिक्री किसी और तरीके से दर्ज हो चुकी हो — ग्राहक के पास वह रसीद है।",
+      "savedOffline": "ऑफ़लाइन सहेजी गई — रसीद {number}",
+      "savedOfflineNote": "कनेक्शन लौटने पर यह अपने-आप सिंक हो जाएगी।",
+      "outboxFull": "इस रजिस्टर में बहुत अधिक बिना सिंक की बिक्रियाँ हैं। और बिक्री लेने से पहले कनेक्ट करके सिंक करें।",
+      "noStorage": "यह ब्राउज़र ऑफ़लाइन बिक्रियाँ सहेज नहीं सकता, इसलिए बिक्री नहीं ली गई।",
+      "readerOnly": "केवल कार्ड रीडर",
+      "touchOrStripe": "टच या Stripe"
+    },
+    "counter": {
+      "unavailable": "काउंटर उपलब्ध नहीं",
+      "sharedStock": "साझा स्टॉक",
+      "finishSaleFirst": "पहले मौजूदा बिक्री पूरी करें या रद्द करें",
+      "changeCounter": "{name} से बिक्री हो रही है। काउंटर बदलें",
+      "sellingFrom": "बिक्री का स्थान",
+      "sellingAt": "{name} पर बिक्री",
+      "findCounter": "काउंटर खोजें...",
+      "noMatch": "कोई काउंटर मेल नहीं खाता।",
+      "heldCount": "{count} होल्ड पर",
+      "activeCount": "{count} सक्रिय",
+      "deactivated": "मौजूदा काउंटर निष्क्रिय कर दिया गया",
+      "pickerTitle": "आप किस काउंटर पर हैं?",
+      "pickerNote": "स्टॉक, होल्ड की गई बिक्रियाँ और इस रजिस्टर पर छपी हर रसीद इसी चुनाव के अनुसार चलेंगी।",
+      "findYourCounter": "अपना काउंटर खोजें...",
+      "recentOnDevice": "इस डिवाइस पर हाल के",
+      "otherCounters": "अन्य काउंटर",
+      "defaultLocation": "डिफ़ॉल्ट स्थान",
+      "startSellingAt": "{name} पर बिक्री शुरू करें",
+      "pickCounter": "एक काउंटर चुनें",
+      "signedInAs": "{name} के रूप में साइन इन",
+      "signedIn": "साइन इन है",
+      "shortcutsMany": "पहले नौ के लिए <key>1</key>–<key>9</key>, बाकी खोजने के लिए टाइप करें,",
+      "shortcutsFew": "चुनने के लिए <key>1</key>–<key>{last}</key> दबाएँ,",
+      "shortcutEnter": "शुरू करने के लिए <key>Enter</key>",
+      "sellFromShared": "इसके बजाय साझा स्टॉक से बेचें",
+      "switchLabel": "काउंटर बदलें",
+      "switchTitle": "बिक्री खुली रहते काउंटर बदलें?",
+      "switchUnits": "काउंटर पर {count, plural, one {# यूनिट} other {# यूनिट}}, {from} के दाम और स्टॉक के अनुसार।",
+      "switchChecking": "जाँच रहे हैं कि {to} क्या उपलब्ध करा सकता है…",
+      "switchRemovedOne": "<b>{name}</b> का <b>{to} पर कोई स्टॉक नहीं</b> — यह बिक्री से हट जाएगा।",
+      "switchRemovedMany": "<b>{name}</b> और {others} अन्य का <b>{to} पर कोई स्टॉक नहीं</b> — ये बिक्री से हट जाएँगे।",
+      "switchReduced": "{count, plural, one {# लाइन को {to} पर वास्तव में मौजूद स्टॉक तक घटा दिया जाएगा।} other {# लाइनों को {to} पर वास्तव में मौजूद स्टॉक तक घटा दिया जाएगा।}}",
+      "switchAllAvailable": "इस बिक्री की हर लाइन {to} पर उपलब्ध है।",
+      "switchHeldStay": "{count, plural, one {यहाँ होल्ड की गई # बिक्री {from} पर रहेगी। {to} से आप इसे नहीं देख पाएँगे।} other {यहाँ होल्ड की गई # बिक्रियाँ {from} पर रहेंगी। {to} से आप इन्हें नहीं देख पाएँगे।}}",
+      "switchHeldStayNone": "यहाँ होल्ड की गई बिक्रियाँ {from} पर रहेंगी। {to} से आप इन्हें नहीं देख पाएँगे।",
+      "switchReceiptChanges": "अगली लाइन से स्टॉक गिनती और रसीद का फ़ुटर {to} में बदल जाएगा।",
+      "switchHold": "इस बिक्री को होल्ड करें, फिर बदलें",
+      "switchRecheck": "बदलें और स्टॉक दोबारा जाँचें",
+      "switchRemovesAll": "सभी {total} हटेंगी",
+      "switchKeeps": "{total} में से {kept} लाइनें रहेंगी",
+      "switchStay": "{from} पर रहें",
+      "nowSellingFrom": "अब {name} से बिक्री",
+      "nowSellingShared": "अब साझा स्टॉक से बिक्री",
+      "probeFailed": "उस काउंटर का स्टॉक नहीं जाँचा जा सका। रजिस्टर नहीं बदला गया।",
+      "holdFailed": "बिक्री होल्ड नहीं हो सकी। रजिस्टर नहीं बदला गया।",
+      "rechecked": "बिक्री दोबारा जाँची गई · {changes}",
+      "holdLabel": "काउंटर बदलाव → {name}",
+      "heldBehind": "{count, plural, one {<b># बिक्री</b> अभी भी {name} पर होल्ड है} other {<b># बिक्रियाँ</b> अभी भी {name} पर होल्ड हैं}}",
+      "goBackTo": "{name} पर लौटें",
+      "dismiss": "बंद करें",
+      "saleBlocked": "यह काउंटर अब उपलब्ध नहीं है। भुगतान लेने से पहले कोई दूसरा चुनें।"
+    },
+    "scan": {
+      "closeDialogFirst": "खुला डायलॉग बंद करें, फिर दोबारा स्कैन करें।",
+      "multipleMatches": "इस कोड से कई उत्पाद मेल खाते हैं। कृपया दोहराए गए SKU या बारकोड ठीक करें।",
+      "noMatch": "स्कैन किए गए कोड के लिए कोई उत्पाद नहीं मिला।",
+      "lookupFailed": "स्कैन किया गया कोड खोजा नहीं जा सका।"
+    },
+    "held": {
+      "removed": "{count, plural, one {# लाइन हटाई गई} other {# लाइनें हटाई गईं}}",
+      "repriced": "{count} की कीमत बदली",
+      "reduced": "{count} उपलब्ध स्टॉक तक घटाई गईं",
+      "resumed": "होल्ड किया गया ऑर्डर फिर शुरू हुआ",
+      "resumedWithChanges": "होल्ड किया गया ऑर्डर फिर शुरू हुआ · {changes}",
+      "nothingAvailable": "इस होल्ड किए गए ऑर्डर का कोई भी आइटम अब उपलब्ध नहीं है। इसे रजिस्टर पर छोड़ दिया गया है।",
+      "recheckFailed": "मौजूदा कीमतें और स्टॉक नहीं जाँचे जा सके। होल्ड किया गया ऑर्डर अभी भी रजिस्टर पर है।",
+      "finishFirst": "दूसरा शुरू करने से पहले मौजूदा बिक्री पूरी करें या होल्ड करें।",
+      "holdFailed": "यह ऑर्डर होल्ड नहीं हो सका। बिक्री अभी भी कार्ट में है।",
+      "holdFull": "इस रजिस्टर पर पहले से {max} होल्ड किए गए ऑर्डर हैं। पहले कोई एक फिर शुरू करें या हटाएँ।",
+      "orderHeld": "ऑर्डर होल्ड किया गया",
+      "orderHeldLabel": "ऑर्डर होल्ड किया गया · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "केवल POS प्रबंधित करने वाला व्यक्ति ही छूट दे सकता है",
+      "cashMustCover": "दी गई नकद राशि ऑर्डर के कुल से कम नहीं होनी चाहिए",
+      "noReceipt": "रसीद का कोई डेटा उपलब्ध नहीं",
+      "printPreviewFailed": "प्रिंट प्रीव्यू नहीं खुल सका",
+      "noInvoice": "इस ऑर्डर के लिए कोई इनवॉइस उपलब्ध नहीं",
+      "invoicePopupBlocked": "इनवॉइस नहीं खुल सका। कृपया पॉप-अप की अनुमति दें।"
+    },
+    "complete": {
+      "title": "बिक्री पूरी",
+      "items": "{count, plural, one {# आइटम} other {# आइटम}}",
+      "soldAt": "{name} पर बिका",
+      "viewReceipt": "रसीद देखें",
+      "printReceipt": "रसीद प्रिंट करें",
+      "newSale": "नई बिक्री",
+      "emailReceipt": "रसीद ईमेल करें",
+      "textReceipt": "रसीद SMS करें",
+      "send": "भेजें",
+      "cancel": "रद्द करें",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "ग्राहक का फ़ोन नंबर",
+      "sentEmail": "रसीद {to} पर ईमेल की गई",
+      "sentSms": "रसीद {to} पर SMS की गई",
+      "alreadySent": "अभी-अभी {to} पर भेजी जा चुकी है",
+      "sendFailed": "रसीद भेजी नहीं जा सकी",
+      "offlineHint": "यह बिक्री सिंक होने के बाद रसीदें भेजी और देखी जा सकती हैं।"
+    },
+    "pay": {
+      "title": "भुगतान लें",
+      "balanceTitle": "बकाया लें",
+      "draftItems": "{count, plural, one {ड्राफ़्ट · # आइटम} other {ड्राफ़्ट · # आइटम}}",
+      "close": "बंद करें",
+      "totalDue": "कुल देय",
+      "remaining": "बाकी भुगतान",
+      "ofTotal": "{total} में से {paid} चुकाया",
+      "payments": "भुगतान",
+      "remove": "हटाएँ",
+      "discountPercent": "{value}% छूट लागू",
+      "discountAmount": "{amount} छूट लागू",
+      "cashDesc": "छुट्टे के साथ",
+      "bank": "बैंक ट्रांसफ़र",
+      "bankDesc": "संदर्भ के साथ",
+      "manualDesc": "अपना तरीका",
+      "storeCredit": "स्टोर क्रेडिट",
+      "storeCreditDesc": "{amount} उपलब्ध",
+      "split": "विभाजित",
+      "cashGiven": "दिया गया नकद",
+      "amount": "राशि",
+      "changeDue": "लौटाने वाले छुट्टे",
+      "stillOwed": "बाकी किसी और तरीके से चुकाना है",
+      "tooMuch": "चुकाने के लिए {amount} से ज़्यादा बाकी नहीं है",
+      "tooMuchCredit": "सिर्फ़ {amount} स्टोर क्रेडिट उपलब्ध है",
+      "touch": "टच",
+      "touchDesc": "रीडर पर कार्ड टैप करें या डालें",
+      "stripe": "Stripe",
+      "stripeDesc": "कार्ड विवरण फ़ॉर्म",
+      "readyForTap": "टैप या कार्ड डालने के लिए तैयार",
+      "readyForTapNote": "ग्राहक रीडर पर अपना कार्ड टैप करता है या डालता है।",
+      "referenceOptional": "संदर्भ (वैकल्पिक)",
+      "referencePlaceholder": "लेन-देन आईडी, ऑथराइज़ेशन कोड आदि",
+      "stripePaysRest": "बाकी कार्ड से चुकेगा: {amount}",
+      "cardNumber": "कार्ड नंबर",
+      "expiry": "समाप्ति",
+      "cvc": "CVC",
+      "stripeNotConfigured": "भुगतान सेटिंग्स में Stripe कॉन्फ़िगर नहीं है।",
+      "stripeLoading": "सुरक्षित कार्ड फ़ील्ड लोड हो रहे हैं…",
+      "stripeSecured": "Stripe द्वारा सुरक्षित — सबमिट करने पर कार्ड विवरण टोकन में बदले जाते हैं।",
+      "stripeFailed": "कार्ड भुगतान नहीं हुआ",
+      "processing": "प्रोसेस हो रहा है…",
+      "acceptCash": "नकद लें",
+      "charge": "{amount} चार्ज करें",
+      "chargeOnReader": "रीडर पर {amount} चार्ज करें",
+      "useCredit": "स्टोर क्रेडिट से {amount} चुकाएँ",
+      "addPayment": "{amount} का {method} भुगतान जोड़ें",
+      "takeDeposit": "{amount} जमा के रूप में लें, {due} बाद में देय",
+      "takePart": "अभी {amount} लें, {due} अब भी बाकी",
+      "depositNeedsCustomer": "जमा लेने के लिए ग्राहक जोड़ें",
+      "depositTaken": "{number} के लिए जमा लिया गया। {due} अब भी चुकाना है।",
+      "completeSale": "बिक्री पूरी करें"
+    },
+    "sales": {
+      "title": "बिक्री",
+      "close": "बंद करें",
+      "back": "पीछे",
+      "searchPlaceholder": "रसीद नंबर या फ़ोन नंबर",
+      "dueOnly": "सिर्फ़ बकाया वाली",
+      "empty": "कोई बिक्री नहीं मिली।",
+      "recentHint": "इस काउंटर की हाल की बिक्री",
+      "selectHint": "देखने के लिए एक बिक्री चुनें।",
+      "offline": "बिक्री ढूँढने के लिए कनेक्शन चाहिए।",
+      "loadFailed": "बिक्री लोड नहीं हो सकी",
+      "balanceDue": "{amount} बकाया",
+      "balanceDueLabel": "बकाया",
+      "items": "आइटम",
+      "payments": "भुगतान",
+      "total": "कुल",
+      "refunded": "रिफ़ंड किया गया",
+      "split": "विभाजित",
+      "collectBalance": "बकाया लें · {amount}",
+      "collectFailed": "भुगतान नहीं लिया जा सका",
+      "balancePaid": "बकाया चुका दिया गया। बिक्री पूरी हुई।",
+      "balancePart": "भुगतान लिया गया। {due} अब भी चुकाना है।",
+      "print": "रसीद प्रिंट करें",
+      "viewInvoice": "इनवॉइस देखें"
+    },
+    "register": {
+      "title": "कैश दराज़",
+      "openChip": "दराज़ खुली",
+      "closedChip": "दराज़ बंद",
+      "openToSell": "बिक्री लेने से पहले कैश दराज़ खोलें।",
+      "close": "बंद करें",
+      "failed": "दराज़ अपडेट नहीं हो सकी",
+      "offline": "खोलने, बंद करने और नकद हिलाने के लिए कनेक्शन चाहिए। बिक्री खुली दराज़ में ही जाती रहती है।",
+      "openIntro": "पहली बिक्री से पहले दराज़ का नकद गिनें और उसे फ़्लोट के रूप में दर्ज करें।",
+      "openingFloat": "शुरुआती फ़्लोट",
+      "openRegister": "दराज़ खोलें",
+      "opened": "दराज़ खोली गई",
+      "openedAt": "{time} को खोली गई",
+      "salesCount": "बिक्री",
+      "grossSales": "कुल बिक्री",
+      "cashSales": "नकद बिक्री",
+      "cashIn": "नकद जमा",
+      "cashOut": "नकद निकासी",
+      "cashRefunds": "नकद रिफ़ंड",
+      "expectedCash": "दराज़ में होना चाहिए",
+      "countedCash": "गिना गया नकद",
+      "variance": "अंतर",
+      "balanced": "मेल खाता है",
+      "over": "ज़्यादा",
+      "short": "कम",
+      "cashInIntro": "दराज़ में रखा गया नकद जो बिक्री नहीं है, जैसे तिजोरी से लाए छुट्टे।",
+      "cashOutIntro": "निकाला गया नकद जो रिफ़ंड नहीं है, जैसे तिजोरी में जमा या कोई खर्च।",
+      "amount": "राशि",
+      "reason": "कारण",
+      "reasonPlaceholder": "कारण (ज़रूरी)",
+      "cashAdded": "दराज़ में नकद जोड़ा गया",
+      "cashRemoved": "दराज़ से नकद निकाला गया",
+      "back": "पीछे",
+      "note": "बंद करने का नोट",
+      "notePlaceholder": "बंद करने की रिपोर्ट के लिए नोट (वैकल्पिक)",
+      "queuedFirst": "{count, plural, one {# बिक्री} other {# बिक्री}} अब भी सिंक होने की प्रतीक्षा में है। उनके सिंक होने के बाद दराज़ बंद करें।",
+      "closeRegister": "दराज़ बंद करें",
+      "closed": "दराज़ बंद की गई",
+      "xReport": "X रिपोर्ट",
+      "zReport": "Z रिपोर्ट",
+      "printX": "X रिपोर्ट प्रिंट करें",
+      "printZ": "Z रिपोर्ट प्रिंट करें",
+      "printBlocked": "रिपोर्ट विंडो रोक दी गई। प्रिंट करने के लिए इस साइट के पॉप-अप चालू करें।",
+      "reportOpened": "खोली गई",
+      "reportClosed": "बंद की गई",
+      "tender": {
+        "cash": "नकद",
+        "card": "कार्ड",
+        "bank": "बैंक ट्रांसफ़र",
+        "manual": "अन्य",
+        "store_credit": "स्टोर क्रेडिट"
+      },
+      "noSale": "बिना बिक्री",
+      "noSaleIntro": "छुट्टे या जाँच के लिए बिना बिक्री के दराज़ खोलें। कारण दराज़ की रिपोर्ट में रखा जाता है।",
+      "noSaleDone": "दराज़ खोली गई",
+      "printer": "दराज़ प्रिंटर",
+      "printerIntro": "कैश दराज़ उस रसीद प्रिंटर से खुलती है जिसमें वह लगी है, इस कंप्यूटर के QZ Tray के ज़रिए। वह प्रिंटर चुनें।",
+      "printerFind": "प्रिंटर खोजें",
+      "printerQzMissing": "इस कंप्यूटर पर QZ Tray नहीं चल रहा",
+      "printerNone": "इस रजिस्टर पर कोई दराज़ नहीं",
+      "printerPin": "दराज़ पिन",
+      "printerTest": "जाँचें",
+      "printerTestFailed": "दराज़ नहीं खुली। प्रिंटर और QZ Tray जाँचें।",
+      "printerSave": "सहेजें",
+      "printerSaved": "इस रजिस्टर के लिए दराज़ प्रिंटर सहेजा गया",
+      "printerNotSet": "पहले दराज़ प्रिंटर सेट करें",
+      "printerCurrent": "दराज़: {name}",
+      "printerSetUp": "दराज़ प्रिंटर सेट करें"
+    },
+    "returns": {
+      "action": "आइटम वापस लें",
+      "title": "आइटम वापस लें",
+      "close": "बंद करें",
+      "offline": "वापसी के लिए कनेक्शन चाहिए। रजिस्टर फिर से ऑनलाइन होने पर वापसी लें।",
+      "loadFailed": "इस बिक्री के आइटम लोड नहीं हो सके",
+      "previewFailed": "रिफ़ंड का हिसाब नहीं लग सका",
+      "failed": "वापसी नहीं ली जा सकी",
+      "nothingReturnable": "इस बिक्री में से कुछ भी वापस नहीं लिया जा सकता।",
+      "returnable": "{count} वापसी योग्य",
+      "blockedFinalSale": "अंतिम बिक्री",
+      "blockedWindow": "वापसी की अवधि खत्म",
+      "blockedOther": "वापसी योग्य नहीं",
+      "less": "एक कम",
+      "more": "एक ज़्यादा",
+      "condition": "स्थिति",
+      "conditions": {
+        "new": "बिना खुला",
+        "opened": "खुला, बेचने लायक",
+        "damaged": "क्षतिग्रस्त",
+        "missing_parts": "हिस्से गायब",
+        "unusable": "बेकार"
+      },
+      "restockHint": "बिना खुले और खुले आइटम इस काउंटर के स्टॉक में वापस जाते हैं।",
+      "reason": "कारण",
+      "reasons": {
+        "wrong_size_or_variant": "गलत साइज़ या वेरिएंट",
+        "damaged_or_defective": "क्षतिग्रस्त या खराब",
+        "not_as_described": "वर्णन के अनुसार नहीं",
+        "wrong_item_received": "गलत आइटम",
+        "arrived_late": "देर से पहुँचा",
+        "changed_mind": "मन बदल गया",
+        "other": "अन्य"
+      },
+      "note": "नोट",
+      "notePlaceholder": "नोट (वैकल्पिक)",
+      "noteRequired": "बताएँ क्या गलत है (ज़रूरी)",
+      "refundTo": "रिफ़ंड कहाँ",
+      "methods": {
+        "cash": "दराज़ से नकद",
+        "card": "कार्ड, हाथ से",
+        "bank": "बैंक ट्रांसफ़र",
+        "original": "कार्ड पर वापस",
+        "store_credit": "स्टोर क्रेडिट",
+        "exchange": "बदलाव",
+        "later": "बाद में रिफ़ंड"
+      },
+      "adminOnly": "रिफ़ंड एक एडमिनिस्ट्रेटर करता है। वापसी अभी दर्ज होती है और रिफ़ंड Returns में उनकी प्रतीक्षा करता है।",
+      "exchangeHint": "रिफ़ंड की राशि अगली नई बिक्री में लगती है।",
+      "laterHint": "वापसी अभी दर्ज होती है। बाद में Returns से रिफ़ंड करें।",
+      "refundTotal": "रिफ़ंड",
+      "restockingFee": "{amount} रीस्टॉकिंग शुल्क शामिल",
+      "submit": "वापसी लें",
+      "done": "वापसी {numbers} ली गई",
+      "doneRefunded": "{amount} रिफ़ंड किया गया।",
+      "doneCash": "ग्राहक को दराज़ से {amount} दें।",
+      "doneCredit": "ग्राहक के स्टोर क्रेडिट में {amount} जोड़ा गया।",
+      "creditBack": "{amount} ग्राहक के स्टोर क्रेडिट में वापस गया, जिससे बिक्री का एक हिस्सा चुकाया गया था।",
+      "doneLater": "रिफ़ंड एक एडमिनिस्ट्रेटर की प्रतीक्षा में है।",
+      "doneExchange": "{amount} नई बिक्री में जाएगा।",
+      "print": "वापसी पर्ची प्रिंट करें",
+      "printBlocked": "पर्ची विंडो रोक दी गई। प्रिंट करने के लिए इस साइट के पॉप-अप चालू करें।",
+      "slipTitle": "वापसी",
+      "slipSale": "बिक्री",
+      "exchangeReference": "बदलाव {numbers}",
+      "exchangeBanner": "बदलाव क्रेडिट {amount}",
+      "exchangeDismiss": "बदलाव क्रेडिट हटाएँ",
+      "exchangeDismissHint": "इस्तेमाल नहीं हुआ: ग्राहक को दराज़ से {amount} नकद दें।"
+    },
+    "operator": {
+      "title": "कैशियर",
+      "close": "बंद करें",
+      "offline": "कैशियर बदलने के लिए कनेक्शन चाहिए। काउंटर उसी के पास रहता है जो उसे चला रहा है।",
+      "loadFailed": "कैशियर लोड नहीं हो सके",
+      "failed": "यह काम नहीं हुआ। फिर से कोशिश करें।",
+      "workingNow": "काउंटर पर",
+      "switchBack": "{name} पर वापस",
+      "takeOver": "काउंटर संभालें",
+      "nobody": "किसी सहकर्मी ने अभी तक रजिस्टर पिन सेट नहीं किया है। हर व्यक्ति साइन इन रहते हुए अपना पिन सेट करता है।",
+      "pin": "पिन",
+      "switch": "कैशियर बदलें",
+      "switched": "{name} अब काउंटर पर है",
+      "setPin": "मेरा रजिस्टर पिन सेट करें",
+      "changePin": "मेरा रजिस्टर पिन बदलें",
+      "pinIntro": "{name}, 4 से 8 अंकों का पिन चुनें। सहकर्मी अपने पिन से इस काउंटर को संभालते हैं।",
+      "newPin": "नया पिन",
+      "confirmPin": "पिन दोबारा",
+      "pinMismatch": "दोनों पिन एक जैसे नहीं हैं",
+      "savePin": "पिन सहेजें",
+      "pinSaved": "आपका रजिस्टर पिन सेट हो गया",
+      "back": "पीछे"
+    },
+    "reports": {
+      "navLabel": "POS रिपोर्ट",
+      "title": "काउंटर रिपोर्ट",
+      "subtitle": "कैशियर और काउंटर के अनुसार बिक्री, भुगतान तरीके के अनुसार ली गई राशि, और हर दराज़ की गिनती का नतीजा।",
+      "loadFailed": "रिपोर्ट लोड नहीं हो सकी",
+      "period": "अवधि",
+      "presets": {
+        "today": "आज",
+        "yesterday": "कल",
+        "week": "पिछले 7 दिन",
+        "month": "पिछले 30 दिन",
+        "thisMonth": "इस महीने"
+      },
+      "counter": "काउंटर",
+      "allCounters": "सभी काउंटर",
+      "refresh": "रीफ़्रेश",
+      "export": "CSV निर्यात करें",
+      "empty": "इस अवधि में कोई बिक्री नहीं।",
+      "noSessions": "इस अवधि में कोई दराज़ नहीं खोली गई।",
+      "stats": {
+        "sales": "बिक्री",
+        "items": "{count, plural, one {# आइटम} other {# आइटम}} बिके",
+        "gross": "कुल बिक्री",
+        "discounts": "{amount} छूट में",
+        "net": "रिफ़ंड के बाद",
+        "refunds": "{amount} रिफ़ंड किया गया",
+        "average": "औसत बिक्री",
+        "balanceDue": "जमा पर {amount} अब भी बकाया"
+      },
+      "byCashier": "कैशियर के अनुसार",
+      "byCounter": "काउंटर के अनुसार",
+      "byTender": "भुगतान तरीके के अनुसार आमदनी",
+      "sessions": "दराज़ सत्र",
+      "unknownCashier": "अज्ञात कैशियर",
+      "noCounter": "कोई काउंटर नहीं",
+      "open": "खुला",
+      "payments": "{count, plural, one {# भुगतान} other {# भुगतान}}",
+      "tenders": {
+        "cash": "नकद",
+        "card": "कार्ड",
+        "bank": "बैंक ट्रांसफ़र",
+        "manual": "अन्य",
+        "store_credit": "स्टोर क्रेडिट"
+      },
+      "columns": {
+        "name": "नाम",
+        "sales": "बिक्री",
+        "items": "आइटम",
+        "gross": "कुल बिक्री",
+        "discounts": "छूट",
+        "refunds": "रिफ़ंड",
+        "net": "शुद्ध",
+        "average": "औसत",
+        "tender": "तरीका",
+        "payments": "भुगतान",
+        "amount": "राशि",
+        "session": "सत्र",
+        "counter": "काउंटर",
+        "openedBy": "किसने खोली",
+        "opened": "खोली गई",
+        "closed": "बंद की गई",
+        "expected": "अपेक्षित नकद",
+        "counted": "गिना गया",
+        "variance": "अंतर"
+      }
+    },
+    "quickKeys": {
+      "tab": "पसंदीदा",
+      "empty": "अभी कोई क्विक की नहीं",
+      "emptyManager": "हर काउंटर के लिए यहाँ रखने हेतु ग्रिड में किसी उत्पाद पर तारा लगाएँ।",
+      "emptyCashier": "जो POS संभालता है वह उत्पादों पर तारा लगाकर उन्हें यहाँ रख सकता है।",
+      "add": "पसंदीदा में जोड़ें",
+      "remove": "पसंदीदा से हटाएँ",
+      "failed": "पसंदीदा सहेजे नहीं जा सके"
     }
   },
   "locations": {
@@ -7594,7 +9036,17 @@
     "deleteError": "स्थान हटाने में विफल",
     "updateError": "स्थान अपडेट करने में विफल",
     "saveError": "स्थान सहेजने में विफल",
-    "actions": "कार्रवाइयाँ"
+    "actions": "कार्रवाइयाँ",
+    "deliveryOrder": "डिलीवरी का क्रम",
+    "deliveryOrderHint": "ऑनलाइन ऑर्डर स्टॉक वाली पहली लोकेशन से भेजे जाते हैं, फिर दूसरी से, और इसी तरह आगे।",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "डिलीवरी नहीं",
+    "services": "सेवाएँ",
+    "pickup": "पिकअप",
+    "returns": "रिटर्न",
+    "noTill": "काउंटर बंद",
+    "shipSooner": "यहाँ से पहले भेजें",
+    "shipLater": "यहाँ से बाद में भेजें"
   },
   "toast": {
     "createdSuccess": "{resource} सफलतापूर्वक बनाया गया",
@@ -8222,7 +9674,10 @@
     "loadOlderConversations": "पुरानी बातचीत लोड करें",
     "attachments": {
       "alt": "चैट अटैचमेंट",
-      "open": "अटैचमेंट खोलें"
+      "open": "अटैचमेंट खोलें",
+      "view": "पूरी तस्वीर देखें",
+      "openNewTab": "नए टैब में खोलें",
+      "download": "डाउनलोड करें"
     },
     "assignment": {
       "label": "नियुक्त एजेंट",
@@ -8270,7 +9725,7 @@
       "webhookUrlNotPublic": "Meta केवल सार्वजनिक HTTPS कॉलबैक स्वीकार करता है। पंजीकृत करने से पहले इस पृष्ठ को अपने लाइव डोमेन — या किसी टनल — पर खोलें।",
       "setup": {
         "title": "{provider} सेटअप गाइड",
-        "docs": "पूरी जानकारी: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "पूरी जानकारी: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "एक Meta ऐप बनाएँ और उसमें WhatsApp प्रोडक्ट जोड़ें।",
           "config": "ये अनुमतियाँ देने वाला एक Facebook Login for Business कॉन्फ़िगरेशन बनाएँ और उसकी ID को META_WHATSAPP_CONFIGURATION_ID में डालें।",
@@ -8408,6 +9863,7 @@
     "noLinks": "अभी तक कोई लिंक साझा नहीं किया गया",
     "subject": "विषय",
     "viewProduct": "उत्पाद देखें",
+    "removeAttachment": "अटैचमेंट हटाएँ",
     "messageProduct": {
       "open": "{name} खोलें",
       "priceOnRequest": "अनुरोध पर मूल्य"
@@ -8841,7 +10297,10 @@
     },
     "paidFrom": {
       "cash": "नकद",
-      "other": "अन्य"
+      "other": "अन्य",
+      "bank": "बैंक",
+      "gateway": "गेटवे बैलेंस",
+      "unpaid": "अभी भुगतान नहीं हुआ"
     },
     "expenses": {
       "title": "व्यय",
@@ -8876,10 +10335,43 @@
         "sale": "सेल",
         "refund": "रिफंड",
         "commission": "कमीशन",
-        "other": "समायोजन"
+        "other": "समायोजन",
+        "payout": "भुगतान किया गया",
+        "boost": "बूस्ट",
+        "subscription": "सब्सक्रिप्शन",
+        "payout_returned": "पेआउट वापस आया",
+        "refund_reversed": "रिफ़ंड उलटा गया",
+        "commission_settled": "पेआउट से कमीशन चुकाया गया",
+        "promotion_credit": "प्रमोशन क्रेडिट",
+        "delivery_label": "डिलीवरी लेबल",
+        "repayment": "आपने लौटाया"
       },
       "statements": "स्टेटमेंट",
-      "owedOrders": "ऑर्डर"
+      "owedOrders": "ऑर्डर",
+      "title": "आपका वित्त",
+      "subtitle": "आपने क्या कमाया, क्या भुगतान हुआ, और मार्केटप्लेस आपके लिए क्या रखे हुए है।",
+      "opening": "प्रारंभिक बैलेंस",
+      "openingHint": "इस अवधि से पहले से आगे लाया गया",
+      "earned": "कमाई",
+      "earnedHint": "कमीशन के बाद बिक्री में आपका हिस्सा",
+      "paidOut": "भुगतान किया गया",
+      "closing": "आपके लिए रखा गया",
+      "closingHint": "खातों में आपका बैलेंस — ऊपर का कार्ड दिखाता है कि पेआउट में कितना भेजा जा सकता है",
+      "owed": "आप पर बकाया",
+      "owedHint": "उन ऑर्डर पर कमीशन जिनका पैसा आपने खुद लिया",
+      "activity": "गतिविधि",
+      "empty": "इस अवधि में कोई लेन-देन नहीं हुआ। बिक्री, रिफ़ंड और पेआउट होते ही यहाँ दिखते हैं।",
+      "emptyTitle": "अभी दिखाने को कुछ नहीं",
+      "emptyBody": "ऑर्डर का भुगतान होते ही आपका स्टेटमेंट भरता जाता है। हर बिक्री आपकी कमाई जोड़ती है; हर पेआउट उसे निकाल लेता है।",
+      "heldChange": "आपके लिए रखा गया",
+      "owedChange": "आप पर बकाया",
+      "statementsSubtitle": "हर बिक्री, रिफ़ंड और पेआउट जिसने आपका बैलेंस बदला।",
+      "seeAll": "पूरा स्टेटमेंट देखें",
+      "export": "एक्सपोर्ट",
+      "truncated": "{total} में से पहली {shown} एंट्री दिखाई जा रही हैं। बाकी देखने के लिए छोटी अवधि चुनें — ऊपर के बैलेंस हर हाल में पूरी अवधि को कवर करते हैं।",
+      "owedTitle": "मार्केटप्लेस का बकाया",
+      "owedSubtitle": "उन ऑर्डर पर कमीशन जिनका पैसा आपने खुद लिया। पैसा पहले से आपका है; यह उस पर आपका बकाया है।",
+      "owedEmpty": "इस अवधि के लिए आप पर कुछ बकाया नहीं है।"
     },
     "reports": {
       "title": "रिपोर्ट"
@@ -8888,6 +10380,118 @@
       "month": "माह",
       "closedAt": "बंद",
       "reopen": "फिर से खोलें"
+    },
+    "balance": {
+      "title": "आपको मिलने वाली राशि",
+      "ready": "अगले पेआउट के लिए तैयार",
+      "readyHint": "रिटर्न अवधि पार कर चुके {count} डिलीवर हुए ऑर्डर से",
+      "belowMinimum": "यह {amount} तक पहुँचने पर पेआउट किया जाता है",
+      "held": "रिटर्न अवधि खत्म होने की प्रतीक्षा में",
+      "heldHint": "डिलीवर हो चुका, डिलीवरी के {days} दिन बाद देय",
+      "reserve": "प्री-ऑर्डर के लिए रोका गया",
+      "reserveHint": "{date} से जारी",
+      "reserveUndated": "किसी बाद के पेआउट के साथ जारी होगा",
+      "owedBack": "स्टोर को लौटाना है",
+      "owedBackHint": "बाद में रिफ़ंड हुए ऑर्डर पर आपको दिया गया था; यह आपके अगले पेआउट से कटेगा",
+      "tooManyOrders": "500 से ज़्यादा ऑर्डर तैयार हैं: स्टोर इन्हें हिस्सों में चुकाता है, पुराने पहले",
+      "frozen": "आपका खाता निलंबित रहने तक पेआउट रुके हुए हैं। आपकी बिक्री गिनी जाती रहेगी।",
+      "inPayout": "तैयार हो रहे पेआउट में",
+      "inPayoutHint": "{numbers} — आपकी ओर आ रहा है",
+      "notDelivered": "अभी डिलीवर नहीं हुआ",
+      "notDeliveredHint": "{count} भुगतान हुए ऑर्डर रास्ते में हैं; रिटर्न अवधि डिलीवरी से शुरू होती है",
+      "awaitingBalance": "बाकी राशि की प्रतीक्षा में प्री-ऑर्डर",
+      "awaitingBalanceHint": "खरीदार के बाकी राशि चुकाने और सामान डिलीवर होने पर देय",
+      "commissionLeft": "अभी चुकाना बाकी कमीशन",
+      "commissionLeftHint": "उन बिक्रियों पर जिनका पैसा आपने खुद लिया; यह बाद के किसी पेआउट से या इनवॉइस के ज़रिए कटेगा",
+      "owedBackLater": "अभी भी स्टोर को लौटाना है",
+      "owedBackLaterHint": "बाद में रिफ़ंड हुए ऑर्डर पर आपको दिया गया था; अगला पेआउट जितना काट सकता है उससे ज़्यादा है, इसलिए आगे के पेआउट से कटेगा"
+    },
+    "payout": {
+      "changedElsewhere": "यह पेआउट बदल गया है। इसे फिर से लोड किया गया है।",
+      "updated": "पेआउट अपडेट हुआ।",
+      "notFound": "पेआउट नहीं मिला।",
+      "backToPayouts": "पेआउट",
+      "ordersUpTo": "{date} तक के ऑर्डर",
+      "orderCount": "{count} ऑर्डर",
+      "requote": "बनने के बाद इस पेआउट के ऑर्डर बदल गए। इसे रद्द करें और नया बनाएं।",
+      "frozen": "यह विक्रेता निलंबित है, इसलिए यह पेआउट भेजा नहीं जा सकता। विक्रेता को बहाल करें, या पेआउट रद्द करें।",
+      "howItWasWorkedOut": "यह पेआउट कैसे निकाला गया",
+      "grossSales": "सकल बिक्री",
+      "grossSalesHint": "नीचे दिए ऑर्डर में विक्रेता का हिस्सा",
+      "commission": "कमीशन",
+      "ofGross": "सकल का",
+      "shippingAmount": "डिलीवरी शुल्क",
+      "shippingAmountHint": "विक्रेता के डिलीवर किए पार्सल के लिए खरीदारों से लिया गया",
+      "reserveUntil": "{date} को जारी होगा",
+      "commissionOffset": "नकद बिक्री पर कमीशन",
+      "commissionOffsetHint": "उन बिक्रियों पर बकाया जिनका पैसा विक्रेता ने लिया, इनवॉइस के बजाय यहाँ काटा गया",
+      "commissionCredit": "नकद बिक्री पर स्टोर के प्रमोशन",
+      "commissionCreditHint": "विक्रेता द्वारा वसूली गई बिक्री पर स्टोर ने जो छूट चुकाई, उनके बकाया कमीशन से ज़्यादा",
+      "otherAdjustments": "अन्य समायोजन",
+      "otherAdjustmentsHint": "रिफ़ंड वसूली और प्री-ऑर्डर रिज़र्व की गतिविधियाँ",
+      "netPayout": "शुद्ध पेआउट",
+      "paidOn": "{date} को भुगतान हुआ",
+      "reference": "भुगतान संदर्भ",
+      "noReference": "कोई भुगतान संदर्भ दर्ज नहीं",
+      "returnedOn": "{date} को वापस आया — विक्रेता का यह फिर से बकाया है",
+      "statusTitle": "स्थिति",
+      "returnedStep": "पैसा वापस आया",
+      "notRecorded": "दर्ज नहीं",
+      "notYet": "अभी नहीं",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "दर्ज नहीं",
+      "note": "नोट",
+      "noteReturnedHint": "— आवश्यक: पैसा वापस क्यों आया",
+      "noteHint": "— पेआउट पर सहेजा जाता है और विक्रेता को दिखता है",
+      "returnedOnLabel": "पैसा वापस आने का दिन",
+      "returnedWarning": "इसका इस्तेमाल तभी करें जब बैंक ने पैसा लौटा दिया हो। लेजर एंट्री उलट दी जाती है, विक्रेता का यह फिर से बकाया हो जाता है, और ये बिक्री अगले पेआउट में वापस चली जाती हैं।",
+      "saveWarning": "पेआउट को भुगतान हुआ चिह्नित करने पर लेजर एंट्री दर्ज होती है और उसके पीछे के ऑर्डर का निपटान हो जाता है। इसे वापस नहीं लिया जा सकता — गलती समायोजन से ठीक की जाती है।",
+      "noChanges": "अभी कोई बदलाव नहीं",
+      "ordersTitle": "इस पेआउट के ऑर्डर",
+      "ordersHint": "{date} तक डिलीवर हुआ और भुगतान न हुआ सब कुछ",
+      "order": "ऑर्डर",
+      "placed": "ऑर्डर की तारीख",
+      "orderStatus": "ऑर्डर स्थिति",
+      "payment": "भुगतान",
+      "vendorShare": "विक्रेता का हिस्सा",
+      "vendorEarnings": "कमीशन के बाद",
+      "noOrders": "इस पेआउट से कोई ऑर्डर जुड़ा नहीं है।",
+      "sellerShareNote": "हर ऑर्डर में सामान का विक्रेता का हिस्सा जोड़ने पर सकल बिक्री बनती है; कमीशन के बाद जोड़ने पर शुद्ध पेआउट। स्टोर द्वारा लिया गया शिपिंग और टैक्स इसका हिस्सा नहीं है।",
+      "adjustment": {
+        "recoveryDeducted": "रिफ़ंड वसूली",
+        "recoveryDeductedHint": "पहले भुगतान हुआ था, उन ऑर्डर पर जो बाद में रिफ़ंड हुए",
+        "recoveryReturned": "वसूली लौटाई गई",
+        "recoveryReturnedHint": "पहले वसूला गया रिफ़ंड पूर्ववत हुआ",
+        "reserveHeld": "प्री-ऑर्डर रिज़र्व रोका गया",
+        "reserveHeldHint": "देर से आने वाले चार्जबैक के लिए रोका गया",
+        "reserveReleased": "प्री-ऑर्डर रिज़र्व जारी हुआ",
+        "reserveReleasedHint": "पिछले पेआउट में रोका गया था, अब अवधि पूरी हुई",
+        "reserveCreditDeducted": "रिज़र्व वसूला गया",
+        "reserveCreditDeductedHint": "जारी हुआ रिज़र्व जिसका पेआउट वापस आ गया",
+        "reserveCreditReturned": "रिज़र्व वसूली लौटाई गई",
+        "reserveCreditReturnedHint": "उसका पेआउट दोबारा भुगतान होने के बाद लौटाया गया",
+        "commissionOffset": "नकद बिक्री पर कमीशन",
+        "commissionOffsetHint": "उन बिक्रियों पर बकाया जिनका पैसा विक्रेता ने लिया",
+        "commissionCredit": "नकद बिक्री पर स्टोर के प्रमोशन",
+        "commissionCreditHint": "बकाया कमीशन से ज़्यादा छूट, जिसका भुगतान स्टोर ने किया"
+      }
+    },
+    "receivables": {
+      "title": "विक्रेताओं के साथ लेना-देना",
+      "subtitle": "विक्रेता की ओर से रखा गया पैसा, उस कमीशन के सामने जो उन बिक्रियों पर उनका बकाया है जिनका पैसा उन्होंने खुद लिया।",
+      "vendor": "विक्रेता",
+      "net": "निपटाने को शुद्ध राशि",
+      "emptyTitle": "कुछ बकाया नहीं",
+      "emptyBody": "ऑर्डर का भुगतान होते ही बैलेंस दिखते हैं: पेआउट पूरा होने तक प्लेटफ़ॉर्म विक्रेता का हिस्सा रखता है, और जो विक्रेता खुद नकद लेता है उस पर उसका कमीशन बकाया होता है।",
+      "collectNote": "लेजर से पढ़ा गया, इसलिए बिक्री उसी पल से गिनी जाती है जब उसका पैसा आता है। आज क्या देय है, यह पेआउट पेज पर दिखता है।",
+      "overpaidTitle": "जितना कभी रखा गया था उससे ज़्यादा भुगतान हुआ",
+      "overpaidHint": "एक पेआउट ने ऐसी बिक्री का निपटान किया जिसका पैसा विक्रेता ने खुद लिया था। नए पेआउट अब ऐसा नहीं कर सकते; पहले से दर्ज बैलेंस वित्त अवलोकन पर समायोजन से साफ़ किया जाता है।",
+      "owedBackTitle": "जिन विक्रेताओं को पैसा लौटाना है",
+      "owedBackHint": "आमतौर पर विक्रेता को भुगतान हो जाने के बाद हुआ रिफ़ंड। यह अपने आप उनके अगले पेआउट से कटेगा, या अगर वे पैसा लौटा दें तो विक्रेता के पेआउट टैब पर वापसी भुगतान दर्ज करें। साथ में समायोजन दर्ज न करें — इससे दो बार वसूली होगी।",
+      "heldForVendors": "आप विक्रेताओं के लिए रखे हुए हैं",
+      "commissionTheyOwe": "उन पर आपका बकाया कमीशन",
+      "netToSettle": "निपटाने को बाकी शुद्ध राशि",
+      "netHint": "कुल मिलाकर खातों में बकाया — पेआउट केवल डिलीवर हुआ हिस्सा भेजता है"
     }
   },
   "ui": {

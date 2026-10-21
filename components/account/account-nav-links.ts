@@ -28,6 +28,11 @@ export interface AccountNavLink {
   href: string;
   icon: typeof LayoutDashboard;
   countKey?: keyof AccountStats;
+  /**
+   * Reached from elsewhere, so the sidebar leaves it out; the top bar still
+   * names the page after it.
+   */
+  hideInSidebar?: boolean;
 }
 
 export const dashboardLinks: AccountNavLink[] = [
@@ -47,6 +52,8 @@ export const dashboardLinks: AccountNavLink[] = [
     href: "/account/notifications",
     icon: Bell,
     countKey: "notificationsCount",
+    // The top bar's bell opens them.
+    hideInSidebar: true,
   },
   {
     // `account.inbox` is a namespace object: t.has() reports true for it but

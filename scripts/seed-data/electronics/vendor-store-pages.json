@@ -1,0 +1,308 @@
+[
+  {
+    "_id": {
+      "$oid": "6ac889bae98668762b472b90"
+    },
+    "vendorId": {
+      "$oid": "6a980391ad6869b1f3756d93"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-10-09T06:29:03.509Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "22d43967-2411-48ad-95fd-f574159470b4",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Featured Categories",
+            "source": "featured",
+            "limit": 8,
+            "categoryIds": [],
+            "style": "",
+            "variant": "circles",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "03cc4fb7-1d2d-44ea-8b74-d40b1a713b42",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "bento3",
+            "width": "fixed",
+            "height": "threeFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "45ee6940-0f46-434e-99af-97d6b309bd44",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791538640023-d70380446f575786b9552eac4d47fbd2/WhatsApp_Image_2026-10-09_at_3.34.37_PM.jpeg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "9b0c852d-354a-49e8-8b77-c9aab4a23fdd",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791533141278-45abe9b4a19f9b0fe4ca96fb7adc2e14/e5d481e81561055f2dcc49ec28af439a.jpg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "be6a913c-3a84-4669-8ca5-2126e9e0224d",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791533477459-0c523bece005b299cb183017ff5d83ec/bce74c4df2541eb3541ee3244e1bf2ba.jpg",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "683c3482-9fda-4131-b6e1-3cfc817052c0",
+          "type": "product-grid",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Products on Sale",
+            "subtitle": "",
+            "source": "discounted",
+            "categoryId": "",
+            "brandId": "",
+            "collectionId": "",
+            "limit": 8,
+            "desktopColumns": 5,
+            "productIds": [],
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "60cb0a4f-bc56-4805-bcfe-82513efb56e6",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": true,
+          "settings": {
+            "code": "NEW",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "/products",
+            "background": {
+              "type": "image",
+              "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791535722384-63005067aa892d2a7512b936c8f4636d/efb370ce-4061-44a8-b906-3c83dff74ad0.png",
+              "imageWidth": 2048
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "061da343-048f-4c83-b664-9047f1e73db8",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-10-09T09:38:26.877Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "published": {
+      "sections": [
+        {
+          "id": "22d43967-2411-48ad-95fd-f574159470b4",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Featured Categories",
+            "source": "featured",
+            "limit": 8,
+            "categoryIds": [],
+            "style": "",
+            "variant": "circles",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "03cc4fb7-1d2d-44ea-8b74-d40b1a713b42",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "bento3",
+            "width": "fixed",
+            "height": "threeFifths",
+            "gap": 14,
+            "sidePadding": 16,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "45ee6940-0f46-434e-99af-97d6b309bd44",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791538640023-d70380446f575786b9552eac4d47fbd2/WhatsApp_Image_2026-10-09_at_3.34.37_PM.jpeg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "9b0c852d-354a-49e8-8b77-c9aab4a23fdd",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791533141278-45abe9b4a19f9b0fe4ca96fb7adc2e14/e5d481e81561055f2dcc49ec28af439a.jpg",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "be6a913c-3a84-4669-8ca5-2126e9e0224d",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "image",
+                "slider": "",
+                "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791533477459-0c523bece005b299cb183017ff5d83ec/bce74c4df2541eb3541ee3244e1bf2ba.jpg",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "683c3482-9fda-4131-b6e1-3cfc817052c0",
+          "type": "product-grid",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Products on Sale",
+            "subtitle": "",
+            "source": "discounted",
+            "categoryId": "",
+            "brandId": "",
+            "collectionId": "",
+            "limit": 8,
+            "desktopColumns": 5,
+            "productIds": [],
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "60cb0a4f-bc56-4805-bcfe-82513efb56e6",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": true,
+          "settings": {
+            "code": "NEW",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "/products",
+            "background": {
+              "type": "image",
+              "image": "https://cdn-storify.neurolight.studio/uploads/vendor/6a980391ad6869b1f3756d93/2026/10/1791535722384-63005067aa892d2a7512b936c8f4636d/efb370ce-4061-44a8-b906-3c83dff74ad0.png",
+              "imageWidth": 2048
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "061da343-048f-4c83-b664-9047f1e73db8",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-10-09T09:38:32.544Z"
+      },
+      "publishedBy": null
+    },
+    "settings": {
+      "announcement": {
+        "text": "",
+        "link": "",
+        "color": "",
+        "startsAt": "",
+        "endsAt": ""
+      },
+      "seo": {
+        "title": "",
+        "description": "",
+        "image": ""
+      },
+      "accentColor": "",
+      "showSimilarProducts": true,
+      "defaultTab": "home",
+      "hideAboutTab": false,
+      "hideShippingTab": false,
+      "bannerSize": "standard",
+      "defaultSort": "popular"
+    },
+    "takedown": null,
+    "updatedAt": {
+      "$date": "2026-10-09T09:38:32.548Z"
+    }
+  }
+]

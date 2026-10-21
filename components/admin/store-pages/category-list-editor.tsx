@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { StoreSurfaceStyle } from "./section-preview-frame";
 import { Check, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -90,12 +91,15 @@ export function CategoryListEditor({
   onSettingChange,
   locale,
   defaultLanguage,
+  storeSurface,
 }: {
   entry: SectionCatalogEntry;
   settings: Record<string, unknown>;
   onSettingChange: (key: string, value: unknown) => void;
   locale: string;
   defaultLanguage: string;
+  /** The active theme's compiled colours for the inline storefront preview. */
+  storeSurface?: StoreSurfaceStyle;
 }) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
@@ -252,6 +256,8 @@ export function CategoryListEditor({
              own bg-background is a gray shell tone. */
           <div
             className="store-surface overflow-hidden rounded-md border border-border bg-background px-4 py-5"
+            {...(storeSurface?.attributes ?? {})}
+            style={storeSurface?.vars as React.CSSProperties | undefined}
             onClickCapture={(event) => event.preventDefault()}
           >
             <CategoryTiles

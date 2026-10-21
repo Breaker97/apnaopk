@@ -1,3 +1,4 @@
+import { normalizeDimensions, normalizeViewportSettings, type ResponsiveDimensions, type ViewportSettings } from "./responsive-dimensions";
 import {
   inheritFill,
   newId,
@@ -51,6 +52,7 @@ export const FOOTER_ITEM_KINDS = [
 export type FooterItemKind = (typeof FOOTER_ITEM_KINDS)[number];
 
 interface FooterItemBase {
+  responsive?: ResponsiveDimensions;
   id: string;
   padding: HeaderPadding;
 }
@@ -125,6 +127,7 @@ export const FOOTER_COLUMN_FLOWS = ["stack", "row"] as const;
 export type FooterColumnFlow = (typeof FOOTER_COLUMN_FLOWS)[number];
 
 export interface FooterLayoutColumn {
+  responsive?: ResponsiveDimensions;
   id: string;
   /** Track share, in `fr` units, of the row width. */
   width: number;
@@ -142,6 +145,7 @@ export interface FooterLayoutColumn {
 }
 
 export interface FooterLayoutRow {
+  responsive?: ResponsiveDimensions;
   id: string;
   align: HeaderAlignment;
   background: HeaderBackground;
@@ -161,6 +165,7 @@ export interface FooterLayoutRow {
 }
 
 export interface FooterLayout {
+  viewport?: ViewportSettings;
   rows: FooterLayoutRow[];
 }
 
@@ -272,7 +277,7 @@ function normalizeSurface(value: unknown, fallback: HeaderBackground): HeaderBac
 function normalizeItem(value: unknown): FooterLayoutItem | null {
   const source = isRecord(value) ? value : {};
   const kind = readOneOf(source.type, FOOTER_ITEM_KINDS, "text");
-  const base = { id: readString(source.id, "") || newId(), padding: normalizePadding(source.padding, padding(0)) };
+  const base = { responsive: normalizeDimensions(source.responsive), id: readString(source.id, "") || newId(), padding: normalizePadding(source.padding, padding(0)) };
   switch (kind) {
     case "brand":
       return { ...base, type: "brand", size: readNumber(source.size, 0, 0, 400) };
@@ -338,6 +343,7 @@ function normalizeColumn(value: unknown): FooterLayoutColumn {
   const source = isRecord(value) ? value : {};
   return {
     id: readString(source.id, "") || newId(),
+    responsive: normalizeDimensions(source.responsive),
     width: readNumber(source.width, 1, 1, 12),
     flow: readOneOf(source.flow, FOOTER_COLUMN_FLOWS, "stack"),
     justify: readOneOf(source.justify, JUSTIFIES, "start"),
@@ -356,6 +362,7 @@ function normalizeRow(value: unknown): FooterLayoutRow {
   const source = isRecord(value) ? value : {};
   return {
     id: readString(source.id, "") || newId(),
+    responsive: normalizeDimensions(source.responsive),
     align: normalizeAlignment(source.align, alignment("start", "start")),
     background: normalizeSurface(source.background, inheritFill()),
     foreground: normalizeSurface(source.foreground, inheritFill()),
@@ -373,6 +380,7 @@ function normalizeRow(value: unknown): FooterLayoutRow {
 export function normalizeFooterLayout(value: unknown): FooterLayout {
   const source = isRecord(value) ? value : {};
   return {
+    viewport: normalizeViewportSettings(source.viewport),
     rows: Array.isArray(source.rows)
       ? source.rows.slice(0, MAX_FOOTER_ROWS).map(normalizeRow)
       : [],
@@ -557,5 +565,5 @@ export function resolveFooterLayout(
   settings: FooterSettings,
 ): FooterLayout {
   const layout = normalizeFooterLayout(stored);
-  return footerLayoutIsEmpty(layout) ? footerLayoutFromSettings(settings) : layout;
+  return footerLayoutIsEmpty(layout) ? { ...footerLayoutFromSettings(settings), viewport: layout.viewport } : layout;
 }

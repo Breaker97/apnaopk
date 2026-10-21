@@ -17,7 +17,11 @@ import {
   User,
   Vendor,
 } from "@/models";
-import { NotificationType } from "@/models/notification.model";
+import {
+  NOTIFICATION_MESSAGE_MAX_LENGTH,
+  NOTIFICATION_TITLE_MAX_LENGTH,
+  NotificationType,
+} from "@/models/notification.model";
 import { SmsDelivery } from "@/models/sms-delivery.model";
 import { sendPushToUser } from "@/lib/notifications/push-notifications";
 import {
@@ -101,6 +105,14 @@ interface CreateNotificationParams {
 }
 
 /**
+ * Text cut to its column's limit. A notice that runs long is shortened, never
+ * lost: past `maxlength` the save fails, and the recipient is told nothing.
+ */
+function fitToColumn(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
  * Create the in-app row, reporting whether it is new. `duplicate` means this
  * exact event already reached this user — which is what stops the email and
  * the text going out a second time when an event fires twice.
@@ -119,8 +131,8 @@ async function recordNotification(params: CreateNotificationParams) {
     const notification = await Notification.create({
       userId: params.userId,
       type: params.type,
-      title: params.title,
-      message: params.message,
+      title: fitToColumn(params.title, NOTIFICATION_TITLE_MAX_LENGTH),
+      message: fitToColumn(params.message, NOTIFICATION_MESSAGE_MAX_LENGTH),
       link: params.link,
       data: params.data,
     });
@@ -2453,15 +2465,19 @@ export async function notifyAdminsPaymentAnomaly(anomaly: {
   dedupeKey?: string;
   /** Where the notice takes an admin. The payments screen when unset. */
   link?: string;
-}) {
+}, options: {
+  /** A durable finance worker retries when notification/outbox writes fail. */
+  strict?: boolean;
+} = {}) {
   try {
     const settings = await getSettings();
     const admins = await findAdminRecipients();
 
-    await Promise.allSettled(
+    const deliveries = await Promise.allSettled(
       admins.map((recipient) =>
         dispatchNotification({
           recipient,
+          requireOutbox: options.strict,
           channels: { inApp: true, browserPush: true, email: true, sms: false },
           settings,
           notification: {
@@ -2492,8 +2508,13 @@ export async function notifyAdminsPaymentAnomaly(anomaly: {
         }),
       ),
     );
+    if (options.strict) {
+      const failed = deliveries.filter((delivery) => delivery.status === "rejected");
+      if (failed.length) throw new AggregateError(failed.map((delivery) => delivery.reason), "Payment anomaly delivery failed");
+    }
   } catch (error) {
     console.error("Failed to notify admins about payment anomaly:", error);
+    if (options.strict) throw error;
   }
 }
 
@@ -3997,6 +4018,128 @@ async function quoteVendorRecipient(
  *
  * Best-effort, like the admins' alert: the quote is already saved.
  */
+/**
+ * Tell a seller what happened to their payout.
+ *
+ * Payouts are drawn up and sent by hand, and nothing used to say so: a seller
+ * learnt their money had left — or had come back from a closed account — only
+ * by opening the payouts page. Deduped per payout and event, so a retried
+ * request does not tell them twice.
+ */
+export async function notifyVendorPayout(params: {
+  payout: {
+    _id: unknown;
+    payoutNumber?: string;
+    vendorId: unknown;
+    netAmount?: number;
+    /** Commission deducted from the payout; with nothing left to send, the payout only settles it. */
+    commissionOffset?: number;
+    currency?: string;
+    paidAt?: Date | string | null;
+    paidFrom?: string | null;
+    paymentReference?: string | null;
+    note?: string | null;
+  };
+  event: "created" | "paid" | "returned" | "failed" | "cancelled";
+  settings?: ISettings;
+}) {
+  try {
+    await connectDB();
+    const settings = params.settings || (await getSettings());
+    const channels = normalizeNotificationSettings(settings.notifications).vendor.payouts;
+    if (!hasAnyNotificationChannel(channels)) return null;
+
+    const vendor = await Vendor.findById(params.payout.vendorId)
+      .select("userId address.phone address.country")
+      .populate("userId", `${USER_CONTACT_FIELDS} status`)
+      .lean<VendorContactDoc | null>();
+    const vendorStatus = (vendor?.userId as { status?: string } | undefined)?.status;
+    const recipient = vendor ? vendorRecipient(vendor) : null;
+    if (!recipient || vendorStatus === USER_ACCOUNT_STATUS.BANNED) return null;
+
+    const payoutId = getIdString(params.payout._id);
+    const number = params.payout.payoutNumber || "Your payout";
+    const amount = formatCurrency(
+      Math.max(0, Number(params.payout.netAmount) || 0),
+      String(params.payout.currency || "USD").toUpperCase(),
+    );
+    const note = params.payout.note?.trim();
+    const sentBy = [
+      params.payout.paidFrom ? `by ${params.payout.paidFrom}` : null,
+      params.payout.paymentReference ? `reference ${params.payout.paymentReference}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    // Earnings the commission owed took in full: nothing is sent, and saying a
+    // payout of nothing was sent would read as a mistake.
+    const settledOnly =
+      (Number(params.payout.netAmount) || 0) <= 0 && (Number(params.payout.commissionOffset) || 0) > 0;
+    const offset = formatCurrency(
+      Number(params.payout.commissionOffset) || 0,
+      String(params.payout.currency || "USD").toUpperCase(),
+    );
+    const copy: Record<typeof params.event, { title: string; message: string }> = {
+      created: settledOnly
+        ? {
+            title: "A payout is being prepared",
+            message: `${number} is being prepared: your earnings cover ${offset} of commission you owed, so nothing will be sent.`,
+          }
+        : {
+            title: "A payout is being prepared",
+            message: `${number} of ${amount} is being prepared for you.`,
+          },
+      paid: settledOnly
+        ? {
+            title: "Your payout was settled",
+            message: `${number}: your earnings were settled against ${offset} of commission you owed. Nothing was sent.`,
+          }
+        : {
+            title: "Your payout was sent",
+            message: `${number}: ${amount} was sent to you${sentBy ? ` ${sentBy}` : ""}.`,
+          },
+      returned: {
+        title: "Your payout came back",
+        message: `${number} of ${amount} came back to the store${note ? `: ${note}` : ""}. The sales in it go back to your balance; check your payout details.`,
+      },
+      failed: {
+        title: "Your payout could not be sent",
+        message: `${number} of ${amount} could not be sent${note ? `: ${note}` : ""}. The sales in it go back to your balance.`,
+      },
+      cancelled: {
+        title: "A payout was cancelled",
+        message: `${number} was cancelled${note ? `: ${note}` : ""}. The sales in it go back to your balance for the next payout.`,
+      },
+    };
+
+    return dispatchNotification({
+      recipient,
+      channels,
+      settings,
+      notification: {
+        type: NotificationType.PAYOUT,
+        title: copy[params.event].title,
+        message: copy[params.event].message,
+        link: payoutId ? `/vendor/payouts/${payoutId}` : "/vendor/payouts",
+        data: {
+          payoutId,
+          payoutNumber: params.payout.payoutNumber,
+          event: params.event,
+          recipientRole: USER_ROLES.VENDOR,
+        },
+        dedupe: {
+          type: NotificationType.PAYOUT,
+          "data.payoutId": payoutId,
+          "data.event": params.event,
+          "data.recipientRole": USER_ROLES.VENDOR,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to tell a vendor about their payout:", error);
+    return null;
+  }
+}
+
 export async function notifyVendorQuoteRequest(quote: {
   quoteId: string;
   vendorId: unknown;

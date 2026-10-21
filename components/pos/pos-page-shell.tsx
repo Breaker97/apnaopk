@@ -74,9 +74,15 @@ async function POSTerminalLoader({ settings, user }: POSPageShellProps) {
 
   return (
     <POSWorkspace
-      settings={{ ...settings, posLocationId, posLocationName }}
+      settings={{
+        ...settings,
+        posLocationId,
+        posLocationName,
+        cashierId: settings.cashierId ?? user.id,
+        cashierName: settings.cashierName ?? user.name ?? undefined,
+      }}
       locations={locations}
-      cashierName={user.name ?? null}
+      cashierName={settings.cashierName ?? user.name ?? null}
       initialData={initialData}
     />
   );

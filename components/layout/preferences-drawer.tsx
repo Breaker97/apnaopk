@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import { useTheme } from "@/providers/theme-provider";
 import {
@@ -14,7 +14,9 @@ import {
   Maximize2,
   Minimize2,
   Info,
+  Palette,
 } from "lucide-react";
+import Link from "@/components/language/link";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast-notification";
 import {
@@ -40,20 +42,50 @@ import {
 import { confirmLeaveSettings } from "@/components/admin/settings/settings-leave-check";
 import { useTranslations } from "next-intl";
 
+const OPEN_EVENT = "storify:preferences-open";
+
+/** Opens the drawer from the account menu; the one the header mounts listens. */
+export function openPreferencesDrawer() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
+
 /**
  * The viewer's own dashboard preferences, in every dashboard (admin, vendor,
  * staff): light/dark, contrast, right-to-left, a collapsed sidebar, the
  * sidebar colour, and the language. All of it stays in this browser and
  * changes nothing for anyone else.
  *
- * The store's look — logos, brand colours, presets, the default light/dark
- * shoppers see — is Online Store → Themes → Branding. This drawer used to
- * write it: a colour preset or Reset replaced the brand colours, and a dark
- * toggle turned the storefront dark for every shopper.
+ * The store's look — logos, the default light/dark shoppers see — is Online
+ * Store → Themes → Branding, and its colours are the live theme's (Theme
+ * settings → Colors). An apparent sidebar is painted with one of those, so
+ * it follows the theme: choosing which one is the viewer's preference, the
+ * colours never are. This drawer used to write them: a colour preset or Reset
+ * replaced the brand colours, and a dark toggle turned the storefront dark
+ * for every shopper.
+ *
+ * In the dashboards it has no button of its own — the header's gear opens
+ * Settings — and opens from the account menu (`openPreferencesDrawer`).
  */
-export function PreferencesDrawer({ locale }: { locale: Locale }) {
+export function PreferencesDrawer({
+  locale,
+  showLanguage = true,
+  showTrigger = true,
+}: {
+  locale: Locale;
+  /** False in the customer account, which stays in the store's language. */
+  showLanguage?: boolean;
+  /** False in the dashboards, where the account menu opens it. */
+  showTrigger?: boolean;
+}) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const openDrawer = () => setOpen(true);
+    window.addEventListener(OPEN_EVENT, openDrawer);
+    return () => window.removeEventListener(OPEN_EVENT, openDrawer);
+  }, []);
+
   const router = useRouter();
   const pathname = usePathname();
   const { theme, setTheme, clearTheme } = useTheme();
@@ -66,12 +98,20 @@ export function PreferencesDrawer({ locale }: { locale: Locale }) {
     rtl,
     collapsedSidebar,
     navColor,
+    navPaint,
+    primaryColor,
+    secondaryColor,
+    previewBrand,
     setContrast,
     setRtl,
     setCollapsedSidebar,
     setNavColor,
+    setNavPaint,
     resetPreferences,
   } = useAppSettings();
+  // Only an admin can change the theme's colours; elsewhere the hint just
+  // says where they come from.
+  const inAdmin = /^\/[^/]+\/admin(\/|$)/.test(pathname);
 
   const isRtl =
     rtl || (localeConfig[locale]?.direction ?? "ltr") === "rtl";
@@ -99,16 +139,18 @@ export function PreferencesDrawer({ locale }: { locale: Locale }) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-primary transition-colors"
-          aria-label={t("admin.preferences.title")}
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
+      {showTrigger && (
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-store-link transition-colors"
+            aria-label={t("admin.preferences.title")}
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent
         side={isRtl ? "left" : "right"}
         showCloseButton={false}
@@ -223,31 +265,108 @@ export function PreferencesDrawer({ locale }: { locale: Locale }) {
                     />
                   </div>
                 </div>
+
+                {navColor === "apparent" ? (
+                  <div className="space-y-2.5">
+                    <span
+                      id="sidebar-paint-label"
+                      className="text-xs text-muted-foreground font-medium"
+                    >
+                      {t("admin.preferences.sidebarPaint")}
+                    </span>
+                    <div
+                      role="radiogroup"
+                      aria-labelledby="sidebar-paint-label"
+                      className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1"
+                    >
+                      {(["primary", "secondary"] as const).map((paint) => (
+                        <button
+                          key={paint}
+                          type="button"
+                          role="radio"
+                          aria-checked={navPaint === paint}
+                          tabIndex={navPaint === paint ? 0 : -1}
+                          onClick={() => setNavPaint(paint)}
+                          onKeyDown={(event) => {
+                            if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+                            event.preventDefault();
+                            const next = paint === "primary" ? "secondary" : "primary";
+                            setNavPaint(next);
+                            const group = event.currentTarget.parentElement;
+                            requestAnimationFrame(() =>
+                              group?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus(),
+                            );
+                          }}
+                          className={cn(
+                            "flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors",
+                            navPaint === paint
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <span
+                            aria-hidden
+                            className="h-3.5 w-3.5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(15_23_42/0.15)]"
+                            style={{
+                              backgroundColor:
+                                paint === "primary"
+                                  ? (previewBrand ?? { primaryColor }).primaryColor
+                                  : (previewBrand ?? { secondaryColor }).secondaryColor,
+                            }}
+                          />
+                          {paint === "primary"
+                            ? t("admin.preferences.sidebarPaintPrimary")
+                            : t("admin.preferences.sidebarPaintSecondary")}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+                      <Palette className="mt-px h-3 w-3 shrink-0" aria-hidden />
+                      <span>
+                        {t("admin.preferences.sidebarPaintHint")}
+                        {inAdmin ? (
+                          <>
+                            {" "}
+                            <Link
+                              href="/admin/online-store/theme/editor"
+                              onClick={() => setOpen(false)}
+                              className="font-medium text-primary underline-offset-2 hover:underline"
+                            >
+                              {t("admin.preferences.sidebarPaintChange")}
+                            </Link>
+                          </>
+                        ) : null}
+                      </span>
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </SectionContainer>
 
             {/* Language Section */}
-            <SectionContainer label={t("common.language")}>
-              <div className="grid grid-cols-3 gap-2">
-                {locales.map((loc) => (
-                  <button
-                    key={loc}
-                    onClick={() => void handleLocaleChange(loc)}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl transition-all",
-                      locale === loc
-                        ? "bg-background border border-border shadow-sm"
-                        : "bg-transparent border border-transparent hover:bg-muted/50",
-                    )}
-                  >
-                    <FlagIcon countryCode={localeConfig[loc].countryCode} size={18} />
-                    <span className="text-xs font-medium text-muted-foreground uppercase">
-                      {localeConfig[loc].languageCode}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </SectionContainer>
+            {showLanguage && (
+              <SectionContainer label={t("common.language")}>
+                <div className="grid grid-cols-3 gap-2">
+                  {locales.map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => void handleLocaleChange(loc)}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl transition-all",
+                        locale === loc
+                          ? "bg-background border border-border shadow-sm"
+                          : "bg-transparent border border-transparent hover:bg-muted/50",
+                      )}
+                    >
+                      <FlagIcon countryCode={localeConfig[loc].countryCode} size={18} />
+                      <span className="text-xs font-medium text-muted-foreground uppercase">
+                        {localeConfig[loc].languageCode}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </SectionContainer>
+            )}
           </div>
         </ScrollArea>
       </SheetContent>

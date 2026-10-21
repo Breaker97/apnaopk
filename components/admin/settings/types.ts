@@ -4,6 +4,7 @@ import type { SettingsSaveWarning } from "@/lib/settings/save-warnings";
 import type { StoreProfileProblem } from "@/lib/inventory/store-profile";
 import type { CountryAvailability } from "@/lib/intl/country-availability";
 import type { NotificationSettings } from "@/lib/notifications/notification-settings";
+import type { StoredTaxSettings } from "@/lib/tax/tax-settings";
 import type {
   CheckoutGatewayId,
   CheckoutGatewayReadiness,
@@ -235,6 +236,8 @@ export interface Settings {
     logRetentionDays?: 7 | 30 | 90;
   };
   notifications: NotificationSettings;
+  /** Settings → Tax; read through `normalizeTaxSettings()`. */
+  tax?: StoredTaxSettings;
   orders: {
     prefix: string;
     taxRate: number;
@@ -246,6 +249,8 @@ export interface Settings {
       minWithdrawalAmount: number;
       /** A minimum of its own for a payout in another currency. */
       minWithdrawalByCurrency?: Record<string, number> | null;
+      /** Draw payouts up on each seller's own schedule. */
+      autoPayoutDrafts?: boolean;
     };
     /** Optional: a store saved before these settings existed carries none. */
     returns?: {
@@ -520,6 +525,7 @@ export interface Settings {
     customize?: {
       printedReceiptsEnabled: boolean;
       receiptPrinter?: string;
+      openCashDrawer?: boolean;
       soundEnabled: boolean;
       soundVolume: number;
       soundAddToCart: boolean;
@@ -529,9 +535,15 @@ export interface Settings {
     };
     checkout?: {
       paymentMethods: ("cash" | "card" | "manual" | "bank")[];
+      allowDeposits?: boolean;
+      requireOpenRegister?: boolean;
+      pricesIncludeTax?: boolean;
     };
     orders?: {
       orderNumberPrefix: string;
+    };
+    offline?: {
+      sessionHours: number;
     };
   };
   multiVendorMode: {
@@ -691,7 +703,8 @@ interface CustomColorPreset {
   id: string;
   name: string;
   primaryColor: string;
-  secondaryColor: string;
+  /** Add to cart. Palettes saved by the two-colour brand editor have none. */
+  secondaryColor?: string;
   accentColor: string;
 }
 

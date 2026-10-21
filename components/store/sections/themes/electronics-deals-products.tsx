@@ -214,7 +214,7 @@ function SmallDealCard({
           {discount > 0 ? (
             // What a deals panel is FOR. The struck-through price alone
             // leaves the shopper to do the arithmetic.
-            <span className="absolute start-1.5 top-1.5 z-10 rounded bg-(--store-sale,#e11d48) px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-white">
+            <span className="absolute start-1.5 top-1.5 z-10 rounded bg-store-sale px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-store-on-sale">
               -{discount}%
             </span>
           ) : null}
@@ -249,7 +249,8 @@ function SmallDealCard({
           <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
             <span
               className={cn(
-                "text-[17px] font-bold leading-tight tracking-[-0.01em] text-primary",
+                "text-[17px] font-bold leading-tight tracking-[-0.01em]",
+                compareAt ? "text-store-sale-text" : "text-foreground",
                 !stacked && "@[260px]:text-[21px] @[420px]:text-[25px]",
               )}
             >
@@ -267,7 +268,7 @@ function SmallDealCard({
             ) : null}
           </p>
           {left !== null ? (
-            <p className="text-[10.5px] font-semibold leading-none text-(--store-sale,#e11d48)">
+            <p className="text-[10.5px] font-semibold leading-none text-status-on-warning">
               {t.has("home.dealsOnlyLeft")
                 ? t("home.dealsOnlyLeft", { count: left })
                 : `Only ${left} left`}
@@ -420,7 +421,7 @@ function FeaturedDealCard({
         <div className="flex flex-col gap-2.5">
           <div className="relative flex min-h-48 flex-1 items-center justify-center overflow-hidden rounded-[max(0px,calc(var(--deal-card-radius,0.75rem)-4px))] bg-muted @[540px]:min-h-[236px]">
             {discount > 0 ? (
-              <span className="absolute start-2 top-2 z-10 rounded bg-(--store-sale,#e11d48) px-2 py-1 text-[10px] font-extrabold leading-none text-white">
+              <span className="absolute start-2 top-2 z-10 rounded bg-store-sale px-2 py-1 text-[10px] font-extrabold leading-none text-store-on-sale">
                 -{discount}%
               </span>
             ) : null}
@@ -515,7 +516,7 @@ function FeaturedDealCard({
                       className={cn(
                         "size-3 sm:size-[11px]",
                         index < rating
-                          ? "fill-amber-400 text-amber-400"
+                          ? "fill-current text-(--store-rating,#a86500)"
                           : "fill-muted-foreground/25 text-muted-foreground/25",
                       )}
                     />
@@ -527,7 +528,7 @@ function FeaturedDealCard({
               </span>
             ) : null}
             {left !== null ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-(--store-sale,#e11d48)/10 px-2.5 py-1 text-[11px] font-bold text-(--store-sale,#e11d48)">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-status-warning px-2.5 py-1 text-[11px] font-bold text-status-on-warning">
                 <span className="size-1.5 rounded-full bg-current" aria-hidden />
                 {t.has("home.dealsOnlyLeft")
                   ? t("home.dealsOnlyLeft", { count: left })
@@ -538,7 +539,14 @@ function FeaturedDealCard({
 
           <div className="space-y-1">
             <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-              <span className="text-[25.2px] font-bold leading-[1.25] tracking-[-0.01em] text-primary @[820px]:text-[32px]">
+              <span
+                className={cn(
+                  "text-[25.2px] font-bold leading-[1.25] tracking-[-0.01em] @[820px]:text-[32px]",
+                  formatProductCompareAtPrice(product, formatPrice)
+                    ? "text-store-sale-text"
+                    : "text-foreground",
+                )}
+              >
                 {formatProductPrice(product, formatPrice)}
               </span>
               {formatProductCompareAtPrice(product, formatPrice) ? (
@@ -550,7 +558,7 @@ function FeaturedDealCard({
             {/* The saving in money, next to the percentage on the badge: the
                 two numbers a shopper weighs, both on the card. */}
             {savings > 0 ? (
-              <p className="text-[12.5px] font-semibold text-[#15803d] @[820px]:text-[14px]">
+              <p className="text-[12.5px] font-semibold text-status-on-positive @[820px]:text-[14px]">
                 {t.has("home.dealsYouSave")
                   ? t("home.dealsYouSave", { amount: formatPrice(savings) })
                   : `You save ${formatPrice(savings)}`}
@@ -614,7 +622,7 @@ function FeaturedDealCard({
             disabled={adding}
             // A button a thumb can land on: the design's 8.7px label was
             // drawn for a mockup, not a shopper.
-            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-foreground text-[13px] font-bold text-background transition-colors hover:bg-foreground/85 disabled:opacity-60 @[820px]:h-12 @[820px]:max-w-sm @[820px]:text-[14px]"
+            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-store-secondary text-[13px] font-bold text-store-on-secondary transition-colors hover:bg-store-secondary/85 disabled:opacity-60 @[820px]:h-12 @[820px]:max-w-sm @[820px]:text-[14px]"
           >
             <ShoppingCart className="size-4" />
             {t("common.addToCart")}

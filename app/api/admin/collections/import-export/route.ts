@@ -7,6 +7,7 @@ import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { sanitizeSearchString } from "@/lib/api/validate";
 import { USER_ROLES } from "@/config/app.config";
 import { Collection } from "@/models";
+import { MAX_IMPORT_FILE_BYTES } from "@/lib/products/import-limits";
 import {
   collectionsCsvResponse,
   importCollectionsCsv,
@@ -120,6 +121,12 @@ export const POST = withApi(
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return errorResponse("CSV file is required.", 400);
+    }
+    if (file.size > MAX_IMPORT_FILE_BYTES) {
+      return errorResponse(
+        "This file is larger than 5 MB. Split it into smaller files and import them one at a time.",
+        413,
+      );
     }
 
     const result = await importCollectionsCsv(await file.text());

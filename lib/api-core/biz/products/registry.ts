@@ -1,3 +1,4 @@
+import { inventoryFinanceRoutes } from "./inventory-finance";
 import type { BizRouteEntry } from "@/lib/api-core/registry";
 import { productDetailRoute } from "./detail";
 import { productFiltersRoute } from "./filters";
@@ -16,6 +17,7 @@ import { productEditorRoutes } from "./editor-routes";
  * here for the registry.
  */
 export const productsRoutes: readonly BizRouteEntry[] = [
+  ...inventoryFinanceRoutes,
   productListRoute,
   productFiltersRoute,
   productDetailRoute,

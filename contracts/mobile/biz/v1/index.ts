@@ -15,3 +15,4 @@ export * from "./product-editor";
 export * from "./returns";
 export * from "./uploads";
 export * from "./vendor-applications";
+export * from "./inventory-finance";

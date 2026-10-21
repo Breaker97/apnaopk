@@ -618,6 +618,14 @@ export async function createRefundTransaction(params: {
    * id, no gateway report or dispute ever about it — but booked as cash.
    */
   apartFromCharge?: boolean;
+  /**
+   * Whether to book the refund in the ledger as the row is written (the
+   * default). A caller that has one more thing to do before the refund is a
+   * fact — giving the shopper the credit — passes false and books it itself
+   * once that is done: a refund voided in between then leaves nothing in the
+   * ledger to take back.
+   */
+  postToLedger?: boolean;
 }) {
   const safeAmount = Math.max(0, Number(params.amount || 0));
   if (!Number.isFinite(safeAmount) || safeAmount <= 0) return null;
@@ -773,13 +781,31 @@ export async function createRefundTransaction(params: {
     ).catch((error) => console.error("Failed to release refund lock:", error));
   }
 
+  // A payout already holding this sale would pay what the shopper just got
+  // back. Itemised refunds name their sellers; an unitemised one is everyone's.
+  {
+    const { flagScheduledPayoutsForOrder } = await import(
+      "@/lib/finance/payout-requote"
+    );
+    await flagScheduledPayoutsForOrder({
+      orderId: params.order._id,
+      vendorIds:
+        allocation && allocation.length > 0
+          ? allocation.map((share) => share.vendorId).filter(Boolean)
+          : null,
+      reason: `A refund of ${safeAmount} was issued on this order.`,
+    });
+  }
+
   // Keyed on the refund row, so two refunds of the same amount on one order
   // stay two entries rather than colliding into one.
-  postRefundSafely({
-    orderId: params.order._id,
-    amount: safeAmount,
-    refundId: txn?._id,
-  });
+  if (params.postToLedger !== false) {
+    postRefundSafely({
+      orderId: params.order._id,
+      amount: safeAmount,
+      refundId: txn?._id,
+    });
+  }
 
   if (settlementRequired && params.notifySettlement !== false) {
     const { notifyAdminsPaymentAnomaly } = await import(

@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   DollarSign,
+  Heart,
   Package,
   PackageCheck,
   ShoppingCart,
@@ -227,6 +228,16 @@ export function VendorDashboardContent({
           value: stats.activeProducts.toLocaleString(locale),
           icon: <Package className="w-5 h-5" />,
         },
+        ...(stats.followers !== undefined
+          ? [
+              {
+                id: "vendor-followers",
+                label: t("vendor.followers"),
+                value: stats.followers.toLocaleString(locale),
+                icon: <Heart className="w-5 h-5" />,
+              },
+            ]
+          : []),
       ]
     : [];
 
@@ -279,7 +290,7 @@ export function VendorDashboardContent({
             </>
           ) : (
             <>
-              <DashboardStatsGridSkeleton items={4} cardClassName="px-4 py-4" />
+              <DashboardStatsGridSkeleton items={5} cardClassName="px-4 py-4" />
               <OrdersChartSkeleton />
             </>
           )}

@@ -1,5 +1,5 @@
 import { resolveVendorPaymentDisplayStatus } from "@/lib/orders/order-payment-status";
-import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
+import { isPosWalkIn, posWalkInName } from "@/lib/orders/pos-walk-in";
 
 /**
  * The part of an order a vendor is allowed to see — built from an allow-list,
@@ -25,6 +25,7 @@ type VendorViewSubOrder = {
 
 type VendorViewOrder = {
   _id?: unknown;
+  posCustomerName?: string;
   orderNumber?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
@@ -80,7 +81,9 @@ export function toVendorOrderView<TOrder>(
     paymentStatus: resolveVendorPaymentDisplayStatus(plain, subOrders[0]),
     shippingAddress: plain.shippingAddress,
     customerId: posWalkIn ? undefined : plain.customerId,
-    ...(posWalkIn ? { posWalkIn: true as const } : {}),
+    ...(posWalkIn
+      ? { posWalkIn: true as const, posWalkInName: posWalkInName(plain) }
+      : {}),
     digitalOnly: plain.digitalOnly,
     hasPreorder: plain.hasPreorder,
     preorderStatus: plain.preorderStatus,

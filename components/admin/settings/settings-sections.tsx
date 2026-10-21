@@ -17,6 +17,8 @@ import {
   Monitor,
   Package,
   Palette,
+  Percent,
+  ReceiptText,
   Rocket,
   Rss,
   Search,
@@ -62,6 +64,8 @@ export type AdminSettingsSectionId =
   | "notifications"
   | "messaging"
   | "orders"
+  | "invoices"
+  | "tax"
   | "shipping"
   | "seo"
   | "social"
@@ -195,6 +199,27 @@ export const ADMIN_SETTINGS_SECTIONS: AdminSettingsSection[] = [
     labelKey: "admin.settings.orders.title",
     defaultLabel: "Order Settings",
     icon: Package,
+  },
+  // A manager, not a form: it lists the invoice, receipt and sticker designs
+  // and saves each action as it is made. It sits directly after Order
+  // Settings (D-08); the editor itself is outside settings, full width.
+  {
+    id: "invoices",
+    path: "invoices",
+    group: "commerce",
+    labelKey: "admin.settings.invoices.title",
+    defaultLabel: "Invoice Settings",
+    icon: ReceiptText,
+  },
+  // Classes, the store's region and its rates, and how tax is worked out.
+  // The rate used to sit in Order Settings.
+  {
+    id: "tax",
+    path: "tax",
+    group: "commerce",
+    labelKey: "admin.settings.tax.title",
+    defaultLabel: "Tax Settings",
+    icon: Percent,
   },
   {
     id: "shipping",

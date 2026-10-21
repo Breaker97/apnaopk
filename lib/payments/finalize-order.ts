@@ -250,7 +250,7 @@ async function takeStockDroppingSoldOutSellers(params: {
           })),
           // A collection comes off the counter the shopper chose, not off
           // whichever branch happens to hold the most.
-          orderInventoryOpts(order),
+          { ...orderInventoryOpts(order), financeSource: { kind: "order", id: String(order._id) } },
         );
       }
       return soldOut;

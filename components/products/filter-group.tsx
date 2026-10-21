@@ -122,7 +122,7 @@ export function FilterGroup({
         onClick={toggle}
         aria-expanded={open}
         aria-controls={contentId}
-        className="group/filter flex w-full cursor-pointer items-center justify-between gap-2 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="group/filter flex w-full cursor-pointer items-center justify-between gap-2 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
       >
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-bold tracking-wide">

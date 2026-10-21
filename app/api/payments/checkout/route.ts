@@ -147,6 +147,7 @@ async function placeCheckout(request: NextRequest) {
       subtotal,
       discount,
       tax,
+      lineTaxSnapshot,
       total,
       shippingCost,
       dutyAmount,
@@ -710,6 +711,9 @@ async function placeCheckout(request: NextRequest) {
         customerEmail: customerEmail || "",
         subtotal: String(subtotal),
         tax: String(tax),
+        // What each line was charged, so the order built when the money lands
+        // splits the tax as it was quoted even if a rate changes meanwhile.
+        ...(lineTaxSnapshot ? { lineTaxes: lineTaxSnapshot } : {}),
         discount: String(discount),
         total: String(total),
         // Taken after the re-priced lines were written back to the cart, which

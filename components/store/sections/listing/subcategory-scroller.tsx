@@ -95,7 +95,7 @@ export function SubcategoryScroller({
             {/* Two lines are reserved whether or not the name needs them,
                 so one long department does not push its circle out of line
                 with the rest of the row. */}
-            <span className="line-clamp-2 text-center text-[13px] font-bold leading-[1.205] tracking-[-0.02em] text-foreground transition-colors [min-height:2lh] group-hover:text-primary sm:text-[15.66px]">
+            <span className="line-clamp-2 text-center text-[13px] font-bold leading-[1.205] tracking-[-0.02em] text-foreground transition-colors [min-height:2lh] group-hover:text-store-link sm:text-[15.66px]">
               {category.name}
             </span>
           </Link>

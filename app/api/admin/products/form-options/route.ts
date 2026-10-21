@@ -1,3 +1,4 @@
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { successResponse } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
@@ -34,13 +35,13 @@ import {
  * an admin editing a vendor's product was offered the house warehouse, and the
  * save then deleted the vendor's own counts.
  *
- * Gated like the product read itself (VIEW_PRODUCTS), since it only exposes
+ * Gated like product reads (view or a product action), since it only exposes
  * reference data an editor already sees.
  */
 export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
   const access = await assertAdminOrStaffPermissions(
     session as unknown as { user: { id: string; role: string } },
-    [STAFF_PERMISSIONS.VIEW_PRODUCTS],
+    staffResourcePermissions("products"),
   );
 
   await rateLimitByUser(

@@ -213,7 +213,7 @@ export async function refundPayPalCapture(params: {
 
   if (!res.ok) {
     const message = await readErrorMessage(res);
-    throw new Error(`PayPal refund failed: ${message}`);
+    throw new GatewayApiError(`PayPal refund failed: ${message}`, res.status);
   }
 
   const json = (await res.json()) as { id?: string; status?: string };
@@ -554,6 +554,7 @@ interface PayPalDisputeSummary {
 export async function listPayPalDisputes(params: {
   creds: PayPalCredentials;
   updatedAfter?: Date;
+  updatedBefore?: Date;
   next?: string;
   token?: string;
 }): Promise<{ items: PayPalDisputeSummary[]; next?: string; token: string }> {
@@ -571,6 +572,7 @@ export async function listPayPalDisputes(params: {
     if (params.updatedAfter) {
       query.set("update_time_after", params.updatedAfter.toISOString());
     }
+    if (params.updatedBefore) query.set("update_time_before", params.updatedBefore.toISOString());
     url = `${baseUrl}/v1/customer/disputes?${query.toString()}`;
   }
 
@@ -585,8 +587,9 @@ export async function listPayPalDisputes(params: {
     items?: PayPalDisputeSummary[];
     links?: Array<{ rel?: string; href?: string }>;
   };
+  if (!Array.isArray(json.items)) throw new GatewayApiError("PayPal returned invalid dispute data", 502);
   return {
-    items: Array.isArray(json.items) ? json.items : [],
+    items: json.items,
     next: json.links?.find((link) => link.rel === "next")?.href,
     token,
   };

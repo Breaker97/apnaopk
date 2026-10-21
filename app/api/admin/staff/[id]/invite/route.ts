@@ -8,12 +8,15 @@ import { getSettings } from "@/models/settings.model";
 import { defaultLocale, isValidLocale } from "@/config/i18n.config";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
 import { staffInviteEmailHtml } from "@/lib/email/staff-invite-email";
+import { emailBrand } from "@/lib/email/brand-colors";
 import { TEAM_USER_ROLES } from "@/lib/access/staff-role";
 import { isVendorOwnedStaff } from "@/lib/access/staff-ownership";
 import { USER_ROLES } from "@/config/app.config";
 import { withApi } from "@/lib/api/handler";
 import { createAuditContext } from "@/lib/audit";
 import { auditStaffInvited } from "@/lib/access/audit-staff";
+import { resolveTeamAccess } from "@/lib/access/team-permissions";
+import { assertMayManageMember } from "@/lib/access/team-member-roles";
 
 type PasswordResetModelWithCreateToken = {
   createToken: (userId: unknown, purpose: "invite") => Promise<{ token: string }>;
@@ -28,7 +31,7 @@ export const POST = withApi<{ id: string }>(
     auth: "admin",
     rateLimit: { action: "admin:staff:invite", preset: "moderate" },
   },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const { id } = params;
     if (!Types.ObjectId.isValid(id)) {
       throw new ValidationError("Invalid team member ID");
@@ -50,6 +53,9 @@ export const POST = withApi<{ id: string }>(
     if (await isVendorOwnedStaff(id)) {
       throw new ValidationError("Team member not found");
     }
+
+    // An invitation sets the account's password: only for a member below you.
+    await assertMayManageMember(team ?? (await resolveTeamAccess(session.user.id)), { userId: id, role: user.role });
 
     // Check email is configured
     const settings = await getSettings();
@@ -85,6 +91,7 @@ export const POST = withApi<{ id: string }>(
         storeName,
         roleLabel,
         inviteUrl,
+        brand: emailBrand(settings),
       }),
       settings,
     });

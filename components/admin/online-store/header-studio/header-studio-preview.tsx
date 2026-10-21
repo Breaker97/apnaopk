@@ -64,6 +64,8 @@ import {
   textStyleCss,
   type SurfaceTone,
 } from "@/components/admin/online-store/header-studio/layout-style";
+import { rowGridStyle } from "@/lib/site-config/header-layout-style";
+import type { ViewportDimensions } from "@/lib/site-config/responsive-dimensions";
 import { cn } from "@/lib/utils";
 
 export interface PreviewBrand {
@@ -173,6 +175,7 @@ export function HeaderStudioPreview({
         <PreviewRow
           key={row.id}
           row={row}
+          dimensions={layout.viewport?.desktop}
           brand={brand}
           locationItemId={locationItemId}
         />
@@ -183,17 +186,21 @@ export function HeaderStudioPreview({
 
 function PreviewRow({
   row,
+  dimensions,
   brand,
   locationItemId,
 }: {
   row: HeaderLayoutRow;
+  dimensions?: ViewportDimensions;
   brand: PreviewBrand;
   /** The item the "Deliver to" control leads, if any. */
   locationItemId: string | null;
 }) {
   const rowTone = surfaceTone(row.background);
   return (
-    <div className="relative px-4" style={rowStyle(row)}>
+    <div className="relative" style={{ ...rowStyle(row), display: "block", padding: 0, minHeight: undefined }}>
+      <div className="mx-auto w-full" style={{ maxWidth: dimensions?.width || undefined, ...paddingStyle(dimensions?.padding ?? { top: 0, right: 16, bottom: 0, left: 16 }) }}>
+        <div style={rowGridStyle(row)}>
       {visibleColumns(row).map((column) => (
         <div key={column.id} style={columnStyle(column, row)}>
           {column.items.map((item) => (
@@ -209,6 +216,8 @@ function PreviewRow({
           ))}
         </div>
       ))}
+        </div>
+      </div>
     </div>
   );
 }

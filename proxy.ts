@@ -556,6 +556,7 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/_vercel/") ||
+    pathname.startsWith("/ingest/") ||
     (STATIC_FILE_PATTERN.test(pathname) &&
       !SIGNED_LINK_PAGE_PATTERN.test(pathname)) ||
     pathname === "/robots.txt" ||
@@ -663,7 +664,7 @@ export const config = {
   // /api/mobile for the same reason, and because its maintenance and on/off
   // answers are given here: `/products/a.b` must not walk past them.
   matcher: [
-    "/((?!_next|_vercel|api/upload|.*\\..*).*)",
+    "/((?!_next|_vercel|ingest|api/upload|.*\\..*).*)",
     "/",
     "/api/auth/:path*",
     "/api/mobile/:path*",

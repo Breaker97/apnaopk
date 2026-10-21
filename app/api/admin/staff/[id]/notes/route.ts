@@ -8,6 +8,8 @@ import { STAFF_USER_ROLES } from "@/lib/access/staff-role";
 import { isVendorOwnedStaff } from "@/lib/access/staff-ownership";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
+import { resolveTeamAccess } from "@/lib/access/team-permissions";
+import { assertMayManageMember } from "@/lib/access/team-member-roles";
 
 const StaffNoteSchema = z.object({
   body: z.string().max(4000).optional(),
@@ -23,7 +25,7 @@ export const POST = withApi<{ id: string }>(
     auth: "admin",
     rateLimit: { action: "admin:staff:note", preset: "moderate" },
   },
-  async ({ request, params, session }) => {
+  async ({ request, params, session, team }) => {
     const { id } = params;
     if (!Types.ObjectId.isValid(id)) return notFoundResponse("Staff member");
 
@@ -33,11 +35,17 @@ export const POST = withApi<{ id: string }>(
       _id: id,
       role: { $in: STAFF_USER_ROLES },
     })
-      .select("_id")
+      .select("_id role")
       .lean();
     if (!user) return notFoundResponse("Staff member");
 
     if (await isVendorOwnedStaff(id)) return notFoundResponse("Staff member");
+
+    // A note is a change to the member's record: only for a member below you.
+    await assertMayManageMember(team ?? (await resolveTeamAccess(session.user.id)), {
+      userId: id,
+      role: (user as { role?: string }).role,
+    });
 
     const body = await validateBody(request, StaffNoteSchema);
     const text = typeof body?.body === "string" ? body.body.trim() : "";

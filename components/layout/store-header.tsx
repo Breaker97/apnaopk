@@ -1,5 +1,6 @@
 "use client";
 
+import { viewportStyle } from "@/lib/site-config/responsive-dimensions";
 import { resolveLocalizedSetting, LEGACY_SEARCH_PLACEHOLDERS } from "@/lib/i18n/localized-setting";
 
 import Link from "@/components/language/link";
@@ -12,6 +13,8 @@ import {
   Package,
   Phone,
   Heart,
+  MessageSquare,
+  Bell,
   Settings,
   Store,
   ChevronDown,
@@ -156,6 +159,12 @@ import { useHydrated } from "@/hooks/use-client-value";
 import { useApplyOnChange } from "@/hooks/use-apply-on-change";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import dynamic from "next/dynamic";
+
+/**
+ * The account avatar beside its "Welcome / name" label, px: the label's own
+ * height, so the two read as one block. A larger icon size still wins.
+ */
+const LABELLED_AVATAR_SIZE = 28;
 
 // The drawers and the mega-menu panel are closed on every first paint, so
 // their code is fetched when first opened rather than shipped with the
@@ -425,7 +434,6 @@ function StoreHeaderBar({
   const headerLogoUrl = headerSettings?.brand.logoUrl?.trim() || "";
   const headerDarkLogoUrl = headerSettings?.brand.darkLogoUrl?.trim() || "";
   const headerLogoAlt = headerSettings?.brand.logoAlt?.trim() || "";
-  const mobileLogoWidth = headerSettings?.brand.mobileLogoWidth ?? 112;
   const showSearch = headerSettings?.search.enabled ?? true;
   const showAiSearch = headerSettings?.search.showAiButton ?? true;
   const globalSearchPlaceholder = resolveLocalizedSetting({
@@ -535,9 +543,8 @@ function StoreHeaderBar({
       : headerColorMode === "dark" || isDark
         ? headerSettings?.colors.dark
         : headerSettings?.colors.light;
-  const headerContainerClass = headerFullWidth
-    ? "w-full px-4 sm:px-6 lg:px-8"
-    : "container mx-auto px-4";
+  const headerContainerClass = "chrome-responsive-container";
+  const headerContainerStyle = viewportStyle(headerSettings?.builder.viewport, headerFullWidth, headerSettings?.brand.mobileLogoWidth);
   const headerThemeStyle =
     headerColorMode === "color"
       ? ({
@@ -588,6 +595,15 @@ function StoreHeaderBar({
     if (role === USER_ROLES.VENDOR) return `/${locale}/vendor/settings`;
     if (isStaffRole(role)) return `/${locale}/staff/profile`;
     return `/${locale}/account`;
+  };
+
+  /** Each signed-in role's own inbox; the shopper's lives under Account. */
+  const getInboxLink = () => {
+    const role = user?.role;
+    if (role === USER_ROLES.ADMIN) return `/${locale}/admin/inbox`;
+    if (role === USER_ROLES.VENDOR) return `/${locale}/vendor/inbox`;
+    if (isStaffRole(role)) return `/${locale}/staff/inbox`;
+    return `/${locale}/account/inbox`;
   };
 
   const getInitials = (name: string) => {
@@ -995,6 +1011,7 @@ function StoreHeaderBar({
     // value actually moved keeps the fold to one composited animation
     // instead of a style recalculation per frame.
     let published = -1;
+    let restPublished = -1;
     const update = () => {
       const rows = el.querySelectorAll<HTMLElement>("[data-header-row]");
       const heights: number[] = [];
@@ -1015,6 +1032,14 @@ function StoreHeaderBar({
       const height = headerSticky
         ? Math.max(0, Math.round(el.offsetHeight - hidden))
         : 0;
+      // The same height, taken only at rest (or at the first measurement),
+      // for what is SIZED against the header rather than pinned under it: the
+      // product photo. Sized against the live value, it grew and shrank with
+      // every fold of the bar as the shopper scrolled.
+      if ((!scrolledRef.current || restPublished < 0) && height !== restPublished) {
+        restPublished = height;
+        root.style.setProperty("--storefront-header-rest-height", `${height}px`);
+      }
       if (height === published) return;
       published = height;
       root.style.setProperty("--storefront-header-height", `${height}px`);
@@ -1027,6 +1052,7 @@ function StoreHeaderBar({
     return () => {
       observer.disconnect();
       root.style.removeProperty("--storefront-header-height");
+      root.style.removeProperty("--storefront-header-rest-height");
     };
   }, [headerSticky, leadingHidingRows, mounted]);
 
@@ -1159,6 +1185,12 @@ function StoreHeaderBar({
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
+            <Link href={getInboxLink()}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {t("nav.inbox")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link href={getSettingsLink()}>
               <Settings className="mr-2 h-4 w-4" />
               {t("admin.settings.title")}
@@ -1169,14 +1201,26 @@ function StoreHeaderBar({
         <>
           <DropdownMenuItem asChild>
             <Link href={`/${locale}/account`}>
-              <User className="mr-2 h-4 w-4" />
-              {t("common.account")}
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              {t("common.dashboard")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={`/${locale}/account/orders`}>
               <Package className="mr-2 h-4 w-4" />
               {t("orders.myOrders")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={getInboxLink()}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {t("nav.inbox")}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/${locale}/account/notifications`}>
+              <Bell className="mr-2 h-4 w-4" />
+              {t("common.notifications")}
             </Link>
           </DropdownMenuItem>
           {showWishlist && (
@@ -1211,7 +1255,7 @@ function StoreHeaderBar({
       align="end"
       side="bottom"
       sideOffset={10}
-      className="w-[310px] rounded-4xl border border-[#ececec] bg-[#f5f5f5] p-0 text-zinc-900 shadow-[0_18px_40px_rgba(15,23,42,0.2)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
+      className="w-[310px] rounded-4xl border border-border bg-popover p-0 text-popover-foreground shadow-[0_18px_40px_rgba(15,23,42,0.2)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.5)]"
       onMouseEnter={openGuestMenu}
       onMouseLeave={closeGuestMenu}
     >
@@ -1219,23 +1263,23 @@ function StoreHeaderBar({
         <Link
           href={buildLoginUrl(locale, pathname)}
           onClick={() => setIsGuestMenuOpen(false)}
-          className="flex h-10 w-full items-center justify-center rounded-full bg-primary text-[15px] font-semibold text-primary-foreground hover:bg-primary/90"
+          className="flex h-10 w-full items-center justify-center rounded-full bg-primary text-[15px] font-semibold text-primary-foreground hover:bg-(--primary-hover,var(--primary))"
         >
           {t("common.signIn")}
         </Link>
         <Link
           href={`/${locale}/register`}
           onClick={() => setIsGuestMenuOpen(false)}
-          className="mt-3 block text-center text-[16px] text-zinc-700 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+          className="mt-3 block text-center text-[16px] text-muted-foreground transition-colors hover:text-foreground"
         >
           {t("common.register")}
         </Link>
-        <div className="mt-3 border-t border-[#dbdbdb] dark:border-zinc-700" />
+        <div className="mt-3 border-t border-border" />
 
         <div className="mt-3 space-y-0.5">
           <DropdownMenuItem asChild className="h-10 rounded-md px-2.5">
             <Link href={buildLoginUrl(locale, `/${locale}/account`)}>
-              <LayoutDashboard className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
+              <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
               <span className="text-[14px] leading-none">
                 {t("common.dashboard")}
               </span>
@@ -1243,7 +1287,7 @@ function StoreHeaderBar({
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="h-10 rounded-md px-2.5">
             <Link href={buildLoginUrl(locale, `/${locale}/account/orders`)}>
-              <Package className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
+              <Package className="h-4 w-4 text-muted-foreground" />
               <span className="text-[14px] leading-none">
                 {t("common.myOrders")}
               </span>
@@ -1254,7 +1298,7 @@ function StoreHeaderBar({
               <Link
                 href={buildLoginUrl(locale, `/${locale}/account/wishlist`)}
               >
-                <Heart className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
+                <Heart className="h-4 w-4 text-muted-foreground" />
                 <span className="text-[14px] leading-none">
                   {t("nav.wishlist")}
                 </span>
@@ -1263,7 +1307,7 @@ function StoreHeaderBar({
           )}
           <DropdownMenuItem asChild className="h-10 rounded-md px-2.5">
             <Link href={buildLoginUrl(locale, `/${locale}/account/profile`)}>
-              <User className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
+              <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-[14px] leading-none">
                 {t("common.profile")}
               </span>
@@ -1510,7 +1554,7 @@ function StoreHeaderBar({
                   col.slug,
                 )}`}
                 onClick={() => setCategoriesOpen(false)}
-                className="flex items-center gap-2 text-[13px] text-foreground/85 transition-colors hover:text-primary"
+                className="flex items-center gap-2 text-[13px] text-foreground/85 transition-colors hover:text-store-link"
               >
                 {col.icon || col.image ? (
                   <AppImage
@@ -1538,7 +1582,9 @@ function StoreHeaderBar({
         <div className="bg-popover p-4">
           <Link
             href={categoryPromoHref}
-            className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-linear-to-br from-[#eceaf6] via-[#f1ecf6] to-[#dfd6ef] p-5"
+            // The theme's Bands & chips colour, deepening toward the text:
+            // text is checked against it, so the card reads in either mode.
+            className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-linear-to-br from-muted via-muted to-[color-mix(in_oklab,var(--muted),var(--foreground)_8%)] p-5"
           >
             {categoryPromoTitle ? (
               <div className="text-[15px] font-semibold leading-tight text-foreground">
@@ -1630,7 +1676,7 @@ function StoreHeaderBar({
           </span>
         ) : (
           <>
-            <Store className="h-6 w-6 text-primary" />
+            <Store className="h-6 w-6 text-store-link" />
             <span className="truncate text-xl font-bold">{brandName}</span>
           </>
         )}
@@ -1867,6 +1913,7 @@ function StoreHeaderBar({
               viewAllHref={categoriesPageHref}
               viewAllLabel={t("home.viewAllCategories")}
               viewAllShortLabel={t("common.viewAll")}
+              shopAllLabel={(name) => t("home.shopAllInCategory", { name })}
               railRadius={r}
               railWidth={railWidth}
               onNavigate={() => setMegaMenuOpen(false)}
@@ -2216,7 +2263,20 @@ function StoreHeaderBar({
                 className="flex items-center gap-2 text-left"
                 onClick={openUserMenu}
               >
-                <Avatar className="h-8 w-8" style={size}>
+                {/* Beside the two-line label the avatar matches the label's
+                    height, so the pair reads as one block; alone it keeps the
+                    header's icon size like its neighbours. */}
+                <Avatar
+                  className="h-8 w-8"
+                  style={
+                    item.showLabel
+                      ? {
+                          width: Math.max(LABELLED_AVATAR_SIZE, item.size),
+                          height: Math.max(LABELLED_AVATAR_SIZE, item.size),
+                        }
+                      : size
+                  }
+                >
                   <AvatarImage
                     src={user.image || undefined}
                     alt={user.name}
@@ -2629,7 +2689,7 @@ function StoreHeaderBar({
                         }),
                   }}
                 >
-                  <div className={headerContainerClass}>
+                  <div className={headerContainerClass} style={headerContainerStyle}>
                     <div
                       className={cn(
                         brandScaleOf(row) < 1 &&
@@ -2664,7 +2724,7 @@ function StoreHeaderBar({
           {/* Below lg: the compact bar. The cart is the storefront's only
               cart entry point here, so it renders regardless of the desktop
               icons; the menu drawer opens from the bottom nav's Menu tab. */}
-          <div className={cn(headerContainerClass, "lg:hidden")}>
+          <div className={cn(headerContainerClass, "lg:hidden")} style={headerContainerStyle}>
             <div className="flex items-center justify-between gap-4 py-3">
               <Link
                 href={`/${locale}`}
@@ -2673,7 +2733,7 @@ function StoreHeaderBar({
                 {currentLogoUrl ? (
                   <span
                     className="relative block h-8 overflow-hidden"
-                    style={{ width: mobileLogoWidth }}
+                    style={{ width: "calc(var(--layout-mobile) * var(--chrome-logo-mobile) + var(--layout-tablet) * var(--chrome-logo-tablet))" }}
                   >
                     <AppImage
                       src={currentLogoUrl}
@@ -2686,7 +2746,7 @@ function StoreHeaderBar({
                   </span>
                 ) : (
                   <>
-                    <Store className="h-6 w-6 text-primary" />
+                    <Store className="h-6 w-6 text-store-link" />
                     <span className="truncate text-xl font-bold">
                       {brandName}
                     </span>
@@ -2757,6 +2817,7 @@ function StoreHeaderBar({
               categoriesPageHref={categoriesPageHref}
               getDashboardLink={getDashboardLink}
               getSettingsLink={getSettingsLink}
+              getInboxLink={getInboxLink}
               handleLogout={handleLogout}
               handleMobileLanguageChange={handleMobileLanguageChange}
               handleThemeChange={handleThemeChange}

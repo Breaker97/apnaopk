@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog/collections";
 import type { CollectionCondition, CollectionSortOrder } from "@/types";
 import { escapeRegExp, slugify } from "@/lib/strings";
+import { importedTax } from "@/lib/tax/tax-settings";
 import { CollectionConditionSchema } from "@/lib/validations";
 import {
   csvFileResponse,
@@ -33,6 +34,8 @@ export const CATEGORY_CSV_HEADERS = [
   "seoPageTitle",
   "seoMetaDescription",
   "seoTags",
+  "taxClass",
+  "taxRate",
 ] as const;
 
 export const COLLECTION_CSV_HEADERS = [
@@ -66,6 +69,8 @@ type ImportResult = {
   updated: number;
   failed: number;
   errors: { row: number; message: string }[];
+  /** Things a row got past that its author should still hear about. */
+  warnings?: string[];
 };
 
 type CategoryForCsv = {
@@ -84,6 +89,8 @@ type CategoryForCsv = {
     metaDescription?: string;
     tags?: string[];
   };
+  taxClass?: string | null;
+  taxRate?: number | null;
 };
 
 type CollectionForCsv = {
@@ -256,10 +263,18 @@ async function resolveParentCategoryId(
   return parentId;
 }
 
+/**
+ * The products a row names, by id (`productIds`) or by slug, SKU or name
+ * (`products`). `named` says whether the row named any at all, so a row that
+ * leaves both columns empty can keep the collection's current products;
+ * `missing` lists what matched no product.
+ */
 async function resolveProducts(row: CsvRow) {
   const explicitIds = splitList(row.productIds || row.product_ids || "");
   const labels = splitList(row.products || row.productSlugs || "");
   const ids = new Set<string>();
+  const missingIds: string[] = [];
+  const missingLabels: string[] = [];
 
   const validExplicitIds = explicitIds.filter((id) =>
     mongoose.Types.ObjectId.isValid(id),
@@ -270,6 +285,9 @@ async function resolveProducts(row: CsvRow) {
       .select("_id")
       .lean();
     for (const product of found) ids.add(String(product._id));
+  }
+  for (const id of explicitIds) {
+    if (!ids.has(id)) missingIds.push(id);
   }
 
   for (const label of labels) {
@@ -286,9 +304,21 @@ async function resolveProducts(row: CsvRow) {
       .select("_id")
       .lean();
     if (product?._id) ids.add(String(product._id));
+    else missingLabels.push(label);
   }
 
-  return [...ids];
+  // An export names every product twice, by id and by label, and a file from
+  // another store matches by label only. Either way each product is found
+  // once at least, so it is only a miss when fewer were found than were named.
+  const named = Math.max(explicitIds.length, labels.length);
+  const missing =
+    explicitIds.length > 0 && labels.length > 0
+      ? ids.size < named
+        ? [...missingLabels, ...missingIds]
+        : []
+      : [...missingLabels, ...missingIds];
+
+  return { ids: [...ids], missing, named: named > 0 };
 }
 
 /**
@@ -372,6 +402,9 @@ function buildCategoryCsvRow(
     seoTags: Array.isArray(category.seo?.tags)
       ? category.seo.tags.join("|")
       : "",
+    // A custom rate stands in for a class, so a row carries one or the other.
+    taxClass: category.taxClass || "",
+    taxRate: category.taxRate == null ? "" : String(category.taxRate),
   };
 }
 
@@ -471,7 +504,26 @@ export async function collectionsCsvResponse(
   ]);
 }
 
-export async function importCategoriesCsv(csvText: string): Promise<ImportResult> {
+/**
+ * A category file's tax rate cell, read strictly: tax is not a field to
+ * guess at, so a value that is not a plain percentage fails the row.
+ */
+function parseTaxRateCell(value: string | undefined): number | undefined {
+  const text = value?.trim();
+  if (!text) return undefined;
+  if (!/^(d+(.d+)?|.d+)$/.test(text)) {
+    throw new Error(`taxRate must be a plain percentage such as 15 (got "${text}").`);
+  }
+  return Number(text);
+}
+
+export async function importCategoriesCsv(
+  csvText: string,
+  options: {
+    /** The store's tax class keys (Settings → Tax); a row naming another class fails. */
+    taxClasses?: ReadonlySet<string>;
+  } = {},
+): Promise<ImportResult> {
   const { records } = parseCsv(csvText);
   const limited = importLimitResult(records.length);
   if (limited) return limited;
@@ -520,6 +572,9 @@ export async function importCategoriesCsv(csvText: string): Promise<ImportResult
             row.seoMetaDescription || existing?.seo?.metaDescription || undefined,
           tags: splitList(row.seoTags || ""),
         },
+        // A class and a custom rate replace each other; "inherit" clears both,
+        // and empty cells keep what the category has.
+        ...importedTax(row.taxClass, parseTaxRateCell(row.taxRate), options.taxClasses),
       };
 
       if (existingId) {
@@ -566,11 +621,17 @@ export async function importCollectionsCsv(csvText: string): Promise<ImportResul
     try {
       const requestedId = row.id || row._id;
       const requestedSlug = slugify(row.slug || row.handle || "");
+      // With neither an id nor a slug a row is found by its title's web
+      // address, so importing the same sheet twice updates instead of adding
+      // "Summer sale-2".
+      const lookupSlug =
+        requestedSlug ||
+        (requestedId ? "" : slugify(row.title || row.name || ""));
       const existing =
         requestedId && mongoose.Types.ObjectId.isValid(requestedId)
           ? await Collection.findById(requestedId).lean<CollectionForCsv | null>()
-          : requestedSlug
-            ? await Collection.findOne({ slug: requestedSlug }).lean<CollectionForCsv | null>()
+          : lookupSlug
+            ? await Collection.findOne({ slug: lookupSlug }).lean<CollectionForCsv | null>()
             : null;
 
       const existingId = existing?._id ? String(existing._id) : undefined;
@@ -583,25 +644,64 @@ export async function importCollectionsCsv(csvText: string): Promise<ImportResul
       const baseSlug = requestedSlug || slugify(existing?.slug || title);
       if (!baseSlug) throw new Error("Slug could not be generated.");
 
+      // A blank cell keeps what the collection has, and a new one starts as a
+      // manual draft.
+      const requestedType = (row.collectionType || row.type || "")
+        .trim()
+        .toLowerCase();
+      if (requestedType && requestedType !== "manual" && requestedType !== "automated") {
+        throw new Error(`Collection type "${requestedType}" must be manual or automated.`);
+      }
       const collectionType =
-        row.collectionType === "automated" || row.type === "automated"
-          ? "automated"
-          : "manual";
-      const status = row.status === "active" ? "active" : "draft";
+        requestedType === "automated" || requestedType === "manual"
+          ? requestedType
+          : existing?.collectionType || "manual";
+      const requestedStatus = (row.status || "").trim().toLowerCase();
+      if (requestedStatus && requestedStatus !== "active" && requestedStatus !== "draft") {
+        throw new Error(`Status "${requestedStatus}" must be active or draft.`);
+      }
+      const status =
+        requestedStatus === "active" || requestedStatus === "draft"
+          ? requestedStatus
+          : existing?.status || "draft";
       const sortOrder = COLLECTION_SORT_ORDERS.has(row.sortOrder as CollectionSortOrder)
         ? (row.sortOrder as CollectionSortOrder)
         : existing?.sortOrder || "manual";
       const slug = await uniqueCollectionSlug(baseSlug, existingId);
-      const manualProductIds =
-        collectionType === "manual" ? await resolveProducts(row) : [];
+      const resolved =
+        collectionType === "manual" ? await resolveProducts(row) : null;
+      // A manual row that names no products leaves the collection's products
+      // as they are; it takes a file with the column to change them.
+      const manualProductIds = resolved
+        ? resolved.named
+          ? resolved.ids
+          : existing?.collectionType === "manual"
+            ? oldProductIds
+            : []
+        : [];
+      if (resolved && resolved.missing.length > 0) {
+        const shown = resolved.missing.slice(0, 5).join(", ");
+        const more = resolved.missing.length - 5;
+        result.warnings = [
+          ...(result.warnings ?? []),
+          `Row ${rowNumber} (${title}): no product found for ${shown}${more > 0 ? ` and ${more} more` : ""}.`,
+        ];
+      }
       const conditions =
         collectionType === "automated"
           ? await normalizeCollectionConditions(parseConditions(row, existing))
           : [];
+      if (collectionType === "automated" && conditions.length === 0) {
+        // No rules would take in every product in the store.
+        throw new Error("An automated collection needs at least one condition.");
+      }
+      const requestedMatch = (row.conditionMatch || "").trim().toLowerCase();
       const conditionMatch =
-        row.conditionMatch === "any" || existing?.conditionMatch === "any"
-          ? "any"
-          : "all";
+        requestedMatch === "any" || requestedMatch === "all"
+          ? requestedMatch
+          : existing?.conditionMatch === "any"
+            ? "any"
+            : "all";
 
       const patch: Record<string, unknown> = {
         title,

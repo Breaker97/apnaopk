@@ -15,7 +15,9 @@ import {
 } from "@/components/admin/admin-stats-strip";
 import { StaffTableSection } from "@/components/admin/staff-table-section";
 import { AdminListSkeleton } from "@/components/admin/admin-list-skeleton";
-import { requireAdminPageAccess } from "@/lib/access/admin-page-guard";
+import { getAdminTeamAccess, requireAdminPageAccess } from "@/lib/access/admin-page-guard";
+import { teamHasAny } from "@/lib/access/team-permissions";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -31,7 +33,13 @@ export default async function AdminStaffPage({
   const search = await searchParams;
   setRequestLocale(locale);
 
-  await requireAdminPageAccess(locale);
+  const session = await requireAdminPageAccess(locale);
+  // The list offers adding and managing members only to those who may.
+  const access = await getAdminTeamAccess(session.user.id);
+  const teamActions = {
+    add: teamHasAny(access, [ADMIN_AREA_PERMISSIONS.CREATE_TEAM_MEMBERS]),
+    manage: teamHasAny(access, [ADMIN_AREA_PERMISSIONS.MANAGE_TEAM]),
+  };
 
   const stats = await getStaffStats();
 
@@ -74,7 +82,7 @@ export default async function AdminStaffPage({
           <AdminListSkeleton stats={0} columns={6} tabs={4} thumbnail />
         }
       >
-        <StaffTableSection locale={locale} searchParams={search} />
+        <StaffTableSection locale={locale} searchParams={search} teamActions={teamActions} />
       </Suspense>
     </div>
   );

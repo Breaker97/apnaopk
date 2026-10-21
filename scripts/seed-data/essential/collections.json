@@ -362,9 +362,6 @@
         "$oid": "6a55dadb9deb890bddd5a0a2"
       },
       {
-        "$oid": "6a0abe565d747a63e3255cb8"
-      },
-      {
         "$oid": "6a088996380d244fd1bb61e3"
       },
       {
@@ -391,12 +388,12 @@
       "metaDescription": "Automatically curated Mobile & Tablets products.",
       "handle": "mobile-tablets"
     },
-    "productCount": 6,
+    "productCount": 5,
     "createdAt": {
       "$date": "2026-08-05T10:52:07.257Z"
     },
     "updatedAt": {
-      "$date": "2026-08-23T00:27:47.636Z"
+      "$date": "2026-10-09T11:08:27.153Z"
     },
     "__v": 0,
     "image": {

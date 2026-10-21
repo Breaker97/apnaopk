@@ -96,7 +96,7 @@ async function withLoyaltyTransaction<T>(
   }
 }
 
-function normalizeGuestEmail(value: unknown): string | null {
+export function normalizeGuestEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim().toLowerCase();
   return trimmed.length > 0 ? trimmed : null;
@@ -294,8 +294,11 @@ export async function awardOrderLoyaltyPoints(orderId: string): Promise<number> 
  * Reverse only the additional point amount implied by the order's cumulative
  * successful refunds. Re-running after the same refund is a no-op.
  */
-export async function reverseOrderLoyaltyPoints(orderId: string): Promise<number> {
-  return withLoyaltyTransaction(async (session) => {
+export async function reverseOrderLoyaltyPoints(
+  orderId: string,
+  enclosingSession?: ClientSession,
+): Promise<number> {
+  const work = async (session: ClientSession | null) => {
     const order = await Order.findById(orderId).session(session).lean();
     if (!order?.customerId || order.loyalty?.pointsAwarded === undefined) {
       return 0;
@@ -330,7 +333,10 @@ export async function reverseOrderLoyaltyPoints(orderId: string): Promise<number
 
     await applyOrderLoyaltyDelta(order, -delta, session);
     return delta;
-  });
+  };
+  // Reversing a refund must restore the order and the customer's points in
+  // the same commit; do not open a separate transaction inside that commit.
+  return enclosingSession ? work(enclosingSession) : withLoyaltyTransaction(work);
 }
 
 /**
@@ -450,17 +456,72 @@ async function refreshGuestCustomerStats(email: string) {
 }
 
 /**
+ * The guest twin for a shopper the till knew only by phone number: their
+ * guest row owns the counter sales that carry its id (`posCustomerProfileId`).
+ */
+export async function refreshPosGuestCustomerStats(profileId: unknown) {
+  await connectDB();
+
+  const id = String(profileId ?? "");
+  if (!Types.ObjectId.isValid(id)) return null;
+  const _id = new Types.ObjectId(id);
+
+  const [orderStats] = await Order.aggregate([
+    { $match: { posCustomerProfileId: _id, ...COLLECTED_ORDER_MATCH } },
+    ORDER_STATS_GROUP,
+  ]);
+  const orderData = orderStats || EMPTY_ORDER_STATS;
+
+  const stats: CustomerStats = {
+    totalOrders: orderData.totalOrders,
+    totalSpent: roundMoney(orderData.totalSpent),
+    averageOrderValue: roundMoney(orderData.averageOrderValue),
+    lastOrderDate: orderData.lastOrderDate,
+    totalReviews: 0,
+    averageRating: undefined,
+    totalWishlistItems: 0,
+  };
+
+  // Update only: the row is the customer, and a stats refresh is no reason
+  // to bring one back that an admin deleted.
+  await CustomerProfile.updateOne(
+    { _id, isGuest: true },
+    { $set: { stats, lastActiveAt: new Date() } },
+  );
+
+  return stats;
+}
+
+/**
  * Refresh the cached stats of whichever customer record owns an order — the
  * User-keyed profile for signed-in purchases, the email-keyed guest row for
  * guest checkouts. The payment finalizers call this instead of choosing a key
  * themselves, so a guest payment can never mint a profile under a cart id.
+ *
+ * A walk-in counter sale is filed under its CASHIER (`customerId === staffId`),
+ * so it owns no customer's stats — refreshing them made a customer record out
+ * of whoever was at the till. It counts for the guest the till took a phone
+ * number from, when there was one, and for nobody otherwise.
  */
 export async function refreshCustomerStatsForOrder(order: {
   customerId?: unknown;
   guestEmail?: string | null;
+  channel?: string | null;
+  staffId?: unknown;
+  posCustomerProfileId?: unknown;
 }) {
   const guestEmail = normalizeGuestEmail(order.guestEmail);
   if (guestEmail) return refreshGuestCustomerStats(guestEmail);
+  if (order.posCustomerProfileId) {
+    return refreshPosGuestCustomerStats(order.posCustomerProfileId);
+  }
+  if (
+    order.channel === "pos" &&
+    order.staffId &&
+    String(order.customerId ?? "") === String(order.staffId)
+  ) {
+    return null;
+  }
   if (!order.customerId) return null;
   const customerId = String(order.customerId);
   if (!Types.ObjectId.isValid(customerId)) return null;

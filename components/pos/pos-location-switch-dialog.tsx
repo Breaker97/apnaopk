@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import {
   ArrowRight,
   Loader2,
@@ -62,6 +63,7 @@ export function POSLocationSwitchDialog({
   onSwitchAndRecheck,
   onCancel,
 }: POSLocationSwitchDialogProps) {
+  const t = useTranslations("pos.counter");
   React.useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -73,7 +75,10 @@ export function POSLocationSwitchDialog({
 
   if (!open || !to) return null;
 
-  const fromName = from?.name ?? "Shared stock";
+  const fromName = from?.name ?? t("sharedStock");
+  const bold = (chunks: React.ReactNode) => (
+    <span className="font-semibold">{chunks}</span>
+  );
   const removed = adjustments.filter((entry) => entry.kind === "removed");
   const reduced = adjustments.filter((entry) => entry.kind === "quantity");
   const wouldEmpty = keptLines === 0;
@@ -91,7 +96,7 @@ export function POSLocationSwitchDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Switch counter"
+        aria-label={t("switchLabel")}
         className="flex w-full max-w-lg flex-col rounded-t-3xl border bg-background shadow-2xl duration-300 animate-in slide-in-from-bottom-4 sm:rounded-2xl sm:zoom-in-95"
       >
         <span className="mx-auto mt-2.5 h-1 w-9 rounded-full bg-border sm:hidden" />
@@ -102,11 +107,10 @@ export function POSLocationSwitchDialog({
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h2 className="text-[17px] font-semibold leading-tight tracking-[-0.015em]">
-              Switch counter with a sale open?
+              {t("switchTitle")}
             </h2>
             <p className="text-[13px] leading-relaxed text-muted-foreground">
-              {totalUnits} {totalUnits === 1 ? "unit" : "units"} on the counter,
-              priced and stocked for {fromName}.
+              {t("switchUnits", { count: totalUnits, from: fromName })}
             </p>
           </div>
           <Button
@@ -114,6 +118,7 @@ export function POSLocationSwitchDialog({
             size="icon"
             className="-mr-1.5 -mt-0.5 h-8 w-8 shrink-0 rounded-full"
             onClick={onCancel}
+            aria-label={t("switchStay", { from: fromName })}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -142,32 +147,36 @@ export function POSLocationSwitchDialog({
         <div className="flex flex-col gap-2.5 px-5 pt-4">
           {isProbing ? (
             <Consequence tone="neutral" icon={<Loader2 className="h-3.5 w-3.5 animate-spin" />}>
-              Checking what {to.name} can cover&hellip;
+              {t("switchChecking", { to: to.name })}
             </Consequence>
           ) : (
             <>
               {removed.length > 0 ? (
                 <Consequence tone="warn" icon={<TriangleAlert className="h-3.5 w-3.5" />}>
-                  <span className="font-semibold">{removed[0].name}</span>
                   {removed.length > 1
-                    ? ` and ${removed.length - 1} more have `
-                    : " has "}
-                  <span className="font-semibold">no stock at {to.name}</span>
-                  {removed.length > 1 ? " — they" : " — it"} would drop off the
-                  sale.
+                    ? t.rich("switchRemovedMany", {
+                        name: removed[0].name,
+                        others: removed.length - 1,
+                        to: to.name,
+                        b: bold,
+                      })
+                    : t.rich("switchRemovedOne", {
+                        name: removed[0].name,
+                        to: to.name,
+                        b: bold,
+                      })}
                 </Consequence>
               ) : null}
 
               {reduced.length > 0 ? (
                 <Consequence tone="warn" icon={<TriangleAlert className="h-3.5 w-3.5" />}>
-                  {reduced.length} {reduced.length === 1 ? "line" : "lines"}{" "}
-                  would be reduced to the stock {to.name} actually holds.
+                  {t("switchReduced", { count: reduced.length, to: to.name })}
                 </Consequence>
               ) : null}
 
               {removed.length === 0 && reduced.length === 0 ? (
                 <Consequence tone="neutral" icon={<Store className="h-3.5 w-3.5" />}>
-                  Every line on this sale is available at {to.name}.
+                  {t("switchAllAvailable", { to: to.name })}
                 </Consequence>
               ) : null}
             </>
@@ -175,13 +184,16 @@ export function POSLocationSwitchDialog({
 
           <Consequence tone="neutral" icon={<Pause className="h-3.5 w-3.5" />}>
             {heldAtCurrent > 0
-              ? `${heldAtCurrent} ${heldAtCurrent === 1 ? "sale" : "sales"} held here stay at ${fromName}. You will not see ${heldAtCurrent === 1 ? "it" : "them"} from ${to.name}.`
-              : `Sales held here stay at ${fromName}. You will not see them from ${to.name}.`}
+              ? t("switchHeldStay", {
+                  count: heldAtCurrent,
+                  from: fromName,
+                  to: to.name,
+                })
+              : t("switchHeldStayNone", { from: fromName, to: to.name })}
           </Consequence>
 
           <Consequence tone="neutral" icon={<Receipt className="h-3.5 w-3.5" />}>
-            Stock counts and the receipt footer change to {to.name} from the
-            next line.
+            {t("switchReceiptChanges", { to: to.name })}
           </Consequence>
         </div>
 
@@ -195,7 +207,7 @@ export function POSLocationSwitchDialog({
             className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.995]"
           >
             <Pause className="h-4 w-4" />
-            Hold this sale, then switch
+            {t("switchHold")}
           </button>
 
           <button
@@ -207,7 +219,7 @@ export function POSLocationSwitchDialog({
               isProbing ? "cursor-not-allowed opacity-60" : "hover:bg-accent",
             )}
           >
-            <span>Switch and re-check stock</span>
+            <span>{t("switchRecheck")}</span>
             {isProbing ? null : (
               <span
                 className={cn(
@@ -218,8 +230,8 @@ export function POSLocationSwitchDialog({
                 )}
               >
                 {wouldEmpty
-                  ? `Removes all ${totalLines}`
-                  : `Keeps ${keptLines} of ${totalLines} lines`}
+                  ? t("switchRemovesAll", { total: totalLines })
+                  : t("switchKeeps", { kept: keptLines, total: totalLines })}
               </span>
             )}
           </button>
@@ -229,7 +241,7 @@ export function POSLocationSwitchDialog({
             onClick={onCancel}
             className="flex h-11 cursor-pointer items-center justify-center rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Stay at {fromName}
+            {t("switchStay", { from: fromName })}
           </button>
         </div>
       </div>

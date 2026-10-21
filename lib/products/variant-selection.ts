@@ -71,3 +71,38 @@ export function productOnlyVariant<V>(
   const variants = variantsOf(product);
   return variants.length === 1 ? variants[0] : null;
 }
+
+type DefaultSelectionProduct = {
+  options?: Array<{ values?: Array<{ value?: string } | string> | null }> | null;
+  /** Any variant; only its `optionValues` are read. */
+  variants?: object[] | null;
+};
+
+type VariantAnswers = { optionValues?: Array<string | { value?: string } | null> | null };
+
+const answerOf = (value: string | { value?: string } | null | undefined) =>
+  (typeof value === "string" ? value : value?.value) ?? "";
+
+/**
+ * Where the product page and the quick view start: the product's first
+ * variant, every option on its answer, so the price, the stock and the
+ * picture are a variant's from the first moment, and changing one option (a
+ * colour) shows its variant at once. A first variant that does not answer
+ * every option is passed over for the next one that does; with none, every
+ * option on its first value. Nothing for a product that asks nothing. One
+ * answer per option, in the options' order.
+ */
+export function defaultOptionValues(product: DefaultSelectionProduct): string[] {
+  const options = Array.isArray(product.options) ? product.options : [];
+  if (options.length === 0 || !productRequiresVariantSelection(product)) return [];
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const complete = (answers: string[]) =>
+    answers.length === options.length && answers.every(Boolean);
+
+  const first = variants
+    .map((variant) => ((variant as VariantAnswers).optionValues ?? []).map(answerOf))
+    .find(complete);
+  if (first) return first;
+  const firsts = options.map((option) => answerOf(option.values?.[0]));
+  return complete(firsts) ? firsts : [];
+}

@@ -21,6 +21,7 @@
  */
 
 import { VENDOR_STATUS } from "@/config/app.config";
+import { vendorAllowsPickup } from "@/lib/vendors/vendor-fulfillment";
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-invalidation";
 import { connectDB } from "@/lib/db";
@@ -242,13 +243,14 @@ export async function findNearbyVendors(
           ...LIVE_VENDOR_CONSTRAINT,
           _id: { $in: vendorIds },
         })
-          .select("_id storeVisibility.addressDisplay")
+          .select("_id storeVisibility.addressDisplay shipping.fulfillmentMode")
           .lean()) as Array<{
           _id: unknown;
           storeVisibility?: { addressDisplay?: unknown };
+          shipping?: { fulfillmentMode?: unknown };
         }>)
       : [];
-    const liveById = new Map(liveVendors.map((v) => [String(v._id), v]));
+    const liveById = new Map(liveVendors.filter((v) => vendorAllowsPickup(v.shipping?.fulfillmentMode)).map((v) => [String(v._id), v]));
 
     // `points` is already nearest-first, so the first branch seen for a vendor
     // is their closest one — which is the distance a shopper cares about.

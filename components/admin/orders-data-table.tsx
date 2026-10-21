@@ -1,5 +1,7 @@
 "use client";
 
+import type { StaffResourceActions } from "@/lib/access/staff-resource-actions";
+
 import Link from "@/components/language/link";
 import {
   Circle,
@@ -24,7 +26,7 @@ import {
   type DataTableTab,
 } from "@/components/ui/data-table";
 import { useTranslations } from "next-intl";
-import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
+import { isPosWalkIn, posWalkInName } from "@/lib/orders/pos-walk-in";
 import { toast } from "@/components/ui/toast-notification";
 import { useCurrency } from "@/providers/currency-provider";
 import { useRouter } from "@/hooks/use-locale-navigation";
@@ -81,6 +83,8 @@ interface AdminOrder {
   channel?: string;
   /** With `channel` and the customer, tells a walk-in POS sale. */
   staffId?: string;
+  /** A phone-only customer's name, on a walk-in POS sale. */
+  posCustomerName?: string;
   hasPreorder?: boolean;
   preorderOutstandingAmount?: number;
   preorderBalancePaidAt?: string | null;
@@ -107,6 +111,7 @@ interface OrdersDataTableProps {
   locale: string;
   area?: "admin" | "staff";
   readOnly?: boolean;
+  actionAccess?: StaffResourceActions;
   /**
    * Rows for the current query string, fetched by the page's server component.
    * This table does not fetch: every control is a navigation, the server
@@ -234,9 +239,13 @@ export function OrdersDataTable({
   locale,
   area = "admin",
   readOnly = false,
+  actionAccess,
   data,
   pagination,
 }: OrdersDataTableProps) {
+  const canCreate = !readOnly && (actionAccess?.canCreate ?? true);
+  const canEdit = !readOnly && (actionAccess?.canEdit ?? true);
+  const canDelete = !readOnly && (actionAccess?.canDelete ?? true);
   const t = useTranslations();
   const tOr = useFallbackTranslator(t);
   const router = useRouter();
@@ -596,7 +605,7 @@ export function OrdersDataTable({
               <TextCell
                 value={
                   walkIn
-                    ? t("admin.orderDetails.walkInCustomer")
+                    ? (posWalkInName(row) ?? t("admin.orderDetails.walkInCustomer"))
                     : row.customerId?.name || t("common.guest")
                 }
               />
@@ -830,7 +839,9 @@ export function OrdersDataTable({
       return [
         order.orderNumber,
         order.createdAt,
-        walkIn ? t("admin.orderDetails.walkInCustomer") : order.customerId?.name || "",
+        walkIn
+          ? (posWalkInName(order) ?? t("admin.orderDetails.walkInCustomer"))
+          : order.customerId?.name || "",
         walkIn ? "" : order.customerId?.email || "",
         order.channel || "online",
         order.status,
@@ -868,7 +879,7 @@ export function OrdersDataTable({
           variant: "outline",
           onClick: handleExportCurrentView,
         },
-        addAction: readOnly
+        addAction: !canCreate
           ? undefined
           : {
               id: "create-order",
@@ -877,14 +888,14 @@ export function OrdersDataTable({
               href: `${basePath}/orders/create`,
             },
       }),
-    [basePath, handleExportCurrentView, readOnly, t],
+    [basePath, handleExportCurrentView, canCreate, t],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<AdminOrder>[]>(
     () =>
       readOnly
         ? []
-        : [
+        : ([
             {
               id: "processing",
               label: t("orders.markProcessing"),
@@ -924,8 +935,9 @@ export function OrdersDataTable({
                   count: items.length,
                 }),
             },
-          ],
-    [handleBulkUpdateStatus, readOnly, t],
+          ] satisfies DataTableBulkAction<AdminOrder>[]).filter((action) =>
+            ["cancelled", "delete"].includes(action.id) ? canDelete : canEdit),
+    [handleBulkUpdateStatus, readOnly, canEdit, canDelete, t],
   );
 
   const rowActions = useCallback(
@@ -939,7 +951,9 @@ export function OrdersDataTable({
 
       if (readOnly) return [viewAction];
 
-      const statusActions: DataTableAction[] = getOrderStatusActions(row.status).map((action) => {
+      const statusActions: DataTableAction[] = getOrderStatusActions(row.status)
+        .filter((action) => action.to === "cancelled" ? canDelete : canEdit)
+        .map((action) => {
         // Shown greyed with the reason rather than hidden: an admin looking for
         // "Mark as processing" should learn why it is not available.
         const blocked = Boolean(paymentBlockFor(row, action.to));
@@ -965,9 +979,9 @@ export function OrdersDataTable({
         onClick: () => setDeleteDialog({ orderIds: [row._id], count: 1 }),
       };
 
-      return [viewAction, ...statusActions, deleteAction];
+      return [viewAction, ...statusActions, ...(canDelete ? [deleteAction] : [])];
     },
-    [basePath, getActionIcon, handleStatusAction, readOnly, t],
+    [basePath, getActionIcon, handleStatusAction, readOnly, canEdit, canDelete, t],
   );
 
   return (

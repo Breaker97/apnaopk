@@ -11,15 +11,6 @@
     "supportedLanguages": [
       "en"
     ],
-    "supportedCurrencies": [
-      "USD",
-      "EUR",
-      "GBP",
-      "BDT",
-      "INR",
-      "UGX"
-    ],
-    "timezone": "UTC",
     "darkModeLogoUrl": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790443301352-dhn93e/logo-dark.svg",
     "logoUrl": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790443299680-d2dsl3/logo.svg",
     "appIconUrl": "https://storify-furniture.neurolight.studio/uploads/2026/09/1790607953246-1jc09l/favicon.png",
@@ -27,16 +18,11 @@
   },
   "appearance": {
     "customPresets": [],
-    "primaryColor": "#363636",
-    "secondaryColor": "#e1814a",
-    "accentColor": "#d2ac6a",
+    "primaryColor": "#f19429",
+    "secondaryColor": "#2f2f2f",
+    "accentColor": "#ddac73",
     "skeletonColor": "#f0e2d6",
     "theme": "light",
-    "contrast": false,
-    "rtl": false,
-    "collapsedSidebar": false,
-    "navLayout": "mini",
-    "navColor": "integrate",
     "presetColor": "default"
   },
   "orders": {
@@ -56,7 +42,8 @@
     "prefix": "ORD",
     "taxRate": 0,
     "freeShippingThreshold": 0,
-    "defaultShippingCost": 5
+    "defaultShippingCost": 5,
+    "loyaltySpendPerPoint": 1
   },
   "shipping": {
     "delivery": {
@@ -166,8 +153,7 @@
       "paymentMethods": [
         "cash",
         "card"
-      ],
-      "offlinePaymentsEnabled": false
+      ]
     },
     "orders": {
       "orderNumberPrefix": "POS"
@@ -175,8 +161,7 @@
     "enabled": true,
     "allowAdminSales": true,
     "allowVendorSales": true,
-    "allowSellerSales": true,
-    "language": "en"
+    "allowSellerSales": true
   },
   "multiVendorMode": {
     "enabled": true,
@@ -1103,7 +1088,7 @@
                         {
                           "id": "S1ecc6aiP8CR4HUaEwMLC",
                           "label": "New arrivals",
-                          "url": "/collections/new",
+                          "url": "/products?sortBy=createdAt",
                           "icon": "",
                           "description": "",
                           "menu": "list",
@@ -1113,7 +1098,7 @@
                         {
                           "id": "WqtV9nspOr1f0eqZKQu8M",
                           "label": "Best sellers",
-                          "url": "/collections/best",
+                          "url": "/products?sortBy=popular",
                           "icon": "",
                           "description": "",
                           "menu": "list",
@@ -1155,7 +1140,7 @@
                     {
                       "id": "UcKQAP5Gt8sxARUZRiloK",
                       "label": "Chair",
-                      "url": "/products?category=chir%2Cchair",
+                      "url": "/products?category=chair",
                       "icon": "",
                       "description": "",
                       "menu": "list",
@@ -1917,8 +1902,6 @@
     },
     "plansEnabled": false,
     "allowRegistration": true,
-    "autoApprove": false,
-    "freeTrialDays": 0,
     "requirePlanSelection": false,
     "requiredDocuments": []
   },
@@ -1951,38 +1934,13 @@
     "themeSettings": {
       "furniture": {
         "colors": {
+          "schemaVersion": 4,
           "light": {
-            "background": "#f5f2ed",
-            "surface": "#f4f1eb",
-            "surfaceAlt": "#e6d6bc",
-            "text": "#2f2f2f",
-            "textMuted": "",
-            "border": "#a9a3a0",
-            "primary": "#f19429",
-            "onPrimary": "",
-            "secondary": "#cfc5b3",
-            "onSecondary": "",
-            "accent": "#ddac73",
-            "sale": "#dd472c",
-            "rating": "#404040",
-            "link": "#e1a056"
+            "link": "#e1a056",
+            "onSale": "#f9f9f9",
+            "skeleton": "#f0e2d6"
           },
-          "dark": {
-            "background": "",
-            "surface": "",
-            "surfaceAlt": "",
-            "text": "",
-            "textMuted": "",
-            "border": "",
-            "primary": "",
-            "onPrimary": "",
-            "secondary": "",
-            "onSecondary": "",
-            "accent": "",
-            "sale": "",
-            "rating": "",
-            "link": ""
-          },
+          "dark": {},
           "darkMode": "auto"
         },
         "type": {
@@ -2019,6 +1977,42 @@
           "height": 46,
           "hover": "darken"
         }
+      },
+      "electronics": {
+        "colors": {
+          "schemaVersion": 4,
+          "light": {
+            "primary": "#363636",
+            "accent": "#d2ac6a",
+            "skeleton": "#f0e2d6"
+          },
+          "dark": {},
+          "darkMode": "auto"
+        }
+      },
+      "essential": {
+        "colors": {
+          "schemaVersion": 4,
+          "light": {
+            "primary": "#363636",
+            "accent": "#d2ac6a",
+            "skeleton": "#f0e2d6"
+          },
+          "dark": {},
+          "darkMode": "auto"
+        }
+      },
+      "women-fashion": {
+        "colors": {
+          "schemaVersion": 4,
+          "light": {
+            "primary": "#363636",
+            "accent": "#d2ac6a",
+            "skeleton": "#f0e2d6"
+          },
+          "dark": {},
+          "darkMode": "auto"
+        }
       }
     }
   },
@@ -2050,7 +2044,10 @@
     ]
   },
   "catalog": {
-    "outOfStockDisplay": "last"
+    "outOfStockDisplay": "last",
+    "digitalProducts": true,
+    "physicalProducts": true,
+    "priceOnRequest": true
   },
   "productCard": {
     "version": 2,
@@ -2296,5 +2293,16 @@
         "sms": false
       }
     }
+  },
+  "preorder": {
+    "enabled": true,
+    "requireVendorApproval": false,
+    "maxLeadDays": 180,
+    "maxDepositPercent": 100,
+    "expiryGraceDays": 14,
+    "reservePercent": 0,
+    "reserveDays": 90,
+    "autoRelease": false,
+    "autoReleaseDelayDays": 0
   }
 }

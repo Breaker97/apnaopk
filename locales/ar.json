@@ -204,6 +204,18 @@
   "account": {
     "welcome": "مرحباً بعودتك، {name}!",
     "overviewDesc": "نظرة عامة على حسابك",
+    "overview": {
+      "needsAttention": "يحتاج إلى انتباهك",
+      "actionNeeded": "إجراء مطلوب",
+      "addressTitle": "لا يمكننا التوصيل إلى عنوانك",
+      "addressDeadline": "الشحن متوقف، يرجى تصحيح العنوان قبل {date}",
+      "addressPaused": "الشحن متوقف حتى يتم تصحيح العنوان",
+      "fixAddress": "تصحيح العنوان",
+      "paymentDue": "دفعة مستحقة",
+      "payBy": "ادفع قبل {date}",
+      "moreInProgress": "{count} أخرى قيد التنفيذ",
+      "plusMore": "+{count} أخرى"
+    },
     "totalOrders": "إجمالي الطلبات",
     "pendingOrders": "الطلبات المعلقة",
     "wishlistItems": "عناصر قائمة الرغبات",
@@ -324,6 +336,10 @@
     "marketingPreferences": "تفضيلات التسويق",
     "marketingOptIn": "رسائل التسويق",
     "marketingOptInDesc": "استقبال رسائل التسويق والعروض الخاصة",
+    "groupOrders": "طلباتك",
+    "groupWishlist": "قائمة أمنياتك",
+    "groupNews": "الأخبار والعروض",
+    "marketingOptInHint": "أوقف هذا الخيار لإلغاء الاشتراك في جميع رسائل التسويق.",
     "totalSpent": "إجمالي الإنفاق",
     "avgOrderValue": "متوسط قيمة الطلب",
     "memberSince": "عضو منذ",
@@ -395,7 +411,8 @@
     "blog": "المدونة",
     "getHelp": "احصل على مساعدة",
     "brands": "العلامات التجارية",
-    "contact": "اتصال"
+    "contact": "اتصال",
+    "inbox": "البريد الوارد"
   },
   "productsPage": {
     "empty": "لم يتم العثور على منتجات",
@@ -432,7 +449,10 @@
     "featuredProducts": "منتجات مميزة"
   },
   "storeCategoriesPage": {
-    "searchPlaceholder": "بحث الفئات..."
+    "searchPlaceholder": "بحث الفئات...",
+    "count": "{count, plural, one {# فئة} other {# فئات}}",
+    "perRowGroup": "الفئات في كل صف",
+    "perRow": "{count} في كل صف"
   },
   "storeCollectionDetailPage": {
     "productsCount": "{count, plural, one {# منتج} other {# منتجات}}",
@@ -537,6 +557,7 @@
     "heroSubtitle": "اكتشف منتجات مذهلة من بائعين موثقين. تسوق بثقة واستمتع بتوصيل سلس إلى باب منزلك.",
     "shopByCategory": "تسوق حسب الفئة",
     "shopByCategoryDescription": "تصفح مجموعتنا الواسعة من المنتجات المنظمة حسب الفئة",
+    "shopAllInCategory": "تسوّق كل {name}",
     "viewAllCategories": "عرض جميع الفئات",
     "whyChooseUs": "لماذا تختار {storeName}؟",
     "whyChooseUsDescription": "نقدم أفضل تجربة تسوق مع ميزات مصممة لك",
@@ -697,7 +718,8 @@
     "gallery": {
       "image": "صورة"
     },
-    "noDescription": "لا يوجد وصف متاح."
+    "noDescription": "لا يوجد وصف متاح.",
+    "percentOff": "خصم {percent}%"
   },
   "cart": {
     "yourCart": "سلتك",
@@ -1010,7 +1032,6 @@
     "notificationSettingsDesc": "إدارة إشعارات البريد الإلكتروني والدفع",
     "accountSettings": "إعدادات الحساب",
     "accountSettingsDesc": "إدارة تفاصيل حسابك الشخصي",
-    "viewStore": "View Store",
     "viewOrders": "الطلبات",
     "productSummary": "ملخص حالة المنتجات",
     "active": "نشط",
@@ -1220,7 +1241,17 @@
       "addressPrecision": "يعرض",
       "socialAdd": "إضافة رابط",
       "socialRemove": "إزالة الرابط",
-      "shareButtons": "أزرار المشاركة"
+      "shareButtons": "أزرار المشاركة",
+      "changeEmail": "تغيير",
+      "changeEmailTitle": "غيّر بريدك الإلكتروني",
+      "changeEmailDescription": "ستسجّل الدخول بالبريد الإلكتروني الجديد. سنُعلم بريدك الإلكتروني الحالي بهذا التغيير.",
+      "newEmail": "البريد الإلكتروني الجديد",
+      "currentPasswordForEmail": "كلمة المرور الحالية",
+      "updateEmail": "تحديث البريد الإلكتروني",
+      "emailChanged": "تم تحديث البريد الإلكتروني. سجّل الدخول ببريدك الإلكتروني الجديد من الآن فصاعدًا.",
+      "emailChangeFailed": "تعذّر تحديث البريد الإلكتروني",
+      "phoneInvalid": "أدخل رقم هاتف صالحًا",
+      "payoutScheduleHint": "في يوم دفعتك يُعدّ المتجر دفعة بما هو جاهز، متى بلغ الحد الأدنى الخاص بك والخاص بالمتجر. ثم يرسلها المتجر إلى الحساب أعلاه."
     },
     "untitledProduct": "منتج بدون عنوان",
     "dashboardWidgets": {
@@ -1411,6 +1442,78 @@
     },
     "activityLog": {
       "title": "سجل النشاط"
+    },
+    "payoutDetail": {
+      "back": "الدفعات",
+      "period": "المبيعات المطلوبة من {start} إلى {end}",
+      "noteFromStore": "ملاحظة من المتجر",
+      "grossSales": "إجمالي المبيعات",
+      "grossSalesHint": "حصتك من الطلبات أدناه",
+      "commission": "العمولة",
+      "shipping": "رسوم التوصيل",
+      "shippingHint": "تُحصَّل من المتسوقين عن الطرود التي وصّلتها",
+      "adjustment": {
+        "recoveryDeducted": "خصم المبالغ المستردة",
+        "recoveryDeductedHint": "دُفعت لك سابقًا عن طلبات استُردت منذ ذلك الحين",
+        "recoveryReturned": "إعادة مبلغ مخصوم",
+        "recoveryReturnedHint": "تم التراجع عن استرداد خُصم سابقًا",
+        "reserveHeld": "احتجاز احتياطي الطلبات المسبقة",
+        "reserveHeldHint": "محتجز تحسبًا لرد مبالغ متأخر من البطاقة",
+        "reserveReleased": "تحرير احتياطي الطلبات المسبقة",
+        "reserveReleasedHint": "احتُجز في دفعة سابقة، وتم تحريره الآن",
+        "reserveCreditDeducted": "استعادة الاحتياطي",
+        "reserveCreditDeductedHint": "احتياطي محرَّر عادت دفعته",
+        "reserveCreditReturned": "إعادة الاحتياطي المستعاد",
+        "reserveCreditReturnedHint": "أُعيد بعد أن دُفعت دفعته مرة أخرى",
+        "commissionOffset": "العمولة على المبيعات النقدية",
+        "commissionOffsetHint": "مستحقة على مبيعات حصّلت ثمنها بنفسك، وتُسوّى هنا بدلًا من إصدار فاتورة",
+        "commissionCredit": "عروض المتجر على المبيعات النقدية",
+        "commissionCreditHint": "خصومات تحمّلها المتجر تتجاوز العمولة المستحقة عليك"
+      },
+      "reserveUntil": "يُحرَّر في {date}",
+      "otherAdjustments": "تسويات أخرى",
+      "otherAdjustmentsHint": "خصم المبالغ المستردة وحركات احتياطي الطلبات المسبقة",
+      "netPayout": "صافي الدفعة",
+      "sentOn": "أُرسلت في {date}",
+      "reference": "المرجع {reference}",
+      "returnedOn": "عادت في {date} — المبيعات التي تضمنتها عادت إلى رصيدك",
+      "history": "ما حدث",
+      "returnedStep": "عادت الأموال",
+      "orders": "الطلبات في هذه الدفعة",
+      "order": "الطلب",
+      "placed": "تاريخ الطلب",
+      "yourShare": "حصتك",
+      "afterCommission": "بعد العمولة",
+      "noOrders": "لا توجد طلبات مرتبطة بهذه الدفعة."
+    },
+    "suspendedMoney": {
+      "title": "أموالك",
+      "frozen": "الدفعات متوقفة مؤقتًا أثناء إيقاف حسابك. تستمر مبيعاتك في الاحتساب وتُدفع بمجرد استعادة الوصول.",
+      "ready": "جاهز لدفعة",
+      "held": "ما زال في الطريق أو ضمن مهلة الإرجاع",
+      "payouts": "أحدث الدفعات",
+      "status": {
+        "pending": "معلق",
+        "processing": "قيد المعالجة",
+        "paid": "مدفوع",
+        "failed": "فشل",
+        "cancelled": "ملغي"
+      }
+    },
+    "commissionCard": {
+      "canceled": "تم إلغاء الدفع. الفاتورة لا تزال مفتوحة.",
+      "settled": "تم سداد فاتورة العمولة.",
+      "pendingInfo": "الدفع لا يزال قيد المعالجة — تُسدَّد الفاتورة تلقائيًا بمجرد تأكيده.",
+      "verifyFailed": "لم نتمكن من تأكيد هذا الدفع بعد.",
+      "pollTimeout": "لم نتمكن من تأكيد الدفع بعد. تُسدَّد الفاتورة تلقائيًا بمجرد تأكيده.",
+      "checkPhone": "تحقق من هاتفك ووافق على طلب الدفع.",
+      "failed": "تعذّر بدء الدفع",
+      "title": "العمولة المستحقة عليك",
+      "subtitle": "عمولة على مبيعات حصّلت ثمنها بنفسك — نقدًا أو بالدفع عند الاستلام أو عبر جهازك الخاص — فلم يكن ممكنًا خصمها من دفعة.",
+      "payNow": "ادفع الآن",
+      "noMethods": "لا تتوفر طريقة دفع لهذا. تواصل مع مسؤول السوق لسدادها بطريقة أخرى.",
+      "dialogTitle": "سداد العمولة",
+      "continue": "المتابعة إلى الدفع"
     }
   },
   "adminProfile": {
@@ -2056,7 +2159,6 @@
       "themes": "السمات",
       "pages": "الصفحات",
       "pos": "نقاط البيع",
-      "posStaff": "الموظفين",
       "posLocations": "المواقع",
       "addPage": "إضافة صفحة",
       "dashboard": "لوحة التحكم",
@@ -2084,6 +2186,7 @@
       "customize": "تخصيص",
       "finance": "المالية",
       "financeOverview": "نظرة عامة",
+      "inventoryLedger": "المخزون والدفتر",
       "expenses": "المصروفات",
       "receivables": "الذمم المدينة",
       "financeReports": "التقارير",
@@ -2095,6 +2198,7 @@
       "mobileTitle": "القائمة",
       "mobileDescription": "روابط إلى كل أقسام لوحة التحكم.",
       "sliders": "شرائح العرض",
+      "campaignBanners": "لافتات الحملات",
       "staff": "الفريق",
       "toggle": "إظهار الشريط الجانبي أو إخفاؤه",
       "vendorConfiguration": "التهيئة",
@@ -2319,7 +2423,7 @@
         "secondaryColor": "اللون الثانوي",
         "accentColor": "لون التمييز",
         "themes": {
-          "light": "فاته",
+          "light": "فاتح",
           "dark": "داكن"
         },
         "presets": "الإعدادات المسبقة",
@@ -2527,7 +2631,7 @@
             "ses": "Amazon SES",
             "other": "آخر"
           },
-          "docs": "الشرح الكامل: docs/EMAIL_SETUP.md",
+          "docs": "الشرح الكامل: https://storify.neurolightstudio.com/docs#email",
           "gmail": {
             "step1": "فعّل 2-Step Verification في حساب Google الذي سترسل منه.",
             "step2": "أنشئ كلمة مرور تطبيق باسم {storeName} وانسخ كلمة المرور المكوّنة من 16 حرفًا. لا يعرضها Google إلا مرة واحدة.",
@@ -2879,7 +2983,20 @@
         "soundPayment": "تم قبول الدفع",
         "soundOrderComplete": "اكتمل البيع",
         "soundError": "خطأ أو تحذير مخزون",
-        "soundPlay": "تشغيل الصوت: {sound}"
+        "soundPlay": "تشغيل الصوت: {sound}",
+        "offlineWindow": "مدة البيع دون اتصال",
+        "offlineWindowHint": "المدة التي يواصل فيها جهاز البيع البيع دون اتصال بعد آخر وصول له إلى الخادم. بعدها يُقفل حتى يتمكن من تسجيل الدخول مجددًا. بين {min} و{max} ساعة.",
+        "offlineWindowUnit": "ساعة",
+        "allowDeposits": "السماح بالعربون",
+        "allowDepositsDesc": "يمكن لجهاز البيع أخذ جزء من عملية البيع الآن والباقي لاحقًا، لعملية بيع مرتبطة بعميل. تُحجز البضاعة، وتُسجَّل عملية البيع عند سدادها بالكامل.",
+        "requireOpenRegister": "اشتراط درج مفتوح للبيع",
+        "requireOpenRegisterDesc": "يجب على كل صندوق فتح درجه برصيد افتتاحي قبل تسجيل أي بيع، ليدخل كل بيع في جلسة تُعدّ عند الإغلاق.",
+        "pricesIncludeTax": "الأسعار شاملة الضريبة",
+        "openCashDrawer": "فتح درج النقود",
+        "openCashDrawerDesc": "افتح درج النقود عند تبادل النقد عند الصندوق. يتطلب QZ Tray وطابعة إيصالات بمنفذ للدرج؛ ويختار كل صندوق طابعته من قائمة الدرج.",
+        "pricesIncludeTaxMovedOn": "مفعّل: أسعار الرفوف شاملة الضريبة بالفعل. أصبح هذا الخيار الآن في إعدادات الضريبة.",
+        "pricesIncludeTaxMovedOff": "متوقف: تُضاف الضريبة إلى أسعار الرفوف. أصبح هذا الخيار الآن في إعدادات الضريبة.",
+        "pricesIncludeTaxLink": "فتح إعدادات الضريبة"
       },
       "vendorPermissions": {
         "title": "سياسة السوق",
@@ -2905,9 +3022,8 @@
       },
       "orders": {
         "title": "إعدادات الطلبات",
-        "description": "أرقام الطلبات والضريبة والإرجاع.",
+        "description": "أرقام الطلبات والشحن والإرجاع.",
         "prefix": "بادئة رقم الطلب",
-        "taxRate": "نسبة الضريبة",
         "shippingCost": "الشحن القياسي",
         "freeShippingThreshold": "شحن مجاني ابتداءً من",
         "shippingHandledByZones": "تأتي الأسعار من مناطق الشحن لديك.",
@@ -2955,7 +3071,6 @@
         "shippingRefundNever": "أبدًا",
         "ordersHeading": "الطلبات",
         "prefixExample": "تظهر أرقام الطلبات هكذا: <strong>{example}</strong>.",
-        "taxRateHint": "تُضاف إلى الطلبات عند إتمام الشراء وفي نقطة البيع.",
         "shipping": "الشحن",
         "shippingLink": "الشحن والتوصيل",
         "shippingCostHint": "ما يدفعه الطلب مقابل التوصيل ما دامت مناطق الشحن متوقفة.",
@@ -2971,7 +3086,18 @@
         "commissionSummaryLabel": "العمولة والحد الأدنى للدفعة",
         "commissionSummary": "عمولة {rate}%، والحد الأدنى للدفعة {amount}.",
         "vendorConfigLink": "إعدادات البائعين",
-        "refundAdminFeeUpTo": "% بحد أقصى"
+        "refundAdminFeeUpTo": "% بحد أقصى",
+        "tax": "الضريبة",
+        "taxMoved": "أصبحت نسب الضريبة والشرائح الضريبية وتسجيلك الضريبي الآن في إعدادات الضريبة.",
+        "taxLink": "فتح إعدادات الضريبة"
+      },
+      "invoices": {
+        "title": "إعدادات الفواتير",
+        "entry": {
+          "title": "الفواتير والإيصالات والملصقات",
+          "description": "صمّم ما يطبعه متجرك واختر القالب الافتراضي لكل نوع.",
+          "action": "فتح إعدادات الفواتير"
+        }
       },
       "storage": {
         "title": "إعدادات التخزين",
@@ -3037,7 +3163,7 @@
         },
         "setup": {
           "title": "دليل إعداد {provider}",
-          "docs": "الشرح الكامل: docs/STORAGE_SETUP.md",
+          "docs": "الشرح الكامل: https://storify.neurolightstudio.com/docs#cloudflare-r2",
           "copy": "نسخ",
           "copyFailed": "تعذّر النسخ",
           "console": {
@@ -3163,7 +3289,7 @@
           "step6": "بعد أول عملية جلب، تعرض Catalog → Issues أي عنصر رفضه Meta.",
           "caution": "بعد إنشاء عنوان URL جديد، غيّر عنوان URL في مصدر البيانات الحالي. فإضافة مصدر بيانات ثانٍ ستُدرج كل منتج مرتين.",
           "link": "فتح Commerce Manager",
-          "docs": "الشرح الكامل: docs/META_CATALOG.md"
+          "docs": "الشرح الكامل: https://storify.neurolightstudio.com/docs"
         },
         "descriptionLive": "يتلقى Facebook وInstagram تغييرات منتجاتك خلال دقائق عبر Catalog API من Meta.",
         "source": {
@@ -3243,7 +3369,7 @@
             "caution": "تعامل مع الرمز ككلمة مرور. إذا أُلغي أو انتهت صلاحيته، تتوقف المزامنة المباشرة مؤقتًا ويُبلَّغ المسؤولون.",
             "off": "يؤدي إيقاف المزامنة المباشرة إلى إبقاء العناصر الموجودة في Meta كما هي. احذفها من Commerce Manager إذا لم تعد تريدها.",
             "link": "فتح Business settings",
-            "docs": "الشرح الكامل: docs/META_CATALOG.md"
+            "docs": "الشرح الكامل: https://storify.neurolightstudio.com/docs"
           }
         }
       },
@@ -3763,6 +3889,10 @@
             "preorderAccess": {
               "title": "إذن الطلبات المسبقة",
               "hint": "الموافقة أو الرفض أو السحب"
+            },
+            "payouts": {
+              "title": "الدفعات",
+              "hint": "الإعداد أو الإرسال أو الإعادة أو الإلغاء"
             }
           },
           "customer": {
@@ -3903,11 +4033,13 @@
           "byCurrencyLabel": "الحد الأدنى بالعملات الأخرى",
           "byCurrencyRemove": "إزالة الحد الأدنى لعملة {currency}",
           "description": "يُطبَّق على البائعين الذين ليست لديهم خطة. يمكن تعديله أيضًا من إعدادات الطلبات.",
-          "minWithdrawalDescription": "أصغر رصيد يمكن للبائع طلبه كدفعة، بعملة متجرك.",
+          "minWithdrawalDescription": "أصغر رصيد تُصرف له دفعة، بعملة متجرك.",
           "minWithdrawalLabel": "الحد الأدنى لمبلغ السحب",
           "rateDescription": "النسبة التي تحتفظ بها المنصة من كل عملية بيع للبائع.",
           "rateLabel": "نسبة العمولة",
-          "title": "العمولة الافتراضية"
+          "title": "العمولة الافتراضية",
+          "autoPayoutDraftsLabel": "إعداد الدفعات وفق جدول كل بائع",
+          "autoPayoutDraftsDescription": "في يوم الدفع الخاص بالبائع (أسبوعيًا أو كل أسبوعين أو شهريًا، كما اختار) تُعدّ دفعة عندما يتوفر لديه ما يكفي للدفع. يبقى عليك إرسال المال وتعليمها كمدفوعة."
         },
         "description": "سياسة التسجيل والموافقة وخطط الاشتراك للبائعين.",
         "documents": {
@@ -4234,6 +4366,221 @@
       "saveBar": {
         "unsaved": "تغييرات غير محفوظة",
         "discard": "تجاهل"
+      },
+      "tax": {
+        "title": "إعدادات الضريبة",
+        "description": "ما تفرضه، وأين أنت مسجّل، وكيف تُحتسب الضريبة.",
+        "tabsLabel": "أقسام إعدادات الضريبة",
+        "moreOptions": "المزيد من الخيارات",
+        "tabs": {
+          "rates": "النسب",
+          "registration": "التسجيل",
+          "calculation": "الاحتساب",
+          "vendors": "البائعون"
+        },
+        "links": {
+          "report": "تقرير الضريبة",
+          "invoices": "إعدادات الفواتير"
+        },
+        "registrationMissingLabel": "رقم التسجيل مفقود",
+        "rates": {
+          "description": "النسبة المفروضة على كل شريحة. تخضع المنتجات التي بلا شريحة للنسبة القياسية.",
+          "notCharging": "لا يتم فرض الضريبة",
+          "notChargingHint": "جميع النسب 0%، لذا لا تُفرض ضريبة على أي عملية بيع. حدّد النسبة القياسية أدناه لبدء فرض الضريبة.",
+          "removedClass": "تستخدم بعض المنتجات شريحة لم تعد موجودة",
+          "removedClassHint": "تُصنَّف {products, plural, zero {# منتج} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}} و{categories, plural, zero {# فئة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}} ضمن شريحة أُزيلت، لذا تخضع للنسبة القياسية. اختر شريحة لكلٍّ منها في محرره.",
+          "default": "افتراضية",
+          "partsBadge": "{count, plural, zero {# جزء} one {جزء واحد} two {جزآن} few {# أجزاء} many {# جزءًا} other {# جزء}}",
+          "neverCharged": "لا تُفرض عليها ضريبة أبدًا",
+          "noRate": "لا توجد نسبة بعد. تُطبَّق النسبة القياسية إلى أن تحدّد نسبة.",
+          "rateLabel": "نسبة {name}",
+          "rateTotalLabel": "نسبة {name}، وهي مجموع أجزائها",
+          "expandLabel": "خيارات {name}",
+          "usageProducts": "{count, plural, zero {# منتج} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+          "usageCategories": "{count, plural, zero {# فئة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}}",
+          "next": "تتغير إلى {rate} في {date}",
+          "name": "الاسم",
+          "note": "ملاحظة",
+          "optional": "اختياري",
+          "notePlaceholder": "ما الذي يندرج ضمن هذه الشريحة",
+          "partsTitle": "أجزاء النسبة",
+          "total": "الإجمالي {rate}",
+          "partName": "اسم الجزء",
+          "partRate": "نسبة الجزء",
+          "partPlaceholder1": "الولاية",
+          "partPlaceholder2": "المقاطعة",
+          "partPlaceholder3": "المدينة",
+          "compound": "تُفرض فوق الأجزاء السابقة",
+          "compoundHint": "تُجمع الأجزاء معًا، كما تُجمع ضريبة المبيعات على مستوى الولاية والمقاطعة والمدينة. أما الجزء المفروض فوقها فيُحتسب على السعر مضافًا إليه الأجزاء التي تسبقه.",
+          "addPart": "إضافة جزء",
+          "splitIntoParts": "تقسيم إلى أجزاء",
+          "removePart": "إزالة هذا الجزء",
+          "scheduleTitle": "تغيير مجدول",
+          "scheduleAdd": "جدولة تغيير",
+          "startsOn": "تاريخ البدء",
+          "newRate": "نسبة جديدة",
+          "removeScheduled": "إزالة هذا التغيير المجدول",
+          "earlierTitle": "النسب السابقة",
+          "earlierLine": "{rate} منذ {date}",
+          "fromStart": "منذ البداية",
+          "removeEarlier": "إزالة هذه النسبة السابقة",
+          "removeClass": "إزالة الشريحة",
+          "removeClassInUse": "يستخدم هذه الشريحة {products, plural, zero {# منتج} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}} و{categories, plural, zero {# فئة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}}. بعد إزالتها ستخضع للنسبة القياسية.",
+          "removeClassHint": "ستُزال نسبها معها.",
+          "addClass": "إضافة شريحة",
+          "newName": "اسم الشريحة",
+          "newNamePlaceholder": "الكتب",
+          "classRate": "النسبة",
+          "add": "إضافة شريحة",
+          "cancel": "إلغاء",
+          "full": "الحد الأقصى لعدد الشرائح التي يمكنك إضافتها هو {count}.",
+          "untaxedNote": "{count, plural, zero {لا منتجات مضبوطة} one {منتج واحد مضبوط} two {منتجان مضبوطان} few {# منتجات مضبوطة} many {# منتجًا مضبوطًا} other {# منتج مضبوط}} على عدم فرض الضريبة.",
+          "customNote": "يستخدم {products, plural, zero {# منتج} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}} و{categories, plural, zero {# فئة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}} نسبة مخصصة خاصة بها. لا تتبع هذه النسبة النسب المحدَّدة هنا؛ ونقلها إلى شريحة يُبقيها متوافقة معها."
+        },
+        "registration": {
+          "description": "المكان الذي سُجّل فيه متجرك ضريبيًا. تُفرض الضريبة على كل عملية بيع وفق نسب هذه المنطقة.",
+          "missing": "لا يوجد رقم تسجيل",
+          "missingHint": "أنت تفرض الضريبة، لكنك لم تُضف تسجيلك الضريبي، مثل رقم تصريح ضريبة المبيعات.",
+          "country": "الدولة",
+          "name": "اسم المنطقة",
+          "optional": "اختياري",
+          "nameHint": "يُعرض اسم الدولة عندما يكون هذا الحقل فارغًا.",
+          "registrationLabel": "اسم التسجيل",
+          "registrationLabelPlaceholder": "تصريح ضريبة المبيعات",
+          "registrationLabelHint": "الاسم الذي تطلقه عليه الجهة الضريبية لديك: تصريح ضريبة المبيعات، تصريح البائع.",
+          "registrationNumber": "رقم التسجيل",
+          "registrationNumberHint": "الرقم الذي أصدرته لك الجهة الضريبية."
+        },
+        "calculation": {
+          "posTitle": "نقطة البيع",
+          "posDescription": "كيف تُقرأ أسعار الرفوف عند الصندوق.",
+          "posPricesIncludeTax": "أسعار الرفوف شاملة الضريبة",
+          "posPricesIncludeTaxDesc": "يحصّل الصندوق السعر المعروض على الرف ويُظهر الضريبة ضمنه، بدلًا من إضافتها فوقه.",
+          "rulesTitle": "كيف تُحتسب الضريبة",
+          "rulesDescription": "تنطبق هذه القواعد على كل عملية بيع. لا شيء يحتاج إلى ضبط هنا.",
+          "chainTitle": "تُطبَّق على المنتج أول نسبة محدَّدة من هذه النسب",
+          "chain": {
+            "own": "نسبته المخصصة الخاصة",
+            "class": "شريحته الضريبية",
+            "category": "نسبة فئته",
+            "standard": "النسبة القياسية"
+          },
+          "facts": {
+            "online": {
+              "label": "المتجر الإلكتروني",
+              "text": "في المتجر الإلكتروني تُعرض الأسعار دون ضريبة، وتُضاف الضريبة عند إتمام الشراء."
+            },
+            "discounts": {
+              "label": "الخصومات",
+              "text": "تُفرض الضريبة على ما يدفعه المتسوّق بعد الخصومات والقسائم."
+            },
+            "shipping": {
+              "label": "الشحن",
+              "text": "لا تُفرض ضريبة على الشحن والرسوم الجمركية."
+            },
+            "region": {
+              "label": "المنطقة",
+              "text": "تُفرض الضريبة على كل عملية بيع وفق نسب منطقتك، أيًّا كان عنوان المتسوّق."
+            }
+          }
+        },
+        "classes": {
+          "standard": {
+            "name": "قياسية",
+            "description": "معظم السلع. نسبتها هي نسبة الضريبة في متجرك."
+          },
+          "reduced": {
+            "name": "مخفّضة",
+            "description": "سلع يفرض عليها القانون نسبة ضريبة أقل."
+          },
+          "zero": {
+            "name": "بنسبة صفرية",
+            "description": "سلع خاضعة للضريبة بنسبة 0%."
+          },
+          "exempt": {
+            "name": "معفاة",
+            "description": "سلع خارج نطاق الضريبة تمامًا."
+          }
+        },
+        "picker": {
+          "label": "الضريبة",
+          "inheritCategory": "مثل فئته",
+          "inheritParent": "مثل فئته الأم",
+          "custom": "نسبة مخصصة",
+          "customRate": "نسبة ضريبة مخصصة",
+          "customHint": "النسبة المخصصة تتقدّم على كل الشرائح ولا تتبع تغييرات النسب في إعدادات الضريبة.",
+          "hint": "الشريحة هي التي تحدد النسبة، ويتم ضبطها في الإعدادات → إعدادات الضريبة.",
+          "removedClass": "{key} (محذوفة: النسبة القياسية)"
+        },
+        "vendors": {
+          "policyTitle": "ضريبة منتجات البائعين",
+          "policyDescription": "متجرك مسؤول عن الضريبة التي يحصّلها سوقه. اختر من يمكنه تغيير ضريبة منتجات البائع: فرض الضريبة، والشريحة الضريبية، والنسب المخصصة.",
+          "policy": {
+            "approval": "بموافقتك",
+            "approvalHint": "يرسل البائعون طلبًا، وتوافق عليه أو ترفضه أدناه. وحتى ذلك الحين تحتفظ منتجاتهم بضريبتها.",
+            "never": "أنت فقط",
+            "neverHint": "يرى البائعون ضريبة منتجاتهم، لكن لا يمكنهم تغييرها أو طلب تغييرها.",
+            "free": "البائعون أنفسهم",
+            "freeHint": "يغيّر البائعون ضريبة منتجاتهم دون الحاجة إلى طلب."
+          },
+          "requestsTitle": "طلبات تغيير الضريبة",
+          "requestsDescription": "الموافقة تطبّق الضريبة المطلوبة على كل منتج في الطلب. والرفض يُبقي ضريبتها كما هي ويُخبر البائع بالسبب.",
+          "pendingTab": "قيد الانتظار",
+          "decidedTab": "تم الرد عليها",
+          "loading": "جارٍ تحميل الطلبات…",
+          "empty": "لا توجد طلبات قيد الانتظار.",
+          "emptyDecided": "لم يتم الرد على أي طلب بعد.",
+          "loadFailed": "تعذّر تحميل الطلبات",
+          "unknownStore": "متجر غير معروف",
+          "requestedOn": "طُلب في {date}",
+          "asksFor": "المطلوب",
+          "now": "حاليًا {tax}",
+          "moreProducts": "{count, plural, zero {ولا منتجات أخرى} one {ومنتج آخر} two {ومنتجان آخران} few {و# منتجات أخرى} many {و# منتجًا آخر} other {و# منتج آخر}}",
+          "reason": "السبب",
+          "noteLabel": "ملاحظة للبائع",
+          "noteRequiredHint": "مطلوبة للرفض",
+          "optional": "اختياري",
+          "notePlaceholder": "ملاحظة قصيرة للبائع",
+          "addNote": "إضافة ملاحظة",
+          "noteRequired": "اكتب ملاحظة ليعرف البائع السبب",
+          "approve": "موافقة",
+          "decline": "رفض",
+          "cancel": "إلغاء",
+          "sendDecline": "إرسال الرفض",
+          "approvedToast": "تمت الموافقة على تغيير الضريبة",
+          "declinedToast": "تم رفض الطلب",
+          "decisionFailed": "تعذّر حفظ القرار",
+          "pending": "قيد الانتظار",
+          "approved": "تمت الموافقة",
+          "declined": "مرفوض",
+          "withdrawn": "مسحوب",
+          "decisionNote": "ملاحظة: {note}"
+        },
+        "request": {
+          "notCharged": "لا تُفرض ضريبة",
+          "inherit": "مثل فئته",
+          "customRate": "نسبة مخصصة {rate}%",
+          "lockedLabel": "الضريبة",
+          "lockedApproval": "يوافق المتجر على تغييرات ضريبة هذا المنتج.",
+          "lockedNever": "يدير المتجر ضريبة هذا المنتج.",
+          "newProductApproval": "يخضع المنتج الجديد لضريبة فئته. بعد حفظه يمكنك طلب ضريبة مختلفة.",
+          "requestChange": "طلب تغيير",
+          "pending": "طُلب تغيير: {tax}. بانتظار المتجر.",
+          "withdraw": "سحب",
+          "withdrawn": "تم سحب الطلب",
+          "withdrawFailed": "تعذّر سحب الطلب",
+          "dialogTitle": "طلب تغيير الضريبة",
+          "dialogDescription": "{count, plural, zero {يراجع المتجر طلبك. وحتى يوافق عليه، تحتفظ المنتجات بضريبتها الحالية.} one {يراجع المتجر طلبك. وحتى يوافق عليه، يحتفظ المنتج بضريبته الحالية.} two {يراجع المتجر طلبك بشأن منتجين. وحتى يوافق عليه، يحتفظان بضريبتهما الحالية.} few {يراجع المتجر طلبك بشأن # منتجات. وحتى يوافق عليه، تحتفظ بضريبتها الحالية.} many {يراجع المتجر طلبك بشأن # منتجًا. وحتى يوافق عليه، تحتفظ بضريبتها الحالية.} other {يراجع المتجر طلبك بشأن # منتج. وحتى يوافق عليه، تحتفظ بضريبتها الحالية.}}",
+          "chargeTax": "فرض الضريبة",
+          "reason": "لماذا يجب تغيير الضريبة؟",
+          "reasonPlaceholder": "مثال: هذه المنتجات معفاة من ضريبة المبيعات في ولايتنا.",
+          "reasonTooShort": "أضف جملة توضّح سبب تغيير الضريبة.",
+          "send": "إرسال الطلب",
+          "cancel": "إلغاء",
+          "sent": "تم إرسال الطلب إلى المتجر",
+          "sendFailed": "تعذّر إرسال الطلب",
+          "bulkAction": "طلب تغيير الضريبة"
+        }
       }
     },
     "reports": "التقارير",
@@ -4241,7 +4588,6 @@
     "approveVendor": "قبول البائع",
     "rejectVendor": "رفض البائع",
     "pos": "نقطة البيع",
-    "posStaff": "الموظفون",
     "posLocations": "المواقع",
     "productsPage": {
       "stats": {
@@ -4450,7 +4796,10 @@
           "countryOfOrigin": "اسم الدولة أو رمزها المكوّن من حرفين، مثل BD.",
           "hsCode": "رمز التعريفة الجمركية.",
           "barcode": "EAN-13 أو UPC-A أو GTIN-14 أو Code 128. يُنشأ تلقائيًا إن كان فارغًا.",
-          "vendorId": "البائع الذي يتبعه المنتج، كما يظهر في ملف تصدير البائعين. الافتراضي: متجرك الخاص."
+          "vendorId": "البائع الذي يتبعه المنتج، كما يظهر في ملف تصدير البائعين. الافتراضي: متجرك الخاص.",
+          "chargeTax": "true أو false: فرض الضريبة على هذا المنتج. الافتراضي true.",
+          "taxClass": "شريحة ضريبية من إعدادات الضريبة: standard أو reduced أو zero أو exempt أو شريحة أضفتها. اكتب inherit لاستخدام ضريبة الفئة مجددًا.",
+          "taxRate": "نسبة ضريبة مخصصة بالنسبة المئوية، مثل 7.5. تحل محل الشريحة الضريبية، لذا املأ taxClass أو taxRate، لا كليهما."
         },
         "title": "استيراد المنتجات",
         "description": "أضف منتجات جديدة أو حدّث المنتجات الحالية دفعةً واحدة من ملف CSV أو JSON.",
@@ -4531,7 +4880,9 @@
       "actions": {
         "export": "تصدير",
         "import": "استيراد",
-        "addCollection": "إضافة مجموعة"
+        "addCollection": "إضافة مجموعة",
+        "importExport": "استيراد / تصدير",
+        "downloadSample": "تنزيل ملف نموذجي"
       },
       "bulkActions": {
         "setActive": "تعيين نشط",
@@ -4570,6 +4921,67 @@
         "deleteBulkError": "فشل إلى حذف بعض المجموعات",
         "updateSuccess": "{count} المجموعات تم التحديث",
         "updateError": "فشل إلى تحديث {count} المجموعات"
+      },
+      "importDialog": {
+        "title": "استيراد المجموعات",
+        "description": "أضف مجموعات جديدة أو حدّث المجموعات الحالية دفعةً واحدة من ملف CSV.",
+        "sampleTitle": "ابدأ من الملف النموذجي",
+        "sampleDescription": "يحتوي على الأعمدة التي يقرؤها الاستيراد ومجموعتين على سبيل المثال، إحداهما manual والأخرى automated. استبدل الأمثلة بمجموعاتك، وأبقِ الصف الأول كما هو، ثم ارفع الملف هنا.",
+        "sampleCsv": "نموذج CSV",
+        "sampleFailed": "تعذّر تنزيل الملف النموذجي",
+        "dropTitle": "اختر ملفًا أو اسحبه إلى هنا",
+        "dropHint": "CSV · حتى {rows} مجموعة · {size} MB",
+        "removeFile": "إزالة الملف",
+        "fileTooLarge": "حجم هذا الملف أكبر من {size} MB. قسّمه إلى ملفات أصغر.",
+        "wrongType": "اختر ملفًا بصيغة .csv.",
+        "rulesTitle": "كيف تُستورد الصفوف",
+        "rules": {
+          "match": "الصف الذي يحتوي على id أو slug لمجموعة موجودة يحدّث تلك المجموعة. أما الصف الذي لا يحتوي على أيٍّ منهما فتتم مطابقته عبر title، وتُنشأ مجموعة جديدة إذا لم يوجد تطابق.",
+          "blank": "الخلية الفارغة تُبقي القيمة الحالية للمجموعة كما هي. تبدأ المجموعة الجديدة كمسودة manual.",
+          "products": "تُدرج المجموعة manual منتجاتها حسب slug أو SKU أو الاسم، مفصولة بـ |. يجب أن تكون المنتجات موجودة مسبقًا؛ ويُتخطى أي اسم لا يطابق منتجًا ويُذكر في التقرير. تُبقي خلية المنتجات الفارغة المنتجات الحالية كما هي.",
+          "conditions": "تحتاج المجموعة automated إلى قاعدة واحدة على الأقل في عمود conditions، مكتوبة بصيغة JSON كما في المثال الموجود في دليل الأعمدة."
+        },
+        "columnsTitle": "دليل الأعمدة",
+        "required": "مطلوب للمجموعات الجديدة",
+        "columns": {
+          "title": "اسم المجموعة.",
+          "slug": "عنوان المجموعة على الويب. يُنشأ من title عند تركه فارغًا. ويُستخدم أيضًا للعثور على المجموعة المراد تحديثها.",
+          "id": "يوجد في الملفات المصدّرة فقط. يحدّد المجموعة المراد تحديثها بدقة.",
+          "description": "وصف قصير بنص عادي.",
+          "descriptionHtml": "الوصف الكامل. يُسمح بـ HTML.",
+          "imageUrl": "رابط عام لصورة (https://…) لغلاف المجموعة.",
+          "imageAlt": "النص البديل لصورة الغلاف. يُستخدم title عند تركه فارغًا.",
+          "collectionType": "manual أو automated. تكون المجموعات الجديدة manual ما لم يذكر الملف غير ذلك.",
+          "status": "active أو draft. تكون المجموعات الجديدة draft ما لم يذكر الملف غير ذلك.",
+          "products": "للمجموعات manual: slug أو SKU أو أسماء المنتجات مفصولة بـ |، مثل blue-shirt|red-shirt.",
+          "productIds": "في الملفات المصدّرة فقط: معرّفات (id) المنتجات مفصولة بـ |. تُستخدم مع products.",
+          "conditions": "للمجموعات automated: القواعد على شكل قائمة JSON. الحقول: title, productType, vendor, tag, price, comparePrice, weight, stock, createdAt, category, brand.",
+          "conditionMatch": "all أو any: هل يجب أن يستوفي المنتج كل القواعد أم واحدة فقط. الافتراضي all.",
+          "sortOrder": "manual أو best-selling أو title-asc أو title-desc أو price-asc أو price-desc أو created-asc أو created-desc.",
+          "position": "رقم يحدد ترتيب هذه المجموعة في القوائم. الأصغر يظهر أولًا.",
+          "onlineStore": "true أو false: إظهار المجموعة في المتجر الإلكتروني. الافتراضي true.",
+          "pointOfSale": "true أو false: إظهارها في نقطة البيع. الافتراضي false.",
+          "seoPageTitle": "العنوان الذي تعرضه محركات البحث لصفحة المجموعة.",
+          "seoMetaDescription": "الوصف الذي تعرضه محركات البحث لصفحة المجموعة."
+        },
+        "cancel": "إلغاء",
+        "submit": "استيراد المجموعات",
+        "importing": "جارٍ الاستيراد… قد تستغرق الملفات الكبيرة دقيقة. أبقِ هذه النافذة مفتوحة.",
+        "requestFailed": "تعذّر استيراد الملف. حاول مرة أخرى.",
+        "resultTitle": "اكتمل الاستيراد",
+        "resultFailedTitle": "تعذّر استيراد الملف",
+        "created": "تم الإنشاء",
+        "updated": "تم التحديث",
+        "failed": "فشل",
+        "warnings": "ملاحظات",
+        "errorsTitle": "صفوف لم تُستورد",
+        "errorsHint": "صحّح هذه الصفوف في ملفك ثم استورده مرة أخرى. الصفوف التي تم استيرادها تحدّث المجموعات نفسها بدلًا من إضافة نسخ مكررة.",
+        "rowLabel": "الصف {row}",
+        "fileLabel": "الملف",
+        "moreErrors": "…و{count} غيرها في القائمة القابلة للتنزيل.",
+        "downloadErrors": "تنزيل قائمة الأخطاء",
+        "importAnother": "استيراد ملف آخر",
+        "done": "تم"
       }
     },
     "categoriesDataTable": {
@@ -4961,7 +5373,159 @@
       "team_members_exported": "تم تصدير أعضاء الفريق",
       "team_members_could_not_be_exported": "تعذّر تصدير أعضاء الفريق",
       "vendors_exported": "تم تصدير البائعين",
-      "vendors_could_not_be_exported": "تعذّر تصدير البائعين"
+      "vendors_could_not_be_exported": "تعذّر تصدير البائعين",
+      "area": "المنطقة",
+      "view": "عرض",
+      "manage": "إدارة",
+      "failed_to_load_the_role": "تعذّر تحميل الدور",
+      "name_is_required": "الاسم مطلوب",
+      "failed_to_save_the_role": "تعذّر حفظ الدور",
+      "role_updated": "تم تحديث الدور",
+      "role_created": "تم إنشاء الدور",
+      "failed_to_delete_the_role": "تعذّر حذف الدور",
+      "role_deleted": "تم حذف الدور",
+      "edit_role": "تعديل الدور",
+      "new_role": "دور جديد",
+      "a_role_is_what_its_members_may_do_changing_it_changes_every_member_on_it": "الدور هو ما يمكن لأعضائه فعله. تغييره يغيّر كل عضو فيه.",
+      "save_role": "حفظ الدور",
+      "role_details": "تفاصيل الدور",
+      "name": "الاسم",
+      "dashboard": "لوحة التحكم",
+      "admin_dashboard": "لوحة الإدارة",
+      "staff_area": "منطقة الموظفين",
+      "any_permission_in_the_admin_dashboard": "أي صلاحية، في لوحة الإدارة",
+      "store_records_and_the_till_in_the_staff_area": "سجلات المتجر ونقطة البيع، في منطقة الموظفين",
+      "every_permission": "كل الصلاحيات",
+      "the_administrator_always_holds_every_permission_including_ones_added_later_to_limit_an_administrator_give_them_another_role": "المسؤول يملك دائمًا كل الصلاحيات، بما فيها ما يُضاف لاحقًا. لتقييد مسؤول، أعطه دورًا آخر.",
+      "delete_this_role": "حذف هذا الدور؟",
+      "a_role_with_members_cannot_be_deleted_give_them_another_role_first": "لا يمكن حذف دور له أعضاء؛ أعطهم دورًا آخر أولًا.",
+      "roles": "الأدوار",
+      "what_each_kind_of_team_member_may_do_give_a_member_a_role_on_their_page": "ما يمكن لكل نوع من أعضاء الفريق فعله. أعطِ العضو دورًا من صفحته.",
+      "create_role": "إنشاء دور",
+      "built_in": "مدمج",
+      "members": "أعضاء",
+      "view_role": "عرض الدور",
+      "the_store_owner_always_holds_every_permission": "يملك مالك المتجر كل الصلاحيات دائمًا.",
+      "the_home_screen_s_figures": "أرقام الشاشة الرئيسية",
+      "returns_refunds": "المرتجعات والمبالغ المستردة",
+      "quotes": "عروض الأسعار",
+      "price_requests_and_offers": "طلبات الأسعار والعروض",
+      "applications_stores_plans_and_commissions": "الطلبات والمتاجر والخطط والعمولات",
+      "payouts": "المدفوعات للبائعين",
+      "manage_sends_vendors_their_money": "الإدارة ترسل للبائعين أموالهم",
+      "payments": "المدفوعات",
+      "transactions_and_chargebacks": "المعاملات والاعتراضات",
+      "finance": "المالية",
+      "ledger_expenses_periods_and_reports": "الدفتر والمصروفات والفترات والتقارير",
+      "marketing": "التسويق",
+      "boosts": "التعزيزات",
+      "sponsored_products": "منتجات مموّلة",
+      "online_store": "المتجر الإلكتروني",
+      "theme_pages_menus_sliders_checkout": "المظهر والصفحات والقوائم والشرائح والدفع",
+      "blog": "المدونة",
+      "posts_categories_comments": "المنشورات والتصنيفات والتعليقات",
+      "ai_sales_agent": "وكيل المبيعات الذكي",
+      "its_settings_and_conversations": "إعداداته ومحادثاته",
+      "ai_studio": "استوديو الذكاء الاصطناعي",
+      "all_accounts": "كل الحسابات",
+      "every_sign_in_on_the_store": "كل تسجيل دخول في المتجر",
+      "settings": "الإعدادات",
+      "store_settings": "إعدادات المتجر",
+      "sensitive_settings": "الإعدادات الحساسة",
+      "payment_gateways_storage_email_sms_providers_sign_in_security_carriers": "بوابات الدفع والتخزين ومزودو البريد/الرسائل وتسجيل الدخول والأمان وشركات الشحن",
+      "activity_log": "سجل النشاط",
+      "who_did_what": "من فعل ماذا",
+      "team": "الفريق",
+      "manage_adds_and_edits_members_within_your_own_permissions": "الإدارة تضيف الأعضاء وتعدّلهم ضمن صلاحياتك",
+      "create_and_change_roles": "إنشاء الأدوار وتغييرها",
+      "member": "عضو",
+      "permission": "صلاحية",
+      "role": "الدور",
+      "staff": "الموظفون",
+      "abandoned_checkouts": "عمليات الدفع المتروكة",
+      "added_for_this_member": "أُضيف لهذا العضو",
+      "all_vendors_and_locations_including_ones_added_later": "كل البائعين والمواقع، بما فيها التي تُضاف لاحقًا",
+      "also_catalogues_for_ads": "وكذلك الكتالوجات للإعلانات",
+      "answers_the_inbox_and_looks_up_orders_and_customers": "يرد على صندوق الوارد ويطّلع على الطلبات والعملاء",
+      "brands": "العلامات التجارية",
+      "campaign_banners": "لافتات الحملات",
+      "can": "يمكنه",
+      "can_sign_in_and_work": "يمكنه تسجيل الدخول والعمل.",
+      "can_t": "لا يمكنه",
+      "can_t_sign_in_or_reset_their_password_for_someone_who_left_on_bad_terms": "لا يمكنه تسجيل الدخول أو إعادة تعيين كلمة المرور. لمن غادر على خلاف.",
+      "can_t_sign_in_turn_back_on_any_time": "لا يمكنه تسجيل الدخول. أعِد تفعيله في أي وقت.",
+      "cashier": "أمين الصندوق",
+      "catalog": "الكتالوج",
+      "categories": "الفئات",
+      "changed": "تغيّر",
+      "changed_from_the_role": "مختلف عن الدور",
+      "create": "إنشاء",
+      "creating_and_cancelling_orders_stays_with_the_store": "إنشاء الطلبات وإلغاؤها يبقى للمتجر",
+      "customer_accounts_are_changed_by_the_store": "حسابات العملاء يغيّرها المتجر",
+      "discounts_gift_cards": "الخصومات وبطاقات الهدايا",
+      "every_staff_permission": "كل صلاحيات الموظفين",
+      "everything_a_member_of_the_admin_dashboard_can_be_given_by_area": "كل ما يمكن منحه لعضو في لوحة الإدارة، حسب المجال.",
+      "everything_a_member_of_the_staff_area_can_be_given_by_area": "كل ما يمكن منحه لعضو في منطقة الموظفين، حسب المجال.",
+      "everything_except_deleting_records": "كل شيء ما عدا حذف السجلات",
+      "everything_in_the_staff_area_deleting_included": "كل شيء في منطقة الموظفين، بما في ذلك الحذف",
+      "everything_this_role_can_be_given_by_area_dashed_boxes_differ_from_the_role": "كل ما يمكن منحه لهذا الدور، حسب المجال. المربعات المتقطعة تختلف عن الدور.",
+      "everywhere": "في كل مكان",
+      "gives_access": "يمنح الوصول",
+      "inbox": "صندوق الوارد",
+      "invite": "الدعوة",
+      "manage_the_till": "إدارة الصندوق",
+      "manage_the_till_covers_discounts_till_reports_and_counters": "إدارة الصندوق تشمل الخصومات وتقارير الصندوق ونقاط البيع",
+      "moderate": "الإشراف",
+      "money": "المال",
+      "moves_money": "ينقل المال",
+      "new_team_member": "عضو فريق جديد",
+      "nothing_yet": "لا شيء بعد",
+      "online_store_reports": "المتجر الإلكتروني والتقارير",
+      "only_in_the_admin_dashboard": "في لوحة الإدارة فقط",
+      "only_these": "هذه فقط",
+      "open_past_the_return_window": "الفتح بعد انتهاء مهلة الإرجاع",
+      "pause": "إيقاف مؤقت",
+      "paused": "موقوف مؤقتًا",
+      "permissions_given": "الصلاحيات الممنوحة",
+      "pick_manager_or_administrator_to_give_any_of_these_staff_work_in_the_staff_area_and_at_the_till": "اختر Manager أو Administrator لمنح أيٍّ من هذه. يعمل الموظفون في منطقة الموظفين وعند الصندوق.",
+      "pick_vendors_locations_or_regions_below": "اختر البائعين أو المواقع أو المناطق أدناه",
+      "point_of_sale": "نقطة البيع",
+      "popups_and_bars_on_the_home_page": "النوافذ المنبثقة والأشرطة في الصفحة الرئيسية",
+      "refund": "استرداد",
+      "refund_sends_money_back_to_the_customer": "الاسترداد يعيد المال إلى العميل",
+      "reply": "الرد",
+      "reviews": "المراجعات",
+      "rings_up_sales_at_the_register": "يسجّل المبيعات على الصندوق",
+      "role_name": "اسم الدور",
+      "role_name_e_g_floor_lead": "اسم الدور، مثل مشرف الصالة",
+      "roles_you_create_on_the_roles_screen_show_up_here_as_more_cards": "الأدوار التي تنشئها في شاشة الأدوار تظهر هنا كبطاقات إضافية.",
+      "sales_associate": "مساعد مبيعات",
+      "save_as_a_role": "حفظ كدور",
+      "scope": "النطاق",
+      "secrets": "بيانات سرية",
+      "selling": "البيع",
+      "send_recovery_emails": "إرسال رسائل الاسترجاع",
+      "shift_lead": "مشرف الوردية",
+      "staff_area_pos": "منطقة الموظفين ونقطة البيع",
+      "start_from": "البدء من",
+      "store_admin": "إدارة المتجر",
+      "summary": "الملخص",
+      "support_agent": "وكيل دعم",
+      "taken_away_for_this_member": "أُزيل لهذا العضو",
+      "the_books": "الدفاتر",
+      "the_register_orders_customers_and_the_inbox": "الصندوق والطلبات والعملاء وصندوق الوارد",
+      "use": "استخدام",
+      "use_the_register": "استخدام الصندوق",
+      "watch": "انتبه",
+      "what_this_staff_member_can_do_by_area": "ما يمكن لهذا الموظف فعله، حسب المجال.",
+      "where_they_work": "مكان العمل",
+      "where_they_work_and_what_they_start_with_you_can_change_any_permission_below_for_this_member": "مكان عمله وما يبدأ به. يمكنك تغيير أي صلاحية أدناه لهذا العضو.",
+      "works_in_the_admin_dashboard": "يعمل في لوحة الإدارة",
+      "works_in_the_staff_area_and_at_the_till": "يعمل في منطقة الموظفين وعند الصندوق",
+      "writes_copy_and_images_with_the_store_s_ai_key": "يكتب النصوص والصور بمفتاح الذكاء الاصطناعي الخاص بالمتجر",
+      "anything_only_in_the_admin_dashboard": "أي شيء في لوحة الإدارة فقط",
+      "this_member": "هذا العضو",
+      "by_role": "حسب الدور"
     },
     "customersPage": {
       "stats": {
@@ -5522,15 +6086,28 @@
       "createSection": {
         "title": "إنشاء دفعة",
         "selectVendor": "اختر بائعًا",
-        "periodStart": "بداية الفترة",
+        "periodStart": "بداية الفترة (اختياري)",
         "periodEnd": "نهاية الفترة",
         "creating": "جارٍ الإنشاء...",
         "create": "إنشاء",
-        "optionalNote": "ملاحظة اختيارية"
+        "optionalNote": "ملاحظة اختيارية",
+        "description": "يدفع للبائع ما هو مستحق الآن: المبيعات المُسلَّمة التي انتهت مهلة إرجاعها، مخصومًا منها أي مبالغ مستحقة عليه.",
+        "searchVendor": "ابحث عن البائعين",
+        "noVendor": "لم يتم العثور على بائع",
+        "searching": "جارٍ البحث…",
+        "vendorMissing": "هذا البائع لم يعد موجودًا",
+        "suspended": "موقوف — الدفعات مجمّدة",
+        "startHint": "اتركه فارغًا لتضمين كل المبيعات المستحقة حتى تاريخ النهاية.",
+        "frozen": "هذا البائع موقوف، لذا الدفعات مجمّدة. تستمر مبيعاته في الاحتساب حتى تتم إعادة تفعيله.",
+        "belowMinimum": "{amount} أقل من الحد الأدنى للدفعة البالغ {minimum}.",
+        "orderCount": "{count, plural, one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}} في هذه الدفعة.",
+        "moreThanMax": "لا تتسع الدفعة الواحدة إلا لأقدم {count} من الطلبات المستحقة؛ ويدخل الباقي في الدفعة التالية.",
+        "sellerConfirmed": "{count, plural, one {تم تأكيد تسليم واحد} two {تم تأكيد تسليمين} few {تم تأكيد # عمليات تسليم} many {تم تأكيد # عملية تسليم} other {تم تأكيد # عملية تسليم}} من قِبل البائع، وليس شركة الشحن.",
+        "commissionLeft": "{amount} من العمولة المستحقة على البائع لم تتسع لها هذه الدفعة، وتبقى مستحقة عليه."
       },
       "listSection": {
         "title": "دورات الدفعات",
-        "searchPlaceholder": "ابحث برقم الدفعة",
+        "searchPlaceholder": "ابحث برقم الدفعة أو البائع",
         "allStatuses": "جميع الحالات",
         "columns": {
           "payout": "الدفعة",
@@ -5554,9 +6131,20 @@
         "pageOf": "الصفحة {page} من {totalPages}"
       },
       "toast": {
-        "requiredFields": "البائع وتاريخ البداية وتاريخ النهاية حقول مطلوبة.",
+        "requiredFields": "اختر بائعًا وتاريخ النهاية.",
         "createSuccess": "تم إنشاء الدفعة.",
         "createError": "فشل إنشاء الدفعة"
+      },
+      "sendTo": {
+        "title": "الإرسال إلى",
+        "missing": "لا يوجد حساب بنكي مسجَّل. اطلب من البائع إضافته في إعداداته، أو ادفع نقدًا أو عبر البوابة.",
+        "accountName": "اسم الحساب",
+        "accountNumber": "رقم الحساب",
+        "bankName": "البنك",
+        "routingNumber": "رقم التوجيه",
+        "swiftCode": "SWIFT",
+        "show": "إظهار رقم الحساب",
+        "copy": "نسخ {field}"
       }
     },
     "paymentTransactionsPage": {
@@ -5833,7 +6421,7 @@
         "baseMeasure": "القياس الأساسي",
         "compareAtPrice": "قارن بالسعر",
         "costPerItem": "التكلفة لكل عنصر",
-        "chargeTax": "ضريبة الشحن",
+        "chargeTax": "فرض الضريبة",
         "weight": "وزن",
         "countryOfOrigin": "بلد المنشأ",
         "featured": "مميز",
@@ -5933,6 +6521,19 @@
         "loadingCategories": "جارٍ تحميل الفئات…",
         "categoriesUnavailable": "تعذّر تحميل الفئات. استخدم زر إعادة المحاولة في الأعلى.",
         "saveBlocked": "يمكن حفظ المنتج بعد تحميل الفئات والعلامات التجارية ومواقع المخزون."
+      },
+      "leave": {
+        "title": "المغادرة دون حفظ؟",
+        "descriptionNew": "لم يُحفظ هذا المنتج بعد. إذا غادرت الآن فسيضيع ما أدخلته هنا؛ يحتفظ هذا المتصفح بنسخة يمكنك استعادتها في المرة القادمة التي تضيف فيها منتجًا.",
+        "descriptionEdit": "لم تُحفظ تغييراتك على هذا المنتج. إذا غادرت الآن فستضيع.",
+        "confirm": "مغادرة",
+        "cancel": "البقاء"
+      },
+      "draft": {
+        "title": "تم العثور على منتج غير محفوظ",
+        "body": "احتفظ هذا المتصفح بمنتج من {time} لم يُحفظ قط.",
+        "restore": "استعادته",
+        "discard": "تجاهل"
       }
     },
     "salesFunnel": "قمع المبيعات",
@@ -6512,6 +7113,7 @@
         "limitReached": "ممتلئ — لم يعد هناك متسع في لوحة المتجر.",
         "preview": "معاينة الواجهة",
         "previewHint": "مرّر المؤشر فوق فئة لفتح لوحتها. هذا هو مكوّن الواجهة الفعلي وليس نموذجًا.",
+        "shopAll": "تسوّق كل {name}",
         "viewAllCategories": "عرض جميع الفئات",
         "viewAll": "عرض الكل"
       },
@@ -7555,20 +8157,38 @@
         "settings": "إعدادات القالب",
         "css": "CSS مخصص"
       },
-      "customCss": {
-        "title": "CSS مخصص"
-      },
       "preview": {
-        "mobile": "متحرك",
-        "title": "معاينة الواجهة",
         "pages": {
-          "cart": "السلة"
-        }
+          "product": "صفحة المنتج",
+          "home": "الرئيسية",
+          "products": "المنتجات",
+          "cart": "السلة",
+          "search": "البحث"
+        },
+        "desktop": "سطح المكتب",
+        "mobile": "الجوال",
+        "hint": "معاينة مباشرة — تعرض التغييرات غير المحفوظة.",
+        "open": "فتح المتجر",
+        "title": "معاينة واجهة المتجر",
+        "page": "صفحة المعاينة"
       },
-      "launchTitle": "إعدادات القالب"
+      "customCss": {
+        "title": "CSS مخصص",
+        "description": "قواعد تُضاف بعد أنماط القالب نفسه، في كل صفحات المتجر. يُحفظ لكل قالب على حدة — عند تبديل القالب تنتقل إلى ورقة الأنماط الخاصة بذلك القالب. استخدم «إعدادات القالب» للألوان والخطوط والأشكال، وخصّص هذا للتفاصيل التي لا تصل إليها.",
+        "hint": "اقصر القواعد على ‎.store-surface كي لا تصل أبدًا إلى لوحة الإدارة.",
+        "save": "حفظ CSS",
+        "saved": "حُفظ CSS المخصص"
+      },
+      "launchTitle": "إعدادات القالب",
+      "launchDescription": "الألوان والخطوط والتخطيط والأشكال والأزرار للقالب النشط، تُعدَّل بجانب معاينة مباشرة لمتجرك. تُحفظ الإعدادات لكل قالب على حدة — عند تبديل القالب تنتقل إلى إعدادات ذلك القالب.",
+      "launch": "فتح محرر القالب"
     },
     "returnsPage": {
       "stats": {
+        "requested": {
+          "title": "المرتجعات (30 يومًا)",
+          "description": "{count} لا تزال مفتوحة"
+        },
         "needsReview": {
           "title": "بحاجة إلى مراجعة",
           "description": "وافق أو ارفض"
@@ -7594,7 +8214,7 @@
       "enterFullscreen": "ملء الشاشة",
       "exitFullscreen": "الخروج من ملء الشاشة",
       "reset": "إعادة التعيين إلى الافتراضي",
-      "personalNote": "لك وحدك، في هذا المتصفح. تُضبط شعارات متجرك وألوانه ومظهره الافتراضي من المتجر الإلكتروني → السمات → العلامة التجارية.",
+      "personalNote": "لك وحدك، في هذا المتصفح. تُضبط شعارات متجرك ومظهره الافتراضي من المتجر الإلكتروني → السمات → العلامة التجارية، وألوانه من إعدادات القالب.",
       "darkMode": "الوضع الداكن",
       "contrast": "التباين",
       "rtl": "من اليمين إلى اليسار",
@@ -7602,7 +8222,12 @@
       "sidebar": "الشريط الجانبي",
       "sidebarColor": "اللون",
       "sidebarIntegrate": "مدمج",
-      "sidebarApparent": "بارز"
+      "sidebarApparent": "بارز",
+      "sidebarPaint": "تلوين الشريط الجانبي بـ",
+      "sidebarPaintPrimary": "أساسي",
+      "sidebarPaintSecondary": "ثانوي",
+      "sidebarPaintHint": "يستخدم ألوان قالبك النشط.",
+      "sidebarPaintChange": "تغييرها"
     },
     "preorderAccess": {
       "vendorFallback": "البائع",
@@ -8024,22 +8649,255 @@
         "title": "الرأس"
       }
     },
+    "customizeHub": {
+      "title": "التخصيص",
+      "description": "اختر صفحة من المتجر لتخصيصها."
+    },
     "themeEditor": {
-      "title": "إعدادات القالب",
-      "unsaved": "تغييرات غير محفوظة",
-      "saved": "حُفظت إعدادات القالب",
-      "saveFailed": "فشل الحفظ",
-      "preview": "معاينة",
-      "modeLight": "فاته",
-      "modeDark": "داكن",
+      "presets": {
+        "default": "أزرق",
+        "cyan": "سماوي",
+        "purple": "بنفسجي",
+        "blue": "أسود",
+        "orange": "برتقالي",
+        "red": "أحمر"
+      },
+      "colorMode": "وضع الألوان",
+      "darkFollows": "يتبع الوضع الداكن ألوانك الفاتحة تلقائيًا. انقر على لون لتعيينه للوضع الداكن فقط.",
+      "advancedColors": "متقدم",
+      "advancedLowContrast": "أحد الألوان هنا صعب القراءة",
+      "sections": {
+        "page": "الصفحة",
+        "text": "النص",
+        "sales": "التخفيضات والتقييمات",
+        "lines": "الخطوط",
+        "states": "الحالات",
+        "soft": "خلفيات ناعمة"
+      },
+      "sourceDefault": "افتراضي القالب",
+      "sourceAuto": "تلقائي",
+      "sourceCustom": "مخصص",
+      "colorSource": "مصدر اللون",
+      "autoDarkHint": "يتبع ألوانك الفاتحة مع تعديله ليظهر بوضوح على صفحة داكنة.",
+      "defaultHint": "لون القالب الأصلي، مختار ليكون مقروءًا مع باقي الألوان.",
+      "usedFor": "يُستخدم في",
+      "useReadable": "استخدم {color}",
+      "backToAuto": "العودة إلى التلقائي",
+      "resetToDefault": "إعادة إلى افتراضي القالب",
+      "textAuto": "لون نص تلقائي",
+      "accentUse": "ملصقات «مميز» والقائمة",
+      "saleUse": "الخصومات وأسعار التخفيض",
+      "lowContrastOn": "يصعب رؤيته على {surface} ({ratio}:1). استهدف {minimum}:1.",
       "groups": {
         "colors": {
+          "description": "هذه الألوان يستخدمها {theme} وحده. تحتفظ قوالبك الأخرى بألوانها.",
           "label": "الألوان"
         },
+        "type": {
+          "label": "الخطوط",
+          "description": "الخطوط وتنسيقها للعناوين والنصوص والأزرار."
+        },
         "layout": {
-          "label": "التخطيط"
+          "label": "التخطيط",
+          "description": "عرض الصفحة، والقيم الافتراضية العامة التي ترثها أقسام العرض الرئيسي واللافتات."
+        },
+        "shape": {
+          "label": "الأشكال",
+          "description": "الزوايا والحدود والظلال. قيم دقيقة بالبكسل."
+        },
+        "buttons": {
+          "label": "الأزرار",
+          "description": "حجم أزرار الإجراءات وسلوكها."
         }
-      }
+      },
+      "colorRoles": {
+        "background": {
+          "label": "الخلفية",
+          "hint": "خلف كل صفحة."
+        },
+        "surface": {
+          "label": "البطاقات والقوائم",
+          "hint": "اللوحات والنوافذ المنبثقة والقوائم المنسدلة والقوائم."
+        },
+        "surfaceAlt": {
+          "label": "الأشرطة والشارات",
+          "hint": "الأقسام الشريطية وخلفيات الصور والشارات المحايدة."
+        },
+        "text": {
+          "label": "النص",
+          "hint": "العناوين ونص المحتوى."
+        },
+        "textMuted": {
+          "label": "النص الثانوي",
+          "hint": "التعليقات التوضيحية والفئات والنصوص النائبة."
+        },
+        "border": {
+          "label": "الفواصل",
+          "hint": "الخطوط بين الأقسام وحول البطاقات."
+        },
+        "primary": {
+          "label": "الزر الأساسي",
+          "hint": "الأزرار الرئيسية وعدد السلة وخطوط التبويب النشط."
+        },
+        "onPrimary": {
+          "label": "النص على الأساسي",
+          "hint": "التسميات على الأزرار الأساسية."
+        },
+        "secondary": {
+          "label": "الزر الثانوي",
+          "hint": "زر «أضف إلى السلة» وبقية الأزرار الثانوية."
+        },
+        "onSecondary": {
+          "label": "النص على الثانوي",
+          "hint": "التسمية على زر «أضف إلى السلة»."
+        },
+        "accent": {
+          "label": "لون التمييز",
+          "hint": "ملصق «مميز» على بطاقات المنتجات والشارات في قائمة المتجر."
+        },
+        "sale": {
+          "label": "التخفيض",
+          "hint": "شارات الخصم وأسعار التخفيض."
+        },
+        "rating": {
+          "label": "نجوم التقييم",
+          "hint": "نجوم المراجعات."
+        },
+        "link": {
+          "label": "الروابط",
+          "hint": "الروابط و«عرض الكل» وعنصر القائمة النشط: نص باللون الأساسي يبقى سهل القراءة."
+        },
+        "onAccent": {
+          "label": "النص على لون التمييز",
+          "hint": "التسميات على لون التمييز."
+        },
+        "accentSurface": {
+          "label": "خلفية التمييز",
+          "hint": "درجة خفيفة من لون التمييز خلف النصوص الترويجية."
+        },
+        "onAccentSurface": {
+          "label": "النص على خلفية التمييز",
+          "hint": "النص على الدرجة الخفيفة من لون التمييز."
+        },
+        "hoverSurface": {
+          "label": "خلفية التمرير",
+          "hint": "القوائم والأزرار تحت المؤشر."
+        },
+        "onHover": {
+          "label": "النص عند التمرير",
+          "hint": "التسميات على خلفية التمرير."
+        },
+        "selectedSurface": {
+          "label": "خلفية العنصر المحدد",
+          "hint": "العناصر المحددة بعلامة صح في القوائم المنسدلة والصف النشط في القوائم."
+        },
+        "onSelected": {
+          "label": "النص على المحدد",
+          "hint": "التسميات على خلفية العنصر المحدد."
+        },
+        "focusRing": {
+          "label": "حلقة التركيز",
+          "hint": "الإطار الذي يتتبعه مستخدمو لوحة المفاتيح."
+        },
+        "fieldBorder": {
+          "label": "حدود الحقول",
+          "hint": "حقول الدفع والنماذج والقوائم المنسدلة. لمربع البحث في الرأس حدّ خاص به في ستوديو الرأس."
+        },
+        "onSale": {
+          "label": "النص على التخفيض",
+          "hint": "التسميات على شارات الخصم المصمتة."
+        },
+        "saleText": {
+          "label": "نص التخفيض",
+          "hint": "أسعار التخفيض والتوفير في الصفحة."
+        },
+        "saleSurface": {
+          "label": "خلفية التخفيض",
+          "hint": "خلف شارات الخصم بجوار الأسعار."
+        },
+        "onSaleSurface": {
+          "label": "النص على خلفية التخفيض",
+          "hint": "النص على الدرجة الخفيفة للتخفيض."
+        },
+        "skeleton": {
+          "label": "عنصر التحميل النائب",
+          "hint": "الكتل الرمادية التي تظهر أثناء تحميل الصفحة."
+        }
+      },
+      "title": "إعدادات القالب",
+      "back": "القوالب",
+      "unsaved": "تغييرات غير محفوظة",
+      "allSaved": "حُفظت كل التغييرات",
+      "discard": "تجاهل",
+      "save": "حفظ",
+      "saved": "حُفظت إعدادات القالب",
+      "saveFailed": "فشل الحفظ",
+      "resetGroup": "إعادة تعيين المجموعة",
+      "resetAll": "إعادة الكل إلى افتراضي القالب",
+      "resetAllTitle": "إعادة تعيين كل الإعدادات؟",
+      "preview": "معاينة",
+      "controls": "الإعدادات",
+      "setCustom": "تعيين لون مخصص",
+      "contrastHint": "التباين مع السطح الذي يظهر عليه",
+      "modeLight": "فاتح",
+      "modeDark": "داكن",
+      "leaveGuard": "لديك تغييرات غير محفوظة في القالب.",
+      "fonts": {
+        "inter": "محايد وتقني، الافتراضي",
+        "manrope": "هندسي، للبيع بالتجزئة العصري",
+        "dm-sans": "مستدير وودود",
+        "plus-jakarta-sans": "هندسي ناعم، لأسلوب الحياة",
+        "nunito": "أطراف مستديرة، مرح",
+        "source-sans-3": "إنساني، للقراءة الطويلة",
+        "space-grotesk": "غروتيسك مميز، تقني",
+        "playfair-display": "تحريري عالي التباين",
+        "lora": "مذيّل هادئ وسهل القراءة",
+        "fraunces": "ناعم ودافئ، للعافية",
+        "cormorant-garamond": "فخامة وأزياء",
+        "dm-serif-display": "للعناوين فقط (وزن واحد)",
+        "noto-sans-bengali": "بنغالي + لاتيني، غير مذيّل",
+        "noto-serif-bengali": "بنغالي + لاتيني، مذيّل"
+      },
+      "resetColors": "إعادة تعيين ألوان القالب",
+      "invalidColor": "أدخل لونًا صالحًا بصيغة hex أو RGB. تحتفظ المعاينة بآخر لون صالح.",
+      "contrastPass": "ناجح",
+      "contrastLow": "منخفض",
+      "previewLoading": "جارٍ الاتصال بالمعاينة المباشرة…",
+      "previewOutdated": "حدّث المعاينة لتحميل أحدث محرك ألوان.",
+      "refreshPreview": "تحديث المعاينة",
+      "cannotVerifyColor": "يتعذر التحقق من تعبير اللون المخصص هذا. راجع المعاينة في الوضعين.",
+      "themeChanged": "تم تفعيل قالب آخر أثناء تعديلك. أعد فتح المحرر لذلك القالب.",
+      "conflictKeepDraft": "حفظ شخص آخر هذه الإعدادات أثناء تعديلك. اضغط «حفظ» مرة أخرى لاستبدال تغييراته بتغييراتك، أو «تجاهل» لتحميل نسخته.",
+      "darkOwnHint": "يحتفظ الوضع الداكن بلون خاص به هنا ({color})، لذا لا يتبع هذا اللون. غيّره من تبويب «داكن».",
+      "keyColorsTitle": "الألوان الأساسية",
+      "keyColorsHint": "أشِر إلى لون لرؤيته في المعاينة",
+      "keyColors": {
+        "primary": {
+          "label": "أساسي",
+          "sample": "اشترِ الآن"
+        },
+        "secondary": {
+          "label": "ثانوي",
+          "sample": "أضف إلى السلة"
+        },
+        "accent": {
+          "label": "تمييز",
+          "sample": "مميز"
+        },
+        "skeleton": {
+          "label": "التحميل"
+        }
+      },
+      "themeDefaultNamed": "افتراضي {theme}",
+      "editKeyColor": "{name}: {hex}",
+      "palettes": "لوحات الألوان",
+      "saveAsPalette": "حفظ كلوحة ألوان",
+      "resetToNamed": "العودة إلى {name}",
+      "themeOnly": "{theme} فقط",
+      "moreColors": "ألوان أخرى",
+      "advancedHintStates": "التمرير، التحديد، التركيز، خلفية التخفيض",
+      "resetAllDescriptionTheme": "تعود كل مجموعة، بما فيها الألوان، إلى القيم الافتراضية الخاصة بـ{theme}. لن تتغير قوالبك الأخرى. لا يُحفظ شيء حتى تضغط «حفظ».",
+      "previewShowing": "تحديد مواضع استخدام {color}"
     },
     "searchInsights": {
       "title": "رؤى البحث",
@@ -8077,7 +8935,8 @@
         "transfer": "تحويل",
         "review": "المراجعة",
         "payout": "الدفعة",
-        "slider": "عرض الشرائح"
+        "slider": "عرض الشرائح",
+        "teamRole": "دور الفريق"
       },
       "sheet": {
         "store": "المتجر",
@@ -8090,6 +8949,124 @@
       "recordTabs": {
         "title": "سجل النشاط"
       }
+    },
+    "categoryForm": {
+      "taxRate": "الضريبة"
+    },
+    "themeColors": {
+      "title": "ألوان القالب",
+      "refs": {
+        "primary": "أساسي",
+        "secondary": "ثانوي",
+        "accent": "تمييز",
+        "background": "الخلفية",
+        "surface": "البطاقات",
+        "surfaceAlt": "الأشرطة والشارات",
+        "text": "النص",
+        "textMuted": "النص الثانوي",
+        "border": "الفواصل"
+      },
+      "following": "يتبع لون {name} في القالب. غيّره من إعدادات القالب → الألوان.",
+      "followingShort": "القالب · {name}",
+      "hint": "اختر لونًا من القالب ليتبع إعدادات القالب → الألوان.",
+      "pick": "استخدام لون من القالب"
+    },
+    "vendorPayoutsTab": {
+      "loadSummaryError": "تعذّر تحميل ملخص الدفعات",
+      "loadPayoutsError": "تعذّر تحميل الدفعات",
+      "columns": {
+        "payout": "الدفعة",
+        "period": "الفترة",
+        "status": "الحالة",
+        "netAmount": "المبلغ الصافي"
+      },
+      "bankMissingTitle": "لا يوجد حساب مسجَّل لاستلام الدفعات",
+      "bankMissing": "الناقص: {fields}. لا يمكن دفع الدفعة إلا نقدًا أو عبر البوابة حتى تُضاف البيانات في تبويب الأعمال.",
+      "frozenTitle": "الدفعات مجمّدة",
+      "frozen": "هذا البائع موقوف. تستمر مبيعاته في الاحتساب، لكن لا يُدفع له شيء حتى تتم إعادة تفعيله.",
+      "owedNow": "المستحق الآن",
+      "owedNowHint": "ما ستتضمنه دفعة تُنشأ الآن: المبيعات المُسلَّمة والمدفوعة التي انتهت مهلة إرجاعها، مخصومًا منها ما يدين به البائع.",
+      "createPayout": "إنشاء دفعة",
+      "noneAwaiting": "لا توجد طلبات مُسلَّمة ومدفوعة بانتظار الدفع.",
+      "nothingPayable": "{count, plural, one {طلب واحد مؤهل} two {طلبان مؤهلان} few {# طلبات مؤهلة} many {# طلبًا مؤهلًا} other {# طلب مؤهل}}، لكن المبالغ المستردة والخصومات لا تترك شيئًا مستحق الدفع.",
+      "across": "عبر {count, plural, one {طلب واحد} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}} · الإجمالي {gross} ناقص العمولة {commission}. المبالغ المستردة والخصومات مخصومة مسبقًا.",
+      "belowMinimumTitle": "أقل من الحد الأدنى للسحب",
+      "belowMinimum": "يجب ألا تقل الدفعة عن {minimum}. إنشاء دفعة الآن سيُرفض.",
+      "commissionLeft": "{amount} من العمولة المستحقة على البائع عن المبيعات النقدية لا تتسع لها الدفعة التالية، وتبقى مستحقة عليه.",
+      "overpaidTitle": "{amount} دُفعت عن مبيعات استُردت لاحقًا",
+      "overpaidRecovered": "{amount} منها مخصومة بالفعل من الرقم أعلاه. وأي مبلغ متبقٍ يُخصم من الدفعات اللاحقة.",
+      "overpaidLater": "يُخصم من الدفعة التالية للبائع، أو سجِّل سدادًا إذا أعاد المبلغ.",
+      "otherCurrenciesTitle": "أرصدة بعملات {currencies}",
+      "otherCurrencies": "تعامل هذا البائع أيضًا بعملات {currencies}. هذه الأرصدة غير مشمولة في الأرقام أعلاه وتحتاج إلى دفعة خاصة بها — لا تُجمع العملات معًا أبدًا.",
+      "trade": "التعاملات",
+      "tradeHint": "ما باعه هذا البائع عبر كل الطلبات غير الملغاة، بعملة {currency}",
+      "grossSales": "إجمالي المبيعات",
+      "vendorEarnings": "أرباح البائع",
+      "vendorEarningsHint": "الإجمالي ناقص العمولة",
+      "paidOut": "المدفوع",
+      "pendingAmount": "{amount} معلّق",
+      "platformRevenue": "إيرادات المنصة من هذا البائع",
+      "platformRevenueHint": "العمولة ورسوم الشحن المحتفظ بها من مبيعاته، بالإضافة إلى رسوم الاشتراك التي دفعها. إيرادات قبل تكاليف المنصة.",
+      "commission": "العمولة",
+      "commissionHint": "على المبيعات المُسلَّمة والمدفوعة، بعد خصم المبالغ المستردة",
+      "subscriptions": "الاشتراكات",
+      "invoicesPaid": "تم دفع {paid} من أصل {total} فاتورة",
+      "noInvoices": "لا توجد فواتير",
+      "shipping": "الشحن",
+      "shippingHint": "محتفظ به، لا يُدفع للبائع",
+      "total": "الإجمالي",
+      "history": "سجل الدفعات",
+      "historyHint": "الدفعات المسجَّلة لهذا البائع، الأحدث أولًا",
+      "historyEmpty": "لم تُنشأ أي دفعات لهذا البائع بعد",
+      "repayment": {
+        "open": "تسجيل سداد",
+        "listTitle": "ما أعاده يدويًا",
+        "undo": "تراجع",
+        "voidReason": "لماذا يتم التراجع عن هذا السداد؟",
+        "voided": "تم التراجع عن السداد",
+        "failed": "تعذّر حفظ السداد",
+        "title": "تسجيل سداد",
+        "description": "مال أعاده البائع عن مبيعات استُردت بعد دفعته. يُخصم مما يدين به، فتتوقف الدفعات اللاحقة عن استرداده.",
+        "amount": "المبلغ ({currency})",
+        "receivedInto": "استُلم في",
+        "receivedAt": "يوم الوصول",
+        "reference": "المرجع",
+        "note": "ملاحظة",
+        "cancel": "إلغاء",
+        "save": "تسجيل السداد",
+        "saving": "جارٍ الحفظ…",
+        "recorded": "تم تسجيل السداد"
+      }
+    },
+    "colorPicker": {
+      "format": "تنسيق اللون",
+      "opacity": "الشفافية",
+      "value": "قيمة اللون",
+      "saved": "الألوان المحفوظة",
+      "save": "حفظ هذا اللون",
+      "use": "استخدام {color}",
+      "remove": "إزالة {color}"
+    },
+    "teamAccess": {
+      "changes": "{count, plural, one {تغيير واحد عن الدور} other {# تغييرات عن الدور}}",
+      "changesFromRole": "{count, plural, one {تغيير واحد عن {role}} other {# تغييرات عن {role}}} لهذا العضو فقط",
+      "resetTo": "إعادة إلى {role}",
+      "matchesRole": "يطابق {role}. حدّد أي شيء أو ألغِ تحديده لتغييره لـ {name} فقط.",
+      "roleSaved": "أصبح \"{name}\" دورًا، وهذا العضو عليه."
+    },
+    "tagInput": {
+      "placeholder": "أضف وسمًا",
+      "selected": "تم تحديد {tag}. اضغط Backspace لإزالته.",
+      "duplicate": "{tag} مضاف بالفعل",
+      "tooLong": "يمكن أن يصل طول الوسم إلى {max} حرفًا",
+      "tooMany": "يمكنك إضافة {max} وسوم كحد أقصى",
+      "added": "تمت إضافة {tag}",
+      "removed": "تمت إزالة {tag}",
+      "remove": "إزالة {tag}"
+    },
+    "accountMenu": {
+      "myAccount": "حسابي",
+      "version": "الإصدار {version}"
     }
   },
   "footer": {
@@ -8146,7 +9123,19 @@
     "searchCustomers": "البحث بالاسم أو البريد الإلكتروني أو الهاتف...",
     "addNote": "أضف ملاحظة لهذا الطلب...",
     "subtotal": "المجموع الفرعي",
-    "tax": "الضريبة",
+    "tax": {
+      "label": "الضريبة",
+      "included": "الضريبة (مشمولة)",
+      "exempt": "معفى من الضريبة",
+      "exemptWith": "معفى من الضريبة · {reason}",
+      "exemptTitle": "بيع معفى من الضريبة",
+      "exemptIntro": "أتمم هذا البيع دون ضريبة. يُحفظ السبب في الطلب ويُطبع على الإيصال.",
+      "exemptReason": "السبب (مطلوب)",
+      "exemptReference": "رقم شهادة الإعفاء (اختياري)",
+      "exemptApply": "البيع دون ضريبة",
+      "exemptRemove": "احتساب الضريبة",
+      "close": "إغلاق"
+    },
     "total": "الإجمالي",
     "charge": "تحصيل",
     "selectPaymentMethod": "اختر طريقة الدفع",
@@ -8182,15 +9171,468 @@
       "emailPlaceholder": "customer@example.com",
       "phone": "الهاتف",
       "phonePlaceholder": "أدخل رقم الهاتف",
-      "nameEmailRequired": "الاسم والبريد الإلكتروني مطلوبان",
       "created": "تم إنشاء العميل بنجاح",
       "createError": "فشل إنشاء العميل",
-      "save": "حفظ العميل"
+      "save": "حفظ العميل",
+      "nameContactRequired": "أدخل اسم العميل وبريدًا إلكترونيًا أو رقم هاتف",
+      "contactHint": "يكفي بريد إلكتروني أو رقم هاتف. العميل الذي لديه رقم هاتف فقط يُحفظ دون حساب.",
+      "marketingOptIn": "وافق العميل على تلقي الأخبار والعروض بالبريد الإلكتروني"
     },
     "receipt": "إيصال",
     "paymentMethod": "طريقة الدفع",
     "openRegister": "فتح التسجيل",
-    "billAndPayment": "الفاتورة والدفع"
+    "billAndPayment": "الفاتورة والدفع",
+    "offline": {
+      "bannerOffline": "غير متصل — يتم حفظ المبيعات في قائمة الانتظار",
+      "bannerStockAge": "المخزون المعروض من {age}",
+      "bannerSignedOut": "تم تسجيل الخروج — سجّل الدخول مجددًا للمزامنة",
+      "bannerSignedOutNote": "تبقى المبيعات المنتظرة محفوظة على هذا الجهاز.",
+      "bannerBackOnline": "عاد الاتصال",
+      "waitingToSync": "{count, plural, zero {لا توجد مبيعات بانتظار المزامنة} one {عملية بيع واحدة بانتظار المزامنة} two {عمليتا بيع بانتظار المزامنة} few {# عمليات بيع بانتظار المزامنة} many {# عملية بيع بانتظار المزامنة} other {# عملية بيع بانتظار المزامنة}}",
+      "needsReview": "{count, plural, one {عملية واحدة تحتاج إلى مراجعة} two {عمليتان تحتاجان إلى مراجعة} few {# عمليات تحتاج إلى مراجعة} many {# عملية تحتاج إلى مراجعة} other {# عملية تحتاج إلى مراجعة}}",
+      "review": "مراجعة",
+      "signIn": "تسجيل الدخول",
+      "syncNow": "مزامنة الآن",
+      "lockedTitle": "أعد الاتصال لمواصلة البيع",
+      "lockedLastSeen": "آخر وصول لجهاز البيع هذا إلى الخادم كان {time}. لدواعٍ أمنية يبقى مقفلًا حتى يتمكن من تسجيل الدخول مجددًا.",
+      "lockedNever": "لم يصل جهاز البيع هذا إلى الخادم على هذا الجهاز بعد، لذا لا يمكن استخدامه دون اتصال.",
+      "lockedQueued": "{count, plural, one {لا تزال <strong>#</strong> عملية بيع دون اتصال محفوظة على هذا الجهاز وستتم مزامنتها تلقائيًا عند عودة الاتصال.} other {لا تزال <strong>#</strong> من عمليات البيع دون اتصال محفوظة على هذا الجهاز وستتم مزامنتها تلقائيًا عند عودة الاتصال.}} لا تمسح بيانات المتصفح.",
+      "waitingForConnection": "بانتظار الاتصال…",
+      "reviewTitle": "مبيعات رفضها الخادم",
+      "reviewDescription": "دُفع ثمن كل واحدة منها عند الكاونتر. أصلح السبب ثم أرسلها مجددًا، أو تجاهلها بعد تسجيلها يدويًا.",
+      "reviewLabel": "مبيعات دون اتصال تحتاج إلى مراجعة",
+      "reviewEmpty": "لم يتبقَّ شيء للمراجعة.",
+      "reviewReceipt": "الإيصال {number}",
+      "reviewTaken": "تمت {time}",
+      "reviewAttempts": "{count, plural, zero {لا محاولات} one {محاولة واحدة} two {محاولتان} few {# محاولات} many {# محاولة} other {# محاولة}}",
+      "reviewServerSaid": "رد الخادم: {message}",
+      "reviewDiscard": "تجاهل",
+      "reviewSendAgain": "إرسال مجددًا",
+      "close": "إغلاق",
+      "anotherCounter": "كاونتر آخر",
+      "discardTitle": "حذف عملية البيع هذه من قائمة الانتظار؟",
+      "discardDescription": "لن يُرسل الإيصال {number} إلى الخادم أبدًا. لا تفعل ذلك إلا بعد تسجيل عملية البيع بطريقة أخرى — فالعميل يحتفظ بهذا الإيصال.",
+      "savedOffline": "حُفظت دون اتصال — الإيصال {number}",
+      "savedOfflineNote": "ستتم مزامنتها تلقائيًا عند عودة الاتصال.",
+      "outboxFull": "لدى جهاز البيع هذا عدد كبير جدًا من المبيعات غير المتزامنة. أعد الاتصال للمزامنة قبل تسجيل المزيد.",
+      "noStorage": "لا يستطيع هذا المتصفح حفظ المبيعات دون اتصال، لذا لم تُسجَّل عملية البيع.",
+      "readerOnly": "قارئ البطاقات فقط",
+      "touchOrStripe": "لمس أو Stripe"
+    },
+    "counter": {
+      "unavailable": "الكاونتر غير متاح",
+      "sharedStock": "مخزون مشترك",
+      "finishSaleFirst": "أكمل عملية البيع الحالية أو ألغها أولًا",
+      "changeCounter": "البيع من {name}. تغيير الكاونتر",
+      "sellingFrom": "البيع من",
+      "sellingAt": "البيع في {name}",
+      "findCounter": "ابحث عن كاونتر...",
+      "noMatch": "لا يوجد كاونتر مطابق.",
+      "heldCount": "{count} معلّقة",
+      "activeCount": "{count} نشط",
+      "deactivated": "تم إيقاف الكاونتر الحالي",
+      "pickerTitle": "عند أي كاونتر أنت؟",
+      "pickerNote": "يتبع هذا الاختيار المخزونُ والمبيعاتُ المعلّقة وكلُّ إيصال يُطبع على جهاز البيع هذا.",
+      "findYourCounter": "ابحث عن الكاونتر الخاص بك...",
+      "recentOnDevice": "الأحدث على هذا الجهاز",
+      "otherCounters": "كاونترات أخرى",
+      "defaultLocation": "الموقع الافتراضي",
+      "startSellingAt": "ابدأ البيع في {name}",
+      "pickCounter": "اختر كاونتر",
+      "signedInAs": "تم تسجيل الدخول باسم {name}",
+      "signedIn": "تم تسجيل الدخول",
+      "shortcutsMany": "<key>1</key>–<key>9</key> لأول تسعة، واكتب للعثور على البقية،",
+      "shortcutsFew": "اضغط <key>1</key>–<key>{last}</key> للاختيار،",
+      "shortcutEnter": "<key>Enter</key> للبدء",
+      "sellFromShared": "البيع من المخزون المشترك بدلًا من ذلك",
+      "switchLabel": "تبديل الكاونتر",
+      "switchTitle": "تبديل الكاونتر وعملية بيع مفتوحة؟",
+      "switchUnits": "{count, plural, one {وحدة واحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}} على الكاونتر، مسعّرة ومحسوبة على مخزون {from}.",
+      "switchChecking": "جارٍ التحقق مما يمكن أن يوفره {to}…",
+      "switchRemovedOne": "<b>{name}</b> <b>غير متوفر في {to}</b> — سيُحذف من عملية البيع.",
+      "switchRemovedMany": "<b>{name}</b> و{others} غيره <b>غير متوفرة في {to}</b> — ستُحذف من عملية البيع.",
+      "switchReduced": "{count, plural, one {سيُخفَّض سطر واحد إلى المخزون المتوفر فعلًا في {to}.} two {سيُخفَّض سطران إلى المخزون المتوفر فعلًا في {to}.} few {ستُخفَّض # أسطر إلى المخزون المتوفر فعلًا في {to}.} many {سيُخفَّض # سطرًا إلى المخزون المتوفر فعلًا في {to}.} other {سيُخفَّض # سطر إلى المخزون المتوفر فعلًا في {to}.}}",
+      "switchAllAvailable": "كل سطر في عملية البيع هذه متوفر في {to}.",
+      "switchHeldStay": "{count, plural, one {تبقى عملية البيع المعلّقة هنا في {from}. لن تراها من {to}.} other {تبقى # من المبيعات المعلّقة هنا في {from}. لن تراها من {to}.}}",
+      "switchHeldStayNone": "تبقى المبيعات المعلّقة هنا في {from}. لن تراها من {to}.",
+      "switchReceiptChanges": "تتغير أعداد المخزون وتذييل الإيصال إلى {to} بدءًا من السطر التالي.",
+      "switchHold": "علّق عملية البيع هذه ثم بدّل",
+      "switchRecheck": "بدّل وأعد التحقق من المخزون",
+      "switchRemovesAll": "يحذف كل الأسطر ({total})",
+      "switchKeeps": "يحتفظ بـ {kept} من {total} أسطر",
+      "switchStay": "البقاء في {from}",
+      "nowSellingFrom": "البيع الآن من {name}",
+      "nowSellingShared": "البيع الآن من المخزون المشترك",
+      "probeFailed": "تعذر التحقق من المخزون في ذلك الكاونتر. لم يتم نقل جهاز البيع.",
+      "holdFailed": "تعذر تعليق عملية البيع. لم يتم نقل جهاز البيع.",
+      "rechecked": "أُعيد التحقق من عملية البيع · {changes}",
+      "holdLabel": "تغيير الكاونتر ← {name}",
+      "heldBehind": "{count, plural, one {<b>عملية بيع واحدة</b> لا تزال معلّقة في {name}} two {<b>عمليتا بيع</b> لا تزالان معلّقتين في {name}} few {<b># عمليات بيع</b> لا تزال معلّقة في {name}} other {<b># عملية بيع</b> لا تزال معلّقة في {name}}}",
+      "goBackTo": "العودة إلى {name}",
+      "dismiss": "إغلاق",
+      "saleBlocked": "لم يعد هذا الكاونتر متاحًا. اختر كاونترًا آخر قبل استلام الدفع."
+    },
+    "scan": {
+      "closeDialogFirst": "أغلق النافذة المفتوحة ثم امسح مجددًا.",
+      "multipleMatches": "تتطابق عدة منتجات مع هذا الرمز. يرجى إصلاح قيم SKU أو الباركود المكررة.",
+      "noMatch": "لم يُعثر على منتج للرمز الممسوح.",
+      "lookupFailed": "تعذر البحث عن الرمز الممسوح."
+    },
+    "held": {
+      "removed": "{count, plural, one {حُذف سطر واحد} two {حُذف سطران} few {حُذفت # أسطر} many {حُذف # سطرًا} other {حُذف # سطر}}",
+      "repriced": "أُعيد تسعير {count}",
+      "reduced": "خُفّض {count} إلى المخزون المتوفر",
+      "resumed": "تم استئناف الطلب المعلّق",
+      "resumedWithChanges": "تم استئناف الطلب المعلّق · {changes}",
+      "nothingAvailable": "لم يعد أي من عناصر هذا الطلب المعلّق متوفرًا. تُرك على جهاز البيع.",
+      "recheckFailed": "تعذر التحقق من الأسعار والمخزون الحالية. لا يزال الطلب المعلّق على جهاز البيع.",
+      "finishFirst": "أكمل عملية البيع الحالية أو علّقها قبل استئناف أخرى.",
+      "holdFailed": "تعذر تعليق هذا الطلب. لا تزال عملية البيع في السلة.",
+      "holdFull": "لدى جهاز البيع هذا {max} طلبًا معلّقًا بالفعل. استأنف أحدها أو احذفه أولًا.",
+      "orderHeld": "تم تعليق الطلب",
+      "orderHeldLabel": "تم تعليق الطلب · {label}"
+    },
+    "toast": {
+      "discountNotAllowed": "يمكن فقط لمن يدير نقطة البيع منح خصم",
+      "cashMustCover": "يجب أن يغطي المبلغ النقدي المستلم إجمالي الطلب",
+      "noReceipt": "لا تتوفر بيانات الإيصال",
+      "printPreviewFailed": "تعذر فتح معاينة الطباعة",
+      "noInvoice": "لا تتوفر فاتورة لهذا الطلب",
+      "invoicePopupBlocked": "تعذر فتح الفاتورة. يرجى السماح بالنوافذ المنبثقة."
+    },
+    "complete": {
+      "title": "اكتمل البيع",
+      "items": "{count, plural, one {# عنصر} other {# عناصر}}",
+      "soldAt": "بيع في {name}",
+      "viewReceipt": "عرض الإيصال",
+      "printReceipt": "طباعة الإيصال",
+      "newSale": "بيع جديد",
+      "emailReceipt": "إرسال الإيصال بالبريد",
+      "textReceipt": "إرسال الإيصال برسالة",
+      "send": "إرسال",
+      "cancel": "إلغاء",
+      "emailPlaceholder": "customer@example.com",
+      "phonePlaceholder": "رقم هاتف العميل",
+      "sentEmail": "أُرسل الإيصال بالبريد إلى {to}",
+      "sentSms": "أُرسل الإيصال برسالة إلى {to}",
+      "alreadySent": "أُرسل بالفعل إلى {to} قبل لحظات",
+      "sendFailed": "تعذر إرسال الإيصال",
+      "offlineHint": "يمكن إرسال الإيصالات وعرضها بعد مزامنة هذا البيع."
+    },
+    "pay": {
+      "title": "تحصيل الدفع",
+      "balanceTitle": "تحصيل المتبقي",
+      "draftItems": "{count, plural, one {مسودة · # عنصر} other {مسودة · # عناصر}}",
+      "close": "إغلاق",
+      "totalDue": "الإجمالي المستحق",
+      "remaining": "المتبقي للدفع",
+      "ofTotal": "دُفع {paid} من {total}",
+      "payments": "المدفوعات",
+      "remove": "إزالة",
+      "discountPercent": "تم تطبيق خصم {value}%",
+      "discountAmount": "تم تطبيق خصم {amount}",
+      "cashDesc": "مع الباقي",
+      "bank": "تحويل بنكي",
+      "bankDesc": "مع مرجع",
+      "manualDesc": "طريقة مخصصة",
+      "storeCredit": "رصيد المتجر",
+      "storeCreditDesc": "{amount} متاح",
+      "split": "مقسّم",
+      "cashGiven": "النقد المستلم",
+      "amount": "المبلغ",
+      "changeDue": "الباقي المستحق",
+      "stillOwed": "يُدفع الباقي بطريقة أخرى",
+      "tooMuch": "لم يتبق للدفع أكثر من {amount}",
+      "tooMuchCredit": "المتاح من رصيد المتجر {amount} فقط",
+      "touch": "لمس",
+      "touchDesc": "المس البطاقة أو أدخلها في القارئ",
+      "stripe": "Stripe",
+      "stripeDesc": "نموذج بيانات البطاقة",
+      "readyForTap": "جاهز للمس أو الإدخال",
+      "readyForTapNote": "يلمس العميل بطاقته على القارئ أو يدخلها.",
+      "referenceOptional": "المرجع (اختياري)",
+      "referencePlaceholder": "رقم المعاملة، رمز التفويض، إلخ.",
+      "stripePaysRest": "تدفع البطاقة الباقي: {amount}",
+      "cardNumber": "رقم البطاقة",
+      "expiry": "تاريخ الانتهاء",
+      "cvc": "CVC",
+      "stripeNotConfigured": "لم يتم إعداد Stripe في إعدادات الدفع.",
+      "stripeLoading": "جارٍ تحميل حقول البطاقة الآمنة…",
+      "stripeSecured": "محمي بواسطة Stripe — تُحوّل بيانات البطاقة إلى رمز عند الإرسال.",
+      "stripeFailed": "لم يتم الدفع بالبطاقة",
+      "processing": "جارٍ المعالجة…",
+      "acceptCash": "قبول النقد",
+      "charge": "تحصيل {amount}",
+      "chargeOnReader": "تحصيل {amount} على القارئ",
+      "useCredit": "دفع {amount} من رصيد المتجر",
+      "addPayment": "إضافة دفعة {method} بقيمة {amount}",
+      "takeDeposit": "أخذ {amount} عربونًا، و{due} مستحق لاحقًا",
+      "takePart": "أخذ {amount} الآن، و{due} لا يزال مستحقًا",
+      "depositNeedsCustomer": "أضف عميلًا لأخذ عربون",
+      "depositTaken": "تم أخذ العربون لـ {number}. لا يزال {due} مستحقًا.",
+      "completeSale": "إتمام البيع"
+    },
+    "sales": {
+      "title": "المبيعات",
+      "close": "إغلاق",
+      "back": "رجوع",
+      "searchPlaceholder": "رقم الإيصال أو رقم الهاتف",
+      "dueOnly": "المستحق فقط",
+      "empty": "لم يتم العثور على مبيعات.",
+      "recentHint": "أحدث المبيعات في هذا الصندوق",
+      "selectHint": "اختر بيعًا لعرضه.",
+      "offline": "البحث عن بيع يتطلب اتصالًا.",
+      "loadFailed": "تعذر تحميل المبيعات",
+      "balanceDue": "مستحق {amount}",
+      "balanceDueLabel": "المتبقي المستحق",
+      "items": "العناصر",
+      "payments": "المدفوعات",
+      "total": "الإجمالي",
+      "refunded": "مسترد",
+      "split": "مقسّم",
+      "collectBalance": "تحصيل المتبقي · {amount}",
+      "collectFailed": "تعذر تحصيل الدفعة",
+      "balancePaid": "تم دفع المتبقي. اكتمل البيع.",
+      "balancePart": "تم تحصيل الدفعة. لا يزال {due} مستحقًا.",
+      "print": "طباعة الإيصال",
+      "viewInvoice": "عرض الفاتورة"
+    },
+    "register": {
+      "title": "درج النقود",
+      "openChip": "الدرج مفتوح",
+      "closedChip": "الدرج مغلق",
+      "openToSell": "افتح درج النقود قبل تسجيل أي بيع.",
+      "close": "إغلاق",
+      "failed": "تعذر تحديث الدرج",
+      "offline": "الفتح والإغلاق ونقل النقد تتطلب اتصالًا. تستمر المبيعات في الدخول إلى الدرج المفتوح.",
+      "openIntro": "عُدّ النقد في الدرج قبل أول بيع وأدخله كرصيد افتتاحي.",
+      "openingFloat": "الرصيد الافتتاحي",
+      "openRegister": "فتح الدرج",
+      "opened": "تم فتح الدرج",
+      "openedAt": "فُتح {time}",
+      "salesCount": "المبيعات",
+      "grossSales": "إجمالي المبيعات",
+      "cashSales": "المبيعات النقدية",
+      "cashIn": "إيداع نقد",
+      "cashOut": "سحب نقد",
+      "cashRefunds": "المبالغ المستردة نقدًا",
+      "expectedCash": "المتوقع في الدرج",
+      "countedCash": "النقد المعدود",
+      "variance": "الفرق",
+      "balanced": "متطابق",
+      "over": "زيادة",
+      "short": "عجز",
+      "cashInIntro": "نقد وُضع في الدرج وليس من بيع، مثل فكة من الخزنة.",
+      "cashOutIntro": "نقد أُخرج وليس استردادًا، مثل إيداع في الخزنة أو مصروف مدفوع.",
+      "amount": "المبلغ",
+      "reason": "السبب",
+      "reasonPlaceholder": "السبب (مطلوب)",
+      "cashAdded": "أُضيف نقد إلى الدرج",
+      "cashRemoved": "أُخذ نقد من الدرج",
+      "back": "رجوع",
+      "note": "ملاحظة الإغلاق",
+      "notePlaceholder": "ملاحظة لتقرير الإغلاق (اختياري)",
+      "queuedFirst": "{count, plural, one {# بيع لا يزال} other {# مبيعات لا تزال}} بانتظار المزامنة. أغلق الدرج بعد مزامنتها.",
+      "closeRegister": "إغلاق الدرج",
+      "closed": "تم إغلاق الدرج",
+      "xReport": "تقرير X",
+      "zReport": "تقرير Z",
+      "printX": "طباعة تقرير X",
+      "printZ": "طباعة تقرير Z",
+      "printBlocked": "تم حظر نافذة التقرير. اسمح بالنوافذ المنبثقة لهذا الموقع للطباعة.",
+      "reportOpened": "فُتح",
+      "reportClosed": "أُغلق",
+      "tender": {
+        "cash": "نقد",
+        "card": "بطاقة",
+        "bank": "تحويل بنكي",
+        "manual": "أخرى",
+        "store_credit": "رصيد المتجر"
+      },
+      "noSale": "بدون بيع",
+      "noSaleIntro": "افتح الدرج دون بيع، لصرف فكة أو للتحقق. يُحفظ السبب في تقرير الدرج.",
+      "noSaleDone": "تم فتح الدرج",
+      "printer": "طابعة الدرج",
+      "printerIntro": "يُفتح درج النقود عبر طابعة الإيصالات الموصول بها، باستخدام QZ Tray على هذا الجهاز. اختر تلك الطابعة.",
+      "printerFind": "البحث عن طابعات",
+      "printerQzMissing": "QZ Tray لا يعمل على هذا الجهاز",
+      "printerNone": "لا يوجد درج في هذا الصندوق",
+      "printerPin": "منفذ الدرج",
+      "printerTest": "اختبار",
+      "printerTestFailed": "لم يُفتح الدرج. تحقق من الطابعة وQZ Tray.",
+      "printerSave": "حفظ",
+      "printerSaved": "تم حفظ طابعة الدرج لهذا الصندوق",
+      "printerNotSet": "أعدّ طابعة الدرج أولًا",
+      "printerCurrent": "الدرج: {name}",
+      "printerSetUp": "إعداد طابعة الدرج"
+    },
+    "returns": {
+      "action": "إرجاع عناصر",
+      "title": "إرجاع عناصر",
+      "close": "إغلاق",
+      "offline": "الإرجاع يتطلب اتصالًا. سجّل الإرجاع عند عودة الصندوق إلى الاتصال.",
+      "loadFailed": "تعذر تحميل عناصر هذا البيع",
+      "previewFailed": "تعذر حساب المبلغ المسترد",
+      "failed": "تعذر تسجيل الإرجاع",
+      "nothingReturnable": "لا شيء في هذا البيع قابل للإرجاع.",
+      "returnable": "{count} قابلة للإرجاع",
+      "blockedFinalSale": "بيع نهائي",
+      "blockedWindow": "انتهت مدة الإرجاع",
+      "blockedOther": "غير قابل للإرجاع",
+      "less": "واحد أقل",
+      "more": "واحد أكثر",
+      "condition": "الحالة",
+      "conditions": {
+        "new": "غير مفتوح",
+        "opened": "مفتوح، قابل للبيع",
+        "damaged": "تالف",
+        "missing_parts": "أجزاء ناقصة",
+        "unusable": "غير صالح للاستعمال"
+      },
+      "restockHint": "تعود العناصر غير المفتوحة والمفتوحة إلى مخزون هذا الصندوق.",
+      "reason": "السبب",
+      "reasons": {
+        "wrong_size_or_variant": "مقاس أو نوع خاطئ",
+        "damaged_or_defective": "تالف أو معيب",
+        "not_as_described": "لا يطابق الوصف",
+        "wrong_item_received": "عنصر خاطئ",
+        "arrived_late": "وصل متأخرًا",
+        "changed_mind": "غيّر رأيه",
+        "other": "أخرى"
+      },
+      "note": "ملاحظة",
+      "notePlaceholder": "ملاحظة (اختياري)",
+      "noteRequired": "اذكر المشكلة (مطلوب)",
+      "refundTo": "الاسترداد إلى",
+      "methods": {
+        "cash": "نقدًا من الدرج",
+        "card": "بطاقة، يدويًا",
+        "bank": "تحويل بنكي",
+        "original": "إلى البطاقة",
+        "store_credit": "رصيد المتجر",
+        "exchange": "استبدال",
+        "later": "الاسترداد لاحقًا"
+      },
+      "adminOnly": "يُجري الاسترداد مسؤول. يُسجَّل الإرجاع الآن وينتظر الاسترداد المسؤول في قسم المرتجعات.",
+      "exchangeHint": "يُستخدم المبلغ المسترد في بيع جديد يُسجَّل بعد ذلك.",
+      "laterHint": "يُسجَّل الإرجاع الآن. أجرِ الاسترداد لاحقًا من قسم المرتجعات.",
+      "refundTotal": "المبلغ المسترد",
+      "restockingFee": "يشمل رسوم إعادة تخزين بقيمة {amount}",
+      "submit": "تسجيل الإرجاع",
+      "done": "تم تسجيل الإرجاع {numbers}",
+      "doneRefunded": "تم استرداد {amount}.",
+      "doneCash": "أعطِ العميل {amount} من الدرج.",
+      "doneCredit": "أُضيف {amount} إلى رصيد المتجر للعميل.",
+      "creditBack": "أُعيد {amount} إلى رصيد المتجر للعميل، الذي دفع جزءًا من البيع.",
+      "doneLater": "الاسترداد بانتظار مسؤول.",
+      "doneExchange": "يذهب {amount} إلى البيع الجديد.",
+      "print": "طباعة إيصال الإرجاع",
+      "printBlocked": "تم حظر نافذة الإيصال. اسمح بالنوافذ المنبثقة لهذا الموقع للطباعة.",
+      "slipTitle": "إرجاع",
+      "slipSale": "البيع",
+      "exchangeReference": "استبدال {numbers}",
+      "exchangeBanner": "رصيد الاستبدال {amount}",
+      "exchangeDismiss": "إلغاء رصيد الاستبدال",
+      "exchangeDismissHint": "لم يُستخدم: أعطِ العميل {amount} نقدًا من الدرج."
+    },
+    "operator": {
+      "title": "أمين الصندوق",
+      "close": "إغلاق",
+      "offline": "تبديل أمين الصندوق يتطلب اتصالًا. يبقى الصندوق مع من يعمل عليه.",
+      "loadFailed": "تعذر تحميل أمناء الصندوق",
+      "failed": "لم ينجح ذلك. حاول مرة أخرى.",
+      "workingNow": "يعمل على الصندوق",
+      "switchBack": "العودة إلى {name}",
+      "takeOver": "تسلّم الصندوق",
+      "nobody": "لم يعيّن أي زميل رمز PIN للصندوق بعد. يعيّن كل شخص رمزه أثناء تسجيل دخوله.",
+      "pin": "رمز PIN",
+      "switch": "تبديل أمين الصندوق",
+      "switched": "{name} يعمل على الصندوق",
+      "setPin": "تعيين رمز PIN للصندوق",
+      "changePin": "تغيير رمز PIN للصندوق",
+      "pinIntro": "{name}، اختر رمز PIN من 4 إلى 8 أرقام. يستخدم الزملاء رموزهم لتسلّم هذا الصندوق.",
+      "newPin": "رمز PIN جديد",
+      "confirmPin": "رمز PIN مرة أخرى",
+      "pinMismatch": "الرمزان غير متطابقين",
+      "savePin": "حفظ رمز PIN",
+      "pinSaved": "تم تعيين رمز PIN للصندوق",
+      "back": "رجوع"
+    },
+    "reports": {
+      "navLabel": "تقارير نقطة البيع",
+      "title": "تقارير الصندوق",
+      "subtitle": "المبيعات حسب أمين الصندوق والصندوق، والمبالغ المحصلة حسب طريقة الدفع، ونتيجة عدّ كل درج.",
+      "loadFailed": "تعذر تحميل التقرير",
+      "period": "الفترة",
+      "presets": {
+        "today": "اليوم",
+        "yesterday": "أمس",
+        "week": "آخر 7 أيام",
+        "month": "آخر 30 يومًا",
+        "thisMonth": "هذا الشهر"
+      },
+      "counter": "الصندوق",
+      "allCounters": "كل الصناديق",
+      "refresh": "تحديث",
+      "export": "تصدير CSV",
+      "empty": "لا مبيعات في هذه الفترة.",
+      "noSessions": "لم يُفتح أي درج في هذه الفترة.",
+      "stats": {
+        "sales": "المبيعات",
+        "items": "{count, plural, one {# عنصر مُباع} other {# عناصر مُباعة}}",
+        "gross": "إجمالي المبيعات",
+        "discounts": "{amount} خصومات",
+        "net": "بعد المبالغ المستردة",
+        "refunds": "تم استرداد {amount}",
+        "average": "متوسط البيع",
+        "balanceDue": "{amount} لا يزال مستحقًا على العرابين"
+      },
+      "byCashier": "حسب أمين الصندوق",
+      "byCounter": "حسب الصندوق",
+      "byTender": "المحصّل حسب طريقة الدفع",
+      "sessions": "جلسات الدرج",
+      "unknownCashier": "أمين صندوق غير معروف",
+      "noCounter": "بلا صندوق",
+      "open": "مفتوح",
+      "payments": "{count, plural, one {# دفعة} other {# دفعات}}",
+      "tenders": {
+        "cash": "نقد",
+        "card": "بطاقة",
+        "bank": "تحويل بنكي",
+        "manual": "أخرى",
+        "store_credit": "رصيد المتجر"
+      },
+      "columns": {
+        "name": "الاسم",
+        "sales": "المبيعات",
+        "items": "العناصر",
+        "gross": "إجمالي المبيعات",
+        "discounts": "الخصومات",
+        "refunds": "المستردات",
+        "net": "الصافي",
+        "average": "المتوسط",
+        "tender": "طريقة الدفع",
+        "payments": "المدفوعات",
+        "amount": "المبلغ",
+        "session": "الجلسة",
+        "counter": "الصندوق",
+        "openedBy": "فتحه",
+        "opened": "فُتح",
+        "closed": "أُغلق",
+        "expected": "النقد المتوقع",
+        "counted": "المعدود",
+        "variance": "الفرق"
+      }
+    },
+    "quickKeys": {
+      "tab": "المفضلة",
+      "empty": "لا توجد مفاتيح سريعة بعد",
+      "emptyManager": "ضع نجمة على منتج في الشبكة لوضعه هنا لكل الصناديق.",
+      "emptyCashier": "يمكن لمن يدير نقطة البيع وضع نجمة على المنتجات لوضعها هنا.",
+      "add": "إضافة إلى المفضلة",
+      "remove": "إزالة من المفضلة",
+      "failed": "لم تُحفظ المفضلة"
+    }
   },
   "locations": {
     "title": "المواقع",
@@ -8230,7 +9672,17 @@
     "deleteError": "فشل حذف الموقع",
     "updateError": "فشل تحديث الموقع",
     "saveError": "فشل حفظ الموقع",
-    "actions": "الإجراءات"
+    "actions": "الإجراءات",
+    "deliveryOrder": "ترتيب التوصيل",
+    "deliveryOrderHint": "تُشحن الطلبات عبر الإنترنت من أول موقع يتوفر فيه المخزون، ثم الثاني، وهكذا.",
+    "deliveryRank": "#{rank}",
+    "noDelivery": "بدون توصيل",
+    "services": "الخدمات",
+    "pickup": "الاستلام",
+    "returns": "المرتجعات",
+    "noTill": "بدون صندوق دفع",
+    "shipSooner": "تقديم الشحن من هنا",
+    "shipLater": "تأخير الشحن من هنا"
   },
   "toast": {
     "createdSuccess": "تم إنشاء {resource} بنجاح",
@@ -9067,7 +10519,10 @@
     "loadOlderConversations": "تحميل المحادثات الأقدم",
     "attachments": {
       "alt": "مرفق الدردشة",
-      "open": "فتح المرفق"
+      "open": "فتح المرفق",
+      "view": "عرض الصورة كاملة",
+      "openNewTab": "فتح في علامة تبويب جديدة",
+      "download": "تنزيل"
     },
     "assignment": {
       "label": "الموظف المسؤول",
@@ -9115,7 +10570,7 @@
       "webhookUrlNotPublic": "لا تقبل Meta سوى رابط استدعاء HTTPS عام. افتح هذه الصفحة على نطاقك المباشر — أو عبر نفق — قبل تسجيله.",
       "setup": {
         "title": "دليل إعداد {provider}",
-        "docs": "الشرح الكامل: docs/OMNICHANNEL_MESSAGING.md",
+        "docs": "الشرح الكامل: https://storify.neurolightstudio.com/docs#omnichannel",
         "whatsapp": {
           "app": "أنشئ تطبيق Meta وأضف إليه منتج WhatsApp.",
           "config": "أنشئ إعداد Facebook Login for Business يمنح هذه الأذونات، وضع معرّفه في META_WHATSAPP_CONFIGURATION_ID.",
@@ -9253,6 +10708,7 @@
     "noLinks": "لم تتم مشاركة أي روابط بعد",
     "subject": "الموضوع",
     "viewProduct": "عرض المنتج",
+    "removeAttachment": "إزالة المرفق",
     "messageProduct": {
       "open": "فتح {name}",
       "priceOnRequest": "السعر عند الطلب"
@@ -9651,7 +11107,8 @@
       "bank": "البنك",
       "cash": "نقدًا",
       "gateway": "رصيد البوابة",
-      "unpaid": "لم يُدفع بعد"
+      "unpaid": "لم يُدفع بعد",
+      "other": "أخرى"
     },
     "book": {
       "own": "متجرك",
@@ -9793,6 +11250,17 @@
       "expenses": "التكاليف",
       "net": "الصافي",
       "netHint": "الدخل ناقص التكاليف",
+      "stockBelowZeroTitle": "المخزون المتاح أقل من الصفر",
+      "stockBelowZeroBody": "أخرج الدفتر من تكلفة المخزون أكثر مما أدخل فيه. غالبًا يعني هذا أن المخزون الافتتاحي لم يُنقل بعد.",
+      "reviewInInventoryLedger": "راجِع في المخزون والدفتر",
+      "noIncomeYet": "لا يوجد دخل في هذه الفترة.",
+      "recordCosts": "سجّل الإيجار أو الرواتب أو تكاليف أخرى",
+      "productProfit": "ربح المنتجات",
+      "grossProfitLine": "إجمالي الربح، بهامش {margin} على {sales} من المبيعات ذات التكلفة المسجلة",
+      "noCostedSales": "لا توجد مبيعات بتكلفة مسجلة في هذه الفترة بعد.",
+      "uncostedSales": "{amount} من مبيعات المنتجات ({share}) بلا تكلفة بعد، لذلك لا تدخل في هذا الربح.",
+      "setCosts": "حدّد التكاليف",
+      "pageSubtitle": "الدخل والتكاليف والأرصدة للفترة التي تختارها.",
       "gmv": "حجم الطلبات",
       "gmvHint": "كل ما طُلب، قبل التكاليف ودون الضريبة — يُحتسب يوم تقديم الطلب",
       "gmvHintMarketplace": "كل ما طُلب عبر المتجر، بما فيه مبيعات البائعين، دون الضريبة — يُحتسب يوم تقديم الطلب",
@@ -9836,7 +11304,7 @@
       "costGapShort": "لا توجد تكلفة مسجلة لـ {share} من مبيعات المنتجات — الصافي قبل تكلفة بضاعتها",
       "costGapTitle": "تكلفة البضاعة غير مسجلة لـ {amount} من مبيعات المنتجات ({share})",
       "costGapBody": "لا تحمل هذه المنتجات تكلفة مسجلة، لذلك لا تظهر تكلفتها في التكاليف ويبدو الصافي أعلى من الربح الحقيقي. أضف تكلفة للمنتج لتُحتسب من بيعه التالي.",
-      "holding": "ما يحتفظ به النشاط",
+      "holding": "ما لديك",
       "holdingHint": "كما هو الوضع الآن",
       "holdingAsOf": "حتى {date}",
       "cashTotal": "النقد في جميع الحسابات",
@@ -9860,7 +11328,13 @@
       "emptyBody": "تظهر الأرصدة مع سداد الطلبات: تحتفظ المنصة بحصة البائع حتى تتم التسوية، والبائع الذي يحصّل النقد بنفسه يدين بالعمولة عليه.",
       "collectNote": "تحصيل العمولة داخل التطبيق قادم لاحقًا؛ اليوم تمثل هذه الأرصدة السجل الذي تُسوَّى مقابله التحويلات والفواتير.",
       "overpaidTitle": "دُفع أكثر مما احتُفظ به أصلًا",
-      "overpaidHint": "سوَّت إحدى التحويلات عملية بيع حصّل البائع قيمتها بنفسه. لم يعد بإمكان التحويلات الجديدة فعل ذلك؛ أما الرصيد المسجَّل بالفعل فيُسوَّى بقيد تسوية من صفحة المالية."
+      "overpaidHint": "سوَّت إحدى التحويلات عملية بيع حصّل البائع قيمتها بنفسه. لم يعد بإمكان التحويلات الجديدة فعل ذلك؛ أما الرصيد المسجَّل بالفعل فيُسوَّى بقيد تسوية من صفحة المالية.",
+      "owedBackTitle": "بائعون عليهم مبالغ لإعادتها",
+      "owedBackHint": "غالبًا استرداد بعد أن دُفع للبائع بالفعل. يُخصم من دفعته التالية تلقائيًا، أو سجِّل سدادًا في تبويب الدفعات الخاص بالبائع إذا أعاد المبلغ. لا تسجّل تسوية أيضًا — فذلك سيسترده مرتين.",
+      "heldForVendors": "ما تحتفظ به للبائعين",
+      "commissionTheyOwe": "العمولة المستحقة لك عليهم",
+      "netToSettle": "الصافي المتبقي للتسوية",
+      "netHint": "ما تدين به الدفاتر في المحصلة — الدفعة ترسل الجزء المُسلَّم فقط"
     },
     "statement": {
       "title": "حساباتك المالية",
@@ -9889,7 +11363,13 @@
         "commission": "عمولة",
         "boost": "تعزيز",
         "subscription": "اشتراك",
-        "other": "تسوية قيد"
+        "other": "تسوية قيد",
+        "payout_returned": "دفعة مُعادة",
+        "refund_reversed": "استرداد ملغى",
+        "commission_settled": "عمولة سُدِّدت من الدفعة",
+        "promotion_credit": "رصيد ترويجي",
+        "delivery_label": "ملصق التوصيل",
+        "repayment": "مبلغ أعدته"
       },
       "heldChange": "محتفظ به لك",
       "owedChange": "عليك",
@@ -9990,6 +11470,101 @@
       "collectionScope": "الأموال المحصلة من العملاء، بما فيها تحصيلات البائعين",
       "estimatedCollections": "يتضمن {count} إيصالات تاريخية تقديرية",
       "asOf": "تقدير بتاريخ {date}"
+    },
+    "balance": {
+      "title": "المستحق لك",
+      "ready": "جاهز للدفعة التالية",
+      "readyHint": "من {count} طلب مُسلَّم تجاوز مهلة الإرجاع",
+      "belowMinimum": "تُصرف الدفعة عندما يبلغ هذا {amount}",
+      "held": "بانتظار انتهاء مهلة الإرجاع",
+      "heldHint": "مُسلَّم، ويُستحق الدفع بعد {days} يوم من التسليم",
+      "reserve": "محتجز للطلبات المسبقة",
+      "reserveHint": "يُحرَّر اعتبارًا من {date}",
+      "reserveUndated": "يُحرَّر مع دفعة لاحقة",
+      "owedBack": "مستحق الإعادة إلى المتجر",
+      "owedBackHint": "دُفع لك عن طلبات استُردت منذ ذلك الحين؛ ويُخصم من دفعتك التالية",
+      "tooManyOrders": "أكثر من 500 طلب جاهزة: يدفعها المتجر على أجزاء، الأقدم أولًا",
+      "frozen": "الدفعات متوقفة مؤقتًا أثناء إيقاف حسابك. تستمر مبيعاتك في الاحتساب.",
+      "inPayout": "ضمن دفعة قيد الإعداد",
+      "inPayoutHint": "{numbers} — في طريقها إليك",
+      "notDelivered": "لم يُسلَّم بعد",
+      "notDeliveredHint": "{count} طلب مدفوع في الطريق؛ تبدأ مهلة الإرجاع عند التسليم",
+      "awaitingBalance": "طلبات مسبقة بانتظار باقي المبلغ",
+      "awaitingBalanceHint": "يُستحق الدفع بمجرد أن يدفع المتسوق الباقي وتُسلَّم البضاعة",
+      "commissionLeft": "عمولة لم تُسدَّد بعد",
+      "commissionLeftHint": "على مبيعات حصّلت ثمنها بنفسك؛ تُخصم من دفعة لاحقة أو عبر فاتورة",
+      "owedBackLater": "ما زال مستحق الإعادة إلى المتجر",
+      "owedBackLaterHint": "دُفع لك عن طلبات استُردت منذ ذلك الحين؛ وهو أكبر مما تستوعبه الدفعة التالية، لذا يُخصم من الدفعات اللاحقة"
+    },
+    "payout": {
+      "changedElsewhere": "تغيرت هذه الدفعة. تمت إعادة تحميلها.",
+      "updated": "تم تحديث الدفعة.",
+      "notFound": "الدفعة غير موجودة.",
+      "backToPayouts": "الدفعات",
+      "ordersUpTo": "الطلبات حتى {date}",
+      "orderCount": "{count} طلب",
+      "requote": "تغيرت الطلبات في هذه الدفعة بعد إنشائها. ألغِها وأنشئ دفعة جديدة.",
+      "frozen": "هذا البائع موقوف، لذا لا يمكن إرسال هذه الدفعة. أعِد تفعيل البائع، أو ألغِ الدفعة.",
+      "howItWasWorkedOut": "كيف حُسبت هذه الدفعة",
+      "grossSales": "إجمالي المبيعات",
+      "grossSalesHint": "حصة البائع من الطلبات أدناه",
+      "commission": "العمولة",
+      "ofGross": "من الإجمالي",
+      "shippingAmount": "رسوم التوصيل",
+      "shippingAmountHint": "تُحصَّل من المتسوقين عن الطرود التي وصّلها البائع",
+      "reserveUntil": "يُحرَّر في {date}",
+      "commissionOffset": "العمولة على المبيعات النقدية",
+      "commissionOffsetHint": "مستحقة على مبيعات قبض البائع ثمنها، وتُخصم هنا بدلًا من إصدار فاتورة",
+      "commissionCredit": "عروض المتجر على المبيعات النقدية",
+      "commissionCreditHint": "خصومات تحمّلها المتجر على مبيعات حصّلها البائع، تتجاوز العمولة المستحقة عليه",
+      "otherAdjustments": "تسويات أخرى",
+      "otherAdjustmentsHint": "خصم المبالغ المستردة وحركات احتياطي الطلبات المسبقة",
+      "netPayout": "صافي الدفعة",
+      "paidOn": "دُفعت في {date}",
+      "reference": "مرجع الدفع",
+      "noReference": "لم يُسجَّل مرجع للدفع",
+      "returnedOn": "عادت في {date} — أصبح المبلغ مستحقًا للبائع مجددًا",
+      "statusTitle": "الحالة",
+      "returnedStep": "عادت الأموال",
+      "notRecorded": "غير مسجَّل",
+      "notYet": "ليس بعد",
+      "referencePlaceholder": "TRX-88213",
+      "accountUnset": "غير مسجَّل",
+      "note": "ملاحظة",
+      "noteReturnedHint": "— مطلوب: سبب عودة الأموال",
+      "noteHint": "— تُحفظ مع الدفعة ويراها البائع",
+      "returnedOnLabel": "يوم عودة الأموال",
+      "returnedWarning": "استخدم هذا فقط عندما يُعيد البنك الأموال. يُعكس قيد دفتر الأستاذ، ويصبح المبلغ مستحقًا للبائع مجددًا، وتعود هذه المبيعات إلى الدفعة التالية.",
+      "saveWarning": "تعليم الدفعة كمدفوعة يسجّل قيدًا في دفتر الأستاذ ويسوّي الطلبات المرتبطة بها. لا يمكن إلغاء القيد — يُصحَّح أي خطأ بقيد تسوية.",
+      "noChanges": "لا تغييرات بعد",
+      "ordersTitle": "الطلبات في هذه الدفعة",
+      "ordersHint": "كل ما سُلِّم ولم يُدفع حتى {date}",
+      "order": "الطلب",
+      "placed": "تاريخ الطلب",
+      "orderStatus": "حالة الطلب",
+      "payment": "الدفع",
+      "vendorShare": "حصة البائع",
+      "vendorEarnings": "بعد العمولة",
+      "noOrders": "لا توجد طلبات مرتبطة بهذه الدفعة.",
+      "sellerShareNote": "مجموع حصة البائع من البضائع في كل طلب يساوي إجمالي المبيعات، وبعد العمولة يساوي صافي الدفعة. الشحن والضرائب التي حصّلها المتجر ليست جزءًا منها.",
+      "adjustment": {
+        "recoveryDeducted": "خصم المبالغ المستردة",
+        "recoveryDeductedHint": "دُفعت سابقًا عن طلبات استُردت منذ ذلك الحين",
+        "recoveryReturned": "إعادة مبلغ مخصوم",
+        "recoveryReturnedHint": "تم التراجع عن استرداد خُصم سابقًا",
+        "reserveHeld": "احتجاز احتياطي الطلبات المسبقة",
+        "reserveHeldHint": "محتجز تحسبًا لرد مبالغ متأخر من البطاقة",
+        "reserveReleased": "تحرير احتياطي الطلبات المسبقة",
+        "reserveReleasedHint": "احتُجز في دفعة سابقة، وحان أجله الآن",
+        "reserveCreditDeducted": "استعادة الاحتياطي",
+        "reserveCreditDeductedHint": "احتياطي محرَّر عادت دفعته",
+        "reserveCreditReturned": "إعادة الاحتياطي المستعاد",
+        "reserveCreditReturnedHint": "أُعيد بعد أن دُفعت دفعته مرة أخرى",
+        "commissionOffset": "العمولة على المبيعات النقدية",
+        "commissionOffsetHint": "مستحقة على مبيعات قبض البائع ثمنها",
+        "commissionCredit": "عروض المتجر على المبيعات النقدية",
+        "commissionCreditHint": "خصومات تحمّلها المتجر تتجاوز العمولة المستحقة"
+      }
     }
   },
   "permissionPacks": {

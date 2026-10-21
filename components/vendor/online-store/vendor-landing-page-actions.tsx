@@ -35,9 +35,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast-notification";
+import { ColorSwatchPicker } from "@/components/admin/color-swatch-picker";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { VendorAnnouncement } from "@/components/store/vendor-announcement";
 import { apiClient, ApiClientError } from "@/lib/api/client";
+import { opaqueHex } from "@/lib/theme-colors/color";
 import { cn } from "@/lib/utils";
 import {
   accentForeground,
@@ -1087,26 +1089,31 @@ function ColorInput({
         disabled && "opacity-60",
       )}
     >
-      <span
-        className="relative h-6 w-6 shrink-0 overflow-hidden rounded-md border border-black/10 dark:border-white/15"
-        style={
-          color
-            ? { backgroundColor: color }
-            : {
-                backgroundImage:
-                  "repeating-linear-gradient(45deg, var(--muted) 0 4px, var(--background) 4px 8px)",
-              }
-        }
+      <ColorSwatchPicker
+        value={color || "#2065d1"}
+        // The stored accent is a plain #rrggbb, so the picker's #abc spelling
+        // is widened before it reaches the field.
+        onChange={(hex) => onChange(opaqueHex(hex) ?? hex)}
+        ariaLabel={label}
+        alpha={false}
+        disabled={disabled}
       >
-        <input
-          type="color"
+        <button
+          type="button"
           aria-label={label}
-          value={color || "#2065d1"}
-          onChange={(event) => onChange(event.target.value)}
+          title={label}
           disabled={disabled}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+          className="relative h-6 w-6 shrink-0 cursor-pointer overflow-hidden rounded-md border border-black/10 disabled:cursor-not-allowed dark:border-white/15"
+          style={
+            color
+              ? { backgroundColor: color }
+              : {
+                  backgroundImage:
+                    "repeating-linear-gradient(45deg, var(--muted) 0 4px, var(--background) 4px 8px)",
+                }
+          }
         />
-      </span>
+      </ColorSwatchPicker>
       <input
         id={id}
         value={value}

@@ -41,6 +41,7 @@ const FILES = [
   ["menus", "menus"],
   ["sliders", "sliders"],
   ["storePages", "store-pages"],
+  ["vendorStorePages", "vendor-store-pages"],
   ["coupons", "coupons"],
   ["blogCategories", "blog-categories"],
   ["blogPosts", "blog-posts"],

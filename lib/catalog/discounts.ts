@@ -1,4 +1,5 @@
 import { quantizeToCurrency } from "@/lib/intl/money";
+import { computeTax, type TaxLine } from "@/lib/tax/tax-engine";
 
 const FREE_SHIPPING_COUPON_TYPE = "free_shipping";
 
@@ -23,6 +24,8 @@ type CheckoutTotals = {
   discountedShippingCost: number;
   tax: number;
   total: number;
+  /** Each line's tax, when the cart was taxed line by line (`taxLines`). */
+  lineTaxes?: number[];
 };
 
 /**
@@ -49,6 +52,9 @@ function positiveMoney(value: unknown) {
   return Number.isFinite(amount) ? Math.max(0, amount) : 0;
 }
 
+/** What `calculateCheckoutTotals` is priced from. */
+export type CheckoutTotalsInput = Parameters<typeof calculateCheckoutTotals>[0];
+
 export function calculateCheckoutTotals(params: {
   subtotal: number;
   shippingCost: number;
@@ -65,6 +71,12 @@ export function calculateCheckoutTotals(params: {
    * keep their exact behaviour.
    */
   currency?: string | null;
+  /**
+   * The cart's lines with their own tax rates (lib/tax/tax-rates.ts), adding
+   * up to `subtotal`. Given, tax is worked out line by line and `taxRate` is
+   * not used; absent, the whole cart is taxed at `taxRate` as before.
+   */
+  taxLines?: TaxLine[] | null;
 }): CheckoutTotals {
   const currency = String(params.currency || "USD");
   const round = (value: number) => roundForCurrency(value, currency);
@@ -104,7 +116,11 @@ export function calculateCheckoutTotals(params: {
   const discountedShippingCost = round(
     Math.max(0, shippingCost - shippingDiscount),
   );
-  const tax = round(discountedSubtotal * taxRate);
+  const lineTax =
+    params.taxLines && params.taxLines.length
+      ? computeTax({ lines: params.taxLines, discount: subtotalDiscount, currency })
+      : null;
+  const tax = lineTax ? lineTax.tax : round(discountedSubtotal * taxRate);
   const discount = round(subtotalDiscount + shippingDiscount);
   const total = round(discountedSubtotal + discountedShippingCost + tax);
 
@@ -118,5 +134,6 @@ export function calculateCheckoutTotals(params: {
     discountedShippingCost,
     tax,
     total,
+    ...(lineTax ? { lineTaxes: lineTax.lineTaxes } : {}),
   };
 }

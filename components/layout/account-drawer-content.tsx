@@ -81,7 +81,7 @@ export function AccountDrawerContent({
            lose the pending sign-in. */
         <div className="px-5 py-5">
           <div className="mb-4 flex flex-col items-center gap-2 text-center">
-            <Shield className="h-10 w-10 text-primary" />
+            <Shield className="h-10 w-10 text-store-link" />
             <p className="text-sm text-muted-foreground">
               {t("auth.twoFactorDescription")}
             </p>

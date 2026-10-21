@@ -1,46 +1,50 @@
 {
   "general": {
     "storeName": "Storify",
-    "storeDescription": "Multi-vendor E-commerce Platform",
-    "storeEmail": "support@storify.com",
-    "storePhone": "+1 555-0100",
-    "storeAddress": "123 Main Street, New York, NY 10001",
-    "logoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003217992-uyocld/logo.svg",
-    "darkModeLogoUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003362100-1sfkzj/logo__dark.svg",
-    "faviconUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003665853-eh8l41/favicon.svg",
+    "storeDescription": "Storify is a self-hosted Next.js eCommerce platform for launching single-vendor stores",
+    "storeEmail": "info@storify.com",
+    "storePhone": "",
+    "storeAddress": "",
+    "logoUrl": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791741662703-3c2e1b479e44d8635a28e0812d3ca63e/storify_logo.svg",
+    "darkModeLogoUrl": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791741668365-27efac38380a5272593381f1adac6768/storify_logo_dark.svg",
+    "faviconUrl": "https://cdn-storify.neurolight.studio/uploads/2026/10/1791741676618-f7776849c7ac416a8f8f779314d0b782/favicon.webp",
     "defaultLanguage": "en",
     "defaultCurrency": "USD",
     "supportedLanguages": [
       "en",
       "bn",
       "ar",
-      "hi",
-      "zh",
-      "ja",
-      "fr",
-      "es",
       "de",
-      "zu",
+      "nl",
+      "fr",
+      "hi",
+      "ja",
       "xh",
-      "ig",
-      "af",
-      "yo",
+      "zh",
+      "tr",
+      "es",
       "ha",
-      "sw"
+      "yo",
+      "af",
+      "sw",
+      "ig",
+      "zu"
     ],
     "countryAvailability": {
-      "mode": "all",
-      "countryCodes": []
+      "mode": "selected",
+      "countryCodes": [
+        "US"
+      ]
     },
     "appIconUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788003482082-rw0rky/icon.svg",
-    "productSearchMode": "regex"
+    "storeDomain": ""
   },
   "appearance": {
-    "primaryColor": "#2065d1",
-    "secondaryColor": "#b5b5b5",
-    "accentColor": "#b7c5e6",
+    "primaryColor": "#386cef",
+    "secondaryColor": "#162447",
+    "accentColor": "#f59e0b",
     "theme": "light",
-    "presetColor": "default",
+    "presetColor": "cyan",
     "customPresets": [
       {
         "id": "cp_d178c1cd-25d3-4ea8-8bea-15fb0601b48e",
@@ -48,17 +52,26 @@
         "primaryColor": "#2065d1",
         "secondaryColor": "#b5b5b5",
         "accentColor": "#c5cfe7"
+      },
+      {
+        "id": "cp_D9_CEb-29EIH_5Zq_xaTi",
+        "name": "Custom 2",
+        "primaryColor": "#386cef",
+        "secondaryColor": "#162447",
+        "accentColor": "#f59e0b"
       }
-    ]
+    ],
+    "skeletonColor": ""
   },
   "orders": {
     "prefix": "ORD",
-    "taxRate": 0.08,
+    "taxRate": 0.1,
     "freeShippingThreshold": 0,
     "defaultShippingCost": 5,
     "commission": {
       "vendorRate": 10,
-      "minWithdrawalAmount": 50
+      "minWithdrawalAmount": 50,
+      "minWithdrawalByCurrency": {}
     },
     "returns": {
       "shippingRefund": "never",
@@ -66,18 +79,20 @@
       "returnShippingFee": 0,
       "refundAdminFeePercent": 0,
       "refundAdminFeeCap": 0,
-      "billVendorCodShipping": false
-    }
+      "billVendorCodShipping": false,
+      "windowDays": 14
+    },
+    "loyaltySpendPerPoint": 1
   },
   "shipping": {
     "enabled": true,
     "weightUnit": "kg",
     "origin": {
       "country": "USA",
-      "state": "NY",
-      "city": "New York",
-      "postalCode": "10001",
-      "address1": "123 Main Street"
+      "state": "CA",
+      "city": "San Francisco",
+      "postalCode": "94117",
+      "address1": "215 Clayton St, San Francisco"
     },
     "delivery": {
       "processingDaysMin": 1,
@@ -142,7 +157,7 @@
       "minDays": 3,
       "maxDays": 5
     },
-    "codCollectedBy": "vendor",
+    "codCollectedBy": "platform",
     "customs": {
       "enabled": false,
       "dutyMode": "DDU"
@@ -187,7 +202,19 @@
       "markOrderShipped": true,
       "restrictToCountries": []
     },
-    "courierTrackingLinks": []
+    "courierTrackingLinks": [],
+    "addressHold": {
+      "suggestAtCheckout": true,
+      "checkAfterOrder": true,
+      "autoRequest": true,
+      "deadlineDays": 7,
+      "onDeadline": "notify",
+      "keepReturnShipping": false,
+      "reminderDays": [
+        1,
+        3
+      ]
+    }
   },
   "social": {
     "share": {
@@ -218,7 +245,7 @@
     "customize": {
       "printedReceiptsEnabled": false,
       "soundEnabled": true,
-      "soundVolume": 50,
+      "soundVolume": 100,
       "soundAddToCart": true,
       "soundOrderComplete": true,
       "soundPayment": true,
@@ -228,11 +255,13 @@
       "paymentMethods": [
         "cash",
         "card"
-      ],
-      "offlinePaymentsEnabled": false
+      ]
     },
     "orders": {
       "orderNumberPrefix": "POS"
+    },
+    "offline": {
+      "sessionHours": 12
     }
   },
   "multiVendorMode": {
@@ -272,8 +301,9 @@
     "escalationMessage": "I can connect you with the store team for anything that needs a human review.",
     "widget": {
       "position": "bottom-right",
-      "primaryColor": "#7c3aed",
-      "accentColor": "#a855f7",
+      "primaryColor": "var(--theme-primary)",
+      "accentColor": "var(--theme-primary)",
+      "avatarUrl": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/09/1788976796278-h1u4ls/thumb.webp",
       "footerText": "Powered by AI",
       "headerTitle": "",
       "width": 400,
@@ -287,7 +317,8 @@
       "checkoutHandoff": true,
       "orderStatus": true
     },
-    "faq": []
+    "faq": [],
+    "monthlyTokenBudget": 0
   },
   "aiAuthoring": {
     "enabled": false,
@@ -505,10 +536,19 @@
           },
           "height": 64,
           "gap": 24,
+          "padding": {
+            "top": 8,
+            "right": 0,
+            "bottom": 8,
+            "left": 0
+          },
+          "spaceBelow": 0,
           "borderBottom": 0,
           "borderColor": "#e5e7eb",
           "blur": 0,
           "hideOnScroll": false,
+          "returnOn": "auto",
+          "homeOnly": false,
           "columns": [
             {
               "id": "88be1b8d-dd4a-4165-9b3e-38a773dea5b4",
@@ -538,7 +578,7 @@
             },
             {
               "id": "93e45bf8-200c-4021-84dd-7613eed5c917",
-              "width": 4.5,
+              "width": 4.25,
               "height": 0,
               "justify": "center",
               "align": {
@@ -630,6 +670,7 @@
                   "foreground": {
                     "type": "solid"
                   },
+                  "showIcons": true,
                   "showLabels": false
                 },
                 {
@@ -666,6 +707,7 @@
                   "foreground": {
                     "type": "solid"
                   },
+                  "showIcons": true,
                   "showLabels": false
                 }
               ]
@@ -687,11 +729,20 @@
             "type": "solid"
           },
           "height": 40,
-          "gap": 24,
+          "gap": 26,
+          "padding": {
+            "top": 8,
+            "right": 0,
+            "bottom": 8,
+            "left": 0
+          },
+          "spaceBelow": 0,
           "borderBottom": 0,
           "borderColor": "#e5e7eb",
           "blur": 0,
           "hideOnScroll": true,
+          "returnOn": "auto",
+          "homeOnly": false,
           "columns": [
             {
               "id": "07b27a2f-e5eb-4739-9c6f-99f0bf05f1ed",
@@ -702,7 +753,7 @@
                 "horizontal": "start",
                 "vertical": "center"
               },
-              "gap": 16,
+              "gap": 29,
               "items": [
                 {
                   "id": "2f6195ab-4eae-44cd-b41f-e3b6fabe483a",
@@ -715,7 +766,7 @@
                   },
                   "label": "All Categories",
                   "showIcon": true,
-                  "icon": "menu",
+                  "icon": "list",
                   "showChevron": true,
                   "openOn": "hover",
                   "width": 0,
@@ -731,13 +782,12 @@
                     "italic": false,
                     "underline": false,
                     "fill": {
-                      "type": "solid",
-                      "color": "#ffffff"
+                      "type": "solid"
                     }
                   },
                   "background": {
                     "type": "solid",
-                    "color": "#366FFF"
+                    "color": "var(--theme-primary)"
                   },
                   "foreground": {
                     "type": "solid"
@@ -824,6 +874,7 @@
                       "icon": "",
                       "description": "",
                       "menu": "list",
+                      "megaMenu": "",
                       "children": []
                     },
                     {
@@ -833,6 +884,7 @@
                       "icon": "",
                       "description": "",
                       "menu": "list",
+                      "megaMenu": "",
                       "children": []
                     }
                   ]
@@ -888,6 +940,7 @@
                       "icon": "glyph:package",
                       "description": "",
                       "menu": "list",
+                      "megaMenu": "",
                       "children": []
                     },
                     {
@@ -897,6 +950,7 @@
                       "icon": "glyph:rss",
                       "description": "",
                       "menu": "list",
+                      "megaMenu": "",
                       "children": []
                     },
                     {
@@ -906,6 +960,7 @@
                       "icon": "",
                       "description": "",
                       "menu": "list",
+                      "megaMenu": "",
                       "children": []
                     },
                     {
@@ -915,6 +970,7 @@
                       "icon": "",
                       "description": "",
                       "menu": "list",
+                      "megaMenu": "",
                       "children": []
                     }
                   ]
@@ -929,7 +985,16 @@
       "sticky": true,
       "fullWidth": false,
       "variant": "nav-top",
-      "color": "light"
+      "color": "light",
+      "overlapHome": false,
+      "overlapTone": "dark",
+      "overlapScrim": 0,
+      "shadow": {
+        "enabled": true,
+        "y": 2,
+        "blur": 10,
+        "opacity": 6
+      }
     },
     "brand": {
       "logoUrl": "",
@@ -1076,18 +1141,18 @@
     },
     "colors": {
       "light": {
-        "backgroundColor": "#f8fafc",
-        "textColor": "#111827",
-        "mutedTextColor": "#6b7280",
-        "borderColor": "#e5e7eb",
-        "accentColor": "#2065D1"
+        "backgroundColor": "var(--theme-surface-alt)",
+        "textColor": "var(--theme-text)",
+        "mutedTextColor": "var(--theme-text-muted)",
+        "borderColor": "var(--theme-border)",
+        "accentColor": "var(--theme-primary)"
       },
       "dark": {
-        "backgroundColor": "#050505",
-        "textColor": "#ffffff",
-        "mutedTextColor": "#d1d5db",
-        "borderColor": "#27272a",
-        "accentColor": "#60a5fa"
+        "backgroundColor": "var(--theme-surface-alt)",
+        "textColor": "var(--theme-text)",
+        "mutedTextColor": "var(--theme-text-muted)",
+        "borderColor": "var(--theme-border)",
+        "accentColor": "var(--theme-primary)"
       }
     },
     "widgets": {
@@ -1266,7 +1331,7 @@
   "vendorConfig": {
     "plansEnabled": true,
     "allowRegistration": true,
-    "requirePlanSelection": false,
+    "requirePlanSelection": true,
     "requiredDocuments": [],
     "paymentMethods": {
       "stripe": true,
@@ -1275,7 +1340,16 @@
       "paystack": true,
       "pesapal": true,
       "iotec": true
-    }
+    },
+    "showAbandonedCheckoutsToVendors": true,
+    "abandonedOffers": {
+      "enabled": false,
+      "automatic": true,
+      "maxPercent": 30,
+      "maxPerVendorPerDay": 20,
+      "maxValidDays": 14
+    },
+    "showQuoteContactToVendors": true
   },
   "boosting": {
     "enabled": true,
@@ -1283,8 +1357,8 @@
     "productPageSlots": 8,
     "hideOutOfStock": true,
     "holdMinutes": 45,
-    "bookingHorizonDays": 60,
-    "maxBookingDays": 60,
+    "bookingHorizonDays": 90,
+    "maxBookingDays": 90,
     "paymentMethods": {
       "stripe": true,
       "paypal": true,
@@ -1304,38 +1378,21 @@
     "themeSettings": {
       "electronics": {
         "colors": {
+          "schemaVersion": 4,
           "light": {
-            "background": "",
-            "surface": "",
-            "surfaceAlt": "",
-            "text": "",
-            "textMuted": "",
-            "border": "",
-            "primary": "",
-            "onPrimary": "",
-            "secondary": "",
-            "onSecondary": "",
-            "accent": "",
-            "sale": "",
-            "rating": "",
-            "link": ""
+            "surface": "#ffffff",
+            "surfaceAlt": "#f1f5f9",
+            "text": "#0f172a",
+            "border": "#e2e8f0",
+            "primary": "#386cef",
+            "secondary": "#162447",
+            "accent": "#f59e0b",
+            "sale": "#dc2626",
+            "rating": "#ffc100",
+            "link": "#1d4ed8",
+            "fieldBorder": "#aaadb1"
           },
-          "dark": {
-            "background": "",
-            "surface": "",
-            "surfaceAlt": "",
-            "text": "",
-            "textMuted": "",
-            "border": "",
-            "primary": "",
-            "onPrimary": "",
-            "secondary": "",
-            "onSecondary": "",
-            "accent": "",
-            "sale": "",
-            "rating": "",
-            "link": ""
-          },
+          "dark": {},
           "darkMode": "auto"
         },
         "type": {
@@ -1353,11 +1410,14 @@
           "pageWidth": "1440",
           "pagePadding": 16,
           "sliderWidth": "fixed",
-          "sliderHeight": "threeQuarters"
+          "sliderHeight": "threeQuarters",
+          "scrollbar": "thin",
+          "scrollbarThumb": "",
+          "scrollbarTrack": ""
         },
         "shape": {
-          "cardRadius": 10,
-          "buttonRadius": 555,
+          "cardRadius": 8,
+          "buttonRadius": 10,
           "inputRadius": "",
           "badgeRadius": 4,
           "cardBorder": 1,
@@ -1367,7 +1427,37 @@
         },
         "buttons": {
           "height": 44,
-          "hover": "darken"
+          "hover": "none"
+        }
+      },
+      "essential": {
+        "colors": {
+          "schemaVersion": 4,
+          "light": {
+            "primary": "#386cef",
+            "accent": "#f59e0b"
+          },
+          "dark": {},
+          "darkMode": "auto"
+        }
+      },
+      "furniture": {
+        "colors": {
+          "schemaVersion": 4,
+          "light": {},
+          "dark": {},
+          "darkMode": "auto"
+        }
+      },
+      "women-fashion": {
+        "colors": {
+          "schemaVersion": 4,
+          "light": {
+            "primary": "#386cef",
+            "accent": "#f59e0b"
+          },
+          "dark": {},
+          "darkMode": "auto"
         }
       }
     }
@@ -1397,13 +1487,93 @@
         "href": "/terms",
         "visible": true
       }
-    ]
+    ],
+    "contact": {
+      "mode": "email_or_phone",
+      "emailLabel": "",
+      "phoneLabel": "",
+      "marketingOptIn": {
+        "enabled": true,
+        "label": "",
+        "defaultChecked": false,
+        "preselect": "never",
+        "preselectCountries": [],
+        "doubleOptIn": false
+      },
+      "smsOptIn": {
+        "enabled": false,
+        "label": "",
+        "fineprint": ""
+      }
+    },
+    "fields": {
+      "firstName": {
+        "label": "",
+        "visibility": "optional"
+      },
+      "lastName": {
+        "label": "",
+        "visibility": "required"
+      },
+      "apartment": {
+        "label": "",
+        "visibility": "optional"
+      },
+      "postalCode": {
+        "label": "",
+        "visibility": "required"
+      },
+      "state": {
+        "label": "",
+        "visibility": "optional"
+      },
+      "phone": {
+        "label": "",
+        "visibility": "hidden"
+      },
+      "country": {
+        "label": ""
+      },
+      "address": {
+        "label": ""
+      },
+      "city": {
+        "label": ""
+      }
+    },
+    "orderNote": {
+      "visibility": "hidden",
+      "label": "",
+      "placeholder": ""
+    },
+    "customFields": [],
+    "accounts": {
+      "guestCheckout": true,
+      "signupAtCheckout": false
+    },
+    "abandonedCheckouts": {
+      "enabled": true,
+      "autoRecoveryEmail": false,
+      "delayMinutes": 60,
+      "schedule": [
+        60
+      ],
+      "marketingConsentOnly": false
+    },
+    "stockHold": {
+      "enabled": true,
+      "minutes": 15
+    }
   },
   "catalog": {
-    "outOfStockDisplay": "show"
+    "outOfStockDisplay": "show",
+    "digitalProducts": true,
+    "physicalProducts": true,
+    "priceOnRequest": true
   },
   "productCard": {
-    "template": "minimal",
+    "version": 3,
+    "template": "electronics",
     "groups": [
       {
         "id": "g1",
@@ -1420,46 +1590,69 @@
           {
             "key": "swatch",
             "on": true
-          },
+          }
+        ]
+      },
+      {
+        "id": "g3",
+        "items": [
           {
             "key": "name",
             "on": true
           },
           {
+            "key": "variant",
+            "on": false
+          },
+          {
+            "key": "category",
+            "on": true
+          },
+          {
             "key": "price",
-            "on": true
-          },
-          {
-            "key": "rating",
-            "on": true
-          },
-          {
-            "key": "delivery",
             "on": true
           }
         ]
       },
       {
-        "id": "00d6079d-a368-4b9d-877d-e6b75497860f",
+        "id": "g4",
+        "items": [
+          {
+            "key": "delivery",
+            "on": false
+          }
+        ]
+      },
+      {
+        "id": "g5",
+        "items": [
+          {
+            "key": "stock",
+            "on": false
+          }
+        ]
+      },
+      {
+        "id": "g6",
         "items": [
           {
             "key": "cart",
-            "on": true
+            "on": false
           }
         ]
       }
     ],
     "visibility": {
-      "cartButtonAlways": false,
+      "cartButtonAlways": true,
       "discountChip": false,
-      "discountChipOnImage": true,
+      "discountChipOnImage": false,
       "itemSold": false,
       "ratingCount": false,
-      "ratingMinimized": true,
-      "variantCount": false
+      "ratingMinimized": false,
+      "variantCount": true
     },
     "action": {
-      "cart": "add-to-cart",
+      "cart": "view",
       "label": ""
     },
     "style": {
@@ -1469,38 +1662,57 @@
       "cardBorder": "",
       "cardBorderWidth": 0,
       "cardShadow": 0,
-      "previewBackground": "",
-      "previewRadius": 6,
+      "previewBackground": "#f5f5f5",
+      "previewRadius": 14,
+      "previewBorder": "",
+      "previewBorderWidth": 1,
       "previewAspect": "tall",
       "previewHeight": 0,
       "previewFit": "contain",
-      "previewPadding": 14,
-      "previewHover": "zoom",
-      "groupGap": 22,
-      "itemGap": 6,
+      "previewPadding": 28,
+      "previewHover": "none",
+      "groupGap": 14,
+      "itemGap": 4,
+      "gridGapCustom": false,
+      "gridColumnGap": 20,
+      "gridRowGap": 44,
       "typography": {
+        "product": {
+          "weight": "600",
+          "style": "",
+          "size": 16,
+          "color": ""
+        },
         "price": {
-          "weight": "",
+          "weight": "700",
           "style": "",
           "size": 18,
+          "color": "var(--foreground)"
+        },
+        "discounted": {
+          "weight": "",
+          "style": "",
+          "size": 14,
           "color": ""
         },
         "cart": {
-          "weight": "",
+          "weight": "700",
           "style": "",
-          "size": 12,
-          "color": ""
+          "size": 14,
+          "color": "var(--muted-foreground)"
         }
       },
       "pricePill": false,
-      "discountChipBackground": "#fd5863",
-      "discountChipColor": "#4f4f4f",
+      "discountChipBackground": "",
+      "discountChipColor": "",
       "cartVariant": "outline",
       "cartBackground": "",
       "cartBorder": "",
       "cartBorderWidth": 0,
       "cartRadius": 6,
       "ratingColor": "",
+      "brandDisplay": "name",
+      "brandLogoHeight": 20,
       "stockBackground": "",
       "stockBorder": "",
       "stockBorderWidth": 0,
@@ -1591,5 +1803,17 @@
         "browserPush": true
       }
     }
+  },
+  "preorder": {
+    "enabled": true,
+    "requireVendorApproval": true,
+    "maxLeadDays": 30,
+    "maxDepositPercent": 50,
+    "expiryGraceDays": 14,
+    "reservePercent": 0,
+    "reserveDays": 90,
+    "autoRelease": true,
+    "autoReleaseDelayDays": 0,
+    "balanceChargeNoticeHours": 24
   }
 }

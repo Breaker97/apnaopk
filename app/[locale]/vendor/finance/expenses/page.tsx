@@ -27,12 +27,13 @@ export default async function VendorExpensesPage({
 }: PageProps) {
   const [{ locale }, search] = await Promise.all([params, searchParams]);
   setRequestLocale(locale);
-  const { storeCurrency } = await guardVendorFinance(locale);
+  const { storeCurrency, canManageExpenses } = await guardVendorFinance(locale);
   const period = resolveDashboardPeriod(search, new Date(), "month");
 
   return (
     <VendorExpenses
       storeCurrency={storeCurrency}
+      canManage={canManageExpenses}
       period={period.key}
       from={period.range ? toDayString(period.range.from) : ""}
       to={period.range ? toDayString(period.range.to) : ""}

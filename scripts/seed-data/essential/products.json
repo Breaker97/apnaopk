@@ -593,7 +593,7 @@
       "$date": "2026-05-16T13:59:42.078Z"
     },
     "updatedAt": {
-      "$date": "2026-08-27T03:58:42.221Z"
+      "$date": "2026-09-11T23:37:00.258Z"
     },
     "__v": 0,
     "compareAtPriceRange": {
@@ -631,7 +631,7 @@
     "price": 200,
     "chargeTax": true,
     "sku": "I1PM-A489",
-    "stock": 383,
+    "stock": 381,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/ai-generated/1784379684155-pgz4ky/ai-product-image_edit-1784379684154.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/07/1783834274224-lk6x88-iphone-17-pro-max-deep-blue-4223-removebg-preview.png",
@@ -861,7 +861,7 @@
         "barcodeSource": "internal",
         "price": 2000,
         "comparePrice": 1900,
-        "stock": 50,
+        "stock": 48,
         "attributes": [],
         "optionValues": [
           {
@@ -881,7 +881,7 @@
         "locationInventory": [
           {
             "locationId": "6a7429a863acf9881cceefcc",
-            "quantity": 50
+            "quantity": 48
           }
         ],
         "mediaId": "247d53a9-b1a4-4861-b23c-e8c39bb4d81f",
@@ -1273,7 +1273,7 @@
       "$date": "2026-05-16T14:46:43.857Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T06:09:38.248Z"
+      "$date": "2026-09-23T11:54:51.171Z"
     },
     "__v": 0,
     "brand": null,
@@ -1320,7 +1320,7 @@
     "price": 1000,
     "chargeTax": true,
     "sku": "I1P-88FE",
-    "stock": 129,
+    "stock": 128,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778943532357-q8wnvt-iphone-16-proaaaa-3664.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778943538032-tx1ema-iphone-16-proaa-9134.png",
@@ -1387,7 +1387,7 @@
         "barcodeFormat": "ean13",
         "price": 2400,
         "comparePrice": 2600,
-        "stock": 31,
+        "stock": 30,
         "attributes": [],
         "optionValues": [
           {
@@ -1969,7 +1969,7 @@
       "$date": "2026-05-16T15:02:37.490Z"
     },
     "updatedAt": {
-      "$date": "2026-08-27T03:58:42.219Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "compareAtPriceRange": {
@@ -2007,7 +2007,7 @@
     "price": 210,
     "chargeTax": true,
     "sku": "GA5-B483",
-    "stock": 57,
+    "stock": 56,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778944293233-n9ip4p-galaxy-a57-5g-6910.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778944301621-8zem3w-galaxy-a57-5gaaa-9494.png",
@@ -2323,7 +2323,7 @@
         "sku": "S1-AF02",
         "barcode": "2077021755637",
         "price": 250,
-        "stock": 19,
+        "stock": 18,
         "attributes": [],
         "optionValues": [
           {
@@ -2481,7 +2481,7 @@
       "$date": "2026-05-16T15:13:26.292Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T15:52:57.961Z"
+      "$date": "2026-10-04T23:54:28.874Z"
     },
     "__v": 0,
     "compareAtPriceRange": {
@@ -2598,7 +2598,7 @@
       "$date": "2026-05-16T15:18:44.978Z"
     },
     "updatedAt": {
-      "$date": "2026-08-21T13:25:12.378Z"
+      "$date": "2026-10-07T14:30:57.114Z"
     },
     "__v": 0,
     "barcodeFormat": "code128",
@@ -2722,7 +2722,7 @@
       "$date": "2026-05-16T15:23:44.487Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T09:32:03.732Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "barcodeFormat": "ean13",
@@ -2768,7 +2768,7 @@
     "chargeTax": true,
     "sku": "DOP3A-E1E3",
     "barcode": "",
-    "stock": 18,
+    "stock": 10,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778945184371-2uxsdj-dji-osmo-pocket-3-action-camera-5577.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1778945188464-x709jf-dji-osmo-pocket-3-action-cameraa-1635.png",
@@ -2843,7 +2843,7 @@
       "$date": "2026-05-16T15:28:16.499Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T09:32:03.727Z"
+      "$date": "2026-10-07T14:30:57.118Z"
     },
     "__v": 0
   },
@@ -2974,8 +2974,8 @@
     },
     "status": "active",
     "featured": false,
-    "rating": 0,
-    "reviewCount": 0,
+    "rating": 5,
+    "reviewCount": 1,
     "locationInventory": [],
     "priceRange": {
       "min": 180,
@@ -2985,7 +2985,7 @@
       "$date": "2026-05-16T15:52:02.642Z"
     },
     "updatedAt": {
-      "$date": "2026-08-24T10:18:17.793Z"
+      "$date": "2026-09-15T06:52:06.315Z"
     },
     "__v": 0
   },
@@ -3006,7 +3006,7 @@
     "price": 250,
     "chargeTax": true,
     "sku": "AWS3-B606",
-    "stock": 5,
+    "stock": 3,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779020556151-ga0c1c-apple-watch-se-3-9687.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779020662175-cligdp-apple-watch-se-3-3403.png"
@@ -3351,7 +3351,7 @@
         "name": "White / 44mm / GPS",
         "sku": "AWS3-B606-GRAY-44MM-GPS",
         "price": 280,
-        "stock": 1,
+        "stock": 0,
         "attributes": [],
         "optionValues": [
           {
@@ -3390,7 +3390,7 @@
         "name": "White / 44mm / GPS + Cellular",
         "sku": "AWS3-B606-GRAY-44MM-GPS-CELLULAR",
         "price": 290,
-        "stock": 4,
+        "stock": 3,
         "attributes": [],
         "optionValues": [
           {
@@ -3507,7 +3507,7 @@
       "$date": "2026-05-17T12:30:45.430Z"
     },
     "updatedAt": {
-      "$date": "2026-08-27T17:51:54.267Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0
   },
@@ -3528,7 +3528,7 @@
     "price": 160,
     "chargeTax": true,
     "sku": "GW-F649",
-    "stock": 1,
+    "stock": 0,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779021764635-uk1o9w-galaxy-watch7--green-8018.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779021771613-05641c-galaxy-watch7--silver-2203.png",
@@ -3808,7 +3808,7 @@
         "barcodeNormalized": "2068641232462",
         "barcodeFormat": "ean13",
         "price": 160,
-        "stock": 1,
+        "stock": 0,
         "attributes": [],
         "optionValues": [
           {
@@ -3905,7 +3905,7 @@
       "$date": "2026-05-17T12:45:12.344Z"
     },
     "updatedAt": {
-      "$date": "2026-08-24T20:56:08.675Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "brand": null,
@@ -4036,7 +4036,7 @@
       "$date": "2026-05-18T05:23:11.374Z"
     },
     "updatedAt": {
-      "$date": "2026-08-06T08:20:44.948Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "barcodeNormalized": "2050290232351",
@@ -4151,7 +4151,7 @@
       "$date": "2026-05-18T05:28:55.102Z"
     },
     "updatedAt": {
-      "$date": "2026-07-30T08:15:25.371Z"
+      "$date": "2026-10-07T14:30:57.119Z"
     },
     "__v": 0,
     "barcodeNormalized": "2085018624095",
@@ -4174,7 +4174,7 @@
     "price": 90.25,
     "chargeTax": true,
     "sku": "MNAMP-6F1C",
-    "stock": 73,
+    "stock": 72,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779083360325-58kf5q-hq2197_700_p1.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779083365808-1kj9h9-hq2197_101_p1.png",
@@ -4465,7 +4465,7 @@
         "barcode": "2089830746379",
         "barcodeNormalized": "2089830746379",
         "price": 135.99,
-        "stock": 10,
+        "stock": 9,
         "attributes": [],
         "optionValues": [
           {
@@ -4942,7 +4942,7 @@
       "$date": "2026-05-18T05:52:42.873Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T18:18:11.537Z"
+      "$date": "2026-09-23T18:27:17.242Z"
     },
     "__v": 0,
     "brand": null,
@@ -5039,7 +5039,7 @@
       "$date": "2026-05-18T06:08:57.704Z"
     },
     "updatedAt": {
-      "$date": "2026-07-23T18:28:15.066Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0
   },
@@ -5105,8 +5105,8 @@
     },
     "status": "active",
     "featured": false,
-    "rating": 0,
-    "reviewCount": 0,
+    "rating": 5,
+    "reviewCount": 1,
     "locationInventory": [],
     "priceRange": {
       "min": 145.99,
@@ -5116,7 +5116,7 @@
       "$date": "2026-05-18T06:23:51.750Z"
     },
     "updatedAt": {
-      "$date": "2026-07-23T18:28:15.046Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "brand": null,
@@ -5154,7 +5154,7 @@
     "price": 144.44,
     "chargeTax": true,
     "sku": "MNVPR-708A",
-    "stock": 1520,
+    "stock": 1518,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779085815386-8fmhs7-hv8150_009_p1.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779085887716-anpzz1-hv8150_404_p1.png",
@@ -5216,7 +5216,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 144.44,
-        "stock": 102,
+        "stock": 100,
         "attributes": [],
         "optionValues": [
           {
@@ -5573,7 +5573,7 @@
       "$date": "2026-05-18T06:33:10.716Z"
     },
     "updatedAt": {
-      "$date": "2026-08-25T14:16:24.126Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "brand": null,
@@ -5699,7 +5699,7 @@
       "$date": "2026-05-18T07:02:48.039Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T18:18:11.533Z"
+      "$date": "2026-09-23T11:52:26.027Z"
     },
     "__v": 0,
     "barcodeFormat": "ean13",
@@ -5735,7 +5735,7 @@
     "price": 800,
     "chargeTax": true,
     "sku": "NP4P-5B2A",
-    "stock": 169,
+    "stock": 135,
     "images": [
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779088662375-k6xoyi-nothing-phone-_4a_-proa-2762.png",
       "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779088670406-cyhglf-nothing-phone-_4a_-pro-7477.png",
@@ -5747,21 +5747,24 @@
         "type": "image",
         "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779088662375-k6xoyi-nothing-phone-_4a_-proa-2762.png",
         "alt": "",
-        "position": 0
+        "position": 0,
+        "fit": "auto"
       },
       {
         "_id": "800194ef-5527-4291-a28c-b46b8c3c202f",
         "type": "image",
         "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779088670406-cyhglf-nothing-phone-_4a_-pro-7477.png",
         "alt": "",
-        "position": 1
+        "position": 1,
+        "fit": "auto"
       },
       {
         "_id": "6576849e-fde5-4a6c-b904-392c92e166c0",
         "type": "image",
         "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/05/1779088677067-1bia0i-nothing-phone-_4a_-proas-3842.png",
         "alt": "",
-        "position": 2
+        "position": 2,
+        "fit": "auto"
       }
     ],
     "category": {
@@ -5769,11 +5772,7 @@
     },
     "productType": "",
     "collections": [],
-    "collectionIds": [
-      {
-        "$oid": "6a7315d7054eb9d5e893edfe"
-      }
-    ],
+    "collectionIds": [],
     "template": "",
     "tags": [],
     "attributes": [],
@@ -5788,7 +5787,7 @@
         "barcodeSource": "internal",
         "price": 800,
         "comparePrice": 900,
-        "stock": 7,
+        "stock": 1,
         "attributes": [],
         "optionValues": [
           {
@@ -5808,7 +5807,7 @@
         "locationInventory": [
           {
             "locationId": "6a7de7554853e38afbcb2a1d",
-            "quantity": 7
+            "quantity": 1
           }
         ],
         "requiresShipping": true,
@@ -5816,6 +5815,9 @@
         "mediaId": "98b27463-9d38-45db-880b-d5a7136b96d6",
         "_id": {
           "$oid": "6a7437e663acf9881ccef015"
+        },
+        "inventory": {
+          "quantity": 1
         }
       },
       {
@@ -5856,6 +5858,9 @@
         "mediaId": "98b27463-9d38-45db-880b-d5a7136b96d6",
         "_id": {
           "$oid": "6a7437e663acf9881ccef016"
+        },
+        "inventory": {
+          "quantity": 23
         }
       },
       {
@@ -5868,7 +5873,7 @@
         "barcodeSource": "internal",
         "price": 800,
         "comparePrice": 900,
-        "stock": 13,
+        "stock": 8,
         "attributes": [],
         "optionValues": [
           {
@@ -5888,7 +5893,7 @@
         "locationInventory": [
           {
             "locationId": "6a7de7554853e38afbcb2a1d",
-            "quantity": 13
+            "quantity": 8
           }
         ],
         "requiresShipping": true,
@@ -5896,6 +5901,9 @@
         "mediaId": "98b27463-9d38-45db-880b-d5a7136b96d6",
         "_id": {
           "$oid": "6a7437e663acf9881ccef017"
+        },
+        "inventory": {
+          "quantity": 8
         }
       },
       {
@@ -5908,7 +5916,7 @@
         "barcodeSource": "internal",
         "price": 800,
         "comparePrice": 900,
-        "stock": 25,
+        "stock": 12,
         "attributes": [],
         "optionValues": [
           {
@@ -5928,7 +5936,7 @@
         "locationInventory": [
           {
             "locationId": "6a7de7554853e38afbcb2a1d",
-            "quantity": 25
+            "quantity": 12
           }
         ],
         "requiresShipping": true,
@@ -5936,6 +5944,9 @@
         "mediaId": "800194ef-5527-4291-a28c-b46b8c3c202f",
         "_id": {
           "$oid": "6a7437e663acf9881ccef018"
+        },
+        "inventory": {
+          "quantity": 12
         }
       },
       {
@@ -5976,6 +5987,9 @@
         "mediaId": "800194ef-5527-4291-a28c-b46b8c3c202f",
         "_id": {
           "$oid": "6a7437e663acf9881ccef019"
+        },
+        "inventory": {
+          "quantity": 25
         }
       },
       {
@@ -6016,6 +6030,9 @@
         "mediaId": "800194ef-5527-4291-a28c-b46b8c3c202f",
         "_id": {
           "$oid": "6a7437e663acf9881ccef01a"
+        },
+        "inventory": {
+          "quantity": 25
         }
       },
       {
@@ -6028,7 +6045,7 @@
         "barcodeSource": "internal",
         "price": 800,
         "comparePrice": 900,
-        "stock": 9,
+        "stock": 0,
         "attributes": [],
         "optionValues": [
           {
@@ -6048,7 +6065,7 @@
         "locationInventory": [
           {
             "locationId": "6a7de7554853e38afbcb2a1d",
-            "quantity": 9
+            "quantity": 0
           }
         ],
         "requiresShipping": true,
@@ -6056,6 +6073,9 @@
         "mediaId": "6576849e-fde5-4a6c-b904-392c92e166c0",
         "_id": {
           "$oid": "6a7437e663acf9881ccef01b"
+        },
+        "inventory": {
+          "quantity": 0
         }
       },
       {
@@ -6096,6 +6116,9 @@
         "mediaId": "6576849e-fde5-4a6c-b904-392c92e166c0",
         "_id": {
           "$oid": "6a7437e663acf9881ccef01c"
+        },
+        "inventory": {
+          "quantity": 19
         }
       },
       {
@@ -6108,7 +6131,7 @@
         "barcodeSource": "internal",
         "price": 800,
         "comparePrice": 900,
-        "stock": 23,
+        "stock": 22,
         "attributes": [],
         "optionValues": [
           {
@@ -6128,7 +6151,7 @@
         "locationInventory": [
           {
             "locationId": "6a7de7554853e38afbcb2a1d",
-            "quantity": 23
+            "quantity": 22
           }
         ],
         "requiresShipping": true,
@@ -6136,6 +6159,9 @@
         "mediaId": "6576849e-fde5-4a6c-b904-392c92e166c0",
         "_id": {
           "$oid": "6a7437e663acf9881ccef01d"
+        },
+        "inventory": {
+          "quantity": 22
         }
       }
     ],
@@ -6206,8 +6232,8 @@
     },
     "status": "active",
     "featured": true,
-    "rating": 0,
-    "reviewCount": 0,
+    "rating": 4.7,
+    "reviewCount": 3,
     "locationInventory": [],
     "priceRange": {
       "min": 800,
@@ -6217,7 +6243,7 @@
       "$date": "2026-05-18T07:23:02.575Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T06:21:03.725Z"
+      "$date": "2026-10-09T11:08:27.137Z"
     },
     "__v": 0,
     "brand": null,
@@ -6245,7 +6271,12 @@
       "min": 900,
       "max": 900
     },
-    "comparePrice": 900
+    "comparePrice": 900,
+    "priceOnRequest": false,
+    "returns": {
+      "finalSale": false,
+      "windowDays": null
+    }
   },
   {
     "_id": {
@@ -6461,7 +6492,7 @@
       "$date": "2026-05-18T07:35:16.940Z"
     },
     "updatedAt": {
-      "$date": "2026-08-22T20:53:04.268Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "brand": null,
@@ -6570,8 +6601,8 @@
     },
     "status": "active",
     "featured": false,
-    "rating": 0,
-    "reviewCount": 0,
+    "rating": 5,
+    "reviewCount": 1,
     "locationInventory": [],
     "priceRange": {
       "min": 700,
@@ -6581,7 +6612,7 @@
       "$date": "2026-05-18T10:37:26.974Z"
     },
     "updatedAt": {
-      "$date": "2026-08-06T13:30:07.647Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0
   },
@@ -6683,7 +6714,7 @@
       "$date": "2026-05-18T10:46:45.553Z"
     },
     "updatedAt": {
-      "$date": "2026-08-25T09:54:15.174Z"
+      "$date": "2026-09-30T21:47:26.868Z"
     },
     "__v": 0,
     "barcodeNormalized": "2063722171227",
@@ -8293,7 +8324,7 @@
       "$date": "2026-07-14T06:44:43.093Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T10:22:27.157Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0,
     "digitalAssets": [],
@@ -8399,7 +8430,7 @@
       "$date": "2026-07-29T11:19:04.532Z"
     },
     "updatedAt": {
-      "$date": "2026-07-29T11:19:04.532Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0
   },
@@ -8425,7 +8456,7 @@
     "barcodeNormalized": "2075745136237",
     "barcodeFormat": "ean13",
     "barcodeSource": "internal",
-    "stock": 50,
+    "stock": 0,
     "inventory": {
       "tracked": true,
       "continueSellingWhenOutOfStock": false
@@ -8461,7 +8492,7 @@
       "enabled": true,
       "limit": 0,
       "reservedQuantity": 0,
-      "preorderOnly": false,
+      "preorderOnly": true,
       "autoConvert": true,
       "paymentMode": "deposit",
       "depositType": "percentage",
@@ -8488,8 +8519,16 @@
     "reviewCount": 0,
     "locationInventory": [
       {
-        "locationId": "6a76013f422b1d9ca7501dcd",
-        "quantity": 50
+        "locationId": "6a76013e422b1d9ca7501dcc",
+        "quantity": 0
+      },
+      {
+        "locationId": "6a7de7534853e38afbcb2a1c",
+        "quantity": 0
+      },
+      {
+        "locationId": "6a7429a863acf9881cceefcc",
+        "quantity": 0
       }
     ],
     "priceRange": {
@@ -8500,9 +8539,10 @@
       "$date": "2026-08-03T06:36:31.416Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T15:37:54.355Z"
+      "$date": "2026-09-13T22:38:01.268Z"
     },
-    "__v": 0
+    "__v": 0,
+    "priceOnRequest": false
   },
   {
     "_id": {
@@ -8522,7 +8562,7 @@
     "chargeTax": true,
     "sku": "SMD-9A10",
     "skuNormalized": "SMD9A10",
-    "stock": 167,
+    "stock": 163,
     "inventory": {
       "tracked": true,
       "continueSellingWhenOutOfStock": false
@@ -8597,7 +8637,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 120,
-        "stock": 1,
+        "stock": 0,
         "attributes": [],
         "optionValues": [
           {
@@ -8661,7 +8701,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 120,
-        "stock": 7,
+        "stock": 6,
         "attributes": [],
         "optionValues": [
           {
@@ -8885,7 +8925,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 120,
-        "stock": 15,
+        "stock": 14,
         "attributes": [],
         "optionValues": [
           {
@@ -8917,7 +8957,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 120,
-        "stock": 11,
+        "stock": 10,
         "attributes": [],
         "optionValues": [
           {
@@ -9168,7 +9208,7 @@
       "$date": "2026-08-05T12:52:54.520Z"
     },
     "updatedAt": {
-      "$date": "2026-08-27T10:20:20.951Z"
+      "$date": "2026-09-30T20:45:15.868Z"
     },
     "__v": 0
   },
@@ -10126,7 +10166,7 @@
       "$date": "2026-08-05T13:02:55.010Z"
     },
     "updatedAt": {
-      "$date": "2026-08-28T09:32:03.737Z"
+      "$date": "2026-09-11T23:37:00.259Z"
     },
     "__v": 0
   },
@@ -10148,7 +10188,7 @@
     "chargeTax": true,
     "sku": "TOTBO-9B9F",
     "skuNormalized": "TOTBO9B9F",
-    "stock": 197,
+    "stock": 193,
     "inventory": {
       "tracked": true,
       "continueSellingWhenOutOfStock": false
@@ -10223,7 +10263,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 50,
-        "stock": 1,
+        "stock": 0,
         "attributes": [],
         "optionValues": [
           {
@@ -10243,7 +10283,11 @@
         "locationInventory": [
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
-            "quantity": 1
+            "quantity": 0
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10255,7 +10299,7 @@
           "$oid": "6a773763373f752202b845f9"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 0
         }
       },
       {
@@ -10290,6 +10334,10 @@
             "quantity": 0
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10299,7 +10347,7 @@
           "$oid": "6a773763373f752202b845fa"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 0
         }
       },
       {
@@ -10331,7 +10379,11 @@
         "locationInventory": [
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
-            "quantity": 10
+            "quantity": 5
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 5
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10375,7 +10427,11 @@
         "locationInventory": [
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
-            "quantity": 14
+            "quantity": 12
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 2
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10387,7 +10443,7 @@
           "$oid": "6a773763373f752202b845fc"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       },
       {
@@ -10419,7 +10475,11 @@
         "locationInventory": [
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
-            "quantity": 14
+            "quantity": 8
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 6
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10431,7 +10491,7 @@
           "$oid": "6a773763373f752202b845fd"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       },
       {
@@ -10466,6 +10526,10 @@
             "quantity": 14
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10475,7 +10539,7 @@
           "$oid": "6a773763373f752202b845fe"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       },
       {
@@ -10510,6 +10574,10 @@
             "quantity": 14
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10519,7 +10587,7 @@
           "$oid": "6a773763373f752202b845ff"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       },
       {
@@ -10554,6 +10622,10 @@
             "quantity": 14
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10563,7 +10635,7 @@
           "$oid": "6a773763373f752202b84600"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       },
       {
@@ -10598,6 +10670,10 @@
             "quantity": 14
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10607,7 +10683,7 @@
           "$oid": "6a773763373f752202b84601"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       },
       {
@@ -10640,6 +10716,10 @@
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
             "quantity": 15
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10686,6 +10766,10 @@
             "quantity": 15
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10730,6 +10814,10 @@
             "quantity": 15
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10751,7 +10839,7 @@
         "barcodeFormat": "ean13",
         "barcodeSource": "internal",
         "price": 50,
-        "stock": 13,
+        "stock": 10,
         "attributes": [],
         "optionValues": [
           {
@@ -10771,7 +10859,11 @@
         "locationInventory": [
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
-            "quantity": 13
+            "quantity": 10
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10783,7 +10875,7 @@
           "$oid": "6a773763373f752202b84605"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 10
         }
       },
       {
@@ -10816,6 +10908,10 @@
           {
             "locationId": "6a76013e422b1d9ca7501dcc",
             "quantity": 15
+          },
+          {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
           },
           {
             "locationId": "6a7429a863acf9881cceefcc",
@@ -10862,6 +10958,10 @@
             "quantity": 15
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10906,6 +11006,10 @@
             "quantity": 14
           },
           {
+            "locationId": "6a7de7534853e38afbcb2a1c",
+            "quantity": 0
+          },
+          {
             "locationId": "6a7429a863acf9881cceefcc",
             "quantity": 0
           }
@@ -10915,7 +11019,7 @@
           "$oid": "6a773763373f752202b84608"
         },
         "inventory": {
-          "quantity": 15
+          "quantity": 14
         }
       }
     ],
@@ -11019,7 +11123,627 @@
       "$date": "2026-08-05T13:40:51.396Z"
     },
     "updatedAt": {
-      "$date": "2026-08-26T18:29:49.975Z"
+      "$date": "2026-09-11T23:37:00.259Z"
+    },
+    "__v": 0,
+    "priceOnRequest": true,
+    "quoteButtonLabel": "Prix en prv"
+  },
+  {
+    "_id": {
+      "$oid": "6acb6b24728e196280d627a9"
+    },
+    "vendorId": {
+      "$oid": "6a0a98ed5d747a63e3255c0b"
+    },
+    "productSource": "vendor",
+    "name": "Burgundy Leather & Woven Handbag",
+    "title": "Burgundy Leather & Woven Handbag",
+    "slug": "burgundy-leather-woven-handbag",
+    "handle": "burgundy-leather-woven-handbag",
+    "description": "<p>Designed for women who appreciate classic fashion with a contemporary touch, this elegant tote handbag combines refined craftsmanship-inspired detailing with practical everyday style.</p><p>The handbag features a distinctive woven-texture exterior complemented by deep burgundy leather-look accents, creating a striking contrast that enhances its premium appearance. Its structured silhouette, reinforced corner detailing, and beautifully curved handles provide a polished, sophisticated look.</p><p>The spacious-looking main compartment makes it a versatile choice for carrying everyday essentials such as a wallet, smartphone, makeup accessories, keys, and other personal belongings.</p><p>Whether paired with professional attire, casual outfits, or sophisticated weekend ensembles, this timeless tote handbag adds effortless elegance to any wardrobe.</p><h2>Key Features</h2><ul><li><p>A beautiful combination of natural beige woven texture and rich burgundy leather-look accents creates a luxurious, timeless appearance.</p></li><li><p>Intricately patterned fabric adds visual depth, texture, and a distinctive vintage-inspired aesthetic.</p></li><li><p>The sophisticated trapezoidal shape maintains a refined and fashionable appearance.</p></li><li><p>Smooth, curved handles offer a classic carrying style suitable for everyday use.</p></li><li><p>Contrasting burgundy trim enhances the handbag's structure and overall visual appeal.</p></li><li><p>Subtle dark metallic accents provide a sophisticated finishing touch.</p></li><li><p>The generously proportioned silhouette is ideal for carrying daily personal essentials.</p></li><li><p>Perfect for office wear, shopping trips, casual outings, business meetings, and travel.</p></li><li><p>Classic woven patterns and warm leather-look detailing complement both modern and traditional wardrobes.</p></li></ul><p></p>",
+    "shortDescription": "Elevate your everyday style with the Vintage Burgundy Leather & Woven Canvas Tote Handbag, a sophisticated blend of timeless elegance and modern functionality. Featuring a beautifully textured beige woven body, rich burgundy leather-look trims, and structured double handles, this handbag offers a luxurious aesthetic perfect for work, shopping, travel, and casual outings.",
+    "price": 1790,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "BLWH-16CC",
+    "skuNormalized": "BLWH16CC",
+    "barcode": "2013704688632",
+    "barcodeNormalized": "2013704688632",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 50,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791716476163-901396d08c9d0c30b282f7f1a746575a/e3925ea2-4655-4829-8a9a-8d781a681738.png",
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791716112758-8926a500a25b0966804e8dc757b081e5/c828d0b1-7ea6-445a-9c3d-dc3c199a6a59.png",
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791716112692-85d76f6e82ce35541e98e72b760074ba/48e9224e-2352-4cfb-a612-1852fb0d087e.png"
+    ],
+    "media": [
+      {
+        "_id": "6a1453c5-f084-47f2-ae66-3e847dea507b",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791716476163-901396d08c9d0c30b282f7f1a746575a/e3925ea2-4655-4829-8a9a-8d781a681738.png",
+        "filename": "e3925ea2-4655-4829-8a9a-8d781a681738.png",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "df20d283-4ea5-4379-a15b-e20cdef78619",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791716112758-8926a500a25b0966804e8dc757b081e5/c828d0b1-7ea6-445a-9c3d-dc3c199a6a59.png",
+        "filename": "c828d0b1-7ea6-445a-9c3d-dc3c199a6a59.png",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "aa529afe-c9d5-422a-96ea-1d0b3c00f43c",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791716112692-85d76f6e82ce35541e98e72b760074ba/48e9224e-2352-4cfb-a612-1852fb0d087e.png",
+        "filename": "48e9224e-2352-4cfb-a612-1852fb0d087e.png",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/png",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6a087f49894b3f639931fd02"
+    },
+    "brand": null,
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [
+      {
+        "name": "Attribute",
+        "value": "Details"
+      },
+      {
+        "name": "Product Type",
+        "value": "Tote Handbag"
+      },
+      {
+        "name": "Style",
+        "value": "Vintage, Classic, Elegant"
+      },
+      {
+        "name": "Gender",
+        "value": "Women"
+      },
+      {
+        "name": "Main Color",
+        "value": "Beige & Burgundy"
+      },
+      {
+        "name": "Exterior Material",
+        "value": "Woven-texture fabric (exact composition unverified)"
+      },
+      {
+        "name": "Trim Material",
+        "value": "Burgundy leather-look material"
+      },
+      {
+        "name": "Pattern",
+        "value": "Fine textured weave"
+      },
+      {
+        "name": "Shape",
+        "value": "Structured Trapezoidal"
+      },
+      {
+        "name": "Handle Type",
+        "value": "Double Top Handles"
+      },
+      {
+        "name": "Hardware Color",
+        "value": "Dark Metallic"
+      },
+      {
+        "name": "Carrying Style",
+        "value": "Handheld / Arm Carry"
+      },
+      {
+        "name": "Size Category",
+        "value": "Medium to Large (estimated)"
+      },
+      {
+        "name": "Occasion",
+        "value": "Office, Casual, Shopping, Travel"
+      },
+      {
+        "name": "Season",
+        "value": "All-Season"
+      },
+      {
+        "name": "Closure Type",
+        "value": "Not visible"
+      },
+      {
+        "name": "Interior Compartments",
+        "value": "Not confirmed"
+      },
+      {
+        "name": "Care Instructions",
+        "value": "Spot clean gently with a soft cloth"
+      }
+    ],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Burgundy Leather & Woven Handbag",
+      "metaDescription": "Elevate your everyday style with the Vintage Burgundy Leather & Woven Canvas Tote Handbag, a sophisticated blend of timeless elegance and modern functionalit...",
+      "handle": "burgundy-leather-woven-handbag"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "returns": {
+      "finalSale": false,
+      "windowDays": null
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 1790,
+      "max": 1790
+    },
+    "createdAt": {
+      "$date": "2026-10-11T10:55:33.417Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-11T11:01:26.899Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acb7594728e196280d627bf"
+    },
+    "vendorId": {
+      "$oid": "6a0a98ed5d747a63e3255c0b"
+    },
+    "productSource": "vendor",
+    "name": "Contrast Collar Oversized Sweatshirt",
+    "title": "Contrast Collar Oversized Sweatshirt",
+    "slug": "contrast-collar-oversized-sweatshirt",
+    "handle": "contrast-collar-oversized-sweatshirt",
+    "description": "<p>Designed for individuals who appreciate modern simplicity and sophisticated casual fashion, this oversized sweatshirt combines a classic pullover silhouette with unique contrast-color detailing.</p><p>The sweatshirt features a smooth white exterior beautifully complemented by a sky blue pointed collar and matching inner neckline. Its distinctive open V-neck design creates a refined polo-inspired appearance while maintaining the relaxed character of a modern sweatshirt.</p><p>The full-length sleeves feature eye-catching layered cuffs with sky blue inner panels, decorative button detailing, and wide white outer trims, adding a creative touch to the overall design.</p><p>With its dropped shoulders, roomy sleeves, and relaxed body, this sweatshirt offers a contemporary oversized look that pairs effortlessly with jeans, cargo pants, tailored trousers, and casual sneakers.</p><p>Whether styled for a casual day out, weekend gathering, university, or everyday streetwear, this statement sweatshirt brings comfort-inspired styling and modern elegance together.</p><h2>Key Features</h2><ul><li><p>Crisp white body combined with soft sky blue accents creates a fresh, sophisticated appearance.</p></li><li><p>A structured sky blue collar adds a refined polo-inspired touch to the casual sweatshirt silhouette.</p></li><li><p>The open neckline delivers a clean, contemporary design without traditional front buttons.</p></li><li><p>A roomy silhouette with dropped shoulders creates a fashionable streetwear-inspired look.</p></li><li><p>White outer cuffs with sky blue inner detailing offer a distinctive, premium-looking finish.</p></li><li><p>Subtle metallic button details enhance the overall appearance of the cuffs.</p></li><li><p>Generously proportioned sleeves provide a relaxed and versatile casual style.</p></li><li><p>Clean surfaces and subtle contrasting colors create an effortlessly modern look.</p></li><li><p>Easily pairs with denim, chinos, joggers, cargo pants, and sneakers.</p></li><li><p>Suitable for everyday activities, casual gatherings, travel, and modern streetwear outfits.</p></li></ul><p></p>",
+    "shortDescription": "Refresh your everyday wardrobe with the Premium White & Sky Blue Contrast Collar Oversized Sweatshirt, a perfect combination of modern streetwear and minimalist fashion. Featuring a crisp white body, soft sky blue collar, stylish V-neck opening, and distinctive layered cuff detailing, this sweatshirt delivers a clean, contemporary aesthetic. Its relaxed silhouette makes it an excellent choice for casual outings, everyday wear, and effortlessly stylish streetwear looks.",
+    "price": 1190,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "CCOS-474C",
+    "skuNormalized": "CCOS474C",
+    "barcode": "2045802054545",
+    "barcodeNormalized": "2045802054545",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 40,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791718422744-cb072f18f8c10d1f935ef85c0f0ba168/d8cdc26f-3027-4edb-8eaf-a5ed9f4532ed.png",
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791718749374-aeef272e7287c24ba1377e0d1316945a/044fb9db-6dd0-4fc0-9f16-9bcace52f486.png",
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791718429130-b8800391b7e00cbb14da0e519c80e981/0192f12c2a56fb4b22fca4a972d4a587.jpg"
+    ],
+    "media": [
+      {
+        "_id": "62e63146-cc73-472d-b7a8-ae045dad72d7",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791718422744-cb072f18f8c10d1f935ef85c0f0ba168/d8cdc26f-3027-4edb-8eaf-a5ed9f4532ed.png",
+        "filename": "d8cdc26f-3027-4edb-8eaf-a5ed9f4532ed.png",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "059e523a-ff56-4da2-a322-223c34c6d141",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791718749374-aeef272e7287c24ba1377e0d1316945a/044fb9db-6dd0-4fc0-9f16-9bcace52f486.png",
+        "filename": "044fb9db-6dd0-4fc0-9f16-9bcace52f486.png",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "ff24dd69-4fd4-42cb-b882-dc08b2bd2368",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791718429130-b8800391b7e00cbb14da0e519c80e981/0192f12c2a56fb4b22fca4a972d4a587.jpg",
+        "filename": "0192f12c2a56fb4b22fca4a972d4a587.jpg",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/jpeg",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6a8485264ff48f1b8b6ca8e2"
+    },
+    "brand": null,
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [
+      {
+        "name": "Attribute",
+        "value": "Details"
+      },
+      {
+        "name": "Product Type",
+        "value": "Collared Pullover Sweatshirt"
+      },
+      {
+        "name": "Style",
+        "value": "Casual, Minimalist, Streetwear"
+      },
+      {
+        "name": "Gender",
+        "value": "Unisex Style"
+      },
+      {
+        "name": "Primary Color",
+        "value": "White"
+      },
+      {
+        "name": "Secondary Color",
+        "value": "Sky Blue"
+      },
+      {
+        "name": "Fabric Material",
+        "value": "Not specified"
+      },
+      {
+        "name": "Fabric Texture",
+        "value": "Smooth Appearance"
+      },
+      {
+        "name": "Fit Type",
+        "value": "Oversized / Relaxed"
+      },
+      {
+        "name": "Neckline",
+        "value": "Open V-Neck"
+      },
+      {
+        "name": "Collar Type",
+        "value": "Contrast Pointed Collar"
+      },
+      {
+        "name": "Sleeve Length",
+        "value": "Long Sleeve"
+      },
+      {
+        "name": "Shoulder Style",
+        "value": "Dropped Shoulder"
+      },
+      {
+        "name": "Cuff Style",
+        "value": "Layered Contrast Cuffs"
+      },
+      {
+        "name": "Cuff Details",
+        "value": "Decorative Button Accents"
+      },
+      {
+        "name": "Pattern",
+        "value": "Solid Color / Color Block"
+      },
+      {
+        "name": "Closure Type",
+        "value": "Pullover"
+      },
+      {
+        "name": "Hemline",
+        "value": "Wide Banded Hem"
+      },
+      {
+        "name": "Suitable Season",
+        "value": "Spring, Autumn, Mild Winter"
+      },
+      {
+        "name": "Occasion",
+        "value": "Casual, Daily Wear, Streetwear, Travel"
+      },
+      {
+        "name": "Care Instructions",
+        "value": "Follow the garment's care label"
+      }
+    ],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Contrast Collar Oversized Sweatshirt",
+      "metaDescription": "Refresh your everyday wardrobe with the Premium White & Sky Blue Contrast Collar Oversized Sweatshirt, a perfect combination of modern streetwear and minimal...",
+      "handle": "contrast-collar-oversized-sweatshirt"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "returns": {
+      "finalSale": false,
+      "windowDays": null
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 1190,
+      "max": 1190
+    },
+    "createdAt": {
+      "$date": "2026-10-11T11:40:04.943Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-11T11:40:28.866Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "6acb78be728e196280d627c3"
+    },
+    "vendorId": {
+      "$oid": "6a0a98ed5d747a63e3255c0b"
+    },
+    "productSource": "vendor",
+    "name": "Cream Oversized Zip-Up Jacket",
+    "title": "Cream Oversized Zip-Up Jacket",
+    "slug": "cream-oversized-zip-up-jacket",
+    "handle": "cream-oversized-zip-up-jacket",
+    "description": "<p>Designed for individuals who appreciate effortless style and contemporary simplicity, the VTWO Premium Cream Oversized Zip-Up Jacket combines a classic casual jacket silhouette with modern oversized proportions.</p><p>The jacket features a smooth, cream-colored exterior with subtle tonal stitching that enhances its refined, minimalist appearance. Its structured pointed collar creates a timeless look, while the full-length front zipper provides convenient wear and versatile styling options.</p><p>The relaxed body, dropped shoulder seams, and generously proportioned long sleeves create a fashionable oversized silhouette without compromising the jacket's clean aesthetic.</p><p>Two discreet front welt pockets complement the streamlined design while offering convenient storage for small everyday essentials. The straight hemline and neatly finished cuffs further enhance its understated style.</p><p>Whether layered over a basic T-shirt, sweatshirt, or casual shirt, this versatile jacket pairs effortlessly with jeans, cargo pants, chinos, and tailored trousers, making it an excellent addition to a contemporary wardrobe.</p><h2>Key Features</h2><ul><li><p>A refined neutral color creates a timeless appearance that complements various outfits.</p></li><li><p>Dropped shoulders and a roomy silhouette deliver a contemporary streetwear-inspired look.</p></li><li><p>A structured shirt-style collar adds sophistication to the jacket's casual design.</p></li><li><p>A convenient central zipper allows easy layering and adjustable styling.</p></li><li><p>A clean, uniform exterior gives the jacket an elegant, premium-looking finish.</p></li><li><p>Two vertical welt pockets provide convenient storage for everyday essentials.</p></li><li><p>Relaxed shoulder seams contribute to the jacket's modern oversized aesthetic.</p></li><li><p>Generously cut sleeves with neatly finished cuffs create a comfortable-looking silhouette.</p></li><li><p>A structured bottom finish enhances the jacket's streamlined appearance.</p></li><li><p>Ideal for pairing with casual T-shirts, knitwear, denim, and streetwear outfits.</p></li></ul><p></p>",
+    "shortDescription": "Elevate your everyday wardrobe with the VTWO Premium Cream Oversized Zip-Up Jacket, a perfect combination of minimalist fashion, contemporary streetwear, and timeless elegance. Featuring a soft cream-colored exterior, a classic pointed collar, a full-front zipper, and a relaxed silhouette, this jacket delivers a clean, sophisticated appearance. Its versatile design makes it an ideal layering piece for casual outings, everyday wear, and modern streetwear styling.",
+    "price": 1890,
+    "chargeTax": true,
+    "priceOnRequest": false,
+    "sku": "COZJ-4F43",
+    "skuNormalized": "COZJ4F43",
+    "barcode": "2079468419417",
+    "barcodeNormalized": "2079468419417",
+    "barcodeFormat": "ean13",
+    "barcodeSource": "internal",
+    "stock": 50,
+    "inventory": {
+      "tracked": true,
+      "continueSellingWhenOutOfStock": false
+    },
+    "images": [
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791719552956-e24157705572997f87a275bd95473a31/0268df9b-4a0e-4ce5-9c4f-34df3f2b53b0.png",
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791719541875-92e7772ccb756f9506f9c25054e20252/233c02a2-21d6-40b0-9d0c-c37606aaa66d.png",
+      "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791719541844-f8942cb7ab742db575afa2a585f84b27/3393cc92-fcc1-4295-8213-d0cbacaae370.png"
+    ],
+    "media": [
+      {
+        "_id": "d31f58a1-3a62-4a11-aec2-aaacb5429da1",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791719552956-e24157705572997f87a275bd95473a31/0268df9b-4a0e-4ce5-9c4f-34df3f2b53b0.png",
+        "filename": "0268df9b-4a0e-4ce5-9c4f-34df3f2b53b0.png",
+        "alt": "",
+        "position": 0,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "e46d4b8e-d1e8-461a-ae13-0c61035725dc",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791719541875-92e7772ccb756f9506f9c25054e20252/233c02a2-21d6-40b0-9d0c-c37606aaa66d.png",
+        "filename": "233c02a2-21d6-40b0-9d0c-c37606aaa66d.png",
+        "alt": "",
+        "position": 1,
+        "mimeType": "image/png",
+        "fit": "auto"
+      },
+      {
+        "_id": "878740ab-d964-462d-992e-009044fede1e",
+        "type": "image",
+        "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/vendor/6a0a98ed5d747a63e3255c0b/2026/10/1791719541844-f8942cb7ab742db575afa2a585f84b27/3393cc92-fcc1-4295-8213-d0cbacaae370.png",
+        "filename": "3393cc92-fcc1-4295-8213-d0cbacaae370.png",
+        "alt": "",
+        "position": 2,
+        "mimeType": "image/png",
+        "fit": "auto"
+      }
+    ],
+    "digitalAssets": [],
+    "digitalDelivery": {
+      "downloadLimit": 0
+    },
+    "digitalPreview": null,
+    "category": {
+      "$oid": "6a8485c74ff48f1b8b6ca8e6"
+    },
+    "brand": null,
+    "productType": "",
+    "collectionIds": [],
+    "tags": [],
+    "attributes": [
+      {
+        "name": "Attribute",
+        "value": "Details"
+      },
+      {
+        "name": "Brand",
+        "value": "VTWO"
+      },
+      {
+        "name": "Product Type",
+        "value": "Zip-Up Casual Jacket"
+      },
+      {
+        "name": "Style",
+        "value": "Minimalist, Casual, Streetwear"
+      },
+      {
+        "name": "Gender",
+        "value": "Unisex Style"
+      },
+      {
+        "name": "Primary Color",
+        "value": "Cream / Off-White"
+      },
+      {
+        "name": "Material",
+        "value": "Not specified"
+      },
+      {
+        "name": "Fabric Appearance",
+        "value": "Smooth, Structured"
+      },
+      {
+        "name": "Fit Type",
+        "value": "Oversized / Relaxed"
+      },
+      {
+        "name": "Collar Type",
+        "value": "Classic Pointed Collar"
+      },
+      {
+        "name": "Closure Type",
+        "value": "Full-Front Zipper"
+      },
+      {
+        "name": "Sleeve Length",
+        "value": "Long Sleeve"
+      },
+      {
+        "name": "Shoulder Style",
+        "value": "Dropped Shoulder"
+      },
+      {
+        "name": "Pocket Type",
+        "value": "Two Front Welt Pockets"
+      },
+      {
+        "name": "Pattern",
+        "value": "Solid Color"
+      },
+      {
+        "name": "Hem Style",
+        "value": "Straight Hem"
+      },
+      {
+        "name": "Cuff Style",
+        "value": "Plain Finished Cuffs"
+      },
+      {
+        "name": "Jacket Length",
+        "value": "Hip-Length Appearance"
+      },
+      {
+        "name": "Suitable Season",
+        "value": "Spring, Autumn, Mild Winter"
+      },
+      {
+        "name": "Occasion",
+        "value": "Casual, Daily Wear, Travel, Streetwear"
+      },
+      {
+        "name": "Care Instructions",
+        "value": "Follow the garment's care label"
+      }
+    ],
+    "variants": [],
+    "preorder": {
+      "enabled": false,
+      "limit": 0,
+      "reservedQuantity": 0,
+      "preorderOnly": false,
+      "autoConvert": true,
+      "paymentMode": "full",
+      "depositType": "percentage",
+      "depositValue": 0
+    },
+    "options": [],
+    "seo": {
+      "pageTitle": "Cream Oversized Zip-Up Jacket",
+      "metaDescription": "Elevate your everyday wardrobe with the VTWO Premium Cream Oversized Zip-Up Jacket, a perfect combination of minimalist fashion, contemporary streetwear, and...",
+      "handle": "cream-oversized-zip-up-jacket"
+    },
+    "publishing": {
+      "onlineStore": true,
+      "pointOfSale": true
+    },
+    "returns": {
+      "finalSale": false,
+      "windowDays": null
+    },
+    "shipping": {
+      "isPhysicalProduct": true,
+      "weight": 0,
+      "weightUnit": "kg"
+    },
+    "status": "active",
+    "featured": false,
+    "rating": 0,
+    "reviewCount": 0,
+    "locationInventory": [],
+    "priceRange": {
+      "min": 1890,
+      "max": 1890
+    },
+    "createdAt": {
+      "$date": "2026-10-11T11:53:35.084Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-11T11:53:35.084Z"
     },
     "__v": 0
   }

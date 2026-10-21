@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Check, Search, Store } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,6 +63,7 @@ export function POSLocationPicker({
   onConfirm,
   cashierName,
 }: POSLocationPickerProps) {
+  const t = useTranslations("pos.counter");
   const [query, setQuery] = React.useState("");
   const searchRef = React.useRef<HTMLInputElement>(null);
 
@@ -251,7 +253,7 @@ export function POSLocationPicker({
                 dense ? "text-xs" : "text-[13px]",
               )}
             >
-              {[location.area, location.isDefault ? "Default location" : ""]
+              {[location.area, location.isDefault ? t("defaultLocation") : ""]
                 .filter(Boolean)
                 .join(" · ")}
             </span>
@@ -291,11 +293,10 @@ export function POSLocationPicker({
             <Store className="h-6 w-6" />
           </span>
           <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">
-            Which counter are you at?
+            {t("pickerTitle")}
           </h1>
           <p className="max-w-lg text-sm text-muted-foreground sm:text-[15px]">
-            Stock, held sales and every receipt printed on this register follow
-            this choice.
+            {t("pickerNote")}
           </p>
         </div>
 
@@ -306,7 +307,7 @@ export function POSLocationPicker({
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Find your counter..."
+              placeholder={t("findYourCounter")}
               className="h-11 rounded-xl pl-11"
             />
           </div>
@@ -322,7 +323,7 @@ export function POSLocationPicker({
               <>
                 <section className="flex flex-col gap-2.5">
                   <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                    Recent on this device
+                    {t("recentOnDevice")}
                   </span>
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     {recents.map((location) =>
@@ -333,7 +334,7 @@ export function POSLocationPicker({
 
                 <section className="flex flex-col gap-2.5">
                   <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                    Other counters
+                    {t("otherCounters")}
                   </span>
                   <div
                     className={cn(
@@ -351,7 +352,7 @@ export function POSLocationPicker({
               </>
             ) : filtered.length === 0 ? (
               <p className="py-12 text-center text-sm text-muted-foreground">
-                No counter matches that.
+                {t("noMatch")}
               </p>
             ) : (
               <div
@@ -382,28 +383,30 @@ export function POSLocationPicker({
                 : "cursor-not-allowed bg-muted text-muted-foreground",
             )}
           >
-            {selected ? `Start selling at ${selected.name}` : "Pick a counter"}
+            {selected
+              ? t("startSellingAt", { name: selected.name })
+              : t("pickCounter")}
             <ArrowRight className="h-4 w-4" />
           </button>
 
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <span className="text-[13px] text-muted-foreground">
-              {cashierName ? `Signed in as ${cashierName}` : "Signed in"}
+              {cashierName
+                ? t("signedInAs", { name: cashierName })
+                : t("signedIn")}
             </span>
             {/* Honest about its own reach. Claiming "1–9" covers the list is
                 true at nine counters and a lie at thirty. */}
             <span className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
-              {keyOrder.length > MAX_NUMBER_SHORTCUTS ? (
-                <>
-                  <Kbd>1</Kbd>&ndash;<Kbd>9</Kbd> for the first nine, type to
-                  find the rest,
-                </>
-              ) : keyOrder.length > 1 ? (
-                <>
-                  Press <Kbd>1</Kbd>&ndash;<Kbd>{keyOrder.length}</Kbd> to pick,
-                </>
-              ) : null}
-              <Kbd>Enter</Kbd> to start
+              {keyOrder.length > MAX_NUMBER_SHORTCUTS
+                ? t.rich("shortcutsMany", { key: (chunks) => <Kbd>{chunks}</Kbd> })
+                : keyOrder.length > 1
+                  ? t.rich("shortcutsFew", {
+                      last: keyOrder.length,
+                      key: (chunks) => <Kbd>{chunks}</Kbd>,
+                    })
+                  : null}
+              {t.rich("shortcutEnter", { key: (chunks) => <Kbd>{chunks}</Kbd> })}
             </span>
           </div>
 
@@ -417,7 +420,7 @@ export function POSLocationPicker({
             onClick={() => onConfirm("")}
             className="mx-auto cursor-pointer text-[13px] font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
-            Sell from shared stock instead
+            {t("sellFromShared")}
           </button>
         </div>
       </div>

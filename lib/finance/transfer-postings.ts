@@ -36,10 +36,11 @@ export async function postTransferWriteOff(params: {
   const [ownVendorIds, products, settings] = await Promise.all([
     getDefaultVendorIds(),
     Product.find({ _id: { $in: [...new Set(rejected.map((line) => line.productId))] } })
-      .select("vendorId cost variants._id variants.cost")
+      .select("vendorId cost inventoryFinanceGeneration variants._id variants.cost")
       .lean<
         Array<{
           _id: unknown;
+          inventoryFinanceGeneration?: number;
           vendorId?: unknown;
           cost?: number;
           variants?: Array<{ _id?: unknown; cost?: number }>;
@@ -56,6 +57,7 @@ export async function postTransferWriteOff(params: {
   for (const line of rejected) {
     const product = productById.get(line.productId);
     if (!product || !ownVendorIds.has(String(product.vendorId))) continue;
+    if (product.inventoryFinanceGeneration === 1) continue;
 
     const variant = line.variantId
       ? (product.variants || []).find((entry) => String(entry._id) === line.variantId)

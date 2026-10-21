@@ -39,7 +39,7 @@ export function VerifyEmailPanel({ email, locale }: { email: string; locale: str
   return (
     <Card className="shadow-lg">
       <CardHeader className="text-center">
-        <MailCheck className="mx-auto mb-2 h-10 w-10 text-primary" />
+        <MailCheck className="mx-auto mb-2 h-10 w-10 text-store-link" />
         <CardTitle>Check your email</CardTitle>
         <CardDescription>
           We sent a verification link{address ? <> to <strong>{address}</strong></> : " to your email address"}.

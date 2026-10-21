@@ -1,4 +1,5 @@
 import "server-only";
+import { DELIVERY_ATTESTED_BY } from "@/lib/orders/delivery-attestation";
 
 import { Order } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
@@ -37,6 +38,19 @@ interface TrackingCascadeResult {
  * Record a parcel's tracking on its sub-order and, when every sibling has
  * caught up, on the order.
  */
+/** A carrier's delivery time, clamped to [shipped, now]; `now` when absent. */
+export function carrierDeliveryTime(
+  occurredAt: Date | string | null | undefined,
+  shippedAt: Date | string | null | undefined,
+  now: Date,
+): Date {
+  const at = occurredAt ? new Date(occurredAt).getTime() : NaN;
+  if (!Number.isFinite(at)) return now;
+  const floor = shippedAt ? new Date(shippedAt).getTime() : NaN;
+  const clamped = Math.min(now.getTime(), Number.isFinite(floor) ? Math.max(floor, at) : at);
+  return new Date(clamped);
+}
+
 export async function applyShipmentTrackingToOrder(params: {
   orderId: string;
   subOrderId?: string;
@@ -48,14 +62,34 @@ export async function applyShipmentTrackingToOrder(params: {
    * who turned *Mark the order shipped* off is asking for exactly that split.
    */
   targetStatus?: OrderStatusValue;
+  /** The shipment's seller, to find its consignment when it names none. */
+  vendorId?: string;
+  /**
+   * When the carrier says it happened. A delivery is dated by the carrier's
+   * own scan, not by when a webhook or a "Refresh tracking" got round to it:
+   * the payout hold and the return window both count from that date.
+   */
+  occurredAt?: Date;
 }): Promise<TrackingCascadeResult> {
   const order = await Order.findById(params.orderId).lean<IOrder | null>();
   if (!order) return { applied: false, reason: "order_missing" };
 
   const subOrders = order.subOrders || [];
+  // The parcel's own consignment. A shipment recorded without one (older or
+  // hand-entered rows) is matched by its seller; the first consignment was
+  // taken before, which on a split order moved another seller's parcel —
+  // and with it their payout clock.
+  const bySeller = params.vendorId
+    ? subOrders.filter((entry) => String(entry.vendorId) === String(params.vendorId))
+    : [];
   const subOrder: SubOrder | undefined = params.subOrderId
     ? subOrders.find((entry) => String(entry._id) === params.subOrderId)
-    : subOrders[0];
+    : bySeller.length === 1
+      ? bySeller[0]
+      : subOrders.length === 1 || !params.targetStatus
+        ? // Only a tracking number to record: the first consignment, as before.
+          subOrders[0]
+        : undefined;
   if (!subOrder) return { applied: false, reason: "sub_order_missing" };
 
   // Step 1 — the sub-order this parcel actually belongs to.
@@ -92,6 +126,10 @@ export async function applyShipmentTrackingToOrder(params: {
   }
 
   const now = new Date();
+  // The carrier's own time for the delivery, kept between the parcel leaving
+  // and now — a clock on the carrier's side cannot date it in the future, or
+  // before it shipped.
+  const deliveredAt = carrierDeliveryTime(params.occurredAt, subOrder.shippedAt ?? order.createdAt, now);
   // Each step only over the status the previous one left. A carrier scan and
   // a cancellation landing together both started from the same read, and the
   // scan's unconditional write put a consignment that had just been cancelled
@@ -108,7 +146,10 @@ export async function applyShipmentTrackingToOrder(params: {
             ? { "subOrders.$[so].shippedAt": now }
             : {}),
           ...(step.to === ORDER_STATUS.DELIVERED
-            ? { "subOrders.$[so].deliveredAt": now }
+            ? {
+                "subOrders.$[so].deliveredAt": deliveredAt,
+                "subOrders.$[so].deliveryAttestedBy": DELIVERY_ATTESTED_BY.CARRIER,
+              }
             : {}),
         },
       },
@@ -175,10 +216,11 @@ export async function applyShipmentTrackingToOrder(params: {
   for (const step of orderPath) {
     const updates = buildOrderStatusUpdates({
       status: step.to,
-      changedAt: new Date(),
+      changedAt: step.to === ORDER_STATUS.DELIVERED ? deliveredAt : new Date(),
       changedBy: "system",
       trackingNumber: params.trackingNumber,
       carrier: params.carrier,
+      deliveryAttestedBy: DELIVERY_ATTESTED_BY.CARRIER,
     });
     // Optimistic-concurrency guard: a merchant cancelling while a webhook lands
     // must win, not be silently overwritten.

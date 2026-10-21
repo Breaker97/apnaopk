@@ -134,7 +134,10 @@ export default async function BlogIndexPage({
         ) : (
           <>
             {featuredPost ? (
-              <FeaturedPost post={featuredPost} />
+              <FeaturedPost
+                post={featuredPost}
+                labels={{ featured: t("common.featured"), noImage: t("common.noImage") }}
+              />
             ) : null}
 
             {gridPosts.length > 0 ? (
@@ -243,7 +246,7 @@ function ReadMoreLink({ href }: { href: string }) {
     <Link
       href={href}
       data-slot="button"
-      className="group inline-flex h-9 shrink-0 items-center gap-2 border border-foreground/80 bg-background px-4 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary md:h-10 md:px-6 md:text-sm"
+      className="group inline-flex h-9 shrink-0 items-center gap-2 border border-foreground/80 bg-background px-4 text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-store-link md:h-10 md:px-6 md:text-sm"
     >
       Read More
       <MoveRight
@@ -256,8 +259,10 @@ function ReadMoreLink({ href }: { href: string }) {
 
 function FeaturedPost({
   post,
+  labels,
 }: {
   post: BlogListItem;
+  labels: { featured: string; noImage: string };
 }) {
   const href = `/blog/${post.slug}`;
 
@@ -277,17 +282,17 @@ function FeaturedPost({
           />
         ) : (
           <div className="grid h-full w-full place-items-center bg-muted text-sm text-muted-foreground">
-            No image
+            {labels.noImage}
           </div>
         )}
-        <span className="absolute left-2.5 top-2.5 inline-flex h-6 items-center rounded-full bg-primary px-2.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground md:hidden">
-          Featured
+        <span className="absolute left-2.5 top-2.5 inline-flex h-6 items-center rounded-full bg-highlight px-2.5 text-[10px] font-bold uppercase tracking-wider text-highlight-foreground">
+          {labels.featured}
         </span>
       </Link>
 
       <div className="flex min-h-full flex-col justify-center">
         <Link href={href}>
-          <h2 className="max-w-md text-xl font-bold leading-snug text-foreground transition-colors hover:text-primary md:text-[32px] md:leading-tight">
+          <h2 className="max-w-md text-xl font-bold leading-snug text-foreground transition-colors hover:text-store-link md:text-[32px] md:leading-tight">
             {post.title}
           </h2>
         </Link>

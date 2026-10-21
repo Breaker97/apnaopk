@@ -31,6 +31,7 @@ import { BrandingPanel } from "@/components/admin/online-store/branding-panel";
 import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { apiClient, ApiClientError } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/stores/app-settings";
 import {
   isThemePageTab,
   type ThemePageTab,
@@ -38,6 +39,7 @@ import {
 import { ThemeCustomCss } from "@/components/admin/store-pages/theme-custom-css";
 import { themePreviewSrc } from "@/lib/storefront/themes/preview";
 import type { ThemeManifest } from "@/lib/storefront/themes/types";
+import { KEY_COLOR_META, KEY_COLOR_ROLES } from "@/lib/storefront/themes/tokens";
 
 /** Mirrors the activation API's `starter` modes — see its route doc. */
 type StarterMode = "keep" | "draft" | "publish";
@@ -46,8 +48,9 @@ type StarterMode = "keep" | "draft" | "publish";
  * The Themes page — the one hub for everything visual — in three tabs:
  *
  * - **Select theme**: the manifest-driven gallery + activation.
- * - **Branding**: the store's identity (logo set, brand colors, default
- *   appearance). GLOBAL — survives every theme switch.
+ * - **Branding**: the store's identity (logo set, default appearance).
+ *   GLOBAL — survives every theme switch. Colours are each theme's own
+ *   (Theme settings → Colors).
  * - **Theme settings**: opens the theme editor (its own route — a
  *   three-pane workspace), where the active theme's tokens are edited.
  *
@@ -58,11 +61,14 @@ type StarterMode = "keep" | "draft" | "publish";
 export function ThemeGallery({
   manifests,
   activeThemeId,
+  palettes = {},
   initialTab = "theme",
   customCss = "",
 }: {
   manifests: (ThemeManifest & { hasStarter?: boolean })[];
   activeThemeId: string;
+  /** Each theme's own key colours (primary, secondary, accent, loading). */
+  palettes?: Record<string, readonly string[]>;
   initialTab?: ThemePageTab;
   /** The active theme's sheet, seeded server-side like the tab itself. */
   customCss?: string;
@@ -85,6 +91,7 @@ export function ThemeGallery({
     try {
       const result = await apiClient.post<{
         theme: string;
+        brand?: { primaryColor?: string; secondaryColor?: string; accentColor?: string };
         values: Record<string, unknown>;
         seededTemplates: string[];
         draftedTemplates: string[];
@@ -94,6 +101,9 @@ export function ThemeGallery({
         starter: mode,
       });
       setActiveId(result.theme);
+      // The dashboards are painted with the live theme's colours (an apparent
+      // sidebar, buttons, links): they follow the new theme without a reload.
+      if (result.brand) useAppSettings.getState().setBrandColors(result.brand);
       toast.success(
         result.publishedTemplates.length > 0
           ? tSafe(
@@ -216,12 +226,29 @@ export function ThemeGallery({
                       )}
                     </div>
                     <div>
-                      <CardTitle>
-                        {tSafe(
-                          `admin.onlineStoreThemePage.themes.${manifest.id}.name`,
-                          manifest.name,
-                        )}
-                      </CardTitle>
+                      <div className="flex items-center justify-between gap-3">
+                        <CardTitle>
+                          {tSafe(
+                            `admin.onlineStoreThemePage.themes.${manifest.id}.name`,
+                            manifest.name,
+                          )}
+                        </CardTitle>
+                        {palettes[manifest.id] ? (
+                          // The theme's own colours: each theme keeps its own,
+                          // so this is what it looks like once it is live.
+                          <span
+                            role="img"
+                            aria-label={KEY_COLOR_ROLES.map((role, index) =>
+                              `${tSafe(`admin.themeEditor.keyColors.${role}.label`, KEY_COLOR_META[role].label)} ${palettes[manifest.id][index]?.toUpperCase() ?? ""}`,
+                            ).join(", ")}
+                            className="flex h-2.5 w-20 shrink-0 overflow-hidden rounded-full shadow-[inset_0_0_0_1px_rgb(15_23_42/0.1)]"
+                          >
+                            {palettes[manifest.id].map((color, index) => (
+                              <span key={index} className="flex-1" style={{ backgroundColor: color }} />
+                            ))}
+                          </span>
+                        ) : null}
+                      </div>
                       <CardDescription className="mt-1 text-sm">
                         {tSafe(
                           `admin.onlineStoreThemePage.themes.${manifest.id}.description`,

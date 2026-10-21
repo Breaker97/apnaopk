@@ -71,6 +71,7 @@ export const GET = withApi(
 
     return successResponse({
       eligible: true,
+      deliveryAvailable: eligibility.deliveryAvailable !== false,
       vendor: pickupAvailabilityVendorDetails({
         vendorId: eligibility.vendorId,
         vendorName: eligibility.vendorName,

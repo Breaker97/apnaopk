@@ -218,7 +218,14 @@ export function PurchasePriceRow() {
         ) : (
           <>
             <span
-              className="text-2xl font-bold tracking-tight text-foreground"
+              className={cn(
+                "text-2xl font-bold tracking-tight",
+                // A real markdown reads in Sale text, as on the card and in
+                // quick view; a full price stays the text colour.
+                displayedComparePrice && displayedComparePrice > displayedPrice
+                  ? "text-store-sale-text"
+                  : "text-foreground",
+              )}
               style={typographyCss(typo.price)}
             >
               {formatDisplayPrice(displayedPrice)}
@@ -235,20 +242,22 @@ export function PurchasePriceRow() {
         )}
         {vis.discountChip && discountPercentage > 0 ? (
           <span
-            className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600 dark:bg-rose-500/15 dark:text-rose-300"
+            className="inline-flex items-center rounded-full bg-store-sale-surface px-2.5 py-1 text-xs font-bold text-store-on-sale-surface"
             style={discountChipCss(sty)}
           >
-            {discountPercentage}% OFF
+            {tf("product.percentOff", "{percent}% OFF", {
+              percent: discountPercentage,
+            })}
           </span>
         ) : null}
         <span
           className={cn(
             "inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold",
             preorderPurchase
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
+              ? "bg-status-info text-status-on-info"
               : availableStock > 0
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-                : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200",
+                ? "bg-status-positive text-status-on-positive"
+                : "bg-status-negative text-status-on-negative",
           )}
           style={stockChipCss(
             sty,
@@ -281,7 +290,7 @@ export function PurchasePriceRow() {
       currentStock > 0 &&
       currentStock < 10 ? (
         <p
-          className="text-sm text-orange-600"
+          className="text-sm font-medium text-status-on-warning"
           style={sty.lowStockColor ? { color: sty.lowStockColor } : undefined}
         >
           {tf("product.lowStock", "Only {count} left in stock", {
@@ -292,7 +301,7 @@ export function PurchasePriceRow() {
       {collectionAtBranch ? (
         <div className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
           <Store
-            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+            className="mt-0.5 h-4 w-4 shrink-0 text-store-link"
             aria-hidden="true"
           />
           <span className="min-w-0">
@@ -345,7 +354,7 @@ export function PurchaseVariantsRow() {
             {isSizeOptionName(opt.name) ? (
               <button
                 type="button"
-                className="text-xs font-medium text-sky-600 hover:text-sky-500"
+                className="text-xs font-medium text-store-link underline-offset-2 hover:underline"
                 onClick={() => setIsSizeGuideOpen(true)}
               >
                 {t("product.sizeGuide")}
@@ -371,7 +380,7 @@ export function PurchaseVariantsRow() {
               "text-sm font-medium",
               unansweredOptions.length > 0
                 ? "text-muted-foreground"
-                : "text-orange-600 dark:text-orange-400",
+                : "text-status-on-warning",
             )}
           >
             {variantChoicePrompt}
@@ -434,7 +443,7 @@ export function PurchaseCartRow() {
           <Button
             size="lg"
             className={cn(
-              "h-11 min-w-[120px] bg-foreground text-sm font-bold text-background hover:bg-foreground/90",
+              "h-11 min-w-[120px] bg-store-secondary text-sm font-bold text-store-on-secondary hover:bg-store-secondary/90",
               sty.buttonLayout === "stacked" ? "w-full" : "flex-1",
             )}
             style={purchaseButtonCss(sty, "cart")}
@@ -460,7 +469,7 @@ export function PurchaseCartRow() {
         ) : null}
       </div>
       {preorderPurchase ? (
-        <div className="space-y-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100">
+        <div className="space-y-3 rounded-md border border-status-on-info/20 bg-status-info px-4 py-3 text-sm text-status-on-info">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-semibold">
               {preorderDateLabel
@@ -470,14 +479,14 @@ export function PurchaseCartRow() {
                 : tf("product.preorderShipsSoon", "Expected to ship soon")}
             </p>
             {Number.isFinite(preorderRemaining) ? (
-              <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-500/20 dark:text-blue-100">
+              <span className="rounded-full bg-background/80 px-2.5 py-1 text-xs font-semibold text-status-on-info">
                 {Math.max(0, preorderRemaining)} spots left
               </span>
             ) : null}
           </div>
-          <div className="grid gap-2 rounded-md bg-white/70 p-3 text-xs text-blue-900 dark:bg-blue-950/30 dark:text-blue-100 sm:grid-cols-2">
+          <div className="grid gap-2 rounded-md bg-background/70 p-3 text-xs text-status-on-info sm:grid-cols-2">
             <div>
-              <span className="block text-blue-700/80 dark:text-blue-200/80">
+              <span className="block text-status-on-info/80">
                 Due today
               </span>
               <span className="font-semibold">
@@ -485,7 +494,7 @@ export function PurchaseCartRow() {
               </span>
             </div>
             <div>
-              <span className="block text-blue-700/80 dark:text-blue-200/80">
+              <span className="block text-status-on-info/80">
                 Due before shipping
               </span>
               <span className="font-semibold">
@@ -500,7 +509,7 @@ export function PurchaseCartRow() {
                 rather than left for the shopper to discover at the
                 payment step. */}
             {preorderTerms.dueLater > 0 ? (
-              <p className="text-blue-700/80 dark:text-blue-200/80 sm:col-span-2">
+              <p className="text-status-on-info/80 sm:col-span-2">
                 {tf(
                   "product.preorderShippingAtCheckout",
                   "Shipping and tax are charged at checkout.",

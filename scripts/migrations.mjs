@@ -693,6 +693,98 @@ export const MIGRATIONS = [
     summary:
       "Report the store's own vendor profile and repair the unambiguous cases: flag or slug a lone house, clear a stray isDefault from vendors with no orders or ledger history, and create the unique slug/userId indexes. Sellers with history keep their flag so finance posts nothing twice.",
   },
+  // ---------------------------------------------------------------- 3.0 → 3.1
+  {
+    name: "header-theme-colors",
+    script: "migrate-header-theme-colors.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.1",
+    need: "recommended",
+    auto: true,
+    summary:
+      "Let the header's brand-coloured surfaces follow Theme settings → Colors: an All Categories button, Tinted sidebar panel or Banner nav strip still painted a blue the header shipped with becomes the theme's primary, with readable text. Any colour a merchant chose is left alone. Safe to re-run.",
+  },
+  {
+    name: "ai-widget-theme-colors",
+    script: "migrate-ai-widget-theme-colors.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.1",
+    need: "recommended",
+    auto: true,
+    summary:
+      "Let an AI sales widget that still wears the purple it shipped with (#7c3aed → #a855f7) follow Theme settings → Colors: both colours become the theme's primary. A widget whose colours a merchant changed is left alone. Safe to re-run.",
+  },
+  {
+    name: "theme-key-colors",
+    script: "migrate-theme-key-colors.ts",
+    runner: "tsx",
+    envFiles: ENV_STRICT,
+    since: "3.1",
+    need: "recommended",
+    auto: true,
+    summary:
+      "Give every theme its own key colours (primary, secondary, accent, loading): each theme still following the one store-wide brand gets its own copy of it, so nothing changes on screen and colouring one theme no longer changes the others. The store brand then mirrors the live theme. Safe to re-run.",
+  },
+  {
+    name: "team-role-indexes",
+    script: "migrate-team-role-indexes.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.1",
+    need: "conditional",
+    when: "MONGODB_AUTO_INDEX=false",
+    auto: true,
+    summary:
+      "Create the indexes team roles need: one role per key (unique), and each role's members on the admin and staff profiles. The built-in Administrator and Manager roles are made by the app on first use. Purely additive.",
+  },
+  {
+    name: "team-staff-role",
+    script: "migrate-team-staff-role.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.1",
+    need: "recommended",
+    auto: true,
+    summary:
+      "Move each of the store's staff onto the built-in Staff role, keeping their own permission list as changes from it, so editing the Staff role reaches them. Also rewrites three Point of Sale permissions nothing checked (create, edit, delete) as the register permission they stood for. A vendor's own staff are left alone. Safe to re-run.",
+  },
+  {
+    name: "team-access-hierarchy",
+    script: "migrate-team-access-hierarchy.mjs",
+    runner: "node",
+    envFiles: ENV_STRICT,
+    since: "3.1",
+    need: "recommended",
+    auto: true,
+    summary:
+      "Put every administrator who has no team role on the built-in Administrator role, so each one's access is written down, and give the roles and administrators holding Manage team its three new separate grants (add members, change roles, change permissions). Lists the roles holding a permission only the Owner may now give, for review. Safe to re-run.",
+  },
+  {
+    name: "demo-sync",
+    script: "sync-demo-store.mjs",
+    runner: "tsx",
+    envFiles: ENV_OPTIONAL,
+    since: "3.1",
+    need: "optional",
+    when: "you run a demo store seeded from a template",
+    auto: false,
+    autoReason:
+      "it rewrites a demo store's catalog and storefront from its template's snapshot — demo deployments only, with the template named",
+    options: ["--template=<id>", "--prune", "--force", "--overwrite-newer"],
+    optionNotes: {
+      "--template=<id>":
+        "Required: the template the demo store dresses (a directory under scripts/seed-data).",
+      "--prune":
+        "Also retire what the snapshot no longer has: products become drafts, sliders no page binds and empty landing pages are deleted.",
+      "--force": "Sync a store that wears another theme.",
+      "--overwrite-newer":
+        "Replace documents the store changed after the snapshot was exported; without it the sync names them and writes nothing.",
+    },
+    summary:
+      "Bring a demo store seeded with pnpm db:seed up to date with its template's snapshot (catalog, storefront, advertised coupons, presentation settings), keeping its accounts, orders and credentials.",
+  },
   {
     name: "product-search",
     script: "backfill-product-search.ts",
@@ -755,7 +847,7 @@ export const MIGRATIONS = [
 ];
 
 /** Release sections, in upgrade order, for grouping `--list` output. */
-export const RELEASES = ["1.4", "1.5", "2.0", "2.1", "2.3", "2.4", "3.0"];
+export const RELEASES = ["1.4", "1.5", "2.0", "2.1", "2.3", "2.4", "3.0", "3.1"];
 
 const BY_NAME = new Map(MIGRATIONS.map((m) => [m.name, m]));
 
@@ -827,6 +919,22 @@ export function envFileFlags(migration) {
   return migration.envFiles === ENV_OPTIONAL
     ? ["--env-file-if-exists=.env", "--env-file-if-exists=.env.local"]
     : ["--env-file=.env"];
+}
+
+/**
+ * The shim a TypeScript migration needs to load the app's own modules.
+ *
+ * Since the finance layer (8807f125) the Product model's import chain reaches
+ * `server-only` and `next/cache`, and both throw outside a Next server — so
+ * every migration that imports a model failed before its first line ran.
+ * `scripts/lib/finance-cli.cjs` stubs the first and turns the second into a
+ * passthrough: the same shim the finance CLIs and `pnpm db:seed` load.
+ */
+export const TSX_CLI_SHIM = "./scripts/lib/finance-cli.cjs";
+
+/** Flags for the runner itself, placed before the script path. */
+export function runnerFlags(migration) {
+  return migration.runner === "tsx" ? ["--require", TSX_CLI_SHIM] : [];
 }
 
 /** How a migration is described in `--list` / UPGRADE.md ("Run it?" column). */

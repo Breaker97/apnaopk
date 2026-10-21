@@ -10,6 +10,7 @@ import {
   Eye,
   Pencil,
   Plus,
+  ShieldCheck,
   Trash2,
   UserCheck,
   UserMinus,
@@ -44,6 +45,8 @@ interface StaffListItem {
   role?: string;
   /** Owner-designated administrator; protected from every destructive action. */
   isOwner?: boolean;
+  /** The member's team role by name (lib/access/staff-list.ts); null for a vendor's staff. */
+  teamRoleName?: string | null;
   createdAt: string;
   staffProfile: {
     _id: string;
@@ -66,14 +69,17 @@ interface StaffDataTableProps {
     total: number;
     totalPages: number;
   };
+  /**
+   * What the viewer may do to the team (the admin dashboard): add members,
+   * and manage them (status, removal). Absent: every action is offered. The
+   * API refuses the rest either way.
+   */
+  teamActions?: { add: boolean; manage: boolean };
 }
 
 const PERMISSION_LABELS: Record<string, string> = {
   access_pos: "POS",
-  manage_pos: "Manage POS",
-  create_pos: "POS Create",
-  edit_pos: "POS Edit",
-  delete_pos: "POS Delete",
+  manage_pos: "Manage the till",
   view_orders: "Orders",
   manage_orders: "Manage Orders",
   create_orders: "Create Orders",
@@ -108,12 +114,16 @@ const ROLE_STYLES = {
   staff: "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
 };
 
-/** Green and amber as on the stats strip's Active and Inactive cards. */
+/**
+ * Green and amber as on the stats strip's Active and Inactive cards. A staff
+ * member whose old access switch is off reads as Paused, like an inactive one:
+ * the edit page folds the two into one Status.
+ */
 const STATUS_STYLES: Record<ReturnType<typeof resolveMemberStatus>, string> = {
   active:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
   accessOff:
-    "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+    "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
   inactive:
     "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
   suspended: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
@@ -134,7 +144,10 @@ export function StaffDataTable({
   area = "admin",
   data,
   pagination,
+  teamActions,
 }: StaffDataTableProps) {
+  const mayAdd = teamActions?.add ?? true;
+  const mayManage = teamActions?.manage ?? true;
   const t = useTranslations();
   const tr = useAdminPhrase();
   const router = useRouter();
@@ -301,11 +314,13 @@ export function StaffDataTable({
                   </span>
                 ) : row.role === "admin" ? (
                   <span className={`${BADGE_CLASS} ${ROLE_STYLES.admin}`}>
-                    {tr("Administrator", "প্রশাসক")}
+                    {row.teamRoleName && row.teamRoleName !== "Administrator"
+                      ? row.teamRoleName
+                      : tr("Administrator", "প্রশাসক")}
                   </span>
                 ) : (
                   <span className={`${BADGE_CLASS} ${ROLE_STYLES.staff}`}>
-                    {tr("Staff", "স্টাফ")}
+                    {row.teamRoleName ?? tr("Staff", "স্টাফ")}
                   </span>
                 ),
               className: "w-[130px]",
@@ -319,8 +334,8 @@ export function StaffDataTable({
           const status = resolveMemberStatus(row);
           const labels = {
             active: tr("Active", "সক্রিয়"),
-            accessOff: tr("Access off", "অ্যাক্সেস বন্ধ"),
-            inactive: tr("Inactive", "নিষ্ক্রিয়"),
+            accessOff: tr("Paused", "বিরতিতে"),
+            inactive: tr("Paused", "বিরতিতে"),
             suspended: tr("Suspended", "স্থগিত"),
           };
           return (
@@ -351,7 +366,9 @@ export function StaffDataTable({
           if (row.role === "admin") {
             return (
               <span className="text-muted-foreground">
-                {tr("Full access", "সম্পূর্ণ অ্যাক্সেস")}
+                {row.isOwner || !row.teamRoleName || row.teamRoleName === "Administrator"
+                  ? tr("Full access", "সম্পূর্ণ অ্যাক্সেস")
+                  : tr("By role", "রোল অনুযায়ী")}
               </span>
             );
           }
@@ -395,7 +412,7 @@ export function StaffDataTable({
     () => [
       { id: "all", label: tr("All", "সব") },
       { id: "active", label: tr("Active", "সক্রিয়") },
-      { id: "inactive", label: tr("Inactive", "নিষ্ক্রিয়") },
+      { id: "inactive", label: tr("Paused", "বিরতিতে") },
       { id: "banned", label: tr("Suspended", "স্থগিত") },
     ],
     [tr],
@@ -405,13 +422,31 @@ export function StaffDataTable({
     () =>
       buildAdminCommerceTableHeader({
         title: tr("Team Members", "টিম সদস্য"),
-        addAction: {
-          id: "add",
-          label: tr("Add team member", "টিম সদস্য যোগ করুন"),
-          href: `${staffBasePath}/new`,
-          icon: <Plus className="h-4 w-4" />,
-          variant: "default",
-        },
+        ...(mayAdd
+          ? {
+              addAction: {
+                id: "add",
+                label: tr("Add team member", "টিম সদস্য যোগ করুন"),
+                href: `${staffBasePath}/new`,
+                icon: <Plus className="h-4 w-4" />,
+                variant: "default" as const,
+              },
+            }
+          : {}),
+        // What each kind of member may do: the Roles screen.
+        ...(area === "admin"
+          ? {
+              secondaryActions: [
+                {
+                  id: "roles",
+                  label: tr("Roles", "রোল"),
+                  href: `${staffBasePath}/roles`,
+                  icon: <ShieldCheck className="h-4 w-4" />,
+                  variant: "outline" as const,
+                },
+              ],
+            }
+          : {}),
         // Export only: the team is added one person at a time (each needs a
         // role and an invitation), so there is no import to hang a menu on.
         importExportAction: {
@@ -422,11 +457,11 @@ export function StaffDataTable({
           onClick: handleExport,
         },
       }),
-    [handleExport, staffBasePath, tr],
+    [area, handleExport, mayAdd, staffBasePath, tr],
   );
 
   const bulkActions = useMemo<DataTableBulkAction<StaffListItem>[]>(
-    () => [
+    () => !mayManage ? [] : [
       {
         id: "set-active",
         label: tr("Set active", "সক্রিয় করুন"),
@@ -436,7 +471,7 @@ export function StaffDataTable({
       },
       {
         id: "set-inactive",
-        label: tr("Set inactive", "নিষ্ক্রিয় করুন"),
+        label: tr("Pause", "বিরতি দিন"),
         icon: <UserMinus className="h-4 w-4" />,
         variant: "outline",
         onClick: (items) => handleBulkStatusUpdate(items, "inactive"),
@@ -456,7 +491,7 @@ export function StaffDataTable({
         onClick: handleBulkDelete,
       },
     ],
-    [handleBulkDelete, handleBulkStatusUpdate, tr],
+    [handleBulkDelete, handleBulkStatusUpdate, mayManage, tr],
   );
 
   const rowActions = useCallback(
@@ -475,7 +510,7 @@ export function StaffDataTable({
       },
       // The server refuses owner removal anyway; hiding the action keeps the
       // refusal from ever being the user's first hint.
-      ...(row.isOwner
+      ...(row.isOwner || !mayManage
         ? []
         : [
             {
@@ -487,7 +522,7 @@ export function StaffDataTable({
             },
           ]),
     ],
-    [handleDelete, staffBasePath, tr],
+    [handleDelete, mayManage, staffBasePath, tr],
   );
 
   return (

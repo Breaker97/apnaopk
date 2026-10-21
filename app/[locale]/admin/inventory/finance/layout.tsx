@@ -1,0 +1,18 @@
+import { requireAdminArea } from "@/lib/access/admin-page-guard";
+
+/**
+ * Opens /admin/inventory/finance to the administrators whose team role reaches it
+ * (lib/access/team-route-permissions.ts); anyone else lands on the first area
+ * they do reach.
+ */
+export default async function AdminInventoryFinanceAreaLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  await requireAdminArea(locale, "/admin/inventory/finance");
+  return children;
+}

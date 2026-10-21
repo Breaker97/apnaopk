@@ -42,41 +42,119 @@ export const COLOR_ROLES = [
   "sale",
   "rating",
   "link",
+  "onAccent", "accentSurface", "onAccentSurface", "hoverSurface", "onHover",
+  "selectedSurface", "onSelected", "focusRing", "fieldBorder",
+  "onSale", "saleText", "saleSurface", "onSaleSurface",
+  "skeleton",
 ] as const;
 export type ColorRole = (typeof COLOR_ROLES)[number];
 
 /**
- * A role's value: a hex color, a brand reference, or "" — the role's own
- * fallback (documented per role in `COLOR_ROLE_META`): the theme's base
- * token for page colors, "same as X" for derived ones.
+ * The roles the Colors editor lists, in the order a merchant reads a page.
+ * Every role in COLOR_ROLES is reachable: these rows, the Advanced rows, or
+ * the "text on" colours inside a row (ROLE_TEXT_ROLES).
+ */
+/**
+ * The four colours a theme is built from, edited as tiles above the rest:
+ * the main buttons, Add to cart, the promo labels and loading placeholders.
+ * Each theme owns its own (colour schema 4), so they never leak between
+ * themes; the dashboards and emails follow the LIVE theme's.
+ */
+export const KEY_COLOR_ROLES = ["primary", "secondary", "accent", "skeleton"] as const;
+export type KeyColorRole = (typeof KEY_COLOR_ROLES)[number];
+
+/** A key colour's short name, and the storefront part its tile shows it on. */
+export const KEY_COLOR_META: Record<KeyColorRole, { label: string; sample?: string }> = {
+  primary: { label: "Primary", sample: "Buy now" },
+  secondary: { label: "Secondary", sample: "Add to cart" },
+  accent: { label: "Accent", sample: "Featured" },
+  // Shown as placeholder bars, not on a part with a label.
+  skeleton: { label: "Loading" },
+};
+
+export const COLOR_ROLE_SECTIONS: { key: string; label: string; roles: ColorRole[] }[] = [
+  { key: "page", label: "Page", roles: ["background", "surface", "surfaceAlt"] },
+  { key: "text", label: "Text", roles: ["text", "textMuted", "link"] },
+  { key: "sales", label: "Sales & ratings", roles: ["sale", "rating"] },
+  { key: "lines", label: "Lines", roles: ["border", "fieldBorder"] },
+];
+
+export const ADVANCED_COLOR_SECTIONS: { key: string; label: string; roles: ColorRole[] }[] = [
+  { key: "states", label: "States", roles: ["hoverSurface", "selectedSurface", "focusRing"] },
+  // accentSurface still compiles (to --highlight-surface) so saved values
+  // keep loading, but no storefront part paints it: the promo labels take the
+  // solid accent. Offering it would be a setting that changes nothing.
+  { key: "soft", label: "Soft backgrounds", roles: ["saleSurface"] },
+];
+
+/** The text colours that belong to a fill, edited inside that fill's row. */
+export const ROLE_TEXT_ROLES: Partial<Record<ColorRole, ColorRole[]>> = {
+  primary: ["onPrimary"],
+  secondary: ["onSecondary"],
+  accent: ["onAccent"],
+  sale: ["onSale", "saleText"],
+  hoverSurface: ["onHover"],
+  selectedSurface: ["onSelected"],
+  accentSurface: ["onAccentSurface"],
+  saleSurface: ["onSaleSurface"],
+};
+
+/**
+ * A role's value: a hex color, or "" — the role's own fallback (documented
+ * per role in `COLOR_ROLE_META`): the theme's base token for page colors,
+ * "same as X" for derived ones. Colour schema 3 also took a brand reference;
+ * schema 4 replaced them with the theme's own colours (adoptThemeKeyColors).
  */
 export const BRAND_COLOR_REFS = [
   "brand.primary",
-  "brand.secondary",
   "brand.accent",
 ] as const;
+/**
+ * Retired in colour schema 3: the brand no longer has a secondary colour of
+ * its own (it painted nothing). A stored reference reads as the theme default.
+ */
+const RETIRED_BRAND_REFS = ["brand.secondary"];
 export type ColorValue = string;
 
 export type ColorScheme = Record<ColorRole, ColorValue>;
 
-const COLOR_ROLE_META: Record<
+/**
+ * What the editor calls each role and what it says the role paints. `hint`
+ * names the places a shopper sees the colour, so a merchant changing it
+ * knows what will move; `fallback` is what "" resolves to.
+ */
+export const COLOR_ROLE_META: Record<
   ColorRole,
   { label: string; hint: string; fallback: string }
 > = {
-  background: { label: "Page background", hint: "Behind everything.", fallback: "Theme default" },
-  surface: { label: "Surface", hint: "Cards, panels, drawers, menus.", fallback: "Same as page" },
-  surfaceAlt: { label: "Surface alt", hint: "Banded sections, chips, skeletons.", fallback: "Theme default" },
-  text: { label: "Text", hint: "Body copy and headings.", fallback: "Theme default" },
-  textMuted: { label: "Text muted", hint: "Captions, meta, placeholders.", fallback: "Theme default" },
-  border: { label: "Border", hint: "Dividers and field borders.", fallback: "Theme default" },
-  primary: { label: "Primary", hint: "Primary buttons, focus rings.", fallback: "Brand primary" },
-  onPrimary: { label: "On primary", hint: "Text on primary buttons.", fallback: "Auto (readable)" },
-  secondary: { label: "Secondary", hint: "Secondary buttons and chips.", fallback: "Same as surface alt" },
-  onSecondary: { label: "On secondary", hint: "Text on secondary buttons.", fallback: "Same as text" },
-  accent: { label: "Accent", hint: "Highlights and hover fills.", fallback: "Brand accent" },
-  sale: { label: "Sale", hint: "Discount badges, deal timers, strike prices.", fallback: "Theme default (red)" },
-  rating: { label: "Rating", hint: "Review stars.", fallback: "Theme default (amber)" },
-  link: { label: "Link", hint: "Inline text links.", fallback: "Same as primary" },
+  background: { label: "Background", hint: "Behind every page.", fallback: "Theme default" },
+  surface: { label: "Cards & menus", hint: "Panels, popovers, dropdowns and menus.", fallback: "Same as background" },
+  surfaceAlt: { label: "Bands & chips", hint: "Banded sections, image backgrounds and neutral chips.", fallback: "Theme default" },
+  text: { label: "Text", hint: "Headings and body copy.", fallback: "Theme default" },
+  textMuted: { label: "Secondary text", hint: "Captions, categories, placeholders.", fallback: "Theme default" },
+  border: { label: "Dividers", hint: "Lines between sections and around cards.", fallback: "Theme default" },
+  primary: { label: "Primary button", hint: "Main buttons, the cart count and active-tab lines.", fallback: "Theme default" },
+  onPrimary: { label: "Text on primary", hint: "Labels on primary buttons.", fallback: "Auto (readable)" },
+  secondary: { label: "Secondary button", hint: "Add to cart and the other second buttons.", fallback: "Same as text" },
+  onSecondary: { label: "Text on secondary", hint: "The label on Add to cart.", fallback: "Auto (readable)" },
+  accent: { label: "Accent", hint: "The Featured label on product cards and badges in the store menu.", fallback: "Theme default" },
+  sale: { label: "Sale", hint: "Discount badges and sale prices.", fallback: "Theme default (red)" },
+  rating: { label: "Rating stars", hint: "Review stars.", fallback: "Theme default (amber)" },
+  link: { label: "Links", hint: "Links, \"View all\" and the active menu item: text in the primary colour, kept readable.", fallback: "Primary, made readable" },
+  onAccent: { label: "Text on accent", hint: "Labels on the accent colour.", fallback: "Auto (readable)" },
+  accentSurface: { label: "Accent background", hint: "A soft tint of the accent behind promotional text.", fallback: "Auto" },
+  onAccentSurface: { label: "Text on accent background", hint: "Text on the accent tint.", fallback: "Auto (readable)" },
+  hoverSurface: { label: "Hover background", hint: "Menus and buttons under the pointer.", fallback: "Auto" },
+  onHover: { label: "Text on hover", hint: "Labels on the hover background.", fallback: "Auto (readable)" },
+  selectedSurface: { label: "Selected background", hint: "Checked items in dropdowns and the active row in menus.", fallback: "Auto" },
+  onSelected: { label: "Text on selected", hint: "Labels on the selected background.", fallback: "Auto (readable)" },
+  focusRing: { label: "Focus ring", hint: "The outline keyboard users follow.", fallback: "Auto" },
+  fieldBorder: { label: "Input borders", hint: "Checkout fields, forms and dropdowns. The header search box has its own border in Header Studio.", fallback: "Auto (readable)" },
+  onSale: { label: "Text on sale", hint: "Labels on solid discount badges.", fallback: "Auto (readable)" },
+  saleText: { label: "Sale text", hint: "Sale prices and savings on the page.", fallback: "Auto (readable)" },
+  saleSurface: { label: "Sale background", hint: "Behind the discount chips beside prices.", fallback: "Auto" },
+  onSaleSurface: { label: "Text on sale background", hint: "Text on the sale tint.", fallback: "Auto (readable)" },
+  skeleton: { label: "Loading placeholder", hint: "The grey blocks shown while a page loads.", fallback: "Theme default" },
 };
 
 const DARK_MODES = ["auto", "custom"] as const;
@@ -95,6 +173,12 @@ const FONT_WEIGHTS = ["400", "500", "600", "700", "800"] as const;
 
 export interface ThemeTokens {
   colors: {
+    /**
+     * 3: a primary/accent left on "" (or naming the brand) follows the one
+     * store-wide brand. 4: the theme owns its key colours; "" is the theme's
+     * own default and brand references are gone (see adoptThemeKeyColors).
+     */
+    schemaVersion: 3 | 4;
     light: ColorScheme;
     /** Read only when `darkMode` is "custom"; "auto" derives from light. */
     dark: ColorScheme;
@@ -166,7 +250,7 @@ const EMPTY_SCHEME = Object.fromEntries(
  * merchant or a preset says otherwise.
  */
 export const BASE_THEME_TOKENS: ThemeTokens = {
-  colors: { light: { ...EMPTY_SCHEME }, dark: { ...EMPTY_SCHEME }, darkMode: "auto" },
+  colors: { schemaVersion: 3, light: { ...EMPTY_SCHEME }, dark: { ...EMPTY_SCHEME }, darkMode: "auto" },
   type: {
     headingFont: "",
     bodyFont: "",
@@ -290,8 +374,8 @@ export const THEME_TOKEN_GROUPS: TokenGroup[] = [
   {
     key: "colors",
     label: "Colors",
-    description:
-      "Your brand, and what this theme does with it. One scheme per mode; a role can reference a brand color or hold its own.",
+    // {theme}: the theme being edited — its colours are its own.
+    description: "Only {theme} uses these colors. Your other themes keep their own.",
     fields: COLOR_ROLES.map((role) => ({
       key: role,
       kind: "color" as const,
@@ -427,21 +511,48 @@ export const THEME_TOKEN_GROUPS: TokenGroup[] = [
 /* Normalization                                                        */
 /* ------------------------------------------------------------------ */
 
-function normalizeColorValue(value: unknown): ColorValue {
+function normalizeColorValue(value: unknown, allowBrandRefs = true): ColorValue {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();
   if (!trimmed) return "";
-  if ((BRAND_COLOR_REFS as readonly string[]).includes(trimmed)) return trimmed;
-  return normalizeColorToHex(trimmed) ?? "";
+  if ((BRAND_COLOR_REFS as readonly string[]).includes(trimmed)) return allowBrandRefs ? trimmed : "";
+  return isValidCssColor(trimmed) ? trimmed.toLowerCase() : normalizeColorToHex(trimmed) ?? "";
 }
 
-function normalizeScheme(raw: unknown, fallback: ColorScheme): ColorScheme {
+function normalizeScheme(raw: unknown, fallback: ColorScheme, allowBrandRefs = true): ColorScheme {
   const source = isRecord(raw) ? raw : {};
   const scheme = { ...fallback };
   for (const role of COLOR_ROLES) {
-    if (role in source) scheme[role] = normalizeColorValue(source[role]);
+    if (!(role in source)) continue;
+    const value = normalizeColorValue(source[role], allowBrandRefs);
+    // "" is a deliberate "use the fallback"; a value that is not a colour at
+    // all keeps the THEME's own default rather than the engine base.
+    const unreadable = value === "" && typeof source[role] === "string" && source[role].trim() !== "";
+    if (!unreadable) scheme[role] = value;
   }
   return scheme;
+}
+
+/**
+ * Colour schema 3 gave the Secondary role a new job: it used to paint tag
+ * chips (now Bands & chips) and paints Add to cart instead, and the brand's
+ * own secondary colour was retired. A value saved for the old job would
+ * repaint Add to cart, so an older document's Secondary (and any reference to
+ * the retired brand secondary) reads as the theme default.
+ */
+function upgradeColorsToSchema3(colors: Record<string, unknown>): Record<string, unknown> {
+  if (typeof colors.schemaVersion === "number" && colors.schemaVersion >= 3) return colors;
+  const upgrade = (scheme: unknown) => {
+    if (!isRecord(scheme)) return scheme;
+    const next: Record<string, unknown> = {};
+    for (const [role, value] of Object.entries(scheme)) {
+      if (role === "secondary") continue;
+      if (typeof value === "string" && RETIRED_BRAND_REFS.includes(value.trim())) continue;
+      next[role] = value;
+    }
+    return next;
+  };
+  return { ...colors, light: upgrade(colors.light), dark: upgrade(colors.dark) };
 }
 
 function normalizeNumber(
@@ -467,7 +578,9 @@ function normalizeField(
 ): unknown {
   switch (field.kind) {
     case "color":
-      return normalizeColorValue(value);
+      // A brand reference was never paintable here (the scrollbar writes the
+      // value into CSS as it is); it falls back to the field's own default.
+      return normalizeColorValue(value, false);
     case "length":
       return normalizeNumber(value, field, fallback as number | "");
     case "font":
@@ -482,6 +595,76 @@ function normalizeField(
 }
 
 /**
+ * Give a theme its own key colours (colour schema 4). Until 3.1 a theme's
+ * primary and accent left on "" — or naming the brand — followed ONE
+ * store-wide brand, so changing them for one theme changed every theme.
+ * Adopting copies that brand into the theme as its own colours: nothing
+ * changes on screen, and from then on each theme is coloured on its own.
+ * Light references become the brand's hex; dark ones go back to Auto (they
+ * follow light, lifted to show on a dark page).
+ */
+export function adoptThemeKeyColors(
+  tokens: ThemeTokens,
+  brand: { primary: string; accent: string; skeleton?: string },
+): ThemeTokens {
+  if (tokens.colors.schemaVersion === 4) return tokens;
+  const hexFor = (value: string) =>
+    value === "brand.primary" ? brand.primary : value === "brand.accent" ? brand.accent : RETIRED_BRAND_REFS.includes(value) ? "" : value;
+  const light = Object.fromEntries(
+    COLOR_ROLES.map((role) => [role, hexFor(tokens.colors.light[role])]),
+  ) as ColorScheme;
+  if (!light.primary) light.primary = brand.primary;
+  if (!light.accent) light.accent = brand.accent;
+  if (!light.skeleton && brand.skeleton) light.skeleton = brand.skeleton;
+  const dark = Object.fromEntries(
+    COLOR_ROLES.map((role) => {
+      const value = tokens.colors.dark[role];
+      return [role, (BRAND_COLOR_REFS as readonly string[]).includes(value) || RETIRED_BRAND_REFS.includes(value) ? "" : value];
+    }),
+  ) as ColorScheme;
+  return { ...tokens, colors: { ...tokens.colors, schemaVersion: 4, light, dark } };
+}
+
+/**
+ * A theme's defaults as the editor offers them: its own key colours (schema
+ * 4), so "Reset" gives the theme's colours rather than following a brand.
+ */
+export function ownKeyColorDefaults(defaults: ThemeTokens): ThemeTokens {
+  return { ...defaults, colors: { ...defaults.colors, schemaVersion: 4 } };
+}
+
+/**
+ * The colours as they are STORED: only roles that differ from the theme's own
+ * defaults. Readers fill the rest from the theme (`normalizeThemeTokens`), so
+ * a later fix to a theme's palette reaches every store that never changed
+ * that colour, and the editor can tell a merchant's own colour from the
+ * theme's. A role equal to its default is omitted, not "" — "" means "the
+ * role's fallback", which for a theme with its own hex is a different colour.
+ */
+export function storedThemeColors(
+  values: ThemeTokens,
+  defaults: ThemeTokens,
+): Omit<ThemeTokens, "colors"> & {
+  colors: Omit<ThemeTokens["colors"], "light" | "dark"> & {
+    light: Partial<ColorScheme>;
+    dark: Partial<ColorScheme>;
+  };
+} {
+  const own = (scheme: ColorScheme, base: ColorScheme): Partial<ColorScheme> =>
+    Object.fromEntries(
+      COLOR_ROLES.filter((role) => scheme[role] !== base[role]).map((role) => [role, scheme[role]]),
+    );
+  return {
+    ...values,
+    colors: {
+      ...values.colors,
+      light: own(values.colors.light, defaults.colors.light),
+      dark: own(values.colors.dark, defaults.colors.dark),
+    },
+  };
+}
+
+/**
  * Merge overrides over defaults, field by field through the schema. Unknown
  * keys are dropped, malformed values fall back, numbers clamp — a tampered
  * or outdated document can only ever produce tokens the schema describes.
@@ -489,17 +672,34 @@ function normalizeField(
 export function normalizeThemeTokens(
   defaults: ThemeTokens,
   overrides: unknown,
+  { strict = false }: { strict?: boolean } = {},
 ): ThemeTokens {
   const source = isRecord(overrides) ? migrateLegacyThemeSettings(overrides) : {};
+  // Colors written by a newer engine. A write must refuse them (it would
+  // rewrite what it cannot read); a render paints the theme's own colors
+  // instead, so a downgraded deployment shows a store rather than a 500.
+  const futureColors =
+    isRecord(source.colors) &&
+    typeof source.colors.schemaVersion === "number" &&
+    source.colors.schemaVersion > 4;
+  if (futureColors && strict) {
+    throw new Error("Unsupported theme color schema version");
+  }
   const result = structuredClone(defaults);
 
   for (const group of THEME_TOKEN_GROUPS) {
     const raw = isRecord(source[group.key]) ? (source[group.key] as Record<string, unknown>) : {};
     if (group.key === "colors") {
-      result.colors.light = normalizeScheme(raw.light, defaults.colors.light);
-      result.colors.dark = normalizeScheme(raw.dark, defaults.colors.dark);
-      result.colors.darkMode = (DARK_MODES as readonly string[]).includes(raw.darkMode as string)
-        ? (raw.darkMode as DarkMode)
+      if (futureColors) continue;
+      const colors = upgradeColorsToSchema3(raw);
+      // A theme that owns its key colours stays so; brand references are
+      // not colours there (adoption replaced them).
+      const owned = colors.schemaVersion === 4;
+      result.colors.schemaVersion = owned ? 4 : 3;
+      result.colors.light = normalizeScheme(colors.light, defaults.colors.light, !owned);
+      result.colors.dark = normalizeScheme(colors.dark, defaults.colors.dark, !owned);
+      result.colors.darkMode = (DARK_MODES as readonly string[]).includes(colors.darkMode as string)
+        ? (colors.darkMode as DarkMode)
         : defaults.colors.darkMode;
       continue;
     }

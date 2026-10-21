@@ -60,6 +60,7 @@ import {
   type SubOrderPaymentShape,
 } from "@/lib/orders/order-payment-status";
 import { quantizeToCurrency, roundMoney } from "@/lib/intl/money";
+import { withRecordedLineTax } from "@/lib/orders/line-tax";
 
 type OrderItemLike = {
   productId: unknown;
@@ -74,6 +75,9 @@ type OrderItemLike = {
   image?: string;
   /** This line's recorded share of the coupon — see `returnedGoodsDiscount`. */
   couponDiscount?: number | null;
+  /** The tax this line carried, where lines were taxed at their own rates. */
+  tax?: number | null;
+  taxRate?: number | null;
   /** A till markdown on this line alone (POS). */
   lineDiscount?: { amount?: number | null } | null;
   /** Sold as final sale — see lib/returns/final-sale.ts. */
@@ -103,6 +107,8 @@ interface ReturnPlanOrder {
       couponDiscount?: number | null;
       shippingCost?: number | null;
       shippingDiscount?: number | null;
+      /** This seller's lines — where an older order recorded each line's tax. */
+      items?: Array<OrderItemLike & { preorderOutstandingAmount?: number | null }> | null;
     }
   > | null;
   subtotal?: number;
@@ -427,6 +433,63 @@ export async function openReturnQuantitiesByOrder(orderIds: unknown[]) {
   }
   return byOrder;
 }
+
+/**
+ * Whether raising what a return holds still fits the order, or why it does not.
+ *
+ * A return holds only what the store agreed to take (`returnClaimedQuantity`),
+ * so approving one of two units frees the other for a new return. Approving it
+ * again afterwards counted nothing else: the order's two units were claimed
+ * three times over, and the stock and the refunds that follow believed it.
+ * Checked the way a new return is — what the order sold, less what the other
+ * open returns hold, less what was refunded line by line — and only for lines
+ * whose claim goes up, so a return already over its line from before this check
+ * can still be edited otherwise.
+ */
+export async function returnClaimProblem(params: {
+  order: { items?: ReadonlyArray<{ name?: string; quantity?: number } | null> | null };
+  orderId: unknown;
+  /** The return being changed: its own claim is the one being replaced. */
+  returnId: unknown;
+  /** Its lines as they stand now. */
+  current: ReadonlyArray<ClaimingLine | null | undefined>;
+  /** Its lines as they would stand. */
+  next: ReadonlyArray<ClaimingLine | null | undefined>;
+}): Promise<string | null> {
+  const before = new Map<number, number>();
+  for (const line of params.current) before.set(Number(line?.orderItemIndex), returnClaimedQuantity(line));
+  const raised = params.next.filter(
+    (line) =>
+      returnClaimedQuantity(line) > (before.get(Number(line?.orderItemIndex)) ?? 0),
+  );
+  if (raised.length === 0) return null;
+
+  const others = await ReturnRequest.find({
+    orderId: params.orderId,
+    status: { $in: QUANTITY_CONSUMING_RETURN_STATUSES },
+    _id: { $ne: params.returnId },
+  })
+    .select("items.orderItemIndex items.quantityRequested items.quantityApproved")
+    .lean<ClaimingReturn[]>();
+  const heldByOthers = buildRequestedByIndex(others || []);
+  const refunded = await refundedQuantitiesByIndex(params.orderId);
+  for (const line of raised) {
+    const index = Number(line?.orderItemIndex);
+    const ordered = Math.max(0, Number(params.order.items?.[index]?.quantity || 0));
+    const left = Math.max(0, ordered - (heldByOthers.get(index) || 0) - (refunded.get(index) || 0));
+    if (returnClaimedQuantity(line) > left) {
+      const name = params.order.items?.[index]?.name || `Item ${index + 1}`;
+      return `Only ${left} of "${name}" is left to take back: another return or a refund already holds the rest of the ${ordered} sold.`;
+    }
+  }
+  return null;
+}
+
+type ClaimingLine = {
+  orderItemIndex?: number;
+  quantityRequested?: number;
+  quantityApproved?: number;
+};
 
 type OpenReturnRow = {
   returnNumber?: string;
@@ -1104,6 +1167,7 @@ function estimateReturnedUnits(params: {
     orderTax: Number(order.tax || 0),
     goodsDiscount,
     recordedGoodsDiscount: returnedGoodsDiscount(order, goodsDiscount, set),
+    recordedTax: returnedRecordedTax(order, set),
     chargedShipping,
     shippingBasis,
     refundsShipping: params.refundsShipping,
@@ -1272,6 +1336,29 @@ type ReturningUnits = {
  *    sellers used to fall back to the order-wide share;
  *  - otherwise null.
  */
+/**
+ * The tax the returning units carried, where every line recorded its own
+ * (lines taxed at their own rates, lib/tax) — or null for the order-wide
+ * share. A return of a tax-free line then hands back no tax, and one of a
+ * line at a higher rate hands back what it was charged.
+ */
+function returnedRecordedTax(order: ReturnPlanOrder, units: ReturningUnits[]): number | null {
+  // The order's own lines record the tax from checkouts that copy it over;
+  // an older order records it on its consignment lines alone.
+  const orderItems = withRecordedLineTax(order.items || [], order.subOrders);
+  if (!orderItems.length || !orderItems.every((item) => typeof item?.tax === "number")) return null;
+  let total = 0;
+  for (const unit of units) {
+    const index = unit.orderItemIndex;
+    const line = typeof index === "number" ? orderItems[index] : undefined;
+    if (!line) return null;
+    const quantity = Math.max(0, Number(line.quantity) || 0);
+    if (quantity <= 0) continue;
+    total += (Math.max(0, Number(line.tax) || 0) * Math.max(0, unit.quantity)) / quantity;
+  }
+  return total;
+}
+
 function returnedGoodsDiscount(
   order: ReturnPlanOrder,
   goodsDiscount: number,

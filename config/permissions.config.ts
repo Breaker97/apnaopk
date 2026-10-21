@@ -628,11 +628,10 @@ export const LEGACY_POLICY_FLAG_OF_PACK: Record<
 
 export const STAFF_PERMISSIONS = {
   // POS
+  /** Use the register: ring up sales at the till. */
   ACCESS_POS: "access_pos",
+  /** Manage the till: discounts, till reports and counters. */
   MANAGE_POS: "manage_pos",
-  CREATE_POS: "create_pos",
-  EDIT_POS: "edit_pos",
-  DELETE_POS: "delete_pos",
 
   // Orders
   VIEW_ORDERS: "view_orders",
@@ -651,6 +650,18 @@ export const STAFF_PERMISSIONS = {
   CREATE_PRODUCTS: "create_products",
   EDIT_PRODUCTS: "edit_products",
   DELETE_PRODUCTS: "delete_products",
+
+  // Shared catalog
+  VIEW_CATEGORIES: "view_categories",
+  MANAGE_CATEGORIES: "manage_categories",
+  CREATE_CATEGORIES: "create_categories",
+  EDIT_CATEGORIES: "edit_categories",
+  DELETE_CATEGORIES: "delete_categories",
+  VIEW_BRANDS: "view_brands",
+  MANAGE_BRANDS: "manage_brands",
+  CREATE_BRANDS: "create_brands",
+  EDIT_BRANDS: "edit_brands",
+  DELETE_BRANDS: "delete_brands",
 
   // Customers
   VIEW_CUSTOMERS: "view_customers",
@@ -690,6 +701,12 @@ export const STAFF_PERMISSIONS = {
   VIEW_ABANDONED_CHECKOUTS: "view_abandoned_checkouts",
   /** Send a recovery email and copy a checkout's recovery link. */
   MANAGE_ABANDONED_CHECKOUTS: "manage_abandoned_checkouts",
+
+  // Campaign banners
+  /** See the store's Campaign Banners (the popups and bars on the Home page). */
+  VIEW_CAMPAIGN_BANNERS: "view_campaign_banners",
+  /** Create, change, pause and delete the store's Campaign Banners. */
+  MANAGE_CAMPAIGN_BANNERS: "manage_campaign_banners",
 } as const;
 
 export type StaffPermission =
@@ -725,6 +742,16 @@ export const ALL_STAFF_PERMISSIONS = Object.values(STAFF_PERMISSIONS);
  * saved before this list existed stop working too.
  */
 export const VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS: readonly StaffPermission[] = [
+  STAFF_PERMISSIONS.VIEW_CATEGORIES,
+  STAFF_PERMISSIONS.MANAGE_CATEGORIES,
+  STAFF_PERMISSIONS.CREATE_CATEGORIES,
+  STAFF_PERMISSIONS.EDIT_CATEGORIES,
+  STAFF_PERMISSIONS.DELETE_CATEGORIES,
+  STAFF_PERMISSIONS.VIEW_BRANDS,
+  STAFF_PERMISSIONS.MANAGE_BRANDS,
+  STAFF_PERMISSIONS.CREATE_BRANDS,
+  STAFF_PERMISSIONS.EDIT_BRANDS,
+  STAFF_PERMISSIONS.DELETE_BRANDS,
   STAFF_PERMISSIONS.MANAGE_CUSTOMERS,
   STAFF_PERMISSIONS.EDIT_CUSTOMERS,
   STAFF_PERMISSIONS.DELETE_CUSTOMERS,
@@ -736,6 +763,10 @@ export const VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS: readonly StaffPermission[] 
   // vendor dashboard, with its own lines only and nobody named.
   STAFF_PERMISSIONS.VIEW_ABANDONED_CHECKOUTS,
   STAFF_PERMISSIONS.MANAGE_ABANDONED_CHECKOUTS,
+  // The platform's banners are the store's front door. A vendor's own staff
+  // manage the vendor's banners through the vendor's store-settings grants.
+  STAFF_PERMISSIONS.VIEW_CAMPAIGN_BANNERS,
+  STAFF_PERMISSIONS.MANAGE_CAMPAIGN_BANNERS,
 ];
 
 /** The staff permissions a vendor may grant its own staff. */
@@ -743,6 +774,61 @@ export const VENDOR_STAFF_PERMISSIONS: StaffPermission[] =
   ALL_STAFF_PERMISSIONS.filter(
     (permission) => !VENDOR_STAFF_PLATFORM_ONLY_PERMISSIONS.includes(permission),
   );
+
+/**
+ * The seller's own permission each staff permission a seller may give stands
+ * on: a seller's staff hold a permission only while the seller's plan (and
+ * the store's policy for sellers) gives the seller what it stands on, so a
+ * seller never hands its staff an area its plan does not include. Where the
+ * staff string is a seller string too it is the same one; customers are the
+ * seller's buyers (its orders), and inventory and reviews are its products'.
+ * The till's management stands on the till. Read where staff permissions are
+ * read (lib/access/staff-authz.ts `sellerStaffAllowance`), and checked when a
+ * seller saves a member. `tests/seller-staff-plan.test.ts` keeps every
+ * permission a seller may give on this list.
+ */
+export const SELLER_PERMISSION_FOR_STAFF: Readonly<Partial<Record<StaffPermission, VendorPermission>>> = {
+  [STAFF_PERMISSIONS.ACCESS_POS]: VENDOR_PERMISSIONS.ACCESS_POS,
+  [STAFF_PERMISSIONS.MANAGE_POS]: VENDOR_PERMISSIONS.ACCESS_POS,
+  [STAFF_PERMISSIONS.VIEW_ORDERS]: VENDOR_PERMISSIONS.VIEW_ORDERS,
+  [STAFF_PERMISSIONS.EDIT_ORDERS]: VENDOR_PERMISSIONS.EDIT_ORDERS,
+  [STAFF_PERMISSIONS.CREATE_INELIGIBLE_RETURNS]: VENDOR_PERMISSIONS.EDIT_ORDERS,
+  [STAFF_PERMISSIONS.VIEW_PRODUCTS]: VENDOR_PERMISSIONS.VIEW_PRODUCTS,
+  [STAFF_PERMISSIONS.MANAGE_PRODUCTS]: VENDOR_PERMISSIONS.MANAGE_PRODUCTS,
+  [STAFF_PERMISSIONS.CREATE_PRODUCTS]: VENDOR_PERMISSIONS.CREATE_PRODUCTS,
+  [STAFF_PERMISSIONS.EDIT_PRODUCTS]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.DELETE_PRODUCTS]: VENDOR_PERMISSIONS.DELETE_PRODUCTS,
+  [STAFF_PERMISSIONS.VIEW_CUSTOMERS]: VENDOR_PERMISSIONS.VIEW_ORDERS,
+  [STAFF_PERMISSIONS.CREATE_CUSTOMERS]: VENDOR_PERMISSIONS.CREATE_ORDERS,
+  [STAFF_PERMISSIONS.VIEW_INVENTORY]: VENDOR_PERMISSIONS.VIEW_PRODUCTS,
+  [STAFF_PERMISSIONS.MANAGE_INVENTORY]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.CREATE_INVENTORY]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.EDIT_INVENTORY]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.DELETE_INVENTORY]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.VIEW_REVIEWS]: VENDOR_PERMISSIONS.VIEW_PRODUCTS,
+  [STAFF_PERMISSIONS.MANAGE_REVIEWS]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.EDIT_REVIEWS]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.DELETE_REVIEWS]: VENDOR_PERMISSIONS.EDIT_PRODUCTS,
+  [STAFF_PERMISSIONS.VIEW_ANALYTICS]: VENDOR_PERMISSIONS.VIEW_ANALYTICS,
+  [STAFF_PERMISSIONS.VIEW_INBOX]: VENDOR_PERMISSIONS.VIEW_INBOX,
+  [STAFF_PERMISSIONS.REPLY_INBOX]: VENDOR_PERMISSIONS.REPLY_INBOX,
+  [STAFF_PERMISSIONS.MANAGE_INBOX]: VENDOR_PERMISSIONS.MANAGE_INBOX,
+};
+
+/**
+ * The staff permissions a seller holding `sellerHolds` (its effective
+ * permissions) may give its own staff: those whose seller permission it
+ * holds, implications included (`VENDOR_PERMISSION_IMPLICATIONS`). Pure, for
+ * the seller's staff screens; the server holds every read to the same rule.
+ */
+export function staffPermissionsSellerMayGive(sellerHolds: Iterable<string>): StaffPermission[] {
+  const held = new Set(sellerHolds);
+  return VENDOR_STAFF_PERMISSIONS.filter((permission) => {
+    const needs = SELLER_PERMISSION_FOR_STAFF[permission];
+    if (!needs) return false;
+    return (VENDOR_PERMISSION_IMPLICATIONS[needs] ?? [needs]).some((satisfying) => held.has(satisfying));
+  });
+}
 
 /**
  * What a coarse `manage_*` grant from before the create/edit/delete split
@@ -757,14 +843,59 @@ export const VENDOR_STAFF_LEGACY_GRANT_PARTS: Partial<
 };
 
 /**
- * Permission presets — starting points for common staff jobs.
- *
- * Deliberately NOT roles: a preset only pre-fills the permission checkboxes in
- * the team form, and the admin adjusts from there. Making these roles would
- * mean a second access system next to the per-permission grants that every
- * guard already reads.
+ * Staff permissions that no longer exist, and the surviving one each stands
+ * for. `create_pos`, `edit_pos` and `delete_pos` were offered as boxes but no
+ * guard ever asked for them: the till asks for `access_pos`, and discounts,
+ * till reports and counters for `manage_pos`. Holding one did let an
+ * administrator's POS routes through, so a stored one still reads as
+ * `access_pos` (the vendor side retired the same verbs the same way, see
+ * `RETIRED_VENDOR_PERMISSION_GRANTS`). `db:migrate team-staff-role` writes the
+ * promotion down; until it has run, every reader maps through here.
  */
-interface StaffPermissionPreset {
+export const RETIRED_STAFF_PERMISSION_GRANTS: Readonly<Record<string, StaffPermission>> = {
+  create_pos: STAFF_PERMISSIONS.ACCESS_POS,
+  edit_pos: STAFF_PERMISSIONS.ACCESS_POS,
+  delete_pos: STAFF_PERMISSIONS.ACCESS_POS,
+};
+
+/** A stored permission list with retired staff strings read as what they stand for, once each. */
+export function resolveRetiredStaffPermissions<T>(input: readonly T[]): T[] {
+  const out = new Set<T>();
+  for (const permission of input) {
+    const surviving = typeof permission === "string" ? RETIRED_STAFF_PERMISSION_GRANTS[permission] : undefined;
+    out.add((surviving ?? permission) as T);
+  }
+  return Array.from(out);
+}
+
+/**
+ * The coarse grants from before create, edit and delete were split, by the
+ * record they cover. A profile still holding one holds every action on that
+ * record but View; the screens show it that way and split it on the first
+ * change. Not offered as boxes of their own.
+ */
+export const LEGACY_STAFF_UMBRELLAS: Readonly<Record<string, StaffPermission>> = {
+  orders: STAFF_PERMISSIONS.MANAGE_ORDERS,
+  products: STAFF_PERMISSIONS.MANAGE_PRODUCTS,
+  categories: STAFF_PERMISSIONS.MANAGE_CATEGORIES,
+  brands: STAFF_PERMISSIONS.MANAGE_BRANDS,
+  customers: STAFF_PERMISSIONS.MANAGE_CUSTOMERS,
+  inventory: STAFF_PERMISSIONS.MANAGE_INVENTORY,
+};
+
+const LEGACY_STAFF_UMBRELLA_SET = new Set<string>(Object.values(LEGACY_STAFF_UMBRELLAS));
+
+/** Every staff permission a box on the screens can give: all of them but the pre-split umbrellas. */
+export const GRANTABLE_STAFF_PERMISSIONS: StaffPermission[] = ALL_STAFF_PERMISSIONS.filter(
+  (permission) => !LEGACY_STAFF_UMBRELLA_SET.has(permission),
+);
+
+/**
+ * Starting points for a staff role or a vendor's staff member: one list, used
+ * by the role editor's "Start from" and the vendor's staff screens. Applying
+ * one only ticks boxes; nothing remembers which was applied.
+ */
+export interface StaffPermissionPreset {
   key: string;
   label: string;
   description: string;
@@ -773,66 +904,56 @@ interface StaffPermissionPreset {
 
 export const STAFF_PERMISSION_PRESETS: StaffPermissionPreset[] = [
   {
-    key: "store-manager",
-    label: "Store Manager",
-    description: "Runs the floor — everything except deleting records",
+    key: "cashier",
+    label: "Cashier",
+    description: "Rings up sales at the register",
     permissions: [
       STAFF_PERMISSIONS.ACCESS_POS,
-      STAFF_PERMISSIONS.CREATE_POS,
-      STAFF_PERMISSIONS.EDIT_POS,
+      STAFF_PERMISSIONS.VIEW_ORDERS,
+      STAFF_PERMISSIONS.VIEW_PRODUCTS,
+      STAFF_PERMISSIONS.VIEW_CUSTOMERS,
+      STAFF_PERMISSIONS.CREATE_CUSTOMERS,
+    ],
+  },
+  {
+    key: "sales_associate",
+    label: "Sales associate",
+    description: "The register, orders, customers and the inbox",
+    permissions: [
+      STAFF_PERMISSIONS.ACCESS_POS,
       STAFF_PERMISSIONS.VIEW_ORDERS,
       STAFF_PERMISSIONS.CREATE_ORDERS,
       STAFF_PERMISSIONS.EDIT_ORDERS,
       STAFF_PERMISSIONS.VIEW_PRODUCTS,
-      STAFF_PERMISSIONS.CREATE_PRODUCTS,
-      STAFF_PERMISSIONS.EDIT_PRODUCTS,
+      STAFF_PERMISSIONS.VIEW_INVENTORY,
       STAFF_PERMISSIONS.VIEW_CUSTOMERS,
       STAFF_PERMISSIONS.CREATE_CUSTOMERS,
       STAFF_PERMISSIONS.EDIT_CUSTOMERS,
-      STAFF_PERMISSIONS.VIEW_INVENTORY,
-      STAFF_PERMISSIONS.CREATE_INVENTORY,
-      STAFF_PERMISSIONS.EDIT_INVENTORY,
-      STAFF_PERMISSIONS.VIEW_REVIEWS,
-      STAFF_PERMISSIONS.EDIT_REVIEWS,
-      STAFF_PERMISSIONS.VIEW_ANALYTICS,
       STAFF_PERMISSIONS.VIEW_INBOX,
       STAFF_PERMISSIONS.REPLY_INBOX,
-      STAFF_PERMISSIONS.MANAGE_INBOX,
     ],
   },
   {
-    key: "sales-associate",
-    label: "Sales Associate",
-    description: "Sells at the counter and looks up orders and customers",
-    permissions: [
-      STAFF_PERMISSIONS.ACCESS_POS,
-      STAFF_PERMISSIONS.CREATE_POS,
-      STAFF_PERMISSIONS.VIEW_ORDERS,
-      STAFF_PERMISSIONS.CREATE_ORDERS,
-      STAFF_PERMISSIONS.VIEW_PRODUCTS,
-      STAFF_PERMISSIONS.VIEW_CUSTOMERS,
-      STAFF_PERMISSIONS.CREATE_CUSTOMERS,
-    ],
-  },
-  {
-    key: "cashier",
-    label: "Cashier",
-    description: "Rings up sales at the POS terminal, nothing else",
-    permissions: [
-      STAFF_PERMISSIONS.ACCESS_POS,
-      STAFF_PERMISSIONS.CREATE_POS,
-      STAFF_PERMISSIONS.VIEW_PRODUCTS,
-    ],
-  },
-  {
-    key: "support-agent",
-    label: "Support Agent",
-    description: "Answers the inbox and checks orders and customers",
+    key: "support_agent",
+    label: "Support agent",
+    description: "Answers the inbox and looks up orders and customers",
     permissions: [
       STAFF_PERMISSIONS.VIEW_INBOX,
       STAFF_PERMISSIONS.REPLY_INBOX,
       STAFF_PERMISSIONS.VIEW_ORDERS,
       STAFF_PERMISSIONS.VIEW_CUSTOMERS,
     ],
+  },
+  {
+    key: "shift_lead",
+    label: "Shift lead",
+    description: "Everything except deleting records",
+    permissions: GRANTABLE_STAFF_PERMISSIONS.filter((permission) => !permission.startsWith("delete_")),
+  },
+  {
+    key: "every_staff_permission",
+    label: "Every staff permission",
+    description: "Everything in the staff area, deleting included",
+    permissions: [...GRANTABLE_STAFF_PERMISSIONS],
   },
 ];

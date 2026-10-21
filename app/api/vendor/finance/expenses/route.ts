@@ -13,6 +13,7 @@ import { hasVendorPermission, isAdmin } from "@/lib/access/rbac";
 import { requireApprovedVendorByUserId } from "@/lib/access/vendor-guard";
 import { currencyMinimumPrice, quantizeToCurrency, roundMoney } from "@/lib/intl/money";
 import { isExpenseReceiptKey } from "@/lib/finance/expense-receipts";
+import { vendorExpenseFilter } from "@/lib/finance/vendor-expense-filter";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
@@ -37,8 +38,7 @@ const ListQuerySchema = z.object({
  * `scope: "vendor"`, stay out of the ledger entirely, and appear only in the
  * vendor's own reporting.
  *
- * The same permission as payouts: a vendor who may see what they earned may
- * record what it cost them.
+ * Viewing uses VIEW_PAYOUTS; recording or correcting a cost requires MANAGE_PAYOUTS.
  */
 export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
   const user = session.user;
@@ -53,19 +53,7 @@ export const GET = withApi({ auth: "user" }, async ({ request, session }) => {
 
   // The totals are aggregated over this same filter, so the figure in the
   // header is the sum of what the chosen period and category show.
-  const filter = {
-    vendorId: vendor._id,
-    scope: "vendor" as const,
-    ...(query.category ? { category: query.category } : {}),
-    ...(query.from || query.to
-      ? {
-          date: {
-            ...(query.from ? { $gte: query.from } : {}),
-            ...(query.to ? { $lte: query.to } : {}),
-          },
-        }
-      : {}),
-  };
+  const filter = vendorExpenseFilter(vendor._id, query);
   const [items, total, totals] = await Promise.all([
     Expense.find(filter)
       .sort({ date: -1, _id: -1 })
@@ -105,7 +93,7 @@ export const POST = withApi(
   async ({ request, session }) => {
     const user = session.user;
     if (
-      !(await hasVendorPermission(user, VENDOR_PERMISSIONS.VIEW_PAYOUTS)) &&
+      !(await hasVendorPermission(user, VENDOR_PERMISSIONS.MANAGE_PAYOUTS)) &&
       !isAdmin(user)
     ) {
       throw new AuthorizationError(

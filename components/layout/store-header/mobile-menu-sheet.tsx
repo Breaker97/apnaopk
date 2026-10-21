@@ -21,6 +21,8 @@ import {
   Moon,
   MoreHorizontal,
   Package,
+  MessageSquare,
+  Bell,
   PackageSearch,
   Rss,
   Settings,
@@ -88,6 +90,8 @@ interface MobileMenuSheetProps {
   categoriesPageHref: string;
   getDashboardLink: () => string | null;
   getSettingsLink: () => string;
+  /** The signed-in role's own inbox. */
+  getInboxLink: () => string;
   handleLogout: () => void | Promise<void>;
   handleMobileLanguageChange: (value: string) => void;
   handleThemeChange: (value: ThemeMode) => void;
@@ -123,6 +127,7 @@ export function MobileMenuSheet({
   categoriesPageHref,
   getDashboardLink,
   getSettingsLink,
+  getInboxLink,
   handleLogout,
   handleMobileLanguageChange,
   handleThemeChange,
@@ -214,6 +219,8 @@ export function MobileMenuSheet({
     href: string;
     label: string;
     target?: string;
+    /** The menu's "New"/"Sale" tag, in the promotional accent as on desktop. */
+    badge?: string;
     // `null` when the entry has no artwork of its own — the row draws a blank
     // spacer instead of inventing a glyph, so the labels stay on one edge.
     visual: ReactNode | null;
@@ -224,6 +231,7 @@ export function MobileMenuSheet({
           href: item.href,
           label: item.label,
           target: item.target,
+          badge: item.badge,
           visual: <MegaMenuItemVisual item={item} className="h-4 w-4" />,
         }))
       : categories.map((cat) => ({
@@ -287,7 +295,7 @@ export function MobileMenuSheet({
                 />
               ) : (
                 <>
-                  <Store className="h-5 w-5 shrink-0 text-primary" />
+                  <Store className="h-5 w-5 shrink-0 text-store-link" />
                   <span className="truncate text-base font-bold">
                     {brandName}
                   </span>
@@ -439,7 +447,7 @@ export function MobileMenuSheet({
                     <Link
                       href={categoriesPageHref}
                       onClick={closeMobileMenu}
-                      className="shrink-0 text-xs font-medium text-primary"
+                      className="shrink-0 text-xs font-medium text-store-link"
                     >
                       {t("common.viewAll")}
                     </Link>
@@ -456,7 +464,7 @@ export function MobileMenuSheet({
                           : undefined
                       }
                       onClick={closeMobileMenu}
-                      className="flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors hover:bg-muted active:bg-muted"
+                      className="flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                     >
                       {/* Same footprint either way: an entry with no artwork
                           holds the slot open rather than sliding its label left
@@ -472,6 +480,11 @@ export function MobileMenuSheet({
                         {entry.visual}
                       </span>
                       <span className="truncate">{entry.label}</span>
+                      {entry.badge ? (
+                        <span className="shrink-0 rounded-md bg-highlight px-[5px] py-px text-[9.5px] font-semibold uppercase tracking-[0.04em] text-highlight-foreground">
+                          {entry.badge}
+                        </span>
+                      ) : null}
                     </Link>
                   ))}
                 </MobileNavDisclosure>
@@ -490,7 +503,7 @@ export function MobileMenuSheet({
                   <Link
                     href={`/${locale}/collections`}
                     onClick={closeMobileMenu}
-                    className="text-xs font-medium text-primary"
+                    className="text-xs font-medium text-store-link"
                   >
                     {t("common.viewAll")}
                   </Link>
@@ -555,15 +568,23 @@ export function MobileMenuSheet({
                           <Link
                             href={getDashboardLink()!}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                           >
                             <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
                             {t("common.dashboard")}
                           </Link>
                           <Link
+                            href={getInboxLink()}
+                            onClick={closeMobileMenu}
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
+                          >
+                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            {t("nav.inbox")}
+                          </Link>
+                          <Link
                             href={getSettingsLink()}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                           >
                             <Settings className="h-4 w-4 text-muted-foreground" />
                             {t("admin.settings.title")}
@@ -574,23 +595,39 @@ export function MobileMenuSheet({
                           <Link
                             href={`/${locale}/account`}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                           >
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            {t("common.account")}
+                            <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                            {t("common.dashboard")}
                           </Link>
                           <Link
                             href={`/${locale}/account/orders`}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                           >
                             <Package className="h-4 w-4 text-muted-foreground" />
                             {t("orders.myOrders")}
                           </Link>
                           <Link
+                            href={getInboxLink()}
+                            onClick={closeMobileMenu}
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
+                          >
+                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            {t("nav.inbox")}
+                          </Link>
+                          <Link
+                            href={`/${locale}/account/notifications`}
+                            onClick={closeMobileMenu}
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
+                          >
+                            <Bell className="h-4 w-4 text-muted-foreground" />
+                            {t("common.notifications")}
+                          </Link>
+                          <Link
                             href={`/${locale}/account/profile`}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                           >
                             <User className="h-4 w-4 text-muted-foreground" />
                             {t("common.profile")}
@@ -620,7 +657,7 @@ export function MobileMenuSheet({
                           <Link
                             href={buildLoginUrl(locale, pathname)}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 font-semibold text-primary transition-colors hover:bg-primary/10 active:bg-primary/10"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 font-semibold text-store-link transition-colors hover:bg-primary/10 active:bg-primary/10"
                           >
                             <LogIn className="h-4 w-4" />
                             {t("common.signIn")}
@@ -628,7 +665,7 @@ export function MobileMenuSheet({
                           <Link
                             href={`/${locale}/register`}
                             onClick={closeMobileMenu}
-                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                            className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                           >
                             <UserPlus className="h-4 w-4 text-muted-foreground" />
                             {t("common.register")}
@@ -638,7 +675,7 @@ export function MobileMenuSheet({
                       <Link
                         href={buildLoginUrl(locale, `/${locale}/account/orders`)}
                         onClick={closeMobileMenu}
-                        className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                        className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                       >
                         <Package className="h-4 w-4 text-muted-foreground" />
                         {t("common.myOrders")}
@@ -649,7 +686,7 @@ export function MobileMenuSheet({
                           `/${locale}/account/profile`,
                         )}
                         onClick={closeMobileMenu}
-                        className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-muted active:bg-muted"
+                        className="flex h-11 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent"
                       >
                         <User className="h-4 w-4 text-muted-foreground" />
                         {t("common.profile")}
@@ -743,13 +780,13 @@ function MobileNavRow({
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex h-11 items-center gap-3 rounded-xl px-3 transition-colors",
-        active ? "bg-accent text-primary" : "hover:bg-muted active:bg-muted",
+        active ? "bg-selection text-selection-foreground" : "hover:bg-accent hover:text-accent-foreground active:bg-accent",
       )}
     >
       <Icon
         className={cn(
           "h-4 w-4",
-          active ? "text-primary" : "text-muted-foreground",
+          active ? "text-store-link" : "text-muted-foreground",
         )}
       />
       {label}

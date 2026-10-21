@@ -368,7 +368,7 @@ export function TrackOrderContent({
                 <Detail
                   label="Status"
                   value={currentTrackingStatus}
-                  className={cn(partialShipmentState(progress) && "text-primary")}
+                  className={cn(partialShipmentState(progress) && "text-store-link")}
                 />
               </div>
             </section>
@@ -429,7 +429,7 @@ export function TrackOrderContent({
                             className={cn(
                               "z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-semibold",
                               isComplete && "border-primary bg-primary text-primary-foreground",
-                              isPartial && "border-2 border-primary text-[10px] font-bold text-primary",
+                              isPartial && "border-2 border-primary text-[10px] font-bold text-store-link",
                               isActive && "ring-4 ring-primary/15",
                             )}
                           >
@@ -446,7 +446,7 @@ export function TrackOrderContent({
                             <p
                               className={cn(
                                 "mt-1 text-xs text-muted-foreground",
-                                isPartial && "font-medium text-primary",
+                                isPartial && "font-medium text-store-link",
                               )}
                             >
                               {reached !== null && !isComplete
@@ -493,7 +493,7 @@ export function TrackOrderContent({
                           href={order.trackingUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                          className="inline-flex items-center gap-1 font-medium text-store-link hover:underline"
                         >
                           Track with carrier
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -508,7 +508,7 @@ export function TrackOrderContent({
                 {order.pickup ? (
                   <div className="mt-5 rounded-md bg-primary/5 px-4 py-3 text-sm">
                     <div className="flex items-start gap-2">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-store-link" />
                       <div>
                         <p className="font-medium">Pickup details</p>
                         {formatPickupWindow(undefined, order.pickup) ? (
@@ -654,7 +654,7 @@ function PackageStatusBadge({ shipment }: { shipment: TrackedShipment }) {
 
   if (shipment.status === "cancelled") {
     return (
-      <span className={cn(base, "bg-destructive/10 text-destructive")}>
+      <span className={cn(base, "bg-status-negative text-status-on-negative")}>
         <XCircle className="h-3.5 w-3.5" />
         Cancelled
       </span>
@@ -662,7 +662,7 @@ function PackageStatusBadge({ shipment }: { shipment: TrackedShipment }) {
   }
   if (shipment.status === "delivered") {
     return (
-      <span className={cn(base, "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300")}>
+      <span className={cn(base, "bg-status-positive text-status-on-positive")}>
         <Check className="h-3.5 w-3.5" />
         Delivered
         {shipment.deliveredAt ? ` · ${formatDate(shipment.deliveredAt)}` : ""}
@@ -671,7 +671,7 @@ function PackageStatusBadge({ shipment }: { shipment: TrackedShipment }) {
   }
   if (shipment.status === "shipped") {
     return (
-      <span className={cn(base, "bg-primary/10 text-primary")}>
+      <span className={cn(base, "bg-status-info text-status-on-info")}>
         <Truck className="h-3.5 w-3.5" />
         In transit
         {shipment.shippedAt ? ` · shipped ${formatDate(shipment.shippedAt)}` : ""}
@@ -679,7 +679,7 @@ function PackageStatusBadge({ shipment }: { shipment: TrackedShipment }) {
     );
   }
   return (
-    <span className={cn(base, "bg-amber-500/10 text-amber-800 dark:text-amber-300")}>
+    <span className={cn(base, "bg-status-warning text-status-on-warning")}>
       <Clock className="h-3.5 w-3.5" />
       Preparing · not shipped yet
     </span>

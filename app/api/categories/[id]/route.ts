@@ -1,3 +1,4 @@
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { Category, Product } from "@/models";
 import { successResponse, notFoundResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
@@ -89,6 +90,11 @@ const CategoryUpdateSchema = z.object({
   order: z.number().optional(),
   isActive: z.boolean().optional(),
   featured: z.boolean().optional(),
+  // Sales-tax rate in percent for the products filed here; null takes the
+  // parent's, then the store's (lib/tax/tax-rates.ts).
+  taxRate: z.number().min(0).max(100).nullable().optional(),
+  // A Settings → Tax class key; null takes the category's (or the parent's).
+  taxClass: z.string().trim().regex(/^[a-z0-9][a-z0-9-]{0,39}$/).nullable().optional(),
   seo: z.record(z.string(), z.unknown()).optional(),
   options: z.array(z.record(z.string(), z.unknown())).max(50).optional(),
 });
@@ -123,10 +129,10 @@ export const GET = withApi<{ id: string }>(
 
 /**
  * PUT /api/categories/[id]
- * Update category (Admin only) - requires ID
+ * Update category (Admin or permitted staff) - requires ID
  */
 export const PUT = withApi<{ id: string }>(
-  { auth: "admin" },
+  { auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.EDIT_CATEGORIES, STAFF_PERMISSIONS.MANAGE_CATEGORIES] },
   async ({ request, params, session }) => {
     const { id } = params;
 
@@ -140,7 +146,7 @@ export const PUT = withApi<{ id: string }>(
     // compares the saved category against.
     const existingCategory = await Category.findById(id)
       .select(
-        "slug name description image icon parentId order isActive featured seo options",
+        "slug name description image icon parentId order isActive featured taxRate taxClass seo options",
       )
       .lean();
     if (!existingCategory) {
@@ -241,10 +247,10 @@ export const PUT = withApi<{ id: string }>(
 
 /**
  * DELETE /api/categories/[id]
- * Delete category (Admin only) - requires ID
+ * Delete category (Admin or permitted staff) - requires ID
  */
 export const DELETE = withApi<{ id: string }>(
-  { auth: "admin" },
+  { auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.DELETE_CATEGORIES, STAFF_PERMISSIONS.MANAGE_CATEGORIES] },
   async ({ request, params, session }) => {
     const { id } = params;
 

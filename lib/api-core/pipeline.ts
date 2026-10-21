@@ -211,6 +211,37 @@ function operatorArea(access: BizAccess): "admin" | "vendor" {
   return access.actor.role === "vendor" ? "vendor" : "admin";
 }
 
+/**
+ * A business-app request refused to a member of the team (an administrator,
+ * or staff) goes into the Activity Log, as the web's refusals do
+ * (lib/access/access-denied-audit.ts), after the answer. A seller refused is
+ * not the team's to record.
+ */
+function recordBizRefusal(
+  request: Request,
+  session: MobileSession | null,
+  requestId: string,
+  reason: string,
+  defer: (task: () => Promise<unknown> | unknown) => void,
+): void {
+  if (!session) return;
+  const role = session.user.role;
+  if (role !== "admin" && role !== "staff" && role !== "seller") return;
+  const path = new URL(request.url).pathname;
+  defer(async () => {
+    const { auditAccessDenied } = await import("@/lib/access/access-denied-audit");
+    await auditAccessDenied(
+      {
+        userId: session.user.id,
+        userEmail: session.user.email,
+        userRole: role,
+        origin: { requestId, method: request.method, path },
+      },
+      { method: request.method, path, reason },
+    );
+  });
+}
+
 /** Runs a route of either app that answers per request. */
 async function runPerRequest(
   app: AppName,
@@ -220,6 +251,7 @@ async function runPerRequest(
   deps: PipelineDeps | BizPipelineDeps,
 ): Promise<Response> {
   const requestId = randomUUID();
+  let session: MobileSession | null = null;
   try {
     const { locale, params } = splitParams(entry, rawParams);
     const runtime = await deps.settings.runtime();
@@ -250,7 +282,6 @@ async function runPerRequest(
       input = parseInput(entry.input, raw);
     }
 
-    let session: MobileSession | null = null;
     if (entry.auth !== "none") {
       const resolved = await deps.session.resolve(request.headers);
       session = resolved.session;
@@ -394,6 +425,9 @@ async function runPerRequest(
       codes: KNOWN_ERROR_CODES[app],
       log: deps.log,
     });
+    if (app === "biz" && payload.body.code === "AUTHORIZATION_ERROR") {
+      recordBizRefusal(request, session, requestId, payload.body.message, deps.defer);
+    }
     return jsonResponse(payload.status, JSON.stringify(payload.body), {
       "Cache-Control": ERROR_CACHE_CONTROL,
       ...requestIdHeader(requestId),

@@ -1,5 +1,28 @@
 import { createHash } from "node:crypto";
 
+export type CartFingerprintLine = {
+  productId?: unknown;
+  variantId?: unknown;
+  quantity?: number;
+  price?: number;
+  purchaseType?: string;
+  preorderPaymentMode?: string;
+  preorderDepositAmount?: number;
+  preorderOutstandingAmount?: number;
+};
+
+const lineKey = (item: CartFingerprintLine): string =>
+  JSON.stringify([
+    idOf(item.productId),
+    item.variantId ? String(item.variantId) : "",
+    Number(item.quantity || 0),
+    Number(item.price || 0),
+    item.purchaseType || "standard",
+    item.preorderPaymentMode || "",
+    Number(item.preorderDepositAmount || 0),
+    Number(item.preorderOutstandingAmount || 0),
+  ]);
+
 /**
  * The cart a card payment was quoted for, reduced to one comparable string.
  *
@@ -22,34 +45,24 @@ import { createHash } from "node:crypto";
  * `quoteId` is left out on purpose. The checkout route reassigns it in memory
  * without writing it back, and the price it resolved to is already here.
  */
-export function checkoutCartFingerprint(
-  items: ReadonlyArray<{
-    productId?: unknown;
-    variantId?: unknown;
-    quantity?: number;
-    price?: number;
-    purchaseType?: string;
-    preorderPaymentMode?: string;
-    preorderDepositAmount?: number;
-    preorderOutstandingAmount?: number;
-  }>,
-): string {
+export function checkoutCartFingerprint(items: ReadonlyArray<CartFingerprintLine>): string {
   const lines = items
-    .map((item) =>
-      JSON.stringify([
-        idOf(item.productId),
-        item.variantId ? String(item.variantId) : "",
-        Number(item.quantity || 0),
-        Number(item.price || 0),
-        item.purchaseType || "standard",
-        item.preorderPaymentMode || "",
-        Number(item.preorderDepositAmount || 0),
-        Number(item.preorderOutstandingAmount || 0),
-      ]),
-    )
+    .map(lineKey)
     // Line order is not part of what was bought.
     .sort();
   return createHash("sha256").update(lines.join("\n")).digest("hex");
+}
+
+/**
+ * The positions of `items` in the order a fingerprint reads them — the one
+ * order two carts with the same fingerprint always share, whatever order each
+ * holds its lines in. Something recorded per line while a payment is quoted
+ * (the tax each line carried) is written in this order and read back by it.
+ * Lines with identical keys are interchangeable.
+ */
+export function fingerprintLineOrder(items: ReadonlyArray<CartFingerprintLine>): number[] {
+  const keys = items.map(lineKey);
+  return keys.map((_, index) => index).sort((a, b) => (keys[a]! < keys[b]! ? -1 : keys[a]! > keys[b]! ? 1 : a - b));
 }
 
 /** A populated product and a bare id name the same line. */

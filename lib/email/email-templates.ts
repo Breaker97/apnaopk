@@ -450,3 +450,105 @@ export function orderStatusUpdateTemplate(
 `;
 }
 
+
+
+export interface PosReceiptEmailData {
+  orderNumber: string;
+  /** Already formatted in the store's language and time. */
+  dateText: string;
+  storeName: string;
+  storeAddress?: string;
+  storePhone?: string;
+  /** The counter the sale was rung up at. */
+  counterName?: string;
+  customerName?: string;
+  lines: Array<{ name: string; quantity: number; unitPrice: number; amount: number; discount?: number }>;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  /** Prices already include tax: the tax line reads "included". */
+  taxIncluded?: boolean;
+  total: number;
+  /** How it was paid, tender by tender. */
+  payments: Array<{ label: string; amount: number }>;
+  change?: number;
+  /** Still owed on a deposit sale. */
+  balanceDue?: number;
+}
+
+/**
+ * A counter sale's receipt, by email.
+ *
+ * Not the order confirmation: that one is written for a parcel — a delivery
+ * address, a "track your order" button — and a till sale has neither (its
+ * address is the "In-store POS" placeholder). This is the paper receipt's
+ * content: the lines, the money, how it was paid, and the change.
+ *
+ * Every typed value is escaped, as in the confirmation: a product name or a
+ * customer's name is somebody's text.
+ */
+export function posReceiptTemplate(
+  data: PosReceiptEmailData,
+  options?: EmailTemplateOptions,
+): string {
+  const currency = (options?.currency || "USD").toUpperCase();
+  const locale = options?.locale;
+  const money = (value: number) => formatPrice(value, currency, locale);
+  const appName = escapeHtml(data.storeName || options?.storeName || getAppName());
+  const row = (label: string, value: string, strong = false) => `
+      <div class="${strong ? "total-row" : "summary-row"}">
+        <span class="${strong ? "" : "summary-label"}">${label}</span>
+        <span class="${strong ? "" : "summary-value"}">${value}</span>
+      </div>`;
+
+  const lines = data.lines
+    .map(
+      (line) => `
+    <div style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f4f4f5;">
+      <div style="flex: 1;">
+        <p style="font-weight: 500; color: #18181b; margin: 0 0 2px 0;">${escapeHtml(line.name)}</p>
+        <p style="color: #71717a; font-size: 13px; margin: 0;">${line.quantity} × ${money(line.unitPrice)}${
+          line.discount && line.discount > 0 ? ` · −${money(line.discount)}` : ""
+        }</p>
+      </div>
+      <p style="font-weight: 500; color: #18181b; margin: 0;">${money(line.amount)}</p>
+    </div>`,
+    )
+    .join("");
+
+  const identity = [data.storeAddress, data.storePhone]
+    .filter(Boolean)
+    .map((value) => escapeHtml(String(value)))
+    .join(" · ");
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${baseStyles}</style></head>
+<body>
+  <div class="container">
+    <div class="header">${headerHtml(appName, options?.logoUrl)}</div>
+    <div class="card">
+      <h1 class="title">Thank you for your purchase</h1>
+      <p class="subtitle">Receipt ${escapeHtml(data.orderNumber)} · ${escapeHtml(data.dateText)}</p>
+      ${data.counterName ? `<p class="subtitle" style="margin-top: 4px;">${escapeHtml(data.counterName)}</p>` : ""}
+      ${data.customerName ? `<p class="subtitle" style="margin-top: 4px;">${escapeHtml(data.customerName)}</p>` : ""}
+      <div class="divider"></div>
+      ${lines}
+      <div style="margin-top: 12px;">
+        ${row("Subtotal", money(data.subtotal))}
+        ${data.discount > 0 ? row("Discount", `−${money(data.discount)}`) : ""}
+        ${data.tax > 0 ? row(data.taxIncluded ? "Tax (included)" : "Tax", money(data.tax)) : ""}
+        ${row("Total", money(data.total), true)}
+        ${data.payments.map((payment) => row(escapeHtml(payment.label), money(payment.amount))).join("")}
+        ${data.change && data.change > 0 ? row("Change", money(data.change)) : ""}
+        ${data.balanceDue && data.balanceDue > 0 ? row("Balance due", money(data.balanceDue), true) : ""}
+      </div>
+    </div>
+    <div class="footer">
+      <p style="margin: 0 0 4px 0;">${appName}</p>
+      ${identity ? `<p style="margin: 0;">${identity}</p>` : ""}
+    </div>
+  </div>
+</body>
+</html>`;
+}

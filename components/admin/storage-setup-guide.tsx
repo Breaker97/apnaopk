@@ -296,7 +296,7 @@ export function StorageSetupGuide({
             </a>
           </Button>
           <p className="text-xs text-muted-foreground">
-            {tr("setup.docs", "Full walkthrough: docs/STORAGE_SETUP.md")}
+            {tr("setup.docs", "Full walkthrough: https://storify.neurolightstudio.com/docs#cloudflare-r2")}
           </p>
         </div>
       </SetupGuideSection>

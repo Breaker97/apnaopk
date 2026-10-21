@@ -350,7 +350,7 @@ export function ProfileForm() {
         aria-label={t("account.security")}
         className="flex min-h-11 items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-accent"
       >
-        <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
+        <ShieldCheck className="h-5 w-5 shrink-0 text-store-link" />
         <span className="min-w-0 flex-1">
           <span className="block font-medium">{t("account.security")}</span>
           <span className="block text-sm text-muted-foreground">
@@ -361,7 +361,7 @@ export function ProfileForm() {
       </Link>
 
       {profileForm.formState.isDirty && (
-        <div className="fixed inset-x-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur bottom-[calc(3.75rem+env(safe-area-inset-bottom))] lg:static lg:flex lg:justify-end lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+        <div className="fixed inset-x-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur bottom-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:static lg:flex lg:justify-end lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
           <Button
             type="submit"
             form="customer-profile-form"

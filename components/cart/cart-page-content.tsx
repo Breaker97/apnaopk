@@ -193,7 +193,7 @@ export function CartPageContent() {
               {item.name}
             </NameHeading>
             {item.purchaseType === "preorder" && (
-              <div className="mt-2 space-y-1 text-[13px] font-semibold leading-5 text-blue-600 dark:text-blue-300">
+              <div className="mt-2 space-y-1 text-[13px] font-semibold leading-5 text-status-on-info">
                 <p>
                   {formatPreorderDate(item.preorderReleaseDate)
                     ? `Pre-order - ships around ${formatPreorderDate(
@@ -217,14 +217,14 @@ export function CartPageContent() {
               )}
               <span
                 className={
-                  hasComparePrice ? "text-destructive" : "text-foreground"
+                  hasComparePrice ? "text-store-sale-text" : "text-foreground"
                 }
               >
                 {formatCartPrice(item.price)}
               </span>
             </div>
             {isLowStock && (
-              <p className="mt-1 flex items-center gap-1 text-[14px] leading-5 text-[#ff5c00]">
+              <p className="mt-1 flex items-center gap-1 text-[14px] font-medium leading-5 text-status-on-warning">
                 <Clock3 className="h-3.5 w-3.5" />
                 Low in stock
               </p>
@@ -444,7 +444,7 @@ export function CartPageContent() {
                   appliedCoupon ? ` (${appliedCoupon.code})` : ""
                 }`}
               >
-                <span className="text-green-700 dark:text-green-400">
+                <span className="text-status-on-positive">
                   -{formatCartPrice(discount)}
                 </span>
               </SummaryRow>
@@ -475,7 +475,7 @@ export function CartPageContent() {
           {deliveryEstimateText ? (
             <div className="mt-4 flex items-start gap-3 rounded-lg bg-primary/[0.07] p-3">
               <Truck
-                className="mt-0.5 h-[18px] w-[18px] shrink-0 text-primary"
+                className="mt-0.5 h-[18px] w-[18px] shrink-0 text-store-link"
                 aria-hidden
               />
               <p className="text-[12.5px] leading-5 text-muted-foreground">

@@ -18,7 +18,7 @@
           "settings": {
             "grid": "single",
             "width": "full",
-            "height": "threeQuarters",
+            "height": "full",
             "gap": 14,
             "sidePadding": 16,
             "corners": "custom",
@@ -31,8 +31,8 @@
               "visible": true,
               "settings": {
                 "kind": "slider",
-                "slider": "new-slider-copy-1789583804058",
-                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789583715783-73fl19/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+                "slider": "new-slider-1789449903797",
+                "image": "",
                 "link": "",
                 "alt": ""
               }
@@ -237,10 +237,15 @@
           "settings": {
             "title": "",
             "subtitle": "",
-            "source": "discounted",
+            "source": "manual",
             "limit": 8,
             "desktopColumns": 4,
-            "productIds": [],
+            "productIds": [
+              "6aa94d7114e6a3473c5cf2bb",
+              "6aaa89502f46abe23f278e04",
+              "6aab798090a6dfba31d4772e",
+              "6aabc85013c31b1b59ea11a5"
+            ],
             "titleSize": "default"
           },
           "blocks": []
@@ -330,7 +335,7 @@
               "type": "collection",
               "visible": true,
               "settings": {
-                "collection": "6aa70081d2a9868b86ffda3c",
+                "collection": "6aac03e9940694ca85477381",
                 "limit": 3,
                 "kind": "slider",
                 "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329665441-hsv2ci/Group_250.webp",
@@ -525,7 +530,7 @@
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-16T18:50:42.790Z"
+        "$date": "2026-09-17T15:17:15.487Z"
       },
       "updatedBy": null
     },
@@ -541,7 +546,7 @@
           "settings": {
             "grid": "single",
             "width": "full",
-            "height": "threeQuarters",
+            "height": "full",
             "gap": 14,
             "sidePadding": 16,
             "corners": "custom",
@@ -554,8 +559,8 @@
               "visible": true,
               "settings": {
                 "kind": "slider",
-                "slider": "new-slider-copy-1789583804058",
-                "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789583715783-73fl19/HeroCategory-Desktop_2x1_Gucci-Primavera-July26-33_001_Default.avif",
+                "slider": "new-slider-1789449903797",
+                "image": "",
                 "link": "",
                 "alt": ""
               }
@@ -760,10 +765,15 @@
           "settings": {
             "title": "",
             "subtitle": "",
-            "source": "discounted",
+            "source": "manual",
             "limit": 8,
             "desktopColumns": 4,
-            "productIds": [],
+            "productIds": [
+              "6aa94d7114e6a3473c5cf2bb",
+              "6aaa89502f46abe23f278e04",
+              "6aab798090a6dfba31d4772e",
+              "6aabc85013c31b1b59ea11a5"
+            ],
             "titleSize": "default"
           },
           "blocks": []
@@ -853,7 +863,7 @@
               "type": "collection",
               "visible": true,
               "settings": {
-                "collection": "6aa70081d2a9868b86ffda3c",
+                "collection": "6aac03e9940694ca85477381",
                 "limit": 3,
                 "kind": "slider",
                 "image": "https://pub-266ab20f55f64e0280c0b46b296882c7.r2.dev/uploads/2026/09/1789329665441-hsv2ci/Group_250.webp",
@@ -1048,14 +1058,14 @@
         }
       ],
       "publishedAt": {
-        "$date": "2026-09-16T18:50:44.743Z"
+        "$date": "2026-09-17T15:17:19.876Z"
       },
       "publishedBy": null
     },
     "templateType": "home",
     "title": "Home",
     "updatedAt": {
-      "$date": "2026-09-16T18:50:44.743Z"
+      "$date": "2026-09-17T15:17:19.877Z"
     }
   },
   {
@@ -1111,7 +1121,7 @@
         }
       ],
       "updatedAt": {
-        "$date": "2026-09-13T18:28:16.238Z"
+        "$date": "2026-09-18T11:52:58.492Z"
       },
       "updatedBy": null
     },
@@ -1159,14 +1169,14 @@
         }
       ],
       "publishedAt": {
-        "$date": "2026-09-13T18:28:20.503Z"
+        "$date": "2026-09-18T11:53:00.938Z"
       },
       "publishedBy": null
     },
     "templateType": "product",
     "title": "Product",
     "updatedAt": {
-      "$date": "2026-09-13T18:28:20.504Z"
+      "$date": "2026-09-18T11:53:00.939Z"
     }
   },
   {

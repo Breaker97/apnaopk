@@ -53,6 +53,42 @@ export const DEMO_ACCOUNTS = {
   },
 } as const satisfies Record<DemoRole, DemoAccount>;
 
+interface TemplateVendorAccount {
+  /** The store's slug in that template's snapshot (`seed-data/<id>/vendors.json`). */
+  slug: string;
+  email: string;
+  password: string;
+}
+
+/**
+ * The showcase seller of each template's demo store, keyed by template id
+ * (`essential` is the gallery's Classic). The quick-login card's Vendor row
+ * offers the active theme's seller instead of the house store's `vendor`
+ * login, which sells nothing of its own; a theme with no entry here (such as
+ * women-fashion) keeps that login. `scripts/seed.mjs` gives the snapshot
+ * vendor with the matching slug this login rather than the generic
+ * `<slug>@example.com` one.
+ */
+export const DEMO_TEMPLATE_VENDORS: Readonly<
+  Record<string, TemplateVendorAccount>
+> = {
+  electronics: {
+    slug: "electronica-xr",
+    email: "electronicaxr@storify.com",
+    password: "vendor@12",
+  },
+  essential: {
+    slug: "veloura",
+    email: "veloura@storify.com",
+    password: "vendor@12",
+  },
+  furniture: {
+    slug: "urbannest-furniture",
+    email: "urbannest@storify.com",
+    password: "vendor@12",
+  },
+};
+
 /**
  * Order the quick-login card lists the accounts in — most-privileged first,
  * which is the order a reviewer clicks through them.

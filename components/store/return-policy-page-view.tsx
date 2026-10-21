@@ -313,7 +313,7 @@ export function ReturnPolicyPageView({
               {supportEmail ? (
                 <a
                   href={`mailto:${supportEmail}`}
-                  className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+                  className="text-muted-foreground underline-offset-4 hover:text-store-link hover:underline"
                 >
                   {supportEmail}
                 </a>
@@ -321,7 +321,7 @@ export function ReturnPolicyPageView({
               {supportPhone ? (
                 <a
                   href={`tel:${supportPhone.replace(/\s+/g, "")}`}
-                  className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+                  className="text-muted-foreground underline-offset-4 hover:text-store-link hover:underline"
                 >
                   {supportPhone}
                 </a>

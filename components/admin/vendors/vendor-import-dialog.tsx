@@ -78,6 +78,11 @@ function templateRows(): string[][] {
   ];
 }
 
+/** The template's header row and its made-up vendors, as a CSV download. */
+export function downloadVendorImportSample() {
+  saveCsv(templateRows(), "vendor-import-template.csv");
+}
+
 export function VendorImportDialog({
   open,
   onOpenChange,
@@ -144,7 +149,7 @@ export function VendorImportDialog({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => saveCsv(templateRows(), "vendor-import-template.csv")}
+          onClick={downloadVendorImportSample}
         >
           <Download className="h-4 w-4" />
           {t("downloadTemplate")}

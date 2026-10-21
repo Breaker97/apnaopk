@@ -27,6 +27,9 @@
       },
       {
         "$oid": "6a92737baa34b8f92ac35f92"
+      },
+      {
+        "$oid": "6aba57a97a5948c3496d7d87"
       }
     ],
     "conditions": [],
@@ -42,12 +45,12 @@
       "pageTitle": "iPhone Lineup",
       "handle": "iphone-lineup"
     },
-    "productCount": 5,
+    "productCount": 6,
     "createdAt": {
       "$date": "2026-08-28T05:49:17.479Z"
     },
     "updatedAt": {
-      "$date": "2026-09-03T15:41:17.789Z"
+      "$date": "2026-10-11T10:03:21.125Z"
     },
     "__v": 0
   },
@@ -100,6 +103,12 @@
       },
       {
         "$oid": "6a96774db6a910818198b815"
+      },
+      {
+        "$oid": "6a9edc2ec4f11a83ae2f1a73"
+      },
+      {
+        "$oid": "6abbc1bb620639cbeb6be648"
       }
     ],
     "conditions": [],
@@ -115,12 +124,12 @@
       "pageTitle": "Premium Tech",
       "handle": "premium-tech"
     },
-    "productCount": 12,
+    "productCount": 14,
     "createdAt": {
       "$date": "2026-08-28T09:54:22.369Z"
     },
     "updatedAt": {
-      "$date": "2026-09-03T15:41:17.789Z"
+      "$date": "2026-10-11T10:03:21.125Z"
     },
     "__v": 0
   },
@@ -146,6 +155,18 @@
       },
       {
         "$oid": "6a951a8a53522603e11d60af"
+      },
+      {
+        "$oid": "6a9eaf05c4f11a83ae2f19eb"
+      },
+      {
+        "$oid": "6a9ecc22c4f11a83ae2f1a47"
+      },
+      {
+        "$oid": "6a9ed000c4f11a83ae2f1a54"
+      },
+      {
+        "$oid": "6a9ed550c4f11a83ae2f1a5b"
       }
     ],
     "conditions": [],
@@ -158,16 +179,18 @@
       "pointOfSale": false
     },
     "seo": {
+      "pageTitle": "Headphones & Audio",
       "handle": "headphones-audio"
     },
-    "productCount": 3,
+    "productCount": 7,
     "createdAt": {
       "$date": "2026-08-29T05:48:36.914Z"
     },
     "updatedAt": {
-      "$date": "2026-09-03T15:41:17.789Z"
+      "$date": "2026-10-11T10:03:21.125Z"
     },
-    "__v": 0
+    "__v": 0,
+    "kind": "collection"
   },
   {
     "_id": {
@@ -176,7 +199,7 @@
     "title": "Smart Watches",
     "slug": "smart-watches",
     "handle": "smart-watches",
-    "description": "Discover our premium Smart Watches collection, thoughtfully curated to offer a wide range of features including health monitoring, seamless smartphone integration, customizable watch faces, and durable designs. ",
+    "description": "",
     "image": {
       "url": "https://pub-49808a4ecaf04280b0561965cf5a40a4.r2.dev/uploads/2026/08/1788075870915-4wcjrf/ChatGPT_Image_Aug_30__2026__01_44_03_PM.webp",
       "alt": "Smart Watches"
@@ -185,9 +208,6 @@
     "products": [
       {
         "$oid": "6a09b4f56fc0e82b8d6b275d"
-      },
-      {
-        "$oid": "6a0ab9985d747a63e3255cad"
       },
       {
         "$oid": "6a09b8586fc0e82b8d6b2770"
@@ -215,16 +235,19 @@
       "pointOfSale": true
     },
     "seo": {
+      "pageTitle": "Smart Watches",
+      "metaDescription": "Discover our premium Smart Watches collection, thoughtfully curated to offer a wide range of features including health monitoring, seamless smartphone integration, customizable watch faces, and durable designs.",
       "handle": "smart-watches"
     },
-    "productCount": 7,
+    "productCount": 6,
     "createdAt": {
       "$date": "2026-08-30T07:44:55.247Z"
     },
     "updatedAt": {
-      "$date": "2026-09-06T09:17:10.694Z"
+      "$date": "2026-10-12T07:31:30.202Z"
     },
-    "__v": 0
+    "__v": 0,
+    "kind": "collection"
   },
   {
     "_id": {
@@ -250,10 +273,10 @@
         "$oid": "6a92c8a7ad426d112681ae07"
       },
       {
-        "$oid": "6a9407cde43b0a05f712986e"
+        "$oid": "6a96774db6a910818198b815"
       },
       {
-        "$oid": "6a96774db6a910818198b815"
+        "$oid": "6a940d0ae43b0a05f712987b"
       }
     ],
     "conditions": [],
@@ -274,8 +297,9 @@
       "$date": "2026-08-30T09:47:39.815Z"
     },
     "updatedAt": {
-      "$date": "2026-09-03T15:41:17.789Z"
+      "$date": "2026-10-12T07:40:24.570Z"
     },
-    "__v": 0
+    "__v": 0,
+    "kind": "collection"
   }
 ]

@@ -46,7 +46,7 @@ export function ListingFeaturedProducts({
               ) : null}
             </span>
             <span className="flex min-w-0 flex-col gap-1.5">
-              <span className="line-clamp-1 text-[13px] font-semibold tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
+              <span className="line-clamp-1 text-[13px] font-semibold tracking-[-0.02em] text-foreground transition-colors group-hover:text-store-link">
                 {product.name}
               </span>
               <span className="text-[12px] font-bold text-foreground/90">
@@ -59,7 +59,7 @@ export function ListingFeaturedProducts({
                     className={cn(
                       "size-[11px]",
                       index < stars
-                        ? "fill-amber-400 text-amber-400"
+                        ? "fill-current text-(--store-rating,#a86500)"
                         : "fill-muted text-muted",
                     )}
                   />

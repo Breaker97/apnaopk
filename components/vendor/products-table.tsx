@@ -10,6 +10,7 @@ import {
   FileDown,
   Globe,
   Pencil,
+  Percent,
   Plus,
   Rocket,
   ShoppingBag,
@@ -39,6 +40,9 @@ import {
 import { useListNavigation } from "@/hooks/use-list-navigation";
 import { apiClient } from "@/lib/api/client";
 import type { ProductListItem as Product } from "@/types/product-list";
+import type { DataTableBulkAction } from "@/components/ui/data-table/types";
+import type { TaxClass } from "@/lib/tax/tax-settings";
+import { TaxRequestDialog } from "@/components/vendor/tax-request-dialog";
 
 
 interface VendorProductsTableProps {
@@ -48,6 +52,12 @@ interface VendorProductsTableProps {
   canDeleteProduct?: boolean;
   /** Vendor may purchase boosts (manage_boosts). */
   canBoostProduct?: boolean;
+  /**
+   * The store's tax classes, given when the vendor may ask for a tax change
+   * (Settings → Tax Settings → Vendors, "with approval"): rows become
+   * selectable, with a bulk "Request tax change".
+   */
+  taxClasses?: TaxClass[];
   /** Rows for the current query string, fetched by the page. */
   data: Product[];
   pagination: {
@@ -71,6 +81,7 @@ export function VendorProductsTable({
   canEditProduct = false,
   canDeleteProduct = false,
   canBoostProduct = false,
+  taxClasses,
   data,
   pagination,
 }: VendorProductsTableProps) {
@@ -78,6 +89,22 @@ export function VendorProductsTable({
   const router = useRouter();
   const { formatPrice } = useCurrency();
   const { confirm } = useConfirmation();
+  const tTax = useTranslations("admin.settings.tax.request");
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  // The products a tax change request is being written for; empty when closed.
+  const [taxRequestIds, setTaxRequestIds] = useState<string[]>([]);
+  const taxBulkActions = useMemo<DataTableBulkAction<Product>[]>(
+    () => [
+      {
+        id: "request-tax-change",
+        label: tTax("bulkAction"),
+        icon: <Percent className="h-4 w-4" />,
+        variant: "outline",
+        onClick: (items) => setTaxRequestIds(items.map((item) => String(item._id))),
+      },
+    ],
+    [tTax],
+  );
   const { boostingEnabled } = usePublicAppSettings();
   const canImport = canCreateProduct || canEditProduct;
   const [importOpen, setImportOpen] = useState(false);
@@ -449,6 +476,14 @@ export function VendorProductsTable({
         onPageChange={list.handlePageChange}
         onPageSizeChange={list.handlePageSizeChange}
         rowActions={rowActions}
+        {...(taxClasses
+          ? {
+              selectable: true,
+              selectedItems: selectedProducts,
+              onSelectionChange: setSelectedProducts,
+              bulkActions: taxBulkActions,
+            }
+          : {})}
         rowActionsHeader={t("admin.productsDataTable.rowActionsHeader")}
         rowActionsVariant="inline"
         onRowClick={(row) =>
@@ -460,6 +495,17 @@ export function VendorProductsTable({
         }
         emptyMessage={t("common.noResults")}
       />
+      {taxClasses ? (
+        <TaxRequestDialog
+          open={taxRequestIds.length > 0}
+          onOpenChange={(open) => {
+            if (!open) setTaxRequestIds([]);
+          }}
+          productIds={taxRequestIds}
+          classes={taxClasses}
+          onSent={() => setSelectedProducts([])}
+        />
+      ) : null}
       {boostingEnabled ? (
         <BoostPurchaseDialog
           open={Boolean(boostTarget)}

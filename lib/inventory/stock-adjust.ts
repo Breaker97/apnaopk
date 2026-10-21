@@ -1,4 +1,6 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
+import { withInventoryWrite } from "./finance-context";
 
 import type { AuditContext } from "@/lib/audit";
 import { revalidateProductContent } from "@/lib/cache-invalidation";
@@ -34,6 +36,7 @@ export interface StockEditScope {
 }
 
 export interface StockEdit {
+  actorId?: string; channel?: "web" | "mobile";
   receipt?: { key: string; hash: string };
   productId: string;
   variantId?: string;
@@ -57,7 +60,7 @@ export type StockEditRefusal = "LOCATION_NOT_ALLOWED" | "LOCATION_OUT_OF_SCOPE" 
 
 export type StockEditOutcome =
   | { success: true; applied: AppliedStockEdit; replayed?: boolean }
-  | { success: false; refusal: StockEditRefusal; error: string };
+  | { success: false; refusal: StockEditRefusal; error: string; code?: string };
 
 /** One edit: the location's reach, the figure it replaces, the guarded write. Nothing is logged yet. */
 export async function applyStockEdit(edit: StockEdit, scope: StockEditScope): Promise<StockEditOutcome> {
@@ -82,13 +85,17 @@ export async function applyStockEdit(edit: StockEdit, scope: StockEditScope): Pr
     const before = await readStockBeforeEdit(target, scope.productFilter);
     // A compare-and-swap update, never a document save(): a save would
     // clobber a sale landing in between (its $inc overwritten by a stale $set).
-    const outcome = await applyStockChangeAtomic({
+    const outcome = await withInventoryWrite({
+      reason: edit.reason === "received" ? "received" : edit.reason === "damaged" ? "damaged" : edit.reason === "count" ? "count" : "correction",
+      sourceKind: "manual_stock", sourceId: edit.receipt?.key ?? randomUUID(), note: edit.note,
+      requestKey: edit.receipt?.key, actorId: edit.actorId, channel: edit.channel,
+    }, () => applyStockChangeAtomic({
       ...target,
       quantity: edit.quantity,
       adjustment: edit.adjustment,
       scopeFilter: scope.productFilter,
       receipt: edit.receipt,
-    });
+    }));
     if (!outcome.success) {
       return { success: false, refusal: "NOT_APPLIED", error: outcome.error ?? "Unknown error" };
     }
@@ -109,6 +116,7 @@ export async function applyStockEdit(edit: StockEdit, scope: StockEditScope): Pr
       success: false,
       refusal: "NOT_APPLIED",
       error: err instanceof Error ? err.message : "Unknown error",
+      code: (err as { code?: string }).code,
     };
   }
 }
@@ -160,7 +168,7 @@ export async function applyStockEdits(
     }
     const outcome = await applyStockEdit(
       {
-        productId: String(productId),
+        actorId: audit.userId, channel: "web", productId: String(productId),
         variantId: variantId ? String(variantId) : undefined,
         locationId: locationId ? String(locationId) : undefined,
         quantity: Number(quantity),

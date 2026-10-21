@@ -270,7 +270,7 @@ export function serializeConversation(
     lastMessageId?: unknown;
     createdAt: Date;
     updatedAt: Date;
-    ownerVendor?: { storeName?: string };
+    ownerVendor?: { storeName?: string; logo?: string | null };
     assignedToUserId?:
       | unknown
       | { _id?: unknown; name?: string; image?: string };
@@ -281,7 +281,7 @@ export function serializeConversation(
     doc.ownerVendorId &&
     typeof doc.ownerVendorId === "object" &&
     "storeName" in doc.ownerVendorId
-      ? (doc.ownerVendorId as { storeName?: string })
+      ? (doc.ownerVendorId as { storeName?: string; logo?: string | null })
       : undefined;
 
   return {
@@ -290,6 +290,7 @@ export function serializeConversation(
     ownerType: doc.ownerType,
     ownerVendorId: id(doc.ownerVendorId) || undefined,
     ownerName: doc.ownerVendor?.storeName || populatedOwner?.storeName,
+    ownerImage: doc.ownerVendor?.logo || populatedOwner?.logo || undefined,
     contact: {
       name: doc.contact.name,
       email: doc.contact.email,
@@ -872,8 +873,9 @@ function activeKey(params: {
     ownerKey: params.target.ownerVendorId
       ? `vendor:${params.target.ownerVendorId.toHexString()}`
       : "platform",
-    productKey:
-      params.target.productContext?.productId.toHexString() || "general",
+    // One thread per shopper and store: a product is shared into that thread
+    // as a message, it does not open a thread of its own.
+    productKey: "general",
   });
 }
 
@@ -902,7 +904,7 @@ function liveChatActiveKeyFor(conversation: IConversation) {
   return activeKeyDigest({
     customerKey,
     ownerKey: ownerVendorId ? `vendor:${ownerVendorId}` : "platform",
-    productKey: id(conversation.productContext?.productId) || "general",
+    productKey: "general",
   });
 }
 
@@ -976,7 +978,7 @@ export async function assertConversationAccess(
     ...getConversationAccessQuery(viewer),
   }).populate([
     { path: "assignedToUserId", select: "name image" },
-    { path: "ownerVendorId", select: "storeName" },
+    { path: "ownerVendorId", select: "storeName logo" },
   ]);
   if (!conversation) throw new NotFoundError("Conversation");
   return conversation;
@@ -984,7 +986,7 @@ export async function assertConversationAccess(
 
 const CONVERSATION_HEADER_POPULATE = [
   { path: "assignedToUserId", select: "name image" },
-  { path: "ownerVendorId", select: "storeName" },
+  { path: "ownerVendorId", select: "storeName logo" },
 ];
 
 /**
@@ -1100,7 +1102,7 @@ export async function listConversations(params: ConversationListFilter & { limit
   const limit = Math.min(Math.max(params.limit || 50, 1), 100);
   const rows = await Conversation.find(query)
     .populate("assignedToUserId", "name image")
-    .populate("ownerVendorId", "storeName")
+    .populate("ownerVendorId", "storeName logo")
     .sort({ lastMessageAt: -1, _id: -1 })
     .limit(limit + 1)
     .lean();
@@ -1328,7 +1330,8 @@ export async function startLiveConversation(params: {
   viewer: ConversationViewer;
   name?: string;
   email?: string;
-  message: string;
+  /** May be empty when a product is shared — the product card is the message. */
+  message?: string;
   subject?: string;
   productId?: string;
   vendorId?: string;
@@ -1345,7 +1348,11 @@ export async function startLiveConversation(params: {
   if (params.viewer.kind !== "customer" && params.viewer.kind !== "guest") {
     throw new AuthorizationError("Only shoppers can start a storefront chat");
   }
-  const body = normalizeConversationText(params.message);
+  const body = params.message?.trim()
+    ? normalizeConversationText(params.message)
+    : params.productId
+      ? ""
+      : normalizeConversationText("");
   const name =
     params.viewer.kind === "customer"
       ? params.viewer.name
@@ -1365,15 +1372,49 @@ export async function startLiveConversation(params: {
     email,
   });
   const key = activeKey({ viewer: params.viewer, target });
-  const existing = await Conversation.findOne({
-    activeKey: key,
-    status: { $in: ACTIVE_STATUSES },
-  });
+  // The shopper's thread with this store, whatever it was keyed by: threads
+  // opened before products stopped splitting them carry a per-product key, and
+  // a resolved thread is picked up again rather than replaced.
+  const existing =
+    (await Conversation.findOne({
+      activeKey: key,
+      status: { $in: ACTIVE_STATUSES },
+    })) ||
+    (await Conversation.findOne({
+      channel: CONVERSATION_CHANNELS.LIVE_CHAT,
+      ownerType: target.ownerType,
+      ...(target.ownerVendorId ? { ownerVendorId: target.ownerVendorId } : {}),
+      ...(params.viewer.kind === "customer"
+        ? { customerUserId: objectId(params.viewer.userId, "Customer") }
+        : { guestKeyHash: params.viewer.guestKeyHash }),
+      status: {
+        $in: [...ACTIVE_STATUSES, CONVERSATION_STATUSES.RESOLVED],
+      },
+    }).sort({ lastMessageAt: -1 }));
   if (existing) {
+    // The details panel shows the product most recently asked about, and the
+    // subject the shopper last gave (a new contact-form message keeps landing
+    // in this thread, so its subject would otherwise be lost).
+    const subject = params.subject?.trim().slice(0, 180);
+    if (target.productContext || subject) {
+      await Conversation.updateOne(
+        { _id: existing._id },
+        {
+          $set: {
+            ...(target.productContext
+              ? { productContext: target.productContext }
+              : {}),
+            ...(subject ? { subject } : {}),
+          },
+        },
+      );
+    }
     const result = await appendConversationMessage({
       conversationId: id(existing._id),
       viewer: params.viewer,
       message: body,
+      productId: params.productId,
+      variantId: params.variantId,
       clientMessageId: params.clientMessageId,
     });
     return { ...result, created: false };
@@ -1386,13 +1427,27 @@ export async function startLiveConversation(params: {
     params.viewer.kind === "customer"
       ? CONVERSATION_MESSAGE_SENDER_TYPES.CUSTOMER
       : CONVERSATION_MESSAGE_SENDER_TYPES.GUEST;
+  // The thread is with the store, so it is named after the store; the products
+  // asked about live in the messages.
   const subject =
     params.subject?.trim().slice(0, 180) ||
-    (target.productContext
-      ? `Question about ${target.productContext.name}`
-      : target.ownerName
-        ? `Message to ${target.ownerName}`
-        : "Store support");
+    (target.ownerName ? `Message to ${target.ownerName}` : "Store support");
+  // The product is shared as the first message, the same snapshot a later
+  // share in the thread carries; with nothing typed, its name and link are
+  // the body.
+  const product = params.productId
+    ? await snapshotMessageProduct({
+        productId: params.productId,
+        variantId: params.variantId,
+        conversation: { ownerVendorId: target.ownerVendorId },
+      })
+    : undefined;
+  const bodyIsFallback = Boolean(product && !body);
+  const messageBody =
+    product && bodyIsFallback
+      ? productMessageText(product, params.variantId)
+      : body;
+  const messagePreview = messageBody;
 
   try {
     const conversation = await Conversation.create({
@@ -1420,7 +1475,7 @@ export async function startLiveConversation(params: {
       productContext: target.productContext,
       activeKey: key,
       lastMessageId: messageId,
-      lastMessagePreview: preview(body),
+      lastMessagePreview: preview(messagePreview),
       lastMessageAt: now,
       lastInboundAt: now,
       unreadForCustomer: 0,
@@ -1437,7 +1492,9 @@ export async function startLiveConversation(params: {
           ? objectId(params.viewer.userId, "Customer")
           : undefined,
       senderName: name,
-      body,
+      body: messageBody,
+      ...(product ? { product } : {}),
+      ...(bodyIsFallback ? { bodyIsFallback: true } : {}),
       clientMessageId: params.clientMessageId,
       deliveryStatus: CONVERSATION_MESSAGE_STATUSES.SENT,
     });
@@ -1446,7 +1503,7 @@ export async function startLiveConversation(params: {
       viewer: params.viewer,
       lastReadMessageId: messageId,
     });
-    afterResponse(() => notifyStoreAboutInbound(conversation, body));
+    afterResponse(() => notifyStoreAboutInbound(conversation, messagePreview));
     return {
       conversation: serializeConversation(conversation, params.viewer),
       message: serializeConversationMessage(message),
@@ -1464,6 +1521,8 @@ export async function startLiveConversation(params: {
           conversationId: id(concurrent._id),
           viewer: params.viewer,
           message: body,
+          productId: params.productId,
+          variantId: params.variantId,
           clientMessageId: params.clientMessageId,
         });
         return { ...result, created: false };

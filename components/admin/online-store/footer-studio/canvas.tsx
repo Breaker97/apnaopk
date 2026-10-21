@@ -272,7 +272,7 @@ function CanvasColumn({
     <div
       ref={setNodeRef}
       role="group"
-      aria-label={tSafe("admin.footerStudio.canvas.column", "Column")}
+      aria-label={tSafe("admin.footerStudio.panel.column", "Column")}
       onClick={(event) => {
         event.stopPropagation();
         // Selecting a column names its row too: the panel shows the column's
@@ -294,14 +294,14 @@ function CanvasColumn({
         <span className="shrink-0">{`${column.width}fr`}</span>
         <span className="truncate">
           {isRow
-            ? tSafe("admin.footerStudio.canvas.flow.row", "Side by side")
-            : tSafe("admin.footerStudio.canvas.flow.stack", "Stacked")}
+            ? tSafe("admin.footerStudio.canvas.flowRow", "Side by side")
+            : tSafe("admin.footerStudio.canvas.flowStack", "Stacked")}
         </span>
         {onRemove ? (
           <button
             type="button"
             aria-label={tSafe(
-              "admin.footerStudio.panel.removeColumn",
+              "admin.footerStudio.canvas.removeColumn",
               "Remove column",
             )}
             onClick={(event) => {
@@ -327,7 +327,7 @@ function CanvasColumn({
         >
           {column.items.length === 0 ? (
             <span className="flex flex-1 items-center justify-center px-1 py-1.5 text-center text-[11px] italic text-muted-foreground">
-              {tSafe("admin.footerStudio.canvas.empty", "Drop an item here")}
+              {tSafe("admin.footerStudio.canvas.emptyColumn", "Drop an item here")}
             </span>
           ) : (
             column.items.map((item) => (

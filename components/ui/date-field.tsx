@@ -93,33 +93,37 @@ export function DateField({
             className,
           )}
         >
-          {text}
-          <CalendarDays className="size-4 text-muted-foreground" />
+          <span className="truncate">{text}</span>
+          <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={selected}
-          defaultMonth={selected}
-          disabled={[
-            ...(disableAfter ? [{ after: disableAfter }] : []),
-            ...(disableBefore ? [{ before: disableBefore }] : []),
-          ]}
-          captionLayout={yearPicker ? "dropdown" : "label"}
-          startMonth={yearPicker ? startMonth : undefined}
-          endMonth={yearPicker ? (endMonth ?? disableAfter) : undefined}
-          onSelect={(date) => {
-            if (!date) return;
-            // Formatted from the local parts, never `toISOString()`: that is
-            // UTC, and west of Greenwich it hands back the previous day.
-            onChange(
-              `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
-            );
-            setOpen(false);
-          }}
-          autoFocus
-        />
+      <PopoverContent align="start" className="w-auto p-3">
+        <div className="relative">
+          <Calendar
+            mode="single"
+            selected={selected}
+            defaultMonth={selected}
+            disabled={[
+              ...(disableAfter ? [{ after: disableAfter }] : []),
+              ...(disableBefore ? [{ before: disableBefore }] : []),
+            ]}
+            // Monday first, as in the range picker: one admin, one calendar.
+            weekStartsOn={1}
+            captionLayout={yearPicker ? "dropdown" : "label"}
+            startMonth={yearPicker ? startMonth : undefined}
+            endMonth={yearPicker ? (endMonth ?? disableAfter) : undefined}
+            onSelect={(date) => {
+              if (!date) return;
+              // Formatted from the local parts, never `toISOString()`: that is
+              // UTC, and west of Greenwich it hands back the previous day.
+              onChange(
+                `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+              );
+              setOpen(false);
+            }}
+            autoFocus
+          />
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -12,7 +12,7 @@ import {
   type PeriodSnapshotLine,
 } from "@/components/admin/finance/period-close-panel";
 import { formatCurrency } from "@/lib/intl/money";
-import { getProfitAndLoss, getTaxSummary } from "@/lib/finance/reports";
+import { getProfitAndLoss, getTaxPartsSummary, getTaxSummary } from "@/lib/finance/reports";
 import {
   dashboardPickerBounds,
   financePeriodLabel,
@@ -60,8 +60,9 @@ export default async function AdminFinanceReportsPage({
   const pickerBounds = dashboardPickerBounds(period);
 
   await connectDB();
-  const [tax, periods] = await Promise.all([
+  const [tax, taxParts, periods] = await Promise.all([
     getTaxSummary(period),
+    getTaxPartsSummary(period),
     FiscalPeriod.find()
       .sort({ to: -1 })
       .limit(24)
@@ -150,7 +151,7 @@ export default async function AdminFinanceReportsPage({
           <h1 className="text-2xl font-semibold tracking-tight">
             {label("finance.reports.title", "Reports")}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
             {label(
               "finance.reports.subtitle",
               "What to hand an accountant, and where each month was signed off.",
@@ -254,6 +255,41 @@ export default async function AdminFinanceReportsPage({
                   "Each currency stands on its own line and is never added to another.",
                 )}
               </p>
+              {/* The same tax by the parts of its rates (state, county, city),
+                  from what each order recorded (lib/finance/reports.ts). */}
+              {taxParts.length > 0 ? (
+                <div className="mt-6 space-y-2">
+                  <h3 className="text-sm font-semibold">
+                    {label("finance.reports.taxPartsTitle", "By tax")}
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {taxParts.map((part) => (
+                          <tr
+                            key={`${part.currency}-${part.name}-${part.rate}`}
+                            className="border-b last:border-0"
+                          >
+                            <td className="py-2">
+                              {part.name || label("finance.reports.taxPartUnnamed", "Tax")}
+                            </td>
+                            <td className="py-2 text-muted-foreground tabular-nums">{part.rate}%</td>
+                            <td className="py-2 text-end font-medium tabular-nums">
+                              {formatCurrency(part.amount, part.currency)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {label(
+                      "finance.reports.taxPartsHint",
+                      "Charged on orders placed in this period, before refunds. Orders from before each line's tax was recorded are not included.",
+                    )}
+                  </p>
+                </div>
+              ) : null}
             </>
           )}
         </CardContent>

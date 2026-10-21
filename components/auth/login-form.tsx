@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocaleHref } from "@/hooks/use-locale-navigation";
+import { posthogClient } from "@/lib/analytics/posthog-client";
 import Link from "@/components/language/link";
 import { useState } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
@@ -191,6 +192,14 @@ export function useLoginForm({
         setRequires2FA(true);
         return;
       }
+
+      if (signInData?.user?.id) {
+        posthogClient.identify(signInData.user.id, { email: data.email });
+      }
+      posthogClient.capture("user_signed_in", {
+        method: "email",
+        role: signInData?.user?.role,
+      });
 
       await redirectAfterLogin(signInData?.user?.role);
     } catch {
@@ -507,7 +516,7 @@ export function LoginFields({
         <div className="flex items-center justify-end">
           <Link
             href={`/${state.locale}/forgot-password`}
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-store-link hover:underline"
           >
             {t("auth.forgotPassword")}
           </Link>

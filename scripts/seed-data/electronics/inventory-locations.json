@@ -13,22 +13,53 @@
     "pickupEnabled": false,
     "fulfillsOnlineOrders": true,
     "sellsAtCounter": true,
-    "fulfillmentPriority": 0,
+    "fulfillmentPriority": 2,
     "weeklyHours": [],
     "createdAt": {
       "$date": "2026-08-27T17:51:04.479Z"
     },
-    "updatedAt": {
-      "$date": "2026-09-07T11:04:10.652Z"
-    },
-    "__v": 0,
     "geo": {
       "type": "Point",
       "coordinates": [
-        -73.9536363,
-        40.7577038
+        -122.449507,
+        37.7732431
       ]
+    },
+    "acceptsReturns": false,
+    "updatedAt": {
+      "$date": "2026-10-11T07:16:30.682Z"
     }
+  },
+  {
+    "_id": {
+      "$oid": "6a907908a8a12b22b27a0c35"
+    },
+    "vendorId": {
+      "$oid": "6a907901a8a12b22b27a0c1c"
+    },
+    "name": "Secondary Storage",
+    "address": "789 Storage Dr, New York, NY 10003",
+    "isDefault": false,
+    "isActive": true,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 1,
+    "weeklyHours": [],
+    "createdAt": {
+      "$date": "2026-08-27T17:51:04.479Z"
+    },
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -122.449507,
+        37.7732431
+      ]
+    },
+    "updatedAt": {
+      "$date": "2026-10-18T06:02:27.354Z"
+    },
+    "acceptsReturns": false
   },
   {
     "_id": {
@@ -49,16 +80,51 @@
     "createdAt": {
       "$date": "2026-08-27T17:51:04.478Z"
     },
-    "updatedAt": {
-      "$date": "2026-09-07T11:04:10.652Z"
-    },
-    "__v": 0,
     "geo": {
       "type": "Point",
       "coordinates": [
-        -73.9536363,
-        40.7577038
+        -122.449507,
+        37.7732431
       ]
+    },
+    "acceptsReturns": false,
+    "updatedAt": {
+      "$date": "2026-10-18T06:02:27.351Z"
     }
+  },
+  {
+    "_id": {
+      "$oid": "6a9f3eab0921b8eda5b4cf5a"
+    },
+    "vendorId": {
+      "$oid": "6a907901a8a12b22b27a0c1c"
+    },
+    "name": "USA",
+    "address": "",
+    "isDefault": false,
+    "isActive": false,
+    "pickupEnabled": false,
+    "fulfillsOnlineOrders": true,
+    "sellsAtCounter": true,
+    "fulfillmentPriority": 3,
+    "pickupArea": "",
+    "instructions": "",
+    "weeklyHours": [],
+    "mapsUrl": "",
+    "geo": {
+      "type": "Point",
+      "coordinates": [
+        -122.449507,
+        37.7732431
+      ]
+    },
+    "createdAt": {
+      "$date": "2026-09-07T22:46:03.405Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-28T15:46:23.281Z"
+    },
+    "__v": 0,
+    "acceptsReturns": false
   }
 ]

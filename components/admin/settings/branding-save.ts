@@ -52,6 +52,7 @@ function normalizeAppearanceForSave(
     primaryColor: normalize(appearance?.primaryColor),
     secondaryColor: normalize(appearance?.secondaryColor),
     accentColor: normalize(appearance?.accentColor),
+    skeletonColor: normalize(appearance?.skeletonColor),
   };
 }
 

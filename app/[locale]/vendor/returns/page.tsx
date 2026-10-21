@@ -30,7 +30,7 @@ export default async function VendorReturnsPage({ params }: PageProps) {
           what came back. The store admin issues the refund.
         </p>
       </div>
-      <Suspense fallback={<AdminStatsStripSkeleton items={4} />}>
+      <Suspense fallback={<AdminStatsStripSkeleton items={5} />}>
         <ReturnsStatsStrip
           locale={locale}
           vendorId={String(access.vendor._id)}

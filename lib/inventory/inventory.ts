@@ -1,4 +1,7 @@
 import { Product } from "@/models";
+import { randomUUID } from "node:crypto";
+import { inventoryWriteContext, withInventoryWrite } from "./finance-context";
+import { afterFinanceCommit, financeSession } from "@/lib/finance/transaction";
 import { revalidateProductStock } from "@/lib/cache-invalidation";
 import {
   isProductAvailable,
@@ -16,6 +19,7 @@ export type InventoryAdjustmentLine = {
 };
 
 export type InventoryAdjustmentOptions = {
+  financeSource?: { kind: string; id: string };
   channel?: "online" | "pos";
   /**
    * Which branch this movement belongs to.
@@ -383,6 +387,23 @@ function pickRestoreLocationId(
   return first?.locationId ? String(first.locationId) : undefined;
 }
 
+/**
+ * Whether a product (or variant) keeps a stock entry at this location.
+ *
+ * A POS sale that may oversell — "continue selling when out of stock", or an
+ * offline sale replayed after the goods left — has to go through at a counter
+ * where the product keeps stock elsewhere but has no entry yet. The register
+ * offers it there, and the location-scoped write matched nothing and refused
+ * the sale as short. The caller first gives it an empty entry, which leaves
+ * Σ(locationInventory) = stock as it was, and the sale takes it below zero.
+ */
+function tracksLocation(
+  lineLocations: LocationInventoryEntry[],
+  locationId: string | undefined,
+): boolean {
+  return lineLocations.some((loc) => String(loc.locationId) === String(locationId));
+}
+
 async function decrementSingleLine(
   productModel: ProductModelLike,
   line: InventoryAdjustmentLine,
@@ -477,6 +498,26 @@ async function decrementSingleLine(
 
     let options: Record<string, unknown> | undefined;
     if (isPos) {
+      if (allowOversell && !tracksLocation(lineLocations, opts.locationId)) {
+        // Idempotent: matches only while the variant has no entry there.
+        await productModel.updateOne(
+          {
+            _id: line.productId,
+            variants: {
+              $elemMatch: {
+                _id: line.variantId,
+                "locationInventory.locationId": { $ne: opts.locationId },
+              },
+            },
+          },
+          {
+            $push: {
+              "variants.$[v].locationInventory": { locationId: opts.locationId, quantity: 0 },
+            },
+          },
+          { arrayFilters: [{ "v._id": line.variantId }] },
+        );
+      }
       (baseUpdate.$inc as Record<string, unknown>)[
         "variants.$.locationInventory.$[li].quantity"
       ] = -line.quantity;
@@ -538,6 +579,13 @@ async function decrementSingleLine(
       // POS simple product with location tracking: validate and draw down the
       // selling location so the sale is location-accurate (previously it
       // ignored the location entirely).
+      if (allowOversell && !tracksLocation(lineLocations, opts.locationId)) {
+        // Idempotent: matches only while the product has no entry there.
+        await productModel.updateOne(
+          { _id: line.productId, "locationInventory.locationId": { $ne: opts.locationId } },
+          { $push: { locationInventory: { locationId: opts.locationId, quantity: 0 } } },
+        );
+      }
       filter = {
         _id: line.productId,
         locationInventory: {
@@ -603,7 +651,13 @@ async function decrementSingleLine(
 export async function decrementInventory(
   lines: InventoryAdjustmentLine[],
   opts: InventoryAdjustmentOptions = {},
-) {
+): Promise<void> {
+  const active = inventoryWriteContext();
+  if (!active || active.reason !== "reserve") {
+    const source = opts.financeSource ?? { kind: "stock", id: randomUUID() };
+    const { withFinancialStockTransaction } = await import("./finance-source-transaction");
+    return withFinancialStockTransaction(lines.map((l) => l.productId), source.id, () => withInventoryWrite({ reason: "reserve", sourceKind: source.kind, sourceId: source.id }, () => decrementInventory(lines, opts)));
+  }
   const productModel = Product as unknown as ProductModelLike;
   const applied: InventoryAdjustmentLine[] = [];
   // Single batched read of every line's per-location inventory (+ slugs for cache
@@ -627,7 +681,14 @@ export async function decrementInventory(
   // another, a database round trip per line on the path a shopper waits on.
   // Only the rollback needs them together, and it gets exactly the lines that
   // moved.
-  const outcomes = await Promise.allSettled(
+  const outcomes = financeSession() ? await (async () => {
+    const sequential: PromiseSettledResult<void>[] = [];
+    for (const line of movable) {
+      try { await decrementSingleLine(productModel, line, opts, lineData.locations.get(lineLocationKey(line)) || [], opts.allowOversell === true || lineData.oversell.has(String(line.productId)), lineData.preferred.get(String(line.productId)) || []); sequential.push({ status: "fulfilled", value: undefined }); }
+      catch (reason) { sequential.push({ status: "rejected", reason }); break; }
+    }
+    return sequential;
+  })() : await Promise.allSettled(
     movable.map((line) =>
       decrementSingleLine(
         productModel,
@@ -642,13 +703,14 @@ export async function decrementInventory(
       ),
     ),
   );
-  applied.push(...movable.filter((_, i) => outcomes[i].status === "fulfilled"));
+  applied.push(...movable.filter((_, i) => outcomes[i]?.status === "fulfilled"));
   // The first line to fail, in the order given — the one a sequential run
   // would have stopped at — is the error the caller sees.
   const failure = outcomes.find(
     (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
   );
   if (failure) {
+    if (financeSession()) throw failure.reason;
     if (applied.length > 0) {
       await restoreInventory(applied, opts).catch((rollbackErr) => {
         // If rollback itself fails, we surface the original error to the
@@ -665,7 +727,7 @@ export async function decrementInventory(
 
   if (applied.length === 0) return;
 
-  const aftermath = (async () => {
+  const finishMovement = async () => {
     // One read of where stock landed serves both follow-ups below.
     const after = await readStockAfterMovement(applied);
 
@@ -682,7 +744,9 @@ export async function decrementInventory(
     // (previous stock above, new stock at/below) so a product sitting at low
     // stock doesn't re-notify on every subsequent sale.
     if (after) await maybeNotifyLowStock(applied, after);
-  })();
+  };
+  if (financeSession() && afterFinanceCommit(finishMovement)) return;
+  const aftermath = finishMovement();
   if (opts.onAftermath) {
     opts.onAftermath(aftermath);
     return;
@@ -894,7 +958,13 @@ export async function runStockMovementAftermath(
 export async function restoreInventory(
   lines: InventoryAdjustmentLine[],
   opts: InventoryAdjustmentOptions = {},
-) {
+): Promise<void> {
+  const restoreContext = inventoryWriteContext();
+  if (!restoreContext || restoreContext.reason === "reserve") {
+    const source = opts.financeSource ?? (restoreContext ? { kind: restoreContext.sourceKind, id: restoreContext.sourceId } : { kind: "stock", id: randomUUID() });
+    const { withFinancialStockTransaction } = await import("./finance-source-transaction");
+    return withFinancialStockTransaction(lines.map((l) => l.productId), source.id, () => withInventoryWrite({ reason: "release", sourceKind: source.kind, sourceId: source.id }, () => restoreInventory(lines, opts)));
+  }
   const productModel = Product as unknown as ProductModelLike;
   // One batched read of all lines' locations (+ slugs), replacing the former
   // per-line findOne in each branch below and the slug lookup in
@@ -1047,13 +1117,12 @@ export async function restoreInventory(
     }
   }
 
-  invalidateProductCache(
-    lines,
-    lineData.slugs,
-    await readStockAfterMovement(lines),
-    1,
-  );
-  await markForMetaCatalog(lines.map((line) => line.productId));
+  const aftermath = async () => {
+    invalidateProductCache(lines, lineData.slugs, await readStockAfterMovement(lines), 1);
+    await markForMetaCatalog(lines.map((line) => line.productId));
+  };
+  if (financeSession() && afterFinanceCommit(aftermath)) return;
+  await aftermath();
 }
 
 export type StockChangeRequest = {
@@ -1073,6 +1142,7 @@ export type StockChangeRequest = {
   allowNegative?: boolean;
   /** A location counter must be changed whenever it backs the aggregate. */
   requireLocationWhenTracked?: boolean;
+  /** The quantity change and its movement/outbox evidence share this session. */
   session?: import("mongoose").ClientSession;
 };
 
@@ -1095,13 +1165,14 @@ async function readStockSnapshot(
   const receiptProjection = request.receipt
     ? { stockAdjustmentReceipts: { $elemMatch: { key: request.receipt.key } } }
     : {};
-  const doc = (await Product.findOne(
+  const query = Product.findOne(
     { _id: request.productId, ...(request.scopeFilter || {}) },
     request.variantId
       ? { stock: 1, variants: { $elemMatch: { _id: request.variantId } }, ...receiptProjection }
       : { stock: 1, locationInventory: 1, ...receiptProjection },
-    request.session ? { session: request.session } : undefined,
-  ).lean()) as {
+  );
+  if (request.session) query.session(request.session);
+  const doc = (await query.lean()) as {
     stock?: number;
     stockAdjustmentReceipts?: Array<{ key: string; hash: string }>;
     locationInventory?: Array<{ locationId?: unknown; quantity?: number }>;

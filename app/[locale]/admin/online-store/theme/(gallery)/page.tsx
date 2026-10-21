@@ -7,6 +7,8 @@ import {
   THEME_MANIFESTS,
 } from "@/lib/storefront/themes/registry";
 import { getSettings } from "@/models/settings.model";
+import { resolveBrand } from "@/lib/branding/brand";
+import { themePalettes } from "@/lib/storefront/themes/key-colors";
 import { AdminSettingsProvider } from "@/components/admin/settings/admin-settings-context";
 import { isThemePageTab } from "@/lib/storefront/themes/page-tabs";
 import { ThemeGallery } from "@/components/admin/store-pages/theme-gallery";
@@ -61,6 +63,8 @@ export default async function OnlineStoreThemePage({
             ),
           }))}
           activeThemeId={theme.id}
+          // Each theme's own key colours, as it paints them.
+          palettes={themePalettes(settings.onlineStore, resolveBrand(settings).colors)}
           customCss={theme.customCss}
           initialTab={isThemePageTab(requestedTab) ? requestedTab : "theme"}
         />

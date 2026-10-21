@@ -1,5 +1,5 @@
 import { VENDOR_STATUS } from "@/config/app.config";
-import { NotFoundError } from "@/lib/api/errors";
+import { AuthorizationError, NotFoundError } from "@/lib/api/errors";
 import { withApi } from "@/lib/api/handler";
 import { rateLimitByUser } from "@/lib/api/rate-limit-middleware";
 import { successResponse } from "@/lib/api/response";
@@ -8,6 +8,10 @@ import {
   getExternalVendorFilter,
   isMultiVendorEnabled,
 } from "@/lib/vendors/multi-vendor";
+import {
+  canFollowStores,
+  countVendorFollowers,
+} from "@/lib/vendors/vendor-follow";
 import { Vendor, VendorFollow } from "@/models";
 
 /**
@@ -38,6 +42,9 @@ async function requireFollowableVendor(slug: string) {
 /**
  * POST /api/vendors/[slug]/follow
  *
+ * Shoppers only (`canFollowStores`): an admin, team member or seller gets a
+ * 403, and the storefront does not offer them the button.
+ *
  * Idempotent: following an already-followed store succeeds. The unique
  * { userId, vendorId } index is what makes a double-tap safe — the duplicate-key
  * error means the follow already exists, which is the desired end state.
@@ -52,6 +59,10 @@ export const POST = withApi<{ slug: string }>(
       "moderate",
       session.user.role,
     );
+
+    if (!canFollowStores(session.user)) {
+      throw new AuthorizationError("Only customer accounts can follow stores");
+    }
 
     const vendor = await requireFollowableVendor(params.slug);
 
@@ -68,9 +79,7 @@ export const POST = withApi<{ slug: string }>(
       if (!isDuplicate) throw error;
     }
 
-    const followerCount = await VendorFollow.countDocuments({
-      vendorId: vendor._id,
-    });
+    const followerCount = await countVendorFollowers(vendor._id);
 
     return successResponse({ isFollowing: true, followerCount });
   },
@@ -100,9 +109,7 @@ export const DELETE = withApi<{ slug: string }>(
       vendorId: vendor._id,
     });
 
-    const followerCount = await VendorFollow.countDocuments({
-      vendorId: vendor._id,
-    });
+    const followerCount = await countVendorFollowers(vendor._id);
 
     return successResponse({ isFollowing: false, followerCount });
   },

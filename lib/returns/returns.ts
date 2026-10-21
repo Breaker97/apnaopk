@@ -421,11 +421,73 @@ export function returnRestockProgress(request: {
 export function returnHasRestocked(request: {
   items?: ReadonlyArray<RestockableReturnItem> | null;
   inventoryRestored?: boolean | null;
+  /** Unsellable units decided on after the count — see `lib/returns/held-units-actions.ts`. */
+  unsellableDispositions?: ReadonlyArray<{ action?: string | null; quantity?: number | null } | null> | null;
 }): boolean {
   return (
     Boolean(request.inventoryRestored) ||
-    (request.items || []).some((item) => Number(item.quantityRestocked || 0) > 0)
+    (request.items || []).some((item) => Number(item.quantityRestocked || 0) > 0) ||
+    // Units put back on sale from the held stock are on the shelf too, and are
+    // recorded on the disposition, not on the line: left out, such a return
+    // could still be rejected or cancelled, and its units claimed all over.
+    (request.unsellableDispositions || []).some(
+      (disposition) =>
+        disposition?.action === "restocked" && Number(disposition.quantity || 0) > 0,
+    )
   );
+}
+
+/**
+ * Units of one line decided on from the held stock — put back on sale or
+ * written off. A disposition names its line by position in the return's items,
+ * a recount by the order line, so the two are matched through `orderItemIndex`.
+ */
+export function disposedUnitsOfLine(
+  request: {
+    items?: ReadonlyArray<{ orderItemIndex?: number | null } | null> | null;
+    unsellableDispositions?: ReadonlyArray<{ itemIndex?: number | null; quantity?: number | null } | null> | null;
+  },
+  orderItemIndex: unknown,
+): number {
+  return (request.unsellableDispositions || []).reduce(
+    (sum, disposition) =>
+      request.items?.[Number(disposition?.itemIndex)]?.orderItemIndex === Number(orderItemIndex)
+        ? sum + Math.max(0, Number(disposition?.quantity || 0))
+        : sum,
+    0,
+  );
+}
+
+/**
+ * Why a recount of one line cannot go ahead, or null when it can.
+ *
+ * Units of the line may already be back on the shelf (`quantityRestocked`) or
+ * decided on from the held stock (`disposed`). A count that takes them away,
+ * or turns sellable goods unsellable and the other way round, would put the
+ * same units back a second time or hold ones that already went: damaged goods
+ * restocked as a disposition and then counted "new" were restocked in full again.
+ */
+export function receiptChangeProblem(params: {
+  line: { quantityRestocked?: number | null; condition?: string | null };
+  /** The quantity the new count says arrived. */
+  quantity: number;
+  /** The condition the new count gives; absent leaves the line's own. */
+  condition?: string | null;
+  /** Units of the line already decided on from the held stock, put back or written off. */
+  disposed: number;
+}): string | null {
+  const restocked = Math.max(0, Number(params.line.quantityRestocked || 0));
+  const disposed = Math.max(0, Number(params.disposed || 0));
+  if (restocked + disposed === 0) return null;
+  const message =
+    "A count cannot remove or change goods already put back on sale or settled. Record the rest as a new count of the other units.";
+  if (Number(params.quantity) < restocked + disposed) return message;
+  const next = params.condition || params.line.condition;
+  if (disposed > 0 && next !== params.line.condition) return message;
+  const unsellable = (condition?: string | null) =>
+    UNSELLABLE_RETURN_CONDITIONS.includes(String(condition || ""));
+  if (unsellable(next) !== unsellable(params.line.condition)) return message;
+  return null;
 }
 
 /**
@@ -441,6 +503,7 @@ export function returnRestockEventKey(returnId: unknown, step?: string | null): 
 export const NOTHING_RESTOCKED_ON_RETURN = {
   inventoryRestored: { $ne: true },
   items: { $not: { $elemMatch: { quantityRestocked: { $gt: 0 } } } },
+  unsellableDispositions: { $not: { $elemMatch: { action: "restocked" } } },
 };
 
 /**

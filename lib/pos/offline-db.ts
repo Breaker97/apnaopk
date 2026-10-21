@@ -95,6 +95,18 @@ export interface OfflineSale {
  */
 export const MAX_QUEUED_SALES = 500;
 
+/**
+ * Thrown when this browser cannot store a sale at all (private mode, blocked
+ * site data). Its own class, so the till can say why in the cashier's
+ * language.
+ */
+export class OfflineStorageUnavailableError extends Error {
+  constructor() {
+    super("This browser cannot store offline sales");
+    this.name = "OfflineStorageUnavailableError";
+  }
+}
+
 /** Thrown when the queue is full, so the caller can say why rather than "failed". */
 export class OutboxFullError extends Error {
   constructor() {
@@ -203,9 +215,7 @@ export async function readCatalogSnapshot(
  * success from the caller's point of view.
  */
 export async function enqueueSale(sale: OfflineSale): Promise<void> {
-  if (!isAvailable()) {
-    throw new Error("This browser cannot store offline sales");
-  }
+  if (!isAvailable()) throw new OfflineStorageUnavailableError();
 
   // Counted per counter, and before the write: a shared browser profile with
   // two registers must not have one fill the other's allowance.
@@ -245,6 +255,42 @@ export async function listQueuedSales(scope: string): Promise<OfflineSale[]> {
   );
 }
 
+/**
+ * Every counter's queue, oldest sale first.
+ *
+ * The drain reads this rather than one counter's queue. A sale carries its own
+ * `posLocationId`, so it can be sent from wherever the register now stands —
+ * and a counter that was deactivated while the register was offline would
+ * otherwise leave its takings parked under a scope nothing reads again. The
+ * per-counter read above stays for the cap, which is per counter on purpose.
+ *
+ * `getAll()` plus a sort, not the index: the index orders within one scope,
+ * and the whole outbox is at most a few hundred rows.
+ */
+export async function listAllQueuedSales(): Promise<OfflineSale[]> {
+  if (!isAvailable()) return [];
+  const db = await openDB();
+  const tx = db.transaction(OUTBOX_STORE, "readonly");
+  const sales = await runRequest(
+    tx.objectStore(OUTBOX_STORE).getAll() as IDBRequest<OfflineSale[]>,
+  );
+  return sales.sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
+}
+
+export async function readQueuedSale(
+  clientRequestId: string,
+): Promise<OfflineSale | null> {
+  if (!isAvailable()) return null;
+  const db = await openDB();
+  const tx = db.transaction(OUTBOX_STORE, "readonly");
+  const sale = await runRequest(
+    tx.objectStore(OUTBOX_STORE).get(clientRequestId) as IDBRequest<
+      OfflineSale | undefined
+    >,
+  );
+  return sale ?? null;
+}
+
 export async function updateQueuedSale(sale: OfflineSale): Promise<void> {
   if (!isAvailable()) return;
   const db = await openDB();
@@ -253,7 +299,11 @@ export async function updateQueuedSale(sale: OfflineSale): Promise<void> {
   await runTransaction(tx);
 }
 
-/** Called only once the server has confirmed the order exists. */
+/**
+ * Called once the server has confirmed the order exists — or when a human has
+ * reviewed a refused sale, recorded it by hand, and discards the queued copy
+ * (`POSOfflineReviewDialog`). Never from any automatic path on a refusal.
+ */
 export async function removeQueuedSale(
   clientRequestId: string,
 ): Promise<void> {

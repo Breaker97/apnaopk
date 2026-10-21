@@ -109,7 +109,7 @@ export function MegaCategoryRail({
   };
 
   return (
-    <div className="flex min-h-0 flex-col border-e bg-muted/30">
+    <div className="flex min-h-0 min-w-0 flex-col border-e bg-muted/30">
       <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-3">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {labels.rail}
@@ -222,12 +222,12 @@ function NestingFormula({
       <p className="text-[11px] leading-snug text-muted-foreground">
         {labels.formulaHint}
       </p>
-      <div className="flex gap-2">
+      <div className="grid min-w-0 grid-cols-1 gap-2">
         <Button
           type="button"
           size="sm"
           variant="outline"
-          className="h-7 flex-1 gap-1 px-2 text-xs"
+          className="h-auto min-h-7 min-w-0 w-full gap-1 whitespace-normal px-2 py-1 text-xs"
           onClick={onSync}
         >
           <RefreshCw className="h-3 w-3" />
@@ -237,7 +237,7 @@ function NestingFormula({
           type="button"
           size="sm"
           variant="outline"
-          className="h-7 flex-1 px-2 text-xs"
+          className="h-auto min-h-7 min-w-0 w-full whitespace-normal px-2 py-1 text-xs"
           onClick={onManual}
         >
           {labels.formulaManual}
@@ -338,6 +338,7 @@ function RailRow({
 export function MegaFlyoutCanvas({
   category,
   categoryIndex,
+  rootCount,
   activePath,
   labels,
   onSelect,
@@ -347,6 +348,8 @@ export function MegaFlyoutCanvas({
 }: {
   category: MenuItem | null;
   categoryIndex: number | null;
+  /** Categories in the rail; one row of columns takes its link cap from it. */
+  rootCount: number;
   activePath: number[] | null;
   labels: MegaCanvasLabels;
   onSelect: (path: number[]) => void;
@@ -366,7 +369,7 @@ export function MegaFlyoutCanvas({
     );
   }
 
-  const budget = getMegaCategoryBudget(category);
+  const budget = getMegaCategoryBudget(category, rootCount);
   const groups = category.children || [];
   const shown = groups.slice(0, budget.groupLimit);
   const parked = groups.slice(budget.groupLimit);
@@ -434,6 +437,7 @@ export function MegaFlyoutCanvas({
                     group={group}
                     groupIndex={index}
                     linkLimit={budget.linkLimit}
+                    visibleLinks={budget.visibleLinks}
                     activePath={activePath}
                     categoryIndex={categoryIndex}
                     labels={labels}
@@ -465,7 +469,7 @@ export function MegaFlyoutCanvas({
             {promoMode === "side" ? (
               <PromoSlot
                 label={category.image || labels.addBanner}
-                caption="side · 236px"
+                caption="side · 210px"
                 filled={!!category.image}
                 isSelected={isCategorySelected}
                 onSelect={() => onSelect([categoryIndex])}
@@ -600,6 +604,7 @@ function CanvasColumn({
   group,
   groupIndex,
   linkLimit,
+  visibleLinks,
   activePath,
   categoryIndex,
   labels,
@@ -611,6 +616,7 @@ function CanvasColumn({
   group: MenuItem;
   groupIndex: number;
   linkLimit: number;
+  visibleLinks: (total: number) => number;
   activePath: number[] | null;
   categoryIndex: number;
   labels: MegaCanvasLabels;
@@ -623,11 +629,14 @@ function CanvasColumn({
   const [showPast, setShowPast] = useState(false);
   const links = group.children || [];
   const isSelected = activePath?.length === 2 && activePath[1] === groupIndex;
-  const isOver = links.length > linkLimit;
-  const pastCount = Math.max(links.length - linkLimit, 0);
+  // One link past the cap is still drawn (it takes View all's place), so the
+  // fold sits wherever the storefront actually stops.
+  const visible = visibleLinks(links.length);
+  const isOver = links.length > visible;
+  const pastCount = Math.max(links.length - visible, 0);
   // Everything is kept, but a column with twenty links would bury the panel,
   // so what the storefront hides is collapsed here too until asked for.
-  const rendered = showPast ? links : links.slice(0, linkLimit);
+  const rendered = showPast ? links : links.slice(0, visible);
 
   return (
     <div
@@ -694,13 +703,14 @@ function CanvasColumn({
             id={`lnk:${groupIndex}:${index}`}
             item={link}
             labels={labels}
-            isPast={index >= linkLimit}
+            isPast={index >= visible}
             isSelected={
               activePath?.length === 3 &&
               activePath[1] === groupIndex &&
               activePath[2] === index
             }
             onSelect={() => onSelect([categoryIndex, groupIndex, index])}
+            onRemove={() => onRemove([categoryIndex, groupIndex, index])}
           />
         ))}
       </SortableContext>
@@ -741,6 +751,7 @@ function CanvasLink({
   isPast,
   isSelected,
   onSelect,
+  onRemove,
 }: {
   id: string;
   item: MenuItem;
@@ -748,6 +759,7 @@ function CanvasLink({
   isPast: boolean;
   isSelected: boolean;
   onSelect: () => void;
+  onRemove: () => void;
 }) {
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } =
     useSortable({ id });
@@ -756,7 +768,7 @@ function CanvasLink({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "opacity-60" : undefined}
+      className={cn("group/link relative", isDragging && "opacity-60")}
     >
       <button
         type="button"
@@ -788,6 +800,20 @@ function CanvasLink({
           </span>
         ) : null}
       </button>
+      <button
+        type="button"
+        title={labels.remove}
+        aria-label={labels.remove}
+        onClick={onRemove}
+        className={cn(
+          "absolute end-0.5 top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded opacity-0 transition-opacity focus-visible:opacity-100 group-hover/link:opacity-100",
+          isSelected
+            ? "bg-primary-foreground/20 text-primary-foreground hover:bg-destructive hover:text-white"
+            : "bg-muted text-muted-foreground hover:text-destructive",
+        )}
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
     </div>
   );
 }
@@ -799,15 +825,17 @@ function CanvasLink({
  */
 export function MegaSlotMeter({
   category,
+  rootCount,
   label,
   summary,
 }: {
   category: MenuItem | null;
+  rootCount: number;
   label: string;
   summary: (links: number) => string;
 }) {
   if (!category) return null;
-  const budget = getMegaCategoryBudget(category);
+  const budget = getMegaCategoryBudget(category, rootCount);
   const total = (category.children || []).length;
   const used = Math.min(total, budget.groupLimit);
   const over = Math.max(total - budget.groupLimit, 0);

@@ -1,3 +1,4 @@
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { Brand } from "@/models";
 import {
   createdResponse,
@@ -5,7 +6,7 @@ import {
   successResponse,
 } from "@/lib/api/response";
 import { withApi } from "@/lib/api/handler";
-import { isAdmin } from "@/lib/access/rbac";
+import { canReadCatalogManagement } from "@/lib/access/staff-authz";
 import { createAuditContext } from "@/lib/audit";
 import { auditCatalogCreate, BRAND_AUDIT } from "@/lib/catalog/catalog-audit";
 import {
@@ -48,7 +49,7 @@ const BrandCreateSchema = z.object({
 export const GET = withApi({ auth: "optional" }, async ({ request, session }) => {
   const searchParams = request.nextUrl.searchParams;
   const list = await fetchBrandList(searchParams, {
-    isAdmin: isAdmin(session?.user),
+    isAdmin: await canReadCatalogManagement(session?.user, "brands"),
     assignable: searchParams.get("assignable") === "true",
   });
 
@@ -64,9 +65,9 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
 
 /**
  * POST /api/brands
- * Create a new brand (Admin only)
+ * Create a new brand (Admin or permitted staff)
  */
-export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
+export const POST = withApi({ auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.CREATE_BRANDS, STAFF_PERMISSIONS.MANAGE_BRANDS] }, async ({ request, session }) => {
   const body = await validateBody(request, BrandCreateSchema);
 
   const requestedSlug = getRequestedBrandSlug(body);

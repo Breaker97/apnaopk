@@ -16,6 +16,20 @@ import {
 } from "@/config/branding.config";
 
 type NavColor = "integrate" | "apparent";
+/** Which of the live theme's key colours paints an apparent sidebar. */
+export type NavPaint = "primary" | "secondary";
+
+/**
+ * The key colours the theme editor holds UNSAVED, while it holds any. Only the
+ * apparent sidebar reads them (`apparentPaintColor`): it is painted with the
+ * theme's colours, so it should follow a palette as it is picked — while the
+ * editor's own buttons and links, which share the page with it, stay as they
+ * are and cannot be painted unreadable by an experiment.
+ */
+export interface BrandPreview {
+  primaryColor: string;
+  secondaryColor: string;
+}
 export type PresetColor =
   | "default"
   | "cyan"
@@ -28,13 +42,13 @@ export type PresetColor =
  * Two kinds of state live here, and they never mix:
  *
  * - The viewer's own dashboard preferences: contrast, right-to-left, a
- *   collapsed sidebar, the sidebar colour. They stay in this browser —
- *   nothing writes them to the store's settings, so one admin's choice never
- *   reaches another admin, a vendor, staff or a shopper. Light/dark is the
- *   ThemeProvider's, kept the same way.
- * - The store's brand colours, from the settings (Online Store → Themes →
- *   Branding). Never cached here: a colour kept in one browser would outlive
- *   a change to the brand.
+ *   collapsed sidebar, the sidebar colour and which key colour paints it.
+ *   They stay in this browser — nothing writes them to the store's
+ *   settings, so one admin's choice never reaches another admin, a vendor,
+ *   staff or a shopper. Light/dark is the ThemeProvider's, kept the same way.
+ * - The store's brand colours: the LIVE theme's key colours (Theme settings
+ *   → Colors), which the server mirrors into the settings. Never cached
+ *   here: a colour kept in one browser would outlive a change to the theme.
  */
 interface AppSettingsState {
   // The viewer's preferences
@@ -42,12 +56,15 @@ interface AppSettingsState {
   rtl: boolean;
   collapsedSidebar: boolean;
   navColor: NavColor;
+  navPaint: NavPaint;
 
   // The store's brand
   presetColor: PresetColor;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  /** Unsaved colours from the theme editor; never stored. */
+  previewBrand: BrandPreview | null;
 
   dbHydrated: boolean;
 
@@ -56,6 +73,16 @@ interface AppSettingsState {
   setRtl: (enabled: boolean) => void;
   setCollapsedSidebar: (enabled: boolean) => void;
   setNavColor: (color: NavColor) => void;
+  setNavPaint: (paint: NavPaint) => void;
+  setPreviewBrand: (brand: BrandPreview | null) => void;
+  /** The preset marker only (which palette chip was last picked); a missing or unknown one is the default. */
+  setPresetColor: (preset: unknown) => void;
+  /** The saved key colours changed (a theme was made live): the dashboards follow at once. */
+  setBrandColors: (colors: {
+    primaryColor?: unknown;
+    secondaryColor?: unknown;
+    accentColor?: unknown;
+  }) => void;
   resetPreferences: () => void;
   hydrateFromDb: (settings: InitialAppearanceSettings) => void;
   loadFromDb: () => Promise<void>;
@@ -68,13 +95,11 @@ export interface InitialAppearanceSettings {
   primaryColor?: string;
   secondaryColor?: string;
   accentColor?: string;
-  /** Loading placeholders; empty keeps a neutral grey. */
-  skeletonColor?: string;
 }
 
 type Preferences = Pick<
   AppSettingsState,
-  "contrast" | "rtl" | "collapsedSidebar" | "navColor"
+  "contrast" | "rtl" | "collapsedSidebar" | "navColor" | "navPaint"
 >;
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -82,6 +107,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   rtl: false,
   collapsedSidebar: false,
   navColor: "integrate",
+  navPaint: "primary",
 };
 
 const DEFAULT_BRAND = {
@@ -95,6 +121,10 @@ let appSettingsStoreHydrationStarted = false;
 
 function isNavColor(value: unknown): value is NavColor {
   return value === "integrate" || value === "apparent";
+}
+
+function isNavPaint(value: unknown): value is NavPaint {
+  return value === "primary" || value === "secondary";
 }
 
 function isPresetColor(value: unknown): value is PresetColor {
@@ -151,6 +181,9 @@ export function pickPreferences(stored: unknown): Preferences {
     navColor: isNavColor(value.navColor)
       ? value.navColor
       : DEFAULT_PREFERENCES.navColor,
+    navPaint: isNavPaint(value.navPaint)
+      ? value.navPaint
+      : DEFAULT_PREFERENCES.navPaint,
   };
 }
 
@@ -159,12 +192,24 @@ export const useAppSettings = create<AppSettingsState>()(
     (set, get) => ({
       ...DEFAULT_PREFERENCES,
       ...DEFAULT_BRAND,
+      previewBrand: null,
       dbHydrated: false,
 
       setContrast: (enabled) => set({ contrast: enabled }),
       setRtl: (enabled) => set({ rtl: enabled }),
       setCollapsedSidebar: (enabled) => set({ collapsedSidebar: enabled }),
       setNavColor: (color) => set({ navColor: color }),
+      setNavPaint: (paint) => set({ navPaint: paint }),
+      setPreviewBrand: (brand) => set({ previewBrand: brand }),
+      setPresetColor: (preset) =>
+        set({ presetColor: isPresetColor(preset) ? preset : DEFAULT_BRAND.presetColor }),
+      setBrandColors: (colors) =>
+        set({
+          // Only what is a colour: a missing one keeps the colour it had.
+          ...(isValidCssColor(colors.primaryColor) ? { primaryColor: colors.primaryColor } : {}),
+          ...(isValidCssColor(colors.secondaryColor) ? { secondaryColor: colors.secondaryColor } : {}),
+          ...(isValidCssColor(colors.accentColor) ? { accentColor: colors.accentColor } : {}),
+        }),
       resetPreferences: () => set(DEFAULT_PREFERENCES),
       hydrateFromDb: (settings) =>
         set({ ...normalizeBrand(settings), dbHydrated: true }),
@@ -196,6 +241,7 @@ export const useAppSettings = create<AppSettingsState>()(
         rtl: state.rtl,
         collapsedSidebar: state.collapsedSidebar,
         navColor: state.navColor,
+        navPaint: state.navPaint,
       }),
       merge: (persistedState, currentState) => ({
         ...currentState,
@@ -204,6 +250,18 @@ export const useAppSettings = create<AppSettingsState>()(
     }
   )
 );
+
+/**
+ * The colour an apparent sidebar is painted with: the viewer's choice of the
+ * live theme's primary or secondary — or of the colours the theme editor
+ * holds unsaved, so the sidebar follows a palette as it is picked.
+ */
+export function apparentPaintColor(
+  state: Pick<AppSettingsState, "navPaint" | "primaryColor" | "secondaryColor" | "previewBrand">,
+): string {
+  const brand = state.previewBrand ?? state;
+  return state.navPaint === "secondary" ? brand.secondaryColor : brand.primaryColor;
+}
 
 export function useHydrateAppSettingsStore() {
   const [hasHydrated, setHasHydrated] = React.useState(() =>
@@ -305,6 +363,13 @@ export function applyCustomColors(colors: {
 }) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
+  // Older runtime versions pinned these inline: shadcn aliases, a brand
+  // skeleton, and per-mode secondary/field-border pairs the dashboards no
+  // longer take from the brand. Let the stylesheet own them after an update,
+  // including when the root layout is preserved.
+  for (const alias of ["--primary","--primary-foreground","--secondary","--secondary-foreground","--accent","--accent-foreground","--ring","--sidebar-primary","--sidebar-primary-foreground","--sidebar-accent","--sidebar-accent-foreground","--sidebar-ring","--skeleton","--brand-l-secondary","--brand-l-on-secondary","--brand-d-secondary","--brand-d-on-secondary","--brand-l-field-border","--brand-d-field-border"]) {
+    if (root.style.getPropertyValue(alias)) root.style.removeProperty(alias);
+  }
   for (const [varName, value] of Object.entries(buildCustomColorVars(colors))) {
     // The root layout inlines these on <html> for the first paint. Writing an
     // identical value again still re-styles the whole page — on a phone, over

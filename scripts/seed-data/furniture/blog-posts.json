@@ -20,7 +20,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 0,
+    "viewCount": 1,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 1,
@@ -33,7 +33,7 @@
       "$date": "2026-09-28T15:08:00.933Z"
     },
     "updatedAt": {
-      "$date": "2026-09-28T15:08:00.933Z"
+      "$date": "2026-09-29T15:06:40.042Z"
     },
     "__v": 0
   },
@@ -58,7 +58,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 0,
+    "viewCount": 1,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 1,
@@ -71,7 +71,7 @@
       "$date": "2026-09-28T15:09:24.625Z"
     },
     "updatedAt": {
-      "$date": "2026-09-28T15:09:24.625Z"
+      "$date": "2026-09-29T15:07:26.798Z"
     },
     "__v": 0
   },
@@ -96,7 +96,7 @@
     },
     "allowComments": true,
     "isFeatured": true,
-    "viewCount": 1,
+    "viewCount": 4,
     "likeCount": 0,
     "commentCount": 0,
     "readingTime": 1,
@@ -109,7 +109,7 @@
       "$date": "2026-09-28T15:10:30.134Z"
     },
     "updatedAt": {
-      "$date": "2026-09-28T15:24:29.626Z"
+      "$date": "2026-10-04T08:31:55.526Z"
     },
     "__v": 0
   }

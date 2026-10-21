@@ -43,6 +43,7 @@ const ADMIN_TARGETS: Record<string, (id: string) => string> = {
   payout: (id) => `/admin/payouts/${id}`,
   vendorPlan: (id) => `/admin/vendors/plans/${id}/edit`,
   boostCampaign: (id) => `/admin/boosts/${id}`,
+  teamRole: (id) => `/admin/staff/roles/${id}`,
   menu: (id) => `/admin/online-store/menus/${id}/edit`,
   blogPost: (id) => `/admin/content/blog-posts/${id}/edit`,
   blogCategory: (id) => `/admin/content/blog-categories/${id}/edit`,

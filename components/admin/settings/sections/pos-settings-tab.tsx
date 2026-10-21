@@ -25,6 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -36,6 +37,11 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { WarningBanner } from "@/components/ui/warning-banner";
 import { previewPOSSound } from "@/lib/pos/pos-sounds";
+import {
+  DEFAULT_OFFLINE_SESSION_HOURS,
+  MAX_OFFLINE_SESSION_HOURS,
+  MIN_OFFLINE_SESSION_HOURS,
+} from "@/lib/pos/offline-session";
 import type { Settings } from "@/components/admin/settings/types";
 import { FeatureRow } from "@/components/admin/settings/fields/feature-row";
 import {
@@ -139,6 +145,8 @@ export function POSSettingsTab(props: {
   const soundOn = customize?.soundEnabled !== false;
   const volume = customize?.soundVolume ?? 50;
   const prefix = pos.orders?.orderNumberPrefix ?? "POS";
+  const offlineHours =
+    pos.offline?.sessionHours ?? DEFAULT_OFFLINE_SESSION_HOURS;
 
   const paymentOptions: Array<{
     method: PaymentMethod;
@@ -276,6 +284,34 @@ export function POSSettingsTab(props: {
               {methods.length <= 1 ? (
                 <p className="text-muted-foreground text-sm">{t("paymentLast")}</p>
               ) : null}
+              <SettingList>
+                <SettingSwitchItem
+                  title={t("allowDeposits")}
+                  description={t("allowDepositsDesc")}
+                  checked={pos.checkout?.allowDeposits === true}
+                  onCheckedChange={(on) => updateField("pos.checkout.allowDeposits", on)}
+                />
+                {/* Moved to Settings → Tax → Calculation, beside the rates it works with. */}
+                <div className="flex flex-wrap items-center gap-3 p-4">
+                  <span className="min-w-0 flex-1 space-y-0.5">
+                    <span className="block text-sm font-medium">{t("pricesIncludeTax")}</span>
+                    <span className="text-muted-foreground block text-sm">
+                      {pos.checkout?.pricesIncludeTax === true
+                        ? t("pricesIncludeTaxMovedOn")
+                        : t("pricesIncludeTaxMovedOff")}
+                    </span>
+                  </span>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/admin/settings/tax?tab=calculation">{t("pricesIncludeTaxLink")}</Link>
+                  </Button>
+                </div>
+                <SettingSwitchItem
+                  title={t("requireOpenRegister")}
+                  description={t("requireOpenRegisterDesc")}
+                  checked={pos.checkout?.requireOpenRegister === true}
+                  onCheckedChange={(on) => updateField("pos.checkout.requireOpenRegister", on)}
+                />
+              </SettingList>
             </CardContent>
           </Card>
 
@@ -319,6 +355,37 @@ export function POSSettingsTab(props: {
                   />
                 </SettingRow>
 
+                <SettingRow
+                  inputId="posOfflineSessionHours"
+                  label={t("offlineWindow")}
+                  hint={t("offlineWindowHint", {
+                    min: MIN_OFFLINE_SESSION_HOURS,
+                    max: MAX_OFFLINE_SESSION_HOURS,
+                  })}
+                >
+                  <div className="flex items-center gap-2">
+                    <NumberInput
+                      id="posOfflineSessionHours"
+                      className="w-20 tabular-nums"
+                      min={MIN_OFFLINE_SESSION_HOURS}
+                      max={MAX_OFFLINE_SESSION_HOURS}
+                      step={1}
+                      value={offlineHours}
+                      whenEmpty={DEFAULT_OFFLINE_SESSION_HOURS}
+                      normalize={Math.trunc}
+                      onValueChange={(next) =>
+                        updateField(
+                          "pos.offline.sessionHours",
+                          next ?? DEFAULT_OFFLINE_SESSION_HOURS,
+                        )
+                      }
+                    />
+                    <span className="text-muted-foreground text-sm">
+                      {t("offlineWindowUnit")}
+                    </span>
+                  </div>
+                </SettingRow>
+
                 <SettingSwitchItem
                   title={t("printedReceipts")}
                   description={t("printedReceiptsDesc")}
@@ -344,6 +411,12 @@ export function POSSettingsTab(props: {
                     />
                   </SettingRow>
                 ) : null}
+                <SettingSwitchItem
+                  title={t("openCashDrawer")}
+                  description={t("openCashDrawerDesc")}
+                  checked={customize?.openCashDrawer === true}
+                  onCheckedChange={(on) => updateField("pos.customize.openCashDrawer", on)}
+                />
               </SettingList>
             </CardContent>
           </Card>

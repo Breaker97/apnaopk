@@ -1,3 +1,4 @@
+import { DELIVERY_ATTESTED_BY } from "@/lib/orders/delivery-attestation";
 import * as z from "zod";
 import { Order } from "@/models";
 import { withApi } from "@/lib/api/handler";
@@ -99,7 +100,10 @@ export const POST = withApi<{ id: string }>(
     if (update.readyAt) pickup.readyAt = update.readyAt;
     if (update.collectedAt) pickup.collectedAt = update.collectedAt;
     subOrder.status = update.subOrderStatus;
-    if (update.deliveredAt) subOrder.deliveredAt = update.deliveredAt;
+    if (update.deliveredAt) {
+      subOrder.deliveredAt = update.deliveredAt;
+      subOrder.deliveryAttestedBy = DELIVERY_ATTESTED_BY.ADMIN;
+    }
 
     // Mirror the roll-up the vendor route applies, so an order's own status
     // never disagrees with the sub-orders it is made of.

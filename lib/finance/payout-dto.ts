@@ -3,11 +3,14 @@ import { Order } from "@/models/order.model";
 
 type PayoutRow = Record<string, unknown> & { _id: unknown; vendorId?: unknown; orderIds?: unknown[]; allocations?: Array<Record<string, unknown>> };
 type OwnConsignment = { vendorId?: unknown; subtotal?: number; vendorEarnings?: number; status?: string; paymentStatus?: string };
-const publicFields = ["_id", "payoutNumber", "status", "currency", "grossSales", "commissionAmount", "shippingAmount", "netAmount", "adjustments", "commissionOffset", "commissionCredit", "overpaymentRecovered", "preorderReserveHeld", "preorderReserveReleased", "periodStart", "periodEnd", "periodBoundary", "createdAt", "paidAt", "reversedAt", "version", "breakdown", "calculatedAt", "calculationVersion"];
+// What the seller sees of their payout — the note and the payment's reference
+// included: the note is where a returned payment's reason is written, and it
+// is labelled on the admin screen as visible to the seller.
+const publicFields = ["_id", "payoutNumber", "status", "currency", "grossSales", "commissionAmount", "shippingAmount", "netAmount", "adjustments", "commissionOffset", "commissionCredit", "overpaymentRecovered", "preorderReserveHeld", "preorderReserveReleased", "preorderReserveReleaseAt", "periodStart", "periodEnd", "periodBoundary", "createdAt", "paidAt", "reversedAt", "version", "breakdown", "calculatedAt", "calculationVersion", "note", "paidFrom", "paymentReference"];
 
 export function vendorPayoutDto(row: PayoutRow) {
   return { ...Object.fromEntries(publicFields.filter((key) => row[key] !== undefined).map((key) => [key, row[key]])),
-    statusHistory: (row.statusHistory as Array<{ status: string; at: unknown }> | undefined)?.map((event) => ({ status: event.status, at: event.at })),
+    statusHistory: (row.statusHistory as Array<{ status: string; at: unknown; note?: string }> | undefined)?.map((event) => ({ status: event.status, at: event.at, ...(event.note ? { note: event.note } : {}) })),
     legacyCalculation: !row.allocations,
   };
 }

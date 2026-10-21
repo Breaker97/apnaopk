@@ -12,6 +12,7 @@ import "server-only";
 import { mongoose } from "@/lib/db";
 import { InventoryLocation, Product, Vendor } from "@/models";
 import { PRODUCT_STATUS } from "@/config/app.config";
+import { vendorAllowsPickup } from "@/lib/vendors/vendor-fulfillment";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import {
   resolveVariantOptions,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/returns/final-sale-collections";
 import { CANONICAL_CART_WEIGHT_UNIT } from "@/lib/shipping/shipping";
 import { getPurchasableQuantity } from "@/lib/products/stock-policy";
+import { loadCategoryTaxTree, productTaxRate, type CategoryTaxTree } from "@/lib/tax/tax-rates";
 import {
   isStorefrontMultiVendorEnabled,
   isStorefrontProductSourceAllowed,
@@ -89,6 +91,12 @@ export type CartProductFacts = {
    * checkout can say so before they pay. See lib/returns/final-sale.ts.
    */
   finalSale?: boolean;
+  /**
+   * The product's own tax rate (a fraction), from it or its category; null
+   * for the store's — lib/tax/tax-rates.ts. The bag and checkout estimate tax
+   * with it so they show what the order will charge.
+   */
+  taxRate?: number | null;
   /** Read only for the app's cart: see `CartLineAppFacts`. */
   app?: CartLineAppFacts;
 };
@@ -115,6 +123,10 @@ type CartProductRow = {
   status?: string;
   productSource?: unknown;
   priceOnRequest?: boolean;
+  taxRate?: number | null;
+  taxClass?: string | null;
+  category?: unknown;
+  chargeTax?: boolean;
   /** These four, `variants.stock` and `variants.comparePrice` are read `forApp` only. */
   slug?: string;
   stock?: number;
@@ -140,7 +152,7 @@ type CartProductRow = {
   returns?: { finalSale?: boolean };
   collectionIds?: unknown[];
   /** The seller, if it still exists: only its store name (and slug, `forApp`). */
-  vendor: { _id: unknown; storeName?: string; slug?: string }[];
+  vendor: { _id: unknown; storeName?: string; slug?: string; shipping?: { fulfillmentMode?: unknown } }[];
   /** One of the seller's usable collection points, if it has any. */
   pickupLocations: unknown[];
 };
@@ -153,6 +165,8 @@ type CartProductRows = {
   products: CartProductRow[];
   /** Final sale by collection, hand-picked or by an automated one's rules. */
   finalSale?: CartFinalSale;
+  /** Categories' tax rates, to resolve each product's own (lib/tax/tax-rates.ts). */
+  categoryTaxTree?: CategoryTaxTree;
 };
 
 /**
@@ -190,7 +204,7 @@ export async function readCartProducts(
   if (!productIds.length) return { isMultiVendorEnabled: false, products: [] };
   const forApp = Boolean(options.forApp);
 
-  const [isMultiVendorEnabled, products, finalSale] = await Promise.all([
+  const [isMultiVendorEnabled, products, finalSale, categoryTaxTree] = await Promise.all([
     isStorefrontMultiVendorEnabled(),
     Product.aggregate<CartProductRow>([
       {
@@ -203,6 +217,10 @@ export async function readCartProducts(
           status: 1,
           productSource: 1,
           priceOnRequest: 1,
+          taxRate: 1,
+          taxClass: 1,
+          category: 1,
+          chargeTax: 1,
           "shipping.isPhysicalProduct": 1,
           "shipping.weight": 1,
           "shipping.weightUnit": 1,
@@ -235,7 +253,7 @@ export async function readCartProducts(
           from: Vendor.collection.name,
           localField: "vendorId",
           foreignField: "_id",
-          pipeline: [{ $project: forApp ? { storeName: 1, slug: 1 } : { storeName: 1 } }],
+          pipeline: [{ $project: { storeName: 1, "shipping.fulfillmentMode": 1, ...(forApp ? { slug: 1 } : {}) } }],
           as: "vendor",
         },
       },
@@ -263,9 +281,12 @@ export async function readCartProducts(
     // products join by their rules — from the cache, then (only if the store
     // has such a collection) matched alongside this read.
     readCartFinalSale(productIds),
+    // So the bag's tax estimate taxes each line at its own rate, as checkout
+    // will: a cached read, the products' own rates come with them above.
+    loadCategoryTaxTree(),
   ]);
 
-  return { isMultiVendorEnabled, products, finalSale, forApp };
+  return { isMultiVendorEnabled, products, finalSale, forApp, categoryTaxTree };
 }
 
 /**
@@ -281,7 +302,7 @@ type CartProductFactsOptions = {
 /** The facts for each line of the cart, from what `readCartProducts` read. */
 export function cartProductFacts(
   items: CartProductLine[],
-  { isMultiVendorEnabled, products, finalSale, forApp }: CartProductRows,
+  { isMultiVendorEnabled, products, finalSale, forApp, categoryTaxTree }: CartProductRows,
   options: CartProductFactsOptions = {},
 ): Map<string, CartProductFacts> {
   const facts = new Map<string, CartProductFacts>();
@@ -345,7 +366,7 @@ export function cartProductFacts(
       vendorId: vendor ? String(vendor._id) : undefined,
       vendorName: vendor?.storeName || undefined,
       vendorOffersPickup: vendor
-        ? product.pickupLocations.length > 0
+        ? vendorAllowsPickup(vendor.shipping?.fulfillmentMode) && product.pickupLocations.length > 0
         : undefined,
       variantOptions: variant
         ? resolveVariantOptions(variant, product.options)
@@ -360,6 +381,7 @@ export function cartProductFacts(
           finalSale?.collectionIds ?? [],
           finalSale?.byRule.get(id),
         ),
+      taxRate: categoryTaxTree ? productTaxRate(product, categoryTaxTree) : null,
       app: forApp
         ? {
             slug: product.slug ?? "",

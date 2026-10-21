@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTranslations } from "next-intl";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useRailEdges } from "@/components/store/scroll-rail";
 import { cn } from "@/lib/utils";
 import type { POSCategory } from "@/components/pos/pos-types";
@@ -23,10 +23,13 @@ export function POSCategoryStrip({
   categories,
   selectedCategory,
   onSelect,
+  favourites,
 }: {
   categories: POSCategory[];
   selectedCategory: string;
   onSelect: (categoryId: string) => void;
+  /** The quick keys' pill, first in the row, when the till has any. */
+  favourites?: { value: string; label: string };
 }) {
   const t = useTranslations();
   const railRef = React.useRef<HTMLDivElement>(null);
@@ -102,6 +105,19 @@ export function POSCategoryStrip({
         >
           {t("pos.allProducts")}
         </button>
+        {favourites ? (
+          <button
+            type="button"
+            aria-pressed={selectedCategory === favourites.value}
+            onClick={() =>
+              onSelect(selectedCategory === favourites.value ? "" : favourites.value)
+            }
+            className={cn(pill(selectedCategory === favourites.value), "inline-flex items-center gap-1.5")}
+          >
+            <Star className="h-3.5 w-3.5" />
+            {favourites.label}
+          </button>
+        ) : null}
         {categories.map((cat) => (
           <button
             key={cat._id}

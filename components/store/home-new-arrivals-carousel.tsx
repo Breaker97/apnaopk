@@ -138,7 +138,7 @@ export function HomeNewArrivalsCarousel({
           {viewAllHref && (
             <Link
               href={viewAllHref}
-              className="shrink-0 whitespace-nowrap text-xs font-semibold text-primary hover:underline [@media(hover:hover)]:hidden"
+              className="shrink-0 whitespace-nowrap text-xs font-semibold text-store-link hover:underline [@media(hover:hover)]:hidden"
             >
               {tCommon("viewAll")}
             </Link>

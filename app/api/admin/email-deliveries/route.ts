@@ -1,4 +1,6 @@
 import { headers } from "next/headers";
+import { handleApiError } from "@/lib/api/errors";
+import { enforceTeamRole } from "@/lib/access/team-route-guard";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db";
@@ -33,7 +35,7 @@ const TERMINAL_STATUSES: string[] = ["sent", "failed", "cancelled"];
 /** What the log's search looks in. */
 const SEARCH_FIELDS = ["to", "subject", "category"] as const;
 
-async function requireAdmin() {
+async function requireAdmin(request: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json(
@@ -47,6 +49,11 @@ async function requireAdmin() {
       { status: 403 },
     );
   }
+  try {
+    await enforceTeamRole(request, session.user.id, { adminOnly: true });
+  } catch (error) {
+    return handleApiError(error);
+  }
   return null;
 }
 
@@ -59,7 +66,7 @@ const RetryDeliveriesSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const denied = await requireAdmin();
+  const denied = await requireAdmin(request);
   if (denied) return denied;
 
   await connectDB();
@@ -146,7 +153,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const denied = await requireAdmin();
+  const denied = await requireAdmin(request);
   if (denied) return denied;
   const demoBlock = getDemoModeMutationResponse();
   if (demoBlock) return demoBlock;
@@ -184,7 +191,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const denied = await requireAdmin();
+  const denied = await requireAdmin(request);
   if (denied) return denied;
   const demoBlock = getDemoModeMutationResponse();
   if (demoBlock) return demoBlock;

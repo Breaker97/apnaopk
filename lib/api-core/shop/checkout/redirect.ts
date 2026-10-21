@@ -25,7 +25,7 @@ import {
   admitAppCart,
   appCheckoutIdentity,
   appUserAgent,
-  assertDelivery,
+  assertFulfillmentSelection,
   inShopperWords,
   toCheckoutError,
   toPlaceInput,
@@ -70,7 +70,7 @@ export const redirectPaymentRoute = defineRoute({
   handler: ({ input, session, client, mobileApp, locale }) =>
     withRequestScope(async () => {
       const method = input.paymentMethod;
-      assertDelivery(input);
+      assertFulfillmentSelection(input);
       const body = toPlaceInput(input, method, locale);
 
       const settings = await getSettings();
@@ -136,7 +136,7 @@ export const redirectPaymentRoute = defineRoute({
             { reason: "PAYMENT_FAILED" },
           );
         }
-        throw await inShopperWords(toCheckoutError(error), locale);
+        throw await inShopperWords(toCheckoutError(error, input.fulfillmentMethod), locale);
       }
     }),
 });

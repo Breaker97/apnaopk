@@ -77,6 +77,20 @@ function writeHeldOrders(orders: HeldOrder[], scope: string): void {
   );
 }
 
+/**
+ * The register already holds `MAX_HELD_ORDERS` sales. Its own class, so the
+ * till can say so in the cashier's language rather than show this message.
+ */
+export class HeldOrdersFullError extends Error {
+  readonly max = MAX_HELD_ORDERS;
+  constructor() {
+    super(
+      `This register already has ${MAX_HELD_ORDERS} held orders. Resume or delete one first.`,
+    );
+    this.name = "HeldOrdersFullError";
+  }
+}
+
 export function saveHeldOrder(
   order: Omit<HeldOrder, "id" | "heldAt">,
   scope: string = STORAGE_PREFIX,
@@ -91,11 +105,7 @@ export function saveHeldOrder(
   };
   // Newest first so the resume list shows the most recent hold on top.
   const next = [entry, ...getHeldOrders(scope)];
-  if (next.length > MAX_HELD_ORDERS) {
-    throw new Error(
-      `This register already has ${MAX_HELD_ORDERS} held orders. Resume or delete one first.`,
-    );
-  }
+  if (next.length > MAX_HELD_ORDERS) throw new HeldOrdersFullError();
   writeHeldOrders(next, scope);
   return entry;
 }

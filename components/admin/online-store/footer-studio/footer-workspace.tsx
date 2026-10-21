@@ -6,6 +6,11 @@ import { createTSafe } from "@/components/admin/online-store/t-safe";
 import { FooterBuilder } from "@/components/admin/online-store/footer-builder";
 import { FooterStudio } from "./footer-studio";
 import { cn } from "@/lib/utils";
+import {
+  ThemeColorsProvider,
+  themePreviewStyle,
+  type ThemeColorChoices,
+} from "@/components/admin/theme-colors-context";
 
 /**
  * Online Store → Navigation → Footer, in two halves.
@@ -20,7 +25,14 @@ import { cn } from "@/lib/utils";
 
 type FooterTab = "build" | "settings";
 
-export function FooterWorkspace({ locale }: { locale: string }) {
+export function FooterWorkspace({
+  locale,
+  themeColors,
+}: {
+  locale: string;
+  /** The active theme's colours, so a footer colour can follow the theme. */
+  themeColors?: ThemeColorChoices;
+}) {
   const t = useTranslations();
   const tSafe = createTSafe(t);
   const [tab, setTab] = useState<FooterTab>("build");
@@ -34,7 +46,8 @@ export function FooterWorkspace({ locale }: { locale: string }) {
   ];
 
   return (
-    <div className="space-y-4">
+    <ThemeColorsProvider value={themeColors}>
+    <div className="space-y-4" style={themePreviewStyle(themeColors ?? null)}>
       <div
         role="tablist"
         aria-label={tSafe("admin.footerStudio.tabsLabel", "Footer")}
@@ -68,5 +81,6 @@ export function FooterWorkspace({ locale }: { locale: string }) {
         <FooterBuilder />
       )}
     </div>
+    </ThemeColorsProvider>
   );
 }

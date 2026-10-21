@@ -18,7 +18,7 @@ import {
   isPlatformSettled,
   PLATFORM_GATEWAY_PAYMENT_METHODS,
 } from "@/lib/payments/payment-custody";
-import { quantizeToCurrency } from "@/lib/intl/money";
+import { allocateMoney, quantizeToCurrency } from "@/lib/intl/money";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
 import { feeInChargeCurrency } from "@/lib/payments/gateway-fee";
 import {
@@ -39,6 +39,11 @@ import {
 } from "@/lib/shipping/shipping-revenue";
 
 interface PostingOrderItem {
+  name?: string;
+  sku?: string;
+  _id?: unknown;
+  inventoryFinanceGeneration?: number;
+  inventoryLineId?: string;
   /** Which unit this was — how a restock finds the cost the sale booked for it. */
   productId?: unknown;
   variantId?: unknown;
@@ -66,6 +71,11 @@ export interface PostingSubOrder {
    * every consignment of an order that recorded the split, absent on the rest.
    */
   shippingDiscount?: number | null;
+  /**
+   * The tax this consignment's lines carried, where lines were taxed at their
+   * own rates (lib/tax). Present on every consignment of such an order.
+   */
+  tax?: number | null;
   items?: PostingOrderItem[] | null;
   /**
    * Who collected the cash on delivery, stamped at checkout.
@@ -165,6 +175,8 @@ export interface PostingOrder {
   subOrders?: PostingSubOrder[] | null;
   /** Store credit that paid part of the order (R8) — see order-credit.ts. */
   storeCredit?: OrderStoreCredit | null;
+  /** What a counter sale taken as a deposit still owes — see `isConsignmentCollected`. */
+  posBalanceDue?: number | null;
 }
 
 export interface OrderPostingContext {
@@ -209,11 +221,15 @@ const GATEWAY_CASH_METHODS: ReadonlySet<string> = new Set([
  * and a method the merchant names themselves, and only the first of those ends
  * up in the drawer — see `POS_SELECTABLE_PAYMENT_METHODS`.
  *
- * `card_touch` and `card_stripe` never reach here: `validatePOSPaymentInput`
- * folds both down to `card` before the order is written, keeping the reader or
- * the intent id in `paymentMetadata.posPayment.cardSubMethod`. So this one
- * entry covers a contactless tap and a Stripe charge alike, and both are money
- * sitting with an acquirer rather than in the shop.
+ * `card_touch` and `card_stripe` never reach here: a card tender is `card`,
+ * with the reader or the Stripe form kept as its `cardSubMethod`
+ * (lib/pos/tenders.ts). So this one entry covers a contactless tap and a
+ * Stripe charge alike, and both are money sitting with an acquirer rather than
+ * in the shop.
+ *
+ * A sale paid in more than one way is posted here under its largest tender
+ * (`Order.paymentMethod`); `posTenderReclassPostings` then moves each other
+ * tender into its own account.
  */
 const POS_CASH_ACCOUNTS: ReadonlyMap<string, LedgerAccount> = new Map([
   ["cash", LEDGER_ACCOUNT.CASH_ON_HAND],
@@ -228,6 +244,85 @@ const POS_CASH_ACCOUNTS: ReadonlyMap<string, LedgerAccount> = new Map([
    */
   ["manual", LEDGER_ACCOUNT.CASH_ON_HAND],
 ]);
+
+/** The cash account one POS tender lands in — see `POS_CASH_ACCOUNTS`. */
+export function posTenderCashAccount(method: string | null | undefined): LedgerAccount {
+  return POS_CASH_ACCOUNTS.get(String(method || "").trim().toLowerCase()) ?? LEDGER_ACCOUNT.CASH_ON_HAND;
+}
+
+/**
+ * A split counter sale, moved from the one account it was posted to into the
+ * accounts its tenders actually landed in.
+ *
+ * `orderPaidPostings` books a whole sale into the account of the order's single
+ * `paymentMethod` — its largest tender. Every other tender's share is moved
+ * out of that account and into its own: Dr the tender's account, Cr the
+ * order's. Store credit is not a cash tender: the sale's own postings already
+ * take that part out of the cash account against `store_credit_payable`.
+ *
+ * `drawn` is what the sale actually put into the order's account, per book
+ * and currency (read from the ledger by the caller). Only that is moved: a
+ * sale whose cash the platform does not hold — a vendor's own till under a
+ * custody rule that leaves the money with the vendor — put nothing there, and
+ * nothing is moved. A sale in one book (every register sells one merchant's
+ * goods) moves each tender exactly; across books each is shared in proportion
+ * to what each book drew, to the cent.
+ */
+export function posTenderReclassPostings(params: {
+  order: { _id: unknown; orderNumber?: string | null; channel?: string | null; paymentMethod?: string | null; paidAt?: unknown; createdAt?: unknown };
+  tenders: ReadonlyArray<{ method: string; amount: number }>;
+  drawn: ReadonlyArray<{ book: LedgerBook; currency: string; amount: number }>;
+}): LedgerPosting[] {
+  const { order } = params;
+  if (String(order.channel || "").toLowerCase() !== "pos") return [];
+  const from = cashAccountFor(order);
+  const byAccount = new Map<LedgerAccount, number>();
+  for (const tender of params.tenders) {
+    if (tender.method === "store_credit" || !(Number(tender.amount) > 0)) continue;
+    const to = posTenderCashAccount(tender.method);
+    if (to === from) continue;
+    byAccount.set(to, (byAccount.get(to) ?? 0) + Number(tender.amount));
+  }
+  const drawn = params.drawn.filter((share) => share.amount > 0.000001);
+  if (byAccount.size === 0 || drawn.length === 0) return [];
+
+  const date =
+    toDate(order.paidAt as Date | string | null | undefined) ||
+    toDate(order.createdAt as Date | string | null | undefined) ||
+    new Date();
+  const totalDrawn = drawn.reduce((sum, share) => sum + share.amount, 0);
+  const entries: LedgerPosting[] = [];
+  for (const [to, amount] of byAccount) {
+    // Never more than the books drew: a reclass cannot create money.
+    const moving = Math.min(amount, totalDrawn);
+    const currency = drawn[0]!.currency;
+    const shares = allocate(
+      quantizeToCurrency(moving, currency),
+      drawn.map((share) => share.amount),
+      currency,
+    );
+    drawn.forEach((share, index) => {
+      const part = shares[index] ?? 0;
+      if (!(part > 0)) return;
+      entries.push({
+        date,
+        book: share.book,
+        debit: to,
+        credit: from,
+        amount: part,
+        currency: share.currency,
+        source: {
+          kind: LEDGER_SOURCE_KIND.ORDER,
+          id: order._id as Types.ObjectId,
+          ref: order.orderNumber ?? null,
+        },
+        note: "Split payment: tender moved to its own account",
+        key: postingKey(LEDGER_SOURCE_KIND.ORDER, order._id, "pos-tender", to, share.book, share.currency),
+      });
+    });
+  }
+  return entries;
+}
 
 /**
  * Which cash account this order's money landed in.
@@ -320,29 +415,7 @@ export function allocate(
   weights: number[],
   currency: string,
 ): number[] {
-  const totalWeight = weights.reduce((sum, w) => sum + Math.max(0, w), 0);
-  if (weights.length === 0) return [];
-  if (totalWeight <= 0) {
-    // Nothing to weight by: give it all to the first share rather than
-    // dropping it, so the money stays accounted for.
-    return weights.map((_, index) => (index === 0 ? amount : 0));
-  }
-
-  const shares = weights.map((weight) =>
-    quantizeToCurrency((amount * Math.max(0, weight)) / totalWeight, currency),
-  );
-  const assigned = shares.reduce((sum, share) => sum + share, 0);
-  const remainder = quantizeToCurrency(amount - assigned, currency);
-  if (remainder !== 0) {
-    let absorber = 0;
-    for (let index = 1; index < weights.length; index += 1) {
-      if (Math.max(0, weights[index]!) > Math.max(0, weights[absorber]!)) {
-        absorber = index;
-      }
-    }
-    shares[absorber] = quantizeToCurrency(shares[absorber]! + remainder, currency);
-  }
-  return shares;
+  return allocateMoney(amount, weights, currency);
 }
 
 /** One consignment's slice of what the buyer paid. */
@@ -476,7 +549,18 @@ export function decomposeOrder(
     ),
   );
   const shippingShares = allocate(shipping, shippingWeights, currency);
-  const taxShares = allocate(tax, merchandiseWeights, currency);
+  // Lines taxed at their own rates recorded each consignment's tax: a seller
+  // of tax-free goods carries none of another seller's. Otherwise the tax
+  // follows the goods, as it always has.
+  const recordedTax = subOrders.map((sub) => (typeof sub.tax === "number" ? Math.max(0, money(sub.tax)) : null));
+  const recordsTax =
+    recordedTax.every((value) => value !== null) &&
+    recordedTax.reduce<number>((sum, value) => sum + (value ?? 0), 0) > 0;
+  const taxShares = allocate(
+    tax,
+    recordsTax ? recordedTax.map((value) => value ?? 0) : merchandiseWeights,
+    currency,
+  );
   const dutyShares = allocate(duty, merchandiseWeights, currency);
   // The balance belongs to the pre-order lines that owe it. Shared by sales it
   // put half of one seller's pre-order balance on a seller whose in-stock goods
@@ -655,6 +739,7 @@ function storeFundedShippingShares(
 /** Spelled out rather than imported, as the ledger's other literals are. */
 const PENDING_STATUS = "pending";
 const PARTIALLY_PAID_STATUS = "partially_paid";
+const EXPIRED_STATUS = "expired";
 const CANCELLED_STATUS = "cancelled";
 
 /**
@@ -681,11 +766,19 @@ const CANCELLED_STATUS = "cancelled";
  * An order with no payment state at all — every order written before this, and
  * every order the backfill replays — reads as collected, which is exactly what
  * it did before.
+ *
+ * A counter sale taken as a deposit (`posBalanceDue`, lib/pos/collect-balance.ts)
+ * is not a sale yet: its goods are held and nothing is booked until the till
+ * has the rest. While it owes, it is never collected — whatever its payment
+ * status reads. A cancel or a refund moves that status off `partially_paid`,
+ * and read by status alone the books then took in, or gave back, a whole sale
+ * they never recorded.
  */
 export function isConsignmentCollected(
   order: PostingOrder,
   sub: PostingSubOrder,
 ): boolean {
+  if (money(order.posBalanceDue) > 0) return false;
   const own = String(sub.paymentStatus || "").trim().toLowerCase();
   const status = own || String(order.paymentStatus || "").trim().toLowerCase();
   if (status === PARTIALLY_PAID_STATUS) {
@@ -693,6 +786,26 @@ export function isConsignmentCollected(
   }
   if (own) return own !== PENDING_STATUS;
   return true;
+}
+
+/**
+ * `isConsignmentCollected` for the stock paths, which also run before payment.
+ *
+ * The posting paths run once an order is paid, so a consignment with no payment
+ * state of its own reads as collected there. That is every order written before
+ * per-consignment collection, and most orders since: checkout writes the state
+ * on the order only. Stock asks earlier — a receipt backing an unpaid order's
+ * reservation, the cost-coverage report, a cost source linked to a sale — and
+ * there such a consignment takes its order's state, so an unpaid cash order's
+ * units are not costed or reported as sold.
+ */
+export function isConsignmentCollectedForStock(
+  order: PostingOrder,
+  sub: PostingSubOrder,
+): boolean {
+  const status = String(sub.paymentStatus || order.paymentStatus || PENDING_STATUS).trim().toLowerCase();
+  if (status === PENDING_STATUS || status === EXPIRED_STATUS) return false;
+  return isConsignmentCollected(order, { ...sub, paymentStatus: status });
 }
 
 /**
@@ -905,6 +1018,7 @@ export function orderPaidPostings(
       // without one contributes nothing rather than zero — the margin for that
       // line is unknown, and posting 0 would assert it was pure profit.
       const cogs = (sub.items || []).reduce((sum, item) => {
+        if (item.inventoryFinanceGeneration) return sum;
         const cost = Number(item?.cost);
         if (!Number.isFinite(cost) || cost < 0) return sum;
         return sum + cost * Math.max(0, money(item?.quantity) || 1);
@@ -2383,6 +2497,12 @@ export function restockCostPostings(params: {
   }>;
   /** Cost of goods the books still carry per vendor on this order. */
   standingByVendor: ReadonlyMap<string, number>;
+  /**
+   * Lines whose sale the inventory cutover adopted, as
+   * `subOrderId:productId:variantId`. Their restock reverses through the
+   * adopted sale allocation, so this path must not reverse them as well.
+   */
+  adopted?: ReadonlySet<string>;
   eventKey: string;
   date?: Date;
 }): LedgerPosting[] {
@@ -2400,7 +2520,13 @@ export function restockCostPostings(params: {
       ? (sub.items || []).map((item) => ({
           key: unitKey(item?.productId, item?.variantId),
           cost: Number(item?.cost),
-          left: Math.max(0, money(item?.quantity)),
+          left:
+            item.inventoryFinanceGeneration ||
+            params.adopted?.has(
+              `${String(sub._id)}:${unitKey(item?.productId, item?.variantId)}`,
+            )
+              ? 0
+              : Math.max(0, money(item?.quantity)),
         }))
       : null,
   );
@@ -2635,6 +2761,112 @@ export function chargebackLossPostings(params: {
 }
 
 /**
+ * What a dispute on a vendor's payment to the platform took, beyond anything
+ * already given back — a boost, a plan or a commission paid by card.
+ *
+ * `amount` is a change, not a balance, like `chargebackLossPostings`: each
+ * change is its own entry under its own `part`, so the loss can grow, shrink
+ * and return across several reads of one dispute and the entries always add up
+ * to what the gateway is still holding. A payment the gateway reversed in full
+ * is unwound as income instead (`platformPaymentReversalPostings`), and the
+ * loss shrinks by exactly that much, so the cash is never taken out twice.
+ */
+export function platformDisputeLossPostings(params: {
+  disputeId: string;
+  paymentId: unknown;
+  reference?: string | null;
+  amount: number;
+  currency: string;
+  date: Date;
+  returned?: boolean;
+  part: number;
+}): LedgerPosting[] {
+  const currency = String(params.currency || "").toUpperCase();
+  const amount = quantizeToCurrency(money(params.amount), currency);
+  if (!currency || amount <= 0 || !params.disputeId) return [];
+  return [
+    {
+      date: params.date,
+      // Always the marketplace book, like the payment itself.
+      book: LEDGER_BOOK.MARKETPLACE,
+      debit: params.returned
+        ? LEDGER_ACCOUNT.CASH_GATEWAY
+        : LEDGER_ACCOUNT.CHARGEBACK_LOSSES,
+      credit: params.returned
+        ? LEDGER_ACCOUNT.CHARGEBACK_LOSSES
+        : LEDGER_ACCOUNT.CASH_GATEWAY,
+      amount,
+      currency,
+      source: {
+        kind: LEDGER_SOURCE_KIND.PLATFORM_PAYMENT,
+        id: params.paymentId as Types.ObjectId,
+        ref: params.reference ?? null,
+      },
+      note: params.returned
+        ? `Chargeback on a vendor payment returned — dispute ${params.disputeId}`
+        : `Chargeback on a vendor payment — dispute ${params.disputeId}`,
+      key: postingKey(
+        LEDGER_SOURCE_KIND.PLATFORM_PAYMENT,
+        params.paymentId,
+        "dispute",
+        params.disputeId,
+        "loss",
+        params.part,
+      ),
+    },
+  ];
+}
+
+/** A dispute's fee on a vendor's payment, or its return — see `disputeFeePostings`. */
+export function platformDisputeFeePostings(params: {
+  disputeId: string;
+  paymentId: unknown;
+  reference?: string | null;
+  amount: number;
+  currency: string;
+  date: Date;
+  returned?: boolean;
+  part?: string;
+  note?: string;
+}): LedgerPosting[] {
+  const currency = String(params.currency || "").toUpperCase();
+  const amount = quantizeToCurrency(money(params.amount), currency);
+  if (!currency || amount <= 0 || !params.disputeId) return [];
+  return [
+    {
+      date: params.date,
+      book: LEDGER_BOOK.MARKETPLACE,
+      debit: params.returned
+        ? LEDGER_ACCOUNT.CASH_GATEWAY
+        : LEDGER_ACCOUNT.PROCESSING_FEES,
+      credit: params.returned
+        ? LEDGER_ACCOUNT.PROCESSING_FEES
+        : LEDGER_ACCOUNT.CASH_GATEWAY,
+      amount,
+      currency,
+      source: {
+        kind: LEDGER_SOURCE_KIND.PLATFORM_PAYMENT,
+        id: params.paymentId as Types.ObjectId,
+        ref: params.reference ?? null,
+      },
+      note: `${
+        params.returned
+          ? `Chargeback fee returned — dispute ${params.disputeId} won`
+          : `Chargeback fee — dispute ${params.disputeId}`
+      }${params.note ? ` (${params.note})` : ""}`,
+      key: postingKey(
+        LEDGER_SOURCE_KIND.PLATFORM_PAYMENT,
+        params.paymentId,
+        "dispute",
+        params.disputeId,
+        params.returned ? "fee-returned" : "fee",
+        params.part || undefined,
+      ),
+    },
+  ];
+}
+
+/**
  * A refund the gateway took back.
  *
  * A card refund is accepted first and settled later, and it can fail after —
@@ -2858,6 +3090,49 @@ export function payoutReversalPostings(
     key: `${entry.key}:reversal`,
     note: "Payout returned — the money came back",
   }));
+}
+
+/**
+ * A seller paying back, by hand, money a refund after their payout left them
+ * holding. The cash comes in to the account it arrived in, and what the seller
+ * owes the store (a negative payable) comes back toward zero — the mirror of a
+ * payout leaving. Voided, the same entries flipped under `:reversal`.
+ */
+export function vendorRepaymentPostings(repayment: {
+  _id: unknown;
+  vendorId: unknown;
+  amount?: number | null;
+  currency?: string | null;
+  receivedInto?: string | null;
+  receivedAt?: Date | null;
+  reference?: string | null;
+}): LedgerPosting[] {
+  const currency = String(repayment.currency || "").toUpperCase();
+  const amount = money(repayment.amount);
+  if (!currency || amount <= 0) return [];
+  return [
+    {
+      date: repayment.receivedAt || new Date(),
+      book: LEDGER_BOOK.MARKETPLACE,
+      debit:
+        repayment.receivedInto === "cash"
+          ? LEDGER_ACCOUNT.CASH_ON_HAND
+          : repayment.receivedInto === "gateway"
+            ? LEDGER_ACCOUNT.CASH_GATEWAY
+            : LEDGER_ACCOUNT.CASH_BANK,
+      credit: LEDGER_ACCOUNT.VENDOR_PAYABLE,
+      amount,
+      currency,
+      source: {
+        kind: LEDGER_SOURCE_KIND.VENDOR_REPAYMENT,
+        id: repayment._id as Types.ObjectId,
+        ref: repayment.reference ?? null,
+      },
+      vendorId: repayment.vendorId as Types.ObjectId,
+      key: postingKey(LEDGER_SOURCE_KIND.VENDOR_REPAYMENT, repayment._id, "received"),
+      note: "Seller paid back an overpayment",
+    },
+  ];
 }
 
 /**

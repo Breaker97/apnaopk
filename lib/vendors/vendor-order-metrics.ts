@@ -28,7 +28,7 @@ import type {
   VendorRecentOrder,
 } from "@/lib/vendors/vendor-dashboard-types";
 import { placedOrderMatch } from "@/lib/orders/order-payment-status";
-import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
+import { isPosWalkIn, posWalkInName } from "@/lib/orders/pos-walk-in";
 
 /**
  * A vendor's order numbers, defined once.
@@ -396,6 +396,7 @@ export interface VendorRecentOrderRow {
   customerId?: { _id?: unknown; name?: string } | null;
   channel?: string;
   staffId?: string;
+  posCustomerName?: string;
   subOrders?: Array<{
     vendorId?: unknown;
     status?: string;
@@ -433,9 +434,9 @@ export function toVendorRecentOrder(
     // Guest orders point `customerId` at the guest's cart, which populates to
     // nothing; the list shows those as guests too. A walk-in POS sale is filed
     // under its cashier, so it names nobody and the card labels it.
-    ...(isPosWalkIn(order)
+    ...(isPosWalkIn(order) && !posWalkInName(order)
       ? { walkIn: true }
-      : { customerName: order.customerId?.name || undefined }),
+      : { customerName: posWalkInName(order) ?? (order.customerId?.name || undefined) }),
     paymentMethod: order.paymentMethod,
     status: consignment?.status || ORDER_STATUS.PENDING,
     pickupStatus: pickup?.status || undefined,
@@ -458,7 +459,7 @@ async function getVendorRecentOrders(
     // Whole consignments: the payout arithmetic behind each card's net sales
     // needs their money fields, and Mongo refuses a projection naming both a
     // path and its children. Only five orders are read.
-    .select(`orderNumber customerId staffId ${PAYABLE_ORDER_PROJECTION}`)
+    .select(`orderNumber customerId staffId posCustomerName ${PAYABLE_ORDER_PROJECTION}`)
     .populate("customerId", "name")
     .lean<Array<VendorRecentOrderRow & PayableOrderLike>>();
 

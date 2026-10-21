@@ -4,7 +4,8 @@ node_modules
 
 # The prebuilt .next IS shipped — only the compiler/image-optimizer cache is
 # dropped (the optimizer cache is recreated at runtime; mount a volume at
-# /app/.next/cache to keep it across deploys, see docs/STORAGE_SETUP.md).
+# /app/.next/cache to keep it across deploys, see
+# https://storify.neurolightstudio.com/docs#deploy-dokploy).
 .next/cache
 
 # Never bake environment files into an image. Runtime env comes from the
@@ -15,15 +16,7 @@ node_modules
 
 .git
 .github
-tests
 tsconfig.tsbuildinfo
 .DS_Store
 *.swp
-.claude
-.agents
-.superpowers
-.trae
-docs/superpowers
-docs/security-audit-*
-docs/audit
 .vercel

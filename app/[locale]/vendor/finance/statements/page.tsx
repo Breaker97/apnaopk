@@ -6,6 +6,10 @@ import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picke
 import { dashboardPickerBounds } from "@/lib/finance/dashboard-finance-period";
 import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
 import { loadVendorFinance } from "@/lib/finance/vendor-page-data";
+import { vendorFinanceQuery } from "@/lib/finance/vendor-finance-query";
+import { VendorStatementPagination } from "@/components/vendor/finance/vendor-statement-pagination";
+import { VendorStatementSummary } from "@/components/vendor/finance/vendor-statement-summary";
+import Link from "@/components/language/link";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -26,7 +30,7 @@ export default async function VendorStatementsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const search = await searchParams;
-  const { period, statements } = await loadVendorFinance({
+  const { period, statements, page, pageSize, currency } = await loadVendorFinance({
     locale,
     searchParams: search,
     // The dashboard's period and picker, opening on the month like the overview.
@@ -41,13 +45,8 @@ export default async function VendorStatementsPage({
   // A named period travels as its key and a picked one as its two days, so the
   // file covers what the screen is showing. Days, not instants: the export
   // route only reads `YYYY-MM-DD`.
-  const exportParams = new URLSearchParams({ type: "statement" });
-  if (period.key === "custom") {
-    exportParams.set("from", pickerBounds.from);
-    exportParams.set("to", pickerBounds.to);
-  } else {
-    exportParams.set("period", period.key);
-  }
+  const exportParams = vendorFinanceQuery(period, currency);
+  exportParams.set("type", "statement");
 
   return (
     <div className="space-y-6">
@@ -79,9 +78,12 @@ export default async function VendorStatementsPage({
             from={pickerBounds.from}
             to={pickerBounds.to}
             defaultPeriod="month"
+            resetPage
           />
         </div>
       </div>
+
+      {currency ? <p className="text-xs text-muted-foreground">{currency} · <Link className="text-primary hover:underline" href={`/vendor/finance/statements?${vendorFinanceQuery(period)}`}>{label("finance.statement.allCurrencies", "Show all currencies")}</Link></p> : null}
 
       {statements.length === 0 ? (
         <Card>
@@ -94,29 +96,23 @@ export default async function VendorStatementsPage({
         </Card>
       ) : (
         statements.map((statement) => (
-          <section key={statement.currency} className="space-y-2">
+          <section key={statement.currency} className="space-y-4">
             {statements.length > 1 ? (
               <h2 className="text-sm font-semibold text-muted-foreground">
                 {statement.currency}
               </h2>
             ) : null}
-            <VendorStatementTable lines={statement.lines} locale={locale} />
-            {/* The totals are aggregated over the whole period, so they are
-                right whatever is listed — but a list that silently stops is
-                one a vendor reconciles against and cannot make balance. */}
-            {statement.truncated ? (
-              <p className="text-xs text-muted-foreground">
-                {label(
-                  "finance.statement.truncated",
-                  "Showing the first {shown} of {total} entries. Choose a shorter period to see the rest — the balances above cover the whole period either way.",
-                )
-                  .replace("{shown}", String(statement.lines.length))
-                  .replace("{total}", String(statement.lineCount))}
-              </p>
-            ) : null}
+            <VendorStatementSummary statement={statement} />
+            <VendorStatementTable lines={statement.lines} locale={locale} emptyMessage={statement.lineCount > 0 ? label("finance.statement.emptyPage", "No entries in this currency on this page.") : undefined} />
           </section>
         ))
       )}
+      <VendorStatementPagination
+        page={page} pageSize={pageSize}
+        total={statements.reduce((sum, statement) => sum + statement.lineCount, 0)}
+        shown={statements.reduce((sum, statement) => sum + statement.lines.length, 0)}
+        href={`/vendor/finance/statements?${vendorFinanceQuery(period, currency)}`}
+      />
     </div>
   );
 }

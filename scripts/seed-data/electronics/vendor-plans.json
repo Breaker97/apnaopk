@@ -1,1 +1,48 @@
-[]
+[
+  {
+    "_id": {
+      "$oid": "6aa44f5fdd3ba3429871a100"
+    },
+    "name": "Default",
+    "slug": "default",
+    "description": " Xnxnxnxnnn",
+    "price": 100,
+    "billingInterval": "monthly",
+    "commissionRate": 10,
+    "trialDays": 20,
+    "features": [
+      "Jejeejddd",
+      "Nsjsjsjjsz",
+      "Xjxjxjj"
+    ],
+    "limits": {
+      "products": 250,
+      "staff": 3
+    },
+    "capabilities": {
+      "packs": [
+        "catalog",
+        "orders",
+        "storefront",
+        "analytics",
+        "inbox",
+        "staff",
+        "discounts",
+        "pos",
+        "payouts",
+        "boosts"
+      ],
+      "aiAuthoring": false
+    },
+    "isDefault": true,
+    "status": "active",
+    "sortOrder": 1,
+    "createdAt": {
+      "$date": "2026-09-11T18:58:39.551Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-07T16:50:02.778Z"
+    },
+    "__v": 0
+  }
+]

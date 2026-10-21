@@ -47,6 +47,8 @@ export const SNAPSHOT_FILES = [
   "menus",
   "sliders",
   "store-pages",
+  // Optional: only a template whose demo vendors built a Vendor CMS page.
+  "vendor-store-pages",
   "blog-categories",
   "blog-posts",
   "vendor-plans",

@@ -149,7 +149,7 @@ function TwoFactorManagementContent({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Shield className="h-5 w-5 text-primary" />
+              <Shield className="h-5 w-5 text-store-link" />
             </div>
             <div>
               <CardTitle className="text-lg">

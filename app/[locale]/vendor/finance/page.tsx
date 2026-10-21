@@ -1,24 +1,13 @@
 import Link from "@/components/language/link";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { messageTemplate } from "@/lib/i18n/message-template";
-import {
-  ArrowDownRight,
-  Banknote,
-  HandCoins,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  DashboardStatsGrid,
-  type DashboardStatCardItem,
-} from "@/components/admin/dashboard-stat-card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DashboardPeriodPicker } from "@/components/admin/dashboard-period-picker";
 import { dashboardPickerBounds } from "@/lib/finance/dashboard-finance-period";
-import { VendorStatementTable } from "@/components/vendor/finance/vendor-statement-table";
+import { VendorActivityCard } from "@/components/vendor/finance/vendor-activity-card";
+import { VendorStatementSummary } from "@/components/vendor/finance/vendor-statement-summary";
+import { vendorFinanceQuery } from "@/lib/finance/vendor-finance-query";
 import { VendorBalanceCard } from "@/components/vendor/finance/vendor-balance-card";
-import { formatCurrency } from "@/lib/intl/money";
 import { loadVendorFinance } from "@/lib/finance/vendor-page-data";
 import { loadVendorBalance } from "@/lib/vendors/vendor-balance";
 
@@ -54,6 +43,8 @@ export default async function VendorFinancePage({
     searchParams: search,
     // The dashboard's period and picker, opening on the month like Expenses.
     periods: "dashboard",
+    // The newest handful, read newest first — see `getVendorStatement`.
+    recentLines: 8,
   });
   const pickerBounds = dashboardPickerBounds(period);
   // What the one "held for you" figure is actually made of, read from the
@@ -101,10 +92,43 @@ export default async function VendorFinancePage({
         balance={balance}
         locale={locale}
         labels={{
-          title: rawLabel("finance.balance.title", "What you are owed"),
-          ready: rawLabel("finance.balance.ready", "Ready for the next payout"),
+          nextPayout: label("finance.balance.nextPayout", "Estimated next payout"),
+          ready: label("finance.balance.ready", "Ready for the next payout"),
+          nothingReady: label("finance.balance.nothingReady", "Nothing ready yet"),
+          paused: label("finance.balance.paused", "Payouts paused"),
+          belowMinimumPill: label("finance.balance.belowMinimumPill", "Below the minimum"),
+          howCalculated: label("finance.balance.howCalculated", "How this is worked out"),
+          onItsWay: label("finance.balance.onItsWay", "On its way to you"),
+          nothingOnWay: label(
+            "finance.balance.nothingOnWay",
+            "Nothing on its way yet. Paid orders show up here until they are ready for a payout.",
+          ),
           asOf: balance.calculatedAt ? t("finance.reliability.asOf", { date: balance.calculatedAt.toLocaleString(locale) }) : undefined,
-          tooManyOrders: t("finance.reliability.tooManyOrders"),
+          tooManyOrders: label(
+            "finance.balance.tooManyOrders",
+            "More than 500 orders are ready: the store pays them in parts, oldest first",
+          ),
+          frozen: label(
+            "finance.balance.frozen",
+            "Payouts are paused while your account is suspended. Your sales keep counting.",
+          ),
+          inPayout: label("finance.balance.inPayout", "In a payout being prepared"),
+          inPayoutHint: rawLabel("finance.balance.inPayoutHint", "{numbers} — on its way to you"),
+          notDelivered: label("finance.balance.notDelivered", "Not delivered yet"),
+          notDeliveredHint: rawLabel(
+            "finance.balance.notDeliveredHint",
+            "{count} paid orders on their way; the return window starts at delivery",
+          ),
+          awaitingBalance: label("finance.balance.awaitingBalance", "Pre-orders awaiting their balance"),
+          awaitingBalanceHint: label(
+            "finance.balance.awaitingBalanceHint",
+            "Payable once the shopper pays the rest and the goods are delivered",
+          ),
+          commissionLeft: label("finance.balance.commissionLeft", "Commission still to settle"),
+          commissionLeftHint: label(
+            "finance.balance.commissionLeftHint",
+            "On sales you collected yourself; it comes off a later payout or an invoice",
+          ),
           readyHint: rawLabel(
             "finance.balance.readyHint",
             "From {count} delivered orders, past the return window",
@@ -127,10 +151,10 @@ export default async function VendorFinancePage({
             "finance.balance.reserveUndated",
             "Released with a later payout",
           ),
-          owedBack: rawLabel("finance.balance.owedBack", "Owed back to the store"),
+          owedBack: rawLabel("finance.balance.owedBackLater", "Still owed back to the store"),
           owedBackHint: label(
-            "finance.balance.owedBackHint",
-            "Paid to you on orders refunded since; it comes off your next payout",
+            "finance.balance.owedBackLaterHint",
+            "Paid to you on orders refunded since; more than the next payout can take, so it comes off later ones",
           ),
         }}
       />
@@ -151,8 +175,7 @@ export default async function VendorFinancePage({
         </Card>
       ) : (
         statements.map((statement) => {
-          const money = (value: number) =>
-            formatCurrency(value, statement.currency);
+          const statementHref = `/vendor/finance/statements?${vendorFinanceQuery(period, statement.currency)}`;
           return (
             <section key={statement.currency} className="space-y-4">
               {statements.length > 1 ? (
@@ -161,94 +184,17 @@ export default async function VendorFinancePage({
                 </h2>
               ) : null}
 
-              <DashboardStatsGrid
-                stats={
-                  [
-                    {
-                      id: "opening",
-                      icon: <Wallet className="h-4 w-4" />,
-                      label: label(
-                        "finance.statement.opening",
-                        "Opening balance",
-                      ),
-                      value: money(statement.opening),
-                      subLabel: label(
-                        "finance.statement.openingHint",
-                        "Carried in from before this period",
-                      ),
-                    },
-                    {
-                      id: "earned",
-                      icon: <TrendingUp className="h-4 w-4" />,
-                      label: label("finance.statement.earned", "Earned"),
-                      value: money(statement.earned),
-                      subLabel: label(
-                        "finance.statement.earnedHint",
-                        "Your share of sales, after commission",
-                      ),
-                    },
-                    {
-                      id: "paid-out",
-                      icon: <HandCoins className="h-4 w-4" />,
-                      label: label("finance.statement.paidOut", "Paid out"),
-                      value: money(statement.paidOut),
-                    },
-                    {
-                      id: "closing",
-                      icon: <Banknote className="h-4 w-4" />,
-                      label: label("finance.statement.closing", "Held for you"),
-                      value: money(statement.closing),
-                      // The balance card above is the payout figure; this is
-                      // the ledger's, which credits a sale the moment its
-                      // money arrives. Two different questions, and they read
-                      // as the same one when both say "waiting for a payout".
-                      subLabel: label(
-                        "finance.statement.closingHint",
-                        "Your balance on the books — the card above shows what a payout can send",
-                      ),
-                    },
-                    {
-                      id: "owed",
-                      icon: <ArrowDownRight className="h-4 w-4" />,
-                      label: label("finance.statement.owed", "You owe"),
-                      value: money(statement.owed),
-                      // The half a vendor is most surprised by: cash they took
-                      // at the door is theirs, but the commission on it is not.
-                      subLabel: label(
-                        "finance.statement.owedHint",
-                        "Commission on orders you collected yourself",
-                      ),
-                    },
-                  ] satisfies DashboardStatCardItem[]
-                }
-              />
+              <VendorStatementSummary statement={statement} statementHref={statementHref} />
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
-                    {label("finance.statement.activity", "Recent activity")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 p-0">
-                  {/* The last handful only — the full period lives on
-                      Statements, and an overview that scrolls for a hundred
-                      rows stops being one. */}
-                  <VendorStatementTable
-                    lines={statement.lines.slice(-8).reverse()}
-                    locale={locale}
-                  />
-                  <div className="px-4 pb-4">
-                    <Button asChild variant="outline" size="sm">
-                      <Link href="/vendor/finance/statements">
-                        {label(
-                          "finance.statement.seeAll",
-                          "See the full statement",
-                        )}
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* The last handful only — the full period lives on Statements,
+                  and an overview that scrolls for a hundred rows stops being
+                  one. */}
+              <VendorActivityCard
+                lines={statement.lines}
+                total={statement.lineCount}
+                locale={locale}
+                statementHref={statementHref}
+              />
             </section>
           );
         })

@@ -4,9 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "@/hooks/use-locale-navigation";
 import {
   BadgeCheck,
+  ChevronsUpDown,
   KeyRound,
   CheckCircle2,
   Download,
+  FileDown,
   FileText,
   Pencil,
   ExternalLink,
@@ -14,9 +16,15 @@ import {
   ShieldBan,
   Store,
   Trash2,
+  Upload,
   UserCheck,
 } from "lucide-react";
 import { AccountEmailProgress } from "@/components/admin/customers/account-email-progress";
+import {
+  downloadVendorImportSample,
+  VendorImportDialog,
+  type VendorImportContext,
+} from "@/components/admin/vendors/vendor-import-dialog";
 import {
   DataTable,
   DateCell,
@@ -26,8 +34,11 @@ import {
   type DataTableAction,
   type DataTableBulkAction,
   type DataTableColumn,
+  type DataTableFilter,
   type DataTableTab,
 } from "@/components/ui/data-table";
+import { periodPickerConfig } from "@/components/admin/period-picker-config";
+import { useFallbackTranslator } from "@/hooks/use-fallback-translator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useConfirmation } from "@/components/ui/confirmation-dialog";
 import { toast } from "@/components/ui/toast-notification";
@@ -63,6 +74,8 @@ interface VendorsDataTableProps {
   locale: string;
   /** Rows for the current query string, fetched by the page. */
   data: Vendor[];
+  /** What the import's file check needs to know about plans. */
+  importContext: VendorImportContext;
   pagination: {
     page: number;
     limit: number;
@@ -70,6 +83,9 @@ interface VendorsDataTableProps {
     totalPages: number;
   };
 }
+
+/** The filter row's URL params, read by `AdminVendorListQuerySchema`. */
+const VENDOR_FILTER_IDS = ["account", "verified", "store", "commission", "date"];
 
 function getInitials(name?: string) {
   if (!name) return "VE";
@@ -84,10 +100,14 @@ function getInitials(name?: string) {
 export function VendorsDataTable({
   locale,
   data,
+  importContext,
   pagination,
 }: VendorsDataTableProps) {
+  const t = useTranslations();
+  const tOr = useFallbackTranslator(t);
   const tr = useAdminPhrase();
   const tVendors = useTranslations("admin.vendorsDataTable");
+  const [importOpen, setImportOpen] = useState(false);
   const { confirm } = useConfirmation();
   // Bumped when invitations are sent, so the invitations line starts following them.
   const [inviteRefresh, setInviteRefresh] = useState(0);
@@ -111,16 +131,21 @@ export function VendorsDataTable({
   const list = useListNavigation<Vendor>({
     items: data,
     pagination,
+    filterIds: VENDOR_FILTER_IDS,
   });
 
-  // The file is the view on screen — this search, status tab and sort — but all
-  // of it, not the page being shown; the route reads the same three params.
+  // The file is the view on screen — this search, status tab, filter row and
+  // sort — but all of it, not the page being shown; the route reads the same
+  // params.
   const handleExport = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (list.search) params.set("search", list.search);
       if (list.activeTab && list.activeTab !== "all") {
         params.set("status", list.activeTab);
+      }
+      for (const [id, value] of Object.entries(list.filters)) {
+        if (value && value !== "all") params.set(id, value);
       }
       params.set("sortOrder", list.sortOrder);
       const res = await fetch(`/api/admin/vendors/export?${params.toString()}`);
@@ -138,7 +163,7 @@ export function VendorsDataTable({
     } catch {
       toast.error(tr("Vendors could not be exported", "ভেন্ডরদের তালিকা এক্সপোর্ট করা যায়নি"));
     }
-  }, [list.activeTab, list.search, list.sortOrder, tr]);
+  }, [list.activeTab, list.filters, list.search, list.sortOrder, tr]);
 
   const handleUpdateStatus = useCallback(
     async (vendorId: string, status: string) => {
@@ -291,6 +316,69 @@ export function VendorsDataTable({
     [tr],
   );
 
+  const selectFilters = useMemo<DataTableFilter[]>(() => {
+    const all = { label: tr("All", "সব"), value: "all" };
+    return [
+      // The owner's login, apart from the vendor status the tabs filter on.
+      {
+        id: "account",
+        label: tr("Account", "অ্যাকাউন্ট"),
+        type: "select",
+        options: [
+          all,
+          { label: tr("Active", "সক্রিয়"), value: USER_ACCOUNT_STATUS.ACTIVE },
+          { label: tr("Inactive", "নিষ্ক্রিয়"), value: USER_ACCOUNT_STATUS.INACTIVE },
+          { label: tr("Banned", "নিষিদ্ধ"), value: USER_ACCOUNT_STATUS.BANNED },
+        ],
+      },
+      {
+        id: "verified",
+        label: tr("Verified", "ভেরিফাইড"),
+        type: "select",
+        options: [
+          all,
+          { label: tr("Verified", "ভেরিফাইড"), value: "yes" },
+          { label: tr("Not verified", "ভেরিফাইড নয়"), value: "no" },
+        ],
+      },
+      // An approved store can still be closed — by the seller, or a lapsed plan.
+      {
+        id: "store",
+        label: tr("Store", "স্টোর"),
+        type: "select",
+        options: [
+          all,
+          { label: tr("Open", "চালু"), value: "open" },
+          { label: tr("Closed", "বন্ধ"), value: "closed" },
+        ],
+      },
+      {
+        id: "commission",
+        label: tr("Commission", "কমিশন"),
+        type: "select",
+        options: [
+          all,
+          { label: tr("Store default", "স্টোরের ডিফল্ট"), value: "default" },
+          { label: tr("From plan", "প্ল্যান থেকে"), value: "plan" },
+          { label: tr("Custom rate", "কাস্টম রেট"), value: "manual" },
+        ],
+      },
+    ];
+  }, [tr]);
+  // On the day the Joined column prints. Built on every render rather than
+  // memoised: "today" and the last day the calendar lets you pick move at
+  // midnight, and this tab can outlive it.
+  const now = new Date();
+  const filters: DataTableFilter[] = [
+    ...selectFilters,
+    {
+      id: "date",
+      label: tr("Joined", "যোগদানের তারিখ"),
+      type: "date",
+      date: { locale, ...periodPickerConfig(tOr, locale, now), maxDate: now },
+    },
+  ];
+
   const tableHeader = useMemo(
     () =>
       buildAdminCommerceTableHeader({
@@ -302,17 +390,36 @@ export function VendorsDataTable({
           href: "/admin/vendors/new",
           variant: "default",
         },
-        // Export only: a vendor joins by applying and being approved, never
-        // by file.
+        // A vendor joins by applying and being approved — or, moving from
+        // another marketplace, by file: the export's columns import back.
         importExportAction: {
-          id: "toolbar-export",
-          label: tr("Export", "এক্সপোর্ট"),
-          icon: <Download className="h-4 w-4" />,
+          id: "import-export",
+          label: t("admin.productsDataTable.actions.importExport"),
+          icon: <ChevronsUpDown className="h-4 w-4" />,
           variant: "outline",
-          onClick: handleExport,
+          items: [
+            {
+              id: "toolbar-export",
+              label: tr("Export", "এক্সপোর্ট"),
+              icon: <Download className="h-4 w-4" />,
+              onClick: handleExport,
+            },
+            {
+              id: "toolbar-import",
+              label: t("admin.productsDataTable.actions.import"),
+              icon: <Upload className="h-4 w-4" />,
+              onClick: () => setImportOpen(true),
+            },
+            {
+              id: "toolbar-import-sample",
+              label: t("admin.productsDataTable.actions.downloadSample"),
+              icon: <FileDown className="h-4 w-4" />,
+              onClick: downloadVendorImportSample,
+            },
+          ],
         },
       }),
-    [handleExport, tr],
+    [handleExport, t, tr],
   );
 
   const rowActions = useCallback(
@@ -417,6 +524,9 @@ export function VendorsDataTable({
         searchPlaceholder={tr("Search vendors...", "ভেন্ডর খুঁজুন...")}
         searchValue={list.search}
         onSearchChange={list.handleSearchChange}
+        filters={filters}
+        filterValues={list.filters}
+        onFilterChange={list.handleFilterChange}
         toolbarActions={tableHeader.toolbarActions}
         toolbarLayout={tableHeader.toolbarLayout}
         tabsVariant={tableHeader.tabsVariant}
@@ -432,6 +542,12 @@ export function VendorsDataTable({
         rowActionsVariant="inline"
         onRowClick={(row) => router.push(`/admin/vendors/${row._id}`)}
         emptyMessage={tr("No vendors found", "কোনো ভেন্ডর পাওয়া যায়নি")}
+      />
+      <VendorImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        context={importContext}
+        onImported={list.refetch}
       />
     </>
   );

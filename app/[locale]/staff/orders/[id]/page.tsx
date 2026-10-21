@@ -1,3 +1,4 @@
+import { staffResourcePermissions } from "@/lib/access/staff-resource-actions";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
@@ -23,7 +24,7 @@ export default async function StaffOrderDetailsPage({ params }: PageProps) {
 
   const access = await requireStaffAreaAccess({
     locale,
-    required: [STAFF_PERMISSIONS.VIEW_ORDERS],
+    required: staffResourcePermissions("orders"),
   });
   // Mirrors PUT /api/admin/orders/[id]: editing needs EDIT/MANAGE, cancelling
   // needs DELETE/MANAGE. Treating DELETE as "can edit" (or EDIT as "can

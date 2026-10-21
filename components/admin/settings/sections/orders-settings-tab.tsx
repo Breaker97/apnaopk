@@ -79,11 +79,11 @@ export function OrdersSettingsTab(props: {
 }) {
   const t = useTranslations("admin.settings.orders");
   const tSettings = useTranslations("admin.settings");
+  const tInvoices = useTranslations("admin.settings.invoices");
   const locale = useLocale();
   const { settings, isSaving, isDirty, updateNestedField, onSave } = props;
   const orders = settings.orders;
   const currencyCode = settings.general.defaultCurrency || "USD";
-  const taxPercent = Number((orders.taxRate * 100).toFixed(4));
   // These two are read by `legacyShipping()` in lib/shipping.ts and nowhere
   // else, and that runs only while zone shipping is off. Left looking editable
   // once zones are live, an admin sets a free-shipping threshold here and it
@@ -140,24 +140,14 @@ export function OrdersSettingsTab(props: {
               />
             </SettingRow>
 
-            <SettingRow
-              inputId="taxRate"
-              label={t("taxRate")}
-              hint={t("taxRateHint")}
-            >
-              <NumberInput
-                id="taxRate"
-                className="w-24"
-                min={0}
-                max={100}
-                step={0.01}
-                value={taxPercent}
-                whenEmpty={0}
-                onValueChange={(next) =>
-                  updateNestedField("orders.taxRate", (next ?? 0) / 100)
-                }
-              />
-              <SettingUnit>%</SettingUnit>
+            {/* The rate moved to Settings → Tax, with classes and dates. */}
+            <SettingRow label={t("tax")} hint={t("taxMoved")}>
+              <Button asChild variant="outline">
+                <Link href="/admin/settings/tax">
+                  {t("taxLink")}
+                  <ArrowRight className="size-4 rtl:rotate-180" />
+                </Link>
+              </Button>
             </SettingRow>
 
             {zoneShippingEnabled ? (
@@ -538,6 +528,25 @@ export function OrdersSettingsTab(props: {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* Invoices, receipts and stickers are designed on their own page. */}
+      <Link
+        href="/admin/settings/invoices"
+        className="group flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-6 py-4 transition-colors hover:bg-muted/50 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]"
+      >
+        <span className="min-w-0 space-y-1">
+          <span className="block text-sm font-semibold">
+            {tInvoices("entry.title")}
+          </span>
+          <span className="block text-sm text-muted-foreground">
+            {tInvoices("entry.description")}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
+          {tInvoices("entry.action")}
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+        </span>
+      </Link>
 
       <StickySaveFooter
         label={tSettings("general.save")}

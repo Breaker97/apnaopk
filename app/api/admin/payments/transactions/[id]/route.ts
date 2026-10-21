@@ -15,6 +15,13 @@ import {
 
 const SettleRefundSchema = z.discriminatedUnion("action", [
   z.object({
+    action: z.literal("resolve_paypal_match"),
+    resolution: z.enum(["same", "independent"]),
+    matchingTransactionId: z.string().refine(isValidObjectId, "Choose an existing transaction").optional(),
+    reference: z.string().trim().min(3).max(500),
+    expectedUpdatedAt: z.string().datetime(),
+  }).refine((body) => body.resolution !== "same" || Boolean(body.matchingTransactionId), "Choose the matching transaction"),
+  z.object({
     action: z.literal("settle"),
     /** How the money went: a bank transfer, a mobile money send, cash, the gateway. */
     method: z.string().trim().min(1).max(40),
@@ -69,6 +76,15 @@ export const PATCH = withApi<{ id: string }>(
     const auditContext = createAuditContext(request, session);
 
     await connectDB();
+
+    if (body.action === "resolve_paypal_match") {
+      const { resolvePayPalMatchReview } = await import("@/lib/orders/order-refund-sync");
+      const result = await resolvePayPalMatchReview({
+        transactionId: id, resolution: body.resolution, matchingTransactionId: body.matchingTransactionId,
+        reference: body.reference, expectedUpdatedAt: body.expectedUpdatedAt, actorId: session.user.id,
+      });
+      return successResponse(result, "PayPal movement reconciled");
+    }
 
     // Cancelled before anybody sent it — reversed exactly as a refund that
     // failed at the gateway, and a return it was for is open again.

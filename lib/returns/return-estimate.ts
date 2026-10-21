@@ -55,6 +55,12 @@ interface ReturnRefundEstimateInput {
    * one. Null for an order that recorded no line shares.
    */
   recordedGoodsDiscount?: number | null;
+  /**
+   * The tax the returning units carried, where the order recorded each line's
+   * own (lines taxed at their own rates). Given, it replaces the share of the
+   * order's tax: a tax-free line hands back none.
+   */
+  recordedTax?: number | null;
   /** What the shopper actually paid for delivery, after any shipping coupon. */
   chargedShipping: number;
   /**
@@ -136,7 +142,10 @@ function proportionalParts(input: ReturnRefundEstimateInput): ProportionalParts 
           )
         : 0
       : ratio;
-  const tax = q(Math.max(0, num(input.orderTax)) * taxRatio);
+  const tax =
+    typeof input.recordedTax === "number"
+      ? q(Math.min(Math.max(0, num(input.orderTax)), Math.max(0, input.recordedTax)))
+      : q(Math.max(0, num(input.orderTax)) * taxRatio);
   const basis = input.shippingBasis;
   const basisGoods =
     input.basisItemsSubtotal === undefined || input.basisItemsSubtotal === null

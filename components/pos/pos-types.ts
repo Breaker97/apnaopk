@@ -19,6 +19,11 @@ export interface POSProduct {
    */
   shipping?: { isPhysicalProduct?: boolean };
   inventory?: { tracked?: boolean; continueSellingWhenOutOfStock?: boolean };
+  /**
+   * The product's own tax rate, resolved (its own, else its category's) as a
+   * fraction; null or absent for the store's. See lib/tax/tax-rates.ts.
+   */
+  taxRate?: number | null;
 }
 
 export interface POSVariant {
@@ -64,44 +69,38 @@ export interface POSCartItem {
   maxStock: number;
   lineDiscount?: POSLineDiscount;
   lineNote?: string;
+  /** The product's own tax rate (fraction), null/absent for the store's. */
+  taxRate?: number | null;
 }
 
 export interface POSCustomer {
   _id: string;
+  /**
+   * "account" — a customer User; the sale is filed under them.
+   * "guest" — a guest customer record (often phone-only), carried alongside a
+   * sale filed under the cashier. Absent on holds saved before guests existed,
+   * which were all accounts. See lib/pos/pos-customers.ts.
+   */
+  kind?: "account" | "guest";
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   image?: string;
 }
 
-export interface ReceiptPrintPayload {
-  orderNumber: string;
-  createdAt: string | Date;
-  /**
-   * The counter this sale was rung up at.
-   *
-   * Printed because the receipt is the only record the customer walks out with,
-   * and a multi-branch merchant handling a return has to know which shop's
-   * stock the units came off. Absent when the register sells from shared stock,
-   * where naming a branch would be a guess.
-   */
-  locationName?: string;
-  paymentMethod: string;
-  cashTendered?: number;
-  paymentReference?: string;
-  paymentNote?: string;
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-    amount: number;
-  }>;
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  balanceReturned: number;
+/** How the sale names its customer: by account, or by guest record. */
+export function posCustomerPayload(customer: POSCustomer | null | undefined): {
+  customerId?: string;
+  customerProfileId?: string;
+} {
+  if (!customer) return {};
+  return customer.kind === "guest"
+    ? { customerProfileId: customer._id }
+    : { customerId: customer._id };
 }
+
+// Built into the printed page by lib/pos/receipt-html.ts.
+export type { ReceiptPrintPayload } from "@/lib/pos/receipt-html";
 
 export interface POSCompletedOrder {
   _id: string;
@@ -110,8 +109,17 @@ export interface POSCompletedOrder {
   itemCount?: number;
   cashTendered?: number;
   changeDue: number;
-  paymentReference?: string;
-  paymentNote?: string;
+  /** A deposit sale: what is still owed. */
+  balanceDue?: number;
+  /**
+   * The server has the sale. False for a sale queued offline, whose `_id` is
+   * its provisional receipt number: nothing can be fetched or sent for it
+   * until it syncs.
+   */
+  synced: boolean;
+  /** Where the receipt goes by default: the sale's customer, if any. */
+  customerEmail?: string;
+  customerPhone?: string;
 }
 
 export type CustomerMode = "search" | "create";

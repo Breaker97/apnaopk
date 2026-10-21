@@ -193,7 +193,7 @@ export function SearchableSelect({
             aria-haspopup="listbox"
             aria-expanded={open}
             className={cn(
-              "border-input dark:bg-input/30 dark:hover:bg-input/50 focus-visible:border-ring focus-visible:ring-ring/50 flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+              "border-input dark:bg-input/30 dark:hover:bg-input/50 focus-visible:border-ring focus-visible:ring-ring/30 flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[1px] disabled:cursor-not-allowed disabled:opacity-50",
               className,
             )}
           >
@@ -276,7 +276,7 @@ export function SearchableSelect({
                   className={cn(
                     "flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
                     isActive && "bg-accent text-accent-foreground",
-                    isSelected && "bg-accent/60",
+                    isSelected && "bg-selection text-selection-foreground",
                   )}
                 >
                   <span className="flex min-w-0 items-center gap-2">

@@ -1,24 +1,39 @@
 {
   "template": "furniture",
-  "exportedAt": "2026-09-28T16:32:26.338Z",
+  "exportedAt": "2026-10-12T05:19:11.593Z",
   "sourceDb": "storify-furniture",
   "counts": {
-    "vendors.json": 5,
+    "vendors.json": 6,
     "inventory-locations.json": 0,
     "categories.json": 8,
     "brands.json": 0,
     "global-variants.json": 0,
-    "products.json": 36,
+    "products.json": 50,
     "collections.json": 2,
     "menus.json": 2,
     "sliders.json": 3,
     "store-pages.json": 4,
-    "coupons.json": 0,
+    "vendor-store-pages.json": 2,
+    "coupons.json": 1,
     "blog-categories.json": 0,
     "blog-posts.json": 3,
     "vendor-plans.json": 0,
     "onboarding-template.json": 0,
     "settings.json": 1
   },
-  "repairs": []
+  "repairs": [],
+  "adjustments": [
+    "settings: dropped retired field general.supportedCurrencies",
+    "settings: dropped retired field general.timezone",
+    "settings: dropped retired field appearance.contrast",
+    "settings: dropped retired field appearance.rtl",
+    "settings: dropped retired field appearance.collapsedSidebar",
+    "settings: dropped retired field appearance.navLayout",
+    "settings: dropped retired field appearance.navColor",
+    "settings: dropped retired field pos.language",
+    "settings: dropped retired field pos.checkout.offlinePaymentsEnabled",
+    "settings: dropped retired field vendorConfig.autoApprove",
+    "settings: dropped retired field vendorConfig.freeTrialDays"
+  ],
+  "warnings": []
 }

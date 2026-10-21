@@ -345,7 +345,9 @@ export async function refundRazorpayPayment(params: {
 
   if (!res.ok) {
     const message = await readRazorpayErrorMessage(res);
-    throw new Error(`Razorpay refund failed: ${message}`);
+    // A GatewayApiError so a refund can tell a 5xx (the refund may have been
+    // made) from the gateway refusing it — see `refundOutcomeUnknown`.
+    throw new GatewayApiError(`Razorpay refund failed: ${message}`, res.status);
   }
 
   return (await res.json()) as {
@@ -439,7 +441,8 @@ export async function listRazorpayDisputes(params: {
     throw new GatewayApiError(`Razorpay list disputes failed: ${message}`, res.status);
   }
   const json = (await res.json()) as { items?: RazorpayDispute[] };
-  return Array.isArray(json.items) ? json.items : [];
+  if (!Array.isArray(json.items)) throw new GatewayApiError("Razorpay returned invalid dispute data", 502);
+  return json.items;
 }
 
 /** One dispute as it stands now — a webhook's copy may be older than the decision. */

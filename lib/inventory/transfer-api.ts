@@ -1,4 +1,6 @@
 import type { NextRequest } from "next/server";
+import { mutationKey, replayFinanceRequest } from "@/lib/finance/operations";
+import { withInventoryWrite } from "./finance-context";
 import * as z from "zod";
 import { connectDB } from "@/lib/db";
 import { Transfer } from "@/models";
@@ -222,6 +224,7 @@ export async function runTransferAction(
 
   const { transfer, access } = await loadTransferForCaller(id, session.user);
   const actor = transferActor(session.user);
+  const requestKey = mutationKey(request);
   const auditContext = createAuditContext(request, session);
   const auditSummary = (summary: string, extra?: Record<string, unknown>) =>
     audit(auditContext, {
@@ -261,10 +264,6 @@ export async function runTransferAction(
   }
 
   if (action === "receive") {
-    if (!access.canReceive) throw denied();
-    if (transfer.status !== "in_transit") {
-      throw new ValidationError("Only transfers in transit can be received");
-    }
     const lines = (body.lines || []).map((line) => ({
       productId: line.productId,
       variantId: line.variantId,
@@ -272,13 +271,17 @@ export async function runTransferAction(
       rejected: line.rejected ?? 0,
     }));
     const note = typeof body.note === "string" ? body.note.trim() : "";
-    const { completed } = await receiveTransfer(transfer, lines, note, actor);
+    if (!access.canReceive) throw denied();
+    const replay = await replayFinanceRequest<{ value: { completed: boolean } }>({ action: `inventory:transfer:receive:${id}`, actorId: actor.id, requestKey, fingerprint: () => ({ transferId: id, input: lines, note }) });
+    if (replay) return { data: { ...done, ...replay.data.value, bookkeepingState: replay.bookkeepingState }, message: "Receipt already recorded" };
+    if (transfer.status !== "in_transit") throw new ValidationError("Only transfers in transit can be received");
+    const { completed, bookkeepingState } = await withInventoryWrite({ reason: "transfer", sourceKind: "transfer", sourceId: id, requestKey }, () => receiveTransfer(transfer, lines, note, actor));
     await auditSummary(
       `Received items on transfer ${transfer.transferNumber}${completed ? " (completed)" : ""}`,
       { lines },
     );
     return {
-      data: { ...done, completed },
+      data: { ...done, completed, ...(bookkeepingState ? { bookkeepingState } : {}) },
       message: completed ? "Transfer completed" : "Items received",
     };
   }
@@ -297,6 +300,10 @@ export async function runTransferAction(
     if (!isTransferStatus(nextStatus)) {
       throw new ValidationError("Invalid transfer status");
     }
+    if (!access.canSend) throw denied();
+    const phase = nextStatus === "in_transit" ? "ship" : nextStatus === "cancelled" ? "cancel" : null;
+    const replay = phase ? await replayFinanceRequest({ action: `inventory:transfer:${phase}:${id}`, actorId: actor.id, requestKey, fingerprint: () => ({ transferId: id }) }) : null;
+    if (replay) return { data: { ...done, bookkeepingState: replay.bookkeepingState }, message: "Status already updated" };
     const currentStatus = transfer.status;
 
     if (nextStatus === currentStatus) {
@@ -318,15 +325,16 @@ export async function runTransferAction(
     } else if (nextStatus === "draft") {
       await returnTransferToDraft(transfer, actor);
     } else if (nextStatus === "in_transit") {
-      await shipTransfer(transfer, actor);
+      await withInventoryWrite({ reason: "transfer", sourceKind: "transfer", sourceId: id, requestKey }, () => shipTransfer(transfer, actor));
     } else if (nextStatus === "cancelled") {
-      await cancelTransfer(transfer, actor);
+      await withInventoryWrite({ reason: "transfer", sourceKind: "transfer", sourceId: id, requestKey }, () => cancelTransfer(transfer, actor));
     }
 
     await auditSummary(
       `Transfer ${transfer.transferNumber} moved from ${currentStatus} to ${nextStatus}`,
     );
-    return { data: done, message: "Status updated" };
+    const posted = phase ? await replayFinanceRequest({ action: `inventory:transfer:${phase}:${id}`, actorId: actor.id, requestKey, fingerprint: () => ({ transferId: id }) }) : null;
+    return { data: { ...done, ...(posted ? { bookkeepingState: posted.bookkeepingState } : {}) }, message: "Status updated" };
   }
 
   throw new ValidationError("Unsupported action");

@@ -111,26 +111,34 @@ export function revalidateHeldCart(
       price,
       quantity,
       maxStock: purchasable,
+      taxRate: product.taxRate ?? null,
     });
   }
 
   return { cart: nextCart, adjustments, isEmpty: nextCart.length === 0 };
 }
 
-/** One-line summary for the resume toast. */
+/** The kinds of change a re-check can make, as the summary names them. */
+export type HeldOrderChangeKind = "removed" | "repriced" | "reduced";
+
+/**
+ * One-line summary for the resume and counter-switch toasts.
+ *
+ * The words come from the caller (`phrase`, the register's translations), so
+ * this stays free of any one language; it only counts and orders.
+ */
 export function describeHeldOrderAdjustments(
   adjustments: HeldOrderAdjustment[],
+  phrase: (kind: HeldOrderChangeKind, count: number) => string,
 ): string {
-  const removed = adjustments.filter((entry) => entry.kind === "removed").length;
-  const repriced = adjustments.filter((entry) => entry.kind === "price").length;
-  const reduced = adjustments.filter(
-    (entry) => entry.kind === "quantity",
-  ).length;
+  const counts: Array<[HeldOrderChangeKind, number]> = [
+    ["removed", adjustments.filter((entry) => entry.kind === "removed").length],
+    ["repriced", adjustments.filter((entry) => entry.kind === "price").length],
+    ["reduced", adjustments.filter((entry) => entry.kind === "quantity").length],
+  ];
 
-  const parts: string[] = [];
-  if (removed) parts.push(`${removed} line${removed === 1 ? "" : "s"} removed`);
-  if (repriced) parts.push(`${repriced} repriced`);
-  if (reduced) parts.push(`${reduced} reduced to available stock`);
-
-  return parts.join(" · ");
+  return counts
+    .filter(([, count]) => count > 0)
+    .map(([kind, count]) => phrase(kind, count))
+    .join(" · ");
 }

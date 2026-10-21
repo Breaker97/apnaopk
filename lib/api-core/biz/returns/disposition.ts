@@ -23,7 +23,8 @@ export async function disposeBizReturn(input: { returned: ReturnRecord; selectio
     let selectedLocation: string | undefined;
     if (selection.action === "restocked") {
       const counters = (line.variantId ? product.variants?.find((variant) => String(variant._id) === line.variantId)?.locationInventory : product.locationInventory) || [];
-      const locationId = input.locationId || (counters.length ? locations.find((location) => counters.some((counter) => String(counter.locationId) === location._id))?._id : undefined);
+      // A product that keeps no stock by location takes them on its total — see `restockBizReturn`.
+      const locationId = counters.length ? input.locationId || locations.find((location) => counters.some((counter) => String(counter.locationId) === location._id))?._id : undefined;
       if (counters.length && !locationId) refuse("RETURN_LOCATION_NOT_ALLOWED", "Choose an authorized location for these repaired goods.");
       selectedLocation = locationId;
       if (product.shipping?.isPhysicalProduct !== false && product.inventory?.tracked !== false) { const moved = await applyBizStockEffect({ effectKey: input.operation.effectKey, leg: `disposition-${input.returned._id}-line-${selection.index}`, productId: line.productId, variantId: line.variantId, locationId, quantity: selection.quantity, scopeFilter: productScopeFilter(input.context.scope), session: input.session }); if (!moved.success) refuse("RETURN_STATE_CHANGED", moved.error || "Stock changed concurrently."); }

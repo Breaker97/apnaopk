@@ -2,23 +2,13 @@
 
 import { useMemo } from "react";
 import Link from "@/components/language/link";
-import { signOutAndReload } from "@/lib/auth/auth-client";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useRouter, usePathname } from "@/hooks/use-locale-navigation";
 import {
-  User,
+  UserRound,
   Settings,
-  LogOut,
   Store,
   LayoutDashboard,
   Globe,
@@ -29,7 +19,7 @@ import { locales, localeConfig, type Locale } from "@/config/i18n.config";
 import { FlagIcon } from "@/components/ui/flag-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { NotificationDrawer } from "@/components/admin/notification-drawer";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { HeaderAccountMenu } from "@/components/layout/account-menu";
 import { AppImage } from "@/components/ui/app-image";
 import { cn } from "@/lib/utils";
 import { DEFAULT_STORE_NAME } from "@/config/branding.config";
@@ -44,6 +34,8 @@ interface VendorHeaderProps {
   storeName?: string;
   storeLogo?: string;
   posEnabled?: boolean;
+  /** The vendor (or their staff member) may open the store's settings page. */
+  canOpenSettings?: boolean;
 }
 
 export function VendorHeader({
@@ -52,28 +44,18 @@ export function VendorHeader({
   storeName,
   storeLogo,
   posEnabled,
+  canOpenSettings = false,
 }: VendorHeaderProps) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const isPosTerminal = pathname?.startsWith(`/${locale}/vendor/pos`) ?? false;
-
-  const handleLogout = async () => {
-    await signOutAndReload(locale);
-  };
+  // The till itself, which alone has no sidebar (its sub-pages have one).
+  const isPosTill = pathname === `/${locale}/vendor/pos`;
 
   const handleLocaleChange = (newLocale: Locale) => {
     const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
     router.push(newPathname);
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   const currentLocaleConfig = localeConfig[locale];
@@ -202,76 +184,39 @@ export function VendorHeader({
         {/* Notifications Drawer */}
         <NotificationDrawer locale={locale} />
 
-        {/* The viewer's own preferences; nothing in it is store-wide. */}
-        <PreferencesDrawer locale={locale} />
+        {canOpenSettings && (
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-primary"
+          >
+            <Link
+              href="/vendor/settings"
+              aria-label={t("common.settings")}
+              title={t("common.settings")}
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+          </Button>
+        )}
 
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full h-10 w-10 border border-border p-1"
-            >
-              <Avatar className="h-full w-full">
-                <AvatarImage src={user.image} alt={user.name} />
-                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex min-w-0 flex-col space-y-1">
-                <p className="truncate text-sm font-medium leading-tight">
-                  {user.name}
-                </p>
-                <p
-                  className="truncate text-xs leading-tight text-muted-foreground"
-                  title={user.email}
-                >
-                  {user.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link
-                href={`/${locale}/vendor/settings?tab=account`}
-                className="cursor-pointer"
-              >
-                <User className="mr-2 h-4 w-4" />
-                <span>
-                  {t("common.profile")}
-                </span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link
-                href={`/${locale}/vendor/settings?tab=store`}
-                className="cursor-pointer"
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                <span>
-                  {t("common.settings")}
-                </span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/${locale}`} className="cursor-pointer">
-                <Store className="mr-2 h-4 w-4" />
-                <span>{t("vendor.viewStore")}</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="text-destructive focus:text-destructive cursor-pointer"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t("auth.signOut")}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* The viewer's own preferences, opened from the account menu;
+            nothing in it is store-wide. */}
+        <PreferencesDrawer locale={locale} showTrigger={false} />
+
+        {/* The account menu lives in the sidebar's foot; the till has no
+            sidebar, so it keeps one here. */}
+        {isPosTill && (
+          <HeaderAccountMenu
+            locale={locale}
+            user={user}
+            links={[
+              { href: "/vendor/settings?tab=account", label: t("common.profile"), Icon: UserRound },
+              { href: "/vendor/settings?tab=store", label: t("common.settings"), Icon: Settings },
+            ]}
+          />
+        )}
       </div>
     </header>
   );

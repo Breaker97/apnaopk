@@ -8,13 +8,17 @@ import {
   STAFF_PERMISSIONS,
 } from "@/config/permissions.config.js";
 import { ORDER_STATUS } from "@/config/app.config.js";
-import { DEMO_ACCOUNTS } from "@/config/demo-credentials";
+import {
+  DEMO_ACCOUNTS,
+  DEMO_TEMPLATE_VENDORS,
+} from "@/config/demo-credentials";
 import { assertNotRealStore } from "@/lib/install/demo-seed-guard";
 import { buildBarcodeRegistryEntries } from "@/lib/products/barcode-registry";
 import { backfillProductSearchIndex } from "@/lib/products/search-index";
 import { LOCAL_ASSET_PATHS } from "@/lib/seed-assets";
 import { sanitizeSectionInstances } from "@/lib/storefront/sections/instances";
 import { rebaseCountdownSections } from "@/lib/install/countdown-window";
+import { isVendorPageSectionType } from "@/lib/vendors/vendor-store-page";
 import { buildStorePageIdentity } from "@/models/store-page.model";
 import {
   DEFAULT_SEED_TEMPLATE,
@@ -368,7 +372,8 @@ async function createAdmin(User, AdminProfile, auth) {
  * and storefront bindings that reference them keep working; only the linked
  * auth user is created fresh (the export strips real accounts). The default
  * vendor — the single-vendor-mode store owner — gets the demo vendor
- * credentials; every other vendor logs in as `<slug>@example.com`.
+ * credentials, the template's showcase seller (DEMO_TEMPLATE_VENDORS) gets
+ * its own, and every other vendor logs in as `<slug>@example.com`.
  * Uses transactions to prevent race conditions.
  */
 async function createVendors(User, Vendor, auth) {
@@ -390,15 +395,30 @@ async function createVendors(User, Vendor, auth) {
     );
   }
 
+  // The template's showcase seller gets the login the quick-login card offers.
+  const showcase = DEMO_TEMPLATE_VENDORS[SEED_TEMPLATE.id];
+  if (showcase && !snapshot.some((data) => data.slug === showcase.slug)) {
+    console.warn(
+      `   ⚠ The ${SEED_TEMPLATE.id} snapshot has no "${showcase.slug}" vendor, so ` +
+        `${showcase.email} is not created. Re-export it with ` +
+        `\`pnpm db:seed:export --template=${SEED_TEMPLATE.id}\`.`,
+    );
+  }
+
   const vendors = [];
   for (const data of snapshot) {
     const isDefault = data.isDefault === true;
+    const isShowcase = showcase?.slug === data.slug;
     const email = isDefault
       ? DEMO_CREDENTIALS.vendor.email
-      : `${data.slug}@example.com`;
+      : isShowcase
+        ? showcase.email
+        : `${data.slug}@example.com`;
     const password = isDefault
       ? DEMO_CREDENTIALS.vendor.password
-      : SNAPSHOT_VENDOR_PASSWORD;
+      : isShowcase
+        ? showcase.password
+        : SNAPSHOT_VENDOR_PASSWORD;
 
     const vendor = await withTransaction(async (session) => {
       const existingVendor = await Vendor.findById(data._id).session(session);
@@ -1523,6 +1543,80 @@ async function createStorefrontTemplate(StorePage, admin) {
   console.log(`  ✓ Storefront published from snapshot (${pages.length} surfaces)`);
 }
 
+/**
+ * The demo vendors' own landing pages (the Home tab of /vendors/<slug>), built
+ * in the Vendor CMS. Their sections bind the snapshot's products and the
+ * vendor's coupon, so they land after both, verbatim. They pass through the
+ * same filter the storefront reads with (`vendorPageSections`): a section the
+ * Vendor CMS no longer offers is dropped here, loudly, rather than stored.
+ * Authorship goes to the vendor's own seeded login.
+ */
+async function createVendorStorePages(VendorStorePage, vendors) {
+  const pages = loadSnapshot("vendor-store-pages", { optional: true }) ?? [];
+  if (pages.length === 0) {
+    console.log("   • No vendor pages in this snapshot");
+    return;
+  }
+
+  const ownerOf = new Map(
+    vendors.map((vendor) => [String(vendor._id), String(vendor.userId)]),
+  );
+  const exportedAt = loadSnapshot("manifest", { optional: true })?.exportedAt;
+  const now = new Date();
+  const usable = (sections) =>
+    sanitizeSectionInstances(
+      rebaseCountdownSections(sections, exportedAt, now),
+    ).filter((section) => isVendorPageSectionType(section.type));
+
+  let created = 0;
+  for (const page of pages) {
+    const owner = ownerOf.get(String(page.vendorId));
+    if (!owner) {
+      console.warn(
+        `   ⚠️  vendor page for ${page.vendorId} skipped — that vendor was not seeded`,
+      );
+      continue;
+    }
+    if (await VendorStorePage.exists({ vendorId: page.vendorId })) {
+      console.log(`   ✓ Vendor page already exists for ${page.vendorId}`);
+      continue;
+    }
+
+    const draftRaw = Array.isArray(page.draft?.sections) ? page.draft.sections : [];
+    const publishedRaw = Array.isArray(page.published?.sections)
+      ? page.published.sections
+      : [];
+    const draft = usable(draftRaw);
+    const published = usable(publishedRaw);
+    if (draft.length < draftRaw.length || published.length < publishedRaw.length) {
+      console.warn(
+        `   ⚠️  vendor page ${page.vendorId}: dropped ${draftRaw.length - draft.length} draft / ${publishedRaw.length - published.length} published section(s) the Vendor CMS no longer accepts — re-export the snapshot`,
+      );
+    }
+
+    await VendorStorePage.collection.insertOne({
+      ...page,
+      draft: {
+        sections: draft,
+        updatedAt: page.draft?.updatedAt ?? now,
+        updatedBy: owner,
+      },
+      published: page.published
+        ? {
+            sections: published,
+            publishedAt: page.published.publishedAt ?? now,
+            publishedBy: owner,
+          }
+        : null,
+      history: [],
+      takedown: null,
+    });
+    created += 1;
+  }
+
+  console.log(`   ✓ Imported ${created} vendor page(s) from snapshot`);
+}
+
 async function createSettings(Settings) {
   const existing = await Settings.findOne();
   if (existing) {
@@ -1773,8 +1867,8 @@ async function createSettings(Settings) {
         "I can connect you with the store team for anything that needs a human review.",
       widget: {
         position: "bottom-right",
-        primaryColor: "#7c3aed",
-        accentColor: "#a855f7",
+        primaryColor: "var(--theme-primary)",
+        accentColor: "var(--theme-primary)",
         footerText: "Powered by AI",
       },
       capabilities: {
@@ -2007,9 +2101,18 @@ async function seed() {
       BoostCampaign,
       PlatformPayment,
       StorePage,
+      VendorStorePage,
     } = mongoose.models;
 
     await assertSnapshotCompatible();
+
+    // Settings come FIRST. Anything that reads them through `getSettings()`
+    // creates a default document when none exists (posting the demo orders
+    // to the ledger does), and `createSettings` skips an existing document.
+    // Seeded later, the store came up with default settings: no theme, no
+    // header, no colours from the snapshot.
+    console.log("\n⚙️  Creating settings...");
+    await createSettings(Settings);
 
     console.log("\n👤 Creating admin...");
     const admin = await createAdmin(User, AdminProfile, auth);
@@ -2086,11 +2189,11 @@ async function seed() {
     console.log("\n🪜 Importing the vendor onboarding template...");
     await createOnboardingTemplate(OnboardingTemplate, admin);
 
-    console.log("\n⚙️  Creating settings...");
-    await createSettings(Settings);
-
     console.log("\n🎨 Publishing the storefront from the snapshot...");
     await createStorefrontTemplate(StorePage, admin);
+
+    console.log("\n🏬 Importing vendor pages...");
+    await createVendorStorePages(VendorStorePage, vendors);
 
     console.log("\n🚀 Creating boost ladder...");
     await createBoostLadder(
@@ -2111,6 +2214,10 @@ async function seed() {
     console.log(
       `Vendor:   ${DEMO_CREDENTIALS.vendor.email} / ${DEMO_CREDENTIALS.vendor.password}`,
     );
+    const showcase = DEMO_TEMPLATE_VENDORS[SEED_TEMPLATE.id];
+    if (showcase) {
+      console.log(`Showcase: ${showcase.email} / ${showcase.password}`);
+    }
     console.log(
       `Customer: ${DEMO_CREDENTIALS.customer.email} / ${DEMO_CREDENTIALS.customer.password}`,
     );

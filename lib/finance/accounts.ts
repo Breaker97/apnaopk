@@ -23,6 +23,8 @@ export const LEDGER_ACCOUNT = {
   CASH_ON_HAND: "cash_on_hand",
   /** Stock owned by the store itself; only the own-store book uses it. */
   INVENTORY: "inventory",
+  /** Opening stock is capital, not this period's sales or cash spending. */
+  OPENING_INVENTORY_EQUITY: "opening_inventory_equity",
   /** Owed BY the marketplace to a vendor — their share, until the payout clears. */
   VENDOR_PAYABLE: "vendor_payable",
   /** Owed TO the marketplace by a vendor: commission on a sale they collected. */
@@ -99,6 +101,8 @@ export const LEDGER_ACCOUNT = {
   SHIPPING_COST: "shipping_cost",
   /** Cost of goods sold, from the line-level cost snapshot. */
   COST_OF_GOODS: "cost_of_goods",
+  /** Explicit stock losses, count differences and fixed-cost variances. */
+  INVENTORY_ADJUSTMENTS: "inventory_adjustments",
   /**
    * Discounts the store paid for on sellers' goods — a store coupon it funds.
    *
@@ -140,6 +144,7 @@ export const LEDGER_ACCOUNTS = Object.values(
 export const LEDGER_ACCOUNT_TYPE = {
   ASSET: "asset",
   LIABILITY: "liability",
+  EQUITY: "equity",
   INCOME: "income",
   EXPENSE: "expense",
 } as const;
@@ -152,6 +157,7 @@ export const LEDGER_ACCOUNT_TYPES: Record<LedgerAccount, LedgerAccountType> = {
   [LEDGER_ACCOUNT.CASH_BANK]: LEDGER_ACCOUNT_TYPE.ASSET,
   [LEDGER_ACCOUNT.CASH_ON_HAND]: LEDGER_ACCOUNT_TYPE.ASSET,
   [LEDGER_ACCOUNT.INVENTORY]: LEDGER_ACCOUNT_TYPE.ASSET,
+  [LEDGER_ACCOUNT.OPENING_INVENTORY_EQUITY]: LEDGER_ACCOUNT_TYPE.EQUITY,
   [LEDGER_ACCOUNT.COMMISSION_RECEIVABLE]: LEDGER_ACCOUNT_TYPE.ASSET,
   [LEDGER_ACCOUNT.CUSTOMER_RECEIVABLE]: LEDGER_ACCOUNT_TYPE.ASSET,
   [LEDGER_ACCOUNT.VENDOR_PAYABLE]: LEDGER_ACCOUNT_TYPE.LIABILITY,
@@ -172,6 +178,7 @@ export const LEDGER_ACCOUNT_TYPES: Record<LedgerAccount, LedgerAccountType> = {
   [LEDGER_ACCOUNT.PROCESSING_FEES]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.SHIPPING_COST]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.COST_OF_GOODS]: LEDGER_ACCOUNT_TYPE.EXPENSE,
+  [LEDGER_ACCOUNT.INVENTORY_ADJUSTMENTS]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.PROMOTIONS]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.CHARGEBACK_LOSSES]: LEDGER_ACCOUNT_TYPE.EXPENSE,
   [LEDGER_ACCOUNT.OPERATING_EXPENSE]: LEDGER_ACCOUNT_TYPE.EXPENSE,

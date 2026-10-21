@@ -24,6 +24,7 @@ import type {
 import { PURCHASE_TYPE } from "@/lib/orders/preorders";
 import type { MobileShopAppSettings } from "@/lib/settings/mobile-app";
 import { SHIPPING_UNAVAILABLE_MESSAGE } from "@/lib/shipping/shipping";
+import { VENDOR_PICKUP_ONLY_MESSAGE } from "@/lib/vendors/vendor-fulfillment";
 import { CheckoutSchema } from "@/lib/validations";
 
 /**
@@ -106,11 +107,27 @@ export function admitAppCart(
   };
 }
 
-/** Collection from a branch is the website's only, in v1 of the app. */
-export function assertDelivery(body: Pick<CheckoutQuoteRequest, "fulfillmentMethod">): void {
-  if (body.fulfillmentMethod === "pickup") {
-    throw conflict("PICKUP_NOT_SUPPORTED", "Collecting from a store is not available in the app yet.");
+/** Pickup always names a branch; shared checkout rechecks its policy and stock. */
+export function assertFulfillmentSelection(body: Pick<CheckoutQuoteRequest, "fulfillmentMethod" | "pickupLocationId">): void {
+  if (body.fulfillmentMethod === "pickup" && !body.pickupLocationId?.trim()) {
+    throw new MobileApiError(400, "VALIDATION_ERROR", "Choose a pickup location.", {
+      errors: { pickupLocationId: ["Choose a pickup location."] },
+    });
   }
+}
+
+/** Pickup uses billing details; the shared checkout calls those shipping details. */
+export function checkoutFieldErrors(
+  errors: Record<string, string[]>,
+  method?: CheckoutQuoteRequest["fulfillmentMethod"],
+): Record<string, string[]> {
+  if (method !== "pickup") return errors;
+  const mapped: Record<string, string[]> = {};
+  for (const [key, messages] of Object.entries(errors)) {
+    const target = key.replace(/^shippingAddress(?=\.|$)/, "billingAddress");
+    mapped[target] = [...new Set([...(mapped[target] ?? []), ...messages])];
+  }
+  return mapped;
 }
 
 type AppAddress = NonNullable<CheckoutQuoteRequest["shippingAddress"]>;
@@ -145,7 +162,7 @@ function webBodyOf(
         }
       : undefined;
   return {
-    shippingAddress: address(body.shippingAddress),
+    shippingAddress: address(body.fulfillmentMethod === "pickup" ? body.billingAddress ?? body.shippingAddress : body.shippingAddress),
     billingAddress: address(body.billingAddress),
     paymentMethod,
     email: blankToUndefined(body.email),
@@ -153,7 +170,8 @@ function webBodyOf(
     couponCode: blankToUndefined(body.couponCode),
     selectedShippingOptionId: body.selectedShippingOptionId,
     vendorShippingSelections: body.vendorShippingSelections,
-    fulfillmentMethod: "delivery" as const,
+    fulfillmentMethod: body.fulfillmentMethod ?? "delivery",
+    pickupLocationId: body.pickupLocationId,
     customerNote: body.customerNote,
     customFields: body.customFields,
     buyerAcceptsMarketing: body.buyerAcceptsMarketing,
@@ -188,7 +206,7 @@ export function toPlaceInput(
 ): CheckoutInput & z.infer<typeof CheckoutSchema> {
   const parsed = CheckoutSchema.safeParse(webBodyOf(body, paymentMethod, locale));
   if (!parsed.success) {
-    const errors = fieldErrorsOf(parsed.error);
+    const errors = checkoutFieldErrors(fieldErrorsOf(parsed.error), body.fulfillmentMethod);
     throw new MobileApiError(400, "VALIDATION_ERROR", "Please check the highlighted fields.", { errors });
   }
   return parsed.data;
@@ -218,7 +236,7 @@ export function toQuoteInput(
       }
     }
   }
-  return { input, schemaErrors };
+  return { input, schemaErrors: checkoutFieldErrors(schemaErrors, body.fulfillmentMethod) };
 }
 
 /**
@@ -299,7 +317,7 @@ export async function inShopperWords(error: unknown, locale: string): Promise<un
  * cart, the stock, the payment method or the store becomes a reason. Anything
  * else is passed on as it is.
  */
-export function toCheckoutError(error: unknown): unknown {
+export function toCheckoutError(error: unknown, method?: CheckoutQuoteRequest["fulfillmentMethod"]): unknown {
   if (!(error instanceof ApiError) || error instanceof MobileApiError) return error;
   if (!(error instanceof ValidationError)) return error;
   if (error instanceof CouponRefusedError) return new CouponInvalidError(error);
@@ -343,6 +361,9 @@ export function toCheckoutError(error: unknown): unknown {
   }
   const message = first("_error");
   if (only && message) {
+    if (message === VENDOR_PICKUP_ONLY_MESSAGE) {
+      return conflict("SHIPPING_UNAVAILABLE", VENDOR_PICKUP_ONLY_MESSAGE);
+    }
     if (message === SHIPPING_UNAVAILABLE_MESSAGE) {
       return conflict("SHIPPING_UNAVAILABLE", message);
     }
@@ -364,5 +385,5 @@ export function toCheckoutError(error: unknown): unknown {
     }
     return new MobileApiError(400, "VALIDATION_ERROR", message);
   }
-  return new MobileApiError(400, "VALIDATION_ERROR", error.message, { errors });
+  return new MobileApiError(400, "VALIDATION_ERROR", error.message, { errors: checkoutFieldErrors(errors, method) });
 }

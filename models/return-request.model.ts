@@ -241,6 +241,11 @@ export interface IReturnRequest {
     settledReference?: string;
     settledAt?: Date;
     settledBy?: string;
+    /**
+     * When the gateway reported a refund it had only accepted as sent, which is
+     * what lets a return held `processing` read refunded.
+     */
+    confirmedAt?: Date;
   };
   /**
    * Who opened the return: the shopper from their account, or the store or a
@@ -552,6 +557,7 @@ const ReturnRequestSchema = new Schema<IReturnRequest>(
       settledReference: { type: String, trim: true, maxlength: 200 },
       settledAt: { type: Date },
       settledBy: { type: String, trim: true },
+      confirmedAt: { type: Date },
     },
     openedBy: { type: String, enum: ["customer", "staff", "vendor"] },
     eligibilityOverride: {
@@ -670,7 +676,11 @@ ReturnRequestSchema.index({ ownerType: 1, ownerVendorId: 1, createdAt: -1 });
 // by refundedAt; without this the card scanned every return request.
 ReturnRequestSchema.index({ refundStatus: 1, refundedAt: -1 });
 
+ReturnRequestSchema.plugin(financeSessionPlugin);
 export const ReturnRequest =
   models.ReturnRequest ||
   model<IReturnRequest>("ReturnRequest", ReturnRequestSchema);
+import { financeSessionPlugin } from "@/lib/finance/session-plugin";
 
+import { installReturnFinanceHooks } from "@/lib/inventory/finance-return-model-hooks";
+installReturnFinanceHooks(ReturnRequest);

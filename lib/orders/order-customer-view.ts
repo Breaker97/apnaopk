@@ -60,7 +60,7 @@ type RawSubOrder = {
 
 type RawOrder = {
   paymentStatus?: string;
-  items?: Array<{ vendorId?: unknown }>;
+  items?: Array<{ vendorId?: unknown; cost?: unknown }>;
   subOrders?: RawSubOrder[] | null;
   [key: string]: unknown;
 };
@@ -138,6 +138,17 @@ function sanitizeOne<T extends RawOrder>(
 ): Omit<T, "subOrders"> & { subOrders: CustomerSubOrderView[] } {
   const raw = order.subOrders || [];
   const privateFields = {
+    inventoryFinanceVersion: undefined,
+    inventoryReservationSourceId: undefined,
+    // Cost is retained on the stored order for Finance, never sent to the
+    // shopper. Clone each line so reading an order cannot erase its snapshot.
+    items: order.items?.map((item) => {
+      const customerItem = { ...item };
+      delete customerItem.cost;
+      delete (customerItem as Record<string, unknown>).inventoryFinanceGeneration;
+      delete (customerItem as Record<string, unknown>).inventoryLineId;
+      return customerItem;
+    }),
     addressHold: customerAddressHold(order),
     addressCheck: undefined,
   };

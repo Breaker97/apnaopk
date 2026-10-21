@@ -197,6 +197,7 @@ export function auditSnapshot(input, { defaultVendorSlug = "main-store" } = {}) 
   let products = [...(input.products ?? [])];
   let sliders = [...(input.sliders ?? [])];
   let storePages = [...(input.storePages ?? [])];
+  let vendorStorePages = [...(input.vendorStorePages ?? [])];
   let coupons = [...(input.coupons ?? [])];
 
   // ---- Vendors: exactly one default ------------------------------------
@@ -362,11 +363,22 @@ export function auditSnapshot(input, { defaultVendorSlug = "main-store" } = {}) 
     }
   });
 
-  // ---- Categories: no orphan parents -----------------------------------
+  // ---- Categories: no orphan parents, honest counts ----------------------
+  // `productCount` is what the storefront prints next to a category, and the
+  // model keeps it as the number of ACTIVE products filed under it. A product
+  // the export leaves out must not be counted for it.
   for (const category of categories) {
     if (category.parent && !categoryIds.has(S(category.parent))) {
       note(`category "${category.slug}": cleared missing parent ${S(category.parent)}`);
       category.parent = null;
+    }
+    const count = products.filter(
+      (product) =>
+        product.status === "active" && S(product.category) === S(category._id),
+    ).length;
+    if ((category.productCount ?? 0) !== count) {
+      note(`category "${category.slug}": productCount ${category.productCount ?? 0} → ${count}`);
+      category.productCount = count;
     }
   }
 
@@ -447,6 +459,25 @@ export function auditSnapshot(input, { defaultVendorSlug = "main-store" } = {}) 
     if (page.published) page.published.publishedBy = null;
   }
 
+  // ---- Vendor pages: only for vendors that ship -------------------------
+  // A Vendor CMS landing page belongs to one store; without that store it is
+  // a page nobody can reach, binding a vendor id the seed never creates.
+  const keptVendorPages = vendorStorePages.filter((page) =>
+    vendorIds.has(S(page.vendorId)),
+  );
+  for (const dropped of vendorStorePages.filter((p) => !keptVendorPages.includes(p))) {
+    note(`dropped vendor page of ${S(dropped.vendorId)} — its vendor is not exported`);
+  }
+  vendorStorePages = keptVendorPages;
+  for (const page of vendorStorePages) {
+    // Same as store pages; a takedown is an admin's moderation note on THIS
+    // store, not part of the page.
+    page.history = [];
+    page.takedown = null;
+    if (page.draft) page.draft.updatedBy = null;
+    if (page.published) page.published.publishedBy = null;
+  }
+
   // ---- Sliders: only the ones a page actually binds ---------------------
   const bound = boundSliderHandles(storePages);
   const keptSliders = sliders.filter((slider) => bound.has(slider.handle));
@@ -456,6 +487,13 @@ export function auditSnapshot(input, { defaultVendorSlug = "main-store" } = {}) 
     );
   }
   sliders = keptSliders;
+  for (const slider of sliders) {
+    // Restore points from the slider editor: per-install working data, and
+    // the bulk of the document — the same reason store pages drop theirs.
+    if (Array.isArray(slider.history) && slider.history.length > 0) {
+      slider.history = [];
+    }
+  }
   for (const handle of bound) {
     if (!sliders.some((slider) => slider.handle === handle)) {
       errors.push(
@@ -465,7 +503,8 @@ export function auditSnapshot(input, { defaultVendorSlug = "main-store" } = {}) 
   }
 
   // ---- Coupons: the ones the storefront advertises, and only those ------
-  const advertised = referencedCouponCodes(storePages);
+  // A vendor page's coupon-banner is advertising too: the vendor's own code.
+  const advertised = referencedCouponCodes([...storePages, ...vendorStorePages]);
   const keptCoupons = coupons.filter((coupon) =>
     advertised.has(String(coupon.code || "").toUpperCase()),
   );
@@ -551,6 +590,7 @@ export function auditSnapshot(input, { defaultVendorSlug = "main-store" } = {}) 
       menus,
       sliders,
       storePages,
+      vendorStorePages,
       coupons,
       blogCategories,
       blogPosts,

@@ -1,5 +1,6 @@
 "use client";
 
+import { BRAND_SAVE_KEYS } from "@/lib/theme-colors/brand";
 import type { Settings } from "./types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "@/components/ui/toast-notification";
@@ -43,6 +44,7 @@ const REQUIRED_OBJECT_SECTIONS = [
   "email",
   "sms",
   "orders",
+  "tax",
   "shipping",
   "seo",
   "social",
@@ -143,17 +145,27 @@ function writtenPaths(section: string, data: unknown): string[] {
 }
 
 /**
- * The saved brand colours, into the store that paints them, so the admin sees
- * the new brand without a reload. Only the brand: the dashboard preferences in
- * that store are the viewer's own and never come from the settings.
+ * The saved brand into the store that paints the dashboards, so the admin sees
+ * it without a reload. Only the brand: the dashboard preferences in that store
+ * are the viewer's own and never come from the settings.
+ *
+ * `colors` is for the one save that writes them — Theme settings → Colors. The
+ * colours ARE the live theme's, which the server derives from the theme (the
+ * `appearance.*` mirror can lag behind it), so every other save leaves the
+ * dashboard's colours as they are and takes only the preset marker.
  */
-function applySavedBrand(appearance: Settings["appearance"]) {
-  useAppSettingsStore.getState().hydrateFromDb({
-    presetColor: appearance.presetColor as PresetColor | undefined,
-    primaryColor: appearance.primaryColor,
-    secondaryColor: appearance.secondaryColor,
-    accentColor: appearance.accentColor,
-  });
+function applySavedBrand(appearance: Settings["appearance"], { colors = false } = {}) {
+  const store = useAppSettingsStore.getState();
+  if (colors) {
+    store.hydrateFromDb({
+      presetColor: appearance.presetColor as PresetColor | undefined,
+      primaryColor: appearance.primaryColor,
+      secondaryColor: appearance.secondaryColor,
+      accentColor: appearance.accentColor,
+    });
+    return;
+  }
+  store.setPresetColor(appearance.presetColor as PresetColor | undefined);
 }
 
 export function useAdminSettings(initialData?: unknown) {
@@ -924,10 +936,43 @@ export function useAdminSettings(initialData?: unknown) {
     setDirtySectionHints(new Set());
   };
 
+  const commitSavedPaths = (raw: Partial<Settings["appearance"]>, appearanceVersion?: string, appearanceSnapshot?: Settings["appearance"]) => {
+    const appearance = Object.fromEntries(Object.entries(raw).filter(([key]) => (BRAND_SAVE_KEYS as readonly string[]).includes(key))) as Partial<Settings["appearance"]>;
+    const unowned = (value: Settings["appearance"]) => JSON.stringify(Object.entries(value).filter(([key]) => !(BRAND_SAVE_KEYS as readonly string[]).includes(key)).sort(([a],[b]) => a.localeCompare(b)));
+    // A broad section version can advance only when our unowned baseline still
+    // matches the server. Otherwise a later full Branding save must conflict.
+    const canAdvance = appearanceSnapshot && initialSettings && unowned(appearanceSnapshot) === unowned(initialSettings.appearance);
+    const meta = (current: Settings) => appearanceVersion && canAdvance ? {...current._meta,sectionVersions:{...current._meta?.sectionVersions,appearance:appearanceVersion}} : current._meta;
+    setSettings(current => current ? {...current,appearance:{...current.appearance,...appearance},_meta:meta(current)} : current);
+    setInitialSettings(current => current ? {...current,appearance:{...current.appearance,...appearance},_meta:meta(current)} : current);
+    if (initialSettings) applySavedBrand({...initialSettings.appearance,...appearance},{colors:true});
+    refreshSettings();
+  };
+  /**
+   * Someone else saved the brand while this form was open: their colours
+   * become the baseline (what Discard returns to) and the draft stays as it
+   * is, so the next save replaces theirs knowingly rather than failing.
+   */
+  const rebaseSavedPaths = (raw: Partial<Settings["appearance"]>) => {
+    const appearance = Object.fromEntries(Object.entries(raw).filter(([key]) => (BRAND_SAVE_KEYS as readonly string[]).includes(key))) as Partial<Settings["appearance"]>;
+    setInitialSettings(current => current ? {...current,appearance:{...current.appearance,...appearance}} : current);
+  };
+  const discardOwnedPaths = (keys: readonly (keyof Settings["appearance"])[]) => {
+    setSettings(current => {
+      if (!current || !initialSettings) return current;
+      const appearance={...current.appearance};
+      for (const key of keys) Object.assign(appearance,{[key]:initialSettings.appearance[key]});
+      return {...current,appearance};
+    });
+  };
+
   return {
     settings,
     /** The copy last loaded or saved, which the form's edits are measured against. */
     savedSettings: initialSettings,
+    commitSavedPaths,
+    rebaseSavedPaths,
+    discardOwnedPaths,
     setSettings,
     isLoading,
     isSaving,

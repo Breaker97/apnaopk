@@ -22,6 +22,11 @@ import { revalidateProductContent } from "@/lib/cache-invalidation";
 import { DEFAULT_VENDOR_SLUG } from "@/lib/vendors/multi-vendor";
 import { withApi } from "@/lib/api/handler";
 import { slugify } from "@/lib/strings";
+import {
+  isAccountPhone,
+  readableAccountPhone,
+  trimAccountPhone,
+} from "@/lib/users/account-phone";
 import { resolveShareSettings, type ShareSettings } from "@/lib/site-config/share-config";
 import {
   PROFILE_DEMO_MODE_MESSAGE,
@@ -49,6 +54,8 @@ import {
   sanitizeVendorCarriers,
 } from "@/lib/shipping/carriers/vendor-carriers";
 import { carrierSupportsOrigin } from "@/lib/shipping/carrier-config";
+import { VENDOR_FULFILLMENT_MODES } from "@/lib/vendors/vendor-fulfillment";
+import { pickupLocationsForVendor } from "@/lib/checkout/pickup-locations";
 import type { VendorCarrierSettings } from "@/types";
 import {
   normalizeInstagramUsername,
@@ -299,6 +306,10 @@ const VendorSettingsUpdateSchema = z.discriminatedUnion("section", [
   z.object({ section: z.literal("share"), data: ShareSettingsSchema }),
   z.object({ section: z.literal("account"), data: AccountSettingsSchema }),
   z.object({ section: z.literal("shipping"), data: ShippingSettingsSchema }),
+  z.object({
+    section: z.literal("fulfillment"),
+    data: z.object({ fulfillmentMode: z.enum(VENDOR_FULFILLMENT_MODES) }),
+  }),
   z.object({ section: z.literal("channels"), data: ChannelSettingsSchema }),
 ]);
 
@@ -556,7 +567,9 @@ export const GET = withApi(
       user: {
         name: userRecord.name || "",
         email: userRecord.email || "",
-        phone: userRecord.phone || "",
+        // A stored value that is not a phone (an email, from old data) shows
+        // as empty, so the form never offers it back as the number.
+        phone: readableAccountPhone(userRecord.phone),
         image: userRecord.image || "",
       },
       // Whether the store administrator has enabled per-vendor shipping. The
@@ -909,6 +922,22 @@ export const PUT = withApi(
       await Vendor.findByIdAndUpdate(vendor._id, { $set: shareUpdate });
     }
 
+    if (body.section === "fulfillment") {
+      // Independent of permission to override shipping prices: every seller
+      // can choose how they hand over goods while inheriting the store's rates.
+      if (body.data.fulfillmentMode === "pickup") {
+        const locations = await pickupLocationsForVendor({ vendorId: String(vendor._id) });
+        if (locations.length === 0) {
+          throw new ValidationError("Add an active pickup location with an address before choosing pickup only");
+        }
+      }
+      await Vendor.findByIdAndUpdate(vendor._id, {
+        $set: vendor.shipping === null
+          ? { shipping: { fulfillmentMode: body.data.fulfillmentMode } }
+          : { "shipping.fulfillmentMode": body.data.fulfillmentMode },
+      });
+    }
+
     if (body.section === "shipping") {
       if (!settings.shipping?.vendorShipping?.enabled) {
         throw new AuthorizationError(
@@ -989,6 +1018,12 @@ export const PUT = withApi(
       if (!fullName) {
         throw new ValidationError({ name: ["Name is required"] });
       }
+      // A phone, or nothing: an email or a sentence in the phone field is
+      // refused here instead of being stored as the account's number.
+      const phone = trimAccountPhone(body.data.phone);
+      if (phone && !isAccountPhone(phone)) {
+        throw new ValidationError({ phone: ["Enter a valid phone number"] });
+      }
 
       const normalizedImage = normalizeOptionalUrl(body.data.image);
       const accountUnset: Record<string, ""> = {};
@@ -999,7 +1034,7 @@ export const PUT = withApi(
       await User.findByIdAndUpdate(session.user.id, {
         $set: {
           name: fullName,
-          phone: normalizeOptionalString(body.data.phone),
+          phone: phone || undefined,
           ...(normalizedImage ? { image: normalizedImage } : {}),
           updatedAt: new Date(),
         },
@@ -1025,6 +1060,7 @@ export const PUT = withApi(
 
     if (
       body.section === "store" ||
+      body.section === "fulfillment" ||
       body.section === "share" ||
       body.section === "channels"
     ) {

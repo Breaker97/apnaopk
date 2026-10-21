@@ -1,3 +1,4 @@
+import { flagScheduledPayoutsForRefunds } from "@/lib/finance/payout-requote";
 import { randomUUID } from "node:crypto";
 import { Types, type ClientSession } from "mongoose";
 import type { RefundPreviewRequest, RefundPreview, RefundExecuteRequest, RefundResult, ReturnActionRequest, ReturnActionResult, RefundTarget, ReturnCase } from "@/contracts/mobile/biz/v1/returns";
@@ -12,6 +13,9 @@ import { toMoney } from "@/lib/api-core/shop/money";
 import { getOrderRefundCeiling } from "@/lib/orders/preorder-cancel-refund";
 import { orderRefundRoom } from "@/lib/orders/order-refund-room";
 import { refundOrderPayment } from "@/lib/orders/order-refund";
+import { refundNotSent } from "@/lib/orders/refund-outcome";
+import { refundUnconfirmedProblem } from "@/lib/orders/refund-unconfirmed";
+import { GATEWAY_REFUND_VOCABULARY } from "@/lib/orders/refund-gateway-status";
 import { resolveOrderReturnPolicy, unrefundableDeliveryFor } from "@/lib/returns/return-policy";
 import { isFreeShippingCouponType } from "@/lib/catalog/discounts";
 import { priceReturnAsItStands, recomputeReturnEstimate, loadPriorReturnUnits, openReturnQuantitiesByIndex, refundedQuantitiesByIndex, refundedDeliveryTotal } from "@/lib/returns/return-plan";
@@ -24,6 +28,7 @@ import { orderStoreCreditRefundProblem } from "@/lib/store-credit/refund-to-cred
 import { postRefund, postRestockedCost, postRefundSettlementReclass } from "@/lib/finance/post-events";
 import { returnRestockPlan, returnGoodsBack, returnMayRestock, OPEN_RETURN_STATUSES, REFUND_IN_MOTION_STATUSES } from "@/lib/returns/returns";
 import { restockBizReturn } from "./action";
+import { isPosWalkIn } from "@/lib/orders/pos-walk-in";
 import { scopedReturn, scopedReturnOrder, returnSettings, recordVersion, assertVersion, canSettleVendorReturn, authorizedReturnLocations, refuse, runReturnTransaction, type ReturnContext, type ReturnOrder, type ReturnRecord } from "./context";
 import { refundBreakdown, toReturnCase } from "./dto";
 import { returnActionAftermath, returnRefundNotice } from "./aftermath";
@@ -40,7 +45,16 @@ interface Draft {
   estimate: Estimate; allocation: RefundAllocationShare[] | null; manual: boolean; outOfBand: boolean; payer: "platform" | "vendor";
   whole: boolean; lines: Array<{ orderItemIndex: number; quantity: number }>;
   stock: RefundPreview["stock"]; request: RefundPreviewRequest;
+  /** The whole refund goes to the shopper's store credit, not back the way it came. */
+  newCredit: boolean;
 }
+/**
+ * Choices a first-party caller makes that the business app's contract does
+ * not offer. `toStoreCredit`: the till gives the refund as store credit
+ * (lib/pos/pos-returns.ts). It is part of the operation's identity.
+ */
+export interface BizRefundOptions { toStoreCredit?: boolean }
+const bindingPayload = (preview: RefundPreviewRequest, options?: BizRefundOptions) => (options?.toStoreCredit ? { ...preview, toStoreCredit: true } : preview);
 interface Receipt {
   _id: Types.ObjectId; orderId: Types.ObjectId; bizOperationId: string; bizOperationLeg: string; status: string; currency: string; provider: string;
   grossAmount: number; metadata: { bizKey: string; bizTarget: RefundTarget; bizDraft: Draft; bizGatewayState?: string; bizHeadroomReserved?: boolean; bizGatewayReports?: Record<string, { id: string; amount: number; status: string; provider?: string }>; gatewayCalled?: boolean; [key: string]: unknown };
@@ -51,12 +65,14 @@ async function targetRecords(target: RefundTarget, context: ReturnContext, sessi
 }
 function fullStatus(order: ReturnOrder, collected: number) { return quantizeToCurrency(Number(order.refundedTotal || 0), order.currency || "USD") >= collected ? "refunded" : "partially_refunded"; }
 
-async function buildBizRefundDraft(input: RefundPreviewRequest, context: ReturnContext, session?: ClientSession): Promise<Draft> {
+async function buildBizRefundDraft(input: RefundPreviewRequest, context: ReturnContext, session?: ClientSession, options?: BizRefundOptions): Promise<Draft> {
   const { order, returned } = await targetRecords(input.target, context, session); const settings = await returnSettings();
   const currency = order.currency || settings.general?.defaultCurrency || "USD"; const money = (value: number) => quantizeToCurrency(value, currency);
   if (!["paid", "partially_paid", "partially_refunded"].includes(order.paymentStatus)) refuse("REFUND_NOT_ALLOWED", "Only collected payments can be refunded.");
   if (returned && (["requested", "rejected", "cancelled", "closed"].includes(returned.status) || REFUND_IN_MOTION_STATUSES.includes(returned.refundStatus))) refuse("REFUND_PENDING", "This return is not available for another refund.");
   if (await PaymentTransaction.exists({ orderId: order._id, type: "refund", status: "pending", "metadata.bizHeadroomReserved": true })) refuse("REFUND_PENDING", "Reconcile the existing refund before issuing another.");
+  // A refund the provider never answered may have gone through: not sent again ahead of its report.
+  const unconfirmed = refundUnconfirmedProblem(order as Parameters<typeof refundUnconfirmedProblem>[0]); if (unconfirmed && !input.manual) refuse("REFUND_PENDING", unconfirmed);
   const collected = money(getOrderRefundCeiling({ ...order, currency }));
   const historical = typeof order.refundedTotal === "number" ? order.refundedTotal : (await PaymentTransaction.aggregate<{ total: number }>([{ $match: { orderId: order._id, type: "refund", status: "succeeded" } }, { $group: { _id: null, total: { $sum: "$grossAmount" } } }]))[0]?.total || 0;
   const previouslyRefunded = money(historical);
@@ -98,7 +114,10 @@ async function buildBizRefundDraft(input: RefundPreviewRequest, context: ReturnC
   allocation = returned ? allocateReturnRefund({ amount, currency, items: returned.items.map((item) => ({ ...item, quantityApproved: returned.itemsCountedAt ? item.quantityReceived : item.quantityApproved })), estimate, policy, commissionRatioByVendor: new Map((order.subOrders || []).map((sub) => [String(sub.vendorId), Number(sub.commission || 0) / Math.max(1, Number(sub.subtotal || 0))])) }) : allocateOrderRefund({ amount, currency, lines: (lines.length ? lines : order.items.map((item, index) => ({ orderItemIndex: index, quantity: item.quantity }))).map((line) => ({ ...order.items[line.orderItemIndex], quantity: line.quantity })), shipping: input.deliveryRefund, orderTax: order.tax, orderSubtotal: order.subtotal, shippingByVendor: new Map((order.subOrders || []).map((sub) => [String(sub.vendorId), Number(sub.shippingCost || 0)])) });
   const payer = returned?.refundPayer === "vendor" ? "vendor" : "platform";
   const outOfBand = refundSettlesOutOfBand(order) || payer === "vendor";
-  const split = splitRefundCreditFirst({ amount, order, currency });
+  const newCredit = Boolean(options?.toStoreCredit);
+  // A walk-in counter sale is filed under its cashier: never their credit.
+  if (newCredit && isPosWalkIn(order)) refuse("REFUND_NOT_ALLOWED", "Store credit needs the sale's customer account.");
+  const split = splitRefundCreditFirst({ amount, order, currency, ...(newCredit ? { explicitCredit: amount } : {}) });
   if (String(order.paymentMethod || "").toLowerCase().trim() === "pesapal" && split.gateway > 0 && !input.manual) refuse("REFUND_NOT_ALLOWED", "This payment provider cannot confirm an automatic refund. Record an already-sent settlement explicitly.");
   if (split.credit > 0) { const problem = await orderStoreCreditRefundProblem(order); if (problem) refuse("REFUND_NOT_ALLOWED", problem); if (input.manual || payer === "vendor") refuse("REFUND_NOT_ALLOWED", "The original credit portion must be restored by the platform."); }
   if (input.manual && !input.settlement) refuse("SETTLEMENT_NOT_ALLOWED", "Record how the already-sent money was paid.");
@@ -109,13 +128,13 @@ async function buildBizRefundDraft(input: RefundPreviewRequest, context: ReturnC
   if (input.restoreInventory && !mayRestock) refuse("RETURN_ACTION_NOT_ALLOWED", "Receive the returned goods before restoring stock.");
   if (returned && input.restoreInventory && input.locationId && !(await authorizedReturnLocations(returned, context)).some((location) => location._id === input.locationId)) refuse("RETURN_LOCATION_NOT_ALLOWED", "Choose an authorized return location.");
   const stock = returned && mayRestock ? returnRestockPlan(returned.items, { itemsCounted: Boolean(returned.itemsCountedAt), inventoryRestored: returned.inventoryRestored }).map((line) => ({ index: line.orderItemIndex, quantity: line.quantity, locationId: input.locationId, effect: input.restoreInventory ? "restock" as const : "none" as const })) : [];
-  return { target: input.target, orderId: String(order._id), returnId: returned ? String(returned._id) : undefined, version: recordVersion(returned || order), orderVersion: recordVersion(order), currency, amount, maximum, collected, previouslyRefunded, credit: split.credit, gateway: split.gateway, estimate, allocation, manual: Boolean(input.manual), outOfBand, payer, whole, lines, stock, request: input };
+  return { target: input.target, orderId: String(order._id), returnId: returned ? String(returned._id) : undefined, version: recordVersion(returned || order), orderVersion: recordVersion(order), currency, amount, maximum, collected, previouslyRefunded, credit: split.credit, gateway: split.gateway, estimate, allocation, manual: Boolean(input.manual), outOfBand, payer, whole, lines, stock, request: input, newCredit };
 }
 
-export async function previewBizRefund(input: RefundPreviewRequest, context: Context): Promise<RefundPreview> {
+export async function previewBizRefund(input: RefundPreviewRequest, context: Context, options?: BizRefundOptions): Promise<RefundPreview> {
   assertCapability(context.workspace, "ISSUE_REFUNDS");
-  const draft = await buildBizRefundDraft(input, context);
-  const binding = bizOperationBinding({ actorId: context.actorId, workspace: context.workspace, key: randomUUID(), routeId: "refunds.execute", target: `${input.target.kind}:${input.target.id}`, payload: input });
+  const draft = await buildBizRefundDraft(input, context, undefined, options);
+  const binding = bizOperationBinding({ actorId: context.actorId, workspace: context.workspace, key: randomUUID(), routeId: "refunds.execute", target: `${input.target.kind}:${input.target.id}`, payload: bindingPayload(input, options) });
   const quote = await createBizQuote({ binding, purpose: "refund", snapshot: { draft }, expiresAt: new Date(Date.now() + 5 * 60_000) });
   const { returned, order } = await targetRecords(input.target, context);
   const ratio = draft.estimate.total > 0 ? draft.amount / draft.estimate.total : 1;
@@ -132,18 +151,13 @@ async function reserve(draft: Draft, operation: BizOperationExecution, context: 
   const gatewayProvider = String(order.paymentMethod || "").toLowerCase().trim() === "card" ? "stripe" : String(order.paymentMethod || "").toLowerCase().trim();
   const legs = [{ leg: "gateway", amount: draft.gateway, provider: draft.outOfBand || draft.manual ? "manual" : gatewayProvider }, { leg: "credit", amount: draft.credit, provider: "store_credit" }].filter((leg) => leg.amount > 0);
   const quantityLeg = draft.gateway > 0 ? "gateway" : "credit";
-  const rows = await PaymentTransaction.create(legs.map((leg) => ({ orderId: order._id, orderNumber: order.orderNumber, type: "refund", status: "pending", provider: leg.provider, paymentMethod: order.paymentMethod, currency: draft.currency, grossAmount: leg.amount, feeAmount: 0, netAmount: 0, refundedAmount: 0, refundAllocation: scaleRefundAllocation(draft.allocation, leg.amount, draft.currency)?.map((share) => ({ ...share, vendorId: share.vendorId || undefined })), bizOperationId: operation.id, bizOperationLeg: leg.leg, createdBy: context.actorId, metadata: { source: "biz-return-refund", bizKey: context.key, bizTarget: draft.target, bizDraft: draft, bizHeadroomReserved: true, bizGatewayState: "reserved", gatewayCalled: leg.leg === "gateway" && !draft.outOfBand && !draft.manual, channel: order.channel, ...(draft.lines.length && leg.leg === quantityLeg ? { refundedLines: draft.lines } : {}), ...(leg.leg === "credit" ? { storeCredit: true, storeCreditRestores: true } : {}) } })), { session, ordered: true });
+  const rows = await PaymentTransaction.create(legs.map((leg) => ({ orderId: order._id, orderNumber: order.orderNumber, type: "refund", status: "pending", provider: leg.provider, paymentMethod: order.paymentMethod, currency: draft.currency, grossAmount: leg.amount, feeAmount: 0, netAmount: 0, refundedAmount: 0, refundAllocation: scaleRefundAllocation(draft.allocation, leg.amount, draft.currency)?.map((share) => ({ ...share, vendorId: share.vendorId || undefined })), bizOperationId: operation.id, bizOperationLeg: leg.leg, createdBy: context.actorId, metadata: { source: "biz-return-refund", bizKey: context.key, bizTarget: draft.target, bizDraft: draft, bizHeadroomReserved: true, bizGatewayState: "reserved", gatewayCalled: leg.leg === "gateway" && !draft.outOfBand && !draft.manual, channel: order.channel, ...(draft.lines.length && leg.leg === quantityLeg ? { refundedLines: draft.lines } : {}), ...(leg.leg === "credit" ? { storeCredit: true, storeCreditRestores: !draft.newCredit } : {}) } })), { session, ordered: true });
   if (returned) await ReturnRequest.updateOne({ _id: returned._id }, { $inc: { "actualRefund.amount": draft.amount, __v: 1 }, $set: { status: Number(returned.actualRefund?.amount || 0) + draft.amount >= draft.estimate.total ? (draft.outOfBand ? "refunded" : "refund_pending") : "partially_refunded", refundStatus: draft.outOfBand && !draft.manual && draft.gateway > 0 ? "manual_required" : "processing", "actualRefund.paymentTransactionId": rows[0]._id, estimatedRefund: draft.estimate, ...(draft.request.faultOverride ? { faultOverride: draft.request.faultOverride } : {}), ...mergeReturnOverrides(returned, draft.request) }, $addToSet: { "actualRefund.paymentTransactionIds": { $each: rows.map((row) => row._id) } } }, { session });
   await recordReturnOrderEvent({ operationId: operation.id, leg: "refund:requested", actorId: context.actorId, context, orderId: order._id, orderNumber: order.orderNumber, action: "REFUND", summary: `Refund of ${toMoney(draft.amount, draft.currency).formatted} requested${returned ? ` for return ${returned.returnNumber}` : ""}`, metadata: { amount: draft.amount, currency: draft.currency, returnNumber: returned?.returnNumber, pending: true }, session });
   return rows[0]._id.toString();
 }
 
-const gatewayTerminalStatuses: Readonly<Record<string, { succeeded: readonly string[]; failed: readonly string[] }>> = {
-  stripe: { succeeded: ["succeeded"], failed: ["failed", "canceled"] },
-  paypal: { succeeded: ["completed"], failed: ["failed", "cancelled"] },
-  razorpay: { succeeded: ["processed"], failed: ["failed"] },
-  paystack: { succeeded: ["processed"], failed: ["failed"] },
-};
+const gatewayTerminalStatuses = GATEWAY_REFUND_VOCABULARY;
 /** Exact totals and each provider's own terminal vocabulary are required. */
 export function gatewayReceiptAmounts(row: Pick<Receipt, "provider" | "grossAmount" | "currency" | "metadata">): { succeeded: number; failed: number } | null {
   const reports = Object.values(row.metadata.bizGatewayReports || {}); if (!reports.length) return null;
@@ -168,12 +182,15 @@ async function finishReceipt(row: Receipt, context: Context, forceManual = false
   if (row.status === "succeeded") { await postRefund({ orderId: row.orderId, refundId: row._id, amount: row.grossAmount }); const settlement = row.metadata.settlement as { method?: string } | undefined; if (settlement?.method) await postRefundSettlementReclass({ refundId: row._id, method: settlement.method }); return; }
   const draft = row.metadata.bizDraft;
   if (row.status === "failed") return;
-  const outcome = row.bizOperationLeg === "gateway" && !forceManual && !draft.manual ? gatewayReceiptAmounts(row) : { succeeded: row.grossAmount, failed: 0 };
+  // The provider answered and refused, so nothing was sent (`sendReservedGateway`).
+  // A report that names refunds outranks that: it is what the provider says it made.
+  const refused = row.bizOperationLeg === "gateway" && !draft.manual && row.metadata.bizGatewayState === "refused";
+  const outcome = row.bizOperationLeg === "gateway" && !forceManual && !draft.manual ? gatewayReceiptAmounts(row) ?? (refused ? { succeeded: 0, failed: row.grossAmount } : null) : { succeeded: row.grossAmount, failed: 0 };
   if (row.bizOperationLeg === "gateway" && !forceManual && !draft.manual && (draft.outOfBand || !outcome)) return;
   const provenAmount = outcome?.succeeded ?? row.grossAmount; const released = outcome?.failed ?? 0;
   if (row.bizOperationLeg === "credit") {
     const order = await scopedReturnOrder(draft.orderId, context);
-    await issueStoreCredit({ customerId: order.customerId, currency: row.currency, amount: row.grossAmount, source: "order_refund_restore", orderId: row.orderId, returnId: draft.returnId, paymentTransactionId: row._id, createdBy: context.actorId, idempotencyKey: `biz:${row.bizOperationId}:credit` });
+    await issueStoreCredit({ customerId: order.customerId, currency: row.currency, amount: row.grossAmount, source: draft.newCredit ? (draft.returnId ? "return_refund" : "order_refund") : "order_refund_restore", orderId: row.orderId, returnId: draft.returnId, paymentTransactionId: row._id, createdBy: context.actorId, idempotencyKey: `biz:${row.bizOperationId}:credit` });
   }
   await runTransaction("biz refund receipt finalization", async (session) => {
     const updated = await PaymentTransaction.updateOne({ _id: row._id, status: "pending" }, { $set: { status: provenAmount > 0 ? "succeeded" : "failed", ...(provenAmount > 0 ? { grossAmount: provenAmount, refundAllocation: scaleRefundAllocation(draft.allocation, provenAmount, row.currency)?.map((share) => ({ ...share, vendorId: share.vendorId || undefined })) } : {}), refundedAmount: provenAmount, netAmount: -provenAmount, "metadata.bizHeadroomReserved": false, "metadata.bizFinalizedAt": new Date(), "metadata.bizExpectedAmount": row.grossAmount, "metadata.bizReleasedAmount": released, ...(forceManual || draft.manual ? { "metadata.settlement": { required: true, payer: draft.payer, ...draft.request.settlement, settledAt: new Date(), settledBy: context.actorId } } : {}) } }, { session });
@@ -232,6 +249,16 @@ async function sendReservedGateway(row: Receipt, context: Context) {
     const reports = response.refundReports ?? (ids.length === 1 && response.status ? [{ id: ids[0], provider: response.provider, amount: row.grossAmount, status: response.status }] : []);
     await rememberGatewayEvidence(row, { provider: response.provider, ids, reports, state: "reported", gatewayCalled: response.gatewayCalled });
   } catch (error) {
+    // The provider answered and said no — a gateway that is not set up, a refund
+    // it refused: nothing was sent, and no report will ever come to say so.
+    // Left as unknown, the claim sat on the order for good and refused every
+    // later refund and return. Only an error `refundOrderPayment` marked counts;
+    // a lost reply is not one, and neither is a partly made refund.
+    if (refundNotSent(error)) {
+      const refusal = (error instanceof Error ? error.message : "The provider refused the refund").slice(0, 500);
+      await PaymentTransaction.updateOne({ _id: row._id, status: "pending", "metadata.bizGatewayState": "sending" }, { $set: { "metadata.bizGatewayState": "refused", "metadata.bizGatewayRefusal": refusal } });
+      return;
+    }
     // PartialRefundError carries proven IDs and per-leg evidence. Its absent
     // remainder is still unknown; an exception alone never releases a claim.
     const partial = (error && typeof error === "object" ? error : {}) as { provider?: string; refundIds?: string[]; refundReports?: GatewayReport[] };
@@ -252,12 +279,13 @@ async function receiptResult(rows: Receipt[], context: Context, operation: Refun
   const order = draft.target.kind === "order" ? await loadOrderDetail(draft.orderId, context) : null;
   if (returned) { await returnActionAftermath(returned, rows[0].bizOperationId); await returnRefundNotice(returned); }
   const released = rows.reduce((sum, row) => sum + Number(row.metadata.bizReleasedAmount || 0), 0);
-  return { operation, refundId: String(rows[0]._id), settlementStatus: rows.some((row) => row.status === "pending") ? draft.outOfBand && !draft.manual ? "manual_required" : "processing" : released > 0 ? "failed" : "succeeded", amount: toMoney(quantizeToCurrency(draft.amount - released, draft.currency), draft.currency), ...(order ? { order } : {}), ...(returned ? { return: await toReturnCase(returned, await scopedReturnOrder(draft.orderId, context), context) } : {}), warnings: rows.some((row) => row.status === "pending") ? ["Refund settlement is not confirmed. Reserved money remains unavailable."] : released > 0 ? ["The provider confirmed an unsuccessful portion. Only the proven refund was booked."] : [] };
+  const refusal = rows.map((row) => row.metadata.bizGatewayRefusal).find((reason): reason is string => typeof reason === "string" && reason.length > 0);
+  return { operation, refundId: String(rows[0]._id), settlementStatus: rows.some((row) => row.status === "pending") ? draft.outOfBand && !draft.manual ? "manual_required" : "processing" : released > 0 ? "failed" : "succeeded", amount: toMoney(quantizeToCurrency(draft.amount - released, draft.currency), draft.currency), ...(order ? { order } : {}), ...(returned ? { return: await toReturnCase(returned, await scopedReturnOrder(draft.orderId, context), context) } : {}), warnings: rows.some((row) => row.status === "pending") ? ["Refund settlement is not confirmed. Reserved money remains unavailable."] : refusal ? [`The provider refused the refund, so nothing was sent: ${refusal}`] : released > 0 ? ["The provider confirmed an unsuccessful portion. Only the proven refund was booked."] : [] };
 }
 
-export async function executeBizRefund(input: RefundExecuteRequest, context: Context): Promise<RefundResult> {
+export async function executeBizRefund(input: RefundExecuteRequest, context: Context, options?: BizRefundOptions): Promise<RefundResult> {
   assertCapability(context.workspace, "ISSUE_REFUNDS");
-  const binding = bizOperationBinding({ actorId: context.actorId, workspace: context.workspace, key: context.key, routeId: "refunds.execute", target: `${input.preview.target.kind}:${input.preview.target.id}`, payload: input.preview });
+  const binding = bizOperationBinding({ actorId: context.actorId, workspace: context.workspace, key: context.key, routeId: "refunds.execute", target: `${input.preview.target.kind}:${input.preview.target.id}`, payload: bindingPayload(input.preview, options) });
   const result = await runDurableBizOperation<{ refundId: string }>({ binding, store: mongoBizOperationStore,
     authorize: async () => { await targetRecords(input.preview.target, context); },
     async reconcile(operation) {
@@ -271,12 +299,14 @@ export async function executeBizRefund(input: RefundExecuteRequest, context: Con
       await runReturnTransaction("biz refund quote and monetary reservation", async (session) => {
         const quote = await claimBizQuote({ token: input.previewToken, binding, purpose: "refund", operationId: operation.id, session });
         const draft = quote.snapshot.draft as unknown as Draft;
-        const current = await buildBizRefundDraft(input.preview, context, session);
+        const current = await buildBizRefundDraft(input.preview, context, session, options);
         if (JSON.stringify(current) !== JSON.stringify(draft)) refuse("REFUND_PREVIEW_CHANGED", "Refund eligibility or price changed. Preview it again.");
         refundId = await reserve(current, operation, context, session);
         if (current.request.restoreInventory && current.returnId) { const { returned } = await scopedReturn(current.returnId, context, session); restocked = await restockBizReturn({ returned, context, operation, session, actorId: context.actorId, locationId: current.request.locationId }); }
       });
       const rows = await PaymentTransaction.find({ bizOperationId: operation.id }).lean<Receipt[]>();
+      // A payout already holding this sale would pay what the shopper is getting back.
+      await flagScheduledPayoutsForRefunds(rows);
       await reconcileReceipts(operation.id, context);
       if (restocked.length) await postRestockedCost({ orderId: rows[0].orderId, restocked, eventKey: `return-${input.preview.target.id}-step-${operation.id}` });
       return { data: { refundId }, resources: [{ kind: "refund", id: refundId }] };
@@ -329,6 +359,7 @@ export async function settleBizReturn(input: ReturnActionRequest, id: string, co
         await PaymentTransaction.updateMany({ _id: { $in: rows.map((row) => row._id) } }, { $set: { "metadata.bizSettlementOperationId": operation.id, "metadata.bizDraft.request.settlement": input.settlement } }, { session });
         await ReturnRequest.updateOne({ _id: id }, { $push: { bizOperationReceipts: { operationId: operation.id, kind: "record_settlement", at: new Date() }, bizTimeline: { operationId: operation.id, kind: "record_settlement", message: "Refund payment recorded", at: new Date(), by: context.actorId } }, $inc: { __v: 1 } }, { session });
       });
+      await flagScheduledPayoutsForRefunds(await PaymentTransaction.find({ bizOperationId: operation.id }).select("orderId grossAmount refundAllocation").lean());
       return { data: await settleReceipts(operation.id), resources: [{ kind: "return" as const, id }] };
     },
   });

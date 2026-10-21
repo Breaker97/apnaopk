@@ -50,25 +50,29 @@ type StockSource = {
  * `locationId` is a hard scope for POS, exactly as it is in `decrementInventory`:
  * the register stands in one shop and sells what is physically there, so a
  * warehouse across town holding plenty does not make this line covered.
+ *
+ * Only for a product that keeps stock by location, again exactly as the
+ * decrement and the register's grid (`getPOSLocationStock`) read it. One that
+ * keeps none sells from its total at every counter; read as 0 here, every such
+ * line of every replay at a counter was reported short when it was not.
  */
 function availableFor(
   product: StockSource,
   variantId: string | undefined,
   locationId: string | undefined,
 ): number {
-  if (variantId) {
-    const variant = (product.variants || []).find(
-      (candidate) => String(candidate._id) === String(variantId),
-    );
-    if (!variant) return 0;
-    return locationId
-      ? getPOSLocationStock(variant.locationInventory, locationId)
-      : (variant.stock ?? 0);
+  const source = variantId
+    ? (product.variants || []).find(
+        (candidate) => String(candidate._id) === String(variantId),
+      )
+    : product;
+  if (!source) return 0;
+  const rows = source.locationInventory;
+  // Unclamped, unlike the grid: a total already below zero is the news.
+  if (!locationId || !Array.isArray(rows) || rows.length === 0) {
+    return Number(source.stock ?? 0);
   }
-
-  return locationId
-    ? getPOSLocationStock(product.locationInventory, locationId)
-    : (product.stock ?? 0);
+  return getPOSLocationStock(rows, locationId);
 }
 
 export function findOversoldLines(

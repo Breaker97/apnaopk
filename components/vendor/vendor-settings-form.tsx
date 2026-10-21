@@ -9,11 +9,15 @@ import {
   User,
   Loader2,
   Lock,
+  Eye,
+  EyeOff,
   Save,
   Share2,
   Truck,
   MessagesSquare,
+  ArrowRight,
 } from "lucide-react";
+import Link from "@/components/language/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -53,6 +57,8 @@ import {
   type VendorCarrierView,
 } from "@/components/vendor/vendor-carrier-account-card";
 import { VendorShareSettings } from "@/components/vendor/vendor-share-settings";
+import { VendorEmailChange } from "@/components/vendor/vendor-email-change";
+import { isAccountPhone, trimAccountPhone } from "@/lib/users/account-phone";
 import { VendorSocialProfilesEditor } from "@/components/vendor/vendor-social-profiles-editor";
 import type { SocialProfile } from "@/lib/site-config/social-profiles";
 import type { VendorShippingProfile } from "@/types";
@@ -82,6 +88,8 @@ import { ChannelConnectionsPanel } from "@/components/chat/channel-connections-p
 import { CountrySelect } from "@/components/common/country-multi-select";
 import { settleCountryForPolicy } from "@/lib/intl/country-availability";
 import { useAppSettings } from "@/providers/app-settings-provider";
+import { VendorFulfillmentSettings } from "@/components/vendor/vendor-fulfillment-settings";
+import { resolveVendorFulfillmentMode } from "@/lib/vendors/vendor-fulfillment";
 
 type SettingsTab =
   | "store"
@@ -90,6 +98,7 @@ type SettingsTab =
   | "notifications"
   | "account"
   | "shipping"
+  | "fulfillment"
   | "channels";
 
 const VENDOR_IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp";
@@ -200,6 +209,7 @@ function normalizeTab(value?: string): SettingsTab {
   if (value === "notifications") return "notifications";
   if (value === "account") return "account";
   if (value === "shipping") return "shipping";
+  if (value === "fulfillment") return "fulfillment";
   if (value === "channels") return "channels";
   return "store";
 }
@@ -267,6 +277,8 @@ export function VendorSettingsForm({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [demoMode, setDemoMode] = useState(DEFAULT_PROFILE_DEMO_MODE);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -474,9 +486,17 @@ export function VendorSettingsForm({
       return;
     }
 
+    const phone = trimAccountPhone(settings.user.phone);
+    if (phone && !isAccountPhone(phone)) {
+      toast.error(
+        tSafe("vendor.settingsForm.phoneInvalid", "Enter a valid phone number"),
+      );
+      return;
+    }
+
     await saveSection("account", {
       name: settings.user.name,
-      phone: settings.user.phone,
+      phone,
       image: settings.user.image,
     });
   };
@@ -574,6 +594,12 @@ export function VendorSettingsForm({
       await onShippingSave();
       return;
     }
+    if (activeTab === "fulfillment") {
+      await saveSection("fulfillment", {
+        fulfillmentMode: resolveVendorFulfillmentMode(settings.vendor.shipping?.fulfillmentMode),
+      });
+      return;
+    }
     if (activeTab === "channels") {
       await onChannelsSave();
       return;
@@ -620,6 +646,11 @@ export function VendorSettingsForm({
       value: "notifications" as const,
       label: tSafe("common.notifications", "Notifications"),
       icon: Bell,
+    },
+    {
+      value: "fulfillment" as const,
+      label: tSafe("vendor.fulfillmentSettings.title", "Order fulfillment"),
+      icon: Truck,
     },
     ...(vendorShippingEnabled
       ? [
@@ -1067,6 +1098,30 @@ export function VendorSettingsForm({
 
           </CardContent>
         </Card>
+
+        {/* Invoices, receipts and stickers are designed on their own page
+            (the invoice template builder's vendor scope). */}
+        <Link
+          href="/vendor/settings/invoices"
+          className="group flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-6 py-4 transition-colors hover:bg-muted/50 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]"
+          data-invoice-settings-entry=""
+        >
+          <span className="min-w-0 space-y-1">
+            <span className="block text-sm font-semibold">
+              {tSafe("admin.settings.invoices.entry.title", "Invoices, receipts and stickers")}
+            </span>
+            <span className="block text-sm text-muted-foreground">
+              {tSafe(
+                "admin.settings.invoices.entry.description",
+                "Design what your store prints and choose the default template for each.",
+              )}
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-primary">
+            {tSafe("admin.settings.invoices.entry.action", "Open Invoice Settings")}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />
+          </span>
+        </Link>
       </TabsContent>
 
         <TabsContent value="share" className="space-y-6">
@@ -1594,6 +1649,12 @@ export function VendorSettingsForm({
                   }
                 />
               </div>
+              <p className="text-sm text-muted-foreground md:col-span-2">
+                {tSafe(
+                  "vendor.settingsForm.payoutScheduleHint",
+                  "On your payout day the store prepares a payout of what is ready, once it reaches your minimum and the store's. The store then sends it to the account above.",
+                )}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -1738,6 +1799,24 @@ export function VendorSettingsForm({
         </Card>
       </TabsContent>
 
+        <TabsContent value="fulfillment" className="space-y-6">
+          <VendorFulfillmentSettings
+            value={settings.vendor.shipping?.fulfillmentMode}
+            onChange={(fulfillmentMode) =>
+              setSettings((prev) => ({
+                ...prev,
+                vendor: {
+                  ...prev.vendor,
+                  shipping: {
+                    ...(prev.vendor.shipping || EMPTY_VENDOR_SHIPPING),
+                    fulfillmentMode,
+                  },
+                },
+              }))
+            }
+          />
+        </TabsContent>
+
         {vendorShippingEnabled ? (
           <TabsContent value="shipping" className="space-y-6">
             <Card>
@@ -1874,11 +1953,23 @@ export function VendorSettingsForm({
               </div>
               <div className="space-y-2">
                 <Label>{tSafe("profile.email", "Email")}</Label>
-                <Input value={settings.user.email} disabled />
+                <VendorEmailChange
+                  email={settings.user.email}
+                  disabled={demoMode.enabled}
+                  onChanged={(email) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      user: { ...prev.user, email },
+                    }))
+                  }
+                />
               </div>
               <div className="space-y-2">
                 <Label>{tSafe("profile.phone", "Phone")}</Label>
                 <Input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={settings.user.phone}
                   onChange={(e) =>
                     setSettings((prev) => ({
@@ -1922,30 +2013,82 @@ export function VendorSettingsForm({
               />
             </div>
             <div className="space-y-2">
-              <Label>{tSafe("profile.newPassword", "New Password")}</Label>
-              <Input
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    newPassword: e.target.value,
-                  }))
-                }
-              />
+              <Label htmlFor="vendor-new-password">
+                {tSafe("profile.newPassword", "New Password")}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="vendor-new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:bg-transparent"
+                  aria-label={`${tSafe(
+                    showNewPassword ? "auth.hidePassword" : "auth.showPassword",
+                    showNewPassword ? "Hide password" : "Show password",
+                  )}: ${tSafe("profile.newPassword", "New Password")}`}
+                  aria-pressed={showNewPassword}
+                  aria-controls="vendor-new-password"
+                  onClick={() => setShowNewPassword((shown) => !shown)}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>{tSafe("profile.confirmPassword", "Confirm Password")}</Label>
-              <Input
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
-                }
+              <Label htmlFor="vendor-confirm-password">
+                {tSafe("profile.confirmPassword", "Confirm Password")}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="vendor-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className="pr-10"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:bg-transparent"
+                  aria-label={`${tSafe(
+                    showConfirmPassword ? "auth.hidePassword" : "auth.showPassword",
+                    showConfirmPassword ? "Hide password" : "Show password",
+                  )}: ${tSafe("profile.confirmPassword", "Confirm Password")}`}
+                  aria-pressed={showConfirmPassword}
+                  aria-controls="vendor-confirm-password"
+                  onClick={() => setShowConfirmPassword((shown) => !shown)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
             </div>
 
             <Button

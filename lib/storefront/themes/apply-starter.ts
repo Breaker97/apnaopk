@@ -30,6 +30,12 @@ import {
   PRODUCT_CARD_TEMPLATES,
 } from "@/lib/products/product-card-config";
 import { Settings } from "@/models/settings.model";
+import { resolveBrand } from "@/lib/branding/brand";
+import {
+  adoptionUpdates,
+  keyColorMirror,
+  ownThemeTokens,
+} from "@/lib/storefront/themes/key-colors";
 import { buildStorePageIdentity, StorePage } from "@/models/store-page.model";
 
 /** How far an activation carries the theme's starter — see the route doc. */
@@ -220,7 +226,9 @@ export async function applyThemeStarter(
     // (Electronics) must seed it or its grids arrive in the wrong design.
     // A card the merchant customized is theirs — it survives a "keep"
     // switch and is replaced only when they asked for the starter.
-    const current = await Settings.findOne({}).select("productCard").lean();
+    const current = await Settings.findOne({})
+      .select("productCard onlineStore appearance")
+      .lean();
     const storedCard = normalizeProductCardConfig(current?.productCard);
     const cardTemplate = manifest.productCard
       ? PRODUCT_CARD_TEMPLATES[manifest.productCard]
@@ -230,11 +238,21 @@ export async function applyThemeStarter(
       !current?.productCard ||
       isUntouchedProductCardConfig(storedCard);
 
+    // Each theme keeps its own key colours: any theme still following the
+    // old store-wide brand gets its own copy first, then the brand mirror
+    // (dashboards, emails, apps) takes the NEW live theme's colours.
+    const brand = resolveBrand({ appearance: current?.appearance }).colors;
+    const colourUpdates = {
+      ...adoptionUpdates(current?.onlineStore, brand),
+      ...keyColorMirror(ownThemeTokens(manifest.id, current?.onlineStore, brand), brand),
+    };
+
     await Settings.updateOne(
       {},
       {
         $set: {
           "onlineStore.activeTheme": manifest.id,
+          ...colourUpdates,
           ...(reseedCard ? { productCard: cardTemplate } : {}),
         },
       },

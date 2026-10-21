@@ -67,6 +67,7 @@ import type { AddressHold } from "@/lib/orders/address-hold-policy";
 import { OrderShipmentsCard } from "@/components/shipping/order-shipments-card";
 import { getPaymentMethodMeta } from "@/components/common/payment-method-meta";
 import { OpenReturnDialog } from "@/components/admin/returns/open-return-dialog";
+import { PrintInvoiceButton, useOrderPrint } from "@/components/invoice-templates/print";
 
 interface VendorOrderItem {
   name: string;
@@ -151,6 +152,8 @@ interface VendorOrder {
    * API then sends no customer: what it holds is the cashier.
    */
   posWalkIn?: boolean;
+  /** The phone-only customer a walk-in was rung up for. */
+  posWalkInName?: string;
   /** Who rang a POS sale up; absent for online orders. */
   soldByName?: string;
   /** Shipping paused on an undeliverable address; see address-hold-policy. */
@@ -299,6 +302,8 @@ export function VendorOrderDetails({
   const [trackingNumber, setTrackingNumber] = useState("");
   const [carrier, setCarrier] = useState("");
   const [isShippingLabelLoading, setIsShippingLabelLoading] = useState(false);
+  // Invoice templates (Phase 6): the platform default with this store's identity, only with a default.
+  const templatePrint = useOrderPrint({ base: "/api/vendor", orderId });
 
   const subOrder = useMemo(() => order?.subOrders?.[0] || null, [order]);
   const handlePrint = () => {
@@ -452,6 +457,7 @@ export function VendorOrderDetails({
         trackingNumber: subOrder?.trackingNumber || order?.orderNumber,
         carrier: carrier || "Internal fulfillment",
       });
+      if (templatePrint.defaults?.sticker && (await templatePrint.printSticker())) return;
       const response = await fetch(`/api/vendor/orders/${orderId}/shipping-label`);
       if (!response.ok) throw new Error("Failed to generate shipping label");
       await printPdfBlobWithQz(
@@ -467,7 +473,7 @@ export function VendorOrderDetails({
     } finally {
       setIsShippingLabelLoading(false);
     }
-  }, [carrier, order, orderId, subOrder]);
+  }, [carrier, order, orderId, subOrder, templatePrint]);
 
   const handleCancel = useCallback(async () => {
     const shouldCancel = await confirm({
@@ -677,6 +683,7 @@ export function VendorOrderDetails({
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
+          <PrintInvoiceButton print={templatePrint} onLegacyPrint={handlePrint} />
           {!isPickup ? (
             <>
               <Button
@@ -697,10 +704,10 @@ export function VendorOrderDetails({
                 size="sm"
                 onClick={() => void printShippingLabelDirect()}
                 disabled={isShippingLabelLoading}
-                title="Print the 4 × 6 PDF with the saved QZ thermal printer"
+                title={templatePrint.stickerLabel ? undefined : "Print the 4 × 6 PDF with the saved QZ thermal printer"}
               >
                 <Printer className="mr-2 h-4 w-4" />
-                Print 4 × 6
+                {templatePrint.stickerLabel ?? "Print 4 × 6"}
               </Button>
             </>
           ) : null}
@@ -1046,7 +1053,7 @@ export function VendorOrderDetails({
                 <div>
                   {order.posWalkIn ? (
                     <p className="font-medium">
-                      {t("admin.orderDetails.walkInCustomer")}
+                      {order.posWalkInName ?? t("admin.orderDetails.walkInCustomer")}
                     </p>
                   ) : (
                     <>

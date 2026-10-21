@@ -20,6 +20,12 @@ import {
 } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { BackgroundSwatchField } from "@/components/admin/sliders/background-swatch";
+import {
+  ThemeColorSwatches,
+  useDisplayColor,
+  useThemeColorChoices,
+} from "@/components/admin/theme-colors-context";
+import { themeColorRef } from "@/lib/theme-colors/theme-refs";
 import { ColorPickerPanel } from "@/components/admin/sliders/color-picker";
 import {
   UnitField,
@@ -266,14 +272,20 @@ export function ColorField({
   label,
   inheritLabel,
   clearLabel,
+  tSafe,
 }: {
   value: string;
   onChange: (value: string) => void;
   label: string;
   inheritLabel: string;
   clearLabel: string;
+  /** Copy for the theme-colour row; omitted, the field takes hex only. */
+  tSafe?: TSafe;
 }) {
   const isInherit = !value;
+  const themeChoices = useThemeColorChoices();
+  const display = useDisplayColor(value);
+  const ref = themeColorRef(value);
 
   return (
     <Popover>
@@ -282,7 +294,7 @@ export function ColorField({
           type="button"
           aria-label={label}
           className="h-8 w-full rounded-[4px] border bg-[linear-gradient(45deg,transparent_46%,var(--border)_46%,var(--border)_54%,transparent_54%)] shadow-xs"
-          style={isInherit ? undefined : { background: value }}
+          style={isInherit ? undefined : { background: display }}
         />
       </PopoverTrigger>
       <PopoverContent
@@ -293,7 +305,13 @@ export function ColorField({
         {isInherit ? (
           <p className="text-[11px] text-muted-foreground">{inheritLabel}</p>
         ) : null}
-        <ColorPickerPanel value={value} onChange={onChange} />
+        {themeChoices && tSafe ? (
+          <ThemeColorSwatches value={value} onPick={onChange} tSafe={tSafe} />
+        ) : null}
+        <ColorPickerPanel
+          value={(ref && themeChoices ? themeChoices.swatches[ref.key] : value) || "#f1f1f1"}
+          onChange={onChange}
+        />
         <Button
           type="button"
           variant="ghost"

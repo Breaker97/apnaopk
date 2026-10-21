@@ -5,6 +5,8 @@ import { useRouter } from "@/hooks/use-locale-navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TagInput } from "@/components/ui/tag-input";
+import { joinTagText, parseTagText } from "@/lib/customers/tag-text";
 import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -105,18 +107,6 @@ const defaultValues: CustomerFormValues = {
   shippingCountry: "",
   shippingPhone: "",
 };
-
-function parseTags(input: string): string[] {
-  if (!input.trim()) return [];
-  return Array.from(
-    new Set(
-      input
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    ),
-  );
-}
 
 function getUser(profile: CustomerDetailsResponse) {
   if (profile.userId && typeof profile.userId === "object") {
@@ -296,7 +286,7 @@ export function CustomerForm({
           ? Math.max(0, Math.floor(form.loyaltyPoints))
           : 0,
         acquisitionSource: form.acquisitionSource.trim() || undefined,
-        tags: parseTags(form.tagsInput),
+        tags: parseTagText(form.tagsInput),
         notes: form.notes.trim() || undefined,
         shippingAddress: shippingAddressPayload.value,
       };
@@ -557,10 +547,10 @@ export function CustomerForm({
 
               <div className="space-y-2">
                 <Label htmlFor="customer-tags">Tags</Label>
-                <Input
+                <TagInput
                   id="customer-tags"
-                  value={form.tagsInput}
-                  onChange={(e) => setField("tagsInput", e.target.value)}
+                  value={parseTagText(form.tagsInput)}
+                  onValueChange={(tags) => setField("tagsInput", joinTagText(tags))}
                   placeholder="vip, repeat, b2b"
                   disabled={readOnly}
                 />

@@ -45,11 +45,10 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "supportedLanguages",
     "countryAvailability",
   ] as const),
+  // No colours: `appearance.primaryColor` / `secondaryColor` / `accentColor`
+  // mirror the LIVE theme's own key colours and only Theme settings → Colors
+  // (and a theme switch) write them; a form still sending them is ignored.
   appearance: section([
-    "primaryColor",
-    "secondaryColor",
-    "accentColor",
-    "skeletonColor",
     "theme",
     "presetColor",
     "customPresets",
@@ -84,15 +83,17 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "includeLinks",
     "logRetentionDays",
   ] as const),
+  // `taxRate` is not here: Settings → Tax writes it (lib/tax/tax-settings.ts).
   orders: section([
     "prefix",
-    "taxRate",
     "freeShippingThreshold",
     "defaultShippingCost",
     "loyaltySpendPerPoint",
     "commission",
     "returns",
   ] as const),
+  // Saved whole and validated by `taxSettingsProblem` (lib/tax/tax-settings.ts).
+  tax: section(["classes", "regions", "calculation", "marketplace"] as const),
   shipping: section([
     "enabled",
     "weightUnit",
@@ -175,6 +176,7 @@ export const SETTINGS_SECTION_SCHEMAS = {
     "customize",
     "checkout",
     "orders",
+    "offline",
   ] as const),
   multiVendorMode: section([
     "enabled",

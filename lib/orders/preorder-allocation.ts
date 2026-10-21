@@ -1,4 +1,5 @@
 import { Types, type ClientSession } from "mongoose";
+import { inFinanceSession } from "@/lib/finance/transaction";
 import { markForMetaCatalog } from "@/lib/meta-catalog/mark-later";
 import { Order, Product } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
@@ -414,6 +415,8 @@ export async function allocateConsignmentsInSession(params: {
   preferences?: Map<string, string[]>;
   hooks?: AllocationHooks;
 }): Promise<InSessionAllocation> {
+  const financeContext = inventoryWriteContext();
+  if (financeContext?.reason !== "reserve" || financeContext.sourceId !== params.orderId) return withInventoryWrite({ reason: "reserve", sourceKind: "order", sourceId: params.orderId, requestKey: params.operationId }, () => allocateConsignmentsInSession(params));
   const { session, operationId, now } = params;
   if (!Types.ObjectId.isValid(params.orderId)) {
     throw new AllocationAbort({
@@ -710,6 +713,10 @@ export async function allocateConsignmentsInSession(params: {
     freedQuota.push({ productId: line.productId, variantId: line.variantId });
   }
 
+  await inFinanceSession(session, async () => {
+    const { synchronizeOrderInventoryCost } = await import("@/lib/inventory/finance-sales");
+    await synchronizeOrderInventoryCost(params.orderId);
+  });
   return {
     kind: "allocated",
     operationId,
@@ -1047,6 +1054,8 @@ export async function restoreAllocationsInSession(params: {
    */
   alreadyBack?: Map<string, number>;
 }): Promise<RestoreAllocationsResult> {
+  const financeContext = inventoryWriteContext();
+  if (financeContext?.reason !== "return_restock" || financeContext.restock?.orderId !== params.orderId) return withInventoryWrite({ reason: "return_restock", sourceKind: "preorder_restock", sourceId: params.orderId, requestKey: params.operationId, restock: { orderId: params.orderId } }, () => restoreAllocationsInSession(params));
   const { session } = params;
   if (!Types.ObjectId.isValid(params.orderId)) return { restored: [], requoted: [] };
   const query = Order.findById(params.orderId).select(
@@ -1452,3 +1461,4 @@ export async function restoreLegacyConsignmentsInSession(params: {
   }
   return restored;
 }
+import { inventoryWriteContext, withInventoryWrite } from "@/lib/inventory/finance-context";

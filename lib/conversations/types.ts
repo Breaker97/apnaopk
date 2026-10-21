@@ -48,6 +48,8 @@ export interface ConversationDTO {
   ownerType: "platform" | "vendor";
   ownerVendorId?: string;
   ownerName?: string;
+  /** The owning store's logo — the avatar a customer sees for the thread. */
+  ownerImage?: string;
   contact: {
     name: string;
     email?: string;

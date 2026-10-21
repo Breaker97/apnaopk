@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   AlertCircle,
+  ArrowLeft,
   Bookmark,
   CheckCircle2,
   ChevronDown,
@@ -37,6 +38,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Link from "@/components/language/link";
 import { WarningBanner } from "@/components/ui/warning-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +69,7 @@ import {
   PREVIEW_SELECT_MESSAGE,
 } from "@/components/store/section-preview-bridge";
 import { BlockEditor } from "./block-editor";
-import { SectionPreviewFrame } from "./section-preview-frame";
+import { SectionPreviewFrame, type StoreSurfaceStyle } from "./section-preview-frame";
 import { EditorShell } from "./editor-shell";
 import { UnitField } from "@/components/admin/unit-field";
 import {
@@ -128,6 +130,7 @@ export function StorePageBuilder({
   handle,
   heading,
   switcher,
+  backHref,
   initialSections,
   initialIsPublished,
   initialHasUnpublishedChanges,
@@ -135,6 +138,7 @@ export function StorePageBuilder({
   languages,
   defaultLanguage,
   demoMode,
+  storeSurface,
   scope = "admin",
   actions,
 }: {
@@ -145,6 +149,8 @@ export function StorePageBuilder({
   heading?: string;
   /** Renders the Customize page switcher when provided. */
   switcher?: PageSwitcher;
+  /** Where the page bar's back arrow leads; no arrow without one. */
+  backHref?: string;
   initialSections: SectionInstance[];
   initialIsPublished: boolean;
   initialHasUnpublishedChanges: boolean;
@@ -156,6 +162,12 @@ export function StorePageBuilder({
    * refuses the writes, so the builder must not pretend otherwise.
    */
   demoMode: DemoModeState;
+  /**
+   * The active theme compiled for the inline storefront previews (brand and
+   * category lists, the section frames): `.store-surface` has no fallbacks,
+   * so a preview without these paints with no colours at all.
+   */
+  storeSurface?: StoreSurfaceStyle;
   /**
    * Whose page this builder edits — the admin's Customize screen (default)
    * or a vendor's landing page. Picks the routes and the admin-only tools;
@@ -288,6 +300,7 @@ export function StorePageBuilder({
         handle={handle}
         sectionId={section.id}
         nonce={previewNonce}
+        storeSurface={storeSurface}
         title={tSafe("admin.storeBuilder.sectionEditor.preview", "Preview")}
         hint={
           // Demo deployments never save, so the frame can never refresh —
@@ -424,6 +437,7 @@ export function StorePageBuilder({
         sectionId={section.id}
         blockId={blockId}
         nonce={previewNonce}
+        storeSurface={storeSurface}
         title={tSafe("admin.storeBuilder.sectionEditor.rowPreview", "Row preview")}
         emptyLabel={tSafe(
           "admin.storeBuilder.sectionEditor.previewEmpty",
@@ -607,19 +621,33 @@ export function StorePageBuilder({
         ref={pageBarRef}
         className="sticky top-[var(--dashboard-header-height,4rem)] z-30 -mx-6 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-6 py-2"
       >
-        {/* The heading IS the page switcher: one name for the page, and
-            picking another name is how you go there. */}
-        {switcher ? (
-          <PageSwitcherSelect
-            switcher={switcher}
-            variant="title"
-            className="max-w-[60vw] sm:max-w-none"
-          />
-        ) : (
-          <h1 className="truncate text-lg font-semibold tracking-tight">
-            {heading ?? tSafe("admin.storeBuilder.title", "Home Page")}
-          </h1>
-        )}
+        <div className="flex min-w-0 items-center gap-2">
+          {backHref ? (
+            <Button
+              asChild
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+            >
+              <Link href={backHref} aria-label={tSafe("common.back", "Back")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : null}
+          {/* The heading IS the page switcher: one name for the page, and
+              picking another name is how you go there. */}
+          {switcher ? (
+            <PageSwitcherSelect
+              switcher={switcher}
+              variant="title"
+              className="max-w-[60vw] sm:max-w-none"
+            />
+          ) : (
+            <h1 className="truncate text-lg font-semibold tracking-tight">
+              {heading ?? tSafe("admin.storeBuilder.title", "Home Page")}
+            </h1>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {actions}
@@ -873,6 +901,7 @@ export function StorePageBuilder({
                         updateSectionBlocks(section.id, updater)
                       }
                       locale={locale}
+                      storeSurface={storeSurface}
                     />
                   ) : entry?.type === "category-list" ? (
                     /* Template button + real storefront preview instead of
@@ -885,6 +914,7 @@ export function StorePageBuilder({
                       }
                       locale={locale}
                       defaultLanguage={defaultLanguage}
+                      storeSurface={storeSurface}
                     />
                   ) : entry?.type === "product-main" ? (
                     /* Gallery-layout tiles, the grouped "Order" row editor,

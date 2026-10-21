@@ -1,3 +1,4 @@
+import { STAFF_PERMISSIONS } from "@/config/permissions.config";
 import { Category } from "@/models";
 import { successResponse, createdResponse } from "@/lib/api/response";
 import { ValidationError } from "@/lib/api/errors";
@@ -11,7 +12,7 @@ import {
   runListQuery,
   listResponse,
 } from "@/lib/api/list-query";
-import { isAdmin } from "@/lib/access/rbac";
+import { canReadCatalogManagement } from "@/lib/access/staff-authz";
 import { createAuditContext } from "@/lib/audit";
 import { auditCatalogCreate, CATEGORY_AUDIT } from "@/lib/catalog/catalog-audit";
 import mongoose from "mongoose";
@@ -86,6 +87,11 @@ const CategoryCreateSchema = z.object({
   order: z.number().optional(),
   isActive: z.boolean().optional(),
   featured: z.boolean().optional(),
+  // Sales-tax rate in percent for the products filed here; null takes the
+  // parent's, then the store's (lib/tax/tax-rates.ts).
+  taxRate: z.number().min(0).max(100).nullable().optional(),
+  // A Settings → Tax class key; null takes the category's (or the parent's).
+  taxClass: z.string().trim().regex(/^[a-z0-9][a-z0-9-]{0,39}$/).nullable().optional(),
   seo: z.record(z.string(), z.unknown()).optional(),
   options: z.array(z.record(z.string(), z.unknown())).max(50).optional(),
 });
@@ -101,10 +107,12 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
   const status = searchParams.get("status");
   const featured = searchParams.get("featured");
 
+  const canManageCatalog = await canReadCatalogManagement(session?.user, "categories");
+
   // Build query
   const query: Record<string, unknown> = { isActive: true };
 
-  if (isAdmin(session?.user)) {
+  if (canManageCatalog) {
     delete query.isActive; // Admin sees all by default
 
     // Admin can filter by status
@@ -169,7 +177,7 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
   // top-level one.
   const filtered = Boolean(search || parentOnly || status || featured);
   const tree = filtered
-    ? await Category.find(isAdmin(session?.user) ? {} : { isActive: true })
+    ? await Category.find(canManageCatalog ? {} : { isActive: true })
         .select("name parentId")
         .lean()
     : categories;
@@ -224,9 +232,9 @@ export const GET = withApi({ auth: "optional" }, async ({ request, session }) =>
 
 /**
  * POST /api/categories
- * Create a new category (Admin only)
+ * Create a new category (Admin or permitted staff)
  */
-export const POST = withApi({ auth: "admin" }, async ({ request, session }) => {
+export const POST = withApi({ auth: "admin-or-staff", staffPermissions: [STAFF_PERMISSIONS.CREATE_CATEGORIES, STAFF_PERMISSIONS.MANAGE_CATEGORIES] }, async ({ request, session }) => {
   const body = await validateBody(request, CategoryCreateSchema);
 
   if (body.parentId === "" || body.parentId === null) {

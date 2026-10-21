@@ -1,5 +1,6 @@
 import {
-  listQueuedSales,
+  listAllQueuedSales,
+  readQueuedSale,
   removeQueuedSale,
   updateQueuedSale,
   type OfflineSale,
@@ -19,14 +20,23 @@ import {
  * silently drop a sale, and nothing may retry forever a sale the server will
  * never accept. So refusals are split in two — retry what is transient, raise
  * what is not — and a raised sale stays in the queue until a human deals with
- * it.
+ * it (`components/pos/pos-offline-review-dialog.tsx`).
  */
 
 type SyncOutcome =
   /** The order exists on the server. Safe to forget locally. */
   | { kind: "committed"; orderNumber?: string }
-  /** Transient: offline again, server error, rate limited. Try later. */
-  | { kind: "retry"; reason: string }
+  /**
+   * Transient: offline again, server error, rate limited. Try later.
+   *
+   * `halt` means the next sale would meet the same answer — the network is
+   * gone, or the server asked for time — so the drain stops rather than
+   * spending every remaining sale's attempt on it. A 5xx does not halt: it can
+   * be one sale's problem (a product whose document the server cannot load),
+   * and stopping there would let one sale hold up the rest, which is exactly
+   * what a 403 used to do.
+   */
+  | { kind: "retry"; reason: string; halt?: "offline" | "throttled" }
   /** The session is no longer valid. Stop draining; retrying cannot help. */
   | { kind: "unauthenticated" }
   /** The server refused on the merits. A human has to decide. */
@@ -47,12 +57,26 @@ export function classifySyncResponse(
     return { kind: "committed", orderNumber: body.data?.orderNumber };
   }
 
-  if (status === 401 || status === 403) {
+  // Only a 401 is the session. A 403 is a verdict on THIS sale — the product
+  // was deleted or moved to another seller while the register was offline,
+  // the seat lost its POS permission, the POS was switched off — and it used
+  // to be read as "signed out", which stopped the drain at that sale and left
+  // every sale queued behind it unsent, for good, with nothing flagged. The
+  // drain only ever runs after an authenticated request succeeded, so a 403
+  // here cannot be a dead session; it falls through to review with the 4xx.
+  if (status === 401) {
     return { kind: "unauthenticated" };
   }
 
   // 429 and 5xx are the server asking for time, not refusing the sale.
-  if (status === 429 || status >= 500) {
+  if (status === 429) {
+    return {
+      kind: "retry",
+      reason: body?.message || `Server returned ${status}`,
+      halt: "throttled",
+    };
+  }
+  if (status >= 500) {
     return { kind: "retry", reason: body?.message || `Server returned ${status}` };
   }
 
@@ -75,6 +99,11 @@ export interface SyncSummary {
   needsReview: number;
   /** Set when the drain stopped early because the session expired. */
   stoppedUnauthenticated?: boolean;
+  /**
+   * Set when the drain stopped early because the network went away, or the
+   * server asked for time. The rest of the queue is untouched and pending.
+   */
+  halted?: "offline" | "throttled";
 }
 
 async function replaySale(sale: OfflineSale): Promise<SyncOutcome> {
@@ -91,23 +120,37 @@ async function replaySale(sale: OfflineSale): Promise<SyncOutcome> {
     return {
       kind: "retry",
       reason: error instanceof Error ? error.message : "Network unavailable",
+      halt: "offline",
     };
   }
 }
 
 /**
- * Replay every queued sale for this counter, oldest first.
+ * Replay every queued sale, from every counter, oldest first.
+ *
+ * Every counter, not the one the register stands at: the sale names its own
+ * counter in `posLocationId` and the server re-resolves it, so nothing about
+ * the replay depends on where the register is now — and a counter that was
+ * deactivated during the outage must not keep its takings parked forever.
  *
  * Sequential on purpose. These are inventory-decrementing writes against the
  * same small set of products, and firing a shift's backlog at the server at
  * once turns "we are two units short" into a pile of partial failures that are
  * far harder to reconcile than one refusal at a time.
  */
-export async function syncOutbox(scope: string): Promise<SyncSummary> {
-  const queued = await listQueuedSales(scope);
+export async function syncOutbox(): Promise<SyncSummary> {
+  const queued = await listAllQueuedSales();
   const summary: SyncSummary = { committed: 0, pending: 0, needsReview: 0 };
 
-  for (const sale of queued) {
+  /** Tallies the sales after `index` as they stand, when the drain stops. */
+  const countUnsent = (index: number) => {
+    for (const later of queued.slice(index + 1)) {
+      if (later.status === "needs_review") summary.needsReview += 1;
+      else summary.pending += 1;
+    }
+  };
+
+  for (const [index, sale] of queued.entries()) {
     if (sale.status === "needs_review") {
       summary.needsReview += 1;
       continue;
@@ -123,15 +166,10 @@ export async function syncOutbox(scope: string): Promise<SyncSummary> {
 
     if (outcome.kind === "unauthenticated") {
       // Everything after this would fail the same way. Leave the queue intact
-      // and let the cashier sign in again.
-      //
-      // Counted from what is left rather than from the whole queue: sales
-      // already tallied this pass (`summary.pending`, from an earlier retry)
-      // would otherwise be counted twice and the banner would report more
-      // outstanding sales than exist.
-      const remaining =
-        queued.length - summary.committed - summary.needsReview - summary.pending;
-      summary.pending += Math.max(0, remaining);
+      // and let the cashier sign in again. This sale and every later one are
+      // tallied as they stand — a later sale already under review stays one.
+      summary.pending += 1;
+      countUnsent(index);
       summary.stoppedUnauthenticated = true;
       return summary;
     }
@@ -154,7 +192,30 @@ export async function syncOutbox(scope: string): Promise<SyncSummary> {
       lastError: outcome.reason,
     });
     summary.pending += 1;
+
+    if (outcome.halt) {
+      // The sales after this one are left exactly as they were — not even an
+      // attempt is counted against them, because none was made.
+      countUnsent(index);
+      summary.halted = outcome.halt;
+      return summary;
+    }
   }
 
   return summary;
+}
+
+/**
+ * Put a reviewed sale back in line to be sent.
+ *
+ * For the case where the cause has been fixed — the customer re-created, the
+ * product restored, the seat's permission given back — rather than recorded by
+ * hand. The attempt count and the last refusal are kept, so a sale that is
+ * refused again shows its history.
+ */
+export async function requeueSale(clientRequestId: string): Promise<boolean> {
+  const sale = await readQueuedSale(clientRequestId);
+  if (!sale) return false;
+  await updateQueuedSale({ ...sale, status: "pending" });
+  return true;
 }

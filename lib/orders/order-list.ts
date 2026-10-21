@@ -64,7 +64,7 @@ interface AdminOrderListItem {
 // menu can grey out a fulfilment move the server would refuse. `staffId`
 // tells a walk-in POS sale, which names no customer.
 const LIST_PROJECTION =
-  "orderNumber total status paymentStatus paymentMethod channel staffId hasPreorder preorderOutstandingAmount preorderBalancePaidAt createdAt customerId items.name items.quantity items.productId subOrders.status subOrders.paymentStatus subOrders.items.preorderOutstandingAmount";
+  "orderNumber total status paymentStatus paymentMethod channel staffId posCustomerName hasPreorder preorderOutstandingAmount preorderBalancePaidAt createdAt customerId items.name items.quantity items.productId subOrders.status subOrders.paymentStatus subOrders.items.preorderOutstandingAmount";
 
 const ALLOWED_SORT_FIELDS = new Set([
   "createdAt",

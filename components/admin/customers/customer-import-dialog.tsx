@@ -73,6 +73,11 @@ function saveCsv(rows: string[][], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/** The template's header row and three made-up customers, as a CSV download. */
+export function downloadCustomerImportSample() {
+  saveCsv(customerImportSampleRows(), "customer-import-template.csv");
+}
+
 export function CustomerImportDialog({
   open,
   onOpenChange,
@@ -135,7 +140,7 @@ export function CustomerImportDialog({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => saveCsv(customerImportSampleRows(), "customer-import-template.csv")}
+          onClick={downloadCustomerImportSample}
         >
           <Download className="h-4 w-4" />
           {t("downloadTemplate")}

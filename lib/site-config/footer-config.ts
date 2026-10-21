@@ -1,3 +1,4 @@
+import { isThemeColorRef } from "@/lib/theme-colors/theme-refs";
 import {
   normalizeFooterLayout,
   type FooterLayout,
@@ -154,20 +155,22 @@ const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
     logoAlt: "",
     description: "",
   },
+  // Theme colour references: a new store's footer follows Theme settings →
+  // Colors in both modes (each reference is already mode-aware).
   colors: {
     light: {
-      backgroundColor: "#f8fafc",
-      textColor: "#111827",
-      mutedTextColor: "#6b7280",
-      borderColor: "#e5e7eb",
-      accentColor: "#2065D1",
+      backgroundColor: "var(--theme-surface-alt)",
+      textColor: "var(--theme-text)",
+      mutedTextColor: "var(--theme-text-muted)",
+      borderColor: "var(--theme-border)",
+      accentColor: "var(--theme-primary)",
     },
     dark: {
-      backgroundColor: "#050505",
-      textColor: "#ffffff",
-      mutedTextColor: "#d1d5db",
-      borderColor: "#27272a",
-      accentColor: "#60a5fa",
+      backgroundColor: "var(--theme-surface-alt)",
+      textColor: "var(--theme-text)",
+      mutedTextColor: "var(--theme-text-muted)",
+      borderColor: "var(--theme-border)",
+      accentColor: "var(--theme-primary)",
     },
   },
   widgets: {
@@ -276,6 +279,8 @@ function normalizeBoolean(value: unknown, fallback: boolean): boolean {
 function normalizeHexColor(value: unknown, fallback: string): string {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
+  // A theme colour reference follows Theme settings → Colors.
+  if (isThemeColorRef(trimmed)) return trimmed;
   return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(
     trimmed,
   )

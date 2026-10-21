@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
 import { BlogPost } from "@/models";
 import { auth } from "@/lib/auth/auth";
-import { USER_ROLES } from "@/config/app.config";
+import { ADMIN_AREA_PERMISSIONS } from "@/config/team-permissions.config";
+import { isAdminHolding } from "@/lib/access/team-route-guard";
 import { revalidateBlogContent } from "@/lib/cache-invalidation";
 import { createdResponse, paginatedResponse } from "@/lib/api/response";
 import { handleApiError, ValidationError } from "@/lib/api/errors";
@@ -49,7 +50,8 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {};
 
     const session = await auth.api.getSession({ headers: await headers() });
-    const isAdmin = session?.user?.role === USER_ROLES.ADMIN;
+    // An administrator whose team role reaches the blog sees past the public view.
+    const isAdmin = await isAdminHolding(session?.user, [ADMIN_AREA_PERMISSIONS.VIEW_CONTENT, ADMIN_AREA_PERMISSIONS.MANAGE_CONTENT]);
 
     if (!isAdmin) {
       // What the blog itself shows, and nothing more.

@@ -7,6 +7,8 @@ import { POSTerminal, type POSMobileTab } from "@/components/pos/pos-terminal";
 import { POSSearchBar } from "@/components/pos/pos-search-bar";
 import { POSOfflineBanner } from "@/components/pos/pos-offline-banner";
 import { POSOfflineLocked } from "@/components/pos/pos-offline-locked";
+import { POSOfflineReviewDialog } from "@/components/pos/pos-offline-review-dialog";
+import { useCurrency } from "@/providers/currency-provider";
 import { POSLocationBadge } from "@/components/pos/pos-location-badge";
 import { POSLocationPicker } from "@/components/pos/pos-location-picker";
 import { POSLocationSwitchDialog } from "@/components/pos/pos-location-switch-dialog";
@@ -18,6 +20,7 @@ import { cleanScannedCode } from "@/lib/catalog/barcodes";
 import { getPOSPurchasableQuantity } from "@/lib/pos/product-stock";
 import { resolvePOSBarcodeMatch } from "@/lib/pos/barcode-lookup";
 import { usePOSOffline, type POSOfflineState } from "@/hooks/use-pos-offline";
+import { offlineSessionWindowMs } from "@/lib/pos/offline-session";
 import { usePOSHardwareScanner } from "@/hooks/use-pos-hardware-scanner";
 import { getHeldOrders, heldOrdersScope } from "@/lib/pos/held-orders";
 import {
@@ -140,9 +143,17 @@ export function POSWorkspace({
   const offline = usePOSOffline({
     locationId,
     initialProducts: initialData.products,
+    // A number, so the hook's effects see the same value on every render.
+    sessionWindowMs: offlineSessionWindowMs(settings.offlineSessionHours),
   });
+  // Stable callbacks from the offline hook, called directly so the callbacks
+  // below depend on them and not on the whole (re-created) offline object.
+  const { reportReachable, reportUnreachable } = offline;
 
   const [needsCounterPick, setNeedsCounterPick] = React.useState(false);
+  /** The list of refused offline sales, opened from the banner. */
+  const [showOfflineReview, setShowOfflineReview] = React.useState(false);
+  const { formatPrice } = useCurrency();
   /**
    * False until the machine's stored counter has been read.
    *
@@ -294,10 +305,12 @@ export function POSWorkspace({
 
       const name = locations.find((location) => location.id === nextId)?.name;
       toast.success(
-        name ? `Now selling from ${name}` : "Now selling from shared stock",
+        name
+          ? t("pos.counter.nowSellingFrom", { name })
+          : t("pos.counter.nowSellingShared"),
       );
     },
-    [locationId, locations],
+    [locationId, locations, t],
   );
 
   // Drop the reminder once those sales are gone — resumed from the other
@@ -366,16 +379,9 @@ export function POSWorkspace({
         locations.find((location) => location.id === nextId) ?? null;
       if (!target) return;
 
-      // The offline outbox is scoped to the counter that took the sale, so
-      // moving with money still queued takes it off this screen — the queue is
-      // intact, but a cashier has no way to tell that from having lost it.
-      // Sync first; the move is worth less than the reassurance.
-      if (offline.queued.length > 0) {
-        toast.error(
-          "Sales taken at this counter have not reached the server yet. Sync them before moving the register.",
-        );
-        return;
-      }
+      // Queued offline sales do not hold the register here: the queue the
+      // banner shows and the drain sends is every counter's, so a sale taken
+      // at this counter stays visible — and keeps syncing — after the move.
 
       if (cart.length === 0) {
         commitLocation(nextId);
@@ -401,9 +407,7 @@ export function POSWorkspace({
       } catch {
         // The register has not moved and the cart is untouched, so the cashier
         // can simply try again.
-        toast.error(
-          "Could not check stock at that counter. The register has not moved.",
-        );
+        toast.error(t("pos.counter.probeFailed"));
         closeSwitchDialog();
       } finally {
         setIsProbing(false);
@@ -415,7 +419,7 @@ export function POSWorkspace({
       commitLocation,
       locationId,
       locations,
-      offline.queued.length,
+      t,
     ],
   );
 
@@ -424,7 +428,7 @@ export function POSWorkspace({
 
     const hold = holdSaleRef.current;
     if (!hold) {
-      toast.error("The sale could not be held. The register has not moved.");
+      toast.error(t("pos.counter.holdFailed"));
       return;
     }
 
@@ -435,14 +439,16 @@ export function POSWorkspace({
     // Labelled, because the held list is read later out of context: "Untitled
     // hold" gives a cashier nothing, while the counter it was heading to says
     // why the sale stopped.
-    const parked = hold(`Counter change → ${switchTarget.name}`);
+    const parked = hold(
+      t("pos.counter.holdLabel", { name: switchTarget.name }),
+    );
     // Storage refused the write. The cart is still on the counter, so moving the
     // register now would strand it against another branch's stock.
     if (!parked) return;
 
     commitLocation(switchTarget.id);
     closeSwitchDialog();
-  }, [closeSwitchDialog, commitLocation, switchTarget]);
+  }, [closeSwitchDialog, commitLocation, switchTarget, t]);
 
   const handleSwitchAndRecheck = React.useCallback(() => {
     if (!switchTarget || !probe) return;
@@ -451,11 +457,15 @@ export function POSWorkspace({
     commitLocation(switchTarget.id);
     if (probe.adjustments.length > 0) {
       toast.warning(
-        `Sale re-checked · ${describeHeldOrderAdjustments(probe.adjustments)}`,
+        t("pos.counter.rechecked", {
+          changes: describeHeldOrderAdjustments(probe.adjustments, (kind, count) =>
+            t(`pos.held.${kind}`, { count }),
+          ),
+        }),
       );
     }
     closeSwitchDialog();
-  }, [closeSwitchDialog, commitLocation, probe, switchTarget]);
+  }, [closeSwitchDialog, commitLocation, probe, switchTarget, t]);
 
   // What the terminal and every request it makes agree the counter is. Derived
   // rather than stored so there is exactly one location in play at any moment —
@@ -492,7 +502,7 @@ export function POSWorkspace({
 
   const saleBlockedReason =
     counterUnavailable && cart.length > 0
-      ? "This counter is no longer available. Pick another before taking payment."
+      ? t("pos.counter.saleBlocked")
       : null;
 
   // A store with no locations gets no badge at all: a control for a feature the
@@ -566,6 +576,7 @@ export function POSWorkspace({
             image,
             vendorId: product.vendorId,
             maxStock,
+            taxRate: product.taxRate ?? null,
           },
         ];
       });
@@ -586,16 +597,21 @@ export function POSWorkspace({
         const res = await fetch(`/api/pos/barcode?${params.toString()}`);
         const json = (await res.json()) as POSBarcodeApiResponse;
         const match = json.data?.match;
+        // The server answered this session, whatever it said about the code.
+        // Not on a refused session: that must not renew the offline window.
+        if (res.status !== 401 && res.status !== 403) {
+          reportReachable();
+        }
 
         if (!res.ok || !json.success || !match?.product) {
           const message =
             json.code === "MULTIPLE_MATCHES"
-              ? "Multiple products match this code. Please fix duplicate SKU or barcode values."
+              ? t("pos.scan.multipleMatches")
               : json.code === "OUT_OF_STOCK"
                 ? t("pos.outOfStock")
                 : json.code === "NO_MATCH"
-                  ? "No product found for the scanned code."
-                  : json.message || "Unable to look up the scanned code.";
+                  ? t("pos.scan.noMatch")
+                  : json.message || t("pos.scan.lookupFailed");
 
           playPOSSound("error");
           toast.error(message);
@@ -624,6 +640,7 @@ export function POSWorkspace({
         // The request never reached the server. Resolve the scan against the
         // catalogue snapshot instead — the same matcher the route runs, so a
         // code resolves to the same product with or without a connection.
+        reportUnreachable();
         const local = resolvePOSBarcodeMatch(offline.offlineProducts, code);
 
         if (local.status === "matched") {
@@ -646,8 +663,8 @@ export function POSWorkspace({
 
         const message =
           local.status === "multiple"
-            ? "Multiple products match this code. Please fix duplicate SKU or barcode values."
-            : "No product found for the scanned code.";
+            ? t("pos.scan.multipleMatches")
+            : t("pos.scan.noMatch");
         playPOSSound("error");
         toast.error(message);
         setLastScanFeedback({
@@ -661,7 +678,14 @@ export function POSWorkspace({
         });
       }
     },
-    [addToCart, locationId, offline.offlineProducts, t],
+    [
+      addToCart,
+      locationId,
+      offline.offlineProducts,
+      reportReachable,
+      reportUnreachable,
+      t,
+    ],
   );
 
   const processScanQueue = React.useCallback(async () => {
@@ -737,7 +761,7 @@ export function POSWorkspace({
         document.querySelector('[role="dialog"], [role="alertdialog"]')
       ) {
         playPOSSound("error");
-        toast.error("Close the open dialog, then scan again.");
+        toast.error(t("pos.scan.closeDialogFirst"));
         return;
       }
       enqueueScannedCode(code, "hardware");
@@ -769,7 +793,9 @@ export function POSWorkspace({
             snapshotAt={offline.snapshotAt}
             queued={offline.queued}
             isSyncing={offline.isSyncing}
+            sessionExpired={offline.sessionExpired}
             onSync={() => void offline.sync()}
+            onReview={() => setShowOfflineReview(true)}
           />
           {/* Search bar - outside the products card */}
           <POSSearchBar
@@ -833,11 +859,11 @@ export function POSWorkspace({
                     onClick={() => requestLocationSwitch(leftBehind.id)}
                     className="cursor-pointer rounded-lg border border-amber-300 bg-white/70 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-white dark:border-amber-900/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/70"
                   >
-                    Go back to {leftBehind.name}
+                    {t("pos.counter.goBackTo", { name: leftBehind.name })}
                   </button>
                   <button
                     type="button"
-                    aria-label="Dismiss"
+                    aria-label={t("pos.counter.dismiss")}
                     onClick={() => setLeftBehind(null)}
                     className="ml-auto cursor-pointer rounded-full p-1 transition-colors hover:bg-amber-100 dark:hover:bg-amber-950/60"
                   >
@@ -846,10 +872,11 @@ export function POSWorkspace({
                 </>
               }
             >
-              <span className="font-semibold">
-                {leftBehind.count} {leftBehind.count === 1 ? "sale" : "sales"}
-              </span>{" "}
-              still held at {leftBehind.name}
+              {t.rich("pos.counter.heldBehind", {
+                count: leftBehind.count,
+                name: leftBehind.name,
+                b: (chunks) => <span className="font-semibold">{chunks}</span>,
+              })}
             </WarningBanner>
           ) : null}
 
@@ -876,6 +903,25 @@ export function POSWorkspace({
               saleBlockedReason={saleBlockedReason}
             />
           </div>
+
+          <POSOfflineReviewDialog
+            open={showOfflineReview}
+            onOpenChange={setShowOfflineReview}
+            sales={offline.queued.filter(
+              (sale) => sale.status === "needs_review",
+            )}
+            onRetry={offline.retrySale}
+            onDiscard={offline.discardSale}
+            formatPrice={formatPrice}
+            locationNameFor={(scope) =>
+              scope === "default"
+                ? locations.length > 0
+                  ? t("pos.counter.sharedStock")
+                  : null
+                : (locations.find((location) => location.id === scope)?.name ??
+                  t("pos.offline.anotherCounter"))
+            }
+          />
 
           <POSLocationSwitchDialog
             open={Boolean(switchTarget)}

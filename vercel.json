@@ -71,6 +71,10 @@
     {
       "path": "/api/cron/meta-catalog",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/vendor-payouts",
+      "schedule": "30 2 * * *"
     }
   ]
 }

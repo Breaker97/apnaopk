@@ -356,22 +356,28 @@ export function MenuSettingsPanel({
 export function MenuItemInspector({
   item,
   ancestors = [],
+  rootCount = 0,
   path,
   depth,
   location,
   locale,
   onChange,
   onAddChild,
+  onRemove,
 }: {
   item: MenuItem | null;
   /** Root-to-parent chain — the mega panel quotes the category budget. */
   ancestors?: MenuItem[];
+  /** Categories in the mega rail, which sets a single row's link cap. */
+  rootCount?: number;
   path: number[] | null;
   depth: number;
   location: MenuLocation;
   locale: string;
   onChange: (patch: Partial<MenuItem>) => void;
   onAddChild: () => void;
+  /** Mega builder only; the free-form tree deletes from its own row menu. */
+  onRemove?: () => void;
 }) {
   const isMegaMenu = location === "header-mega";
 
@@ -393,10 +399,12 @@ export function MenuItemInspector({
       <MegaItemFields
         item={item}
         ancestors={ancestors}
+        rootCount={rootCount}
         depth={depth}
         path={path}
         locale={locale}
         onChange={onChange}
+        onRemove={onRemove}
       />
     );
   }
@@ -555,18 +563,22 @@ const MEGA_LEVELS = [
 function MegaItemFields({
   item,
   ancestors,
+  rootCount,
   depth,
   path,
   locale,
   onChange,
+  onRemove,
 }: {
   item: MenuItem;
   /** Root-to-parent chain, so the panel can quote the category's budget. */
   ancestors: MenuItem[];
+  rootCount: number;
   depth: number;
   path: number[];
   locale: string;
   onChange: (patch: Partial<MenuItem>) => void;
+  onRemove?: () => void;
 }) {
   const level = MEGA_LEVELS[Math.min(depth, MEGA_LEVELS.length) - 1];
   const isCategory = depth === 1;
@@ -578,7 +590,7 @@ function MegaItemFields({
   // chain — never to the item's immediate parent, which for a link is a
   // column and has no budget of its own.
   const category = isCategory ? item : ancestors[0] || null;
-  const budget = getMegaCategoryBudget(category);
+  const budget = getMegaCategoryBudget(category, rootCount);
   const columnCount = (category?.children || []).length;
 
   const showsSideBanner = isCategory && promoMode === "side";
@@ -588,8 +600,14 @@ function MegaItemFields({
   const columnIndex = isColumn ? path[1] ?? 0 : -1;
   const linkIndex = isLink ? path[2] ?? 0 : -1;
   const isParkedColumn = isColumn && columnIndex >= budget.groupLimit;
-  const isPastFold = isLink && linkIndex >= budget.linkLimit;
-  const hiddenLinks = Math.max(linkCount - budget.linkLimit, 0);
+  // Where this column's fold sits: the cap, or one past it when only a single
+  // link would have gone behind "View all" (the storefront draws that one).
+  const columnLinks = isLink
+    ? (ancestors[1]?.children || []).length
+    : linkCount;
+  const foldAt = budget.visibleLinks(columnLinks);
+  const isPastFold = isLink && linkIndex >= foldAt;
+  const hiddenLinks = Math.max(linkCount - foldAt, 0);
   // Sync stamps its own resource type, so anything else was typed in here.
   const isSynced = item.type === "category";
 
@@ -703,7 +721,7 @@ function MegaItemFields({
             {
               label: "Links in this column",
               value: `${linkCount} / ${budget.linkLimit}`,
-              warn: linkCount > budget.linkLimit,
+              warn: hiddenLinks > 0,
             },
             {
               label: "Column position",
@@ -728,7 +746,7 @@ function MegaItemFields({
           rows={[
             {
               label: "Position in column",
-              value: `${linkIndex + 1} of ${budget.linkLimit}`,
+              value: `${linkIndex + 1} of ${Math.max(budget.linkLimit, foldAt)}`,
               warn: isPastFold,
             },
           ]}
@@ -764,7 +782,7 @@ function MegaItemFields({
 
       {isPastFold ? (
         <InspectorWarning>
-          {`Position ${linkIndex + 1} is below the fold of a ${budget.linkLimit}-link column. Drag it higher to have it drawn.`}
+          {`Position ${linkIndex + 1} is below the fold of a ${foldAt}-link column. Drag it higher to have it drawn.`}
         </InspectorWarning>
       ) : null}
 
@@ -785,6 +803,27 @@ function MegaItemFields({
           </SelectContent>
         </Select>
       </div>
+
+      {onRemove && (isColumn || isLink) ? (
+        <div className="space-y-1.5 border-t pt-4">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={onRemove}
+          >
+            <Trash2 className="mr-1 h-4 w-4" />
+            {isLink ? "Delete link" : "Delete column"}
+          </Button>
+          {isSynced ? (
+            <p className="text-xs text-muted-foreground">
+              This came from Categories, so the next sync adds it back while
+              the category is still active.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

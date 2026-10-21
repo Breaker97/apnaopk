@@ -81,16 +81,23 @@ function SettingsShellInner({ children }: { children: ReactNode }) {
   // read-only treatment to just the storage config form, so exclude it from
   // the blanket lock here. The Activity Log is the same kind of page: nothing
   // on it saves, and a disabled fieldset would switch off its filters.
+  // Invoice Settings is a third: its tabs, Edit and Preview have to keep
+  // working in demo, so the manager switches off only what changes data.
   const section = adminSettingsSectionFromPath(splitLocalePath(pathname).rest);
-  const locked = isDemoMode && section !== "storage" && section !== "activityLog";
+  const locked =
+    isDemoMode &&
+    section !== "storage" &&
+    section !== "activityLog" &&
+    section !== "invoices";
 
   return (
     // Settings are forms, so a narrow column. The log is a table of six
-    // columns and does not fit in one.
+    // columns and does not fit in one; Invoice Settings is a gallery of
+    // template cards, laid out full width as the Sliders page is.
     <div
       className={cn(
         "mx-auto w-full",
-        section !== "activityLog" && "max-w-4xl",
+        section !== "activityLog" && section !== "invoices" && "max-w-4xl",
       )}
     >
       {isDemoMode && (

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Check, ChevronDown, Lock, Search, TriangleAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -78,6 +79,7 @@ export function POSLocationBadge({
   flashToken = 0,
   className,
 }: POSLocationBadgeProps) {
+  const t = useTranslations("pos.counter");
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [isFlashing, setIsFlashing] = React.useState(false);
@@ -121,8 +123,8 @@ export function POSLocationBadge({
   const label = active
     ? active.name
     : isStale
-      ? "Counter unavailable"
-      : "Shared stock";
+      ? t("unavailable")
+      : t("sharedStock");
 
   const filtered = React.useMemo(
     () => matchPOSLocations(locations, query),
@@ -229,7 +231,7 @@ export function POSLocationBadge({
             {face}
           </div>
         </TooltipTrigger>
-        <TooltipContent>Finish or cancel the current sale first</TooltipContent>
+        <TooltipContent>{t("finishSaleFirst")}</TooltipContent>
       </Tooltip>
     );
   }
@@ -243,7 +245,7 @@ export function POSLocationBadge({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={`Selling from ${label}. Change counter`}
+          aria-label={t("changeCounter", { name: label })}
           className={cn(
             "cursor-pointer rounded-xl outline-none transition-all",
             "focus-visible:ring-2 focus-visible:ring-primary/30",
@@ -262,7 +264,7 @@ export function POSLocationBadge({
       >
         <div className="flex items-center justify-between px-3 pb-2 pt-1.5">
           <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-            Selling from
+            {t("sellingFrom")}
           </span>
           <kbd className="rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
             Alt B
@@ -276,7 +278,7 @@ export function POSLocationBadge({
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Find a counter..."
+              placeholder={t("findCounter")}
               className="h-9 rounded-xl pl-9 text-sm"
             />
           </div>
@@ -294,7 +296,7 @@ export function POSLocationBadge({
           <div className="flex flex-col">
             {filtered.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No counter matches that.
+                {t("noMatch")}
               </p>
             ) : (
               filtered.map((location, index) => {
@@ -342,7 +344,7 @@ export function POSLocationBadge({
                       // Sales parked at another counter are invisible from here
                       // — say so before the cashier walks away from them.
                       <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                        {held} held
+                        {t("heldCount", { count: held })}
                       </span>
                     ) : index < MAX_NUMBER_SHORTCUTS ? (
                       <kbd className="shrink-0 rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
@@ -358,11 +360,11 @@ export function POSLocationBadge({
 
         <div className="mt-1 flex items-center justify-between border-t border-border/60 px-3 pb-1 pt-2.5">
           <span className="text-xs text-muted-foreground">
-            {locations.length} active
+            {t("activeCount", { count: locations.length })}
           </span>
           {isStale ? (
             <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-              Current counter was deactivated
+              {t("deactivated")}
             </span>
           ) : null}
         </div>
@@ -399,13 +401,14 @@ function BadgeFace({
   showChevron,
   stretch,
 }: BadgeFaceProps) {
+  const t = useTranslations("pos.counter");
   // The full-width row replaces a search bar that is not on screen, so it has
   // room to say what the chip can only imply.
   const text =
     compact && !isShared && !isStale
       ? posLocationShortCode(label)
       : stretch && !isShared && !isStale
-        ? `Selling at ${label}`
+        ? t("sellingAt", { name: label })
         : label;
 
   return (

@@ -15,6 +15,8 @@
 const STOREFRONT_PRIVATE_PRODUCT_FIELDS = [
   "search",
   "cost",
+  "inventoryFinanceGeneration",
+  "inventoryFinanceCurrency",
   "variants.cost",
   "preorder.supplierEta",
   "variants.preorder.supplierEta",

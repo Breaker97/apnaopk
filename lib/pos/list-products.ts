@@ -10,6 +10,7 @@ import {
   type POSStockStatusFilter,
 } from "@/lib/pos/product-stock";
 import type { POSCategory, POSProduct } from "@/components/pos/pos-types";
+import { loadCategoryTaxTree, productTaxRate } from "@/lib/tax/tax-rates";
 import {
   MAX_POS_PRODUCT_PAGE_SIZE,
   POS_PRODUCT_PAGE_SIZE,
@@ -78,7 +79,7 @@ export {
 // off, continue-selling), without which a resumed sale would drop every digital
 // line as "out of stock" — their `stock` is 0 by design.
 const PRODUCT_FIELDS =
-  "name price comparePrice images media sku skuNormalized barcode barcodeNormalized stock locationInventory variants category vendorId productSource options shipping.isPhysicalProduct inventory.tracked inventory.continueSellingWhenOutOfStock";
+  "name price comparePrice images media sku skuNormalized barcode barcodeNormalized stock locationInventory variants category vendorId productSource options taxRate taxClass chargeTax shipping.isPhysicalProduct inventory.tracked inventory.continueSellingWhenOutOfStock";
 
 /**
  * Mongoose lean documents carry ObjectId/Date instances, which neither
@@ -179,7 +180,7 @@ export async function listPOSProducts(
 
   // The product query and the (unfiltered) category list are independent, so
   // they run together instead of one after the other.
-  const [rawProducts, rawCategories] = await Promise.all([
+  const [rawProducts, rawCategories, categoryTaxTree] = await Promise.all([
     Product.find(query)
       .select(PRODUCT_FIELDS)
       // Cursor paging has to walk a stable order, and `_id` is the field the
@@ -201,15 +202,23 @@ export async function listPOSProducts(
           .sort({ order: 1 })
           .lean()
       : Promise.resolve([]),
+    // Each product's own tax rate comes with it (its own, else its
+    // category's), so the till taxes every line the way the sale will be.
+    loadCategoryTaxTree(),
   ]);
 
   const products = rawProducts
-    .map((product) =>
-      applyPOSLocationStock(
+    .map((product) => ({
+      ...applyPOSLocationStock(
         product as typeof product & POSProductWithInventory,
         locationId,
       ),
-    )
+      // Resolved: a fraction, or null for the store's rate.
+      taxRate: productTaxRate(
+        product as { taxRate?: number | null; taxClass?: string | null; category?: unknown; chargeTax?: boolean },
+        categoryTaxTree,
+      ),
+    }))
     // An id lookup must return every requested row, including the sold-out
     // ones: the caller needs to be told a held line went out of stock, not
     // handed a silently shorter list.

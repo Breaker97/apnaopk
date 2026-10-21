@@ -1,4 +1,5 @@
 import "server-only";
+import { VENDOR_PICKUP_ONLY_MESSAGE } from "@/lib/vendors/vendor-fulfillment";
 
 import { assertWholeQuantities } from "@/lib/cart/cart-item-quantity";
 import * as z from "zod";
@@ -20,7 +21,8 @@ import { checkoutAttemptFingerprint } from "@/lib/checkout/checkout-attempts";
 import { quantizeToCurrency } from "@/lib/intl/money";
 import { checkoutStoreCredit } from "@/lib/store-credit/checkout-credit";
 import { holdCheckoutCredit } from "@/lib/store-credit/store-credit";
-import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
+import { checkoutTotalsWithLineTax, encodeLineTaxSnapshot } from "@/lib/tax/checkout-tax";
+import { couponVendorKey } from "@/lib/orders/coupon-line-split";
 import {
   pickupCheckoutCharges,
   resolvePickupCheckoutFulfillment,
@@ -209,6 +211,7 @@ interface CartItem {
     _id: string;
     name: string;
     price: number;
+    cost?: number | null;
     images?: string[];
     vendorId: string | { _id: string };
     sku?: string;
@@ -393,7 +396,8 @@ export async function createStripeCardIntent(
       path: "items.productId",
       // `shipping` + `inventory` decide whether `stock` is a limit at all
       // (lib/products/stock-policy.ts) — resolvePurchaseType() reads them.
-      select: "name price images vendorId stock inventory sku shipping variants",
+      // `cost` must survive into the checkout attempt's order snapshot.
+      select: "name price cost images vendorId stock inventory sku shipping variants",
       populate: { path: "vendorId", select: "_id" },
     })
     .lean();
@@ -816,7 +820,9 @@ export async function createStripeCardIntent(
         currency: settings.general?.defaultCurrency,
       });
   if (shippingResolution && !shippingResolution.available) {
-    throw new ValidationError(SHIPPING_UNAVAILABLE_MESSAGE);
+    throw new ValidationError(shippingResolution.unavailableReason === "pickup_only"
+      ? VENDOR_PICKUP_ONLY_MESSAGE
+      : SHIPPING_UNAVAILABLE_MESSAGE);
   }
   const pickupCharges = pickupFulfillment
     ? pickupCheckoutCharges({ shippingCost: 0, dutyAmount: 0 })
@@ -849,17 +855,37 @@ export async function createStripeCardIntent(
 
   // Coupons/discounts are computed from the selected shipping cost; duties are
   // added on top of the discounted total (never discounted).
-  const totals = calculateCheckoutTotals({
-    subtotal,
-    shippingCost,
-    taxRate,
-    coupon: appliedCoupon,
-    shippingByVendor,
-    currency: settings.general?.defaultCurrency,
-  });
+  // Each line taxed at its own rate, as checkout prices it.
+  const totals = await checkoutTotalsWithLineTax(
+    {
+      subtotal,
+      shippingCost,
+      taxRate,
+      coupon: appliedCoupon,
+      shippingByVendor,
+      currency: settings.general?.defaultCurrency,
+    },
+    {
+      lines: items.map((item) => ({
+        productId: item.productId._id,
+        vendorId: couponVendorKey(item.productId.vendorId),
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      coupon: appliedCoupon,
+    },
+  );
   const discount = totals.discount;
   const tax = totals.tax;
   const total = totals.total + dutyAmount;
+  // What each line was charged, so the order built when the money lands splits
+  // the tax as it was quoted even if a rate changes meanwhile.
+  const lineTaxSnapshot = encodeLineTaxSnapshot(items, {
+    tax,
+    lineTaxes: totals.lineTaxes,
+    lineRates: totals.lineRates,
+    storeRate: taxRate,
+  });
   // Carried to the order builder so a scoped coupon comes off the vendor
   // whose items earned it — see `couponDiscount` on the sub-order.
   const couponVendorShares = appliedCoupon?.vendorShares
@@ -1174,6 +1200,7 @@ export async function createStripeCardIntent(
       ),
       subtotal: String(subtotal),
       tax: String(tax),
+      ...(lineTaxSnapshot ? { lineTaxes: lineTaxSnapshot } : {}),
       discount: String(discount),
       total: String(total),
       // What these figures were worked out from, so the order builder can

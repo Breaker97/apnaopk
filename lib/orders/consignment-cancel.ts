@@ -1,5 +1,6 @@
 import "server-only";
 
+import { flagScheduledPayoutsForOrder } from "@/lib/finance/payout-requote";
 import { Order, Vendor } from "@/models";
 import { ORDER_STATUS } from "@/config/app.config";
 import { NotFoundError } from "@/lib/api/errors";
@@ -138,6 +139,12 @@ export async function cancelConsignment(params: {
   );
 
   const orderId = String(order._id);
+  // A delivered consignment already sitting in a payout must not be paid now.
+  await flagScheduledPayoutsForOrder({
+    orderId,
+    vendorIds: [subOrder.vendorId],
+    reason: `${seller}'s consignment was cancelled.`,
+  });
   const vendorId = String(subOrder.vendorId);
 
   // Goods that left the warehouse are not back on the shelf.

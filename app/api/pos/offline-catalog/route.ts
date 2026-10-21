@@ -26,13 +26,19 @@ import {
  * disclosure — a terminal pulls a snapshot at the start of a shift, not in a
  * loop.
  *
- * `lenient` (100 per 15 min), NOT `moderate` (20): one pull is one request per
- * 500 products, so `moderate` would cut a 10k-product catalogue off mid-pull —
- * and a partial pull is discarded, which would leave the register showing a
- * stale snapshot and flagged offline for the rest of the shift. The budget is
- * deliberate rather than generous: a 20k-product store gets two full pulls per
- * window, and a failed pull keeps the previous snapshot, so the worst outcome
- * of exhausting it is stock figures that are one refresh old.
+ * `lenient`, per cashier. Every caller is a store role (`canAccessPOS` admits
+ * no shopper), and store roles get the preset twenty times over
+ * (`STORE_ROLE_ALLOWANCE` in `lib/api/rate-limit-middleware.ts`): 2,000
+ * requests per quarter hour. One pull is one request per 500 products, so a
+ * 20k-product store has room for about fifty full pulls in a window, against
+ * the register's one every fifteen minutes (`hooks/use-pos-offline.ts`) plus
+ * one per reload. `moderate` would still be too tight for the largest
+ * catalogues — a partial pull is discarded.
+ *
+ * Should a till hit it anyway, a 429 is not an outage: the limit is counted
+ * after the session check, so the register reads it as "reachable, try again
+ * in a minute" and keeps its previous snapshot, rather than calling itself
+ * offline.
  */
 export const GET = withApi(
   {

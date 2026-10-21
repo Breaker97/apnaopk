@@ -1,9 +1,11 @@
+import { physicalReturnRows, type PhysicalReturn } from "./finance-return-states";
 import { CheckoutAttempt, Order, Product, ReturnRequest } from "@/models";
 import { productTracksStock } from "@/lib/products/stock-policy";
 import { ORDER_STATUS } from "@/config/app.config";
 import { PURCHASE_TYPE } from "@/lib/orders/preorders";
 import { RETURN_STATUS, UNSELLABLE_RETURN_CONDITIONS } from "@/lib/returns/returns";
 import { heldReturnUnits, type HeldReturnSource } from "@/lib/returns/held-units";
+import { InventoryPosition } from "@/models/inventory-position.model";
 
 /**
  * Where a row's units are, the way a shelf count would find them.
@@ -153,6 +155,15 @@ export function unavailableUnitsFromReturns(
   return units;
 }
 
+function physicalUnavailableFromReturns(returns: ReadonlyArray<HeldReturnSource | null>, wanted: ReadonlySet<RowKey> | null) {
+  const units = new Map<RowKey, number>();
+  for (const request of returns) for (const line of physicalReturnRows(request as PhysicalReturn | null)) {
+    const key = rowKey(line.productId, line.variantId);
+    if ((!wanted || wanted.has(key)) && line.quantity) units.set(key, (units.get(key) ?? 0) + line.quantity);
+  }
+  return units;
+}
+
 type BreakdownInput = {
   productId: string;
   variantId: string | null;
@@ -190,7 +201,7 @@ export function stockBreakdown(
 const ORDER_SELECT =
   "subOrders.status subOrders.inventoryReserved subOrders.preorderReserved subOrders.items.productId subOrders.items.variantId subOrders.items.quantity subOrders.items.purchaseType";
 const RETURN_SELECT =
-  "status itemsCountedAt items.productId items.variantId items.quantityReceived items.condition unsellableDispositions";
+  "status itemsCountedAt inventoryRestored items.productId items.variantId items.quantityReceived items.quantityRestocked items.condition unsellableDispositions";
 
 /**
  * The three bounded reads behind Committed and Unavailable — open orders by the
@@ -232,7 +243,7 @@ async function readOffShelfSources(productIds?: string[]) {
         items: {
           $elemMatch: {
             ...(productIds ? { productId: { $in: productIds } } : {}),
-            condition: { $in: UNSELLABLE_RETURN_CONDITIONS },
+
           },
         },
       })
@@ -241,7 +252,8 @@ async function readOffShelfSources(productIds?: string[]) {
       "unsellable returns",
     ),
   ]);
-  return { orders, attempts, returns };
+  const manualHolds = InventoryPosition.db.readyState === 1 ? await InventoryPosition.find({ unavailableOwned: { $gt: 0 }, ...(productIds ? { productId: { $in: productIds } } : {}) }).select("productId variantId unavailableOwned").lean() : [];
+  return { orders, attempts, returns, manualHolds };
 }
 
 /**
@@ -255,12 +267,13 @@ async function readOffShelfSources(productIds?: string[]) {
 export async function offShelfStockTotals(
   productScope: Record<string, unknown> = {},
 ): Promise<{ committed: number; unavailable: number }> {
-  const { orders, attempts, returns } = await readOffShelfSources();
+  const { orders, attempts, returns, manualHolds } = await readOffShelfSources();
   const committed = committedUnitsFromOrders(orders, null);
   for (const [key, units] of committedUnitsFromHolds(attempts, null)) {
     committed.set(key, (committed.get(key) || 0) + units);
   }
-  const unavailable = unavailableUnitsFromReturns(returns, null);
+  const unavailable = physicalUnavailableFromReturns(returns, null);
+  for (const hold of manualHolds) { const key = rowKey(hold.productId, hold.variantId); unavailable.set(key, (unavailable.get(key) ?? 0) + hold.unavailableOwned); }
 
   const productOf = (key: RowKey) => key.split(":")[0];
   const productIds = [
@@ -300,10 +313,11 @@ export async function attachStockBreakdown<T extends BreakdownInput>(
   const wanted = new Set(rows.map((row) => rowKey(row.productId, row.variantId)));
   const productIds = [...new Set(rows.map((row) => row.productId))];
 
-  const { orders, attempts, returns } = await readOffShelfSources(productIds);
+  const { orders, attempts, returns, manualHolds } = await readOffShelfSources(productIds);
   const fromOrders = committedUnitsFromOrders(orders, wanted);
   const fromHolds = committedUnitsFromHolds(attempts, wanted);
-  const unavailable = unavailableUnitsFromReturns(returns, wanted);
+  const unavailable = physicalUnavailableFromReturns(returns, wanted);
+  for (const hold of manualHolds) { const key = rowKey(hold.productId, hold.variantId); unavailable.set(key, (unavailable.get(key) ?? 0) + hold.unavailableOwned); }
 
   return rows.map(({ stock, tracksStock, ...row }) => {
     const key = rowKey(row.productId, row.variantId);

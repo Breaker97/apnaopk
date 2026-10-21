@@ -6,18 +6,18 @@
  * being applied — the same lock-and-crop contract the home-page promo cards
  * use, so the committed image already fits its slot.
  *
- * Side banner: one portrait card beside the link columns, 187px wide inside its
- * 236px panel and as tall as whatever the grid measures. Measured in the
- * browser, the column and row caps hold that between 269px (two groups of eight
- * links, one row) and 377px (four groups of four, two rows) — 0.695 to 0.496
- * wide-over-tall. No single lock can match a frame that moves, so 3:5 sits in
- * the middle of the band and the panel covers rather than stretches: at those
- * two extremes it trims 6.8% off the top and bottom, or 8.7% off each side.
- * Hence the prompt hint below — art wants a quiet margin, not a full bleed.
+ * Side banner: one portrait card beside the link columns, 184px wide inside its
+ * 210px panel and as tall as the flyout body, which runs the category rail's
+ * height. Its 262px floor and the rail's 400px cap hold that between 260px and
+ * 374px inside the border — 0.708 to 0.492 wide-over-tall. No single lock can
+ * match a frame that moves, so 3:5 sits in the middle of the band and the panel
+ * covers rather than stretches: at those two extremes it trims 7.6% off the
+ * top and bottom, or 9% off each side. Hence the prompt hint below — art wants
+ * a quiet margin, not a full bleed.
  *
- * Bottom cards: a pair of wide cards under the columns, measured at 432 × 122
- * in a four-column flyout. That frame is fixed, so a card authored here covers
- * it exactly with nothing trimmed.
+ * Bottom cards: a pair of wide cards under the columns, 424px wide in a
+ * four-column flyout. The frame keeps this 1296 × 366 ratio at any width, so a
+ * card authored here covers it exactly with nothing trimmed.
  */
 
 export const MEGA_MENU_PROMO_WIDTH = 1080 as const; // 3:5

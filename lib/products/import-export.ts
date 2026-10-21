@@ -1,3 +1,8 @@
+import { runFinanceOperation } from "@/lib/finance/operations";
+import { financeQuery } from "@/lib/finance/transaction";
+import { withInventoryWrite } from "@/lib/inventory/finance-context";
+import { InventoryMovement } from "@/models/inventory-movement.model";
+import { FinanceOperation } from "@/models/finance-operation.model";
 import { mongoose } from "@/lib/db";
 import { Product, Category, Brand, User, Vendor } from "@/models";
 import { syncProductAggregates } from "@/models/product.model";
@@ -44,6 +49,13 @@ import {
 } from "@/lib/products/sanitize";
 import { carryPreorderCounters } from "@/lib/products/preorder-counters";
 import type { ProductFeatures } from "@/lib/products/product-features";
+import { importedTax, type VendorTaxChangePolicy } from "@/lib/tax/tax-settings";
+import {
+  INHERITED_PRODUCT_TAX,
+  productTaxOf,
+  taxAfterWrite,
+  vendorTaxRefusal,
+} from "@/lib/tax/vendor-tax";
 import { mergeScopeFilter } from "@/lib/access/staff-scope";
 import { releaseBoostInventoryIfProductWentDark } from "@/lib/boosts/boosts";
 import { MediaUrlSchema } from "@/lib/validations";
@@ -90,6 +102,9 @@ const PRODUCT_CSV_HEADERS = [
   "weightUnit",
   "countryOfOrigin",
   "hsCode",
+  "chargeTax",
+  "taxClass",
+  "taxRate",
   "productSource",
   "vendorId",
   "vendor",
@@ -187,6 +202,9 @@ type ProductForCsv = {
   };
   inventory?: { tracked?: boolean };
   digitalDelivery?: { downloadLimit?: number };
+  chargeTax?: boolean;
+  taxClass?: string | null;
+  taxRate?: number | null;
   productSource?: string;
   vendorId?: { _id?: unknown; storeName?: string } | string | null;
 };
@@ -280,6 +298,10 @@ function buildCsvRow(product: ProductForCsv): Record<ProductCsvHeader, string> {
     weightUnit: product.shipping?.weightUnit || "",
     countryOfOrigin: product.shipping?.countryOfOrigin || "",
     hsCode: product.shipping?.hsCode || "",
+    chargeTax: String(product.chargeTax ?? true),
+    // A custom rate stands in for a class, so a row carries one or the other.
+    taxClass: product.taxClass || "",
+    taxRate: numberCell(product.taxRate ?? undefined),
     productSource: product.productSource || "",
     vendorId: getObjectId(product.vendorId),
     vendor: getVendorName(product.vendorId),
@@ -310,6 +332,7 @@ type ProductImportResult = {
 };
 
 export type ProductImportContext = {
+  financialRequestKey?: string; financialActorId?: string;
   /** Vendor a new row is filed under when it names none. */
   defaultVendorId: string;
   productSource: "admin" | "vendor";
@@ -331,6 +354,17 @@ export type ProductImportContext = {
   createMissingCategories?: boolean;
   /** The vendor plan's product cap, when one applies. */
   productLimit?: { limit: number; current: number };
+  /**
+   * The store's tax class keys (Settings → Tax). A row naming any other class
+   * fails; without them, any well-formed key is taken.
+   */
+  taxClasses?: ReadonlySet<string>;
+  /**
+   * Set when a vendor (or their staff) imports: Settings → Tax's rule for
+   * vendors' tax. A row that changes a product's tax it does not allow
+   * fails; one repeating the tax as it is (a re-imported export) passes.
+   */
+  vendorTaxPolicy?: VendorTaxChangePolicy;
   /**
    * Settings → Products. A new product takes a format the store sells: a blank
    * isPhysicalProduct cell means physical unless physical products are off,
@@ -498,7 +532,7 @@ function cellJsonArray(cells: Cells, column: string): unknown[] | undefined {
   return parsed;
 }
 
-function readRow(cells: Cells) {
+function readRow(cells: Cells, taxClasses?: ReadonlySet<string>) {
   return {
     id: cellText(cells, "id"),
     title: cellText(cells, "title"),
@@ -534,6 +568,8 @@ function readRow(cells: Cells) {
     weightUnit: cellChoice(cells, "weightUnit", WEIGHT_UNITS),
     countryOfOrigin: cellText(cells, "countryOfOrigin"),
     hsCode: cellText(cells, "hsCode"),
+    chargeTax: cellFlag(cells, "chargeTax"),
+    tax: importedTax(cellText(cells, "taxClass"), cellNumber(cells, "taxRate", "15"), taxClasses),
     productSource: cellChoice(cells, "productSource", PRODUCT_SOURCES),
     vendorId: cellText(cells, "vendorId"),
     vendorEmail: cellText(cells, "vendorEmail")?.toLowerCase(),
@@ -545,6 +581,22 @@ function readRow(cells: Cells) {
 }
 
 type ProductRow = ReturnType<typeof readRow>;
+
+/** The tax fields a row writes, as the product API would receive them. */
+function rowTaxWrite(row: ProductRow): Record<string, unknown> {
+  return { ...(row.chargeTax !== undefined ? { chargeTax: row.chargeTax } : {}), ...row.tax };
+}
+
+function assertRowTaxAllowed(row: ProductRow, before: unknown, context: ProductImportContext) {
+  if (!context.vendorTaxPolicy) return;
+  const stored = before ? productTaxOf(before as Parameters<typeof productTaxOf>[0]) : null;
+  const refusal = vendorTaxRefusal(
+    context.vendorTaxPolicy,
+    stored,
+    taxAfterWrite(stored ?? INHERITED_PRODUCT_TAX, rowTaxWrite(row)),
+  );
+  if (refusal) throw new Error(refusal);
+}
 
 /** Whether a row says whose product it is, in any of the vendor columns. */
 function namesVendor(row: ProductRow): boolean {
@@ -563,6 +615,7 @@ type StoredVariant = Record<string, unknown> & {
 };
 
 type ExistingProduct = {
+  inventoryFinanceGeneration?: number; updatedAt?: Date;
   _id: unknown;
   vendorId?: unknown;
   slug?: string;
@@ -1031,6 +1084,7 @@ async function createProduct(
 ): Promise<void> {
   const { context } = run;
   if (context.createRefusal) throw new Error(context.createRefusal);
+  assertRowTaxAllowed(row, null, context);
   if (context.allowedVendorIds && !context.allowedVendorIds.includes(vendorId)) {
     throw new Error("You do not have access to this vendor's products.");
   }
@@ -1128,6 +1182,9 @@ async function createProduct(
     ...(row.digitalDownloadLimit !== undefined
       ? { digitalDelivery: { downloadLimit: row.digitalDownloadLimit } }
       : {}),
+    chargeTax: row.chargeTax ?? true,
+    taxClass: row.tax.taxClass ?? null,
+    taxRate: row.tax.taxRate ?? null,
     options: row.options ? sanitizeOptionsForMongoose(row.options) : [],
     variants,
   };
@@ -1167,6 +1224,7 @@ async function updateProduct(
 ): Promise<void> {
   const { context } = run;
   if (context.updateRefusal) throw new Error(context.updateRefusal);
+  assertRowTaxAllowed(row, existing, context);
   const productId = String(existing._id);
 
   if (
@@ -1220,6 +1278,11 @@ async function updateProduct(
   if (context.allowFeatured) assign("featured", row.featured);
   if (isPhysicalProduct) assign("inventory.tracked", row.inventoryTracked);
   assign("digitalDelivery.downloadLimit", row.digitalDownloadLimit);
+  // A class and a custom rate replace each other (`importedTax`), so either
+  // cell writes both fields; "inherit" clears both.
+  assign("chargeTax", row.chargeTax);
+  assign("taxClass", row.tax.taxClass);
+  assign("taxRate", row.tax.taxRate);
 
   const shippingChanges = Object.entries({
     weight: row.weight,
@@ -1295,7 +1358,7 @@ async function updateProduct(
   try {
     await reserveProductBarcodeRegistry(productId, barcodePayload);
     updated = await Product.findOneAndUpdate(
-      { _id: existing._id },
+      { _id: existing._id, ...(existing.inventoryFinanceGeneration ? { updatedAt: existing.updatedAt } : {}) },
       {
         // A moved release date is propagated by a durable job recorded in
         // this same write, exactly as a save from the product form.
@@ -1348,7 +1411,7 @@ async function importProductRecords(
   for (const record of records) {
     try {
       if ("error" in record) throw new Error(record.error);
-      const row = readRow(record.values);
+      const row = readRow(record.values, context.taxClasses);
       // Resolved before the product is looked up: a SKU only means something
       // inside one vendor's catalog.
       const namedVendorId = context.allowVendorColumn ? await run.resolveVendor(row) : null;
@@ -1357,14 +1420,23 @@ async function importProductRecords(
         throw new Error(`vendorId "${vendorId}" is not a valid id.`);
       }
 
-      const existing = await findExistingProduct(row, vendorId, context);
-      if (existing) {
-        await updateProduct(row, existing, run, namedVendorId);
-        result.updated++;
-      } else {
-        await createProduct(row, vendorId, run);
-        result.created++;
-      }
+      const applyRow = async () => {
+        const existing = await findExistingProduct(row, vendorId, context);
+        if (existing) { await updateProduct(row, existing, run, namedVendorId); return "updated" as const; }
+        await createProduct(row, vendorId, run); return "created" as const;
+      };
+      if (context.financialRequestKey && context.financialActorId) {
+        const requestKey = `${context.financialRequestKey}:row:${record.row}`;
+        const outcome = await runFinanceOperation({ action: "inventory:import-row", actorId: context.financialActorId, requestKey,
+          fingerprint: { row: record.values, vendorId, scope: context.productScopeFilter, canCreate: !context.createRefusal, canUpdate: !context.updateRefusal }, work: async () => {
+            const status = await withInventoryWrite({ reason: "correction", sourceKind: "catalog_import", sourceId: requestKey, requestKey, actorId: context.financialActorId, channel: "web", note: "Catalog import: initial stock is opening inventory; existing quantities are count corrections." }, applyRow);
+            const movements = await financeQuery(InventoryMovement.find({ "source.id": requestKey }).select("_id")).lean();
+            const children = await financeQuery(FinanceOperation.find({ action: "inventory:movement", sourceId: { $in: movements.map((m) => String(m._id)) } }).select("_id")).lean();
+            return { result: { status, operationIds: children.map((op) => String(op._id)) }, postings: [], sourceId: requestKey };
+          } });
+        result[outcome.data.status]++;
+        if (outcome.bookkeepingState === "pending") result.warnings?.push(`Row ${record.row}: saved; ledger posting is pending.`);
+      } else result[await applyRow()]++;
     } catch (error) {
       result.failed++;
       result.errors.push({ row: record.row, message: describeImportError(error) });

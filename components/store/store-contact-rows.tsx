@@ -100,7 +100,7 @@ export function ContactRow({
 
   if (href) {
     return (
-      <a href={href} className="flex gap-4 transition-colors hover:text-primary">
+      <a href={href} className="flex gap-4 transition-colors hover:text-store-link">
         {content}
       </a>
     );

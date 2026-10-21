@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Types } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Order, Cart } from "@/models";
 import {
@@ -66,13 +67,22 @@ import {
 } from "@/lib/quotes/quote-offer";
 import { parsePageLimit } from "@/lib/api/list-query";
 import { isCountryAllowed } from "@/lib/intl/country-availability";
-import { sanitizeOrdersForCustomer } from "@/lib/orders/order-customer-view";
-import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
+import {
+  sanitizeOrderForCustomer,
+  sanitizeOrdersForCustomer,
+} from "@/lib/orders/order-customer-view";
+import { checkoutTotalsWithLineTax, lineTaxGetters } from "@/lib/tax/checkout-tax";
 import { assertCashOnDeliveryAllowed } from "@/lib/checkout/cod-eligibility";
 import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
 import * as z from "zod";
+import { VENDOR_PICKUP_ONLY_MESSAGE } from "@/lib/vendors/vendor-fulfillment";
 import { validateBody } from "@/lib/api/validate";
 import { placedOrderMatch } from "@/lib/orders/order-payment-status";
+import {
+  orderLineVariantSnapshot,
+  type OrderLineProductSource,
+  type OrderLineVariantSource,
+} from "@/lib/orders/order-line-variant";
 
 function isDuplicateKeyError(err: unknown): boolean {
   return (
@@ -196,7 +206,7 @@ export async function POST(request: NextRequest) {
     const cart = await Cart.findOne({ userId: session.user.id })
       .populate(
         "items.productId",
-        "name price images vendorId sku status stock inventory slug productSource shipping variants priceOnRequest preorder",
+        "name price cost comparePrice images vendorId sku status stock inventory slug productSource shipping variants options priceOnRequest preorder",
       )
       .lean();
 
@@ -208,6 +218,7 @@ export async function POST(request: NextRequest) {
         _id?: string;
         name?: string;
         price?: number;
+        cost?: number | null;
         sku?: string;
         status?: string;
         stock?: number;
@@ -216,11 +227,15 @@ export async function POST(request: NextRequest) {
         priceOnRequest?: boolean;
         productSource?: unknown;
         shipping?: ProductShippingData;
+        comparePrice?: number | null;
+        options?: OrderLineProductSource["options"];
         variants?: Array<
-          VariantShippingData & {
-            _id: { toString: () => string };
-            price?: number;
-          }
+          VariantShippingData &
+            Omit<OrderLineVariantSource, "_id"> & {
+              _id: { toString: () => string };
+              price?: number;
+              cost?: number | null;
+            }
         >;
       } | null;
       price: number;
@@ -498,19 +513,30 @@ export async function POST(request: NextRequest) {
         })
       : null;
     if (shippingResolution && !shippingResolution.available) {
-      throw new ValidationError(SHIPPING_UNAVAILABLE_MESSAGE);
+      throw new ValidationError(shippingResolution?.unavailableReason === "pickup_only"
+        ? VENDOR_PICKUP_ONLY_MESSAGE
+        : SHIPPING_UNAVAILABLE_MESSAGE);
     }
     const shippingCost = shippingResolution?.shippingCost ?? 0;
     const customsEstimate = shippingResolution?.customs;
     const dutyAmount = customsEstimate?.dutyAmount ?? 0;
     // Tax and total are worked out by the same function, and rounded in the
     // store currency the same way, as the storefront checkout.
-    const totals = calculateCheckoutTotals({
-      subtotal,
-      shippingCost,
-      taxRate,
-      currency: settings.general?.defaultCurrency,
-    });
+    const totals = await checkoutTotalsWithLineTax(
+      {
+        subtotal,
+        shippingCost,
+        taxRate,
+        currency: settings.general?.defaultCurrency,
+      },
+      {
+        lines: cartItems.map((item) => ({
+          productId: item.productId?._id ?? item.productId,
+          price: resolveCurrentItemPrice(item),
+          quantity: item.quantity,
+        })),
+      },
+    );
     const tax = totals.tax;
     const total = totals.total + dutyAmount;
     // The store's own cash-on-delivery rules: switched off, a minimum, a
@@ -528,7 +554,20 @@ export async function POST(request: NextRequest) {
       vendorContext,
       (item) => item.productId?.vendorId,
     );
+    // Lines taxed at their own rates record the tax they carried.
+    const taxGetters = await lineTaxGetters(cartItems, {
+      line: (item) => ({
+        productId: item.productId?._id ?? item.productId,
+        price: resolveCurrentItemPrice(item),
+        quantity: item.quantity,
+      }),
+      goodsDiscount: 0,
+      tax,
+      storeRate: taxRate,
+      currency: settings.general?.defaultCurrency || "USD",
+    });
     const subOrders = await buildVendorSubOrders(vendorItems, {
+      ...taxGetters,
       codCollectedByDefault: settings.shipping?.codCollectedBy,
       currency: settings.general?.defaultCurrency || "USD",
       getProductId: (item) => item.productId?._id || item.productId,
@@ -555,6 +594,7 @@ export async function POST(request: NextRequest) {
                 : undefined,
             })
           : undefined,
+      getVariantSnapshot: (item) => orderLineVariantSnapshot(item.productId, item.variantId),
       fallbackCommissionPercent:
         settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
       status: "pending",
@@ -570,6 +610,7 @@ export async function POST(request: NextRequest) {
 
     // Create order with retry for order number uniqueness
     const orderData = {
+      inventoryReservationSourceId: new Types.ObjectId().toString(),
       customerId: session.user.id,
       currency: settings.general?.defaultCurrency || "USD",
       items: cartItems.map((item) => ({
@@ -588,6 +629,11 @@ export async function POST(request: NextRequest) {
         // Ties the sale back to the negotiation that produced it, and is what
         // settling the payment reads to close the quote out.
         quoteId: offerForItem(item)?.quoteId,
+        // The tax this line carried, as its consignment line records it — a
+        // return of the line reads it from here.
+        taxRate: taxGetters.getTaxRate?.(item),
+        tax: taxGetters.getTax?.(item),
+        taxParts: taxGetters.getTaxParts?.(item),
         customs: item.productId
           ? buildOrderItemCustomsSnapshot({
               productShipping: item.productId.shipping,
@@ -599,6 +645,7 @@ export async function POST(request: NextRequest) {
                 : undefined,
             })
           : undefined,
+        ...orderLineVariantSnapshot(item.productId, item.variantId),
       })),
       subOrders,
       shippingAddress,
@@ -662,7 +709,7 @@ export async function POST(request: NextRequest) {
     // Decrement inventory before creating the order. If the order fails to
     // persist after retries, restore inventory to avoid permanent over-reserve.
     try {
-      await decrementInventory(inventoryLines);
+      await decrementInventory(inventoryLines, { financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId } });
     } catch (err) {
       await releaseCartClaim();
       if (err instanceof InsufficientStockError) {
@@ -688,7 +735,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (err) {
-      await restoreInventory(inventoryLines).catch((restoreErr) =>
+      await restoreInventory(inventoryLines, { financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId } }).catch((restoreErr) =>
         console.error("Failed to restore inventory after order failure:", restoreErr),
       );
       await releaseCartClaim();
@@ -696,7 +743,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!order) {
-      await restoreInventory(inventoryLines).catch((restoreErr) =>
+      await restoreInventory(inventoryLines, { financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId } }).catch((restoreErr) =>
         console.error("Failed to restore inventory after order failure:", restoreErr),
       );
       await releaseCartClaim();
@@ -765,7 +812,7 @@ export async function POST(request: NextRequest) {
       paymentMethod: order.paymentMethod,
     });
 
-    return createdResponse(order);
+    return createdResponse(await sanitizeOrderForCustomer(order.toObject()));
   } catch (error) {
     return handleApiError(error);
   }

@@ -350,7 +350,7 @@ export function ProductFiltersLocation({
           <MapPin
             className={cn(
               "h-4 w-4 shrink-0",
-              hasLocation ? "text-primary" : "text-muted-foreground",
+              hasLocation ? "text-store-link" : "text-muted-foreground",
             )}
             aria-hidden="true"
           />

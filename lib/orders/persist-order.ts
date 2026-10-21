@@ -3,6 +3,7 @@ import { PAYMENT_STATUS } from "@/config/app.config";
 import { getNextOnlineOrderNumber } from "@/lib/orders/order-number";
 import { bindOffersToOrder } from "@/lib/quotes/quote-offer";
 import { PLATFORM_GATEWAY_PAYMENT_METHODS } from "@/lib/payments/payment-custody";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * Turn a finished order document into an order.
@@ -112,6 +113,24 @@ export async function persistOrderFromDocument(
       console.error("Failed to upsert guest customer profile:", err),
     );
   }
+
+  getPostHogClient()?.capture({
+    distinctId: String(document.customerId || ""),
+    event: "order_placed_server",
+    properties: {
+      order_id: String(order._id),
+      order_number: orderNumber,
+      payment_method: document.paymentMethod,
+      subtotal: document.subtotal,
+      shipping_cost: document.shippingCost,
+      tax: document.tax,
+      discount: document.discount,
+      total: document.total,
+      item_count: (document.items || []).length,
+      coupon_code: document.coupon?.code,
+      has_preorder: document.hasPreorder,
+    },
+  });
 
   return order;
 }

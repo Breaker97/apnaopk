@@ -5,6 +5,7 @@ export const CACHE_TAGS = {
   blogCategories: "blog-categories",
   blogPosts: "blog-posts",
   brands: "brands",
+  campaignBanners: "campaign-banners",
   categories: "categories",
   collections: "collections",
   coupons: "coupons",
@@ -265,6 +266,16 @@ export function revalidateMenuContent() {
 export function revalidateSliderContent() {
   revalidateCacheTags([CACHE_TAGS.sliders]);
   revalidateStorefrontLayouts();
+}
+
+/**
+ * The platform's Campaign Banners reach the shop only through the Home page's
+ * cached read (`getStorefrontCampaignBanners`), so the tag is enough — the
+ * page's render carries it. The coupon a banner advertises is read through
+ * its own tagged read, so editing that coupon refreshes the page too.
+ */
+export function revalidateCampaignBannerContent() {
+  revalidateCacheTags([CACHE_TAGS.campaignBanners]);
 }
 
 export function revalidateCategoryContent(options?: {

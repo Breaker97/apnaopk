@@ -1,4 +1,4 @@
-import { HandCoins, Inbox, RotateCcw, Truck } from "lucide-react";
+import { HandCoins, Inbox, PackageOpen, RotateCcw, Truck } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import {
   AdminStatsStrip,
@@ -16,7 +16,7 @@ interface ReturnsStatsStripProps {
 }
 
 /**
- * The four counts above the admin and vendor Returns tables. A server
+ * The five counts above the admin and vendor Returns tables. A server
  * component with its own query, so each page drops it in a `<Suspense>` and
  * the table does not wait on it — the Orders page's arrangement.
  */
@@ -34,6 +34,15 @@ export async function ReturnsStatsStrip({
   const count = (value: number) => new Intl.NumberFormat(locale).format(value);
 
   const items: AdminStatsStripItem[] = [
+    {
+      title: t("requested.title"),
+      value: count(stats.requestedCount),
+      description: t("requested.description", {
+        count: count(stats.requestedOpen),
+      }),
+      icon: <PackageOpen className="h-5 w-5" />,
+      iconClassName: "text-violet-700 bg-violet-100",
+    },
     {
       title: t("needsReview.title"),
       value: count(stats.needsReview),

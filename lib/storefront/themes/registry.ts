@@ -83,11 +83,11 @@ const FURNITURE_TOKENS: ThemeTokenOverrides = {
       text: "#2f2f2f",
       border: "#a9a3a0",
       primary: "#f19429",
-      secondary: "#cfc5b3",
+      // No own Secondary: Add to cart keeps the dark text colour.
       accent: "#ddac73",
       sale: "#dd472c",
       rating: "#404040",
-      link: "#e1a056",
+      link: "#855019",
     },
   },
   // A rounded geometric sans over a rounded body: calm, legible headings

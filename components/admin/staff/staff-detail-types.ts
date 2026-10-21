@@ -21,6 +21,19 @@ export interface StaffFormValues {
   startDate: string;
   notes: string;
   isActive: boolean;
+  /**
+   * The admin area only: which dashboard the member works in — the admin
+   * dashboard or the staff area ("seller" rows edit as staff).
+   */
+  role: "admin" | "staff";
+  /**
+   * The admin area only: the member's team role (components/admin/team/
+   * team-member-role-card.tsx). Null on staff = their own permission list;
+   * null on an administrator = the Administrator.
+   */
+  teamRoleId: string | null;
+  teamExtraPermissions: string[];
+  teamRevokedPermissions: string[];
 }
 
 export const defaultStaffFormValues: StaffFormValues = {
@@ -42,6 +55,10 @@ export const defaultStaffFormValues: StaffFormValues = {
   startDate: "",
   notes: "",
   isActive: true,
+  role: "staff",
+  teamRoleId: null,
+  teamExtraPermissions: [],
+  teamRevokedPermissions: [],
 };
 
 /** Identity block above the tabs — everything it shows comes from the GET. */

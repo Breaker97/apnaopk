@@ -182,6 +182,7 @@ export const POST = withApi(
 
     return successResponse({
       available: resolution.available,
+      unavailableReason: resolution.unavailableReason,
       mode: resolution.mode,
       shippingCost: resolution.shippingCost,
       singleOptions: resolution.singleOptions,

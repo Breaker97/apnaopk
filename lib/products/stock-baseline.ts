@@ -40,6 +40,7 @@ type StockBaseline = z.infer<typeof StockBaselineSchema>;
 
 /** The product update body, plus the baseline the form loaded. */
 export const ProductUpdateWithBaselineSchema = UpdateProductSchema.extend({
+  inventoryValuationConfirmation: z.object({ productVersion: z.string(), expectedVersions: z.record(z.string(), z.number().int().nonnegative()) }).optional(),
   stockBaseline: StockBaselineSchema.optional(),
 });
 

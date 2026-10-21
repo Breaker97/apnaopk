@@ -14,6 +14,7 @@ import {
 } from "@/lib/vendors/vendor-address";
 import { SOCIAL_PLATFORMS } from "@/lib/site-config/social-profiles";
 import type { VendorMessagingSettings } from "@/lib/notifications/vendor-messaging";
+import { VENDOR_FULFILLMENT_MODES } from "@/lib/vendors/vendor-fulfillment";
 
 const { Schema, models, model } = mongoose;
 const existingVendorModel = models.Vendor as typeof models.Vendor | undefined;
@@ -38,6 +39,7 @@ if (
     !existingVendorModel.schema.path("socialProfiles") ||
     !existingVendorModel.schema.path("stripeCustomerId") ||
     !existingVendorModel.schema.path("shipping.localPickup.locations") ||
+    !existingVendorModel.schema.path("shipping.fulfillmentMode") ||
     // Without this entry a dev session that already cached the schema would
     // silently drop every carrier write — the failure mode this whole guard
     // exists for.
@@ -437,6 +439,7 @@ const VendorCarriersSchema = new Schema(
 const VendorShippingSchema = new Schema(
   {
     enabled: { type: Boolean, default: false },
+    fulfillmentMode: { type: String, enum: VENDOR_FULFILLMENT_MODES, default: "both" },
     weightUnit: { type: String, enum: ["kg", "lb"], default: "kg" },
     carriers: { type: VendorCarriersSchema, default: undefined },
     /**

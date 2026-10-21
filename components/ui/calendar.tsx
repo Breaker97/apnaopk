@@ -76,7 +76,7 @@ function Calendar({
           : "text-base font-semibold text-[#172033] dark:text-foreground",
         dropdowns: "flex items-center justify-center gap-1.5",
         dropdown_root:
-          "relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
+          "relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[1px] has-focus:ring-ring/30",
         dropdown: "absolute inset-0 cursor-pointer opacity-0",
         nav: "contents",
         button_previous:
@@ -97,7 +97,10 @@ function Calendar({
           "text-[#98a2b3] dark:text-muted-foreground/60 [&>button]:text-[#98a2b3] dark:[&>button]:text-muted-foreground/60",
         disabled:
           "pointer-events-none text-[#c4cad4] opacity-50 [&>button]:text-[#c4cad4]",
-        selected: "",
+        selected:
+          props.mode === "range"
+            ? ""
+            : "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary/90",
         range_start: RANGE_START_CLASS,
         range_middle: RANGE_MIDDLE_CLASS,
         range_end: RANGE_END_CLASS,

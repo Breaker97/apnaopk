@@ -187,7 +187,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
       />
       {/* Framed by the admin's Themes editor only: re-applies the unsaved
           tokens it posts, so the preview beside the controls is live. */}
-      <ThemePreviewBridge brand={brand.colors} defaults={theme.defaults} />
+      <ThemePreviewBridge themeId={theme.id} brand={{...brand.colors, skeleton: brand.colors.skeleton}} defaults={theme.defaults} />
       <ScrollResetOnNavigate />
       {/* The render's own time, which what the page draws from the clock
           (a pre-order's window, a countdown, the footer's year) hydrates
@@ -230,6 +230,10 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
         {checkoutSettings.layout.chrome === "focused" ? (
           <style>{`.store-surface:has([data-checkout-segment]) [data-store-chrome]{display:none}`}</style>
         ) : null}
+        {/* The account area brings its own dashboard sidebar and top bar
+            (app/[locale]/(store)/account/layout.tsx), so the shop's chrome
+            steps aside there the same way. */}
+        <style>{`.store-surface:has([data-account-segment]) [data-store-chrome]{display:none}`}</style>
         {/* The shop's own scrollbar, from Themes → Layout. It is built
             server-side and rendered here because the document scrollbar
             belongs to html, which the admin shares — and .store-surface is
@@ -308,7 +312,7 @@ export default async function StoreLayout({ children, params }: LayoutProps) {
                 google: authSettings.googleOAuthEnabled,
                 facebook: authSettings.facebookOAuthEnabled,
               }}
-              demoCredentials={demoLoginCredentials()}
+              demoCredentials={demoLoginCredentials(theme.id)}
               emailVerificationRequired={authSettings.emailVerificationRequired}
             />
           </div>

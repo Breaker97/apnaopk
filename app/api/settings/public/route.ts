@@ -45,12 +45,14 @@ import {
 } from "@/lib/orders/order-settings";
 import { isCurrentSmtpConfigurationVerified } from "@/lib/email/smtp-verification";
 import { normalizeCountryAvailability } from "@/lib/intl/country-availability";
+import { liveKeyColors } from "@/lib/storefront/themes/key-colors";
 
 const getPublicSettingsPayload = unstable_cache(
   async () => {
     await connectDB();
 
     const settings = await getSettings();
+    const liveColors = liveKeyColors(settings);
     const header = normalizeHeaderSettings(settings.header);
     const footer = normalizeFooterSettings(settings.footer);
     const checkout = normalizeCheckoutSettings(settings.checkout);
@@ -116,11 +118,11 @@ const getPublicSettingsPayload = unstable_cache(
 
         // Appearance
         appearance: {
-          primaryColor:
-            settings.appearance?.primaryColor || DEFAULT_PRIMARY_COLOR,
-          secondaryColor:
-            settings.appearance?.secondaryColor || DEFAULT_SECONDARY_COLOR,
-          accentColor: settings.appearance?.accentColor || DEFAULT_ACCENT_COLOR,
+          // The live theme's key colours, read from the theme (the mirror in
+          // `appearance.*` can lag behind a theme made live by another tool).
+          primaryColor: liveColors.primary || DEFAULT_PRIMARY_COLOR,
+          secondaryColor: liveColors.secondary || DEFAULT_SECONDARY_COLOR,
+          accentColor: liveColors.accent || DEFAULT_ACCENT_COLOR,
           theme: normalizeThemeMode(settings.appearance?.theme),
           presetColor: settings.appearance?.presetColor || DEFAULT_PRESET_COLOR,
         },

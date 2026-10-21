@@ -1,28 +1,14 @@
 import { isCustomerAccount } from "@/lib/access/customer-account";
-import { NextRequest } from "next/server";
-import { connectDB } from "@/lib/db";
 import { Order, Product, User } from "@/models";
 import { Types } from "mongoose";
 import { getNextPosOrderNumber } from "@/lib/orders/order-number";
 import { DEFAULT_VENDOR_COMMISSION_RATE } from "@/lib/orders/order-settings";
-import { createdResponse } from "@/lib/api/response";
-import {
-  handleApiError,
-  AuthenticationError,
-  AuthorizationError,
-  ValidationError,
-} from "@/lib/api/errors";
-import { auth } from "@/lib/auth/auth";
-import { headers } from "next/headers";
+import { createdResponse, successResponse } from "@/lib/api/response";
+import { AuthorizationError, ValidationError } from "@/lib/api/errors";
+import { withApi } from "@/lib/api/handler";
 import { USER_ROLES, ORDER_STATUS } from "@/config/app.config";
 import { isStaffRole } from "@/lib/access/staff-role";
 import { getSettingsLean } from "@/models";
-import {
-  getStripeForSecretKey,
-  isStripeSecretKeyConfigured,
-  toStripeAmount,
-} from "@/lib/payments/stripe";
-import { resolveStripeCredentials } from "@/lib/settings/credentials";
 import {
   decrementInventory,
   restoreInventory,
@@ -44,16 +30,31 @@ import {
   resolveOrderVendorContextForItems,
 } from "@/lib/orders/order-vendors";
 import { notifyOrderCreatedParticipants } from "@/lib/notifications/notifications";
-import { validatePOSPaymentInput } from "@/lib/pos/payment";
-import { posStripeIntentProblem } from "@/lib/pos/stripe-intent-check";
+import { resolvePOSSalePayment } from "@/lib/pos/sale-payment";
+import { POS_TENDER_METHODS, POS_CARD_SUB_METHODS } from "@/lib/pos/tenders";
+import {
+  linkStoreCreditHold,
+  settleOrderStoreCredit,
+} from "@/lib/store-credit/store-credit";
 import {
   calculatePOSOrderTotals,
-  computePOSLineDiscountAmount,
+  posStoredSale,
   type POSOrderDiscountInput,
   type POSOrderItemInput,
 } from "@/lib/pos/order-totals";
 import { resolveLocationScope } from "@/lib/inventory/inventory-location-scope";
+import { resolveOfflineSoldAt } from "@/lib/pos/offline-sold-at";
+import { resolveOfflineCashier } from "@/lib/pos/offline-cashier";
+import { resolvePosOperator } from "@/lib/pos/operator";
+import { posTaxRates, resolvePOSTaxExemption } from "@/lib/pos/sale-tax";
+import { splitTax } from "@/lib/tax/tax-parts";
+import { storeTaxRateAt, type StoredTaxSettings } from "@/lib/tax/tax-settings";
+import { resolveSaleSession } from "@/lib/pos/register-session";
+import { loadPOSGuestCustomer } from "@/lib/pos/pos-customers";
+import { searchPOSSales } from "@/lib/pos/pos-order-search";
 import { resolveOrderItemCost } from "@/lib/products/item-cost";
+import { DELIVERY_ATTESTED_BY } from "@/lib/orders/delivery-attestation";
+import { netOfTaxVariantSnapshot, orderLineVariantSnapshot } from "@/lib/orders/order-line-variant";
 import * as z from "zod";
 import { validateBody } from "@/lib/api/validate";
 
@@ -83,12 +84,43 @@ const PosOrderSchema = z.object({
   notes: z.string().max(2000).optional(),
   posLocationId: z.string().max(64).optional(),
   customerId: z.string().max(64).optional(),
+  /**
+   * A guest customer (no account): a phone-only shopper, or a guest checkout
+   * record. Never together with `customerId` — see lib/pos/pos-customers.ts.
+   */
+  customerProfileId: z.string().max(64).optional(),
   /** The counter's "they agreed to news and offers", for an attached customer. */
   marketingOptIn: z.boolean().optional(),
   cashTendered: z.union([z.number(), z.string().max(40)]).optional(),
   paymentReference: z.string().max(200).optional(),
   paymentNote: z.string().max(1000).optional(),
   stripePaymentIntentId: z.string().max(200).optional(),
+  /**
+   * How the sale was paid, tender by tender (lib/pos/tenders.ts). Replaces
+   * `paymentMethod` + `cashTendered` + `paymentReference`, which a sale queued
+   * by an older till still sends and is still read.
+   */
+  tenders: z
+    .array(
+      z.object({
+        method: z.enum(POS_TENDER_METHODS),
+        amount: z.number(),
+        tendered: z.number().optional(),
+        reference: z.string().max(200).optional(),
+        cardSubMethod: z.enum(POS_CARD_SUB_METHODS).optional(),
+        stripePaymentIntentId: z.string().max(200).optional(),
+      }),
+    )
+    .max(10)
+    .optional(),
+  /** Take part of the sale now and the rest later (needs a customer). */
+  deposit: z.boolean().optional(),
+  /** The register session (drawer) the money goes into. */
+  registerSessionId: z.string().max(64).optional(),
+  /** Sold without tax, and why (lib/pos/sale-tax.ts). */
+  taxExempt: z
+    .object({ reason: z.string().max(200), reference: z.string().max(120).optional() })
+    .optional(),
   discount: z
     .object({
       type: z.enum(["percent", "amount"]),
@@ -100,6 +132,10 @@ const PosOrderSchema = z.object({
     .optional(),
   clientRequestId: z.string().max(100).optional(),
   localReceiptNumber: z.string().max(100).optional(),
+  /** Offline replay only: when the counter took the money (ISO 8601). */
+  soldAt: z.string().max(40).optional(),
+  /** Offline replay only: the account that rang the sale up. */
+  cashierId: z.string().max(64).optional(),
 });
 
 async function generatePosOrderNumber(prefix?: string) {
@@ -114,10 +150,26 @@ function isDuplicateKeyError(err: unknown): boolean {
   );
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new AuthenticationError();
+/**
+ * POST /api/pos/orders — ring up a sale at the register.
+ *
+ * Through `withApi` like every other POS route: the session, the demo policy
+ * (a demo visitor may ring up sales, as they may create everything else) and
+ * the rate limit are the shared ones rather than this route's own copies.
+ *
+ * `lenient` is per cashier and a till's account is always a store role, which
+ * gets the preset twenty times over (`STORE_ROLE_ALLOWANCE`): 2,000 sales per
+ * quarter hour. That is far past a busy counter, and past a full offline
+ * outbox (500 sales, `MAX_QUEUED_SALES`) replayed in one drain — which is
+ * the case that sizes it, since a drain sends back to back. A refusal still
+ * keeps the sale: the drain reads 429 as "try later" and stops sending.
+ */
+export const POST = withApi(
+  {
+    auth: "user",
+    rateLimit: { action: "pos:orders", preset: "lenient" },
+  },
+  async ({ request, session }) => {
     const role = session.user.role;
     if (
       role !== USER_ROLES.ADMIN &&
@@ -127,11 +179,13 @@ export async function POST(request: NextRequest) {
       throw new AuthorizationError();
     }
 
-    await connectDB();
     const settings = await getSettingsLean();
     if (!(await canAccessPOS(session.user))) {
       throw new AuthorizationError();
     }
+    // Who is working the till: a colleague switched in with their PIN sells,
+    // and gives discounts, as themselves (lib/pos/operator.ts).
+    const operator = await resolvePosOperator(session.user, request.cookies);
 
     const body = await validateBody(request, PosOrderSchema);
     const {
@@ -141,6 +195,7 @@ export async function POST(request: NextRequest) {
       notes,
       posLocationId: requestedPosLocationId,
       customerId,
+      customerProfileId,
       cashTendered,
       paymentReference,
       paymentNote,
@@ -148,12 +203,19 @@ export async function POST(request: NextRequest) {
       discount,
       clientRequestId,
       localReceiptNumber,
+      tenders: tenderInput,
+      deposit: depositInput,
+      registerSessionId,
+      taxExempt: taxExemptInput,
+      soldAt: soldAtInput,
+      cashierId: cashierIdInput,
     }: {
       items?: POSOrderItemInput[];
       paymentMethod?: string;
       notes?: string;
       posLocationId?: string;
       customerId?: string;
+      customerProfileId?: string;
       marketingOptIn?: boolean;
       cashTendered?: number | string;
       paymentReference?: string;
@@ -162,17 +224,32 @@ export async function POST(request: NextRequest) {
       discount?: POSOrderDiscountInput;
       clientRequestId?: string;
       localReceiptNumber?: string;
+      tenders?: import("@/lib/pos/tenders").POSTenderInput[];
+      deposit?: boolean;
+      registerSessionId?: string;
+      taxExempt?: { reason: string; reference?: string };
+      soldAt?: string;
+      cashierId?: string;
     } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       throw new ValidationError("Items are required");
     }
-    if (!paymentMethod) {
+    if (!paymentMethod && !(Array.isArray(tenderInput) && tenderInput.length > 0)) {
       throw new ValidationError("Payment method is required");
     }
     // The sale, its loyalty points and a "yes" to news are filed under this
     // account, so it has to be a shopper's. Unchecked, a terminal could put
     // them on any account id it named — an admin's included.
+    if (customerId && customerProfileId) {
+      throw new ValidationError("Choose one customer for the sale");
+    }
+    // A guest has no account, so the sale stays filed under its cashier and
+    // carries the guest alongside — checked here, so a crafted id cannot name
+    // anything but a guest record.
+    const guestCustomer = customerProfileId
+      ? await loadPOSGuestCustomer(customerProfileId)
+      : null;
     if (customerId) {
       const customer = Types.ObjectId.isValid(customerId)
         ? await User.findById(customerId)
@@ -241,7 +318,7 @@ export async function POST(request: NextRequest) {
     if (discount && (typeof discount.value !== "number" || discount.value < 0)) {
       throw new ValidationError("Discount must not be negative");
     }
-    await assertPosDiscountAllowed(session.user, { items, discount });
+    await assertPosDiscountAllowed(operator, { items, discount });
 
     const productIds = Array.from(
       new Set(
@@ -268,8 +345,10 @@ export async function POST(request: NextRequest) {
       .select(
         // `name` too: without it a genuine oversell alert reads "Product: sold
         // 3, 0 on hand", which tells the merchant nothing about which shelf to
-        // recount — the one thing the alert exists to say.
-        "_id name slug price cost vendorId variants stock locationInventory " +
+        // recount — the one thing the alert exists to say. `comparePrice` and
+        // `options` complete each line's variant snapshot.
+        "_id name slug price comparePrice cost vendorId variants options stock locationInventory " +
+          "taxRate taxClass category chargeTax " +
           "shipping.isPhysicalProduct inventory.tracked " +
           "inventory.continueSellingWhenOutOfStock",
       )
@@ -287,7 +366,13 @@ export async function POST(request: NextRequest) {
     const vendorScopeId = scope.vendorId;
     for (const productId of productIds) {
       const product = productById.get(productId);
-      if (!product || String(product.vendorId) !== vendorScopeId) {
+      // Told apart from the ownership refusal below: a product deleted while a
+      // register was offline is a fact about that sale, and the reviewer
+      // reading the refusal on the queued sale needs to know which it was.
+      if (!product) {
+        throw new ValidationError("A selected product no longer exists");
+      }
+      if (String(product.vendorId) !== vendorScopeId) {
         throw new AuthorizationError(
           "This register can only sell its own products",
         );
@@ -316,76 +401,114 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("A selected product has no price");
     };
 
-    const normalizedItems: POSOrderItemInput[] = items.map((item) => ({
+    // Each line's own tax rate, from its product or category — never the
+    // till's word for it.
+    // A sale replayed from a terminal's offline queue is taxed at the rates in
+    // effect when it was rung up — the tax the customer was charged — not at
+    // those of the day it reaches the server. Settings → Tax keeps a rate's
+    // start date, so a change scheduled in between is read as of the sale.
+    const soldAtMs = normalizedLocalReceiptNumber
+      ? resolveOfflineSoldAt(soldAtInput)?.getTime()
+      : undefined;
+    const taxRateOf = await posTaxRates(affectedProducts, { at: soldAtMs });
+    const normalizedItems: Array<POSOrderItemInput & { taxRate: number | null }> = items.map((item) => ({
       ...item,
       price: resolvePosItemPrice(item),
       ...(vendorScopeId ? { vendorId: vendorScopeId } : {}),
+      taxRate: taxRateOf(item.productId),
     }));
 
-    const taxRate = settings.orders?.taxRate ?? 0;
-    const { subtotal, tax, shippingCost, totalDiscount, total } =
-      calculatePOSOrderTotals({
-        items: normalizedItems,
-        discount,
-        taxRate,
-        currency: settings.general?.defaultCurrency || "USD",
-      });
-    const normalizedStripeIntentId =
-      typeof stripePaymentIntentId === "string"
-        ? stripePaymentIntentId.trim()
-        : "";
-    const payment = validatePOSPaymentInput({
-      paymentMethod,
-      enabledMethods: settings.pos?.checkout?.paymentMethods,
-      total,
-      cashTendered,
-      paymentReference: paymentReference || normalizedStripeIntentId,
-      paymentNote,
+    const taxRate =
+      soldAtMs === undefined
+        ? (settings.orders?.taxRate ?? 0)
+        : storeTaxRateAt(settings.tax as StoredTaxSettings, soldAtMs, settings.orders?.taxRate ?? 0);
+    const currency = settings.general?.defaultCurrency || "USD";
+    const taxExemption = await resolvePOSTaxExemption(taxExemptInput, operator);
+    const pricesIncludeTax = settings.pos?.checkout?.pricesIncludeTax === true;
+    const saleTotals = calculatePOSOrderTotals({
+      items: normalizedItems,
+      discount,
+      taxRate,
+      pricesIncludeTax,
+      taxExempt: Boolean(taxExemption),
+      currency,
     });
-    if (!payment.ok) {
-      throw new ValidationError(payment.message);
-    }
-
-    let verifiedStripePaymentIntentId: string | undefined;
-    if (payment.metadata.posPayment.cardSubMethod === "card_stripe") {
-      if (!normalizedStripeIntentId) {
-        throw new ValidationError("Stripe payment intent is required");
-      }
-      const existingStripeOrder = await Order.findOne({
-        stripePaymentIntentId: normalizedStripeIntentId,
-      })
-        .select("_id orderNumber")
-        .lean();
-      if (existingStripeOrder) {
-        throw new ValidationError("Stripe payment has already been used");
-      }
-
-      const stripeSettings = settings.payment?.stripe;
-      if (!stripeSettings?.enabled) {
-        throw new ValidationError("Stripe is disabled");
-      }
-      const stripeSecretKey = resolveStripeCredentials(stripeSettings).secretKey;
-      if (!isStripeSecretKeyConfigured(stripeSecretKey)) {
-        throw new ValidationError("Stripe is not configured");
-      }
-
-      const currency = (
-        settings.general?.defaultCurrency || "USD"
-      ).toLowerCase();
-      const intent = await getStripeForSecretKey(
-        stripeSecretKey,
-      ).paymentIntents.retrieve(normalizedStripeIntentId, {
-        expand: ["latest_charge"],
-      });
-      const problem = posStripeIntentProblem(intent, {
-        amount: toStripeAmount(total, currency),
-        currency,
-        cashierId: session.user.id,
-        posLocationId: requestedPosLocationId,
-      });
-      if (problem) throw new ValidationError(problem);
-      verifiedStripePaymentIntentId = intent.id;
-    }
+    const { tax, shippingCost, total } = saleTotals;
+    // As the order stores it: net of tax when shelf prices include it.
+    const stored = posStoredSale(normalizedItems, saleTotals, currency);
+    const subtotal = stored.subtotal;
+    const totalDiscount = stored.discount;
+    const storedLineOf = new Map(normalizedItems.map((item, index) => [item, stored.lines[index]!]));
+    // The variant as it was rung up, read from the product here rather than
+    // taken from the till. Stored net of tax like the price when the shelf
+    // prices include it, so the "was" price compares with the price.
+    const variantSnapshotOf = new Map(
+      normalizedItems.map((item, index) => {
+        const snapshot = orderLineVariantSnapshot(productById.get(String(item.productId).trim()), item.variantId);
+        return [
+          item,
+          saleTotals.inclusive ? netOfTaxVariantSnapshot(snapshot, saleTotals.lineRates[index] ?? 0) : snapshot,
+        ] as const;
+      }),
+    );
+    // Each line's rate and tax, written where lines differ from the store's
+    // one rate or carry the tax inside their price — so a return of one hands
+    // back exactly its tax.
+    const recordLineTax = saleTotals.hasOwnRates || saleTotals.inclusive;
+    const lineTaxOf = new Map(
+      normalizedItems.map((item, index) => [
+        item,
+        {
+          taxRate: Math.round((saleTotals.lineRates[index] ?? 0) * 100 * 10_000) / 10_000,
+          tax: saleTotals.lineTaxes[index] ?? 0,
+        },
+      ]),
+    );
+    // Each line's tax by part (VAT, SD), whenever it carried tax — for the
+    // VAT invoice and the tax report (lib/tax/tax-parts.ts).
+    const taxPartsOf = new Map(
+      normalizedItems.map((item, index) => {
+        const rate = saleTotals.lineRates[index] ?? 0;
+        const components =
+          taxRateOf.partsOf(item.productId) ?? [{ name: "", rate: Math.round(rate * 100 * 10_000) / 10_000 }];
+        const parts = splitTax(saleTotals.lineTaxes[index] ?? 0, components, currency);
+        return [item, parts.length ? parts : undefined] as const;
+      }),
+    );
+    // Which drawer the money goes into — checked before any money is held,
+    // so a refusal here (a closed register, an open one required) leaves
+    // nothing behind. A replayed offline sale is never refused for it.
+    const replayingFromOutbox = Boolean(normalizedLocalReceiptNumber);
+    const registerSession = await resolveSaleSession({
+      vendorId: vendorScopeId,
+      registerSessionId,
+      required: settings.pos?.checkout?.requireOpenRegister === true,
+      isReplay: replayingFromOutbox,
+      soldAt: replayingFromOutbox ? resolveOfflineSoldAt(soldAtInput) : undefined,
+    });
+    const payment = await resolvePOSSalePayment({
+      input: {
+        tenders: tenderInput,
+        paymentMethod,
+        cashTendered,
+        paymentReference,
+        paymentNote,
+        stripePaymentIntentId,
+        deposit: depositInput,
+      },
+      total,
+      currency,
+      settings,
+      cashierId: operator.id,
+      posLocationId: requestedPosLocationId,
+      customerAccountId: customerId || undefined,
+      hasCustomer: Boolean(customerId || guestCustomer),
+      clientRequestId: normalizedClientRequestId,
+    });
+    // A deposit sale owes the rest: the goods are reserved, not handed over,
+    // and nothing is booked as paid until the balance is in.
+    const isDeposit = payment.balanceDue > 0;
+    const saleStatus = isDeposit ? ORDER_STATUS.PROCESSING : ORDER_STATUS.DELIVERED;
 
     // Order number generated below with retry
     const vendorContext = await resolveOrderVendorContextForItems({
@@ -408,21 +531,29 @@ export async function POST(request: NextRequest) {
       getName: (item) => item.name,
       getSku: (item) => item.sku,
       getQuantity: (item) => item.quantity,
-      getPrice: (item) => item.price,
+      getPrice: (item) => storedLineOf.get(item)?.price ?? item.price,
       getCost: (item) =>
         resolveOrderItemCost({
           product: productById.get(String(item.productId).trim()),
           variantId: item.variantId,
         }),
       getImage: (item) => item.image,
-      getLineDiscount: (item) => item.lineDiscount ?? null,
+      getLineDiscount: (item) => storedLineOf.get(item)?.lineDiscount ?? null,
+      ...(recordLineTax
+        ? {
+            getTaxRate: (item: (typeof normalizedItems)[number]) => lineTaxOf.get(item)?.taxRate,
+            getTax: (item: (typeof normalizedItems)[number]) => lineTaxOf.get(item)?.tax,
+          }
+        : {}),
+      getTaxParts: (item) => taxPartsOf.get(item),
       getLineNote: (item) =>
         typeof item.lineNote === "string" && item.lineNote.trim().length > 0
           ? item.lineNote.trim()
           : undefined,
+      getVariantSnapshot: (item) => variantSnapshotOf.get(item) ?? {},
       fallbackCommissionPercent:
         settings.orders?.commission?.vendorRate ?? DEFAULT_VENDOR_COMMISSION_RATE,
-      status: ORDER_STATUS.DELIVERED,
+      status: saleStatus,
     });
 
     // The register sends back the location the page resolved for it, but a
@@ -462,14 +593,46 @@ export async function POST(request: NextRequest) {
      */
     const isOfflineReplay = Boolean(normalizedLocalReceiptNumber);
 
+    // When the counter took the money, and who was standing at it — both only
+    // meaningful for a replay, where the arrival time and the replaying session
+    // can be hours and a shift change away from the sale.
+    const soldAt = isOfflineReplay
+      ? resolveOfflineSoldAt(soldAtInput)
+      : undefined;
+    const sellerId = isOfflineReplay
+      ? await resolveOfflineCashier({
+          cashierId: cashierIdInput,
+          sessionUserId: session.user.id,
+          vendorScopeId,
+        })
+      : operator.id;
+
     // Measured BEFORE the decrement, against the stock this register was
     // scoped to, so the report says what the shelf was actually short.
     const oversoldLines = isOfflineReplay
       ? findOversoldLines(normalizedItems, productById, posLocationId)
       : [];
 
+    // A sale paid in full is handed over at the counter, so that is when it
+    // was delivered. Without the stamp a payout read the sale as delivered
+    // long ago and paid the seller before the return window had even started.
+    const handedOverAt = isDeposit ? undefined : (soldAt ?? new Date());
+
     const orderData = {
-      customerId: customerId || session.user.id,
+      inventoryReservationSourceId: new Types.ObjectId().toString(),
+      // A walk-in is filed under its cashier (`lib/orders/pos-walk-in.ts`
+      // reads `customerId === staffId`), so both name the same account.
+      customerId: customerId || sellerId,
+      ...(guestCustomer
+        ? {
+            posCustomerProfileId: guestCustomer._id,
+            posCustomerName: guestCustomer.name || undefined,
+            contactPhone: guestCustomer.phone,
+            // An email guest is a guest checkout's own record: the sale joins
+            // their history (stats, and the claim when they register) by it.
+            guestEmail: guestCustomer.email,
+          }
+        : {}),
       currency: settings.general?.defaultCurrency || "USD",
       posClientRequestId: normalizedClientRequestId,
       // Only set for a sale replayed from a terminal's offline outbox. The
@@ -481,15 +644,12 @@ export async function POST(request: NextRequest) {
       // signal that a shelf count needs correcting.
       posOversoldLines: oversoldLines.length > 0 ? oversoldLines : undefined,
       items: normalizedItems.map((item) => {
-        const lineDiscountAmount = computePOSLineDiscountAmount(
-          item,
-          settings.general?.defaultCurrency || "USD",
-        );
+        const storedLine = storedLineOf.get(item);
         return {
           productId: item.productId,
           name: item.name,
           sku: item.sku,
-          price: item.price,
+          price: storedLine?.price ?? item.price,
           cost: resolveOrderItemCost({
             product: productById.get(String(item.productId).trim()),
             variantId: item.variantId,
@@ -498,37 +658,56 @@ export async function POST(request: NextRequest) {
           image: item.image,
           variantId: item.variantId,
           vendorId: getOrderItemVendorId(item.vendorId, vendorContext),
-          lineDiscount: item.lineDiscount
-            ? {
-                type: item.lineDiscount.type,
-                value: item.lineDiscount.value,
-                amount: lineDiscountAmount,
-              }
-            : undefined,
+          lineDiscount: storedLine?.lineDiscount,
           lineNote:
             typeof item.lineNote === "string" && item.lineNote.trim().length > 0
               ? item.lineNote.trim()
               : undefined,
+          ...(recordLineTax ? lineTaxOf.get(item) : {}),
+          ...(taxPartsOf.get(item) ? { taxParts: taxPartsOf.get(item) } : {}),
+          ...variantSnapshotOf.get(item),
         };
       }),
-      subOrders,
+      subOrders: handedOverAt
+        ? subOrders.map((sub) => ({
+            ...sub,
+            shippedAt: handedOverAt,
+            deliveredAt: handedOverAt,
+            deliveryAttestedBy: DELIVERY_ATTESTED_BY.COUNTER,
+          }))
+        : subOrders,
+      ...(handedOverAt ? { shippedAt: handedOverAt, deliveredAt: handedOverAt } : {}),
       shippingAddress: posAddress,
       billingAddress: posAddress,
       paymentMethod: payment.method,
-      paymentStatus: "paid",
-      paidAt: new Date(),
-      paymentId:
-        verifiedStripePaymentIntentId ||
-        (payment.method === "card" && payment.reference
-          ? payment.reference
-          : undefined),
-      stripePaymentIntentId: verifiedStripePaymentIntentId,
+      paymentStatus: isDeposit ? "partially_paid" : "paid",
+      // A deposit is not yet a paid sale: `paidAt` is stamped when the balance
+      // lands, which is when the sale reaches the books.
+      ...(isDeposit ? {} : { paidAt: soldAt ?? new Date() }),
+      posTenders: payment.tenders.map((tender) => ({
+        ...tender,
+        kind: "sale" as const,
+        collectedAt: soldAt ?? new Date(),
+        collectedBy: sellerId,
+        ...(registerSession ? { sessionId: registerSession } : {}),
+      })),
+      ...(registerSession ? { posRegisterSessionId: registerSession } : {}),
+      ...(isDeposit ? { posBalanceDue: payment.balanceDue } : {}),
+      ...(payment.storeCredit ? { storeCredit: payment.storeCredit } : {}),
+      // Mongoose only fills `createdAt` when it is absent, so a believed sale
+      // time dates the order where the sale happened; `posSyncedAt` keeps the
+      // arrival. Both absent for an online sale.
+      ...(soldAt ? { createdAt: soldAt, posSyncedAt: new Date() } : {}),
+      paymentId: payment.paymentId,
+      stripePaymentIntentId: payment.stripePaymentIntentId,
       subtotal,
       shippingCost,
       tax,
       // Store the TOTAL discount (line + order-level) so finance reports,
       // sales ledger, and analytics all reflect the full markdown.
       discount: totalDiscount,
+      ...(saleTotals.inclusive ? { pricesIncludeTax: true } : {}),
+      ...(taxExemption ? { taxExemption: { ...taxExemption, by: operator.id, at: new Date() } } : {}),
       discountMeta: discount
         ? {
             type: discount.type,
@@ -538,11 +717,11 @@ export async function POST(request: NextRequest) {
           }
         : undefined,
       total,
-      status: ORDER_STATUS.DELIVERED,
+      status: saleStatus,
       notes,
       channel: "pos",
       posLocationId,
-      staffId: session.user.id,
+      staffId: sellerId,
     };
 
     const inventoryLines = normalizedItems.map((item) => ({
@@ -555,6 +734,7 @@ export async function POST(request: NextRequest) {
     // referencing stock we couldn't actually reserve.
     try {
       await decrementInventory(inventoryLines, {
+        financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId },
         channel: "pos",
         locationId: posLocationId,
         allowOversell: isOfflineReplay,
@@ -592,6 +772,7 @@ export async function POST(request: NextRequest) {
             }).lean();
             if (committed) {
               await restoreInventory(inventoryLines, {
+                financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId },
                 channel: "pos",
                 locationId: posLocationId,
               }).catch((restoreErr) =>
@@ -609,6 +790,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       await restoreInventory(inventoryLines, {
+        financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId },
         channel: "pos",
         locationId: posLocationId,
       }).catch((restoreErr) =>
@@ -619,6 +801,7 @@ export async function POST(request: NextRequest) {
 
     if (!order) {
       await restoreInventory(inventoryLines, {
+        financeSource: { kind: "order_reservation", id: orderData.inventoryReservationSourceId },
         channel: "pos",
         locationId: posLocationId,
       }).catch((restoreErr) =>
@@ -633,7 +816,18 @@ export async function POST(request: NextRequest) {
       console.error("Failed to mark inventory reserved on POS order:", err),
     );
 
-    await ensureChargeTransaction({
+    // Store credit held for the sale is now the order's, and spent: the goods
+    // (or the deposit's share of them) went over the counter on it.
+    if (payment.storeCredit) {
+      await linkStoreCreditHold({ holdKey: payment.storeCredit.holdKey, orderId: order._id });
+      await settleOrderStoreCredit(order).catch((err) =>
+        console.error("Failed to spend the store credit on a POS sale:", err),
+      );
+    }
+
+    // The charge row (and through it the ledger) waits for the whole sale to
+    // be paid: a deposit is money held against a sale not yet made.
+    if (!isDeposit) await ensureChargeTransaction({
       _id: String(order._id),
       orderNumber: order.orderNumber,
       paymentMethod: order.paymentMethod,
@@ -679,7 +873,7 @@ export async function POST(request: NextRequest) {
       itemCount: order.items.length,
       paymentMethod: order.paymentMethod,
     });
-    await auditOrderPaid(posAuditContext, order, {
+    if (!isDeposit) await auditOrderPaid(posAuditContext, order, {
       gateway: order.paymentMethod,
       amount: order.total,
       currency: order.currency,
@@ -711,13 +905,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (guestCustomer) {
+      const { refreshCustomerStatsForOrder } = await import("@/lib/customers/customer");
+      refreshCustomerStatsForOrder(order).catch((err) =>
+        console.error("Failed to refresh guest customer stats:", err),
+      );
+    }
+
     if (customerId) {
       const { awardOrderLoyaltyPoints, refreshCustomerStats } = await import(
         "@/lib/customers/customer"
       );
-      await awardOrderLoyaltyPoints(String(order._id)).catch((err) =>
-        console.error("Failed to award loyalty points:", err),
-      );
+      // Points follow the money: a deposit sale earns them when it is paid off.
+      if (!isDeposit) {
+        await awardOrderLoyaltyPoints(String(order._id)).catch((err) =>
+          console.error("Failed to award loyalty points:", err),
+        );
+      }
       refreshCustomerStats(String(customerId))
         .catch((err) =>
           console.error("Failed to refresh customer stats:", err),
@@ -725,7 +929,27 @@ export async function POST(request: NextRequest) {
     }
 
     return createdResponse(order);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+);
+
+/**
+ * GET /api/pos/orders?search=&due=1&locationId= — the register's own counter
+ * sales, for collecting a balance, a return, or a receipt sent again. See
+ * lib/pos/pos-order-search.ts.
+ */
+export const GET = withApi(
+  { auth: "user", rateLimit: { action: "pos:orders:search", preset: "lenient" } },
+  async ({ request, session }) => {
+    const { searchParams } = new URL(request.url);
+    const settings = await getSettingsLean();
+    return successResponse(
+      await searchPOSSales({
+        user: session.user,
+        search: searchParams.get("search") || undefined,
+        dueOnly: searchParams.get("due") === "1",
+        locationId: searchParams.get("locationId") || undefined,
+        settings,
+      }),
+    );
+  },
+);

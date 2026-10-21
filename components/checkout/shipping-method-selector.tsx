@@ -251,7 +251,7 @@ export function ShippingMethodSelector({
               {tr("checkout.deliveryForOrder", "Delivery for the whole order")}
             </span>
             {activePreset === "custom" ? (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-store-link">
                 {tr("checkout.customLabel", "Custom")}
               </span>
             ) : null}
@@ -384,7 +384,7 @@ export function ShippingMethodSelector({
                       // Not "Custom": a row can be off the cheapest rate
                       // without being faster, so what is true of it is only
                       // that the shopper chose it themselves.
-                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-store-link">
                         {tr("checkout.shipmentChanged", "Changed")}
                       </span>
                     ) : null}
@@ -409,7 +409,7 @@ export function ShippingMethodSelector({
                     <p className="truncate text-xs">{methodLine}</p>
                   ) : null}
                   {items.some((item) => item.isPreorder) ? (
-                    <p className="text-xs font-medium text-blue-600 dark:text-blue-300">
+                    <p className="text-xs font-medium text-status-on-info">
                       {tr("checkout.shipmentPreorder", "Pre-order · ships later")}
                     </p>
                   ) : null}
@@ -424,7 +424,7 @@ export function ShippingMethodSelector({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-auto px-1 py-1 text-primary hover:text-primary"
+                      className="h-auto px-1 py-1 text-store-link hover:text-store-link"
                       aria-expanded={isOpen}
                       onClick={() =>
                         setOpenVendorId(isOpen ? null : group.vendorId)
@@ -477,7 +477,7 @@ export function ShippingMethodSelector({
             type="button"
             variant="ghost"
             size="sm"
-            className="text-primary hover:text-primary"
+            className="text-store-link hover:text-store-link"
             onClick={() => setShowAll((value) => !value)}
           >
             {showAll

@@ -1,0 +1,695 @@
+[
+  {
+    "_id": {
+      "$oid": "6ac24113b1e0f775aa0307c0"
+    },
+    "vendorId": {
+      "$oid": "6ab7ff2cee336b4da2c7d6b7"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-10-04T12:05:33.463Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "f5cf24a5-523f-4962-a133-6eda6063a2c4",
+          "type": "category-list",
+          "version": 1,
+          "visible": false,
+          "settings": {
+            "title": "Featured Categories",
+            "source": "featured",
+            "limit": 8,
+            "categoryIds": [],
+            "style": "",
+            "variant": "cards",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "4bb16c42-65a0-4cb6-a41d-5dd2ce22cb75",
+          "type": "promotion-banner",
+          "version": 1,
+          "visible": false,
+          "settings": {
+            "slides": [],
+            "transition": "slide",
+            "autoplaySeconds": 5,
+            "fullWidth": false,
+            "image": "",
+            "heading": "",
+            "subheading": "",
+            "ctaLabel": "",
+            "link": "",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "39772491-a1f8-488e-bbdf-dbd77db75a7d",
+          "type": "image-text",
+          "version": 1,
+          "visible": false,
+          "settings": {
+            "image": "",
+            "imagePosition": "left",
+            "heading": "",
+            "body": "",
+            "ctaLabel": "",
+            "link": "",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "3d4cdd64-8835-4811-a1b8-7911dc69f8b3",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": false,
+          "settings": {
+            "code": "",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "",
+            "background": {
+              "type": "solid"
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "34543dfd-6edd-4a13-a129-8cc4228a022e",
+          "type": "countdown-offer",
+          "version": 1,
+          "visible": false,
+          "settings": {
+            "heading": "Deal of the week",
+            "subheading": "",
+            "ctaLabel": "",
+            "link": "",
+            "endsAt": "",
+            "height": 360,
+            "image": "",
+            "background": {
+              "type": "solid"
+            },
+            "foreground": "#ffffff",
+            "showSavings": true,
+            "showStock": true,
+            "cardGap": 16,
+            "corners": "custom",
+            "panelRadius": 16,
+            "cardRadius": 12,
+            "imageFit": "followProduct",
+            "layout": "featured-4",
+            "productIds": [],
+            "variant": "deals-panel",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "37d13ab5-4bcb-44e0-92f3-41e85b09a34d",
+          "type": "product-grid",
+          "version": 1,
+          "visible": false,
+          "settings": {
+            "title": "Products on Sale",
+            "subtitle": "",
+            "source": "discounted",
+            "limit": 8,
+            "desktopColumns": 4,
+            "productIds": [],
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "fb023a48-aca1-411f-8da6-8c51b25533e1",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-10-05T06:43:31.107Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "published": null,
+    "settings": {
+      "accentColor": "",
+      "showSimilarProducts": true,
+      "defaultTab": "home",
+      "hideAboutTab": false,
+      "hideShippingTab": false,
+      "bannerSize": "standard",
+      "defaultSort": "popular",
+      "announcement": {
+        "text": "",
+        "link": "",
+        "color": "",
+        "startsAt": "",
+        "endsAt": ""
+      },
+      "seo": {
+        "title": "",
+        "description": "",
+        "image": "https://storify-furniture.neurolight.studio/uploads/vendor/6ab7ff2cee336b4da2c7d6b7/2026/10/1791182676134-a78d4bd22ef86182e4b79078d9a6d55e/ChatGPT_Image_Sep_14__2026__11_04_29_AM.png"
+      }
+    },
+    "takedown": null,
+    "updatedAt": {
+      "$date": "2026-10-05T06:44:42.452Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6ac353bfb1e0f775aa030c1c"
+    },
+    "vendorId": {
+      "$oid": "6ac352181af76d6eae5e0031"
+    },
+    "__v": 0,
+    "createdAt": {
+      "$date": "2026-10-05T07:37:27.406Z"
+    },
+    "draft": {
+      "sections": [
+        {
+          "id": "b2fd7534-30cd-4452-89a2-3ae8b30c03a3",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Shop by Category",
+            "source": "featured",
+            "limit": 9,
+            "categoryIds": [],
+            "style": "{\"align\":\"center\",\"titleAlign\":\"center\",\"arrowSize\":38}",
+            "variant": "cards",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "7731418c-d4bf-427a-9abb-3f215028d38c",
+          "type": "product-group",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Best Selling",
+            "limit": 6,
+            "desktopColumns": 4,
+            "variant": "centered",
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "9fd7cad0-97b4-4f96-9c76-6de4682c56ac",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "New",
+                "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            },
+            {
+              "id": "b7ff6c2c-2688-4eeb-ab7e-e437079a6f6c",
+              "type": "tab",
+              "visible": false,
+              "settings": {
+                "label": "On Sale",
+                "source": "discounted",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            },
+            {
+              "id": "0ef6b6ab-4ab8-49ec-8de6-83e0ec45eb2a",
+              "type": "tab",
+              "visible": false,
+              "settings": {
+                "label": "",
+                "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "90c7138b-8473-4a85-9f54-f36bfa3c2264",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "bento3",
+            "width": "fixed",
+            "height": "full",
+            "gap": 14,
+            "sidePadding": 30,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "08730553-cbd7-4de6-8c9d-6716acd57889",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1791188829905",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "4870e58b-f71f-40ef-877b-721ab1ffc9de",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1791196739425",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "8d3573df-9d0e-44f7-a85d-846545b3ce99",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1791200125651",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "d9f6afad-4896-4e9b-8b3a-e374a2e93d3b",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "001f10d3-fe51-4eee-9a41-95627321b7bb",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "665d5227-8bf9-4e21-90e6-7ddee819b314",
+          "type": "featured-collection",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "Top Collections",
+            "gapMode": "followCards",
+            "gap": 16,
+            "panelWidth": 0,
+            "panelHeight": 0,
+            "corners": "custom",
+            "panelRadius": 16,
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "ff99ef50-27ed-43e8-93e4-076ba98425f1",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "",
+                "limit": 4,
+                "products": [],
+                "kind": "image",
+                "image": "",
+                "slider": ""
+              }
+            },
+            {
+              "id": "2ff77bf3-e0be-49e6-86ce-698b934594ec",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "",
+                "limit": 4,
+                "products": [],
+                "kind": "image",
+                "image": "",
+                "slider": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "13baa1c0-e345-424c-a298-e5ffffeb9ae2",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": true,
+          "settings": {
+            "code": "NEW",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "/products",
+            "background": {
+              "type": "image",
+              "image": "https://storify-furniture.neurolight.studio/uploads/vendor/6ac352181af76d6eae5e0031/2026/10/1791347986590-2dcd73ed978286b86c08e76e4e68b524/9ded0d20-00ae-431f-b8a7-d418f7061892.png",
+              "imageWidth": 2172
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "6f0b07b2-7e59-4d30-96b5-447881a2b387",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "updatedAt": {
+        "$date": "2026-10-08T04:02:55.194Z"
+      },
+      "updatedBy": null
+    },
+    "history": [],
+    "published": {
+      "sections": [
+        {
+          "id": "b2fd7534-30cd-4452-89a2-3ae8b30c03a3",
+          "type": "category-list",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Shop by Category",
+            "source": "featured",
+            "limit": 9,
+            "categoryIds": [],
+            "style": "{\"align\":\"center\",\"titleAlign\":\"center\",\"arrowSize\":38}",
+            "variant": "cards",
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "7731418c-d4bf-427a-9abb-3f215028d38c",
+          "type": "product-group",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "Best Selling",
+            "limit": 6,
+            "desktopColumns": 4,
+            "variant": "centered",
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "9fd7cad0-97b4-4f96-9c76-6de4682c56ac",
+              "type": "tab",
+              "visible": true,
+              "settings": {
+                "label": "New",
+                "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            },
+            {
+              "id": "b7ff6c2c-2688-4eeb-ab7e-e437079a6f6c",
+              "type": "tab",
+              "visible": false,
+              "settings": {
+                "label": "On Sale",
+                "source": "discounted",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            },
+            {
+              "id": "0ef6b6ab-4ab8-49ec-8de6-83e0ec45eb2a",
+              "type": "tab",
+              "visible": false,
+              "settings": {
+                "label": "",
+                "source": "latest",
+                "categoryId": "",
+                "brandId": "",
+                "collectionId": "",
+                "productIds": []
+              }
+            }
+          ]
+        },
+        {
+          "id": "90c7138b-8473-4a85-9f54-f36bfa3c2264",
+          "type": "promotion-grid",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "grid": "bento3",
+            "width": "fixed",
+            "height": "full",
+            "gap": 14,
+            "sidePadding": 30,
+            "corners": "custom",
+            "radius": 12
+          },
+          "blocks": [
+            {
+              "id": "08730553-cbd7-4de6-8c9d-6716acd57889",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1791188829905",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "4870e58b-f71f-40ef-877b-721ab1ffc9de",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1791196739425",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "8d3573df-9d0e-44f7-a85d-846545b3ce99",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "new-slider-1791200125651",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "d9f6afad-4896-4e9b-8b3a-e374a2e93d3b",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            },
+            {
+              "id": "001f10d3-fe51-4eee-9a41-95627321b7bb",
+              "type": "cell",
+              "visible": true,
+              "settings": {
+                "kind": "slider",
+                "slider": "",
+                "image": "",
+                "link": "",
+                "alt": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "665d5227-8bf9-4e21-90e6-7ddee819b314",
+          "type": "featured-collection",
+          "version": 2,
+          "visible": true,
+          "settings": {
+            "title": "Top Collections",
+            "gapMode": "followCards",
+            "gap": 16,
+            "panelWidth": 0,
+            "panelHeight": 0,
+            "corners": "custom",
+            "panelRadius": 16,
+            "titleSize": "default"
+          },
+          "blocks": [
+            {
+              "id": "ff99ef50-27ed-43e8-93e4-076ba98425f1",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "",
+                "limit": 4,
+                "products": [],
+                "kind": "image",
+                "image": "",
+                "slider": ""
+              }
+            },
+            {
+              "id": "2ff77bf3-e0be-49e6-86ce-698b934594ec",
+              "type": "collection",
+              "visible": true,
+              "settings": {
+                "collection": "",
+                "limit": 4,
+                "products": [],
+                "kind": "image",
+                "image": "",
+                "slider": ""
+              }
+            }
+          ]
+        },
+        {
+          "id": "13baa1c0-e345-424c-a298-e5ffffeb9ae2",
+          "type": "coupon-banner",
+          "version": 3,
+          "visible": true,
+          "settings": {
+            "code": "NEW",
+            "showExpiry": true,
+            "offer": "",
+            "condition": "",
+            "ctaLabel": "Shop now",
+            "link": "/products",
+            "background": {
+              "type": "image",
+              "image": "https://storify-furniture.neurolight.studio/uploads/vendor/6ac352181af76d6eae5e0031/2026/10/1791347986590-2dcd73ed978286b86c08e76e4e68b524/9ded0d20-00ae-431f-b8a7-d418f7061892.png",
+              "imageWidth": 2172
+            },
+            "titleSize": "default"
+          },
+          "blocks": []
+        },
+        {
+          "id": "6f0b07b2-7e59-4d30-96b5-447881a2b387",
+          "type": "review-highlights",
+          "version": 1,
+          "visible": true,
+          "settings": {
+            "title": "What our customers say",
+            "source": "auto",
+            "reviewOrder": "bestRated",
+            "minRating": 4,
+            "limit": 6,
+            "reviewIds": [],
+            "showProduct": true,
+            "titleSize": "default"
+          },
+          "blocks": []
+        }
+      ],
+      "publishedAt": {
+        "$date": "2026-10-08T04:03:04.646Z"
+      },
+      "publishedBy": null
+    },
+    "settings": {
+      "announcement": {
+        "text": "",
+        "link": "",
+        "color": "",
+        "startsAt": "",
+        "endsAt": ""
+      },
+      "seo": {
+        "title": "",
+        "description": "",
+        "image": ""
+      },
+      "accentColor": "",
+      "showSimilarProducts": true,
+      "defaultTab": "home",
+      "hideAboutTab": false,
+      "hideShippingTab": false,
+      "bannerSize": "standard",
+      "defaultSort": "popular"
+    },
+    "takedown": null,
+    "updatedAt": {
+      "$date": "2026-10-08T04:03:04.646Z"
+    }
+  }
+]

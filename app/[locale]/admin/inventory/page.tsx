@@ -1,5 +1,7 @@
+import Link from "@/components/language/link";
 import { Suspense } from "react";
 import {
+  BookOpen,
   Boxes,
   MapPin,
   PackageSearch,
@@ -20,6 +22,7 @@ import { InventoryTableSection } from "@/components/admin/inventory-table-sectio
 import { AdminListSkeleton } from "@/components/admin/admin-list-skeleton";
 import { requireAdminOrStaffPageAccess } from "@/lib/access/staff-page-guard";
 import { STAFF_PERMISSIONS } from "@/config/permissions.config";
+import { Button } from "@/components/ui/button";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -48,6 +51,7 @@ export default async function AdminInventoryPage({
     required: [STAFF_PERMISSIONS.VIEW_INVENTORY],
   });
 
+  const isStaff = access.session.user.role !== "admin";
   const stats = await getInventoryStats();
 
   const statItems: AdminStatsStripItem[] = [
@@ -90,6 +94,20 @@ export default async function AdminInventoryPage({
 
   return (
     <div className="space-y-4">
+      {/* Admins reach Inventory and ledger from the Finance sidebar; staff have
+          no Finance section, so their way in is here. */}
+      {isStaff ? (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/inventory/finance">
+              <BookOpen className="size-4" />
+              {t.has("inventoryFinance.title")
+                ? t("inventoryFinance.title")
+                : "Inventory and ledger"}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
       <AdminStatsStrip items={statItems} />
       <Suspense
         fallback={

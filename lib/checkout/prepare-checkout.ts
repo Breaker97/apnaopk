@@ -32,7 +32,8 @@ import {
   type ShippingSettings,
 } from "@/lib/shipping/shipping";
 import { resolveCheckoutShipping } from "@/lib/checkout/checkout-shipping";
-import { calculateCheckoutTotals } from "@/lib/catalog/discounts";
+import { checkoutTotalsWithLineTax, encodeLineTaxSnapshot } from "@/lib/tax/checkout-tax";
+import { couponVendorKey } from "@/lib/orders/coupon-line-split";
 import { sumPreorderOutstandingAfterCoupon } from "@/lib/orders/preorder-coupon-split";
 import { ConflictError, ValidationError } from "@/lib/api/errors";
 import {
@@ -54,6 +55,7 @@ import {
   reviewCheckoutSubmission,
 } from "@/lib/checkout/checkout-submission";
 import { assertCartVendorsSellable } from "@/lib/checkout/sellable-vendors";
+import { VENDOR_PICKUP_ONLY_MESSAGE } from "@/lib/vendors/vendor-fulfillment";
 import { isStorefrontProductSourceAllowed } from "@/lib/catalog/product-visibility";
 import { isQuoteOnlyProduct } from "@/lib/products/quote-pricing";
 import {
@@ -331,8 +333,11 @@ async function runCheckout(
           // `shipping` + `inventory` decide whether `stock` is a limit at all
           // (lib/products/stock-policy.ts) — resolvePurchaseType() reads them.
           // `returns` + `collectionIds` mark a final-sale line on the order.
+          // `options` + `comparePrice` complete the line's variant snapshot
+          // (lib/orders/order-line-variant.ts). `cost` is frozen onto order
+          // lines for COGS, including zero cost.
           select:
-            "name price images vendorId stock inventory sku slug shipping variants returns collectionIds",
+            "name price cost comparePrice options images vendorId stock inventory sku slug shipping variants returns collectionIds",
           populate: { path: "vendorId", select: "_id" },
         })
         .lean()
@@ -904,7 +909,9 @@ async function runCheckout(
     shippingResolution && !shippingResolution.available,
   );
   if (shippingUnavailable && !quote) {
-    throw new ValidationError(SHIPPING_UNAVAILABLE_MESSAGE);
+    throw new ValidationError(shippingResolution?.unavailableReason === "pickup_only"
+      ? VENDOR_PICKUP_ONLY_MESSAGE
+      : SHIPPING_UNAVAILABLE_MESSAGE);
   }
   const pickupCharges = pickupFulfillment
     ? pickupCheckoutCharges({ shippingCost: 0, dutyAmount: 0 })
@@ -954,17 +961,37 @@ async function runCheckout(
     }
   }
 
-  const totals = calculateCheckoutTotals({
-    subtotal,
-    shippingCost,
-    taxRate,
-    coupon: appliedCoupon,
-    shippingByVendor,
-    currency: settings.general?.defaultCurrency,
-  });
+  // Each line taxed at its own rate where a product or category sets one.
+  const totals = await checkoutTotalsWithLineTax(
+    {
+      subtotal,
+      shippingCost,
+      taxRate,
+      coupon: appliedCoupon,
+      shippingByVendor,
+      currency: settings.general?.defaultCurrency,
+    },
+    {
+      lines: items.map((item) => ({
+        productId: item.productId._id,
+        vendorId: couponVendorKey(item.productId.vendorId),
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      coupon: appliedCoupon,
+    },
+  );
   const discount = totals.discount;
   const tax = totals.tax;
   const total = totals.total + dutyAmount;
+  // What each line was charged, for a card payment to carry to the order
+  // builder — see `encodeLineTaxSnapshot`.
+  const lineTaxSnapshot = encodeLineTaxSnapshot(items, {
+    tax,
+    lineTaxes: totals.lineTaxes,
+    lineRates: totals.lineRates,
+    storeRate: taxRate,
+  });
   // A scoped coupon's discount, by the vendor whose items earned it, rescaled
   // if the totals capped the discount below what the coupon offered.
   const couponVendorShares = appliedCoupon?.vendorShares
@@ -1126,6 +1153,7 @@ async function runCheckout(
     subtotal,
     discount,
     tax,
+    lineTaxSnapshot,
     total,
     shippingCost,
     dutyAmount,
