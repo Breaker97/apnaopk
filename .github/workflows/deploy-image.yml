@@ -88,6 +88,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
+            type=raw,value=coolify
             type=sha,prefix=
 
       - name: Assemble & push image
@@ -102,21 +103,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Optional: tells Dokploy to pull the fresh tag and restart. Without
-      # the three secrets this step exits successfully and you press Deploy
-      # by hand. GitHub Actions does not allow `secrets.*` in a step-level
-      # `if`, so the check intentionally happens in the shell.
-      - name: Trigger Dokploy redeploy
+      # Optional: Coolify deploy webhooks pull the freshly pushed `coolify`
+      # image tag and roll the application forward. Without this secret,
+      # redeploy manually from Coolify after the action succeeds.
+      - name: Trigger Coolify redeploy
         env:
-          DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
-          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-          DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
         run: |
-          if [ -z "$DOKPLOY_URL" ] || [ -z "$DOKPLOY_API_KEY" ] || [ -z "$DOKPLOY_APPLICATION_ID" ]; then
-            echo "Dokploy secrets are not configured; skipping redeploy."
+          if [ -z "$COOLIFY_WEBHOOK" ]; then
+            echo "COOLIFY_WEBHOOK is not configured; redeploy manually from Coolify."
             exit 0
           fi
-          curl --fail-with-body -sS -X POST "$DOKPLOY_URL/api/application.deploy" \
-            -H "x-api-key: $DOKPLOY_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"applicationId\": \"$DOKPLOY_APPLICATION_ID\"}"
+          curl --fail-with-body -sS -X GET "$COOLIFY_WEBHOOK"
